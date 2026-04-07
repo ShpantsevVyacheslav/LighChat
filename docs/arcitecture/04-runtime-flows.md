@@ -43,3 +43,10 @@
 - Callable admin endpoints (`createNewUser`, `updateUserAdmin`, backfill-операции).
 - Периодический scheduler `checkUserPresence` чистит stale presence/meeting records.
 - Server actions в `src/actions/*` выполняют read-heavy/privileged операции для UI-панелей.
+
+## 7) iOS PWA performance guards
+
+- Бейдж непрочитанных сообщений рассчитывается только в chat-маршрутах, чтобы не держать тяжёлые realtime-подписки на каждом экране dashboard.
+- PWA onboarding выполняет длинные FCM-подписки в фоне и не блокирует UI длительным ожиданием.
+- Overlay звонков подключается с небольшой отложенной инициализацией после входа в dashboard, чтобы разгрузить cold-start.
+- В meetings ограничен объём realtime-данных на старте (лимиты истории чата и опросов).

@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation';
 import type { Meeting, User, MeetingJoinRequest } from '@/lib/types';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useStorage } from '@/firebase';
-import { collection, doc, onSnapshot, serverTimestamp, query, where, orderBy, deleteDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { collection, doc, onSnapshot, serverTimestamp, query, where, orderBy, deleteDoc, setDoc, updateDoc, increment, limitToLast } from 'firebase/firestore';
 import { ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -131,7 +131,11 @@ export function MeetingRoom({
 
   useEffect(() => {
     if (!firestore) return;
-    const q = query(collection(firestore, `meetings/${meeting.id}/messages`), orderBy('createdAt', 'asc'));
+    const q = query(
+      collection(firestore, `meetings/${meeting.id}/messages`),
+      orderBy('createdAt', 'asc'),
+      limitToLast(120)
+    );
     
     let isInitial = true;
     return onSnapshot(q, (snap) => {

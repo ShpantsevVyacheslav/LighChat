@@ -22,40 +22,34 @@ export function PwaOnboarding() {
     }
   }, []);
 
-  const handleEnablePermissions = async () => {
+  const handleEnablePermissions = () => {
     setIsProcessing(true);
-    
-    try {
-        // 1. Уведомления (FCM на iOS PWA может долго ждать SW/getToken — не блокируем онбординг бесконечно)
-        // Для iOS PWA SW + getToken могут занять до ~90 с; не обрываем раньше, чем subscribe завершится
+    localStorage.setItem('pwa_onboarding_shown', 'true');
+
+    // Не блокируем экран iOS PWA долгой инициализацией FCM.
+    setTimeout(() => {
+      setIsVisible(false);
+      setIsProcessing(false);
+    }, 250);
+
+    void (async () => {
+      try {
+        // Уведомления: ограничиваем ожидание, остальное догонится на следующих попытках.
         await Promise.race([
           subscribe(),
-          new Promise<void>((resolve) => setTimeout(resolve, 95_000)),
+          new Promise<void>((resolve) => setTimeout(resolve, 20_000)),
         ]);
 
-        // 2. Request Camera/Mic after
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            stream.getTracks().forEach(track => track.stop());
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          stream.getTracks().forEach(track => track.stop());
         } catch (e) {
-            console.warn("Media permissions denied or failed:", e);
+          console.warn("Media permissions denied or failed:", e);
         }
-
-        // Помечаем как показанное
-        localStorage.setItem('pwa_onboarding_shown', 'true');
-        
-        // Закрываем окно через небольшую паузу для плавности
-        setTimeout(() => {
-            setIsVisible(false);
-            setIsProcessing(false);
-        }, 500);
-
-    } catch (error) {
+      } catch (error) {
         console.error("Onboarding permissions error:", error);
-        // В случае любой ошибки все равно закрываем окно, чтобы не блокировать пользователя
-        setIsVisible(false);
-        setIsProcessing(false);
-    }
+      }
+    })();
   };
 
   if (!isVisible) return null;

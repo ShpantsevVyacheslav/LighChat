@@ -11,11 +11,18 @@ import type { Conversation, Notification, UserChatIndex } from '@/lib/types';
  * Чаты подгружаются по `userChats/{userId}.conversationIds` (без list-query по `conversations`).
  */
 export function useTotalUnreadCount(userId: string | undefined): number {
+  return useTotalUnreadCountWithOptions(userId, true);
+}
+
+export function useTotalUnreadCountWithOptions(
+  userId: string | undefined,
+  enabled: boolean
+): number {
   const firestore = useFirestore();
 
   const userChatIndexRef = useMemoFirebase(
-    () => (firestore && userId ? doc(firestore, 'userChats', userId) : null),
-    [firestore, userId]
+    () => (enabled && firestore && userId ? doc(firestore, 'userChats', userId) : null),
+    [enabled, firestore, userId]
   );
   const { data: userChatIndex } = useDoc<UserChatIndex>(userChatIndexRef);
   const conversationIds = useMemo(
@@ -23,7 +30,7 @@ export function useTotalUnreadCount(userId: string | undefined): number {
     [userChatIndex?.conversationIds]
   );
 
-  const { data: conversations } = useConversationsByDocumentIds(firestore, conversationIds);
+  const { data: conversations } = useConversationsByDocumentIds(enabled ? firestore : null, conversationIds);
 
   /** Сумма непрочитанных (основная лента + треды). */
   return useMemo(() => {

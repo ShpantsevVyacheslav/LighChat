@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, updateDoc, serverTimestamp, orderBy, query, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, serverTimestamp, orderBy, query, deleteDoc, limit } from 'firebase/firestore';
 import type { User, MeetingPoll } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +47,7 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
 
   const pollsQuery = useMemoFirebase(() => {
     if (!firestore || !meetingId) return null;
-    return query(collection(firestore, `meetings/${meetingId}/polls`), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, `meetings/${meetingId}/polls`), orderBy('createdAt', 'desc'), limit(60));
   }, [firestore, meetingId]);
 
   const { data: polls } = useCollection<MeetingPoll>(pollsQuery);

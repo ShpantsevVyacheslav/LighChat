@@ -3,8 +3,15 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { User, Call, UserCallsIndex } from '@/lib/types';
-import { useDoc, useFirestore, useCollection, useMemoFirebase, useCallsByDocumentIds, useUser as useFirebaseAuthUser } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import {
+  useDoc,
+  useFirestore,
+  useMemoFirebase,
+  useCallsByDocumentIds,
+  useUsersByDocumentIds,
+  useUser as useFirebaseAuthUser,
+} from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { cn, formatDuration } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -46,14 +53,6 @@ export function CallsHistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
 
-  const { data: usersData, isLoading: isLoadingUsers } = useCollection<User>(
-    useMemoFirebase(
-      () => (firestore && firebaseAuthUser ? collection(firestore, 'users') : null),
-      [firestore, firebaseAuthUser]
-    )
-  );
-  const allUsers = useMemo(() => usersData || [], [usersData]);
-
   const userCallsIndexRef = useMemoFirebase(() => {
     if (!firestore || !authUid) return null;
     return doc(firestore, 'userCalls', authUid);
@@ -62,6 +61,19 @@ export function CallsHistoryPage() {
   const callIds = useMemo(() => userCallsIndex?.callIds || [], [userCallsIndex]);
 
   const { data: rawCalls, isLoading: isLoadingCalls } = useCallsByDocumentIds(firestore, callIds);
+
+  const userIdsFromCalls = useMemo(() => {
+    const ids = new Set<string>();
+    if (authUid) ids.add(authUid);
+    rawCalls?.forEach((call) => {
+      if (call.callerId) ids.add(call.callerId);
+      if (call.receiverId) ids.add(call.receiverId);
+    });
+    return [...ids];
+  }, [authUid, rawCalls]);
+
+  const { usersById, isLoading: isLoadingUsers } = useUsersByDocumentIds(firestore, userIdsFromCalls);
+  const allUsers = useMemo(() => [...usersById.values()], [usersById]);
 
   const calls = useMemo(() => {
     if (!rawCalls) return [];

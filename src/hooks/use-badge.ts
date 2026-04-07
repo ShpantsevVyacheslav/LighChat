@@ -2,13 +2,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTotalUnreadCount } from './use-unread-counts';
+import { useTotalUnreadCountWithOptions } from './use-unread-counts';
 
 /**
  * Hook to synchronize global unread chat count with system app badges (PWA and Electron).
  */
-export function useBadge(userId: string | undefined) {
-  const totalBadgeCount = useTotalUnreadCount(userId);
+export function useBadge(userId: string | undefined, enabled: boolean = true) {
+  const totalBadgeCount = useTotalUnreadCountWithOptions(userId, enabled);
 
   useEffect(() => {
     // 1. Browser PWA Badge

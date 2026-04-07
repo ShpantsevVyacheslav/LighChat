@@ -13,12 +13,13 @@ const TYPING_STALE_MS = 8000;
 export function useConversationTypingOthers(
   firestore: Firestore | null,
   conversationId: string | undefined,
-  currentUserId: string | undefined
+  currentUserId: string | undefined,
+  enabled: boolean = true
 ): boolean {
   const [othersTyping, setOthersTyping] = useState(false);
 
   useEffect(() => {
-    if (!firestore || !conversationId || !currentUserId) {
+    if (!enabled || !firestore || !conversationId || !currentUserId) {
       setOthersTyping(false);
       return;
     }
@@ -43,7 +44,7 @@ export function useConversationTypingOthers(
         () => setOthersTyping(false)
       )
     );
-  }, [firestore, conversationId, currentUserId]);
+  }, [enabled, firestore, conversationId, currentUserId]);
 
   return othersTyping;
 }

@@ -83,10 +83,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [callsOverlayEnabled, setCallsOverlayEnabled] = React.useState(false);
   const isChatPage =
     pathname === '/dashboard/chat' || pathname.startsWith('/dashboard/chat/');
+  const shouldTrackUnreadBadge = isChatPage;
 
-  useBadge(user?.id);
+  useBadge(user?.id, shouldTrackUnreadBadge);
 
   React.useEffect(() => {
     if (!isLoading && isAuthenticated && pathname === '/dashboard') {
@@ -99,6 +101,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.push('/');
     }
   }, [isLoading, isAuthenticated, router]);
+
+  React.useEffect(() => {
+    let disposed = false;
+    const timer = window.setTimeout(() => {
+      if (!disposed) setCallsOverlayEnabled(true);
+    }, 1200);
+
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   if (isLoading || !isAuthenticated || !user) {
     return (
@@ -120,7 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             <AuthenticatedLayoutBody user={user}>{children}</AuthenticatedLayoutBody>
           </div>
-          <AudioCallOverlay currentUser={user} />
+          {callsOverlayEnabled ? <AudioCallOverlay currentUser={user} /> : null}
           <PwaOnboarding />
         </SidebarProvider>
       </LiveLocationProvider>

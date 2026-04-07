@@ -2,7 +2,13 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useCollection, useMemoFirebase, useDoc, useConversationsByDocumentIds } from '@/firebase';
+import {
+  useFirestore,
+  useMemoFirebase,
+  useDoc,
+  useConversationsByDocumentIds,
+  useUsersByDocumentIds,
+} from '@/firebase';
 import { collection, doc, increment, writeBatch } from 'firebase/firestore';
 import type { User, Conversation, ChatMessage, UserChatIndex } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -58,7 +64,6 @@ export default function ForwardPage() {
     const router = useRouter();
     const { toast } = useToast();
 
-    const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]));
     const userChatIndexRef = useMemoFirebase(
         () => (firestore && currentUser ? doc(firestore, 'userChats', currentUser.id) : null),
         [firestore, currentUser?.id]
@@ -72,6 +77,23 @@ export default function ForwardPage() {
         firestore,
         forwardConversationIds
     );
+
+    const userIdsForForwardPage = useMemo(() => {
+        const ids = new Set<string>();
+        if (currentUser?.id) ids.add(currentUser.id);
+        rawConversations?.forEach((conv) => {
+            conv.participantIds.forEach((id) => {
+                if (id) ids.add(id);
+            });
+        });
+        messages.forEach((m) => {
+            if (m.senderId) ids.add(m.senderId);
+        });
+        return [...ids];
+    }, [currentUser?.id, rawConversations, messages]);
+
+    const { usersById, isLoading: isLoadingUsers } = useUsersByDocumentIds(firestore, userIdsForForwardPage);
+    const allUsers = useMemo(() => [...usersById.values()], [usersById]);
 
     useEffect(() => {
         try {

@@ -33,7 +33,12 @@ export function ConversationItem({
     isSavedMessages = false,
 }: ConversationItemProps) {
     const firestore = useFirestore();
-    const othersTypingFromSubcollection = useConversationTypingOthers(firestore, conv.id, currentUser.id);
+    const othersTypingFromSubcollection = useConversationTypingOthers(
+        firestore,
+        conv.id,
+        currentUser.id,
+        isSelected
+    );
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const touchStart = useRef<number | null>(null);
