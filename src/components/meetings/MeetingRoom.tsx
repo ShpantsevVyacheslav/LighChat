@@ -69,6 +69,7 @@ export function MeetingRoom({
   const [standardBackgrounds, setStandardBackgrounds] = useState<{ id: string; url: string; name: string }[]>([]);
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [flyingEmojis, setFlyingEmojis] = useState<FlyingEmoji[]>([]);
+  const reactionsSeenRef = useRef<Record<string, string | null | undefined>>({});
   
   const lastSpeakerSwitchTime = useRef<number>(0);
   const SPEAKER_SWITCH_GRACE_PERIOD = 2500; 
@@ -131,10 +132,11 @@ export function MeetingRoom({
 
   useEffect(() => {
     if (!firestore) return;
+    const messagesLimit = activeSidebarTab === 'chat' ? 120 : 40;
     const q = query(
       collection(firestore, `meetings/${meeting.id}/messages`),
       orderBy('createdAt', 'asc'),
-      limitToLast(120)
+      limitToLast(messagesLimit)
     );
     
     let isInitial = true;
@@ -163,16 +165,15 @@ export function MeetingRoom({
   }, [firestore, meeting.id]);
 
   useEffect(() => {
-    if (!firestore) return;
-    return onSnapshot(collection(firestore, `meetings/${meeting.id}/participants`), (snap) => {
-      snap.docChanges().forEach(change => {
-        if (change.type === 'modified') {
-          const data = change.doc.data();
-          if (data.reaction) spawnFlyingEmoji(data.reaction);
-        }
-      });
+    Object.values(rtc.participants).forEach((p) => {
+      const prevReaction = reactionsSeenRef.current[p.id];
+      const nextReaction = p.reaction ?? null;
+      if (nextReaction && nextReaction !== prevReaction) {
+        spawnFlyingEmoji(nextReaction);
+      }
+      reactionsSeenRef.current[p.id] = nextReaction;
     });
-  }, [firestore, meeting.id, spawnFlyingEmoji]);
+  }, [rtc.participants, spawnFlyingEmoji]);
 
   useEffect(() => {
     if (!firestore || !isAdmin) return;
@@ -421,8 +422,8 @@ export function MeetingRoom({
 
         <MeetingSidebar 
           activeTab={activeSidebarTab} onActiveTabChange={setActiveSidebarTab} onClose={() => setActiveSidebarTab(null)} currentUser={currentUser as any} chatMessages={chatMessages} newMessageText={newMessageText} setNewMessageText={setNewMessageText} onSendMessage={handleSendMessagePlaceholder} participants={participantList} isHost={isAdmin} hostId={meeting.hostId} adminIds={meeting.adminIds || []} chatEndRef={chatEndRef} {...handleManagement}
-          pollsNode={<MeetingPolls meetingId={meeting.id} currentUser={currentUser as any} participantsCount={totalPeople} allParticipants={[currentUser, ...participantList] as any} isHost={isAdmin} />}
-          requestsNode={isAdmin && <MeetingRequests meetingId={meeting.id} />}
+          pollsNode={activeSidebarTab === 'polls' ? <MeetingPolls meetingId={meeting.id} currentUser={currentUser as any} participantsCount={totalPeople} allParticipants={[currentUser, ...participantList] as any} isHost={isAdmin} /> : null}
+          requestsNode={isAdmin && activeSidebarTab === 'participants' ? <MeetingRequests meetingId={meeting.id} /> : null}
           meetingId={meeting.id}
         />
       </div>
