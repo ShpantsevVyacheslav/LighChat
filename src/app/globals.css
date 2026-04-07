@@ -1,0 +1,236 @@
+@import "react-day-picker/dist/style.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 33% 98%;
+    --foreground: 224 71% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 71% 4%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 221 83% 53%;
+    --accent-foreground: 224 71% 4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+    --radius: 1.5rem;
+
+    --chart-1: 221 83% 53%;
+    --chart-2: 210 40% 96%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+
+    --outgoing-message-background: 221 83% 53%;
+    --outgoing-message-foreground: 0 0% 100%;
+    --outgoing-message-accent: 221 83% 45%;
+
+    --sidebar-background: 0 0% 100% / 0.95;
+    --sidebar-foreground: 224 71% 4%;
+    --sidebar-accent: 220 14% 96% / 0.8;
+    --sidebar-accent-foreground: 224 71% 4%;
+    --sidebar-border: 220 13% 91% / 0.5;
+    --sidebar-ring: 221 83% 53%;
+
+    --glass-background: 0 0% 100% / 0.7;
+    --glass-border: 0 0% 0% / 0.05;
+  }
+
+  .dark {
+    --background: 225 10% 6%;
+    --foreground: 220 17% 95%;
+    --card: 225 10% 9%;
+    --card-foreground: 220 17% 95%;
+    --popover: 225 10% 10%;
+    --popover-foreground: 220 17% 95%;
+    --primary: 221 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 10% 15%;
+    --secondary-foreground: 220 17% 95%;
+    --muted: 225 10% 15%;
+    --muted-foreground: 220 9% 55%;
+    --accent: 221 83% 58%;
+    --accent-foreground: 220 17% 95%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 225 10% 18% / 0.5;
+    --input: 225 10% 20%;
+    --ring: 221 83% 58%;
+    
+    --chart-1: 221 83% 58%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --outgoing-message-background: 221 83% 53%;
+    --outgoing-message-foreground: 0 0% 100%;
+    --outgoing-message-accent: 221 83% 40%;
+
+    --sidebar-background: 220 23% 11% / 0.4;
+    --sidebar-foreground: 220 17% 95%;
+    --sidebar-accent: 220 23% 21% / 0.6;
+    --sidebar-accent-foreground: 220 17% 95%;
+    --sidebar-border: 220 23% 16% / 0.5;
+    --sidebar-ring: 221 83% 58%;
+
+    --glass-background: 0 0% 0% / 0.4;
+    --glass-border: 0 0% 100% / 0.08;
+  }
+}
+
+@layer base {
+  * { @apply border-border outline-none ring-0; }
+  *:focus, *:focus-visible { outline: none !important; box-shadow: none !important; }
+  body { 
+    @apply bg-background text-foreground; 
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11"; 
+    overflow: hidden; 
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  .ProseMirror, input, textarea, [contenteditable="true"], .search-result-text {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.3); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
+  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent; }
+}
+
+@layer utilities {
+  .glass-panel { background-color: hsl(var(--glass-background)); backdrop-filter: blur(20px); border: 1px solid hsl(var(--glass-border)); }
+  .animate-reaction-float { animation: reaction-float 4s ease-out forwards; }
+  .animate-message-highlight { animation: message-highlight 2s ease-out forwards; }
+}
+
+.message-bubble-content blockquote {
+  border-left: 3px solid currentColor;
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  opacity: 0.85;
+}
+
+.message-bubble-content pre {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  margin: 0.5rem 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.dark .message-bubble-content pre {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.message-bubble-content code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+}
+
+.dark .message-bubble-content code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes message-highlight {
+  0% { background-color: transparent; }
+  20% { background-color: hsl(var(--primary) / 0.2); }
+  100% { background-color: transparent; }
+}
+
+@keyframes reaction-float {
+  0% { transform: translateY(0) translateX(0) scale(0.5); opacity: 0; }
+  10% { opacity: 1; transform: translateY(-60px) translateX(10px) scale(1.4); }
+  30% { transform: translateY(-180px) translateX(-15px) scale(1.2); }
+  50% { transform: translateY(-350px) translateX(15px) scale(1.1); }
+  70% { transform: translateY(-550px) translateX(-10px) scale(1); }
+  100% { transform: translateY(-900px) translateX(5px) scale(1); opacity: 0; }
+}
+
+@keyframes audio-bar {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+.message-focus-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* Резерв: раньше четыре панели вокруг пузыря; сейчас маска в MessageContextMenu. Оставлено на случай отката. */
+.message-focus-backdrop-panel {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+  animation: fade-in 0.2s ease-out forwards;
+  pointer-events: auto;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Только развёрнутый видеокружок: overflow + z-index. Не применять к меню — иначе вся строка Virtuoso поднимается и даёт тёмную «рамку» на всю ширину поверх blur. */
+div[data-index]:has([data-video-focus]) {
+  z-index: 500 !important;
+  position: relative !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+  filter: none !important;
+}
+
+.spoiler-text {
+  background-color: currentColor;
+  filter: blur(8px);
+  cursor: pointer;
+  transition: filter 0.3s ease;
+  border-radius: 4px;
+  display: inline-block;
+  padding: 0 2px;
+}
+
+.spoiler-text.revealed {
+  background-color: transparent;
+  filter: blur(0);
+}

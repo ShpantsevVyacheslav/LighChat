@@ -1,0 +1,1393 @@
+
+'use client';
+
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useFirestore, useStorage } from '@/firebase';
+import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
+
+import type {
+  User,
+  Conversation,
+  ChatMessage,
+  ChatAttachment,
+  ReplyContext,
+  ProfileTab,
+  ReactionDetail,
+  UserChatIndex,
+  ChatLocationShare,
+  ChatLocationSendMeta,
+} from '@/lib/types';
+import type { ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
+import { cn } from '@/lib/utils';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import {
+  getUnreadIncrementUpdate,
+  markManyMessagesAsRead,
+  markConversationAsRead,
+  getReplyPreview,
+} from '@/lib/chat-utils';
+import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
+import { addChatAttachmentToUserStickerPack, createUserStickerPack } from '@/lib/user-sticker-packs-client';
+import { USER_STICKER_MAX_FILE_BYTES } from '@/lib/user-sticker-packs';
+import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
+import { CHAT_GLASS_PANEL } from '@/lib/chat-glass-styles';
+import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
+import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import { canStartDirectChat } from '@/lib/user-chat-policy';
+import { SelectionHeader } from '@/components/chat/SelectionHeader';
+import { ChatParticipantProfile } from '@/components/chat/ChatParticipantProfile';
+import { ChatMessageItem } from './ChatMessageItem';
+import { ChatMessageInput, type ChatMessageInputHandle } from './ChatMessageInput';
+import { initiateCall } from './AudioCallOverlay';
+import { ChatSearchOverlay } from './ChatSearchOverlay';
+import { ChatAnchor } from './ChatAnchor';
+import { ThreadWindow } from './ThreadWindow';
+import { PinnedMessageBar } from './PinnedMessageBar';
+import { ChatWallpaperLayer } from './ChatWallpaperLayer';
+import { MediaViewer, type MediaViewerItem } from '@/components/chat/media-viewer';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
+import { useSettings } from '@/hooks/use-settings';
+import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
+import { ChatDateSeparatorRow } from '@/components/chat/ChatDateSeparatorRow';
+import { buildChatListRows, type ChatListRow } from '@/components/chat/build-chat-message-groups';
+import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
+import { VIRTUOSO_CHAT_INCREASE_VIEWPORT, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
+import { GEOLOCATION_FIRESTORE_LOG } from '@/lib/geolocation-client';
+import { VideoCircleTailProvider } from '@/components/chat/video-circle-tail-context';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
+import { StickerPackPickerDialog } from '@/components/chat/StickerPackPickerDialog';
+import {
+  ChatViewportScrollerRefContext,
+  MessageReadOnViewport,
+} from '@/components/chat/message-read-on-viewport';
+
+interface ChatWindowProps {
+  conversation: Conversation;
+  currentUser: User;
+  allUsers: User[];
+  onBack: () => void;
+  onSelectConversation: (conversationId: string) => void;
+  onEditGroup: (conversation: Conversation) => void;
+  /** Смещение оверлея поиска по сообщениям от левого края viewport (колонка чата на /dashboard/chat). */
+  messageSearchBlurInsetLeftPx?: number;
+}
+
+/** Подложки шапки чата на фоне обоев — без обводки, только лёгкое стекло */
+const chatHeaderUserGlass = CHAT_GLASS_PANEL;
+const chatHeaderIconGlass =
+  'rounded-xl bg-background/28 dark:bg-background/20 backdrop-blur-md shadow-sm';
+
+/** Цвета иконок в духе iOS (SF Symbols): на светлой теме — достаточный контраст на стекле */
+const CHAT_HEADER_IOS = {
+  threads: 'text-[#007AFF] dark:text-[#64B5FF]',
+  /** Тёмная тема: светлая иконка, чтобы не терялась на «стеклянной» подложке шапки */
+  search: 'text-neutral-900 dark:text-white',
+  callVideo: 'text-[#34C759] dark:text-[#48E074]',
+  callAudio: 'text-[#34C759] dark:text-[#48E074]',
+} as const;
+
+export function ChatWindow({
+  conversation,
+  currentUser,
+  allUsers,
+  onBack,
+  onSelectConversation,
+  onEditGroup,
+  messageSearchBlurInsetLeftPx = 0,
+}: ChatWindowProps) {
+  const firestore = useFirestore();
+  const storage = useStorage();
+  const { toast } = useToast();
+  const router = useRouter();
+  const { chatSettings } = useSettings();
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [displayLimit, setDisplayLimit] = useState(INITIAL_MESSAGE_LIMIT);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; text: string; attachments?: ChatAttachment[] } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
+  const [selection, setSelection] = useState({ active: false, ids: new Set<string>() });
+  const [mediaViewerState, setMediaViewerState] = useState({ isOpen: false, startIndex: 0 });
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  /** Просмотр карточки участника группы (клик по @ в сообщении). */
+  const [profileFocusUserId, setProfileFocusUserId] = useState<string | null>(null);
+  const [profileTab, setProfileOpenTab] = useState<ProfileTab>('threads');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isFullyReady, setIsFullyReady] = useState(false);
+  const [hasScrolledToUnread, setHasScrolledToUnread] = useState(false);
+  const [selectedThreadMessage, setSelectedThreadMessage] = useState<ChatMessage | null>(null);
+  /** После открытия треда по реакции — id ответа в треде для прокрутки и подсветки. */
+  const [threadReactionScrollToId, setThreadReactionScrollToId] = useState<string | null>(null);
+  const [stickerSaveOpen, setStickerSaveOpen] = useState(false);
+  const [stickerSaveAttachment, setStickerSaveAttachment] = useState<ChatAttachment | null>(null);
+  const [stickerSaveBusy, setStickerSaveBusy] = useState(false);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [unreadSeparatorId, setUnreadSeparatorId] = useState<string | null>(null);
+  const hasClearedSeparatorRef = useRef(false);
+  /** Не снимать разделитель по rangeChanged «у низа», пока не выполнен стартовый scroll к непрочитанным (иначе alignToBottom съедает ленту до таймера). */
+  const hasScrolledToUnreadRef = useRef(false);
+  /** Якорь: 0 — следующий клик ведёт к первому непрочитанному; 1 — к низу и сброс счётчика. */
+  const anchorUnreadStepRef = useRef(0);
+
+  const messageInputRef = useRef<ChatMessageInputHandle>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  /** Скроллер Virtuoso для IntersectionObserver (реальная видимость строки, без overscan range). */
+  const viewportScrollerRef = useRef<HTMLElement | null>(null);
+  const [viewportScrollerKey, setViewportScrollerKey] = useState(0);
+  const onVirtuosoScrollerRef = useCallback((el: HTMLElement | Window | null) => {
+    const node = el instanceof HTMLElement ? el : null;
+    if (viewportScrollerRef.current !== node) {
+      viewportScrollerRef.current = node;
+      setViewportScrollerKey((k) => k + 1);
+    }
+  }, []);
+  const isFullyReadyRef = useRef(isFullyReady);
+  isFullyReadyRef.current = isFullyReady;
+  const sessionReadIds = useRef<Set<string>>(new Set());
+  const prevConvIdRef = useRef(conversation.id);
+  /** Догрузка истории, пока целевое сообщение не попадёт в flatItems (реакция, поиск, закреп). */
+  const pendingNavigateMessageIdRef = useRef<string | null>(null);
+  const currentVisibleRange = useRef({ startIndex: 0, endIndex: 0 });
+  const atBottomRef = useRef(true);
+  const [videoCircleTailReservePx, setVideoCircleTailReservePxState] = useState(0);
+  const prevTailReserveRef = useRef(0);
+
+  const setVideoCircleTailReservePx = useCallback((px: number) => {
+    setVideoCircleTailReservePxState(Math.max(0, Math.round(px)));
+  }, []);
+
+  useEffect(() => {
+    hasScrolledToUnreadRef.current = hasScrolledToUnread;
+  }, [hasScrolledToUnread]);
+
+  // --- Firestore Messages Listener ---
+  useEffect(() => {
+    if (!firestore || !conversation.id) return;
+    
+    // Reset internal state on conversation switch
+    if (prevConvIdRef.current !== conversation.id) {
+        setMessages([]);
+        setIsFullyReady(false);
+        setHasScrolledToUnread(false);
+        hasScrolledToUnreadRef.current = false;
+        anchorUnreadStepRef.current = 0;
+        setUnreadSeparatorId(null);
+        hasClearedSeparatorRef.current = false;
+        setDisplayLimit(INITIAL_MESSAGE_LIMIT);
+        setHasMore(true);
+        setIsLoadingOlder(false);
+        setVideoCircleTailReservePxState(0);
+        prevTailReserveRef.current = 0;
+        sessionReadIds.current.clear();
+        pendingNavigateMessageIdRef.current = null;
+        setThreadReactionScrollToId(null);
+        setSelectedThreadMessage(null);
+        prevConvIdRef.current = conversation.id;
+    }
+
+    const msgCollection = collection(firestore, `conversations/${conversation.id}/messages`);
+    const q = query(msgCollection, orderBy('createdAt', 'desc'), limit(displayLimit));
+
+    return scheduleFirestoreListen(() =>
+      onSnapshot(
+        q,
+        (snap) => {
+          const msgs = snap.docs.map((d) => ({ ...d.data(), id: d.id } as ChatMessage)).reverse();
+          setMessages(msgs);
+          setHasMore(snap.docs.length === displayLimit);
+          setIsFullyReady(true);
+          setIsLoadingOlder(false);
+        },
+        (err) => {
+          console.error("Chat fetch error:", err);
+          if (process.env.NODE_ENV === "development" && firestore) {
+            console.info(
+              "[LighChat] permission-denied → опубликуйте правила: npm run deploy:firestore · Firebase projectId:",
+              firestore.app.options.projectId
+            );
+          }
+          setIsFullyReady(true);
+          setIsLoadingOlder(false);
+        }
+      )
+    );
+  }, [firestore, conversation.id, displayLimit]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!hasMore || isLoadingOlder || messages.length < displayLimit) return;
+    setIsLoadingOlder(true);
+    setDisplayLimit(prev => prev + HISTORY_PAGE_SIZE);
+  }, [hasMore, isLoadingOlder, messages.length, displayLimit]);
+
+  const isSelfSavedChat = useMemo(
+    () => isSavedMessagesChat(conversation, currentUser.id),
+    [conversation, currentUser.id]
+  );
+  const otherId = useMemo(() => {
+    if (isSelfSavedChat) return null;
+    return conversation.participantIds.find((id) => id !== currentUser.id) ?? null;
+  }, [conversation.participantIds, currentUser.id, isSelfSavedChat]);
+  const otherUser = useMemo(() => (otherId ? allUsers.find((u) => u.id === otherId) : undefined), [allUsers, otherId]);
+  const isPartnerDeleted = useMemo(
+    () => !conversation.isGroup && !isSelfSavedChat && !!otherUser?.deletedAt,
+    [conversation.isGroup, isSelfSavedChat, otherUser]
+  );
+  const unreadCount = useMemo(() => conversation.unreadCounts?.[currentUser.id] || 0, [conversation.unreadCounts, currentUser.id]);
+
+  /** Снимаем индикатор @ в списке диалогов при открытии группового чата. */
+  useEffect(() => {
+    if (!firestore || !conversation.isGroup) return;
+    const pending = conversation.usersWithPendingGroupMention;
+    if (!pending?.includes(currentUser.id)) return;
+    const convRef = doc(firestore, 'conversations', conversation.id);
+    updateDocumentNonBlocking(convRef, {
+      usersWithPendingGroupMention: arrayRemove(currentUser.id),
+    });
+  }, [firestore, conversation.id, conversation.isGroup, conversation.usersWithPendingGroupMention, currentUser.id]);
+
+  const allMessages = useMemo(() => {
+    const remoteMessageIds = new Set(messages.map(rm => rm.id));
+    const uniqueOptimistic = optimisticMessages.filter(om => !remoteMessageIds.has(om.id));
+    return [...messages, ...uniqueOptimistic];
+  }, [messages, optimisticMessages]);
+
+  const messagesForList = useMemo(() => {
+    const clearedAt = conversation.clearedAt?.[currentUser.id];
+    return clearedAt ? allMessages.filter(m => new Date(m.createdAt) > new Date(clearedAt)) : allMessages;
+  }, [allMessages, conversation.clearedAt, currentUser.id]);
+
+  /** Сколько входящих в загруженном окне ещё без readAt — бейдж якоря и разделитель, чтобы не расходиться с conversation.unreadCounts. */
+  const incomingUnreadCount = useMemo(
+    () => messagesForList.filter((m) => isIncomingUnreadForViewer(m, currentUser.id)).length,
+    [messagesForList, currentUser.id]
+  );
+
+  const prevUnreadCount = useRef(unreadCount);
+  useEffect(() => {
+    if (!isFullyReady) return;
+
+    if (unreadCount > prevUnreadCount.current) {
+      /** Новые непрочитанные с сервера: снова разрешаем разделитель (иначе при приходе с низа hasClearedSeparatorRef блокирует id и «стартовый» скролл не завершается — пометка read не включается). */
+      hasClearedSeparatorRef.current = false;
+      anchorUnreadStepRef.current = 0;
+    }
+    prevUnreadCount.current = unreadCount;
+
+    if (incomingUnreadCount === 0) {
+      if (unreadSeparatorId) {
+        setUnreadSeparatorId(null);
+        hasClearedSeparatorRef.current = false;
+      }
+      anchorUnreadStepRef.current = 0;
+      return;
+    }
+
+    if (!unreadSeparatorId && !hasClearedSeparatorRef.current) {
+      const oldestUnread = messagesForList.find((m) => isIncomingUnreadForViewer(m, currentUser.id));
+      if (oldestUnread) {
+        setUnreadSeparatorId(oldestUnread.id);
+      }
+    }
+  }, [isFullyReady, unreadCount, unreadSeparatorId, messagesForList, currentUser.id, incomingUnreadCount]);
+
+  const flatItems = useMemo(
+    () => buildChatListRows(messagesForList, unreadSeparatorId),
+    [messagesForList, unreadSeparatorId]
+  );
+
+  const flatItemsRef = useRef(flatItems);
+  useEffect(() => { flatItemsRef.current = flatItems; }, [flatItems]);
+
+  /** Рост резерва: прокрутка к концу списка (иначе место есть, но viewport не сдвигается). Снятие резерва у низа: scrollBy без скачка. */
+  useLayoutEffect(() => {
+    const prev = prevTailReserveRef.current;
+    const next = videoCircleTailReservePx;
+    const delta = next - prev;
+    prevTailReserveRef.current = next;
+    if (delta === 0) return;
+    const v = virtuosoRef.current;
+    if (!v) return;
+    if (delta > 0) {
+      v.scrollBy({ top: delta, behavior: 'auto' });
+      const len = flatItemsRef.current.length;
+      if (len > 0) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            virtuosoRef.current?.scrollToIndex({ index: len - 1, align: 'end', behavior: 'auto' });
+          });
+        });
+      }
+    } else if (atBottomRef.current) {
+      v.scrollBy({ top: delta, behavior: 'auto' });
+    }
+  }, [videoCircleTailReservePx]);
+
+  const pendingScrollToBottomAfterSendRef = useRef(false);
+
+  useEffect(() => {
+    if (!pendingScrollToBottomAfterSendRef.current || !isFullyReady || !virtuosoRef.current) return;
+    const items = flatItemsRef.current;
+    if (items.length === 0) return;
+    pendingScrollToBottomAfterSendRef.current = false;
+    const id = requestAnimationFrame(() => {
+      virtuosoRef.current?.scrollToIndex({ index: items.length - 1, align: 'end', behavior: 'auto' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [flatItems, isFullyReady]);
+
+  useEffect(() => {
+    if (isFullyReady && !hasScrolledToUnread && virtuosoRef.current && flatItems.length > 0) {
+        if (incomingUnreadCount > 0 && !unreadSeparatorId) return;
+
+        const timer = setTimeout(() => {
+            const unreadSeparatorIdx = flatItems.findIndex(item => item.type === 'unread-separator');
+            if (unreadSeparatorIdx !== -1) {
+                virtuosoRef.current?.scrollToIndex({ index: unreadSeparatorIdx, align: 'start', behavior: 'auto' });
+            } else {
+                virtuosoRef.current?.scrollToIndex({ index: flatItems.length - 1, align: 'end', behavior: 'auto' });
+            }
+            // Включаем mark-as-read только после того, как Virtuoso применил скролл: при alignToBottom первый
+            // rangeChanged идёт с низа списка и иначе мгновенно помечает все видимые входящие как прочитанные,
+            // обнуляет unreadCounts и снимает разделитель до этого таймера.
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                hasScrolledToUnreadRef.current = true;
+                setHasScrolledToUnread(true);
+              });
+            });
+        }, 200);
+        return () => clearTimeout(timer);
+    }
+  }, [isFullyReady, hasScrolledToUnread, flatItems, incomingUnreadCount, unreadSeparatorId]);
+
+  const handleRangeChanged = useCallback((range: { startIndex: number; endIndex: number }) => {
+    currentVisibleRange.current = range;
+    if (!isFullyReady || !firestore || !conversation.id) return;
+
+    const currentItems = flatItemsRef.current;
+    const lastIdx = currentItems.length - 1;
+    if (lastIdx >= 0 && range.endIndex >= lastIdx && hasScrolledToUnreadRef.current) {
+        setUnreadSeparatorId(prev => {
+            if (prev !== null) {
+                hasClearedSeparatorRef.current = true;
+                return null;
+            }
+            return prev;
+        });
+    }
+  }, [isFullyReady, firestore, conversation.id, currentUser.id]);
+
+  const allMediaItems = useMemo((): MediaViewerItem[] => {
+    const items: MediaViewerItem[] = [];
+    messagesForList.forEach(msg => {
+      if (msg.isDeleted || !msg.attachments) return;
+      msg.attachments.forEach(att => {
+        if (isGridGalleryAttachment(att)) {
+          items.push({ 
+            ...att, 
+            messageId: msg.id, 
+            senderId: msg.senderId, 
+            createdAt: msg.createdAt 
+          });
+        }
+      });
+    });
+    return items.filter((item, index, self) => 
+      index === self.findIndex((t) => t.url === item.url)
+    );
+  }, [messagesForList]);
+
+  const handleOpenMediaViewer = useCallback((att: ChatAttachment) => {
+    const idx = allMediaItems.findIndex(item => item.url === att.url);
+    if (idx >= 0) {
+      setMediaViewerState({ isOpen: true, startIndex: idx });
+    }
+  }, [allMediaItems]);
+
+  const handleProfileSheetOpenChange = useCallback((open: boolean) => {
+    setIsProfileOpen(open);
+    if (!open) setProfileFocusUserId(null);
+  }, []);
+
+  const handleMentionProfileOpen = useCallback(
+    (userId: string) => {
+      if (!conversation.participantIds.includes(userId)) return;
+      setProfileFocusUserId(userId);
+      setIsProfileOpen(true);
+    },
+    [conversation.participantIds]
+  );
+
+  const handleGroupSenderWritePrivate = useCallback(
+    async (userId: string) => {
+      if (!firestore || userId === currentUser.id) return;
+      if (!conversation.isGroup || !conversation.participantIds.includes(userId)) return;
+      const other =
+        allUsers.find((u) => u.id === userId) ??
+        ({
+          id: userId,
+          name: conversation.participantInfo[userId]?.name ?? 'Участник',
+          username: '',
+          email: '',
+          avatar: conversation.participantInfo[userId]?.avatar ?? '',
+          phone: '',
+          deletedAt: null,
+          createdAt: '',
+        } as User);
+      if (!canStartDirectChat(currentUser, other)) {
+        toast({
+          variant: 'destructive',
+          title: 'Нельзя начать чат',
+          description: 'Политика доступа не позволяет написать этому пользователю.',
+        });
+        return;
+      }
+      try {
+        const id = await createOrOpenDirectChat(firestore, currentUser, other);
+        onSelectConversation(id);
+      } catch (e) {
+        console.error('[ChatWindow] createOrOpenDirectChat', e);
+        toast({
+          variant: 'destructive',
+          title: 'Не удалось открыть личный чат',
+        });
+      }
+    },
+    [
+      firestore,
+      currentUser,
+      conversation.isGroup,
+      conversation.participantIds,
+      conversation.participantInfo,
+      allUsers,
+      onSelectConversation,
+      toast,
+    ]
+  );
+
+  const handleSaveStickerFromMessage = useCallback((att: ChatAttachment) => {
+    setStickerSaveAttachment(att);
+    setStickerSaveOpen(true);
+  }, []);
+
+  const handleStickerSaveConfirmPack = useCallback(
+    async (packId: string) => {
+      if (!stickerSaveAttachment || !firestore || !storage) return;
+      setStickerSaveBusy(true);
+      try {
+        const r = await addChatAttachmentToUserStickerPack(
+          stickerSaveAttachment,
+          packId,
+          currentUser.id,
+          firestore,
+          storage
+        );
+        if (r.ok) {
+          toast({ title: 'Сохранено в стикерпак' });
+          setStickerSaveOpen(false);
+          setStickerSaveAttachment(null);
+        } else if (r.error === 'file_too_large') {
+          toast({
+            title: 'Файл слишком большой',
+            description: `До ${Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024))} МБ.`,
+            variant: 'destructive',
+          });
+        } else if (r.error === 'fetch_failed') {
+          toast({
+            title: 'Не удалось скачать файл',
+            description:
+              'Сервер или браузер заблокировал загрузку (CORS). Сохраните медиа на устройство и добавьте через вкладку GIF → «В мой пак».',
+            variant: 'destructive',
+          });
+        } else {
+          toast({ title: 'Не удалось сохранить', variant: 'destructive' });
+        }
+      } finally {
+        setStickerSaveBusy(false);
+      }
+    },
+    [stickerSaveAttachment, firestore, storage, currentUser.id, toast]
+  );
+
+  const handleStickerPackCreate = useCallback(
+    async (name: string) => {
+      if (!firestore) return null;
+      return createUserStickerPack(firestore, currentUser.id, name);
+    },
+    [firestore, currentUser.id]
+  );
+
+  const handleSendMessage = async (
+    text?: string,
+    attachmentsToUpload?: File[],
+    replyTo?: ReplyContext | null,
+    prebuiltAttachments?: ChatAttachment[]
+  ) => {
+    if (!firestore || !currentUser) return;
+    const replyContext = replyTo ?? null;
+    const files = attachmentsToUpload ?? [];
+    const prebuilt = prebuiltAttachments ?? [];
+    const messagesCollection = collection(firestore, `conversations/${conversation.id}/messages`);
+    const newDocRef = doc(messagesCollection);
+    const messageId = newDocRef.id;
+    const now = new Date().toISOString();
+
+    const optimisticAttachments: ChatAttachment[] = [
+      ...prebuilt.map((a) => ({ ...a })),
+      ...files.map((f) => ({ url: URL.createObjectURL(f), name: f.name, type: f.type, size: f.size })),
+    ];
+    
+    pendingScrollToBottomAfterSendRef.current = true;
+    setOptimisticMessages(prev => [...prev, {
+      id: messageId, senderId: currentUser.id, text, createdAt: now, readAt: null, deliveryStatus: 'sending',
+      attachments: optimisticAttachments,
+      ...(replyContext && { replyTo: replyContext }),
+    }]);
+    if (replyContext) setReplyingTo(null);
+
+    try {
+      const uploadedAttachments: ChatAttachment[] = [...prebuilt];
+      if (files.length > 0) {
+          const { uploadFile: internalUpload } = await import('./ChatMessageInput');
+          for (const file of files) {
+              const path = `chat-attachments/${conversation.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+              const uploaded = await internalUpload(file, path, storage);
+              uploadedAttachments.push(uploaded);
+          }
+      }
+      
+      await setDoc(newDocRef, { 
+          id: messageId, 
+          senderId: currentUser.id, 
+          createdAt: now, 
+          readAt: null, 
+          attachments: uploadedAttachments, 
+          ...(text && { text }), 
+          ...(replyContext && { replyTo: replyContext }) 
+      });
+
+      const conversationRef = doc(firestore, 'conversations', conversation.id);
+      const unreadUpdates = getUnreadIncrementUpdate(conversation.participantIds, currentUser.id, 1);
+      const plainForMention = text
+        ? text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
+        : '';
+      const mentionCandidates = buildGroupMentionCandidates(conversation, allUsers, currentUser.id);
+      const mentionedUserIds =
+        conversation.isGroup && plainForMention
+          ? extractMentionedUserIdsFromPlainText(plainForMention, mentionCandidates, currentUser.id).filter(
+              (id) => conversation.participantIds.includes(id) && id !== currentUser.id
+            )
+          : [];
+
+      const stripHtml = text ? text.replace(/<[^>]*>/g, '') : '';
+      let lastPreview = stripHtml;
+      if (!lastPreview) {
+        if (prebuilt.some((a) => a.name.startsWith('gif_'))) lastPreview = 'GIF';
+        else if (prebuilt.some((a) => a.name.startsWith('sticker_'))) lastPreview = 'Стикер';
+        else if (files.length === 1 && files[0].name.startsWith('sticker_')) lastPreview = 'Стикер';
+        else if (files.length > 0 || prebuilt.length > 0) lastPreview = 'Вложение';
+        else lastPreview = 'Сообщение';
+      }
+
+      await updateDoc(conversationRef, { 
+          lastMessageText: lastPreview, 
+          lastMessageTimestamp: now, 
+          lastMessageSenderId: currentUser.id, 
+          lastMessageIsThread: false,
+          ...unreadUpdates,
+          ...(mentionedUserIds.length > 0
+            ? { usersWithPendingGroupMention: arrayUnion(...mentionedUserIds) }
+            : {}),
+      });
+    } catch (error) {
+      setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
+    }
+  };
+
+  const handleSendLocationShare = useCallback(
+    async (share: ChatLocationShare, replyContext: ReplyContext | null, meta: ChatLocationSendMeta) => {
+      if (!firestore || !currentUser) {
+        console.warn(GEOLOCATION_FIRESTORE_LOG, 'aborted', { reason: 'no firestore or user' });
+        return;
+      }
+      const messagesCollection = collection(firestore, `conversations/${conversation.id}/messages`);
+      const newDocRef = doc(messagesCollection);
+      const messageId = newDocRef.id;
+      const now = new Date().toISOString();
+      console.log(GEOLOCATION_FIRESTORE_LOG, 'start', {
+        conversationId: conversation.id,
+        messageId,
+        reply: !!replyContext,
+        lat: share.lat,
+        lng: share.lng,
+        live: meta.kind === 'live',
+        liveExpiresAt: meta.kind === 'live' ? meta.expiresAt : undefined,
+      });
+      pendingScrollToBottomAfterSendRef.current = true;
+      setOptimisticMessages((prev) => [
+        ...prev,
+        {
+          id: messageId,
+          senderId: currentUser.id,
+          createdAt: now,
+          readAt: null,
+          deliveryStatus: 'sending' as const,
+          locationShare: share,
+          ...(replyContext && { replyTo: replyContext }),
+        },
+      ]);
+      if (replyContext) setReplyingTo(null);
+      try {
+        await setDoc(newDocRef, {
+          id: messageId,
+          senderId: currentUser.id,
+          createdAt: now,
+          readAt: null,
+          locationShare: share,
+          ...(replyContext && { replyTo: replyContext }),
+        });
+        const conversationRef = doc(firestore, 'conversations', conversation.id);
+        const unreadUpdates = getUnreadIncrementUpdate(conversation.participantIds, currentUser.id, 1);
+        await updateDoc(conversationRef, {
+          lastMessageText: '📍 Геолокация',
+          lastMessageTimestamp: now,
+          lastMessageSenderId: currentUser.id,
+          lastMessageIsThread: false,
+          ...unreadUpdates,
+        });
+        if (meta.kind === 'live') {
+          await updateDoc(doc(firestore, 'users', currentUser.id), {
+            liveLocationShare: {
+              active: true,
+              expiresAt: meta.expiresAt,
+              lat: share.lat,
+              lng: share.lng,
+              accuracyM: share.accuracyM,
+              updatedAt: now,
+              startedAt: now,
+            },
+          });
+        }
+        console.log(GEOLOCATION_FIRESTORE_LOG, 'success', { messageId });
+      } catch (err) {
+        console.error(GEOLOCATION_FIRESTORE_LOG, 'failed', { messageId, err });
+        setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+    },
+    [firestore, currentUser, conversation.id, conversation.participantIds]
+  );
+
+  const handleSendPoll = useCallback(
+    async (input: ChatPollCreateInput, replyContext: ReplyContext | null) => {
+      if (!firestore || !currentUser) return;
+      const pollId = `chat-poll-${Date.now()}`;
+      const pollRef = doc(firestore, `conversations/${conversation.id}/polls`, pollId);
+      const messagesCollection = collection(firestore, `conversations/${conversation.id}/messages`);
+      const newDocRef = doc(messagesCollection);
+      const messageId = newDocRef.id;
+      const now = new Date().toISOString();
+      const pollText = '<p>📊 Опрос</p>';
+      pendingScrollToBottomAfterSendRef.current = true;
+      setOptimisticMessages((prev) => [
+        ...prev,
+        {
+          id: messageId,
+          senderId: currentUser.id,
+          createdAt: now,
+          readAt: null,
+          deliveryStatus: 'sending' as const,
+          text: pollText,
+          chatPollId: pollId,
+          ...(replyContext && { replyTo: replyContext }),
+        },
+      ]);
+      if (replyContext) setReplyingTo(null);
+      try {
+        await setDoc(pollRef, {
+          id: pollId,
+          question: input.question,
+          options: input.options,
+          creatorId: currentUser.id,
+          status: 'active',
+          isAnonymous: input.isAnonymous,
+          createdAt: serverTimestamp(),
+          votes: {},
+        });
+        await setDoc(newDocRef, {
+          id: messageId,
+          senderId: currentUser.id,
+          createdAt: now,
+          readAt: null,
+          text: pollText,
+          chatPollId: pollId,
+          ...(replyContext && { replyTo: replyContext }),
+        });
+        const conversationRef = doc(firestore, 'conversations', conversation.id);
+        const unreadUpdates = getUnreadIncrementUpdate(conversation.participantIds, currentUser.id, 1);
+        await updateDoc(conversationRef, {
+          lastMessageText: '📊 Опрос',
+          lastMessageTimestamp: now,
+          lastMessageSenderId: currentUser.id,
+          lastMessageIsThread: false,
+          ...unreadUpdates,
+        });
+      } catch {
+        setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
+        try {
+          await deleteDoc(pollRef);
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [firestore, currentUser, conversation.id, conversation.participantIds]
+  );
+
+  const handleUpdateMessage = async (id: string, text: string, attachments?: ChatAttachment[]) => {
+    if (!firestore || !conversation.id) return;
+    const msgRef = doc(firestore, `conversations/${conversation.id}/messages`, id);
+    const now = new Date().toISOString();
+    try {
+        await updateDoc(msgRef, { text, attachments: attachments || [], updatedAt: now });
+        if (conversation.lastMessageTimestamp === allMessages.find(m => m.id === id)?.createdAt) {
+            await updateDoc(doc(firestore, 'conversations', conversation.id), {
+                lastMessageText: text.replace(/<[^>]*>/g, '').slice(0, 100),
+            });
+        }
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Ошибка обновления' });
+    }
+  };
+
+  const handleDeleteMessage = async (id: string, parentId?: string) => {
+    if (!firestore || !conversation.id) return;
+    const isThread = !!parentId;
+    const path = isThread 
+        ? `conversations/${conversation.id}/messages/${parentId}/thread/${id}`
+        : `conversations/${conversation.id}/messages/${id}`;
+    
+    const msgRef = doc(firestore, path);
+    const now = new Date().toISOString();
+
+    try {
+        const msgSnap = await getDoc(msgRef);
+        const msgData = msgSnap.data() as ChatMessage | undefined;
+
+        await updateDoc(msgRef, { isDeleted: true, updatedAt: now });
+
+        if (msgData && !msgData.readAt) {
+            const others = conversation.participantIds.filter(uid => uid !== msgData.senderId);
+            if (others.length > 0) {
+                const convRef = doc(firestore, 'conversations', conversation.id);
+                const updates: Record<string, any> = {};
+                others.forEach(uid => {
+                    const field = isThread ? `unreadThreadCounts.${uid}` : `unreadCounts.${uid}`;
+                    updates[field] = increment(-1);
+                });
+                await updateDoc(convRef, updates);
+
+                if (isThread) {
+                    const parentRef = doc(firestore, `conversations/${conversation.id}/messages`, parentId);
+                    const parentUpdates: Record<string, any> = {};
+                    others.forEach(uid => {
+                        parentUpdates[`unreadThreadCounts.${uid}`] = increment(-1);
+                    });
+                    await updateDoc(parentRef, parentUpdates);
+                }
+            }
+        }
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Ошибка удаления' });
+    }
+  };
+
+  const handlePinMessage = async (msg: ChatMessage) => {
+    if (!firestore || !conversation.id) return;
+    const convRef = doc(firestore, 'conversations', conversation.id);
+    const replyPreview = getReplyPreview(msg, allUsers);
+    
+    try {
+        await updateDoc(convRef, {
+            pinnedMessage: {
+                messageId: msg.id,
+                text: replyPreview.text,
+                senderName: replyPreview.senderName,
+                senderId: msg.senderId,
+                mediaPreviewUrl: replyPreview.mediaPreviewUrl,
+                mediaType: replyPreview.mediaType
+            }
+        });
+        toast({ title: 'Сообщение закреплено' });
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Ошибка закрепления' });
+    }
+  };
+
+  const handleUnpinMessage = async () => {
+    if (!firestore || !conversation.id) return;
+    await updateDoc(doc(firestore, 'conversations', conversation.id), { pinnedMessage: null });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!firestore || selection.ids.size === 0) return;
+    setIsBulkProcessing(true);
+    try {
+        for (const id of Array.from(selection.ids)) {
+            await handleDeleteMessage(id);
+        }
+        setSelection({ active: false, ids: new Set() });
+        toast({ title: 'Сообщения удалены' });
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Ошибка при удалении' });
+    } finally {
+        setIsBulkProcessing(false);
+    }
+  };
+
+  const handleReactTo = async (messageId: string, emoji: string, threadParentId?: string) => {
+    if (!firestore || !currentUser) return;
+    const path = threadParentId 
+        ? `conversations/${conversation.id}/messages/${threadParentId}/thread/${messageId}`
+        : `conversations/${conversation.id}/messages/${messageId}`;
+    const msgRef = doc(firestore, path);
+    const convRef = doc(firestore, 'conversations', conversation.id);
+
+    try {
+        const msgSnap = await getDoc(msgRef);
+        const message = msgSnap.data() as ChatMessage;
+        if (!message) return;
+
+        const reactions = { ...(message.reactions || {}) };
+        let userReactions = reactions[emoji] ? [...reactions[emoji]] : [];
+        const now = new Date().toISOString();
+        const existingIndex = userReactions.findIndex(r => typeof r === 'string' ? r === currentUser.id : r.userId === currentUser.id);
+
+        if (existingIndex !== -1) {
+            userReactions.splice(existingIndex, 1);
+            if (userReactions.length === 0) delete reactions[emoji];
+            else reactions[emoji] = userReactions;
+        } else {
+            reactions[emoji] = [...userReactions, { userId: currentUser.id, timestamp: now }];
+        }
+
+        await updateDoc(msgRef, { reactions, lastReactionTimestamp: now });
+        if (existingIndex === -1) {
+            await updateDoc(convRef, {
+                lastReactionEmoji: emoji,
+                lastReactionTimestamp: now,
+                lastReactionSenderId: currentUser.id,
+                lastReactionMessageId: messageId,
+                lastReactionParentId: threadParentId || null
+            });
+        }
+    } catch (e) { console.error("Reaction failed:", e); }
+  };
+
+  const highlightMessageElement = useCallback((messageId: string) => {
+    const run = () => {
+      const element = document.getElementById(`msg-${messageId}`);
+      if (element) {
+        element.classList.add('animate-message-highlight');
+        window.setTimeout(() => element.classList.remove('animate-message-highlight'), 2000);
+      }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(run));
+    window.setTimeout(run, 450);
+  }, []);
+
+  const tryScrollToMessageInList = useCallback(
+    (messageId: string): boolean => {
+      const currentItems = flatItemsRef.current;
+      const index = currentItems.findIndex(item => item.type === 'message' && item.message.id === messageId);
+      if (index === -1) return false;
+      virtuosoRef.current?.scrollToIndex({ index, align: 'center', behavior: 'smooth' });
+      highlightMessageElement(messageId);
+      return true;
+    },
+    [highlightMessageElement]
+  );
+
+  const navigateToMessage = useCallback(
+    (messageId: string) => {
+      if (tryScrollToMessageInList(messageId)) {
+        setIsSearchActive(false);
+        setSearchQuery('');
+        pendingNavigateMessageIdRef.current = null;
+        return;
+      }
+      if (hasMore) {
+        pendingNavigateMessageIdRef.current = messageId;
+        setIsLoadingOlder(true);
+        setDisplayLimit((prev) => prev + HISTORY_PAGE_SIZE);
+      } else {
+        toast({ title: 'Сообщение не найдено' });
+      }
+    },
+    [hasMore, tryScrollToMessageInList, toast]
+  );
+
+  useEffect(() => {
+    const pending = pendingNavigateMessageIdRef.current;
+    if (!pending || !isFullyReady) return;
+    if (tryScrollToMessageInList(pending)) {
+      pendingNavigateMessageIdRef.current = null;
+      setIsSearchActive(false);
+      setSearchQuery('');
+      return;
+    }
+    if (!hasMore) {
+      pendingNavigateMessageIdRef.current = null;
+      toast({ title: 'Сообщение не найдено' });
+      return;
+    }
+    setIsLoadingOlder(true);
+    setDisplayLimit((prev) => prev + HISTORY_PAGE_SIZE);
+  }, [flatItems, isFullyReady, hasMore, tryScrollToMessageInList, toast]);
+
+  const lastSeenReactionAt = conversation.lastReactionSeenAt?.[currentUser.id] || '';
+  const latestReaction = (
+    conversation.lastReactionTimestamp && 
+    conversation.lastReactionTimestamp > lastSeenReactionAt &&
+    conversation.lastReactionSenderId !== currentUser.id 
+  ) ? {
+      emoji: conversation.lastReactionEmoji!,
+      messageId: conversation.lastReactionMessageId!,
+      parentId: conversation.lastReactionParentId
+  } : null;
+
+  const handleAnchorClick = () => {
+    if (!firestore) return;
+    const currentItems = flatItemsRef.current;
+    const lastIdx = Math.max(0, currentItems.length - 1);
+    const separatorIdx = currentItems.findIndex((item) => item.type === 'unread-separator');
+    const unreadIds = messagesForList
+      .filter((m) => isIncomingUnreadForViewer(m, currentUser.id))
+      .map((m) => m.id);
+
+    if (unreadIds.length > 0) {
+      if (anchorUnreadStepRef.current === 0) {
+        if (separatorIdx !== -1) {
+          virtuosoRef.current?.scrollToIndex({ index: separatorIdx, align: 'start', behavior: 'smooth' });
+        } else {
+          const mi = currentItems.findIndex(
+            (it): it is Extract<ChatListRow, { type: 'message' }> =>
+              it.type === 'message' && isIncomingUnreadForViewer(it.message, currentUser.id)
+          );
+          if (mi !== -1) {
+            virtuosoRef.current?.scrollToIndex({ index: mi, align: 'start', behavior: 'smooth' });
+          }
+        }
+        anchorUnreadStepRef.current = 1;
+        return;
+      }
+      virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
+      anchorUnreadStepRef.current = 0;
+      void (async () => {
+        try {
+          await markManyMessagesAsRead(firestore, conversation.id, currentUser.id, unreadIds);
+          unreadIds.forEach((id) => sessionReadIds.current.add(id));
+          await markConversationAsRead(firestore, conversation.id, currentUser.id);
+        } catch (e) {
+          console.error('[ChatWindow] anchor mark all read failed', e);
+          unreadIds.forEach((id) => sessionReadIds.current.delete(id));
+        }
+      })();
+      return;
+    }
+
+    virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
+    anchorUnreadStepRef.current = 0;
+  };
+
+  const handleNavigateToReaction = useCallback(async () => {
+    const target = latestReaction;
+    if (!target || !firestore) return;
+    if (target.parentId) {
+      const parentMsgRef = doc(firestore, `conversations/${conversation.id}/messages`, target.parentId);
+      const parentMsgSnap = await getDoc(parentMsgRef);
+      if (parentMsgSnap.exists()) {
+        setThreadReactionScrollToId(target.messageId);
+        setSelectedThreadMessage({ ...parentMsgSnap.data(), id: parentMsgSnap.id } as ChatMessage);
+      } else {
+        toast({ title: 'Обсуждение не найдено' });
+      }
+    } else {
+      navigateToMessage(target.messageId);
+    }
+    window.setTimeout(() => {
+      updateDocumentNonBlocking(doc(firestore, 'conversations', conversation.id), {
+        [`lastReactionSeenAt.${currentUser.id}`]: new Date().toISOString(),
+      });
+    }, 500);
+  }, [latestReaction, firestore, conversation.id, currentUser.id, navigateToMessage, toast]);
+
+  const clearThreadReactionScrollTarget = useCallback(() => setThreadReactionScrollToId(null), []);
+
+  const canDeleteBulk = useMemo(() => {
+    if (selection.ids.size === 0) return false;
+    return Array.from(selection.ids).every(id => {
+        const m = allMessages.find(msg => msg.id === id);
+        return m && m.senderId === currentUser.id && !m.isDeleted;
+    });
+  }, [selection.ids, allMessages, currentUser.id]);
+
+  const windowTouchStart = useRef<{ x: number, y: number } | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    windowTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!windowTouchStart.current) return;
+    if (isProfileOpen || !!selectedThreadMessage || mediaViewerState.isOpen) {
+        windowTouchStart.current = null; return;
+    }
+    const dx = e.changedTouches[0].clientX - windowTouchStart.current.x;
+    const dy = Math.abs(e.changedTouches[0].clientY - windowTouchStart.current.y);
+    if (dx > 100 && dy < 60) onBack();
+    windowTouchStart.current = null;
+  };
+
+  const chatDisplayName = conversation.isGroup
+    ? conversation.name || 'Группа'
+    : isSelfSavedChat
+      ? conversation.name || 'Избранное'
+      : otherUser?.name || 'Чат';
+  const chatDisplayAvatar = conversation.isGroup
+    ? conversation.photoUrl
+    : isSelfSavedChat
+      ? currentUser.avatar || conversation.participantInfo[currentUser.id]?.avatar
+      : otherUser?.avatar;
+
+  const formatDateLabel = (dateStr: string) => {
+    const date = parseISO(dateStr);
+    if (isToday(date)) return 'Сегодня';
+    if (isYesterday(date)) return 'Вчера';
+    return format(date, 'd MMMM', { locale: ru });
+  };
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden relative bg-transparent touch-pan-y" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+        <ChatWallpaperLayer wallpaper={chatSettings.chatWallpaper} />
+
+        <div
+          className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col"
+          onDragOver={(e) => {
+            if (selection.active || isPartnerDeleted) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+          }}
+          onDrop={(e) => {
+            if (selection.active || isPartnerDeleted) return;
+            e.preventDefault();
+            const files = Array.from(e.dataTransfer.files ?? []).filter((f) => f.size > 0);
+            if (files.length) messageInputRef.current?.addDraftFiles(files);
+          }}
+        >
+        <div className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[max(0.35rem,env(safe-area-inset-top))]">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+            {selection.active ? (
+                <SelectionHeader count={selection.ids.size} onCancel={() => setSelection({ active: false, ids: new Set() })} onDelete={handleBulkDelete} onForward={() => { const selectedMessages = allMessages.filter(m => selection.ids.has(m.id)); sessionStorage.setItem('forwardMessages', JSON.stringify(selectedMessages)); router.push('/dashboard/chat/forward'); }} isProcessing={isBulkProcessing} showDelete={canDeleteBulk} />
+            ) : isSearchActive ? (
+                <div className="flex w-full animate-in slide-in-from-right-4 items-center gap-2">
+                    <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }}><ArrowLeft className="h-5 w-5" /></Button>
+                    <div className="relative flex-1">
+                        <Input autoFocus placeholder="Поиск сообщений..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-9 rounded-full border-none bg-muted/50" />
+                        {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"><X className="h-4 w-4" /></button>}
+                    </div>
+                </div>
+            ) : (
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                    <div
+                      className={cn(
+                        'flex items-center gap-2 cursor-pointer min-w-0 max-w-[min(100%,72vw)] sm:max-w-[min(100%,320px)]',
+                        chatHeaderUserGlass,
+                        'py-1 pl-1 pr-2.5'
+                      )}
+                      onClick={() => {
+                        setProfileFocusUserId(null);
+                        setIsProfileOpen(true);
+                      }}
+                    >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="md:hidden shrink-0 rounded-full h-9 w-9 hover:bg-black/5 dark:hover:bg-white/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onBack();
+                          }}
+                        >
+                          <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <Avatar className="h-11 w-11 shrink-0">
+                            <AvatarImage src={chatDisplayAvatar} className="object-cover" />
+                            <AvatarFallback className="text-sm font-bold">{chatDisplayName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0">
+                            <h2 className="text-sm font-bold truncate leading-tight drop-shadow-sm">{chatDisplayName}</h2>
+                            <span className="text-[11px] text-muted-foreground drop-shadow-sm">
+                              {conversation.isGroup
+                                ? `${conversation.participantIds.length} участников`
+                                : isSelfSavedChat
+                                  ? 'Только вы'
+                                  : otherUser?.online
+                                    ? 'В сети'
+                                    : 'Не в сети'}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                        <div className={cn('relative p-0.5', chatHeaderIconGlass)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                              onClick={() => {
+                                setProfileOpenTab('threads');
+                                setProfileFocusUserId(null);
+                                setIsProfileOpen(true);
+                              }}
+                            >
+                              <MessageCircle className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.threads)} strokeWidth={2} />
+                            </Button>
+                            <Badge
+                              className={cn(
+                                'absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 bg-red-500 text-white text-[9px] font-black border-2 border-background flex items-center justify-center animate-in zoom-in-50 shadow-sm',
+                                !(conversation.unreadThreadCounts?.[currentUser.id] || 0) && 'hidden'
+                              )}
+                            >
+                              {(conversation.unreadThreadCounts?.[currentUser.id] || 0) > 9
+                                ? '9+'
+                                : conversation.unreadThreadCounts?.[currentUser.id]}
+                            </Badge>
+                        </div>
+                        <div className={cn('p-0.5', chatHeaderIconGlass)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                              onClick={() => setIsSearchActive(true)}
+                              aria-label="Поиск по сообщениям"
+                            >
+                              <Search
+                                className={cn(
+                                  'h-[22px] w-[22px] drop-shadow-sm dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]',
+                                  CHAT_HEADER_IOS.search
+                                )}
+                                strokeWidth={2}
+                              />
+                            </Button>
+                        </div>
+                        {!conversation.isGroup && otherId && !isSelfSavedChat && (
+                          <>
+                            <div className={cn('p-0.5', chatHeaderIconGlass)}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                                onClick={() => otherUser && initiateCall(firestore, currentUser, otherUser, true, toast)}
+                              >
+                                <Video className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.callVideo)} strokeWidth={2} />
+                              </Button>
+                            </div>
+                            <div className={cn('p-0.5', chatHeaderIconGlass)}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                                onClick={() => otherUser && initiateCall(firestore, currentUser, otherUser, false, toast)}
+                              >
+                                <Phone className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.callAudio)} strokeWidth={2} />
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                    </div>
+                </div>
+            )}
+            </div>
+        </div>
+
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+            {conversation.pinnedMessage && <PinnedMessageBar pinnedMessage={conversation.pinnedMessage} onUnpin={handleUnpinMessage} onNavigate={() => navigateToMessage(conversation.pinnedMessage!.messageId)} />}
+            <div className="flex-1 min-h-0 relative min-w-0 overflow-hidden">
+                {!isFullyReady && (
+                    <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Загрузка...</p>
+                    </div>
+                )}
+                <ChatSearchOverlay
+                  query={searchQuery}
+                  messages={allMessages}
+                  allUsers={allUsers}
+                  onSelectResult={navigateToMessage}
+                  blurInsetLeftPx={messageSearchBlurInsetLeftPx}
+                />
+                <div className={cn('relative h-full w-full min-h-0 min-w-0 overflow-hidden transition-opacity duration-500', isFullyReady ? 'opacity-100' : 'opacity-0')}>
+                    <VideoCircleTailProvider setTailReservePx={setVideoCircleTailReservePx}>
+                    <ChatViewportScrollerRefContext.Provider value={viewportScrollerRef}>
+                    <Virtuoso
+                        ref={virtuosoRef}
+                        data={flatItems}
+                        followOutput="auto"
+                        alignToBottom
+                        scrollerRef={onVirtuosoScrollerRef}
+                        startReached={handleLoadMore}
+                        atBottomStateChange={(atBottom) => {
+                            atBottomRef.current = atBottom;
+                            setShowScrollButton(!atBottom);
+                        }}
+                        rangeChanged={handleRangeChanged}
+                        computeItemKey={(index, item) => {
+                            if (item.type === 'date') return `chat-d-${item.dateKey}-${item.dayStickyOrder}`;
+                            if (item.type === 'unread-separator') return `chat-u-${unreadSeparatorId ?? index}`;
+                            return `chat-m-${item.message.id}`;
+                        }}
+                        increaseViewportBy={VIRTUOSO_CHAT_INCREASE_VIEWPORT}
+                        minOverscanItemCount={VIRTUOSO_CHAT_MIN_OVERSCAN}
+                        components={{
+                            Header: () => (isLoadingOlder || (hasMore && messages.length >= displayLimit)) ? (
+                                <div className="p-4 flex items-center justify-center text-muted-foreground">
+                                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Загрузка истории...</span>
+                                </div>
+                            ) : null,
+                            Footer: () => (
+                                <div
+                                    className="w-full shrink-0"
+                                    style={{ height: 12 + videoCircleTailReservePx }}
+                                    aria-hidden
+                                />
+                            ),
+                        }}
+                        itemContent={(index, item) => {
+                            if (item.type === 'date') {
+                              return (
+                                <ChatDateSeparatorRow
+                                  label={formatDateLabel(item.dateKey)}
+                                  stickyStackOrder={item.dayStickyOrder}
+                                />
+                              );
+                            }
+                            if (item.type === 'unread-separator') return (<div className="flex items-center gap-4 px-6 py-4 animate-in fade-in duration-500"><div className="h-px bg-primary/30 flex-1" /><span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full border border-primary/20">Непрочитанные сообщения</span><div className="h-px bg-primary/30 flex-1" /></div>);
+                            const isLastInChat = index === flatItems.length - 1;
+                            return (
+                              <MessageReadOnViewport
+                                messageId={item.message.id}
+                                message={item.message}
+                                currentUserId={currentUser.id}
+                                conversationId={conversation.id}
+                                firestore={firestore}
+                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread}
+                                viewportLayoutKey={viewportScrollerKey}
+                                sessionReadIds={sessionReadIds}
+                              >
+                                <div className="py-1 px-4">
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} />
+                                </div>
+                              </MessageReadOnViewport>
+                            );
+                        }}
+                    />
+                    </ChatViewportScrollerRefContext.Provider>
+                    </VideoCircleTailProvider>
+                    <ChatAnchor isVisible={showScrollButton} unreadCount={incomingUnreadCount} lastReaction={latestReaction} onClick={handleAnchorClick} onNavigateToReaction={handleNavigateToReaction} />
+                </div>
+            </div>
+        </div>
+
+        {!selection.active && (
+          <div className="relative shrink-0 bg-transparent">
+            <ChatMessageInput
+              ref={messageInputRef}
+              onSendMessage={handleSendMessage}
+              onSendLocationShare={handleSendLocationShare}
+              onSendPoll={handleSendPoll}
+              onUpdateMessage={handleUpdateMessage}
+              replyingTo={replyingTo}
+              onCancelReply={() => setReplyingTo(null)}
+              editingMessage={editingMessage}
+              onCancelEdit={() => setEditingMessage(null)}
+              conversation={conversation}
+              currentUser={currentUser}
+              allUsers={allUsers}
+              isPartnerDeleted={isPartnerDeleted}
+            />
+          </div>
+        )}
+        </div>
+        <ChatParticipantProfile
+          open={isProfileOpen}
+          onOpenChange={handleProfileSheetOpenChange}
+          initialTab={profileTab}
+          focusUserId={profileFocusUserId}
+          onClearProfileFocus={() => setProfileFocusUserId(null)}
+          conversation={conversation}
+          allUsers={allUsers}
+          currentUser={currentUser}
+          messages={messagesForList}
+          onImageClick={handleOpenMediaViewer}
+          onSelectConversation={onSelectConversation}
+          onEditGroup={onEditGroup}
+          onOpenThread={(msg) => setSelectedThreadMessage(msg)}
+        />
+        {selectedThreadMessage && (
+          <ThreadWindow
+            parentMessage={selectedThreadMessage}
+            conversation={conversation}
+            currentUser={currentUser}
+            allUsers={allUsers}
+            onClose={() => {
+              setSelectedThreadMessage(null);
+              setThreadReactionScrollToId(null);
+            }}
+            onOpenImageViewer={handleOpenMediaViewer}
+            onOpenVideoViewer={handleOpenMediaViewer}
+            onNavigateToMessage={navigateToMessage}
+            onUpdateMessage={handleUpdateMessage}
+            onDeleteMessage={(id) => handleDeleteMessage(id, selectedThreadMessage.id)}
+            onReplyTo={setReplyingTo}
+            onForwardMessage={(m) => {
+              sessionStorage.setItem('forwardMessages', JSON.stringify([m]));
+              router.push('/dashboard/chat/forward');
+            }}
+            onReactTo={handleReactTo}
+            isPartnerDeleted={isPartnerDeleted}
+            highlightThreadMessageId={threadReactionScrollToId}
+            onHighlightThreadMessageConsumed={clearThreadReactionScrollTarget}
+            onMentionProfileOpen={handleMentionProfileOpen}
+            onGroupSenderWritePrivate={handleGroupSenderWritePrivate}
+            onSaveStickerGif={handleSaveStickerFromMessage}
+          />
+        )}
+        <StickerPackPickerDialog
+          open={stickerSaveOpen}
+          onOpenChange={(o) => {
+            setStickerSaveOpen(o);
+            if (!o) setStickerSaveAttachment(null);
+          }}
+          userId={currentUser.id}
+          title="Сохранить в стикерпак"
+          description="Копия стикера или GIF попадёт в выбранный пак. Отправляйте из вкладки «Стикеры»."
+          busy={stickerSaveBusy}
+          onConfirmPack={handleStickerSaveConfirmPack}
+          createPack={handleStickerPackCreate}
+        />
+        <MediaViewer isOpen={mediaViewerState.isOpen} onOpenChange={(open) => setMediaViewerState(prev => ({ ...prev, isOpen: open }))} media={allMediaItems} startIndex={mediaViewerState.startIndex} currentUserId={currentUser.id} allUsers={allUsers} onReply={(m) => { const replyContext = getReplyPreview(m, allUsers); setReplyingTo(replyContext); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onDelete={(id) => handleDeleteMessage(id)} navigateToMessage={navigateToMessage} />
+    </div>
+  );
+}

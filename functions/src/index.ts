@@ -1,0 +1,35 @@
+// This file is the entry point for all Cloud Functions.
+// It imports and re-exports all functions from their individual files.
+
+import * as admin from "firebase-admin";
+
+// Initialize Firebase Admin SDK
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
+
+// --- EXPORT TRIGGERS ---
+
+// Auth Triggers
+export { onUserCreated } from './triggers/auth/onUserCreated';
+
+// HTTP Triggers (onCall)
+export { createNewUser } from './triggers/http/createNewUser';
+export { updateUserAdmin } from './triggers/http/updateUserAdmin';
+export { backfillConversationMembers } from './triggers/http/backfillConversationMembers';
+export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationIndex';
+export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
+export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
+
+// Firestore Triggers
+export { onconversationcreated } from './triggers/firestore/onConversationCreated';
+export { onuserwritesyncregistrationindex } from './triggers/firestore/onUserWriteSyncRegistrationIndex';
+export { onconversationdeleted } from './triggers/firestore/onConversationDeleted';
+export { onconversationupdated } from './triggers/firestore/onConversationUpdated';
+export { onmessagecreated } from './triggers/firestore/onMessageCreated';
+export { onthreadmessagecreated } from './triggers/firestore/onThreadMessageCreated';
+export { oncallcreated } from './triggers/firestore/onCallCreated';
+export { onmeetingparticipantcreated } from './triggers/firestore/onMeetingParticipantCreated';
+
+// Scheduler Triggers
+export { checkUserPresence } from './triggers/scheduler/checkUserPresence';

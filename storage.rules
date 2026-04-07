@@ -1,0 +1,76 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    /** Роль admin в Firestore (как в firestore.rules). */
+    function isFirestoreAdmin() {
+      return signedIn()
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function conversationParticipants(convId) {
+      return firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participantIds;
+    }
+
+    function isConversationMember(convId) {
+      return signedIn() && request.auth.uid in conversationParticipants(convId);
+    }
+
+    /** Статика звонка — без JWT в клиенте для первого запроса. */
+    match /audio/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /** Фоны каталога встреч (только чтение из приложения). */
+    match /meeting-assets/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    /** Вложения чата и тредов: только участники диалога. */
+    match /chat-attachments/{conversationId}/{allPaths=**} {
+      allow read: if isConversationMember(conversationId);
+      allow write: if isConversationMember(conversationId);
+    }
+
+    match /group-avatars/{conversationId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if isConversationMember(conversationId);
+    }
+
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if signedIn() && (request.auth.uid == userId || isFirestoreAdmin());
+    }
+
+    match /wallpapers/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/sticker-packs/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/backgrounds/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
+    /** Чат встречи (не привязан к conversations/). */
+    match /meeting-attachments/{meetingId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if signedIn();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

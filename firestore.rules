@@ -1,0 +1,255 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Роль из Firestore: поле role (строка) должно быть ровно «admin». */
+    function isAdmin() {
+      let u = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isSignedIn() && u.exists && u.data.role == 'admin';
+    }
+
+    function isMeetingHost(meetingId) {
+      return isSignedIn() && get(/databases/$(database)/documents/meetings/$(meetingId)).data.hostId == request.auth.uid;
+    }
+
+    /** Сам пользователь не может менять блокировку, роль, soft-delete и квоту — только админ. */
+    function userSensitiveKeysChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['accountBlock', 'role', 'deletedAt', 'storageQuotaBytes']);
+    }
+
+    /**
+     * Участник по полю participantIds (list или map ключей).
+     * Не используем data.keys().hasAny(['participantIds']): при list-запросах с array-contains
+     * правила Firestore должны сопоставить фильтр запроса с условием; лишняя проверка keys()
+     * ломает это сопоставление и даёт permission-denied на весь query (см. ensureSavedMessagesChat / список чатов).
+     */
+    function uidIsConversationParticipantFromData(data) {
+      return (data.participantIds is list && data.participantIds.hasAny([request.auth.uid]))
+        || (data.participantIds is map && request.auth.uid in data.participantIds);
+    }
+
+    /** Запасной путь, пока CF ещё не создала members/{uid} (миллисекунды после создания чата). */
+    function conversationMemberFallbackFromParent(conversationId) {
+      let d = get(/databases/$(database)/documents/conversations/$(conversationId));
+      return d.exists && uidIsConversationParticipantFromData(d.data);
+    }
+
+    /**
+     * Основной путь: conversations/{id}/members/{auth.uid} (Cloud Functions).
+     * Fallback: participantIds на parent — только если индекса ещё нет.
+     */
+    function isConversationMember(conversationId) {
+      return isSignedIn()
+        && (
+          exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
+          || conversationMemberFallbackFromParent(conversationId)
+        );
+    }
+
+    /** Участник не может менять квоту хранилища диалога; админ — может (ветка isAdmin в allow update). */
+    function conversationStorageQuotaUnchanged() {
+      let beforeHas = resource.data.keys().hasAny(['storageQuotaBytes']);
+      let afterHas = request.resource.data.keys().hasAny(['storageQuotaBytes']);
+      let qBefore = beforeHas ? resource.data.storageQuotaBytes : null;
+      let qAfter = afterHas ? request.resource.data.storageQuotaBytes : null;
+      return qAfter == qBefore;
+    }
+
+    /** Участник активного звонка (документ call уже существует). */
+    function isCallParticipantForExisting(callId) {
+      let d = get(/databases/$(database)/documents/calls/$(callId)).data;
+      return isSignedIn()
+        && (request.auth.uid == d.callerId || request.auth.uid == d.receiverId);
+    }
+
+    /**
+     * Индекс уникальности телефона / email / логина для регистрации до входа.
+     * Заполняется только Cloud Functions (Admin SDK); клиент только get.
+     */
+    match /registrationIndex/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /users/{userId} {
+      /**
+       * Чтение профилей: любой авторизованный (чат, звонки, контакты, упоминания).
+       * Ужесточение — вынести публичные поля в отдельную коллекцию + Server Actions (см. аудит).
+       */
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == userId && !userSensitiveKeysChanged())
+      );
+      allow delete: if false;
+
+      match /notifications/{notificationId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /stickerPacks/{packId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        match /items/{itemId} {
+          allow read, write: if isSignedIn() && request.auth.uid == userId;
+        }
+      }
+    }
+
+    match /meetings/{meetingId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+
+      match /signals/{signalId} {
+        allow read, write: if isSignedIn();
+      }
+
+      match /participants/{participantId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isSignedIn();
+      }
+
+      match /requests/{userId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isSignedIn() && (request.auth.uid == userId || isMeetingHost(meetingId));
+      }
+
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
+
+      match /polls/{pollId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
+      }
+    }
+
+    match /userChats/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /userContacts/{userId} {
+      allow get, create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /userCalls/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /userMeetings/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /conversations/{conversationId} {
+      /**
+       * Одно выражение: list-query по коллекции с array-contains в клиенте не используется (список чатов — userChats + doc).
+       * Раздельные allow read ломали вложенный get(parent) в правилах подколлекций (messages/polls/typing).
+       * Админ: полный list по conversations (панель «Хранилище» / admin-storage-stats-panel).
+       *
+       * Чтение parent-документа: participantIds **или** индекс members/{uid} (создаёт CF). Иначе после появления id в
+       * userChats подписка useConversationsByDocumentIds могла получать permission-denied, если поле parent
+       * временно не сопоставимо с правилами, а members уже записан (см. onConversationCreated).
+       */
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
+        (resource != null && uidIsConversationParticipantFromData(resource.data))
+      );
+      allow create: if isSignedIn()
+        && uidIsConversationParticipantFromData(request.resource.data)
+        && request.resource.data.participantIds is list
+        && request.resource.data.participantIds.size() >= 1;
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (
+          uidIsConversationParticipantFromData(resource.data)
+          && conversationStorageQuotaUnchanged()
+        )
+      );
+      allow delete: if isSignedIn() && uidIsConversationParticipantFromData(resource.data);
+
+      /** Индекс участников для правил подколлекций; запись только с сервера (Admin SDK). */
+      match /members/{memberId} {
+        allow read: if isSignedIn() && request.auth.uid == memberId;
+        allow write: if false;
+      }
+
+      /**
+       * Индикатор «печатает…». Читать/писать — только участникам.
+       * Удаление своего документа разрешено любому вошедшему с тем же uid: клиент чистит typing
+       * при смене чата; строгая проверка member иногда ломалась на старых/групповых документах.
+       */
+      match /typing/{typingUserId} {
+        allow read: if isConversationMember(conversationId);
+        allow create, update: if isConversationMember(conversationId) && request.auth.uid == typingUserId;
+        allow delete: if isSignedIn() && request.auth.uid == typingUserId;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isConversationMember(conversationId);
+        allow create: if isConversationMember(conversationId)
+          && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if isConversationMember(conversationId);
+
+        match /{subPath=**} {
+          allow read, write: if isConversationMember(conversationId);
+        }
+      }
+
+      match /polls/{pollId} {
+        allow read, write: if isConversationMember(conversationId);
+      }
+    }
+
+    match /calls/{callId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.callerId ||
+        request.auth.uid == resource.data.receiverId
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.callerId == request.auth.uid
+        && request.resource.data.receiverId is string
+        && request.resource.data.callerId is string;
+      allow update, delete: if isSignedIn() && (
+        request.auth.uid == resource.data.callerId ||
+        request.auth.uid == resource.data.receiverId
+      );
+
+      match /candidates/{candidateId} {
+        allow read, write: if isCallParticipantForExisting(callId);
+      }
+    }
+
+    /** Не используется клиентом LighChat — закрыто от клиентских запросов. */
+    match /departureAddresses/{addressId} {
+      allow read, write: if false;
+    }
+
+    match /vehicles/{document=**} { allow read, write: if false; }
+    match /drivers/{document=**} { allow read, write: if false; }
+    match /trips/{document=**} { allow read, write: if false; }
+    match /suppliers/{document=**} { allow read, write: if false; }
+    match /customers/{document=**} { allow read, write: if false; }
+    match /tariffs/{document=**} { allow read, write: if false; }
+
+    match /settings/{document=**} { allow read, write: if false; }
+
+    match /platformSettings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /supportTickets/{ticketId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+  }
+}

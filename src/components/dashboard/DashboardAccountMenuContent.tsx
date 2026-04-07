@@ -1,0 +1,158 @@
+'use client';
+
+import * as React from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import {
+  UserCircle,
+  MessageSquare,
+  BellRing,
+  Shield,
+  ShieldCheck,
+  LogOut,
+  ChevronRight,
+  Sun,
+  Moon,
+  Palette,
+} from 'lucide-react';
+import type { AppThemePreference, UserRole } from '@/lib/types';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useSidebar } from '@/components/ui/sidebar';
+import { useTheme } from 'next-themes';
+import { useToast } from '@/hooks/use-toast';
+
+const THEME_CYCLE: AppThemePreference[] = ['light', 'dark', 'chat'];
+
+function normalizeAppTheme(theme: string | undefined, resolved: string | undefined): AppThemePreference {
+  const t = theme ?? resolved;
+  if (t === 'light' || t === 'dark' || t === 'chat') return t;
+  return 'dark';
+}
+
+function ProfileMenuItem({
+  icon: Icon,
+  label,
+  href,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-foreground/5 transition-colors group"
+    >
+      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      <span className="flex-1">{label}</span>
+      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+    </Link>
+  );
+}
+
+type DashboardAccountMenuContentProps = {
+  /** Закрыть поповер и при необходимости мобильный сайдбар */
+  onNavigate: () => void;
+};
+
+/**
+ * Меню профиля и настроек (поповер у аватара в нижней навигации).
+ */
+export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenuContentProps) {
+  const { user, logout, updateUser } = useAuth();
+  const role = user?.role as UserRole | undefined;
+  const { isMobile, setOpenMobile } = useSidebar();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { toast } = useToast();
+
+  const handleNav = React.useCallback(() => {
+    onNavigate();
+    if (isMobile) setOpenMobile(false);
+  }, [isMobile, onNavigate, setOpenMobile]);
+
+  if (!user) return null;
+
+  const currentTheme = normalizeAppTheme(theme, resolvedTheme);
+  const themeLabel =
+    currentTheme === 'light'
+      ? 'Тема: светлая'
+      : currentTheme === 'dark'
+        ? 'Тема: тёмная'
+        : 'Тема как фон чата';
+
+  const cycleTheme = async () => {
+    const idx = THEME_CYCLE.indexOf(currentTheme);
+    const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
+    const prev = currentTheme;
+    setTheme(next);
+    const result = await updateUser({ appTheme: next });
+    if (!result.ok) {
+      setTheme(prev);
+      toast({
+        variant: 'destructive',
+        title: 'Не удалось сохранить тему',
+        description: result.message,
+      });
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
+        <Avatar className="h-10 w-10 border border-black/5 dark:border-white/10 shadow-sm">
+          <AvatarImage src={user.avatar} alt={user.name} />
+          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold truncate">{user.name}</p>
+          {user.username && <p className="text-[11px] text-muted-foreground truncate">@{user.username}</p>}
+        </div>
+      </div>
+      <div className="h-px bg-border/50 mx-2 my-1" />
+      <nav className="flex flex-col gap-0.5">
+        <ProfileMenuItem icon={UserCircle} label="Профиль" href="/dashboard/profile" onClick={handleNav} />
+        <ProfileMenuItem icon={MessageSquare} label="Настройки чатов" href="/dashboard/settings/chats" onClick={handleNav} />
+        {role === 'admin' && (
+          <ProfileMenuItem
+            icon={ShieldCheck}
+            label="Администрирование"
+            href="/dashboard/admin"
+            onClick={handleNav}
+          />
+        )}
+        <ProfileMenuItem icon={BellRing} label="Уведомления" href="/dashboard/settings/notifications" onClick={handleNav} />
+        <ProfileMenuItem icon={Shield} label="Конфиденциальность" href="/dashboard/settings/privacy" onClick={handleNav} />
+      </nav>
+      <div className="h-px bg-border/50 mx-2 my-1" />
+      <button
+        type="button"
+        onClick={() => void cycleTheme()}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-foreground/5"
+      >
+        {currentTheme === 'light' ? (
+          <Sun className="h-4 w-4 shrink-0 text-muted-foreground" />
+        ) : currentTheme === 'dark' ? (
+          <Moon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <Palette className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="flex-1">{themeLabel} · нажмите для смены</span>
+      </button>
+      <div className="h-px bg-border/50 mx-2 my-1" />
+      <button
+        type="button"
+        onClick={() => {
+          handleNav();
+          logout();
+        }}
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-destructive hover:bg-destructive/5 transition-colors"
+      >
+        <LogOut className="h-4 w-4" />
+        <span>Выйти</span>
+      </button>
+    </>
+  );
+}

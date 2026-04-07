@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="192" height="192" viewBox="0 0 192 192">
+  <title>LighChat (maskable)</title>
+  <rect width="192" height="192" fill="#ffffff"/>
+  <!-- Безопасная зона ~82% (согласовано с shrink-pwa-icon.mjs) -->
+  <image xlink:href="/brand/lighchat-mark.png" href="/brand/lighchat-mark.png" x="17" y="17" width="158" height="158" preserveAspectRatio="xMidYMid meet"/>
+</svg>
