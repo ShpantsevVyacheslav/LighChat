@@ -56,24 +56,3 @@ export function AuthBrandWordmarkBlock({
   return <div className={cn("space-y-1 text-center", className)}>{children}</div>;
 }
 
-/** Текст для `DialogDescription asChild` (Radix требует `forwardRef` на корне). */
-export const AuthRegisterDescriptionLine = React.forwardRef<
-  HTMLDivElement,
-  { className?: string }
->(function AuthRegisterDescriptionLine({ className }, ref) {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "text-center text-xs leading-relaxed text-slate-600 dark:text-white/55",
-        className
-      )}
-    >
-      <span className="text-slate-500 dark:text-white/45">
-        Заполните данные для регистрации в{" "}
-      </span>
-      <AuthBrandWordmarkTitle as="span" size="inline" className="inline font-bold" />
-    </div>
-  );
-});
-AuthRegisterDescriptionLine.displayName = "AuthRegisterDescriptionLine";

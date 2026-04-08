@@ -28,25 +28,28 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { PhoneInput } from "@/components/ui/phone-input";
-import { DateOfBirthPicker } from "@/components/ui/date-of-birth-picker";
 import { useAuth } from "@/hooks/use-auth";
+import { isRegistrationProfileComplete } from "@/lib/registration-profile-complete";
+import {
+  emailPasswordRegistrationSchema,
+  googleProfileFormSchema,
+} from "@/lib/register-profile-schema";
 import {
   AuthBrandWordmarkBlock,
   AuthBrandWordmarkTitle,
-  AuthRegisterDescriptionLine,
 } from "@/components/auth/auth-brand-wordmark";
 import { RegisterAvatarCropOverlay } from "@/components/auth/register-avatar-crop-overlay";
+import { RegisterDialogFormBlock } from "@/components/auth/register-dialog-form-block";
 import {
   AUTH_GLASS_CARD_HIGHLIGHT_CLASS,
   AUTH_GLASS_CARD_SHELL_CLASS,
   AUTH_DIALOG_OVERLAY_CLASS,
   AUTH_GLASS_INPUT_CLASS,
+  AUTH_GLASS_INPUT_ERROR_CLASS,
   AUTH_LABEL_CLASS,
 } from "@/components/auth/auth-glass-classes";
 import { cn } from "@/lib/utils";
-import { Eye, EyeOff, Loader2, AlertCircle, AtSign, UserPlus, Camera } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, UserPlus } from "lucide-react";
 
 /** Фирменный знак: `public/brand/lighchat-mark.png` (квадратный PNG с альфой; см. `scripts/transparent-lighchat-mark.mjs`). */
 const BRAND_LOGO_SRC = "/brand/lighchat-mark.png";
@@ -56,31 +59,6 @@ const BRAND_LOGO_SIZE = 575;
 const loginSchema = z.object({
   email: z.string().email({ message: "Неверный формат email." }),
   password: z.string().min(1, { message: "Пароль не может быть пустым." }),
-});
-
-const registerSchema = z.object({
-  name: z.string().min(2, { message: "Имя должно содержать не менее 2 символов." }),
-  username: z
-    .string()
-    .min(3, { message: "Логин должен содержать не менее 3 символов." })
-    .max(30, { message: "Логин не должен превышать 30 символов." })
-    .regex(/^@?[a-zA-Z0-9_]+$/, { message: "Только латиница, цифры и _" }),
-  phone: z
-    .string()
-    .refine((val) => val.replace(/\D/g, "").length === 11, { message: "Введите полный номер телефона." }),
-  email: z.string().email({ message: "Неверный формат email." }),
-  password: z.string().min(6, { message: "Пароль должен содержать не менее 6 символов." }),
-  confirmPassword: z.string(),
-  dateOfBirth: z.string().optional().refine((val) => {
-    if (!val) return true;
-    const year = new Date(val).getFullYear();
-    const currentYear = new Date().getFullYear();
-    return year >= 1920 && year <= currentYear;
-  }, { message: "Некорректная дата рождения." }),
-  bio: z.string().max(200, { message: "Не более 200 символов." }).optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Пароли не совпадают.",
-  path: ["confirmPassword"],
 });
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -119,33 +97,100 @@ function YandexIcon({ className }: { className?: string }) {
 }
 
 export default function AuthPage() {
-  const { login, register, signInWithGoogle, error, clearError, isAuthenticated, isLoading } = useAuth();
+  const {
+    user,
+    googleProfileCompletionFlow,
+    login,
+    register,
+    completeGoogleProfile,
+    signInWithGoogle,
+    error,
+    clearError,
+    isAuthenticated,
+    isLoading,
+  } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace('/dashboard');
+    if (!isLoading && isAuthenticated && user && isRegistrationProfileComplete(user)) {
+      router.replace("/dashboard");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, user, router]);
+
   const [showPassword, setShowPassword] = React.useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
   const [registerOpen, setRegisterOpen] = React.useState(false);
-  const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
+  const [registerMode, setRegisterMode] = React.useState<"email" | "google">("email");
+  /** Полный файл после выбора + обрезки (в Storage — `avatar`). */
+  const [avatarFullFile, setAvatarFullFile] = React.useState<File | null>(null);
+  /** Круг 512×512 из overlay (`avatarThumb`). */
+  const [avatarThumbFile, setAvatarThumbFile] = React.useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const [cropOpen, setCropOpen] = React.useState(false);
   const [cropSrc, setCropSrc] = React.useState<string | null>(null);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  const pendingAvatarFullRef = React.useRef<File | null>(null);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  const registerForm = useForm<z.infer<typeof registerSchema>>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", username: "", phone: "", email: "", password: "", confirmPassword: "", dateOfBirth: "", bio: "" },
+  const emailRegisterForm = useForm<z.infer<typeof emailPasswordRegistrationSchema>>({
+    resolver: zodResolver(emailPasswordRegistrationSchema),
+    defaultValues: {
+      name: "",
+      username: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      dateOfBirth: "",
+      bio: "",
+    },
   });
+
+  const googleRegisterForm = useForm<z.infer<typeof googleProfileFormSchema>>({
+    resolver: zodResolver(googleProfileFormSchema),
+    defaultValues: {
+      name: "",
+      username: "",
+      phone: "",
+      email: "",
+      dateOfBirth: "",
+      bio: "",
+    },
+  });
+
+  React.useEffect(() => {
+    if (isLoading || !isAuthenticated || !user) return;
+    if (!isRegistrationProfileComplete(user)) {
+      setRegisterMode(googleProfileCompletionFlow ? "google" : "email");
+      setRegisterOpen(true);
+    } else {
+      setRegisterOpen(false);
+    }
+  }, [isLoading, isAuthenticated, user, googleProfileCompletionFlow]);
+
+  /** Один раз при открытии шага Google — иначе snapshot пользователя (online и т.д.) затирал бы ввод. */
+  const googleFormPrefilledRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!registerOpen || registerMode !== "google") {
+      if (!registerOpen) googleFormPrefilledRef.current = false;
+      return;
+    }
+    if (!user || googleFormPrefilledRef.current) return;
+    googleFormPrefilledRef.current = true;
+    googleRegisterForm.reset({
+      name: (user.name ?? "").trim(),
+      username: user.username ?? "",
+      phone: user.phone ?? "",
+      email: user.email ?? "",
+      dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth) : "",
+      bio: user.bio ?? "",
+    });
+  }, [registerOpen, registerMode, user, googleRegisterForm]);
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsSubmitting(true);
@@ -157,9 +202,10 @@ export default function AuthPage() {
     }
   };
 
-  const onRegister = async (values: z.infer<typeof registerSchema>) => {
+  const onRegister = async (values: z.infer<typeof emailPasswordRegistrationSchema>) => {
     setIsSubmitting(true);
-    const success = await register({
+    emailRegisterForm.clearErrors();
+    const result = await register({
       name: values.name,
       username: values.username,
       phone: values.phone,
@@ -167,11 +213,47 @@ export default function AuthPage() {
       password: values.password,
       dateOfBirth: values.dateOfBirth || undefined,
       bio: values.bio || undefined,
-      avatarFile: avatarFile || undefined,
+      avatarFile: avatarFullFile || undefined,
+      avatarThumbFile: avatarThumbFile || undefined,
     });
-    if (success) {
-      router.push('/dashboard');
+    if (result.ok) {
+      router.replace("/dashboard");
     } else {
+      if (result.conflictField) {
+        emailRegisterForm.setError(result.conflictField, {
+          type: "duplicate",
+          message: result.message,
+        });
+      }
+      setIsSubmitting(false);
+    }
+  };
+
+  const onGoogleProfileComplete = async (values: z.infer<typeof googleProfileFormSchema>) => {
+    setIsSubmitting(true);
+    googleRegisterForm.clearErrors();
+    const result = await completeGoogleProfile({
+      name: values.name,
+      username: values.username,
+      phone: values.phone,
+      email: values.email,
+      dateOfBirth: values.dateOfBirth || undefined,
+      bio: values.bio || undefined,
+      avatarFile: avatarFullFile || undefined,
+      avatarThumbFile: avatarThumbFile || undefined,
+    });
+    if (result.ok) {
+      router.replace("/dashboard");
+    } else {
+      if (result.conflictField) {
+        const cf = result.conflictField;
+        if (cf === "email" || cf === "username" || cf === "phone") {
+          googleRegisterForm.setError(cf, {
+            type: "duplicate",
+            message: result.message,
+          });
+        }
+      }
       setIsSubmitting(false);
     }
   };
@@ -179,22 +261,34 @@ export default function AuthPage() {
   const onGoogleSignIn = async () => {
     setIsSubmitting(true);
     try {
-      const success = await signInWithGoogle();
-      if (success) {
-        router.push('/dashboard');
-      }
+      await signInWithGoogle();
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const profileIncomplete =
+    Boolean(isAuthenticated && user && !isRegistrationProfileComplete(user));
+
   const handleOpenRegister = () => {
     clearError();
-    registerForm.reset();
+    setRegisterMode("email");
+    emailRegisterForm.reset({
+      name: "",
+      username: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      dateOfBirth: "",
+      bio: "",
+    });
     setShowRegisterPassword(false);
     if (avatarPreview?.startsWith("blob:")) URL.revokeObjectURL(avatarPreview);
     if (cropSrc?.startsWith("blob:")) URL.revokeObjectURL(cropSrc);
-    setAvatarFile(null);
+    pendingAvatarFullRef.current = null;
+    setAvatarFullFile(null);
+    setAvatarThumbFile(null);
     setAvatarPreview(null);
     setCropOpen(false);
     setCropSrc(null);
@@ -205,24 +299,30 @@ export default function AuthPage() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !file.type.startsWith("image/")) return;
+    pendingAvatarFullRef.current = file;
     const url = URL.createObjectURL(file);
     setCropSrc(url);
     setCropOpen(true);
   };
 
   const handleCropCancel = () => {
+    pendingAvatarFullRef.current = null;
     if (cropSrc?.startsWith("blob:")) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
     setCropOpen(false);
   };
 
-  const handleCropApply = (file: File) => {
+  const handleCropApply = (circleFile: File) => {
+    const full = pendingAvatarFullRef.current;
+    pendingAvatarFullRef.current = null;
+    if (!full) return;
     if (cropSrc?.startsWith("blob:")) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
     setCropOpen(false);
     if (avatarPreview?.startsWith("blob:")) URL.revokeObjectURL(avatarPreview);
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarFullFile(full);
+    setAvatarThumbFile(circleFile);
+    setAvatarPreview(URL.createObjectURL(circleFile));
   };
 
   return (
@@ -263,8 +363,16 @@ export default function AuthPage() {
         <Card className={cn("shrink-0", AUTH_GLASS_CARD_SHELL_CLASS)}>
           <div className={AUTH_GLASS_CARD_HIGHLIGHT_CLASS} />
           <CardContent className="relative p-4 pt-5 sm:p-5 sm:pt-6">
+            {profileIncomplete ? (
+              <p className="rounded-[14px] border border-white/35 bg-white/25 px-3 py-3 text-center text-sm leading-snug text-slate-700 backdrop-blur-md dark:border-white/12 dark:bg-white/[0.06] dark:text-white/85">
+                Вы вошли через Google. Заполните оставшиеся поля в открывшейся форме — без них доступ к приложению недоступен.
+              </p>
+            ) : null}
             <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-3">
+              <form
+                onSubmit={loginForm.handleSubmit(onLogin)}
+                className={cn("space-y-3", profileIncomplete && "hidden")}
+              >
                 <FormField
                   control={loginForm.control}
                   name="email"
@@ -333,16 +441,21 @@ export default function AuthPage() {
               </form>
             </Form>
 
-            <p className="my-3 text-center text-[9px] font-semibold uppercase tracking-wide text-slate-600/80 dark:text-white/45">
+            <p
+              className={cn(
+                "my-3 text-center text-[9px] font-semibold uppercase tracking-wide text-slate-600/80 dark:text-white/45",
+                profileIncomplete && "hidden",
+              )}
+            >
               или
             </p>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className={cn("grid grid-cols-4 gap-2", profileIncomplete && "hidden")}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={onGoogleSignIn}
-                disabled={isSubmitting}
+                disabled={isSubmitting || profileIncomplete}
                 className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10"
                 title="Google"
               >
@@ -377,17 +490,19 @@ export default function AuthPage() {
               </Button>
             </div>
 
-            <div className="mt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleOpenRegister}
-                className="h-10 w-full gap-2 rounded-[12px] font-semibold text-primary hover:bg-primary/10 dark:text-sky-300 dark:hover:bg-white/10 dark:hover:text-sky-200"
-              >
-                <UserPlus className="h-4 w-4" />
-                Создать аккаунт
-              </Button>
-            </div>
+            {!profileIncomplete ? (
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleOpenRegister}
+                  className="h-10 w-full gap-2 rounded-[12px] font-semibold text-primary hover:bg-primary/10 dark:text-sky-300 dark:hover:bg-white/10 dark:hover:text-sky-200"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Создать аккаунт
+                </Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -400,6 +515,13 @@ export default function AuthPage() {
       <Dialog
         open={registerOpen}
         onOpenChange={(open) => {
+          if (!open && cropOpen) {
+            handleCropCancel();
+            return;
+          }
+          if (!open && user && !isRegistrationProfileComplete(user)) {
+            return;
+          }
           setRegisterOpen(open);
           if (!open) {
             clearError();
@@ -410,6 +532,7 @@ export default function AuthPage() {
         }}
       >
         <DialogContent
+          showCloseButton={!cropOpen}
           overlayClassName={AUTH_DIALOG_OVERLAY_CLASS}
           closeButtonClassName="right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-white/45 bg-white/35 shadow-sm backdrop-blur-md hover:bg-white/50 hover:opacity-100 dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/20"
           className={cn(
@@ -421,189 +544,85 @@ export default function AuthPage() {
           <div className={AUTH_GLASS_CARD_HIGHLIGHT_CLASS} />
           <DialogHeader className="relative z-10 shrink-0 space-y-2 px-5 pb-2 pt-5 text-center sm:text-center">
             <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white">
-              Создать аккаунт
+              {registerMode === "google"
+                ? "Завершите регистрацию"
+                : "Создать аккаунт"}
             </DialogTitle>
-            <DialogDescription asChild>
-              <AuthRegisterDescriptionLine />
+            <DialogDescription className="text-center text-xs leading-relaxed text-slate-600 dark:text-white/55">
+              {registerMode === "google" ? (
+                <>
+                  Укажите телефон и логин и при необходимости поправьте имя. Пароль не нужен — вход через Google.
+                  {" "}
+                  <AuthBrandWordmarkTitle as="span" size="inline" className="inline font-bold" />
+                </>
+              ) : (
+                <>
+                  <span className="text-slate-500 dark:text-white/45">
+                    Заполните данные для регистрации в{" "}
+                  </span>
+                  <AuthBrandWordmarkTitle as="span" size="inline" className="inline font-bold" />
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 pb-4 [-webkit-overflow-scrolling:touch]">
-            <Form {...registerForm}>
-              <form id="register-form" onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-3">
-                {/* Аватар (необязательно): после выбора файла — полноэкранная круглая обрезка */}
-                <div className="flex flex-col items-center gap-1 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    className="group relative"
-                  >
-                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-white/45 bg-white/20 backdrop-blur-md transition-colors group-hover:border-primary/60 dark:border-white/25 dark:bg-white/[0.06]">
-                      {avatarPreview ? (
-                        <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Camera className="h-7 w-7 text-slate-500 transition-colors group-hover:text-primary dark:text-white/45" />
-                      )}
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary shadow-md">
-                      <span className="text-xs font-bold text-white">+</span>
-                    </div>
-                  </button>
-                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                  <p className="max-w-[240px] text-center text-[10px] leading-snug text-slate-500 dark:text-white/40">
-                    Необязательно. После выбора фото можно сдвинуть и увеличить область в круге — как в Telegram.
-                  </p>
-                </div>
-
-                <FormField
-                  control={registerForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Имя *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ваше имя" {...field} className={AUTH_GLASS_INPUT_CLASS} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Логин *</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <AtSign className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-white/45" />
-                          <Input placeholder="username" {...field} className={`${AUTH_GLASS_INPUT_CLASS} pl-10`} />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Телефон *</FormLabel>
-                      <FormControl>
-                        <PhoneInput value={field.value} onChange={field.onChange} className={AUTH_GLASS_INPUT_CLASS} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Email *</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="you@example.com" {...field} className={AUTH_GLASS_INPUT_CLASS} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Пароль *</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input type={showRegisterPassword ? 'text' : 'password'} placeholder="Минимум 6 символов" {...field} className={`${AUTH_GLASS_INPUT_CLASS} pr-10`} />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-0.5 top-1/2 h-9 w-9 -translate-y-1/2 text-slate-500 hover:bg-white/30 hover:text-slate-800 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white" onClick={() => setShowRegisterPassword(!showRegisterPassword)}>
-                            {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Подтвердите пароль *</FormLabel>
-                      <FormControl>
-                        <Input type={showRegisterPassword ? 'text' : 'password'} placeholder="Повторите пароль" {...field} className={AUTH_GLASS_INPUT_CLASS} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="pb-0.5 pt-2">
-                  <p className="ml-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-                    Необязательные поля
-                  </p>
-                </div>
-
-                <FormField
-                  control={registerForm.control}
-                  name="dateOfBirth"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Дата рождения</FormLabel>
-                      <FormControl>
-                        <DateOfBirthPicker value={field.value} onChange={field.onChange} className={AUTH_GLASS_INPUT_CLASS} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="bio"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>О себе</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Расскажите немного о себе..."
-                          {...field}
-                          rows={2}
-                          className="resize-none rounded-[14px] border border-white/35 bg-white/45 px-3.5 py-2.5 text-sm shadow-inner shadow-black/5 backdrop-blur-md placeholder:text-slate-500/80 focus-visible:border-primary/50 dark:border-white/12 dark:bg-white/[0.08] dark:text-white dark:placeholder:text-white/40"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-
-                {error && registerOpen && (
-                  <div className="flex items-center gap-2 rounded-[14px] border border-destructive/20 bg-destructive/10 p-2.5 text-[11px] font-medium text-destructive backdrop-blur-sm dark:bg-destructive/15 animate-in slide-in-from-top-1">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    {error}
-                  </div>
-                )}
-              </form>
-            </Form>
+            {registerMode === "email" ? (
+              <RegisterDialogFormBlock
+                mode="email"
+                form={emailRegisterForm}
+                onValidSubmit={onRegister}
+                registerMode={registerMode}
+                user={user}
+                avatarPreview={avatarPreview}
+                avatarInputRef={avatarInputRef}
+                onAvatarChange={handleAvatarChange}
+                showRegisterPassword={showRegisterPassword}
+                setShowRegisterPassword={setShowRegisterPassword}
+                registerOpen={registerOpen}
+                error={error}
+              />
+            ) : (
+              <RegisterDialogFormBlock
+                mode="google"
+                form={googleRegisterForm}
+                onValidSubmit={onGoogleProfileComplete}
+                registerMode={registerMode}
+                user={user}
+                avatarPreview={avatarPreview}
+                avatarInputRef={avatarInputRef}
+                onAvatarChange={handleAvatarChange}
+                showRegisterPassword={showRegisterPassword}
+                setShowRegisterPassword={setShowRegisterPassword}
+                registerOpen={registerOpen}
+                error={error}
+              />
+            )}
           </div>
 
           <div className="relative z-10 shrink-0 border-t border-white/40 bg-white/30 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.06]">
             <Button form="register-form" type="submit" variant="default" disabled={isSubmitting} className="h-11 w-full rounded-[14px] font-semibold shadow-md shadow-primary/25 transition-all active:scale-[0.99]">
-              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Создание...</> : "Создать аккаунт"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {registerMode === "google" ? "Сохранение..." : "Создание..."}
+                </>
+              ) : registerMode === "google" ? (
+                "Сохранить и продолжить"
+              ) : (
+                "Создать аккаунт"
+              )}
             </Button>
           </div>
+
+          <RegisterAvatarCropOverlay
+            open={cropOpen}
+            imageSrc={cropSrc}
+            onCancel={handleCropCancel}
+            onApply={handleCropApply}
+          />
         </DialogContent>
       </Dialog>
-
-      <RegisterAvatarCropOverlay
-        open={cropOpen}
-        imageSrc={cropSrc}
-        onCancel={handleCropCancel}
-        onApply={handleCropApply}
-      />
     </div>
   );
 }

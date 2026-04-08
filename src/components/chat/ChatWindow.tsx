@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useFirestore, useStorage } from '@/firebase';
-import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
 import type {
@@ -17,6 +17,7 @@ import type {
   UserChatIndex,
   ChatLocationShare,
   ChatLocationSendMeta,
+  PinnedMessage,
 } from '@/lib/types';
 import type { ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
 import { cn } from '@/lib/utils';
@@ -32,7 +33,7 @@ import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
 import { addChatAttachmentToUserStickerPack, createUserStickerPack } from '@/lib/user-sticker-packs-client';
 import { USER_STICKER_MAX_FILE_BYTES } from '@/lib/user-sticker-packs';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
-import { CHAT_GLASS_PANEL } from '@/lib/chat-glass-styles';
+import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
@@ -70,6 +71,13 @@ import {
   ChatViewportScrollerRefContext,
   MessageReadOnViewport,
 } from '@/components/chat/message-read-on-viewport';
+import { participantListAvatarUrl } from '@/lib/user-avatar-display';
+import {
+  MAX_PINNED_MESSAGES,
+  conversationPinnedList,
+  pickPinnedBarIndexForViewport,
+  sortPinnedMessagesByTime,
+} from '@/lib/chat-pinned-messages';
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -95,6 +103,9 @@ const CHAT_HEADER_IOS = {
   callVideo: 'text-[#34C759] dark:text-[#48E074]',
   callAudio: 'text-[#34C759] dark:text-[#48E074]',
 } as const;
+
+const TOP_LOAD_THRESHOLD_PX = 40;
+const LOAD_MORE_COOLDOWN_MS = 600;
 
 export function ChatWindow({
   conversation,
@@ -126,6 +137,8 @@ export function ChatWindow({
   const [profileTab, setProfileOpenTab] = useState<ProfileTab>('threads');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  /** Индекс в sortedPins: какой закреп показан в шапке (синхрон с viewport + клик). */
+  const [barPinIndex, setBarPinIndex] = useState(0);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isFullyReady, setIsFullyReady] = useState(false);
   const [hasScrolledToUnread, setHasScrolledToUnread] = useState(false);
@@ -135,6 +148,8 @@ export function ChatWindow({
   const [stickerSaveOpen, setStickerSaveOpen] = useState(false);
   const [stickerSaveAttachment, setStickerSaveAttachment] = useState<ChatAttachment | null>(null);
   const [stickerSaveBusy, setStickerSaveBusy] = useState(false);
+  /** Якорь с z-[10050] — скрываем при оверлеях и при document fullscreen (видео). */
+  const [documentFullscreen, setDocumentFullscreen] = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [unreadSeparatorId, setUnreadSeparatorId] = useState<string | null>(null);
   const hasClearedSeparatorRef = useRef(false);
@@ -173,6 +188,20 @@ export function ChatWindow({
   useEffect(() => {
     hasScrolledToUnreadRef.current = hasScrolledToUnread;
   }, [hasScrolledToUnread]);
+
+  useEffect(() => {
+    const sync = () => {
+      const docRef = document as Document & { webkitFullscreenElement?: Element | null };
+      setDocumentFullscreen(!!(document.fullscreenElement ?? docRef.webkitFullscreenElement));
+    };
+    sync();
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    return () => {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync);
+    };
+  }, []);
 
   // --- Firestore Messages Listener ---
   useEffect(() => {
@@ -228,10 +257,17 @@ export function ChatWindow({
   }, [firestore, conversation.id, displayLimit]);
 
   const handleLoadMore = useCallback(() => {
-    if (!hasMore || isLoadingOlder || messages.length < displayLimit) return;
+    if (!hasMore || isLoadingOlder) return;
+    const scroller = viewportScrollerRef.current;
+    if (scroller) {
+      pendingPrependAdjustRef.current = {
+        scrollTop: scroller.scrollTop,
+        scrollHeight: scroller.scrollHeight,
+      };
+    }
     setIsLoadingOlder(true);
     setDisplayLimit(prev => prev + HISTORY_PAGE_SIZE);
-  }, [hasMore, isLoadingOlder, messages.length, displayLimit]);
+  }, [hasMore, isLoadingOlder]);
 
   const isSelfSavedChat = useMemo(
     () => isSavedMessagesChat(conversation, currentUser.id),
@@ -312,6 +348,34 @@ export function ChatWindow({
   const flatItemsRef = useRef(flatItems);
   useEffect(() => { flatItemsRef.current = flatItems; }, [flatItems]);
 
+  const sortedPins = useMemo(() => {
+    const raw = conversationPinnedList(conversation);
+    const map = new Map(messagesForList.map((m) => [m.id, m]));
+    return sortPinnedMessagesByTime(raw, map);
+  }, [conversation, messagesForList]);
+
+  const sortedPinsRef = useRef(sortedPins);
+  useEffect(() => {
+    sortedPinsRef.current = sortedPins;
+  }, [sortedPins]);
+
+  const barPinIndexRef = useRef(0);
+  useEffect(() => {
+    barPinIndexRef.current = barPinIndex;
+  }, [barPinIndex]);
+
+  const pinnedBarSkipSyncUntilRef = useRef(0);
+
+  const pinnedIdsKey = useMemo(() => sortedPins.map((p) => p.messageId).join(','), [sortedPins]);
+
+  useEffect(() => {
+    const n = sortedPins.length;
+    setBarPinIndex((i) => {
+      if (n === 0) return 0;
+      return Math.min(Math.max(0, i), n - 1);
+    });
+  }, [pinnedIdsKey, sortedPins.length]);
+
   /** Рост резерва: прокрутка к концу списка (иначе место есть, но viewport не сдвигается). Снятие резерва у низа: scrollBy без скачка. */
   useLayoutEffect(() => {
     const prev = prevTailReserveRef.current;
@@ -337,6 +401,8 @@ export function ChatWindow({
   }, [videoCircleTailReservePx]);
 
   const pendingScrollToBottomAfterSendRef = useRef(false);
+  const pendingPrependAdjustRef = useRef<{ scrollTop: number; scrollHeight: number } | null>(null);
+  const loadMoreCooldownUntilRef = useRef(0);
 
   useEffect(() => {
     if (!pendingScrollToBottomAfterSendRef.current || !isFullyReady || !virtuosoRef.current) return;
@@ -348,6 +414,38 @@ export function ChatWindow({
     });
     return () => cancelAnimationFrame(id);
   }, [flatItems, isFullyReady]);
+
+  useLayoutEffect(() => {
+    const pending = pendingPrependAdjustRef.current;
+    const scroller = viewportScrollerRef.current;
+    if (!pending || !scroller) return;
+    const delta = scroller.scrollHeight - pending.scrollHeight;
+    if (delta > 0) {
+      scroller.scrollTop = pending.scrollTop + delta;
+    }
+    pendingPrependAdjustRef.current = null;
+  }, [flatItems]);
+
+  const tryLoadMoreByTopPosition = useCallback(() => {
+    const now = Date.now();
+    if (now < loadMoreCooldownUntilRef.current) return;
+    if (!isFullyReady || !hasMore || isLoadingOlder) return;
+    const scroller = viewportScrollerRef.current;
+    if (!scroller) return;
+    if (scroller.scrollTop > TOP_LOAD_THRESHOLD_PX) return;
+    loadMoreCooldownUntilRef.current = now + LOAD_MORE_COOLDOWN_MS;
+    handleLoadMore();
+  }, [isFullyReady, hasMore, isLoadingOlder, handleLoadMore]);
+
+  useEffect(() => {
+    const scroller = viewportScrollerRef.current;
+    if (!scroller) return;
+    const onScroll = () => {
+      tryLoadMoreByTopPosition();
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, [viewportScrollerKey, tryLoadMoreByTopPosition]);
 
   useEffect(() => {
     if (isFullyReady && !hasScrolledToUnread && virtuosoRef.current && flatItems.length > 0) {
@@ -376,6 +474,7 @@ export function ChatWindow({
 
   const handleRangeChanged = useCallback((range: { startIndex: number; endIndex: number }) => {
     currentVisibleRange.current = range;
+    tryLoadMoreByTopPosition();
     if (!isFullyReady || !firestore || !conversation.id) return;
 
     const currentItems = flatItemsRef.current;
@@ -389,7 +488,13 @@ export function ChatWindow({
             return prev;
         });
     }
-  }, [isFullyReady, firestore, conversation.id, currentUser.id]);
+
+    const pins = sortedPinsRef.current;
+    if (pins.length > 0 && Date.now() >= pinnedBarSkipSyncUntilRef.current) {
+      const idx = pickPinnedBarIndexForViewport(pins, flatItemsRef.current, range.startIndex, range.endIndex);
+      setBarPinIndex(idx);
+    }
+  }, [tryLoadMoreByTopPosition, isFullyReady, firestore, conversation.id, currentUser.id]);
 
   const allMediaItems = useMemo((): MediaViewerItem[] => {
     const items: MediaViewerItem[] = [];
@@ -444,6 +549,7 @@ export function ChatWindow({
           username: '',
           email: '',
           avatar: conversation.participantInfo[userId]?.avatar ?? '',
+          avatarThumb: conversation.participantInfo[userId]?.avatarThumb,
           phone: '',
           deletedAt: null,
           createdAt: '',
@@ -819,27 +925,58 @@ export function ChatWindow({
     if (!firestore || !conversation.id) return;
     const convRef = doc(firestore, 'conversations', conversation.id);
     const replyPreview = getReplyPreview(msg, allUsers);
-    
+    const existing = conversationPinnedList(conversation);
+    if (existing.some((p) => p.messageId === msg.id)) {
+      toast({ title: 'Уже закреплено' });
+      return;
+    }
+    if (existing.length >= MAX_PINNED_MESSAGES) {
+      toast({
+        variant: 'destructive',
+        title: 'Лимит закрепов',
+        description: `Не более ${MAX_PINNED_MESSAGES} сообщений.`,
+      });
+      return;
+    }
+
+    const entry: PinnedMessage = {
+      messageId: msg.id,
+      text: replyPreview.text,
+      senderName: replyPreview.senderName,
+      senderId: msg.senderId,
+      mediaPreviewUrl: replyPreview.mediaPreviewUrl,
+      mediaType: replyPreview.mediaType,
+      messageCreatedAt: msg.createdAt,
+    };
+    const map = new Map(messagesForList.map((m) => [m.id, m]));
+    const next = sortPinnedMessagesByTime([...existing, entry], map);
+
     try {
-        await updateDoc(convRef, {
-            pinnedMessage: {
-                messageId: msg.id,
-                text: replyPreview.text,
-                senderName: replyPreview.senderName,
-                senderId: msg.senderId,
-                mediaPreviewUrl: replyPreview.mediaPreviewUrl,
-                mediaType: replyPreview.mediaType
-            }
-        });
-        toast({ title: 'Сообщение закреплено' });
+      await updateDoc(convRef, {
+        pinnedMessages: next,
+        pinnedMessage: deleteField(),
+      });
+      toast({ title: 'Сообщение закреплено' });
     } catch (e) {
-        toast({ variant: 'destructive', title: 'Ошибка закрепления' });
+      toast({ variant: 'destructive', title: 'Ошибка закрепления' });
     }
   };
 
-  const handleUnpinMessage = async () => {
+  const handleUnpinOne = async (messageId: string) => {
     if (!firestore || !conversation.id) return;
-    await updateDoc(doc(firestore, 'conversations', conversation.id), { pinnedMessage: null });
+    const convRef = doc(firestore, 'conversations', conversation.id);
+    const existing = conversationPinnedList(conversation);
+    const next = existing.filter((p) => p.messageId !== messageId);
+    try {
+      if (next.length === 0) {
+        await updateDoc(convRef, { pinnedMessages: deleteField(), pinnedMessage: deleteField() });
+      } else {
+        await updateDoc(convRef, { pinnedMessages: next, pinnedMessage: deleteField() });
+      }
+      toast({ title: 'Сообщение откреплено' });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Ошибка открепления' });
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -939,6 +1076,16 @@ export function ChatWindow({
     },
     [hasMore, tryScrollToMessageInList, toast]
   );
+
+  const handlePinnedBarNavigate = useCallback(() => {
+    const pins = sortedPinsRef.current;
+    if (!pins.length) return;
+    const i = Math.min(barPinIndexRef.current, pins.length - 1);
+    const pin = pins[i];
+    if (pin) navigateToMessage(pin.messageId);
+    pinnedBarSkipSyncUntilRef.current = Date.now() + 900;
+    setBarPinIndex((j) => (j - 1 + pins.length) % pins.length);
+  }, [navigateToMessage]);
 
   useEffect(() => {
     const pending = pendingNavigateMessageIdRef.current;
@@ -1061,6 +1208,9 @@ export function ChatWindow({
     windowTouchStart.current = null;
   };
 
+  const suppressChatAnchor =
+    isProfileOpen || mediaViewerState.isOpen || documentFullscreen;
+
   const chatDisplayName = conversation.isGroup
     ? conversation.name || 'Группа'
     : isSelfSavedChat
@@ -1069,8 +1219,8 @@ export function ChatWindow({
   const chatDisplayAvatar = conversation.isGroup
     ? conversation.photoUrl
     : isSelfSavedChat
-      ? currentUser.avatar || conversation.participantInfo[currentUser.id]?.avatar
-      : otherUser?.avatar;
+      ? participantListAvatarUrl(currentUser, conversation.participantInfo[currentUser.id])
+      : participantListAvatarUrl(otherUser, otherId ? conversation.participantInfo[otherId] : undefined);
 
   const formatDateLabel = (dateStr: string) => {
     const date = parseISO(dateStr);
@@ -1097,7 +1247,12 @@ export function ChatWindow({
             if (files.length) messageInputRef.current?.addDraftFiles(files);
           }}
         >
-        <div className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[max(0.35rem,env(safe-area-inset-top))]">
+        <div
+          className={cn(
+            'flex shrink-0 items-center gap-2 px-3 pb-2 pt-[max(0.35rem,env(safe-area-inset-top))]',
+            CHAT_HEADER_SAFE_AREA_STRIP
+          )}
+        >
             <div className="flex min-w-0 flex-1 items-center gap-2">
             {selection.active ? (
                 <SelectionHeader count={selection.ids.size} onCancel={() => setSelection({ active: false, ids: new Set() })} onDelete={handleBulkDelete} onForward={() => { const selectedMessages = allMessages.filter(m => selection.ids.has(m.id)); sessionStorage.setItem('forwardMessages', JSON.stringify(selectedMessages)); router.push('/dashboard/chat/forward'); }} isProcessing={isBulkProcessing} showDelete={canDeleteBulk} />
@@ -1113,7 +1268,7 @@ export function ChatWindow({
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
                     <div
                       className={cn(
-                        'flex items-center gap-2 cursor-pointer min-w-0 max-w-[min(100%,72vw)] sm:max-w-[min(100%,320px)]',
+                        'flex items-center gap-2 cursor-pointer min-w-0 max-w-[min(100%,72vw)] sm:max-w-[min(100%,208px)]',
                         chatHeaderUserGlass,
                         'py-1 pl-1 pr-2.5'
                       )}
@@ -1223,7 +1378,16 @@ export function ChatWindow({
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
-            {conversation.pinnedMessage && <PinnedMessageBar pinnedMessage={conversation.pinnedMessage} onUnpin={handleUnpinMessage} onNavigate={() => navigateToMessage(conversation.pinnedMessage!.messageId)} />}
+            {sortedPins.length > 0 ? (
+              <PinnedMessageBar
+                pinnedMessage={sortedPins[Math.min(barPinIndex, sortedPins.length - 1)]}
+                totalPins={sortedPins.length}
+                onUnpin={() =>
+                  void handleUnpinOne(sortedPins[Math.min(barPinIndex, sortedPins.length - 1)].messageId)
+                }
+                onNavigate={handlePinnedBarNavigate}
+              />
+            ) : null}
             <div className="flex-1 min-h-0 relative min-w-0 overflow-hidden">
                 {!isFullyReady && (
                     <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">
@@ -1260,7 +1424,7 @@ export function ChatWindow({
                         increaseViewportBy={VIRTUOSO_CHAT_INCREASE_VIEWPORT}
                         minOverscanItemCount={VIRTUOSO_CHAT_MIN_OVERSCAN}
                         components={{
-                            Header: () => (isLoadingOlder || (hasMore && messages.length >= displayLimit)) ? (
+                            Header: () => isLoadingOlder ? (
                                 <div className="p-4 flex items-center justify-center text-muted-foreground">
                                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                                     <span className="text-[10px] font-black uppercase tracking-widest">Загрузка истории...</span>
@@ -1305,7 +1469,14 @@ export function ChatWindow({
                     />
                     </ChatViewportScrollerRefContext.Provider>
                     </VideoCircleTailProvider>
-                    <ChatAnchor isVisible={showScrollButton} unreadCount={incomingUnreadCount} lastReaction={latestReaction} onClick={handleAnchorClick} onNavigateToReaction={handleNavigateToReaction} />
+                    <ChatAnchor
+                      suppressed={suppressChatAnchor}
+                      isVisible={showScrollButton}
+                      unreadCount={incomingUnreadCount}
+                      lastReaction={latestReaction}
+                      onClick={handleAnchorClick}
+                      onNavigateToReaction={handleNavigateToReaction}
+                    />
                 </div>
             </div>
         </div>
@@ -1351,6 +1522,7 @@ export function ChatWindow({
             conversation={conversation}
             currentUser={currentUser}
             allUsers={allUsers}
+            suppressFloatingAnchor={isProfileOpen}
             onClose={() => {
               setSelectedThreadMessage(null);
               setThreadReactionScrollToId(null);

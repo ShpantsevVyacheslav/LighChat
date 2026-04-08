@@ -9,7 +9,11 @@ import { doc, setDoc, updateDoc } from 'firebase/firestore';
 
 import type { User, Conversation } from '@/lib/types';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
-import { userMatchesChatSearchQuery, splitUsersByContactsAndGlobalVisibility } from '@/lib/chat-user-search';
+import {
+  atUsernameLabel,
+  userMatchesChatSearchQuery,
+  splitUsersByContactsAndGlobalVisibility,
+} from '@/lib/chat-user-search';
 import { useStorage, useFirestore, useFirebaseApp } from '@/firebase';
 import { checkGroupInvitesAllowed } from '@/lib/check-group-invites-allowed';
 import { compressImage } from '@/lib/image-compression';
@@ -28,6 +32,7 @@ import { Badge } from '../ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ROLES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 
 const groupChatFormSchema = z.object({
   name: z.string().min(1, 'Название группы обязательно'),
@@ -334,15 +339,20 @@ export function GroupChatFormDialog({
                     <h3 className="text-lg font-medium">Участники ({participants.length})</h3>
                     <ScrollArea className="h-40 rounded-xl border">
                         <div className="p-2 space-y-1">
-                            {participants.map(p => (
+                            {participants.map(p => {
+                              const login = atUsernameLabel(p.username);
+                              return (
                                 <div key={p.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-lg transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <Avatar className="h-9 w-9 border-none">
-                                            <AvatarImage src={p.avatar} />
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <Avatar className="h-9 w-9 border-none shrink-0">
+                                            <AvatarImage src={userAvatarListUrl(p)} />
                                             <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        <div>
-                                            <p className="font-semibold text-sm leading-tight">{p.name}</p>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm leading-tight truncate">{p.name}</p>
+                                            {login ? (
+                                              <p className="text-xs text-muted-foreground truncate">{login}</p>
+                                            ) : null}
                                             {p.role && p.role !== 'worker' && <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{adminIds.has(p.id) ? 'Администратор' : ROLES[p.role]}</p>}
                                             {p.role === 'worker' && adminIds.has(p.id) && <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Администратор</p>}
                                         </div>
@@ -362,7 +372,8 @@ export function GroupChatFormDialog({
                                         </DropdownMenu>
                                     )}
                                 </div>
-                            ))}
+                              );
+                            })}
                         </div>
                     </ScrollArea>
                 </div>
@@ -379,7 +390,9 @@ export function GroupChatFormDialog({
                           <p className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                             Контакты
                           </p>
-                          {addFromContacts.map((user) => (
+                          {addFromContacts.map((user) => {
+                            const login = atUsernameLabel(user.username);
+                            return (
                             <div
                               key={user.id}
                               className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted"
@@ -388,12 +401,15 @@ export function GroupChatFormDialog({
                                 setSearchTerm('');
                               }}
                             >
-                              <Avatar className="h-8 w-8 border-none">
-                                <AvatarImage src={user.avatar} />
+                              <Avatar className="h-8 w-8 border-none shrink-0">
+                                <AvatarImage src={userAvatarListUrl(user)} />
                                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                               </Avatar>
-                              <div>
-                                <span className="block text-sm font-medium leading-tight">{user.name}</span>
+                              <div className="min-w-0">
+                                <span className="block text-sm font-medium leading-tight truncate">{user.name}</span>
+                                {login ? (
+                                  <span className="block text-xs text-muted-foreground truncate">{login}</span>
+                                ) : null}
                                 {user.role && user.role !== 'worker' && (
                                   <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                                     {ROLES[user.role]}
@@ -401,7 +417,8 @@ export function GroupChatFormDialog({
                                 )}
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </>
                       )}
                       {addFromGlobal.length > 0 && (
@@ -414,7 +431,9 @@ export function GroupChatFormDialog({
                           >
                             Все пользователи
                           </p>
-                          {addFromGlobal.map((user) => (
+                          {addFromGlobal.map((user) => {
+                            const login = atUsernameLabel(user.username);
+                            return (
                             <div
                               key={user.id}
                               className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted"
@@ -423,12 +442,15 @@ export function GroupChatFormDialog({
                                 setSearchTerm('');
                               }}
                             >
-                              <Avatar className="h-8 w-8 border-none">
-                                <AvatarImage src={user.avatar} />
+                              <Avatar className="h-8 w-8 border-none shrink-0">
+                                <AvatarImage src={userAvatarListUrl(user)} />
                                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                               </Avatar>
-                              <div>
-                                <span className="block text-sm font-medium leading-tight">{user.name}</span>
+                              <div className="min-w-0">
+                                <span className="block text-sm font-medium leading-tight truncate">{user.name}</span>
+                                {login ? (
+                                  <span className="block text-xs text-muted-foreground truncate">{login}</span>
+                                ) : null}
                                 {user.role && user.role !== 'worker' && (
                                   <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                                     {ROLES[user.role]}
@@ -436,7 +458,8 @@ export function GroupChatFormDialog({
                                 )}
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </>
                       )}
                       {addFromContacts.length === 0 && addFromGlobal.length === 0 && (

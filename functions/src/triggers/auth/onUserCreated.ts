@@ -10,12 +10,19 @@ import { logger } from "firebase-functions/v1";
  */
 export const onUserCreated = functions.auth.user().onCreate(async (user) => {
   const db = admin.firestore();
-  
+
   const userRef = db.doc(`users/${user.uid}`);
-  
-  // Check if it's an anonymous user
+
+  /**
+   * Регистрация по email в клиенте делает `setDoc` с полным профилем сразу после
+   * `createUserWithEmailAndPassword`. Старый вариант с `set(..., { merge: true })` и пустыми
+   * полями при отложенном срабатывании триггера затирал username/phone/name.
+   *
+   * Транзакция: создаём дефолтный профиль только если документа ещё нет; если клиент
+   * успел записать профиль между попытками — повторное чтение увидит `exists` и выйдет.
+   */
   const isAnonymous = !user.email && !user.phoneNumber;
-  
+
   const userProfile = {
     id: user.uid,
     name: user.displayName || (isAnonymous ? "Гость" : "Новый пользователь"),
@@ -33,8 +40,20 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
   };
 
   try {
-    await userRef.set(userProfile, { merge: true });
-    logger.log(`Successfully created profile for user: ${user.uid} (Anonymous: ${isAnonymous})`);
+    let wroteDefaults = false;
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(userRef);
+      if (snap.exists) {
+        return;
+      }
+      tx.set(userRef, userProfile);
+      wroteDefaults = true;
+    });
+    if (wroteDefaults) {
+      logger.log(`Created default profile for user: ${user.uid} (Anonymous: ${isAnonymous})`);
+    } else {
+      logger.log(`users/${user.uid} already had profile; onUserCreated skipped write.`);
+    }
   } catch (error) {
     logger.error(`Error creating user profile for ${user.uid}:`, error);
   }

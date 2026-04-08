@@ -13,7 +13,7 @@ import { MapPin, ExternalLink } from 'lucide-react';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
-import { buildGoogleMapsPlaceUrl, buildGoogleStaticMapUrl } from '@/lib/google-maps';
+import { buildGoogleMapsEmbedUrl, buildGoogleMapsPlaceUrl } from '@/lib/google-maps';
 import { isLiveShareVisible } from '@/lib/live-location-utils';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -41,9 +41,9 @@ export function LiveLocationMapDialog({ open, onOpenChange, userId, displayName 
     return buildGoogleMapsPlaceUrl(live.lat, live.lng);
   }, [live?.lat, live?.lng]);
 
-  const staticUrl = useMemo(() => {
-    if (!live?.lat || !live?.lng) return null;
-    return buildGoogleStaticMapUrl(live.lat, live.lng, 560, 280);
+  const embedUrl = useMemo(() => {
+    if (!live?.lat || !live?.lng) return '';
+    return buildGoogleMapsEmbedUrl(live.lat, live.lng);
   }, [live?.lat, live?.lng]);
 
   const updatedLabel = useMemo(() => {
@@ -83,32 +83,27 @@ export function LiveLocationMapDialog({ open, onOpenChange, userId, displayName 
           <p className="text-sm text-muted-foreground">Нет актуальных данных карты.</p>
         ) : (
           <div className="space-y-3">
-            {staticUrl ? (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block overflow-hidden rounded-xl border bg-muted"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={staticUrl} alt="Карта" className="h-auto w-full max-h-56 object-cover" />
-              </a>
-            ) : (
-              <div className="rounded-xl border bg-muted/50 p-4 text-sm">
-                <p>
-                  {live.lat.toFixed(5)}, {live.lng.toFixed(5)}
-                </p>
-                {live.accuracyM != null && (
-                  <p className="text-muted-foreground">±{Math.round(live.accuracyM)} м</p>
-                )}
-              </div>
-            )}
+            <div className="overflow-hidden rounded-xl bg-muted">
+              <iframe
+                key={`${live.lat}-${live.lng}-${live.updatedAt ?? ''}`}
+                title="Карта: живая геолокация"
+                src={embedUrl}
+                className="h-56 w-full border-0 sm:h-64"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
+            <p className="text-center text-[11px] text-muted-foreground">
+              {live.lat.toFixed(5)}, {live.lng.toFixed(5)}
+              {live.accuracyM != null && <> · ±{Math.round(live.accuracyM)} м</>}
+            </p>
             {updatedLabel && (
               <p className="text-center text-[11px] text-muted-foreground">Обновлено {updatedLabel}</p>
             )}
-            <Button className="w-full gap-2" asChild>
+            <Button variant="outline" className="w-full gap-2" asChild>
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-                Открыть в Google Maps
+                Открыть в браузере
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>

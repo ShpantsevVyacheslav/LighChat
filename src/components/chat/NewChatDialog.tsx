@@ -8,6 +8,7 @@ import { ROLES } from '@/lib/constants';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import {
+  atUsernameLabel,
   userMatchesChatSearchQuery,
   splitUsersByContactsAndGlobalVisibility,
 } from '@/lib/chat-user-search';
@@ -18,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PenSquare, Users, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 
 export function NewChatDialog({
   users,
@@ -113,7 +115,9 @@ export function NewChatDialog({
                   <p className="px-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Контакты
                   </p>
-                  {fromContacts.map((user) => (
+                  {fromContacts.map((user) => {
+                    const login = atUsernameLabel(user.username);
+                    return (
                     <div
                       key={user.id}
                       onClick={() => handleSelectUser(user)}
@@ -123,11 +127,14 @@ export function NewChatDialog({
                       )}
                     >
                       <Avatar>
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarImage src={userAvatarListUrl(user)} alt={user.name} />
                         <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-semibold transition-colors group-hover:text-primary">{user.name}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold transition-colors group-hover:text-primary truncate">{user.name}</p>
+                        {login ? (
+                          <p className="text-xs text-muted-foreground truncate">{login}</p>
+                        ) : null}
                         {user.role && user.role !== 'worker' && (
                           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                             {ROLES[user.role]}
@@ -135,7 +142,8 @@ export function NewChatDialog({
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </>
               )}
               {fromGlobal.length > 0 && (
@@ -148,7 +156,9 @@ export function NewChatDialog({
                   >
                     Все пользователи
                   </p>
-                  {fromGlobal.map((user) => (
+                  {fromGlobal.map((user) => {
+                    const login = atUsernameLabel(user.username);
+                    return (
                     <div
                       key={user.id}
                       onClick={() => handleSelectUser(user)}
@@ -158,11 +168,14 @@ export function NewChatDialog({
                       )}
                     >
                       <Avatar>
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarImage src={userAvatarListUrl(user)} alt={user.name} />
                         <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-semibold transition-colors group-hover:text-primary">{user.name}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold transition-colors group-hover:text-primary truncate">{user.name}</p>
+                        {login ? (
+                          <p className="text-xs text-muted-foreground truncate">{login}</p>
+                        ) : null}
                         {user.role && user.role !== 'worker' && (
                           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                             {ROLES[user.role]}
@@ -170,7 +183,8 @@ export function NewChatDialog({
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </>
               )}
               {fromContacts.length === 0 && fromGlobal.length === 0 && (

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, isToday, isYesterday } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,8 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Trash2, Eraser, FolderEdit, Pin, MessageSquare, AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { User, Conversation } from '@/lib/types';
+import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 import { useFirestore } from '@/firebase';
 import { useConversationTypingOthers } from '@/hooks/use-conversation-typing-others';
+import { useElementInViewport } from '@/hooks/use-element-in-viewport';
+import { usePageVisibility } from '@/hooks/use-page-visibility';
 
 interface ConversationItemProps {
     conv: Conversation;
@@ -33,11 +36,15 @@ export function ConversationItem({
     isSavedMessages = false,
 }: ConversationItemProps) {
     const firestore = useFirestore();
+    const itemRef = useRef<HTMLDivElement | null>(null);
+    const isInViewport = useElementInViewport(itemRef);
+    const isPageVisible = usePageVisibility();
+    const typingEnabled = isSelected || (isInViewport && isPageVisible);
     const othersTypingFromSubcollection = useConversationTypingOthers(
         firestore,
         conv.id,
         currentUser.id,
-        isSelected
+        typingEnabled
     );
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
@@ -60,8 +67,8 @@ export function ConversationItem({
     const avatar = conv.isGroup
         ? conv.photoUrl
         : isSavedMessages
-            ? (currentUser.avatar || conv.participantInfo[currentUser.id]?.avatar || '')
-            : (liveOtherUser?.avatar || conv.participantInfo[otherId]?.avatar || '');
+            ? participantListAvatarUrl(currentUser, conv.participantInfo[currentUser.id])
+            : participantListAvatarUrl(liveOtherUser, conv.participantInfo[otherId]);
     
     /** Подколлекция typing (новая схема); fallback на поле conv.typing для старых данных. */
     const isSomeoneTyping = useMemo(() => {
@@ -168,7 +175,7 @@ export function ConversationItem({
     };
 
     return (
-        <div className="relative overflow-hidden group/item mb-0.5 rounded-xl select-none">
+        <div ref={itemRef} className="relative overflow-hidden group/item mb-0.5 rounded-xl select-none">
             {/* Action Tray (revealed on swipe) */}
             <div 
                 className={cn(

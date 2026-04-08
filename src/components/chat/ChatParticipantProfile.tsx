@@ -1,17 +1,18 @@
 'use client';
 
-import type { User, Conversation, ChatMessage, ChatAttachment, UserRole, ProfileTab } from '@/lib/types';
+import type { User, Conversation, ChatMessage, ChatAttachment, UserRole, ProfileTab, UserContactsIndex } from '@/lib/types';
 import { ROLES } from '@/lib/constants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { File as FileIcon, Image as ImageIcon, Link as LinkIcon, Download, Mic, X, Play, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Clock, Video, Smartphone, UserRound, MapPin } from 'lucide-react';
+import { File as FileIcon, Image as ImageIcon, Link as LinkIcon, Download, Mic, X, Play, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Clock, Video, Smartphone, UserRound, MapPin, UserPlus, Loader2, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { cn, formatDuration } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '../ui/badge';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -26,6 +27,10 @@ import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { isLiveShareVisible } from '@/lib/live-location-utils';
 import { LiveLocationMapDialog } from '@/components/location/LiveLocationMapDialog';
 import { sanitizeMessageHtml } from '@/lib/sanitize-message-html';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
+import { useToast } from '@/hooks/use-toast';
+import { addContactId } from '@/lib/contacts-client-actions';
+import { canStartDirectChat } from '@/lib/user-chat-policy';
 
 const isOnlyEmojis = (text: string) => {
     if (!text) return false;
@@ -160,6 +165,70 @@ export function ChatParticipantProfile({
   
   const { data: freshParticipant } = useDoc<User>(participantRef);
 
+  const userContactsRef = useMemoFirebase(
+    () => (firestore && currentUser?.id ? doc(firestore, 'userContacts', currentUser.id) : null),
+    [firestore, currentUser?.id]
+  );
+  const { data: contactsIndex } = useDoc<UserContactsIndex>(userContactsRef);
+  const contactIds = contactsIndex?.contactIds ?? [];
+  const isContact = Boolean(profileDocId && contactIds.includes(profileDocId));
+
+  /**
+   * Участник для политики «добавить в контакты»: live-документ, список allUsers или минимальный User
+   * из participantInfo — иначе до прихода Firestore кнопка пропадала (contactTargetUser === null).
+   */
+  const contactTargetUser = useMemo((): User | null => {
+    if (!profileDocId) return null;
+    if (freshParticipant && freshParticipant.id === profileDocId) return freshParticipant;
+    const fromList = allUsers.find((u) => u.id === profileDocId);
+    if (fromList) return fromList;
+    const info = conversation.participantInfo[profileDocId];
+    return {
+      id: profileDocId,
+      name: info?.name || 'Пользователь',
+      username: '',
+      email: '',
+      avatar: info?.avatar || '',
+      phone: '',
+      deletedAt: null,
+      createdAt: '',
+      role: undefined,
+    };
+  }, [profileDocId, freshParticipant, allUsers, conversation.participantInfo]);
+
+  const canShowAddToContacts = useMemo(() => {
+    if (!profileDocId || profileDocId === currentUser.id || isSelfSavedChat) return false;
+    if (isGroup && !showMemberFocus) return false;
+    if (!contactTargetUser || contactTargetUser.deletedAt) return false;
+    if (isContact) return true;
+    return canStartDirectChat(currentUser, contactTargetUser);
+  }, [
+    profileDocId,
+    currentUser,
+    isSelfSavedChat,
+    contactTargetUser,
+    isContact,
+    isGroup,
+    showMemberFocus,
+  ]);
+
+  const { toast } = useToast();
+  const [addContactBusy, setAddContactBusy] = useState(false);
+
+  const handleAddToContacts = useCallback(async () => {
+    if (!firestore || !profileDocId || !contactTargetUser || isContact) return;
+    setAddContactBusy(true);
+    try {
+      await addContactId(firestore, currentUser.id, profileDocId);
+      toast({ title: 'Добавлено в контакты', description: contactTargetUser.name });
+    } catch (e) {
+      console.warn('[LighChat:contacts] add from participant profile', e);
+      toast({ title: 'Не удалось добавить в контакты', variant: 'destructive' });
+    } finally {
+      setAddContactBusy(false);
+    }
+  }, [firestore, profileDocId, contactTargetUser, isContact, currentUser.id, toast]);
+
   const displayParticipantInfo = useMemo(() => {
     if (!profileDocId) return null;
     const info = conversation.participantInfo[profileDocId];
@@ -176,6 +245,20 @@ export function ChatParticipantProfile({
       deletedAt: freshParticipant?.deletedAt || null
     };
   }, [profileDocId, conversation.participantInfo, freshParticipant]);
+
+  /** Строки блока «контакты / о себе» — показываем один сворачиваемый блок вместо длинного списка. */
+  const hasContactDetailsRows = useMemo(() => {
+    if (!displayParticipantInfo || isSelfSavedChat || (isGroup && !showMemberFocus)) return false;
+    const dpi = displayParticipantInfo;
+    if (dpi.role && dpi.role !== 'worker') return true;
+    if (!freshParticipant) return false;
+    const fp = freshParticipant;
+    if (isProfileFieldVisibleToOthers(fp, 'email') && dpi.email) return true;
+    if (isProfileFieldVisibleToOthers(fp, 'phone') && dpi.phone?.trim()) return true;
+    if (isProfileFieldVisibleToOthers(fp, 'dateOfBirth') && dpi.dateOfBirth) return true;
+    if (isProfileFieldVisibleToOthers(fp, 'bio') && dpi.bio?.trim()) return true;
+    return false;
+  }, [displayParticipantInfo, freshParticipant, isSelfSavedChat, isGroup, showMemberFocus]);
 
   const { media, files, links, audios, stickers, threadMessages, circles } = useMemo(() => {
     const files: ChatAttachment[] = [];
@@ -348,7 +431,7 @@ export function ChatParticipantProfile({
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
-        className="w-full sm:max-w-lg p-0 flex flex-col sm:rounded-l-[2.5rem] border-none shadow-2xl touch-pan-y" 
+        className="w-full sm:max-w-lg p-0 flex flex-col sm:rounded-l-[2.5rem] border-none shadow-2xl touch-pan-y pt-[env(safe-area-inset-top,0px)]" 
         side="right" 
         showCloseButton={false}
         onTouchStart={handleTouchStart}
@@ -379,12 +462,12 @@ export function ChatParticipantProfile({
                 </DialogTrigger>
                 <DialogContent 
                     showCloseButton={false}
-                    className="bg-black/90 backdrop-blur-sm border-none shadow-none p-0 w-screen h-screen max-w-full max-h-full rounded-none flex flex-col items-center justify-center z-[110]">
+                    className="z-[110] flex max-h-[100dvh] w-screen flex-col items-center justify-center rounded-none border-none bg-black/90 p-0 shadow-none backdrop-blur-sm h-[100dvh] max-w-full">
                     <DialogHeader className="sr-only">
                         <DialogTitle>{name}</DialogTitle>
                         <DialogDescription>Полноэкранный просмотр аватара</DialogDescription>
                     </DialogHeader>
-                    <header className="absolute top-0 left-0 right-0 z-50 h-24 bg-gradient-to-b from-black/70 to-transparent flex items-start justify-between p-4 text-white">
+                    <header className="absolute top-0 left-0 right-0 z-50 box-border flex min-h-[5.5rem] items-start justify-between gap-3 bg-gradient-to-b from-black/70 to-transparent px-4 pb-2 pt-[calc(1rem+env(safe-area-inset-top,0px))] text-white">
                         <div className="font-semibold">{name}</div>
                         <DialogClose asChild>
                             <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white" aria-label="Закрыть">
@@ -392,8 +475,8 @@ export function ChatParticipantProfile({
                             </Button>
                         </DialogClose>
                     </header>
-                    <div className="relative h-[85vh] w-[95vw]">
-                        {avatar && <img src={avatar} alt={name || 'Avatar'} className="w-full h-full object-contain" />}
+                    <div className="relative mx-auto h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-6.5rem)] w-[95vw] max-w-full pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
+                        {avatar && <img src={avatar} alt={name || 'Avatar'} className="h-full w-full object-contain" />}
                     </div>
                 </DialogContent>
             </Dialog>
@@ -403,7 +486,7 @@ export function ChatParticipantProfile({
                  <h2 className="text-2xl sm:text-3xl font-bold truncate leading-tight drop-shadow-lg">{name}</h2>
                  <p className="text-sm text-white/80 font-medium">{currentDescription}</p>
             </div>
-            <div className="absolute top-4 left-4">
+            <div className="absolute left-4 top-4 z-10">
                 {showMemberFocus && onClearProfileFocus ? (
                     <Button
                         type="button"
@@ -425,7 +508,7 @@ export function ChatParticipantProfile({
             </div>
             {showLiveLocationBadge && profileDocId && (
               <>
-                <div className="absolute top-4 right-4">
+                <div className="absolute right-4 top-4">
                   <Button
                     type="button"
                     variant="ghost"
@@ -448,9 +531,31 @@ export function ChatParticipantProfile({
           </div>
 
           <div className="p-4 space-y-6">
-                {displayParticipantInfo && !isSelfSavedChat && (!isGroup || showMemberFocus) && (
-                    <div className="space-y-4">
-                        <div className="space-y-4">
+                {hasContactDetailsRows && displayParticipantInfo && (
+                    <div
+                      className={cn(
+                        'flex items-stretch gap-2',
+                        !canShowAddToContacts && 'w-full'
+                      )}
+                    >
+                      <Collapsible
+                        defaultOpen={false}
+                        className={cn('space-y-2', canShowAddToContacts ? 'min-w-0 flex-1' : 'w-full')}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="group flex h-12 w-full items-center justify-between gap-2 rounded-2xl bg-muted/20 px-3 font-bold text-sm shadow-none hover:bg-muted/30 border-none sm:px-4"
+                          >
+                            <span className="min-w-0 truncate text-left">Контакты и данные</span>
+                            <ChevronDown
+                              className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
+                              aria-hidden
+                            />
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-4 pt-1">
                             {freshParticipant && isProfileFieldVisibleToOthers(freshParticipant, 'email') && displayParticipantInfo.email && (
                                 <div className="flex items-center gap-4 px-2">
                                     <div className="p-2.5 bg-blue-500/10 rounded-full flex-shrink-0">
@@ -510,7 +615,29 @@ export function ChatParticipantProfile({
                                     </div>
                                 </div>
                             )}
-                        </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                      {canShowAddToContacts ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="inline-flex h-12 shrink-0 flex-row items-center justify-center gap-1.5 rounded-2xl px-2.5 font-bold shadow-none sm:px-3"
+                          disabled={isContact || addContactBusy}
+                          onClick={() => void handleAddToContacts()}
+                          title={isContact ? 'В контактах' : 'Добавить в контакты'}
+                          aria-label={isContact ? 'В контактах' : 'Добавить в контакты'}
+                        >
+                          {addContactBusy ? (
+                            <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+                          ) : (
+                            <UserPlus className="h-5 w-5 shrink-0" aria-hidden />
+                          )}
+                          <span className="max-w-[5rem] truncate text-left text-[11px] leading-none sm:max-w-[6.5rem] sm:text-sm">
+                            {isContact ? 'В контактах' : 'В контакты'}
+                          </span>
+                        </Button>
+                      ) : null}
                     </div>
                 )}
 
@@ -538,6 +665,25 @@ export function ChatParticipantProfile({
                         )}
                     </div>
                 )}
+
+                {canShowAddToContacts && !hasContactDetailsRows ? (
+                  <div className="px-2 pb-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-12 w-full justify-center gap-2 rounded-2xl font-bold shadow-none"
+                      disabled={isContact || addContactBusy}
+                      onClick={() => void handleAddToContacts()}
+                    >
+                      {addContactBusy ? (
+                        <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <UserPlus className="h-5 w-5 shrink-0" aria-hidden />
+                      )}
+                      {isContact ? 'В контактах' : 'Добавить в контакты'}
+                    </Button>
+                  </div>
+                ) : null}
 
                 <div className="pt-2">
                     <h3 className="font-bold text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2 px-1 opacity-60">Файлы и медиа</h3>
@@ -784,7 +930,7 @@ export function ChatParticipantProfile({
                         >
                             <div className="flex items-center gap-3 min-w-0">
                                 <Avatar className="h-11 w-11 relative border border-border/50 shadow-sm">
-                                    <AvatarImage src={p.avatar} className="object-cover" />
+                                    <AvatarImage src={userAvatarListUrl(p)} className="object-cover" />
                                     <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
                                     {p.online && !p.deletedAt && <div className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-background rounded-full" />}
                                 </Avatar>

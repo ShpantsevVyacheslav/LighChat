@@ -5,6 +5,7 @@ import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { User, ReactionDetail } from '@/lib/types';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -101,7 +102,7 @@ export function MessageReactions({ reactions, currentUserId, allUsers, onReact }
                   <div className="ml-0.5 flex -space-x-2 pr-0.5">
                     {reactionUsers.slice(0, 3).map(u => (
                       <Avatar key={u.id} className="h-7 w-7 shrink-0">
-                        <AvatarImage src={u.avatar} className="object-cover" />
+                        <AvatarImage src={userAvatarListUrl(u)} className="object-cover" />
                         <AvatarFallback className="text-[11px] font-bold">{u.name[0]}</AvatarFallback>
                       </Avatar>
                     ))}
@@ -119,7 +120,7 @@ export function MessageReactions({ reactions, currentUserId, allUsers, onReact }
                         {reactionUsers.map(u => (
                             <div key={u.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
                                 <Avatar className="h-8 w-8 border border-white/5 shrink-0">
-                                    <AvatarImage src={u.avatar} className="object-cover" />
+                                    <AvatarImage src={userAvatarListUrl(u)} className="object-cover" />
                                     <AvatarFallback className="text-xs">{u.name[0]}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col min-w-0 flex-1">

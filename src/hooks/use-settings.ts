@@ -16,6 +16,7 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   showTimestamps: true,
   bottomNavAppearance: "colorful",
   bottomNavIconNames: {},
+  bottomNavIconGlobalStyle: {},
   bottomNavIconStyles: {},
 };
 
@@ -55,6 +56,10 @@ export function useSettings() {
       bottomNavIconNames:
         rest.bottomNavIconNames && typeof rest.bottomNavIconNames === "object"
           ? rest.bottomNavIconNames
+          : {},
+      bottomNavIconGlobalStyle:
+        rest.bottomNavIconGlobalStyle && typeof rest.bottomNavIconGlobalStyle === "object"
+          ? rest.bottomNavIconGlobalStyle
           : {},
       bottomNavIconStyles:
         rest.bottomNavIconStyles && typeof rest.bottomNavIconStyles === "object"

@@ -4,7 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-com
 
 // Конфигурация для работы FCM в фоновом режиме
 firebase.initializeApp({
-  apiKey: "AIzaSyA_IC-6IpJF4LZshdwx6bXoZnu9PfmqMfE",
+  apiKey: "AIzaSyD9GMaIREDiU4twHnMQg5utITpJ7ZVnlYE",
   authDomain: "project-72b24.firebaseapp.com",
   projectId: "project-72b24",
   storageBucket: "project-72b24.firebasestorage.app",

@@ -8,6 +8,7 @@ export type User = {
   role: UserRole;
   email: string;
   avatar: string;
+  avatarThumb?: string;
   phone: string;
   bio?: string;
   deletedAt: string | null;
@@ -39,6 +40,7 @@ export type PinnedMessage = {
   text: string;
   senderName: string;
   senderId: string;
+  messageCreatedAt?: string;
 };
 
 export type Conversation = {
@@ -54,6 +56,7 @@ export type Conversation = {
     [key: string]: {
       name: string;
       avatar?: string;
+      avatarThumb?: string;
     };
   };
   lastMessageText?: string;
@@ -66,6 +69,7 @@ export type Conversation = {
     [key: string]: boolean;
   };
   pinnedMessage?: PinnedMessage | null;
+  pinnedMessages?: PinnedMessage[];
 };
 
 export type ReplyContext = {

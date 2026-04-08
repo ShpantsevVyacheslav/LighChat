@@ -17,12 +17,16 @@ function logIndexReadError(err: unknown): void {
 export async function isRegistrationPhoneTaken(
   firestore: Firestore,
   phone: string,
+  options?: { exceptUid?: string },
 ): Promise<boolean> {
   const key = registrationPhoneKey(phone);
   if (!key) return false;
   try {
     const snap = await getDoc(doc(firestore, "registrationIndex", key));
-    return snap.exists();
+    if (!snap.exists()) return false;
+    const owner = snap.get("uid") as string | undefined;
+    if (options?.exceptUid != null && owner === options.exceptUid) return false;
+    return true;
   } catch (e) {
     logIndexReadError(e);
     throw e;
@@ -32,12 +36,16 @@ export async function isRegistrationPhoneTaken(
 export async function isRegistrationEmailTakenInIndex(
   firestore: Firestore,
   email: string,
+  options?: { exceptUid?: string },
 ): Promise<boolean> {
   const key = registrationEmailKey(email);
   if (!key) return false;
   try {
     const snap = await getDoc(doc(firestore, "registrationIndex", key));
-    return snap.exists();
+    if (!snap.exists()) return false;
+    const owner = snap.get("uid") as string | undefined;
+    if (options?.exceptUid != null && owner === options.exceptUid) return false;
+    return true;
   } catch (e) {
     logIndexReadError(e);
     throw e;
@@ -47,12 +55,16 @@ export async function isRegistrationEmailTakenInIndex(
 export async function isRegistrationUsernameTakenInIndex(
   firestore: Firestore,
   normalizedUsername: string,
+  options?: { exceptUid?: string },
 ): Promise<boolean> {
   const key = registrationUsernameKey(normalizedUsername);
   if (!key) return false;
   try {
     const snap = await getDoc(doc(firestore, "registrationIndex", key));
-    return snap.exists();
+    if (!snap.exists()) return false;
+    const owner = snap.get("uid") as string | undefined;
+    if (options?.exceptUid != null && owner === options.exceptUid) return false;
+    return true;
   } catch (e) {
     logIndexReadError(e);
     throw e;

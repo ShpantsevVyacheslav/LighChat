@@ -6,22 +6,29 @@ import { parseISO } from 'date-fns';
 import type { User, Conversation, ChatMessage, ChatAttachment, ReplyContext, ChatSettings } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isOnlyEmojis, getReplyPreview, getFirstStickerOrGifAttachment } from '@/lib/chat-utils';
+import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
 import { bubbleRadiusToClass } from '@/lib/chat-bubble-radius';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Reply as ReplyIcon, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 
 import { MessageText } from './parts/MessageText';
 import { MessageLocationCard } from './parts/MessageLocationCard';
 import { MessagePollInline } from './parts/MessagePollInline';
 import { MessageMedia } from './parts/MessageMedia';
+import { HeicAwareChatImage } from './parts/HeicAwareChatImage';
 import { MessageStatus } from './parts/MessageStatus';
 import { MessageReply } from './parts/MessageReply';
 import { MessageReactions } from './parts/MessageReactions';
 import { AudioMessagePlayer } from './AudioMessagePlayer';
 import { VideoCirclePlayer } from './VideoCirclePlayer';
 import { MessageContextMenu, type MessageContextMenuPosition } from './context-menu/MessageContextMenu';
+import {
+  shouldUseCircularStickerMenuHole,
+  readStickerCircleHoleFromRect,
+} from './context-menu/message-focus-hole';
 import { GroupMessageSenderMenu } from './GroupMessageSenderMenu';
 import { isGridGalleryAttachment, isGridGalleryVideo } from '@/components/chat/attachment-visual';
 
@@ -128,6 +135,8 @@ const ChatMessageItemComponent = ({
     const [swipeX, setSwipeX] = useState(0);
     
     const bubbleRef = useRef<HTMLDivElement>(null);
+    /** Контейнер одиночного стикера — bbox для круглого выреза маски меню. */
+    const stickerMenuHoleRef = useRef<HTMLDivElement>(null);
     const longPressTimer = useRef<NodeJS.Timeout | null>(null);
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
@@ -136,7 +145,10 @@ const ChatMessageItemComponent = ({
       [conversation.isGroup, allUsers, message.senderId],
     );
 
-    const isSticker = useMemo(() => message.attachments?.some(att => att.name.startsWith('sticker_')), [message.attachments]);
+    const isSticker = useMemo(
+        () => message.attachments?.some((att) => isAttachmentLikelyIosStickerCutout(att)) ?? false,
+        [message.attachments],
+    );
     const isGifAttachment = useMemo(() => message.attachments?.some(att => att.name.startsWith('gif_')), [message.attachments]);
     const isStickerLike = isSticker || isGifAttachment;
     const isPureEmoji = useMemo(
@@ -156,6 +168,15 @@ const ChatMessageItemComponent = ({
         return message.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
     }, [message.text]);
     const hasStickerCaption = isStickerLike && stickerCaptionPlain.length > 0;
+    const circularStickerMenuHole = useMemo(() => shouldUseCircularStickerMenuHole(message), [
+        message.id,
+        message.isDeleted,
+        message.text,
+        message.replyTo,
+        message.locationShare,
+        message.chatPollId,
+        message.attachments,
+    ]);
     const isMediaOnly = useMemo(
         () =>
             !message.text &&
@@ -166,12 +187,31 @@ const ChatMessageItemComponent = ({
         [message.text, message.attachments, message.replyTo, message.locationShare, message.chatPollId]
     );
 
-    /** Сетка MessageMedia (фото/видео не стикер/кружок) — нужна явная ширина, иначе w-fit + w-full схлопывают превью. */
+    /** Сетка MessageMedia — ширины 208px / 169px = `CHAT_MEDIA_*` в `@/lib/chat-media-preview-max`. */
     const hasGridVisualMedia = useMemo(() => {
+        if (message.isDeleted) return false;
         const list = message.attachments;
         if (!list?.length) return false;
         return list.some(isGridGalleryAttachment);
-    }, [message.attachments]);
+    }, [message.attachments, message.isDeleted]);
+
+    /** Геолокация вне стикера/видео; истёкшая live — см. [`MessageLocationCard`](./parts/MessageLocationCard.tsx). */
+    const showShareableLocation = useMemo(
+        () => !!message.locationShare && !isStickerLike && !isVideoPlaying,
+        [message.locationShare, isStickerLike, isVideoPlaying]
+    );
+
+    const showInnerColoredBubble = useMemo(
+        () =>
+            !isDeleted &&
+            !!(
+                message.chatPollId ||
+                hasGridVisualMedia ||
+                (message.attachments?.length ?? 0) > 0 ||
+                !!(message.text?.trim())
+            ),
+        [isDeleted, message.chatPollId, hasGridVisualMedia, message.attachments?.length, message.text]
+    );
 
     const radiusClass = bubbleRadiusToClass(chatSettings?.bubbleRadius);
     const showBubbleTailClip =
@@ -198,6 +238,9 @@ const ChatMessageItemComponent = ({
         e.preventDefault(); e.stopPropagation();
         const bubbleEl = bubbleRef.current;
         if (!bubbleEl) return;
+        const useCircleHole = circularStickerMenuHole;
+        const holeTarget =
+            useCircleHole && stickerMenuHoleRef.current ? stickerMenuHoleRef.current : bubbleEl;
         const bubbleRectEl = bubbleEl.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const menuHeight = 360; const menuWidth = 240;
@@ -206,7 +249,11 @@ const ChatMessageItemComponent = ({
         let shiftY = 0;
         if (top + menuHeight > window.innerHeight - 90) shiftY = (window.innerHeight - 90) - (top + menuHeight);
         left = Math.max(16, Math.min(left, viewportWidth - menuWidth - 16));
-        const { bubbleRect, bubbleCornerRadiusPx } = readBubbleHoleGeometry(bubbleEl, MENU_FOCUS_HOLE_PAD_PX);
+        const { bubbleRect, bubbleCornerRadiusPx } = readBubbleHoleGeometry(holeTarget, MENU_FOCUS_HOLE_PAD_PX);
+        const focusCircle =
+            useCircleHole && stickerMenuHoleRef.current
+                ? readStickerCircleHoleFromRect(stickerMenuHoleRef.current)
+                : undefined;
         setMenuPosition({
             top: top + shiftY,
             left,
@@ -214,6 +261,8 @@ const ChatMessageItemComponent = ({
             menuHeight,
             bubbleRect,
             bubbleCornerRadiusPx,
+            focusHoleShape: useCircleHole && focusCircle ? 'circle' : 'rect',
+            focusCircle,
         });
         setIsMenuOpen(true);
     };
@@ -226,23 +275,46 @@ const ChatMessageItemComponent = ({
     useLayoutEffect(() => {
         if (!isMenuOpen || !bubbleRef.current) return;
         const applyGeometry = () => {
-            const el = bubbleRef.current;
-            if (!el) return;
+            const bubbleEl = bubbleRef.current;
+            if (!bubbleEl) return;
+            const useCircleHole = circularStickerMenuHole;
+            const holeTarget =
+                useCircleHole && stickerMenuHoleRef.current ? stickerMenuHoleRef.current : bubbleEl;
             const { bubbleRect: nextRect, bubbleCornerRadiusPx: nextR } = readBubbleHoleGeometry(
-                el,
+                holeTarget,
                 MENU_FOCUS_HOLE_PAD_PX
             );
+            const nextCircle =
+                useCircleHole && stickerMenuHoleRef.current
+                    ? readStickerCircleHoleFromRect(stickerMenuHoleRef.current)
+                    : undefined;
+            const nextShape = useCircleHole && nextCircle ? 'circle' : 'rect';
             setMenuPosition((prev) => {
                 if (!prev) return prev;
-                const { bubbleRect: a, bubbleCornerRadiusPx: ar = 14 } = prev;
-                const same =
+                const { bubbleRect: a, bubbleCornerRadiusPx: ar = 14, focusHoleShape: sh, focusCircle: fc } = prev;
+                const c = nextCircle;
+                const sameRect =
                     a.top === nextRect.top &&
                     a.left === nextRect.left &&
                     a.width === nextRect.width &&
                     a.height === nextRect.height &&
-                    ar === nextR;
-                if (same) return prev;
-                return { ...prev, bubbleRect: nextRect, bubbleCornerRadiusPx: nextR };
+                    ar === nextR &&
+                    sh === nextShape;
+                const sameCircle =
+                    nextShape !== 'circle' ||
+                    (c &&
+                        fc &&
+                        c.cx === fc.cx &&
+                        c.cy === fc.cy &&
+                        c.r === fc.r);
+                if (sameRect && sameCircle) return prev;
+                return {
+                    ...prev,
+                    bubbleRect: nextRect,
+                    bubbleCornerRadiusPx: nextR,
+                    focusHoleShape: nextShape,
+                    focusCircle: nextShape === 'circle' ? c : undefined,
+                };
             });
         };
         applyGeometry();
@@ -254,7 +326,7 @@ const ChatMessageItemComponent = ({
             cancelAnimationFrame(raf1);
             cancelAnimationFrame(raf2);
         };
-    }, [isMenuOpen]);
+    }, [isMenuOpen, message]);
 
     const onMenuAction = (action: string, payload?: string) => {
         switch(action) {
@@ -315,7 +387,10 @@ const ChatMessageItemComponent = ({
         : null;
     const groupSenderAvatar =
       conversation.isGroup && !isCurrentUser
-        ? liveGroupSender?.avatar || conversation.participantInfo[message.senderId]?.avatar || ''
+        ? participantListAvatarUrl(
+            liveGroupSender,
+            conversation.participantInfo[message.senderId],
+          )
         : '';
     const groupSenderInitial = (senderName || '?').charAt(0);
     const senderColor = senderName ? getUserColor(message.senderId) : '';
@@ -378,7 +453,7 @@ const ChatMessageItemComponent = ({
             <div className={cn(
                 'flex items-end gap-2',
                 !isMenuOpen && 'transition-all duration-500',
-                hasGridVisualMedia ? 'min-w-[min(100%,320px)] shrink-0' : 'min-w-0',
+                hasGridVisualMedia ? 'min-w-[min(100%,208px)] shrink-0' : 'min-w-0',
                 (isVideoCircle && isVideoPlaying) ? 'max-w-full w-full justify-center flex-row' : (isCurrentUser ? 'flex-row-reverse ml-auto max-w-[90%] md:max-w-[75%]' : 'flex-row max-w-[90%] md:max-w-[75%]'), 
                 isVideoPlaying && 'z-[510] !max-w-full'
             )} style={{ transform: `translateX(${swipeX}px)` }}>
@@ -416,7 +491,7 @@ const ChatMessageItemComponent = ({
                     className={cn(
                         'flex flex-col gap-1 relative',
                         hasGridVisualMedia
-                            ? 'w-full max-w-[min(100%,320px)] min-w-[min(100%,260px)] shrink-0'
+                            ? 'w-full max-w-[min(100%,208px)] min-w-[min(100%,169px)] shrink-0'
                             : isVideoCircle && isVideoPlaying
                               ? 'min-w-0 w-full max-w-full items-center'
                               : 'min-w-0 w-fit',
@@ -424,46 +499,40 @@ const ChatMessageItemComponent = ({
                             (isCurrentUser ? 'items-end' : 'items-start')
                     )}
                 >
-                    <div 
-                        ref={bubbleRef} onContextMenu={handleOpenMenu}
+                    <div
+                        ref={bubbleRef}
+                        onContextMenu={handleOpenMenu}
                         className={cn(
-                            'relative flex flex-col cursor-pointer select-none active:scale-[0.99] group/bubble',
+                            'relative flex flex-col gap-1 cursor-pointer select-none active:scale-[0.99] group/bubble',
                             !isMenuOpen && 'transition-all duration-500',
-                            hasGridVisualMedia ? 'w-full' : 'w-fit',
+                            showShareableLocation && !showInnerColoredBubble && !hasGridVisualMedia
+                                ? 'w-fit shrink-0'
+                                : hasGridVisualMedia && showInnerColoredBubble
+                                  ? 'w-full min-w-[min(100%,208px)] shrink-0'
+                                  : showInnerColoredBubble
+                                    ? 'min-w-0 w-fit'
+                                    : 'min-w-0 w-fit',
                             (isPureEmoji || isStickerLike || isDeleted) && 'border-none bg-transparent shadow-none',
-                            isVideoCircle &&
-                                !isDeleted &&
-                                (isVideoPlaying
-                                    ? 'min-h-0 min-w-0 w-full max-w-full overflow-visible rounded-full border-none bg-transparent p-0 shadow-none flex justify-center'
-                                    : 'min-h-[192px] min-w-[192px] overflow-visible rounded-full border-none bg-transparent p-0 shadow-none'),
-                            isVideoCircle && !isDeleted && isMenuOpen && 'ring-2 ring-white/50',
-                            !(isPureEmoji || isDeleted || isVideoCircle || isStickerLike) &&
-                                cn(
-                                    radiusClass,
-                                    'border-none shadow-sm',
-                                    isPollMessage && !isDeleted && !isMenuOpen && 'rounded-none shadow-none',
-                                    isMenuOpen && hasGridVisualMedia ? 'overflow-hidden' : 'overflow-visible',
-                                    isMenuOpen && 'ring-2 ring-white/50 ring-offset-0'
-                                ),
-                            !(isPureEmoji || isVideoCircle || isStickerLike || isDeleted || isPollMessage) &&
-                                (isCurrentUser
-                                    ? cn(
-                                          hasCustomOutgoing ? 'text-white' : 'bg-primary text-white',
-                                          showBubbleTailClip && 'rounded-tr-none'
-                                      )
-                                    : cn(
-                                          hasCustomIncoming ? 'text-white' : 'bg-muted dark:bg-muted/50',
-                                          showBubbleTailClip && 'rounded-tl-none'
-                                      )),
-                            isPollMessage && !isDeleted && 'bg-transparent',
-                            isMediaOnly && !isStickerLike && !isDeleted && 'border-none bg-transparent shadow-none',
+                            isMenuOpen &&
+                                !circularStickerMenuHole &&
+                                'ring-2 ring-white/50 ring-offset-0',
+                            isMenuOpen && hasGridVisualMedia && showInnerColoredBubble
+                                ? 'overflow-hidden'
+                                : 'overflow-visible',
                         )}
-                        style={bubbleInlineStyle}
                     >
                         {isDeleted ? (
-                            <div className="flex items-center gap-1.5 text-sm italic text-muted-foreground/80 py-2 px-0 font-medium select-none min-h-[32px]"><Trash2 className="h-3.5 w-3.5" />Сообщение удалено</div>
+                            <div
+                                className={cn(
+                                    'flex items-center gap-1.5 text-sm italic text-muted-foreground/80 py-2 px-0 font-medium select-none min-h-[32px]',
+                                    isCurrentUser ? 'self-end' : 'self-start',
+                                )}
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Сообщение удалено
+                            </div>
                         ) : (
-                            <div className={cn('flex flex-col select-none', hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0')}>
+                            <div className={cn('flex flex-col select-none gap-1', hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0')}>
                                 {senderName && !isPureEmoji && !isStickerLike && !isVideoPlaying && !isMenuOpen && !isMediaOnly && (
                                     showGroupSenderActions ? (
                                         <GroupMessageSenderMenu
@@ -486,91 +555,196 @@ const ChatMessageItemComponent = ({
                                             </button>
                                         </GroupMessageSenderMenu>
                                     ) : (
-                                        <div className={cn("text-[11px] font-bold px-3 pt-2 uppercase tracking-wider", senderColor)}>{senderName}</div>
+                                        <div className={cn('text-[11px] font-bold px-3 pt-2 uppercase tracking-wider', senderColor)}>{senderName}</div>
                                     )
                                 )}
-                                <div className={cn('flex flex-col select-none', hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0', isVideoPlaying && 'overflow-visible')}>
-                                    {message.replyTo && !isPureEmoji && !isStickerLike && !isVideoPlaying && (
-                                        <MessageReply replyTo={message.replyTo} isCurrentUser={isCurrentUser} onClick={() => onNavigateToMessage(message.replyTo!.messageId)} />
-                                    )}
-                                    {message.locationShare && !isStickerLike && !isVideoPlaying && (
-                                        <div className={cn('w-full min-w-0', hasGridVisualMedia ? 'px-0' : 'px-2 pt-1')}>
-                                            <MessageLocationCard share={message.locationShare} isCurrentUser={isCurrentUser} />
-                                        </div>
-                                    )}
-                                    {message.chatPollId && !isStickerLike && !isVideoPlaying && (
-                                        <div className={cn('w-full min-w-0', hasGridVisualMedia ? 'px-0' : 'px-2 pt-1')}>
-                                            <MessagePollInline
-                                                conversationId={conversation.id}
-                                                pollId={message.chatPollId}
-                                                currentUser={currentUser}
-                                                conversation={conversation}
-                                                allUsers={allUsers}
-                                                isCurrentUser={isCurrentUser}
-                                            />
-                                            {showTimestamps && (
-                                                <div className={cn('mt-1 flex', isCurrentUser ? 'justify-end pr-0.5' : 'justify-start pl-0.5')}>
-                                                    <MessageStatus
-                                                        timestamp={message.createdAt}
-                                                        isCurrentUser={isCurrentUser}
-                                                        deliveryStatus={message.deliveryStatus}
-                                                        readAt={message.readAt}
-                                                        bare
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    <div className={cn('flex flex-col', hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0', (isVideoCircle || isVideoPlaying) ? 'overflow-visible' : 'overflow-visible')}>
-                                        {hasGridVisualMedia && (
-                                            <div className="relative w-full min-w-[min(100%,260px)] shrink-0">
-                                                <MessageMedia attachments={message.attachments || []} isCurrentUser={isCurrentUser} onImageClick={(att) => (isGridGalleryVideo(att) ? onOpenVideoViewer(att) : onOpenImageViewer(att))} />
-                                                {isMediaOnly && showTimestamps && !isVideoCircle && !isStickerLike && (
-                                                    <MessageStatus timestamp={message.createdAt} isCurrentUser={isCurrentUser} deliveryStatus={message.deliveryStatus} readAt={message.readAt} overlay isColoredBubble={isColoredBubble} />
+                                {message.replyTo && !isPureEmoji && !isStickerLike && !isVideoPlaying && (
+                                    <MessageReply
+                                        replyTo={message.replyTo}
+                                        isCurrentUser={isCurrentUser}
+                                        onClick={() => onNavigateToMessage(message.replyTo!.messageId)}
+                                    />
+                                )}
+                                {showShareableLocation && (
+                                    <MessageLocationCard
+                                        share={message.locationShare!}
+                                        isCurrentUser={isCurrentUser}
+                                        createdAt={message.createdAt}
+                                        deliveryStatus={message.deliveryStatus}
+                                        readAt={message.readAt}
+                                        showTimestamps={showTimestamps}
+                                    />
+                                )}
+                                {showInnerColoredBubble && (
+                                    <div
+                                        className={cn(
+                                            'relative flex flex-col',
+                                            hasGridVisualMedia
+                                                ? 'min-w-full w-full max-w-[min(100%,208px)] min-w-[min(100%,169px)]'
+                                                : 'min-w-0 w-fit',
+                                            isVideoCircle &&
+                                                !isDeleted &&
+                                                (isVideoPlaying
+                                                    ? 'min-h-0 min-w-0 w-full max-w-full overflow-visible rounded-full border-none bg-transparent p-0 shadow-none flex justify-center'
+                                                    : 'min-h-[192px] min-w-[192px] overflow-visible rounded-full border-none bg-transparent p-0 shadow-none'),
+                                            !(isPureEmoji || isDeleted || isVideoCircle || isStickerLike) &&
+                                                cn(
+                                                    radiusClass,
+                                                    'border-none shadow-sm',
+                                                    isPollMessage && !isDeleted && !isMenuOpen && 'rounded-none shadow-none',
+                                                    isMenuOpen && hasGridVisualMedia ? 'overflow-hidden' : 'overflow-visible',
+                                                ),
+                                            !(isPureEmoji || isVideoCircle || isStickerLike || isDeleted || isPollMessage) &&
+                                                (isCurrentUser
+                                                    ? cn(
+                                                          hasCustomOutgoing ? 'text-white' : 'bg-primary text-white',
+                                                          showBubbleTailClip && 'rounded-tr-none',
+                                                      )
+                                                    : cn(
+                                                          hasCustomIncoming ? 'text-white' : 'bg-muted dark:bg-muted/50',
+                                                          showBubbleTailClip && 'rounded-tl-none',
+                                                      )),
+                                            isPollMessage && !isDeleted && 'bg-transparent',
+                                            isMediaOnly && !isStickerLike && !isDeleted && 'border-none bg-transparent shadow-none',
+                                        )}
+                                        style={bubbleInlineStyle}
+                                    >
+                                        <div className={cn('flex flex-col select-none', hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0')}>
+                                            <div
+                                                className={cn(
+                                                    'flex flex-col select-none',
+                                                    hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0',
+                                                    isVideoPlaying && 'overflow-visible',
                                                 )}
-                                            </div>
-                                        )}
-                                        {message.attachments?.map((att, idx) => {
-                                            if (att.name.startsWith('video-circle_')) return <VideoCirclePlayer key={idx} attachment={att} isCurrentUser={isCurrentUser} createdAt={message.createdAt} deliveryStatus={message.deliveryStatus} readAt={message.readAt} onPlaybackStateChange={setIsVideoPlaying} isLastInChat={isLastInChat} />;
-                                            if (att.name.startsWith('sticker_')) return (
+                                            >
+                                                {message.chatPollId && !isStickerLike && !isVideoPlaying && (
+                                                    <div className={cn('w-full min-w-0', hasGridVisualMedia ? 'px-0' : 'px-2 pt-1')}>
+                                                        <MessagePollInline
+                                                            conversationId={conversation.id}
+                                                            pollId={message.chatPollId}
+                                                            currentUser={currentUser}
+                                                            conversation={conversation}
+                                                            allUsers={allUsers}
+                                                            isCurrentUser={isCurrentUser}
+                                                        />
+                                                        {showTimestamps && (
+                                                            <div className={cn('mt-1 flex', isCurrentUser ? 'justify-end pr-0.5' : 'justify-start pl-0.5')}>
+                                                                <MessageStatus
+                                                                    timestamp={message.createdAt}
+                                                                    isCurrentUser={isCurrentUser}
+                                                                    deliveryStatus={message.deliveryStatus}
+                                                                    readAt={message.readAt}
+                                                                    bare
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 <div
-                                                    key={idx}
-                                                    className="relative mx-auto w-[min(150px,40vw)] shrink-0 aspect-square flex items-center justify-center p-0.5"
-                                                >
-                                                    <img
-                                                        src={att.url}
-                                                        alt=""
-                                                        width={150}
-                                                        height={150}
-                                                        className="max-h-full max-w-full object-contain"
-                                                        draggable={false}
-                                                    />
-                                                </div>
-                                            );
-                                            if (att.name.startsWith('gif_')) return <div key={idx} className="relative max-w-[min(100%,280px)] w-48 sm:w-64 p-2 shrink-0"><img src={att.url} alt="" className="h-auto w-full max-h-64 object-contain" /></div>;
-                                            if (att.type.startsWith('audio/')) return <div key={idx} className="p-2 relative shrink-0"><AudioMessagePlayer attachment={att} isCurrentUser={isCurrentUser} /></div>;
-                                            return null;
-                                        })}
-                                        {(!isVideoCircle && !message.chatPollId) && (!isStickerLike || hasStickerCaption) && (
-                                            <div className="relative group/text">
-                                                <MessageText
-                                                    text={message.text}
-                                                    isCurrentUser={isCurrentUser}
-                                                    isPureEmoji={!!isPureEmoji}
-                                                    fontSizeClass={fontSizeClass}
-                                                    isColoredBubble={isColoredBubble}
-                                                    conversation={conversation}
-                                                    allUsers={allUsers}
-                                                    onMentionProfileOpen={onMentionProfileOpen}
-                                                >
-                                                    {!isStickerLike && !isPureEmoji && showTimestamps && (!isMediaOnly || !hasGridVisualMedia) && (
-                                                        <MessageStatus timestamp={message.createdAt} isCurrentUser={isCurrentUser} deliveryStatus={message.deliveryStatus} readAt={message.readAt} isColoredBubble={isColoredBubble} />
+                                                    className={cn(
+                                                        'flex flex-col',
+                                                        hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0',
+                                                        (isVideoCircle || isVideoPlaying) ? 'overflow-visible' : 'overflow-visible',
                                                     )}
-                                                </MessageText>
+                                                >
+                                                    {hasGridVisualMedia && (
+                                                        <div className="relative w-full min-w-[min(100%,169px)] shrink-0">
+                                                            <MessageMedia
+                                                                attachments={message.attachments || []}
+                                                                isCurrentUser={isCurrentUser}
+                                                                onImageClick={(att) =>
+                                                                    isGridGalleryVideo(att) ? onOpenVideoViewer(att) : onOpenImageViewer(att)
+                                                                }
+                                                            />
+                                                            {isMediaOnly && showTimestamps && !isVideoCircle && !isStickerLike && (
+                                                                <MessageStatus
+                                                                    timestamp={message.createdAt}
+                                                                    isCurrentUser={isCurrentUser}
+                                                                    deliveryStatus={message.deliveryStatus}
+                                                                    readAt={message.readAt}
+                                                                    overlay
+                                                                    isColoredBubble={isColoredBubble}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {message.attachments?.map((att, idx) => {
+                                                        if (att.name.startsWith('video-circle_'))
+                                                            return (
+                                                                <VideoCirclePlayer
+                                                                    key={idx}
+                                                                    attachment={att}
+                                                                    isCurrentUser={isCurrentUser}
+                                                                    createdAt={message.createdAt}
+                                                                    deliveryStatus={message.deliveryStatus}
+                                                                    readAt={message.readAt}
+                                                                    onPlaybackStateChange={setIsVideoPlaying}
+                                                                    isLastInChat={isLastInChat}
+                                                                />
+                                                            );
+                                                        if (isAttachmentLikelyIosStickerCutout(att))
+                                                            return (
+                                                                <div
+                                                                    key={idx}
+                                                                    ref={stickerMenuHoleRef}
+                                                                    className="relative mx-auto w-[min(150px,40vw)] shrink-0 aspect-square flex items-center justify-center p-0.5"
+                                                                >
+                                                                    <HeicAwareChatImage
+                                                                        attachment={att}
+                                                                        alt=""
+                                                                        width={150}
+                                                                        height={150}
+                                                                        className="max-h-full max-w-full object-contain"
+                                                                        draggable={false}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        if (att.name.startsWith('gif_'))
+                                                            return (
+                                                                <div key={idx} className="relative max-w-[min(100%,280px)] w-48 sm:w-64 p-2 shrink-0">
+                                                                    <img src={att.url} alt="" className="h-auto w-full max-h-64 object-contain" />
+                                                                </div>
+                                                            );
+                                                        if (att.type.startsWith('audio/'))
+                                                            return (
+                                                                <div key={idx} className="p-2 relative shrink-0">
+                                                                    <AudioMessagePlayer attachment={att} isCurrentUser={isCurrentUser} />
+                                                                </div>
+                                                            );
+                                                        return null;
+                                                    })}
+                                                    {(!isVideoCircle && !message.chatPollId) && (!isStickerLike || hasStickerCaption) && (
+                                                        <div className="relative group/text">
+                                                            <MessageText
+                                                                text={message.text}
+                                                                isCurrentUser={isCurrentUser}
+                                                                isPureEmoji={!!isPureEmoji}
+                                                                fontSizeClass={fontSizeClass}
+                                                                isColoredBubble={isColoredBubble}
+                                                                conversation={conversation}
+                                                                allUsers={allUsers}
+                                                                onMentionProfileOpen={onMentionProfileOpen}
+                                                            >
+                                                                {!isStickerLike &&
+                                                                    !isPureEmoji &&
+                                                                    showTimestamps &&
+                                                                    (!isMediaOnly || !hasGridVisualMedia) && (
+                                                                        <MessageStatus
+                                                                            timestamp={message.createdAt}
+                                                                            isCurrentUser={isCurrentUser}
+                                                                            deliveryStatus={message.deliveryStatus}
+                                                                            readAt={message.readAt}
+                                                                            isColoredBubble={isColoredBubble}
+                                                                        />
+                                                                    )}
+                                                            </MessageText>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
                     </div>

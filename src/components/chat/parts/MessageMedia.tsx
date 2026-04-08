@@ -8,9 +8,11 @@ import { Play } from 'lucide-react';
 import { thumbHashToUrl } from '@/lib/media-utils';
 import { isGridGalleryAttachment, isGridGalleryVideo } from '@/components/chat/attachment-visual';
 import { isChatGalleryMediaUrlSeen, markChatGalleryMediaUrlSeen } from '@/components/chat/chat-media-session-cache';
-
-/** Макс. ширина превью в ленте (ТЗ / docs/chat_rendering_spec.md §2). */
-const PREVIEW_MAX_WIDTH_PX = 320;
+import {
+  CHAT_MEDIA_PREVIEW_MAX_WIDTH_PX,
+  CHAT_GIF_ALBUM_GRID_MAX_WIDTH_PX,
+} from '@/lib/chat-media-preview-max';
+import { HeicAwareChatImage } from '@/components/chat/parts/HeicAwareChatImage';
 /** Если в БД нет width/height — квадрат в пределах max-width. */
 const FALLBACK_ASPECT_RATIO = '1 / 1';
 
@@ -40,6 +42,14 @@ function paddingBottomPercentFromAspect(ar: string): string {
   return `${(parts[1] / parts[0]) * 100}%`;
 }
 
+/** Только анимированный GIF в сетке (не video). */
+function isGridCellGif(att: ChatAttachment): boolean {
+  if (isGridGalleryVideo(att)) return false;
+  const t = (att.type || '').toLowerCase();
+  if (t === 'image/gif') return true;
+  return /\.gif(\?|#|$)/i.test(att.name);
+}
+
 /**
  * Управляет отображением сетки медиафайлов.
  * Высота ячеек задаётся только aspect-ratio + ширина сетки; img/video — position:absolute,
@@ -53,20 +63,23 @@ export function MessageMedia({ attachments, isCurrentUser, onImageClick }: Messa
   if (visualAttachments.length === 0) return null;
 
   const count = visualAttachments.length;
+  const allGifs =
+    visualAttachments.length > 0 && visualAttachments.every(isGridCellGif);
+  const gridMaxPx = allGifs ? CHAT_GIF_ALBUM_GRID_MAX_WIDTH_PX : CHAT_MEDIA_PREVIEW_MAX_WIDTH_PX;
 
   return (
     <div
       className={cn(
-        'grid gap-0.5 relative overflow-hidden rounded-2xl w-full shrink-0 bg-transparent max-w-[320px]',
+        'grid gap-0.5 relative max-w-full overflow-hidden rounded-2xl w-full shrink-0 bg-transparent',
         count === 1 && 'grid-cols-1',
         count === 2 && 'grid-cols-2',
         count === 3 && 'grid-cols-2',
         count >= 4 && 'grid-cols-2'
       )}
       style={{
-        maxWidth: PREVIEW_MAX_WIDTH_PX,
-        width: 'min(100%, 320px)',
-        minWidth: 'min(100%, 320px)',
+        maxWidth: gridMaxPx,
+        width: `min(100%, ${gridMaxPx}px)`,
+        minWidth: `min(100%, ${gridMaxPx}px)`,
       }}
     >
       {visualAttachments.slice(0, 10).map((att, idx) => {
@@ -88,7 +101,7 @@ export function MessageMedia({ attachments, isCurrentUser, onImageClick }: Messa
             </div>
             {isLastVisible && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-[2px] pointer-events-none">
-                <span className="text-white font-black text-xl">+{count - 10}</span>
+                <span className="text-white font-black text-base">+{count - 10}</span>
               </div>
             )}
           </div>
@@ -125,12 +138,12 @@ function MediaItem({ att }: { att: ChatAttachment }) {
             onLoadedData={() => markChatGalleryMediaUrlSeen(att.url)}
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
-            <Play className="h-10 w-10 text-white/80 fill-white" />
+            <Play className="h-5 w-5 text-white/80 fill-white" />
           </div>
         </>
       ) : (
-        <img
-          src={att.url}
+        <HeicAwareChatImage
+          attachment={att}
           alt={att.name}
           className="absolute inset-0 h-full w-full object-cover transition-transform group-hover/media:scale-105 duration-500 bg-muted/30"
           loading={eagerLoad ? 'eager' : 'lazy'}

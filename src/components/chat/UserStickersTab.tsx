@@ -1,9 +1,18 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { usePublicStickerPacks } from '@/hooks/use-public-sticker-packs';
 import { useUserStickerPacks } from '@/hooks/use-user-sticker-packs';
 import type { ChatAttachment } from '@/lib/types';
 import { USER_STICKER_MAX_FILE_BYTES, userStickerItemToAttachment } from '@/lib/user-sticker-packs';
@@ -26,7 +36,7 @@ type UserStickersTabProps = {
 };
 
 /**
- * Вкладка «Стикеры»: свои паки в Firestore, файлы в Storage, дублирование пака, загрузка с устройства.
+ * Вкладка «Стикеры»: общие паки (`publicStickerPacks`) и свои паки; дублирование, загрузка, удаление — только для своих.
  */
 export function UserStickersTab({ userId, onPickSticker, className }: UserStickersTabProps) {
   const { toast } = useToast();
@@ -34,6 +44,8 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
   const [newPackOpen, setNewPackOpen] = useState(false);
   const [newPackName, setNewPackName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [deletePackOpen, setDeletePackOpen] = useState(false);
+  const [stickerScope, setStickerScope] = useState<'my' | 'public'>('my');
 
   const {
     firestore,
@@ -51,13 +63,39 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     duplicateCurrentPack,
     addFilesToPack,
     deleteItem,
+    deletePack,
   } = useUserStickerPacks(userId);
+
+  const {
+    packs: publicPacks,
+    items: publicItems,
+    packsLoading: publicPacksLoading,
+    itemsLoading: publicItemsLoading,
+    packsError: publicPacksError,
+    itemsError: publicItemsError,
+    selectedPackId: selectedPublicPackId,
+    setSelectedPackId: setSelectedPublicPackId,
+  } = usePublicStickerPacks();
+
+  useEffect(() => {
+    if (packsLoading || publicPacksLoading) return;
+    const hasMy = packs && packs.length > 0;
+    const hasPublic = publicPacks && publicPacks.length > 0;
+    if (!hasMy && hasPublic) {
+      setStickerScope('public');
+      return;
+    }
+    if (stickerScope === 'public' && !hasPublic && hasMy) {
+      setStickerScope('my');
+    }
+  }, [packs, publicPacks, packsLoading, publicPacksLoading, stickerScope]);
 
   const handleCreatePack = useCallback(async () => {
     setBusy(true);
     try {
       const id = await createPack(newPackName);
       if (id) {
+        setStickerScope('my');
         setSelectedPackId(id);
         setNewPackOpen(false);
         setNewPackName('');
@@ -71,7 +109,27 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     } finally {
       setBusy(false);
     }
-  }, [createPack, newPackName, setSelectedPackId, toast]);
+  }, [createPack, newPackName, setSelectedPackId, setStickerScope, toast]);
+
+  const handleDeletePack = useCallback(async () => {
+    if (!selectedPackId) return;
+    const pid = selectedPackId;
+    setBusy(true);
+    try {
+      const ok = await deletePack(pid);
+      if (ok) {
+        setDeletePackOpen(false);
+        toast({ title: 'Стикерпак удалён' });
+      } else {
+        toast({ title: 'Не удалось удалить пак', variant: 'destructive' });
+      }
+    } catch (e) {
+      console.warn('[LighChat:stickers] deletePack', e);
+      toast({ title: 'Ошибка при удалении пака', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  }, [deletePack, selectedPackId, toast]);
 
   const handleDuplicatePack = useCallback(async () => {
     if (!selectedPack || !items) return;
@@ -115,7 +173,18 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     [addFilesToPack, firestore, selectedPackId, storage, toast]
   );
 
-  const errMsg = packsError?.message || itemsError?.message;
+  const errMsg =
+    packsError?.message ||
+    itemsError?.message ||
+    publicPacksError?.message ||
+    publicItemsError?.message;
+
+  const isPublicScope = stickerScope === 'public';
+  const displayItems = isPublicScope ? publicItems : items;
+  const displayItemsLoading = isPublicScope ? publicItemsLoading : itemsLoading;
+  const noMyPacks = !packsLoading && (!packs || packs.length === 0);
+  const noPublicPacks = !publicPacksLoading && (!publicPacks || publicPacks.length === 0);
+  const noPacksAtAll = noMyPacks && noPublicPacks && !packsLoading && !publicPacksLoading;
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -127,24 +196,51 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
 
       <div className="flex flex-wrap items-center gap-1.5">
         <ScrollArea className="max-w-full whitespace-nowrap">
-          <div className="flex gap-1 pb-1">
+          <div className="flex gap-1 pb-1 items-center">
+            {publicPacks?.map((p) => (
+              <Button
+                key={`pub-${p.id}`}
+                type="button"
+                size="sm"
+                variant={isPublicScope && p.id === selectedPublicPackId ? 'default' : 'outline'}
+                className="shrink-0 rounded-lg text-[10px] font-semibold uppercase tracking-wide h-8 px-2.5 border-dashed"
+                title="Общий стикерпак"
+                onClick={() => {
+                  setStickerScope('public');
+                  setSelectedPublicPackId(p.id);
+                }}
+              >
+                {p.name}
+              </Button>
+            ))}
+            {publicPacksLoading ? (
+              <span className="inline-flex h-8 items-center px-2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </span>
+            ) : null}
+            {publicPacks && publicPacks.length > 0 && packs && packs.length > 0 ? (
+              <span className="inline-block h-6 w-px shrink-0 bg-border mx-0.5" aria-hidden />
+            ) : null}
             {packs?.map((p) => (
               <Button
                 key={p.id}
                 type="button"
                 size="sm"
-                variant={p.id === selectedPackId ? 'default' : 'outline'}
+                variant={!isPublicScope && p.id === selectedPackId ? 'default' : 'outline'}
                 className="shrink-0 rounded-lg text-[10px] font-semibold uppercase tracking-wide h-8 px-2.5"
-                onClick={() => setSelectedPackId(p.id)}
+                onClick={() => {
+                  setStickerScope('my');
+                  setSelectedPackId(p.id);
+                }}
               >
                 {p.name}
               </Button>
             ))}
-            {packsLoading && (
+            {packsLoading ? (
               <span className="inline-flex h-8 items-center px-2">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </span>
-            )}
+            ) : null}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
@@ -154,7 +250,10 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           variant="outline"
           className="h-8 w-8 shrink-0 rounded-lg"
           disabled={busy}
-          onClick={() => setNewPackOpen(true)}
+          onClick={() => {
+            setStickerScope('my');
+            setNewPackOpen(true);
+          }}
           title="Новый стикерпак"
         >
           <Plus className="h-4 w-4" />
@@ -167,7 +266,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           size="sm"
           variant="secondary"
           className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide"
-          disabled={busy || !selectedPackId}
+          disabled={busy || isPublicScope || !selectedPackId}
           onClick={() => fileInputRef.current?.click()}
         >
           <ImagePlus className="mr-1.5 h-3.5 w-3.5" />
@@ -178,12 +277,24 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           size="sm"
           variant="secondary"
           className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide"
-          disabled={busy || !selectedPack}
+          disabled={busy || isPublicScope || !selectedPack}
           onClick={() => void handleDuplicatePack()}
           title="Копия текущего пака (те же файлы в новом паке)"
         >
           <Copy className="mr-1.5 h-3.5 w-3.5" />
           Дублировать пак
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide text-destructive hover:text-destructive"
+          disabled={busy || isPublicScope || !selectedPackId}
+          onClick={() => setDeletePackOpen(true)}
+          title="Удалить текущий стикерпак"
+        >
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          Удалить пак
         </Button>
         <input
           ref={fileInputRef}
@@ -195,23 +306,26 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         />
       </div>
 
-      {!packsLoading && (!packs || packs.length === 0) ? (
+      {noPacksAtAll ? (
         <p className="text-center text-xs text-muted-foreground py-4 px-1">
-          Нет стикерпаков. Нажмите «+», создайте пак и добавьте картинки с устройства.
+          Нет стикерпаков. Создайте свой пак кнопкой «+» или попросите администратора добавить общие наборы в коллекцию{' '}
+          <code className="text-[10px]">publicStickerPacks</code>.
         </p>
       ) : (
         <ScrollArea className="h-56 pr-2">
-          {itemsLoading ? (
+          {displayItemsLoading ? (
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : !items?.length ? (
+          ) : !displayItems?.length ? (
             <p className="py-6 text-center text-xs text-muted-foreground">
-              В этом паке пока пусто — загрузите изображения.
+              {isPublicScope
+                ? 'В этом общем паке пока пусто.'
+                : 'В этом паке пока пусто — загрузите изображения.'}
             </p>
           ) : (
             <div className="grid grid-cols-4 gap-2 p-1">
-              {items.map((st) => (
+              {displayItems.map((st) => (
                 <div key={st.id} className="group relative">
                   <button
                     type="button"
@@ -227,15 +341,17 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
                       loading="lazy"
                     />
                   </button>
-                  <button
-                    type="button"
-                    title="Удалить из пака"
-                    className="absolute -right-0.5 -top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border transition-opacity group-hover:opacity-100 hover:text-destructive"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => selectedPackId && deleteItem(selectedPackId, st.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  {!isPublicScope ? (
+                    <button
+                      type="button"
+                      title="Удалить из пака"
+                      className="absolute -right-0.5 -top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border transition-opacity group-hover:opacity-100 hover:text-destructive"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectedPackId && deleteItem(selectedPackId, st.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -266,6 +382,32 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deletePackOpen} onOpenChange={setDeletePackOpen}>
+        <AlertDialogContent className="rounded-2xl" onMouseDown={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить стикерпак?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Пак «{selectedPack?.name ?? '…'}» и все его стикеры будут удалены. Общие паки здесь удалить нельзя. Файлы,
+              которые используются в других паках (например после «Дублировать»), в хранилище не трогаем.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-xl" disabled={busy}>
+              Отмена
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              className="rounded-xl"
+              disabled={busy}
+              onClick={() => void handleDeletePack()}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Удалить'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

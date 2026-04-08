@@ -16,6 +16,7 @@ import { ChatAttachment } from '@/lib/types';
 import { X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+import { useVerticalSwipeToDismiss } from '@/hooks/use-vertical-swipe-dismiss';
 
 interface ImageViewerProps {
   isOpen: boolean;
@@ -53,11 +54,25 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
 
   const currentImageName = images[current - 1]?.name || '';
 
+  const swipeDismiss = useVerticalSwipeToDismiss({
+    enabled: isOpen,
+    onDismiss: () => onOpenChange(false),
+    thresholdPx: 100,
+  });
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         showCloseButton={false}
-        className="bg-black/90 backdrop-blur-sm border-none shadow-none p-0 w-screen h-screen max-w-full max-h-full rounded-none flex flex-col items-center justify-center">
+        style={swipeDismiss.contentStyle}
+        onTouchStart={swipeDismiss.onTouchStart}
+        onTouchMove={swipeDismiss.onTouchMove}
+        onTouchEnd={swipeDismiss.onTouchEnd}
+        className={cn(
+          'bg-black/90 backdrop-blur-sm border-none shadow-none p-0 w-screen h-[100dvh] max-w-full max-h-[100dvh] rounded-none flex flex-col items-center justify-center',
+          swipeDismiss.transitionClass
+        )}
+        >
         
         <DialogHeader className="sr-only">
           <DialogTitle>Просмотр изображения</DialogTitle>
@@ -65,7 +80,7 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
         </DialogHeader>
 
         {/* Header */}
-        <header className="absolute top-0 left-0 right-0 z-50 h-24 bg-gradient-to-b from-black/70 to-transparent flex items-start justify-between p-4 text-white">
+        <header className="absolute top-0 left-0 right-0 z-50 min-h-[5.5rem] bg-gradient-to-b from-black/70 to-transparent flex items-start justify-between gap-3 px-4 pb-2 pt-[calc(1rem+env(safe-area-inset-top,0px))] text-white box-border">
           <div className="flex flex-col">
             <p className="font-semibold truncate max-w-xs sm:max-w-md">{currentImageName}</p>
             {count > 1 && (
@@ -87,11 +102,11 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
         </header>
         
         {/* Carousel */}
-        <Carousel setApi={setApi} className="w-full h-full flex items-center">
+        <Carousel setApi={setApi} className="flex h-full min-h-0 w-full flex-1 items-center pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
           <CarouselContent>
             {images.map((image, index) => (
               <CarouselItem key={index} className="flex items-center justify-center">
-                <div className="relative h-[85vh] w-[95vw]">
+                <div className="relative mx-auto h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-6.5rem)] w-[95vw] max-w-full">
                   <Image
                     src={image.url}
                     alt={image.name}
@@ -105,15 +120,15 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
           </CarouselContent>
           {images.length > 1 && (
             <>
-              <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 text-white bg-black/30 hover:bg-black/50 border-white/50 hover:border-white disabled:bg-black/10 disabled:text-white/50" />
-              <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 text-white bg-black/30 hover:bg-black/50 border-white/50 hover:border-white disabled:bg-black/10 disabled:text-white/50" />
+              <CarouselPrevious className="absolute left-[max(1rem,env(safe-area-inset-left,0px))] top-1/2 z-50 h-10 w-10 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 border-white/50 hover:border-white disabled:bg-black/10 disabled:text-white/50" />
+              <CarouselNext className="absolute right-[max(1rem,env(safe-area-inset-right,0px))] top-1/2 z-50 h-10 w-10 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 border-white/50 hover:border-white disabled:bg-black/10 disabled:text-white/50" />
             </>
           )}
         </Carousel>
 
         {/* Footer with Dots */}
         {count > 1 && (
-             <footer className="absolute bottom-0 left-0 right-0 z-50 h-20 bg-gradient-to-t from-black/70 to-transparent flex items-center justify-center p-4 gap-2">
+             <footer className="absolute bottom-0 left-0 right-0 z-50 min-h-[4.5rem] bg-gradient-to-t from-black/70 to-transparent flex items-center justify-center gap-2 px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] box-border">
                 {Array.from({ length: count }).map((_, index) => (
                     <button
                         key={index}

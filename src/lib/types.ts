@@ -9,7 +9,10 @@ export type User = {
   username: string;
   role?: UserRole;
   email: string;
+  /** Полноразмерный URL (просмотр в профиле и т.д.). */
   avatar: string;
+  /** Круглое превью (~512×512) для списков чатов и миниатюр; иначе UI использует `avatar`. */
+  avatarThumb?: string;
   phone: string;
   bio?: string;
   deletedAt: string | null;
@@ -157,6 +160,8 @@ export type PinnedMessage = {
   senderId: string;
   mediaPreviewUrl?: string | null;
   mediaType?: 'image' | 'video' | 'video-circle' | 'sticker' | 'file' | null;
+  /** ISO — порядок и позиция в ленте, если сообщения ещё нет в загруженном окне. */
+  messageCreatedAt?: string;
 };
 
 export type Conversation = {
@@ -173,6 +178,7 @@ export type Conversation = {
     [key: string]: {
       name: string;
       avatar?: string;
+      avatarThumb?: string;
     };
   };
   lastMessageText?: string;
@@ -188,7 +194,10 @@ export type Conversation = {
   typing?: {
     [key: string]: boolean;
   };
+  /** @deprecated Предпочтение — pinnedMessages; оставлено для старых документов. */
   pinnedMessage?: PinnedMessage | null;
+  /** Закрепы (порядок в UI задаётся сортировкой по времени сообщения). */
+  pinnedMessages?: PinnedMessage[];
   lastReactionEmoji?: string | null;
   lastReactionTimestamp?: string | null;
   lastReactionSenderId?: string | null;
@@ -371,6 +380,11 @@ export type ChatSettings = {
    * Переопределение иконок: href пункта меню → имя иконки Lucide (kebab-case), см. lucide.dev.
    */
   bottomNavIconNames?: Record<string, string>;
+  /**
+   * Универсальное оформление всех иконок нижнего меню (цвет, штрих, фон плитки).
+   * Переопределения по `bottomNavIconStyles[href]` имеют приоритет.
+   */
+  bottomNavIconGlobalStyle?: BottomNavIconVisualStyle;
   /**
    * Оформление по href: цвет иконки, толщина штриха и фон плитки (см. BottomNavIconVisualStyle).
    */

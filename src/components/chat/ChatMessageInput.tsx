@@ -323,7 +323,7 @@ const ChatMessageInputInner = (
         setShowMentions(false);
     };
 
-    /** `applyKeyboardStickerHeuristic`: только для вставки из буфера (стикеры iOS с клавиатуры). Галерея / файл / drag-drop — без авто-`sticker_`. */
+    /** `applyKeyboardStickerHeuristic`: PNG/WebP/JPEG — только вставка с клавиатуры. HEIC/HEIF всегда проверяются на малый «стикерный» размер и при успехе конвертируются в PNG + `sticker_`. */
     const ingestAttachmentFiles = useCallback(async (raw: File[], applyKeyboardStickerHeuristic: boolean) => {
         if (!raw.length || isPartnerDeleted) return;
         const next = await normalizeFilesAsStickersIfApplicable(raw, applyKeyboardStickerHeuristic);
@@ -496,21 +496,33 @@ const ChatMessageInputInner = (
                         <UserX className="h-4 w-4" /><p className="text-sm font-medium">Пользователь удален</p>
                     </div>
                 ) : isVideoRecording ? (
-                    <div className="p-2 flex flex-col items-center justify-center gap-4 bg-muted/30 rounded-[2.5rem] mb-2">
-                        <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-primary/20">
-                            <video ref={videoPreviewRef} autoPlay muted playsInline className="w-full h-full object-cover -scale-x-100" />
+                    <div className="mb-2 flex flex-row items-center justify-center gap-3 sm:gap-4">
+                        <div className="h-14 w-14 shrink-0" aria-hidden />
+                        <div className="relative h-48 w-48 shrink-0 rounded-full overflow-hidden border-4 border-primary/20">
+                            <video ref={videoPreviewRef} autoPlay muted playsInline className="h-full w-full object-cover -scale-x-100" />
                         </div>
-                        <Button variant="destructive" size="icon" className="rounded-full h-12 w-12" onClick={stopVideoRecording}><StopCircle className="h-6 w-6" /></Button>
+                        <Button type="button" variant="destructive" size="icon" className="h-14 w-14 shrink-0 rounded-full" onClick={stopVideoRecording} aria-label="Остановить запись">
+                            <StopCircle className="h-7 w-7" />
+                        </Button>
                     </div>
                 ) : videoPreview ? (
-                    <div className="p-4 flex flex-col items-center justify-center gap-4 bg-muted/30 rounded-[2.5rem] mb-2">
-                        <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-green-500/20 shadow-2xl">
-                            <video src={videoPreview.url} autoPlay loop playsInline className="w-full h-full object-cover" />
+                    <div className="mb-2 flex flex-row items-center justify-center gap-3 sm:gap-4">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-14 w-14 shrink-0 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setVideoPreview(null)}
+                            aria-label="Удалить видеокружок"
+                        >
+                            <Trash2 className="h-7 w-7" />
+                        </Button>
+                        <div className="relative h-48 w-48 shrink-0 rounded-full overflow-hidden border-4 border-green-500/20 shadow-2xl">
+                            <video src={videoPreview.url} autoPlay loop playsInline className="h-full w-full object-cover" />
                         </div>
-                        <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 text-destructive" onClick={() => setVideoPreview(null)}><Trash2 className="h-6 w-6" /></Button>
-                            <Button size="icon" className="rounded-full h-14 w-14 bg-primary shadow-xl" onClick={handleSend}><SendHorizonal className="h-7 w-7" /></Button>
-                        </div>
+                        <Button type="button" size="icon" className="h-14 w-14 shrink-0 rounded-full bg-primary shadow-xl" onClick={handleSend} aria-label="Отправить">
+                            <SendHorizonal className="h-7 w-7" />
+                        </Button>
                     </div>
                 ) : audioPreview ? (
                     <AudioMessagePreviewBar
@@ -540,11 +552,23 @@ const ChatMessageInputInner = (
                                         </p>
                                     </div>
                                     {replyingTo?.mediaPreviewUrl && (
-                                        <div className="h-10 w-10 rounded-lg overflow-hidden shrink-0 border border-black/5 bg-black/20 ml-2">
+                                        <div
+                                            className={cn(
+                                                'ml-2 h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-black/5',
+                                                replyingTo.mediaType === 'sticker' ? 'bg-transparent' : 'bg-muted/30 dark:bg-black/20',
+                                            )}
+                                        >
                                             {replyingTo.mediaType === 'video' || replyingTo.mediaType === 'video-circle' ? (
                                                 <video src={replyingTo.mediaPreviewUrl} className="h-full w-full object-cover" muted />
                                             ) : (
-                                                <img src={replyingTo.mediaPreviewUrl} className={cn("h-full w-full object-cover", replyingTo.mediaType === 'sticker' && "object-contain p-1")} alt="" />
+                                                <img
+                                                    src={replyingTo.mediaPreviewUrl}
+                                                    className={cn(
+                                                        'h-full w-full',
+                                                        replyingTo.mediaType === 'sticker' ? 'object-contain p-1' : 'object-cover',
+                                                    )}
+                                                    alt=""
+                                                />
                                             )}
                                         </div>
                                     )}
@@ -783,6 +807,7 @@ const ChatMessageInputInner = (
                 ref={fileInputRef}
                 type="file"
                 multiple
+                tabIndex={-1}
                 className="hidden"
                 onChange={(e) => {
                     if (!e.target.files?.length) return;

@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 import { Card, CardContent } from '@/components/ui/card';
 
 function ForwardingMessagePreview({ messages, allUsers }: { messages: Partial<ChatMessage>[], allUsers: User[] }) {
@@ -278,9 +279,12 @@ export default function ForwardPage() {
                                     ? conv.name 
                                     : (otherUser?.name || conv.participantInfo[otherParticipantId || '']?.name || 'Неизвестный чат');
                                 
-                                const avatar = conv.isGroup 
-                                    ? conv.photoUrl 
-                                    : (otherUser?.avatar || conv.participantInfo[otherParticipantId || '']?.avatar || '');
+                                const avatar = conv.isGroup
+                                    ? conv.photoUrl
+                                    : participantListAvatarUrl(
+                                        otherUser,
+                                        conv.participantInfo[otherParticipantId || ''],
+                                      );
                                 
                                 return (
                                     <div 

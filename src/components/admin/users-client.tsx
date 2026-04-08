@@ -37,6 +37,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { userAvatarListUrl } from "@/lib/user-avatar-display";
 import { formatPhoneNumberForDisplay } from "@/lib/phone-utils";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { useAuth as useFirebaseAuth, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -291,7 +292,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                   <TableCell>
                     <div className="flex items-center gap-3">
                         <Avatar className="border border-white/10 shadow-sm">
-                            <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
+                            <AvatarImage src={userAvatarListUrl(user)} alt={user.name} className="object-cover" />
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium truncate max-w-[150px]">{user.name}</span>
@@ -406,7 +407,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="shrink-0 border border-white/10 shadow-sm">
-                      <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
+                      <AvatarImage src={userAvatarListUrl(user)} alt={user.name} className="object-cover" />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">

@@ -1,0 +1,15 @@
+[
+  {
+    "origin": [
+      "https://project-72b24.web.app",
+      "https://project-72b24.firebaseapp.com",
+      "https://lighchat.online",
+      "https://www.lighchat.online",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "Content-Disposition"],
+    "maxAgeSeconds": 3600
+  }
+]

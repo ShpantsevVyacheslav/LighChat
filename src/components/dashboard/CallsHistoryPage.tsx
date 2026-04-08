@@ -13,6 +13,7 @@ import {
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn, formatDuration } from '@/lib/utils';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -126,7 +127,7 @@ export function CallsHistoryPage() {
       peer?.name ||
       (selectedCall.callerId === authUid ? selectedCall.receiverName : selectedCall.callerName) ||
       'Неизвестный';
-    return { peerId, peerName, peerAvatar: peer?.avatar };
+    return { peerId, peerName, peerAvatar: peer ? userAvatarListUrl(peer) : '' };
   }, [selectedCall, authUid, allUsers]);
 
   return (
@@ -178,7 +179,7 @@ export function CallsHistoryPage() {
               const foundUser = allUsers.find((u) => u.id === otherId);
               const displayName =
                 foundUser?.name || (isOutgoing ? call.receiverName : call.callerName) || 'Неизвестный';
-              const avatar = foundUser?.avatar;
+              const avatar = userAvatarListUrl(foundUser);
               const isRejected = call.status === 'rejected';
               const isMissed = !isOutgoing && isRejected;
 

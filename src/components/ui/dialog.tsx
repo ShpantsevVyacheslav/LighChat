@@ -22,7 +22,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[110] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -46,12 +46,12 @@ const DialogContent = React.forwardRef<
       высокий контент «сползают» модалку вниз на мобильных. Клики по полям — на контенте;
       по полям вокруг — pointer-events-none, закрытие по клику на подложку сохраняется.
     */}
-    <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 pointer-events-none">
+    <div className="fixed inset-0 z-[110] overflow-y-auto p-4 sm:p-6 pointer-events-none">
       <div className="flex min-h-full items-center justify-center">
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
-            "pointer-events-auto relative z-50 grid w-full max-w-lg gap-4 border-0 bg-background p-6 shadow-lg duration-200 sm:rounded-2xl",
+            "pointer-events-auto relative z-[110] grid w-full max-w-lg gap-4 border-0 bg-background p-6 shadow-lg duration-200 sm:rounded-2xl",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             className
           )}

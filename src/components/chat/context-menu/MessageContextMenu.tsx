@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import type { FocusCircleHole } from '@/components/chat/context-menu/message-focus-hole';
 
 const REACTION_LIST = ['👌', '😁', '🤝', '😱', '❤️', '👍', '🔥', '😂', '😮', '😢', '👏', '🎉', '✅'];
 
@@ -23,6 +24,9 @@ export type MessageContextMenuPosition = {
   bubbleRect: { top: number; left: number; width: number; height: number };
   /** Скругление выреза под реальный border-radius пузыря (px). */
   bubbleCornerRadiusPx?: number;
+  /** Для одиночного стикера — вырез круглый (инсет по bbox контейнера стикера). */
+  focusHoleShape?: 'rect' | 'circle';
+  focusCircle?: FocusCircleHole;
 };
 
 interface MessageContextMenuProps {
@@ -53,6 +57,13 @@ function buildRoundedHoleMaskDataUrl(
   return `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
 }
 
+function buildCircleHoleMaskDataUrl(vw: number, vh: number, circle: FocusCircleHole): string {
+  const { cx, cy, r } = circle;
+  const safeR = Math.max(0, r - 0.25);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${vw}" height="${vh}"><defs><mask id="m"><rect width="${vw}" height="${vh}" fill="white"/><circle cx="${cx}" cy="${cy}" r="${safeR}" fill="black"/></mask></defs><rect width="${vw}" height="${vh}" fill="white" mask="url(#m)"/></svg>`;
+  return `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+}
+
 /**
  * Один слой blur + затемнение с маской: вырез с rx совпадает с пузырём (картинка, ссылка и т.д.).
  * Координаты hole должны быть сняты после layout (в т.ч. после translateY меню).
@@ -60,16 +71,23 @@ function buildRoundedHoleMaskDataUrl(
 function MessageFocusBackdropMasked({
   bubbleRect,
   bubbleCornerRadiusPx,
+  focusHoleShape,
+  focusCircle,
   onClose,
 }: {
   bubbleRect: MessageContextMenuPosition['bubbleRect'];
   bubbleCornerRadiusPx: number;
+  focusHoleShape?: 'rect' | 'circle';
+  focusCircle?: FocusCircleHole;
   onClose: () => void;
 }) {
   if (typeof window === 'undefined') return null;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const maskUrl = buildRoundedHoleMaskDataUrl(vw, vh, bubbleRect, bubbleCornerRadiusPx);
+  const maskUrl =
+    focusHoleShape === 'circle' && focusCircle
+      ? buildCircleHoleMaskDataUrl(vw, vh, focusCircle)
+      : buildRoundedHoleMaskDataUrl(vw, vh, bubbleRect, bubbleCornerRadiusPx);
 
   const blockCtx = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -118,6 +136,8 @@ export function MessageContextMenu({
       <MessageFocusBackdropMasked
         bubbleRect={position.bubbleRect}
         bubbleCornerRadiusPx={position.bubbleCornerRadiusPx ?? 14}
+        focusHoleShape={position.focusHoleShape}
+        focusCircle={position.focusCircle}
         onClose={onClose}
       />
       <div

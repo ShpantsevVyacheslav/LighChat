@@ -4,6 +4,7 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { User } from '@/lib/types';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { CHAT_GLASS_MENTION_LIST } from '@/lib/chat-glass-styles';
 
 interface GroupMentionSuggestionsProps {
@@ -50,7 +51,7 @@ export function GroupMentionSuggestions({ participants, onPick, className }: Gro
               }}
             >
               <Avatar className="h-8 w-8 shrink-0 border border-black/5 dark:border-white/10">
-                <AvatarImage src={p.avatar} />
+                <AvatarImage src={userAvatarListUrl(p)} />
                 <AvatarFallback className="text-xs font-semibold">{(p.name || '?')[0]}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1 flex flex-col items-start">

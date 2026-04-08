@@ -27,6 +27,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { canModerateChatPoll, conversationMembersAsUsers } from '@/lib/chat-poll-utils';
 import { CHAT_GLASS_MENTION_LIST } from '@/lib/chat-glass-styles';
@@ -235,7 +236,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
                       <Tooltip key={voter.id}>
                         <TooltipTrigger asChild>
                           <Avatar className="h-6 w-6 border">
-                            <AvatarImage src={voter.avatar} />
+                            <AvatarImage src={userAvatarListUrl(voter)} />
                             <AvatarFallback className="text-[8px]">{voter.name[0]}</AvatarFallback>
                           </Avatar>
                         </TooltipTrigger>

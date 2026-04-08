@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2, Minimize2, Video, VideoOff, X, Maximize2, MonitorUp, MonitorOff, SwitchCamera } from 'lucide-react';
@@ -68,7 +69,11 @@ function pickCallFromSnapshot(snapshot: QuerySnapshot<DocumentData>, uid: string
 export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
   // Call State
   const [activeCall, setActiveCall] = useState<Call | null>(null);
-  const [otherUser, setOtherUser] = useState<{ name: string; avatar: string } | null>(null);
+  const [otherUser, setOtherUser] = useState<{
+    name: string;
+    avatar: string;
+    avatarThumb?: string;
+  } | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   
@@ -491,7 +496,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     )?.trim() || 'Участник';
 
     if (!peerUserDocRef) {
-      setOtherUser({ name: fallbackName, avatar: '' });
+      setOtherUser({ name: fallbackName, avatar: '', avatarThumb: undefined });
       return;
     }
 
@@ -499,18 +504,19 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
       peerUserDocRef,
       (snap) => {
         if (!snap.exists()) {
-          setOtherUser({ name: fallbackName, avatar: '' });
+          setOtherUser({ name: fallbackName, avatar: '', avatarThumb: undefined });
           return;
         }
         const d = snap.data() as Partial<User>;
         setOtherUser({
           name: (typeof d.name === 'string' && d.name.trim()) || fallbackName,
           avatar: typeof d.avatar === 'string' ? d.avatar : '',
+          avatarThumb: typeof d.avatarThumb === 'string' ? d.avatarThumb : undefined,
         });
       },
       (err) => {
         console.error('[AudioCallOverlay] peer profile snapshot failed:', err);
-        setOtherUser({ name: fallbackName, avatar: '' });
+        setOtherUser({ name: fallbackName, avatar: '', avatarThumb: undefined });
       }
     );
     return () => unsub();
@@ -674,7 +680,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     return (
         <div onClick={() => setIsMinimized(false)} className="fixed bottom-20 right-4 z-[100] w-48 bg-background/90 backdrop-blur-xl p-3 rounded-2xl shadow-2xl border border-primary/20 cursor-pointer animate-in zoom-in-95">
             <div className="relative aspect-video rounded-xl overflow-hidden bg-muted flex items-center justify-center">
-                {activeCall.status === 'ongoing' && remoteStream?.getVideoTracks().length ? <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain" /> : <Avatar className="h-12 w-12"><AvatarImage src={otherUser?.avatar} /><AvatarFallback>{otherUser?.name?.[0]}</AvatarFallback></Avatar>}
+                {activeCall.status === 'ongoing' && remoteStream?.getVideoTracks().length ? <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain" /> : <Avatar className="h-12 w-12"><AvatarImage src={userAvatarListUrl(otherUser)} /><AvatarFallback>{otherUser?.name?.[0]}</AvatarFallback></Avatar>}
             </div>
             <p className="text-xs font-bold truncate mt-2 px-1 text-center">{otherUser?.name}</p>
             <p className="text-[10px] text-primary font-mono text-center">{activeCall.status === 'ongoing' ? formatTime(callDuration) : '...'}</p>
@@ -704,7 +710,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             <div className="flex flex-col items-center justify-center p-6 text-center z-10">
                 <div className="relative mb-8">
                     <Avatar className="h-48 w-48 md:h-64 md:w-64 border-4 border-white/10 shadow-2xl">
-                        <AvatarImage src={otherUser?.avatar} className="object-cover" />
+                        <AvatarImage src={userAvatarListUrl(otherUser)} className="object-cover" />
                         <AvatarFallback className="text-6xl bg-muted text-foreground">{otherUser?.name?.[0]}</AvatarFallback>
                     </Avatar>
                     {(activeCall.status === 'ongoing' || isConnecting) && (
@@ -728,7 +734,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
         >
             <div className="relative w-32 md:w-44 aspect-[3/4] bg-black rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl group/preview cursor-move touch-none">
                 <video ref={localVideoRef} autoPlay muted playsInline className={cn("w-full h-full object-cover transition-opacity", isVideoOff ? "opacity-0" : "opacity-100")} />
-                {isVideoOff && <div className="absolute inset-0 flex items-center justify-center bg-slate-900"><Avatar className="h-12 w-12"><AvatarImage src={currentUser.avatar} /><AvatarFallback>{currentUser.name[0]}</AvatarFallback></Avatar></div>}
+                {isVideoOff && <div className="absolute inset-0 flex items-center justify-center bg-slate-900"><Avatar className="h-12 w-12"><AvatarImage src={userAvatarListUrl(currentUser)} /><AvatarFallback>{currentUser.name[0]}</AvatarFallback></Avatar></div>}
                 
                 {/* Resize Handle at Top-Left */}
                 <div className="absolute top-0 left-0 w-10 h-10 cursor-nwse-resize z-[120] flex items-center justify-center bg-black/30 opacity-0 group-hover/preview:opacity-100 transition-opacity rounded-br-xl">

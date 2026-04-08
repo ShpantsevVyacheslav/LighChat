@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CHAT_INPUT_EMOJI_PALETTE } from '@/lib/chat-emoji-palette';
 import { CHAT_LARGE_EMOJI_PALETTE } from '@/lib/chat-large-emoji-palette';
 
@@ -20,12 +19,34 @@ interface MessageInputEmojiPickerProps {
   disabled?: boolean;
 }
 
+function mergeEmojiPalettes(a: string[], b: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const e of a) {
+    if (!seen.has(e)) {
+      seen.add(e);
+      out.push(e);
+    }
+  }
+  for (const e of b) {
+    if (!seen.has(e)) {
+      seen.add(e);
+      out.push(e);
+    }
+  }
+  return out;
+}
+
 /**
- * Кнопка у поля ввода: эмодзи в редактор.
- * Вкладка «Крупные» — те же символы Unicode в крупной сетке (на Apple часть глифов анимированы системой).
+ * Кнопка у поля ввода: единая сетка всех эмодзи (основной набор + дополнения из «крупного» списка).
  */
 export function MessageInputEmojiPicker({ editorRef, disabled }: MessageInputEmojiPickerProps) {
   const [open, setOpen] = useState(false);
+
+  const allEmojis = useMemo(
+    () => mergeEmojiPalettes(CHAT_INPUT_EMOJI_PALETTE, CHAT_LARGE_EMOJI_PALETTE),
+    []
+  );
 
   const insert = (emoji: string) => {
     const ed = editorRef.current;
@@ -55,67 +76,30 @@ export function MessageInputEmojiPicker({ editorRef, disabled }: MessageInputEmo
         align="start"
         sideOffset={4}
       >
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="mb-2 grid w-full grid-cols-2 rounded-xl">
-            <TabsTrigger value="all" className="rounded-lg text-[10px] font-black uppercase tracking-wide">
-              Все
-            </TabsTrigger>
-            <TabsTrigger value="large" className="rounded-lg text-[10px] font-black uppercase tracking-wide">
-              Крупные
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="all" className="mt-0 outline-none">
-            <ScrollArea className="h-56 pr-2">
-              <div
-                className="grid grid-cols-8 gap-0.5"
-                role="listbox"
-                aria-label="Выбор эмодзи"
+        <ScrollArea className="h-56 pr-2">
+          <div
+            className="grid grid-cols-8 gap-0.5"
+            role="listbox"
+            aria-label="Выбор эмодзи"
+            style={{
+              fontFamily:
+                'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
+            }}
+          >
+            {allEmojis.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                role="option"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-lg leading-none hover:bg-muted transition-colors"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => insert(emoji)}
               >
-                {CHAT_INPUT_EMOJI_PALETTE.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    role="option"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-lg leading-none hover:bg-muted transition-colors"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => insert(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent value="large" className="mt-0 outline-none">
-            <p className="mb-1.5 px-0.5 text-[9px] leading-tight text-muted-foreground">
-              Крупная вставка; в превью сообщения одинокие эмодзи уже отображаются крупно. Анимация — там, где её даёт системный шрифт (например iOS).
-            </p>
-            <ScrollArea className="h-52 pr-2">
-              <div
-                className="grid grid-cols-5 gap-1"
-                role="listbox"
-                aria-label="Крупные эмодзи"
-                style={{
-                  fontFamily:
-                    'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
-                }}
-              >
-                {CHAT_LARGE_EMOJI_PALETTE.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    role="option"
-                    className="flex h-12 w-full items-center justify-center rounded-xl text-3xl leading-none hover:bg-muted transition-transform hover:scale-105 active:scale-95"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => insert(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   );

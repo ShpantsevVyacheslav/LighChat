@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MeetingPollsProps {
@@ -277,7 +278,7 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                                                 <Tooltip key={voter.id}>
                                                     <TooltipTrigger asChild>
                                                         <Avatar className="h-6 w-6 border border-white/10 ring-2 ring-background">
-                                                            <AvatarImage src={voter.avatar} className="object-cover" />
+                                                            <AvatarImage src={userAvatarListUrl(voter)} className="object-cover" />
                                                             <AvatarFallback className="text-[8px]">{voter.name[0]}</AvatarFallback>
                                                         </Avatar>
                                                     </TooltipTrigger>

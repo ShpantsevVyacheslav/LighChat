@@ -45,6 +45,7 @@ import {
     ChatViewportScrollerRefContext,
     MessageReadOnViewport,
 } from '@/components/chat/message-read-on-viewport';
+import { CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 
 interface ThreadWindowProps {
     parentMessage: ChatMessage;
@@ -71,6 +72,8 @@ interface ThreadWindowProps {
     onGroupSenderWritePrivate?: (userId: string) => void | Promise<void>;
     /** Сохранить стикер/GIF из сообщения в пак текущего пользователя. */
     onSaveStickerGif?: (attachment: ChatAttachment) => void;
+    /** Скрыть плавающий якорь (оверлей профиля родителя — тот же высокий z-index). */
+    suppressFloatingAnchor?: boolean;
 }
 
 type FlatThreadItem = 
@@ -78,6 +81,9 @@ type FlatThreadItem =
     | { type: 'date'; date: string } 
     | { type: 'message'; message: ChatMessage }
     | { type: 'unread-separator' };
+
+const TOP_LOAD_THRESHOLD_PX = 40;
+const LOAD_MORE_COOLDOWN_MS = 600;
 
 export function ThreadWindow({
     parentMessage, conversation, currentUser, allUsers, onClose,
@@ -89,6 +95,7 @@ export function ThreadWindow({
     onMentionProfileOpen,
     onGroupSenderWritePrivate,
     onSaveStickerGif,
+    suppressFloatingAnchor = false,
 }: ThreadWindowProps) {
     const firestore = useFirestore();
     const storage = useStorage();
@@ -108,6 +115,7 @@ export function ThreadWindow({
     const [mediaViewerState, setMediaViewerState] = useState({ isOpen: false, startIndex: 0 });
     const [hasScrolledToUnread, setHasScrolledToUnread] = useState(false);
     const [showScrollButton, setShowScrollButton] = useState(false);
+    const [documentFullscreen, setDocumentFullscreen] = useState(false);
     const [unreadSeparatorId, setUnreadSeparatorId] = useState<string | null>(null);
     const hasClearedSeparatorRef = useRef(false);
     const hasScrolledToUnreadRef = useRef(false);
@@ -138,6 +146,20 @@ export function ThreadWindow({
     useEffect(() => {
         hasScrolledToUnreadRef.current = hasScrolledToUnread;
     }, [hasScrolledToUnread]);
+
+    useEffect(() => {
+        const sync = () => {
+            const docRef = document as Document & { webkitFullscreenElement?: Element | null };
+            setDocumentFullscreen(!!(document.fullscreenElement ?? docRef.webkitFullscreenElement));
+        };
+        sync();
+        document.addEventListener('fullscreenchange', sync);
+        document.addEventListener('webkitfullscreenchange', sync);
+        return () => {
+            document.removeEventListener('fullscreenchange', sync);
+            document.removeEventListener('webkitfullscreenchange', sync);
+        };
+    }, []);
 
     const touchStartX = useRef<number | null>(null);
     const touchStartY = useRef<number | null>(null);
@@ -187,10 +209,17 @@ export function ThreadWindow({
     }, [firestore, conversation.id, parentMessage.id, displayLimit]);
 
     const handleLoadMore = useCallback(() => {
-        if (!hasMore || isLoadingOlder || messages.length < displayLimit) return;
+        if (!hasMore || isLoadingOlder) return;
+        const scroller = viewportScrollerRef.current;
+        if (scroller) {
+            pendingPrependAdjustRef.current = {
+                scrollTop: scroller.scrollTop,
+                scrollHeight: scroller.scrollHeight,
+            };
+        }
         setIsLoadingOlder(true);
         setDisplayLimit(prev => prev + HISTORY_PAGE_SIZE);
-    }, [hasMore, isLoadingOlder, messages.length, displayLimit]);
+    }, [hasMore, isLoadingOlder]);
 
     const allMessages = useMemo(() => {
         const remoteMessageIds = new Set(messages.map(rm => rm.id));
@@ -298,6 +327,8 @@ export function ThreadWindow({
     }, [videoCircleTailReservePx]);
 
     const pendingScrollToBottomAfterSendRef = useRef(false);
+    const pendingPrependAdjustRef = useRef<{ scrollTop: number; scrollHeight: number } | null>(null);
+    const loadMoreCooldownUntilRef = useRef(0);
 
     useEffect(() => {
         if (!pendingScrollToBottomAfterSendRef.current || !isFullyReady || !virtuosoRef.current) return;
@@ -309,6 +340,38 @@ export function ThreadWindow({
         });
         return () => cancelAnimationFrame(id);
     }, [flatItems, isFullyReady]);
+
+    useLayoutEffect(() => {
+        const pending = pendingPrependAdjustRef.current;
+        const scroller = viewportScrollerRef.current;
+        if (!pending || !scroller) return;
+        const delta = scroller.scrollHeight - pending.scrollHeight;
+        if (delta > 0) {
+            scroller.scrollTop = pending.scrollTop + delta;
+        }
+        pendingPrependAdjustRef.current = null;
+    }, [flatItems]);
+
+    const tryLoadMoreByTopPosition = useCallback(() => {
+        const now = Date.now();
+        if (now < loadMoreCooldownUntilRef.current) return;
+        if (!isFullyReady || !hasMore || isLoadingOlder) return;
+        const scroller = viewportScrollerRef.current;
+        if (!scroller) return;
+        if (scroller.scrollTop > TOP_LOAD_THRESHOLD_PX) return;
+        loadMoreCooldownUntilRef.current = now + LOAD_MORE_COOLDOWN_MS;
+        handleLoadMore();
+    }, [isFullyReady, hasMore, isLoadingOlder, handleLoadMore]);
+
+    useEffect(() => {
+        const scroller = viewportScrollerRef.current;
+        if (!scroller) return;
+        const onScroll = () => {
+            tryLoadMoreByTopPosition();
+        };
+        scroller.addEventListener('scroll', onScroll, { passive: true });
+        return () => scroller.removeEventListener('scroll', onScroll);
+    }, [viewportScrollerKey, tryLoadMoreByTopPosition]);
 
     const threadMediaItems = useMemo((): MediaViewerItem[] => {
         const items: MediaViewerItem[] = [];
@@ -396,6 +459,7 @@ export function ThreadWindow({
     const handleRangeChanged = useCallback((range: { startIndex: number; endIndex: number }) => {
         currentVisibleRange.current = range;
         syncViewportCalendarDay(range.startIndex, range.endIndex);
+        tryLoadMoreByTopPosition();
         if (!isFullyReady || !firestore || !conversation.id) return;
 
         const currentItems = flatItemsRef.current;
@@ -408,7 +472,7 @@ export function ThreadWindow({
                 return prev;
             });
         }
-    }, [isFullyReady, firestore, conversation.id, currentUser.id, parentMessage.id, syncViewportCalendarDay]);
+    }, [tryLoadMoreByTopPosition, isFullyReady, firestore, conversation.id, currentUser.id, parentMessage.id, syncViewportCalendarDay]);
 
     const handleSendMessage = async (
         text?: string,
@@ -734,7 +798,12 @@ export function ThreadWindow({
             <ChatWallpaperLayer wallpaper={chatSettings.chatWallpaper} />
 
             <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="flex shrink-0 items-center justify-between gap-2 px-4 pb-2 pt-[max(0.35rem,env(safe-area-inset-top))]">
+            <div
+                className={cn(
+                    'flex shrink-0 items-center justify-between gap-2 px-4 pb-2 pt-[max(0.35rem,env(safe-area-inset-top))]',
+                    CHAT_HEADER_SAFE_AREA_STRIP
+                )}
+            >
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
                     {!selection.active ? (
                         <div className="flex min-w-0 items-center gap-3">
@@ -799,7 +868,7 @@ export function ThreadWindow({
                     minOverscanItemCount={VIRTUOSO_CHAT_MIN_OVERSCAN}
                     rangeChanged={handleRangeChanged}
                     components={{
-                        Header: () => (isLoadingOlder || (hasMore && messages.length >= displayLimit)) ? (
+                        Header: () => isLoadingOlder ? (
                             <div className="p-4 flex items-center justify-center text-muted-foreground">
                                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
                                 <span className="text-[10px] font-black uppercase tracking-widest">Загрузка ответов...</span>
@@ -927,7 +996,8 @@ export function ThreadWindow({
                 </ChatViewportScrollerRefContext.Provider>
                 </VideoCircleTailProvider>
 
-                <ChatAnchor 
+                <ChatAnchor
+                    suppressed={suppressFloatingAnchor || mediaViewerState.isOpen || documentFullscreen}
                     isVisible={showScrollButton}
                     unreadCount={unreadCount}
                     lastReaction={null}

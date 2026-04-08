@@ -9,6 +9,7 @@ import {
   ensureFcmServiceWorkerRegistered,
   fcmServiceWorkerReadyTimeoutMs,
 } from '@/lib/fcm-service-worker';
+import { fcmSubscribeUserMessage } from '@/lib/fcm-subscribe-user-message';
 
 // СЮДА ВСТАВЬТЕ ВАШ VAPID KEY ИЗ КОНСОЛИ FIREBASE
 const VAPID_KEY = 'BAM9yUWyoijaJurNB0q0GpiW_eq0yWBgbrIwFAZnaIWeNaBMgHYHplwSJTlRwZ0Om5kfomHoOv56vArqhZa0FfU';
@@ -110,7 +111,8 @@ export function useNotifications() {
     };
   }, [firebaseApp, toast, permission]);
   
-  const subscribe = useCallback(async () => {
+  const subscribe = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     if (!firebaseApp || !user || !firestore) {
       setError("Сервисы Firebase недоступны.");
       return;
@@ -120,6 +122,12 @@ export function useNotifications() {
     setError(null);
     
     try {
+      if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+        throw new Error(
+          'Push в этом окне недоступен. На iPhone откройте установленное приложение с экрана «Домой». В обычной вкладке Safari web-push может быть недоступен.'
+        );
+      }
+
       // Запрашиваем разрешение
       const currentPermission = await Notification.requestPermission();
       setPermission(currentPermission);
@@ -134,16 +142,21 @@ export function useNotifications() {
         await updateDocumentNonBlocking(userDocRef, {
             fcmTokens: arrayUnion(token)
         });
-        toast({ title: "Уведомления включены", description: "Вы будете получать оповещения о важных событиях." });
+        if (!silent) {
+          toast({ title: "Уведомления включены", description: "Вы будете получать оповещения о важных событиях." });
+        }
       }
-    } catch (err: any) {
+    } catch (err) {
         console.error('Error subscribing to notifications: ', err);
-        setError(err.message || 'Ошибка подписки.');
-        toast({ 
-          variant: 'destructive', 
-          title: 'Ошибка уведомлений', 
-          description: err.message || 'Не удалось активировать пуш-уведомления.' 
-        });
+        const message = fcmSubscribeUserMessage(err);
+        setError(message);
+        if (!silent) {
+          toast({ 
+            variant: 'destructive', 
+            title: 'Ошибка уведомлений', 
+            description: message || 'Не удалось активировать пуш-уведомления.'
+          });
+        }
     } finally {
         setIsSubscribing(false);
     }

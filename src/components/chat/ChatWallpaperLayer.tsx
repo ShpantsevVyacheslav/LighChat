@@ -23,10 +23,13 @@ export function ChatWallpaperLayer({ wallpaper, className }: ChatWallpaperLayerP
   if (!isImage && !wallpaperStyle) return null;
 
   return (
-    <div className={cn('absolute inset-0 z-0 pointer-events-none', className)} aria-hidden>
+    <div
+      className={cn('absolute inset-0 z-0 min-h-full min-w-full pointer-events-none', className)}
+      aria-hidden
+    >
       {isImage ? (
         <>
-          <img src={wallpaper!} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={wallpaper!} alt="" className="absolute inset-0 h-full min-h-full w-full object-cover object-center" />
           <div className="absolute inset-0 bg-black/40 dark:bg-black/55" />
         </>
       ) : (

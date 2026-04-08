@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
@@ -13,6 +14,7 @@ interface ParticipantState {
   id: string;
   name: string;
   avatar: string;
+  avatarThumb?: string;
   stream?: MediaStream | null;
   isAudioMuted?: boolean;
   isVideoMuted?: boolean;
@@ -35,6 +37,8 @@ interface ParticipantViewProps {
   isCompact?: boolean;
   /** Только при isCompact === false: сетка конференции или крупный кадр */
   layout?: ParticipantTileLayout;
+  /** В режиме grid: квадратная плитка или заполнение ячейки (один участник на весь кадр). */
+  gridTileSizing?: 'square' | 'fill';
   isHost?: boolean;
   onSpeaking?: (isSpeaking: boolean) => void;
   onClick?: () => void;
@@ -70,6 +74,7 @@ const ParticipantViewComponent = ({
   className,
   isCompact = false,
   layout = 'grid',
+  gridTileSizing = 'square',
   isHost = false,
   onSpeaking,
   onClick
@@ -242,7 +247,12 @@ const ParticipantViewComponent = ({
         participant.isHandRaised && "ring-2 ring-yellow-400 ring-offset-0 ring-offset-slate-950",
         (volumeLevel > 15) && "ring-2 ring-primary ring-offset-0 ring-offset-slate-950 shadow-[0_0_16px_rgba(67,56,202,0.35)]",
         tileLayout === 'strip' && "aspect-video h-full min-h-0 shrink-0 rounded-xl",
-        tileLayout === 'grid' && "aspect-square w-full max-w-full rounded-xl",
+        tileLayout === 'grid' &&
+          gridTileSizing === 'fill' &&
+          'h-full w-full min-h-0 max-h-full rounded-xl aspect-auto',
+        tileLayout === 'grid' &&
+          gridTileSizing === 'square' &&
+          'aspect-square w-full max-w-full rounded-xl',
         tileLayout === 'stage' && "aspect-video w-full max-h-[min(85vh,100%)] rounded-2xl",
         className
       )}
@@ -265,7 +275,7 @@ const ParticipantViewComponent = ({
       {!hasVideo && (
         <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-20">
           <Avatar className={cn(isCompact ? "h-12 w-12" : "h-24 w-24 sm:h-32 sm:w-32", "rounded-full border-4 border-white/10 shadow-2xl")}>
-            <AvatarImage src={participant.avatar} className="object-cover w-full h-full" />
+            <AvatarImage src={userAvatarListUrl(participant)} className="object-cover w-full h-full" />
             <AvatarFallback className="bg-slate-800 text-slate-400 text-2xl">
                 {(participant.name || '?').charAt(0)}
             </AvatarFallback>
@@ -339,9 +349,12 @@ export const ParticipantView = React.memo(ParticipantViewComponent, (prev, next)
         p1.isScreenSharing === p2.isScreenSharing &&
         p1.reaction === p2.reaction &&
         p1.facingMode === p2.facingMode &&
+        p1.avatar === p2.avatar &&
+        p1.avatarThumb === p2.avatarThumb &&
         prev.isLocal === next.isLocal &&
         prev.isCompact === next.isCompact &&
         prev.layout === next.layout &&
+        prev.gridTileSizing === next.gridTileSizing &&
         prev.isHost === next.isHost &&
         JSON.stringify(p1.backgroundConfig) === JSON.stringify(p2.backgroundConfig)
     );

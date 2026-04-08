@@ -20,10 +20,25 @@ import {
   signOut,
   updatePassword as firebaseUpdatePassword,
   updateEmail,
+  verifyBeforeUpdateEmail,
   fetchSignInMethodsForEmail,
   type UserCredential,
+  type User as FirebaseUser,
+  type ActionCodeSettings,
 } from 'firebase/auth';
-import { doc, collection, query, where, getDocs, onSnapshot, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  doc,
+  collection,
+  query,
+  where,
+  getDocs,
+  onSnapshot,
+  getDoc,
+  getDocFromServer,
+  setDoc,
+  updateDoc,
+  deleteField,
+} from 'firebase/firestore';
 
 import type { User } from '@/lib/types';
 import {
@@ -33,8 +48,7 @@ import {
   useUser as useFirebaseUser,
   updateDocumentNonBlocking,
 } from '@/firebase';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { compressImage } from '@/lib/image-compression';
+import { uploadUserAvatarPair } from '@/lib/upload-user-avatar-pair';
 import { useToast } from '@/hooks/use-toast';
 import { isAccountBlocked } from '@/lib/account-block-utils';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
@@ -43,6 +57,7 @@ import {
   isRegistrationPhoneTaken,
   isRegistrationUsernameTakenInIndex,
 } from '@/lib/registration-field-availability';
+import { isRegistrationProfileComplete } from '@/lib/registration-profile-complete';
 
 export interface RegisterData {
   name: string;
@@ -52,19 +67,85 @@ export interface RegisterData {
   password: string;
   dateOfBirth?: string;
   bio?: string;
+  /** Исходный кадр (после обрезки — полноразмерный файл для Storage). */
   avatarFile?: File;
+  /** Круг 512×512 из overlay; если нет при `avatarFile`, превью в UI = полный кадр. */
+  avatarThumbFile?: File;
+}
+
+/** Дозаполнение профиля после входа через Google (без пароля). */
+export interface CompleteGoogleProfileData {
+  name: string;
+  username: string;
+  phone: string;
+  email: string;
+  dateOfBirth?: string;
+  bio?: string;
+  avatarFile?: File;
+  avatarThumbFile?: File;
+}
+
+/** Поле формы регистрации с серверной/бизнес-ошибкой (дубликат и т.д.) */
+export type RegisterConflictField = 'email' | 'username' | 'phone' | 'password';
+
+export type RegisterResult =
+  | { ok: true }
+  | { ok: false; message: string; conflictField?: RegisterConflictField };
+
+export type UpdateUserResult =
+  | { ok: true; emailVerificationSent?: boolean }
+  | { ok: false; message: string };
+
+/**
+ * В консоли Firebase для смены email может быть включено «сначала подтвердить новый адрес»;
+ * тогда прямой `updateEmail` отклоняется с auth/operation-not-allowed.
+ */
+function isFirebaseVerifyNewEmailBeforeChangeError(error: unknown): boolean {
+  const code = (error as { code?: string })?.code;
+  const message = String((error as { message?: string })?.message ?? '').toLowerCase();
+  return (
+    code === 'auth/operation-not-allowed' &&
+    (message.includes('verify') || message.includes('подтверд'))
+  );
+}
+
+const GOOGLE_FIRESTORE_AUTH_RETRIES = 8;
+
+/**
+ * После `signInWithPopup` persistent Firestore иногда ходит в бэкенд без свежего JWT —
+ * `permission-denied`. Повторы с reload + getIdToken(true) и чередование server/client read.
+ */
+async function firestoreAfterGoogleSignIn<T>(
+  credUser: FirebaseUser,
+  op: (attemptIndex: number) => Promise<T>
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < GOOGLE_FIRESTORE_AUTH_RETRIES; i++) {
+    try {
+      await credUser.reload().catch(() => undefined);
+      await credUser.getIdToken(true);
+      return await op(i);
+    } catch (e) {
+      lastErr = e;
+      const c = (e as { code?: string }).code;
+      if (c !== 'permission-denied' || i === GOOGLE_FIRESTORE_AUTH_RETRIES - 1) throw e;
+      await new Promise((r) => setTimeout(r, 50 + i * 100));
+    }
+  }
+  throw lastErr;
 }
 
 interface AuthContextType {
   user: User | null;
+  /** Аккаунт с провайдером Google — форма дозаполнения без пароля. */
+  googleProfileCompletionFlow: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<boolean>;
+  register: (data: RegisterData) => Promise<RegisterResult>;
+  completeGoogleProfile: (data: CompleteGoogleProfileData) => Promise<RegisterResult>;
   checkUsernameAvailable: (username: string) => Promise<boolean>;
   signInWithGoogle: () => Promise<boolean>;
   logout: () => void;
-  updateUser: (
-    newUserData: Partial<User & { password?: string }>
-  ) => Promise<{ ok: true } | { ok: false; message: string }>;
+  updateUser: (newUserData: Partial<User & { password?: string }>) => Promise<UpdateUserResult>;
   createNewAuthUser: (email: string, password: string) => Promise<UserCredential>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -94,7 +175,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
-  
+
+  /** Актуальный профиль для колбэков Firestore (useState отстаёт на один кадр — иначе onSnapshot с кэшем затирает свежий getDoc). */
+  const appUserRef = useRef<User | null>(null);
+
+  const googleProfileCompletionFlow =
+    !!firebaseUser &&
+    !firebaseUser.isAnonymous &&
+    firebaseUser.providerData.some((p) => p.providerId === 'google.com');
+
+  useEffect(() => {
+    appUserRef.current = appUser;
+  }, [appUser]);
+
   const lastReportedStatusRef = useRef<boolean | null>(null);
   const lastPresenceUpdateRef = useRef<number>(0);
   const lastActivityRef = useRef<number>(Date.now());
@@ -124,8 +217,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   /** После signInWithRedirect: создать профиль в Firestore при первом входе, проверить блокировки. */
   const finalizeGoogleCredential = useCallback(
     async (result: UserCredential): Promise<boolean> => {
+      if (!firestore) {
+        console.error('Google sign-in: Firestore недоступен.');
+        setError('Сервис данных недоступен. Обновите страницу и попробуйте снова.');
+        return false;
+      }
+
       const userDocRef = doc(firestore, 'users', result.user.uid);
-      const userDoc = await getDoc(userDocRef);
+      const userDoc = await firestoreAfterGoogleSignIn(result.user, (attempt) =>
+        attempt % 2 === 0 ? getDocFromServer(userDocRef) : getDoc(userDocRef)
+      );
 
       if (userDoc.exists()) {
         if (userDoc.data().deletedAt) {
@@ -137,30 +238,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        await setDoc(userDocRef, {
-          id: result.user.uid,
-          name: result.user.displayName || 'Пользователь',
-          username: '',
-          phone: result.user.phoneNumber || '',
-          email: result.user.email || '',
-          avatar:
-            result.user.photoURL ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${result.user.uid}`,
-          role: 'worker',
-          bio: '',
-          dateOfBirth: null,
-          createdAt: new Date().toISOString(),
-          deletedAt: null,
-          online: true,
-          lastSeen: new Date().toISOString(),
-        });
+        await firestoreAfterGoogleSignIn(result.user, () =>
+          setDoc(userDocRef, {
+            id: result.user.uid,
+            name: result.user.displayName || 'Пользователь',
+            username: '',
+            phone: result.user.phoneNumber || '',
+            email: result.user.email || '',
+            avatar:
+              result.user.photoURL ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${result.user.uid}`,
+            role: 'worker',
+            bio: '',
+            dateOfBirth: null,
+            createdAt: new Date().toISOString(),
+            deletedAt: null,
+            online: true,
+            lastSeen: new Date().toISOString(),
+          })
+        );
       } catch (writeErr) {
         console.error('Google sign-in: не удалось создать документ users/', writeErr);
         /* Сессия Auth уже есть — слушатель профиля подставит заглушку; не блокируем вход. */
       }
       return true;
     },
-    [auth, firestore]
+    [auth, firestore, setError]
   );
 
   /**
@@ -176,9 +279,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const result = await getRedirectResult(auth);
         if (!result?.user) return;
         const ok = await finalizeGoogleCredential(result);
-        /* replace без проверки cancelled: при Strict Mode cleanup иначе не переходим с `/` в дашборд. */
-        if (ok && pathname === '/') {
-          router.replace('/dashboard');
+        if (ok && pathname === '/' && firestore) {
+          const uref = doc(firestore, 'users', result.user.uid);
+          const snap = await getDoc(uref);
+          const prof = snap.exists()
+            ? ({ id: snap.id, ...snap.data() } as User)
+            : null;
+          if (prof && isRegistrationProfileComplete(prof)) {
+            router.replace('/dashboard');
+          }
         }
       } catch (e: unknown) {
         if (cancelled) return;
@@ -206,6 +315,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isAuthLoading) return;
     
     if (!firebaseUser) {
+      appUserRef.current = null;
       setAppUser(null);
       setIsProfileLoading(false);
       return;
@@ -217,14 +327,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
      * вечный лоадер на дашборде / PWA.
      */
     if (firebaseUser.isAnonymous) {
-        setAppUser({
+        const guest = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'Гость',
             avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
             email: firebaseUser.email || `guest_${firebaseUser.uid}@anonymous.com`,
             deletedAt: null,
             createdAt: new Date().toISOString()
-        } as User);
+        } as User;
+        appUserRef.current = guest;
+        setAppUser(guest);
         setIsProfileLoading(false);
         return;
     }
@@ -239,36 +351,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (docSnap.exists()) {
             const userData = docSnap.data();
             if (userData.deletedAt) {
+              appUserRef.current = null;
               setAppUser(null);
               signOut(auth);
               setError('Ваша учетная запись деактивирована.');
             } else if (isAccountBlocked(userData as Pick<User, 'accountBlock'>)) {
+              appUserRef.current = null;
               setAppUser(null);
               signOut(auth);
               setError('Вход для этой учётной записи ограничен администратором.');
             } else {
-              setAppUser({
+              const merged = {
                 ...userData,
                 id: docSnap.id,
-              } as User);
+              } as User;
+              /**
+               * После register / completeGoogleProfile делаем getDoc с сервера и setAppUser.
+               * Следующий onSnapshot часто приходит из локального кэша со старым документом (без username/phone)
+               * и откатывает профиль — дашборд снова шлёт на анкету. Не применяем такой откат с кэша.
+               */
+              if (docSnap.metadata.fromCache) {
+                const prev = appUserRef.current;
+                if (
+                  prev &&
+                  isRegistrationProfileComplete(prev) &&
+                  !isRegistrationProfileComplete(merged)
+                ) {
+                  console.info(
+                    '[auth] skip stale cached users/%s snapshot (keep complete profile)',
+                    docSnap.id,
+                  );
+                  setIsProfileLoading(false);
+                  return;
+                }
+              }
+              appUserRef.current = merged;
+              setAppUser(merged);
               setError(null);
             }
           } else {
-            setAppUser({
+            const stub = {
               id: firebaseUser.uid,
               name: firebaseUser.displayName || 'Пользователь',
               avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
               email: firebaseUser.email || '',
               createdAt: new Date().toISOString(),
               deletedAt: null,
-            } as User);
+            } as User;
+            appUserRef.current = stub;
+            setAppUser(stub);
           }
           setIsProfileLoading(false);
         },
         (e) => {
           console.warn('Profile sync warning:', e.message);
           /* Сессия Firebase есть, а снимок профиля недоступен (сеть/правила) — не сбрасывать вход. */
-          setAppUser({
+          const fallback = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'Пользователь',
             avatar:
@@ -277,12 +415,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             email: firebaseUser.email || '',
             createdAt: new Date().toISOString(),
             deletedAt: null,
-          } as User);
+          } as User;
+          appUserRef.current = fallback;
+          setAppUser(fallback);
           setIsProfileLoading(false);
         }
       )
     );
   }, [firebaseUser, isAuthLoading, firestore, auth]);
+
+  /**
+   * После перехода по ссылке из `verifyBeforeUpdateEmail` email в Firebase Auth уже новый,
+   * а в `users/{uid}` в Firestore может остаться старый — подтягиваем, чтобы профиль и registrationIndex сошлись.
+   */
+  useEffect(() => {
+    if (!firebaseUser?.email || firebaseUser.isAnonymous || !firestore || !appUser?.id) return;
+    if (appUser.id !== firebaseUser.uid) return;
+    const authEmail = firebaseUser.email.trim();
+    const docEmail = (appUser.email ?? '').trim();
+    if (!authEmail || authEmail.toLowerCase() === docEmail.toLowerCase()) return;
+    const userDocRef = doc(firestore, 'users', appUser.id);
+    updateDocumentNonBlocking(userDocRef, {
+      email: authEmail,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [
+    firebaseUser?.uid,
+    firebaseUser?.email,
+    firebaseUser?.isAnonymous,
+    appUser?.id,
+    appUser?.email,
+    firestore,
+  ]);
 
   // Presence logic: Strict handling of online/offline status with inactivity timeout
   useEffect(() => {
@@ -434,42 +598,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const register = useCallback(
-    async (data: RegisterData): Promise<boolean> => {
+    async (data: RegisterData): Promise<RegisterResult> => {
       setError(null);
       if (!firestore) {
-        setError('Сервис временно недоступен.');
-        return false;
+        const message = 'Сервис временно недоступен.';
+        setError(message);
+        return { ok: false, message };
       }
 
       const normalizedUsername = data.username.toLowerCase().replace(/^@/, '');
       const emailNorm = data.email.trim().toLowerCase();
 
       try {
-        const methods = await fetchSignInMethodsForEmail(auth, emailNorm);
-        if (methods.length > 0) {
-          setError('Этот email уже зарегистрирован.');
-          return false;
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, emailNorm);
+          if (methods.length > 0) {
+            return {
+              ok: false,
+              message:
+                'Этот email уже зарегистрирован. Войдите или укажите другой адрес.',
+              conflictField: 'email',
+            };
+          }
+        } catch (preAuthErr: unknown) {
+          const err = preAuthErr as { code?: string };
+          console.error('Registration: fetchSignInMethodsForEmail', preAuthErr);
+          const message =
+            err.code === 'auth/network-request-failed'
+              ? 'Не удалось проверить email (ошибка сети). Проверьте подключение.'
+              : 'Не удалось проверить email. Попробуйте ещё раз.';
+          setError(message);
+          return { ok: false, message };
         }
 
         try {
           if (await isRegistrationEmailTakenInIndex(firestore, emailNorm)) {
-            setError('Этот email уже зарегистрирован.');
-            return false;
+            return {
+              ok: false,
+              message: 'Этот email уже занят. Укажите другой адрес.',
+              conflictField: 'email',
+            };
           }
           if (await isRegistrationPhoneTaken(firestore, data.phone)) {
-            setError('Этот номер телефона уже зарегистрирован.');
-            return false;
+            return {
+              ok: false,
+              message:
+                'Этот номер телефона уже зарегистрирован. Укажите другой номер.',
+              conflictField: 'phone',
+            };
           }
           if (await isRegistrationUsernameTakenInIndex(firestore, normalizedUsername)) {
-            setError('Этот логин уже занят.');
-            return false;
+            return {
+              ok: false,
+              message: 'Этот логин уже занят. Выберите другой.',
+              conflictField: 'username',
+            };
           }
         } catch (idxErr) {
           console.error('Registration: проверка registrationIndex не удалась', idxErr);
-          setError(
-            'Не удалось проверить уникальность данных. Проверьте сеть и попробуйте снова.'
-          );
-          return false;
+          const message =
+            'Не удалось проверить, свободны ли email, телефон и логин. Проверьте сеть и попробуйте снова.';
+          setError(message);
+          return { ok: false, message };
         }
 
         const userCredential = await createUserWithEmailAndPassword(
@@ -480,15 +670,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         let avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userCredential.user.uid}`;
 
-        if (data.avatarFile) {
+        const avatarExtras: Record<string, string> = {};
+        if (data.avatarFile && storage) {
           try {
-            const compressed = await compressImage(data.avatarFile, 0.85, 400);
-            const response = await fetch(compressed);
-            const blob = await response.blob();
-            const filePath = `avatars/${userCredential.user.uid}/${Date.now()}.jpg`;
-            const fileRef = storageRef(storage, filePath);
-            await uploadBytes(fileRef, blob);
-            avatarUrl = await getDownloadURL(fileRef);
+            const { avatarUrl: uploadedUrl, avatarThumbUrl } =
+              await uploadUserAvatarPair(
+                storage,
+                userCredential.user.uid,
+                data.avatarFile,
+                data.avatarThumbFile,
+              );
+            avatarUrl = uploadedUrl;
+            if (avatarThumbUrl) avatarExtras.avatarThumb = avatarThumbUrl;
           } catch (uploadErr) {
             console.warn('Avatar upload failed, using default:', uploadErr);
           }
@@ -502,6 +695,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           phone: data.phone,
           email: emailNorm,
           avatar: avatarUrl,
+          ...avatarExtras,
           role: 'worker',
           bio: data.bio || '',
           dateOfBirth: data.dateOfBirth || null,
@@ -510,22 +704,205 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           online: true,
           lastSeen: new Date().toISOString(),
         });
-        return true;
-      } catch (e: any) {
+        /** Сразу обновляем контекст — иначе router на /dashboard ловит старый appUser и layout шлёт обратно на /. */
+        const regFresh = await getDoc(userDocRef);
+        if (regFresh.exists()) {
+          const regData = regFresh.data();
+          if (!regData.deletedAt && !isAccountBlocked(regData as Pick<User, 'accountBlock'>)) {
+            const next = { ...regData, id: regFresh.id } as User;
+            appUserRef.current = next;
+            setAppUser(next);
+          }
+        }
+        return { ok: true };
+      } catch (e: unknown) {
         console.error('Registration error:', e);
-        const msg = ({
-          'auth/email-already-in-use': 'Этот email уже зарегистрирован.',
-          'auth/invalid-email': 'Некорректный формат email.',
-          'auth/weak-password': 'Пароль слишком слабый (минимум 6 символов).',
-          'auth/operation-not-allowed': 'Регистрация временно недоступна.',
-          'auth/too-many-requests': 'Слишком много попыток. Подождите и попробуйте снова.',
-          'auth/network-request-failed': 'Ошибка сети. Проверьте подключение.',
-        } as Record<string, string>)[e.code];
-        setError(msg || 'Ошибка при регистрации. Попробуйте ещё раз.');
-        return false;
+        const err = e as { code?: string };
+        const byCode: Record<
+          string,
+          { message: string; conflictField?: RegisterConflictField }
+        > = {
+          'auth/email-already-in-use': {
+            message: 'Этот email уже зарегистрирован.',
+            conflictField: 'email',
+          },
+          'auth/invalid-email': {
+            message: 'Некорректный формат email.',
+            conflictField: 'email',
+          },
+          'auth/weak-password': {
+            message: 'Пароль слишком слабый (минимум 6 символов).',
+            conflictField: 'password',
+          },
+          'auth/operation-not-allowed': {
+            message: 'Регистрация временно недоступна.',
+          },
+          'auth/too-many-requests': {
+            message: 'Слишком много попыток. Подождите и попробуйте снова.',
+          },
+          'auth/network-request-failed': {
+            message: 'Ошибка сети. Проверьте подключение.',
+          },
+        };
+        const hit = err.code ? byCode[err.code] : undefined;
+        const message = hit?.message ?? 'Ошибка при регистрации. Попробуйте ещё раз.';
+        const conflictField = hit?.conflictField;
+        if (!conflictField) {
+          setError(message);
+        }
+        return { ok: false, message, conflictField };
       }
     },
     [auth, firestore, storage]
+  );
+
+  const completeGoogleProfile = useCallback(
+    async (data: CompleteGoogleProfileData): Promise<RegisterResult> => {
+      setError(null);
+      if (!firestore) {
+        const message = 'Сервис временно недоступен.';
+        setError(message);
+        return { ok: false, message };
+      }
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        const message = 'Сессия недействительна. Войдите через Google снова.';
+        setError(message);
+        return { ok: false, message };
+      }
+      const hasGoogle = firebaseUser.providerData.some(
+        (p) => p.providerId === 'google.com',
+      );
+      if (!hasGoogle) {
+        const message =
+          'Завершение этого шага доступно только для аккаунта с входом через Google.';
+        setError(message);
+        return { ok: false, message };
+      }
+
+      const emailNorm = data.email.trim().toLowerCase();
+      const authEmail = (firebaseUser.email ?? '').trim().toLowerCase();
+      if (emailNorm !== authEmail) {
+        return {
+          ok: false,
+          message: 'Email нельзя изменить для аккаунта Google. Используйте адрес из аккаунта Google.',
+          conflictField: 'email',
+        };
+      }
+
+      const normalizedUsername = data.username.toLowerCase().replace(/^@/, '');
+      const uid = firebaseUser.uid;
+
+      try {
+        if (
+          await isRegistrationEmailTakenInIndex(firestore, emailNorm, {
+            exceptUid: uid,
+          })
+        ) {
+          return {
+            ok: false,
+            message: 'Этот email уже занят другим аккаунтом.',
+            conflictField: 'email',
+          };
+        }
+        if (
+          await isRegistrationPhoneTaken(firestore, data.phone, {
+            exceptUid: uid,
+          })
+        ) {
+          return {
+            ok: false,
+            message:
+              'Этот номер телефона уже зарегистрирован. Укажите другой номер.',
+            conflictField: 'phone',
+          };
+        }
+        if (
+          await isRegistrationUsernameTakenInIndex(
+            firestore,
+            normalizedUsername,
+            { exceptUid: uid },
+          )
+        ) {
+          return {
+            ok: false,
+            message: 'Этот логин уже занят. Выберите другой.',
+            conflictField: 'username',
+          };
+        }
+      } catch (idxErr) {
+        console.error('completeGoogleProfile: registrationIndex checks failed', idxErr);
+        const message =
+          'Не удалось проверить уникальность телефона и логина. Проверьте сеть и попробуйте снова.';
+        setError(message);
+        return { ok: false, message };
+      }
+
+      let avatarUrl =
+        firebaseUser.photoURL ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
+      try {
+        const existing = await getDoc(doc(firestore, 'users', uid));
+        if (existing.exists()) {
+          const prev = existing.data()?.avatar;
+          if (typeof prev === 'string' && prev.length > 0) {
+            avatarUrl = prev;
+          }
+        }
+      } catch {
+        /* оставляем avatarUrl по Auth / dicebear */
+      }
+
+      if (data.avatarFile && !storage) {
+        const message = 'Хранилище недоступно. Уберите новое фото или попробуйте позже.';
+        setError(message);
+        return { ok: false, message };
+      }
+
+      const thumbOnAvatarUpload: Record<string, unknown> = {};
+      if (data.avatarFile) {
+        try {
+          const { avatarUrl: uploadedUrl, avatarThumbUrl } =
+            await uploadUserAvatarPair(storage, uid, data.avatarFile, data.avatarThumbFile);
+          avatarUrl = uploadedUrl;
+          thumbOnAvatarUpload.avatarThumb = avatarThumbUrl ?? deleteField();
+        } catch (uploadErr) {
+          console.warn('completeGoogleProfile: avatar upload failed', uploadErr);
+        }
+      }
+
+      try {
+        const userDocRef = doc(firestore, 'users', uid);
+        await updateDoc(userDocRef, {
+          name: data.name.trim(),
+          username: normalizedUsername,
+          phone: data.phone,
+          email: emailNorm,
+          avatar: avatarUrl,
+          bio: data.bio?.trim() ? data.bio.trim() : '',
+          dateOfBirth: data.dateOfBirth?.trim() ? data.dateOfBirth : null,
+          updatedAt: new Date().toISOString(),
+          ...thumbOnAvatarUpload,
+        } as Record<string, unknown>);
+        const googleFresh = await getDoc(userDocRef);
+        if (googleFresh.exists()) {
+          const gData = googleFresh.data();
+          if (!gData.deletedAt && !isAccountBlocked(gData as Pick<User, 'accountBlock'>)) {
+            const next = { ...gData, id: googleFresh.id } as User;
+            appUserRef.current = next;
+            setAppUser(next);
+          }
+        }
+        console.info('[auth] completeGoogleProfile saved users/%s', uid);
+        return { ok: true };
+      } catch (e) {
+        console.error('completeGoogleProfile: Firestore update failed', e);
+        const message = 'Не удалось сохранить профиль. Попробуйте ещё раз.';
+        setError(message);
+        return { ok: false, message };
+      }
+    },
+    [auth, firestore, storage],
   );
 
   const signInWithGoogle = useCallback(async (): Promise<boolean> => {
@@ -568,9 +945,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             'Домен не в списке Authorized domains (Firebase Console → Authentication → Settings).',
           'auth/operation-not-allowed':
             'Вход через Google выключен: Authentication → Sign-in method → Google.',
+          /** Firestore после входа (чаще гонка JWT до чтения users/{uid}). */
+          'permission-denied':
+            'Нет доступа к профилю в базе. Обновите страницу и войдите снова. Если не помогло — проверьте деплой firestore.rules.',
         } as Record<string, string>
       )[err.code ?? ''];
-      setError(msg || 'Ошибка при входе через Google.');
+      setError(
+        msg ||
+          (String((e as { message?: string })?.message ?? '').includes('Missing or insufficient permissions')
+            ? 'Нет доступа к данным (Firestore). Обновите страницу и повторите вход.'
+            : 'Ошибка при входе через Google.')
+      );
       return false;
     }
   }, [auth, finalizeGoogleCredential]);
@@ -591,7 +976,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateUser = useCallback(
     async (
       newUserData: Partial<User & { password?: string }>
-    ): Promise<{ ok: true } | { ok: false; message: string }> => {
+    ): Promise<UpdateUserResult> => {
     if (!appUser || !firebaseUser || !firestore) {
       return { ok: false, message: 'Нет данных пользователя или Firebase.' };
     }
@@ -605,20 +990,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const { password: _pw, ...rest } = newUserData;
         const emailTrim =
           typeof rest.email === 'string' ? rest.email.trim() : undefined;
+        let emailVerificationSent = false;
         if (emailTrim && emailTrim !== (firebaseUser.email ?? '')) {
+          const mapEmailChangeError = (e: unknown) => {
+            const code = (e as { code?: string })?.code;
+            return {
+              code,
+              msg:
+                code === 'auth/requires-recent-login'
+                  ? 'Для смены email выполните повторный вход и попробуйте снова.'
+                  : code === 'auth/email-already-in-use'
+                    ? 'Этот email уже используется.'
+                    : code === 'auth/invalid-email'
+                      ? 'Некорректный формат email.'
+                      : 'Не удалось сменить email в Firebase Auth.',
+            };
+          };
+
           try {
             await updateEmail(firebaseUser, emailTrim);
           } catch (e: unknown) {
-            const code = (e as { code?: string })?.code;
             console.error('updateEmail:', e);
-            const msg =
-              code === 'auth/requires-recent-login'
-                ? 'Для смены email выполните повторный вход и попробуйте снова.'
-                : code === 'auth/email-already-in-use'
-                  ? 'Этот email уже используется.'
-                  : 'Не удалось сменить email в Firebase Auth.';
-            setError(msg);
-            return { ok: false, message: msg };
+            if (isFirebaseVerifyNewEmailBeforeChangeError(e)) {
+              if (typeof window === 'undefined') {
+                const msg = 'Смена email доступна только в браузере.';
+                setError(msg);
+                return { ok: false, message: msg };
+              }
+              const actionCodeSettings: ActionCodeSettings = {
+                url: `${window.location.origin}/dashboard/profile`,
+                handleCodeInApp: false,
+              };
+              try {
+                await verifyBeforeUpdateEmail(
+                  firebaseUser,
+                  emailTrim,
+                  actionCodeSettings
+                );
+                emailVerificationSent = true;
+              } catch (e2: unknown) {
+                console.error('verifyBeforeUpdateEmail:', e2);
+                const { msg } = mapEmailChangeError(e2);
+                setError(msg);
+                return { ok: false, message: msg };
+              }
+            } else {
+              const { msg } = mapEmailChangeError(e);
+              setError(msg);
+              return { ok: false, message: msg };
+            }
           }
         }
 
@@ -647,7 +1067,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const dataToSave: Record<string, unknown> = { ...rest };
         delete dataToSave.password;
-        if (emailTrim !== undefined) {
+        if (emailVerificationSent) {
+          delete dataToSave.email;
+        } else if (emailTrim !== undefined) {
           dataToSave.email = emailTrim;
         }
         if (usernameNorm !== undefined) {
@@ -669,7 +1091,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           ...cleaned,
           updatedAt: new Date().toISOString(),
         } as Record<string, unknown>);
-        return { ok: true };
+        return emailVerificationSent
+          ? { ok: true, emailVerificationSent: true }
+          : { ok: true };
     } catch (e: any) {
         console.error("Error updating user profile:", e);
         const msg = 'Не удалось обновить профиль.';
@@ -698,8 +1122,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const contextValue = {
     user: appUser,
+    googleProfileCompletionFlow,
     login,
     register,
+    completeGoogleProfile,
     checkUsernameAvailable,
     signInWithGoogle,
     logout,

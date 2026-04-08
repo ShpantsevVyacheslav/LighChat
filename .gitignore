@@ -43,3 +43,5 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+# Локальная сборка эмулятора (.next, node_modules внутри) — лимит GitHub 100 MB
+.firebase/

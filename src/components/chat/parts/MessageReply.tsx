@@ -29,11 +29,23 @@ export function MessageReply({ replyTo, isCurrentUser, onClick }: MessageReplyPr
         </div>
       </div>
       {replyTo.mediaPreviewUrl && (
-        <div className="h-9 w-9 rounded-lg overflow-hidden shrink-0 border border-black/5 bg-black/20">
+        <div
+          className={cn(
+            'h-[18px] w-[18px] rounded-md overflow-hidden shrink-0 border border-black/5',
+            replyTo.mediaType === 'sticker' ? 'bg-transparent' : 'bg-muted/30 dark:bg-black/20',
+          )}
+        >
           {replyTo.mediaType === 'video' || replyTo.mediaType === 'video-circle' ? (
             <video src={replyTo.mediaPreviewUrl} className="h-full w-full object-cover" muted />
           ) : (
-            <img src={replyTo.mediaPreviewUrl} className="h-full w-full object-cover" alt="" />
+            <img
+              src={replyTo.mediaPreviewUrl}
+              className={cn(
+                'h-full w-full',
+                replyTo.mediaType === 'sticker' ? 'object-contain p-px' : 'object-cover',
+              )}
+              alt=""
+            />
           )}
         </div>
       )}

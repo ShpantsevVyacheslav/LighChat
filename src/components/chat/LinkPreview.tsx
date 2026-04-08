@@ -57,7 +57,7 @@ export function LinkPreview({ url, isLive = false }: LinkPreviewProps) {
   if (loading) {
     return (
       <div className={containerBaseClass}>
-        <div className="h-[80px] w-[80px] shrink-0 border-r border-black/5 dark:border-white/5 overflow-hidden">
+        <div className="h-[40px] w-[40px] shrink-0 border-r border-black/5 dark:border-white/5 overflow-hidden">
             <Skeleton className="h-full w-full rounded-none opacity-20" />
         </div>
         <div className="flex-1 flex flex-col justify-center gap-2 p-3 min-w-0 overflow-hidden">
@@ -76,7 +76,7 @@ export function LinkPreview({ url, isLive = false }: LinkPreviewProps) {
     <a href={url} target="_blank" rel="noopener noreferrer" className={cn("block my-1 group/link shrink-0", isLive ? "w-full" : "max-w-sm")}>
       <div className={containerBaseClass}>
           {metadata.image && (
-            <div className="h-[80px] w-[80px] overflow-hidden bg-muted shrink-0 border-r border-black/5 dark:border-white/5">
+            <div className="h-[40px] w-[40px] overflow-hidden bg-muted shrink-0 border-r border-black/5 dark:border-white/5">
               <img
                 src={metadata.image}
                 alt=""

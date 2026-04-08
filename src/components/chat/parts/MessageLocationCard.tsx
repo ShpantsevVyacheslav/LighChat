@@ -1,69 +1,130 @@
 'use client';
 
-import React from 'react';
-import { MapPin, ExternalLink, Activity } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useReducer, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import type { ChatLocationShare } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { isChatLiveLocationShareExpired } from '@/lib/live-location-utils';
+import { CHAT_LOCATION_MAP_PREVIEW_MAX_WIDTH_PX } from '@/lib/chat-media-preview-max';
+import { SharedLocationMapDialog } from '@/components/location/SharedLocationMapDialog';
+import { MessageStatus } from '@/components/chat/parts/MessageStatus';
 
 interface MessageLocationCardProps {
   share: ChatLocationShare;
   isCurrentUser: boolean;
+  createdAt: string;
+  deliveryStatus?: 'sending' | 'sent' | 'failed';
+  readAt: string | null;
+  showTimestamps?: boolean;
 }
 
-export function MessageLocationCard({ share, isCurrentUser }: MessageLocationCardProps) {
-  const href = share.mapsUrl || `https://www.google.com/maps?q=${share.lat},${share.lng}`;
+export function MessageLocationCard({
+  share,
+  isCurrentUser,
+  createdAt,
+  deliveryStatus,
+  readAt,
+  showTimestamps = true,
+}: MessageLocationCardProps) {
+  const [mapOpen, setMapOpen] = useState(false);
+  const [, bump] = useReducer((x: number) => x + 1, 0);
+  const externalHref = share.mapsUrl || `https://www.google.com/maps?q=${share.lat},${share.lng}`;
+
+  useEffect(() => {
+    if (!share.liveSession?.expiresAt) return;
+    const ms = new Date(share.liveSession.expiresAt).getTime() - Date.now();
+    if (ms <= 0) return;
+    const t = window.setTimeout(bump, Math.min(ms + 100, 86_400_000));
+    return () => window.clearTimeout(t);
+  }, [share.liveSession?.expiresAt]);
+
+  const expiredLive = !!share.liveSession && isChatLiveLocationShareExpired(share);
+
+  if (expiredLive) {
+    return (
+      <div
+        className="rounded-2xl border border-border/50 bg-muted/25 px-3 py-2.5 text-left text-sm leading-snug text-muted-foreground"
+        style={{ maxWidth: CHAT_LOCATION_MAP_PREVIEW_MAX_WIDTH_PX }}
+      >
+        {isCurrentUser ? (
+          <>
+            Трансляция геолокации завершена. Собеседник больше не видит ваше актуальное
+            местоположение.
+          </>
+        ) : (
+          <>Трансляция геолокации у этого контакта завершена. Актуальная позиция недоступна.</>
+        )}
+      </div>
+    );
+  }
+
+  const openMap = () => setMapOpen(true);
 
   return (
-    <div
-      className={cn(
-        'mt-1 overflow-hidden rounded-xl border bg-background/60 backdrop-blur-md',
-        isCurrentUser ? 'border-white/25' : 'border-black/10 dark:border-white/10'
-      )}
-    >
-      {share.staticMapUrl ? (
-        <a href={href} target="_blank" rel="noopener noreferrer" className="block">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={share.staticMapUrl}
-            alt="Карта"
-            className="h-auto w-full max-h-40 object-cover bg-muted"
-            loading="lazy"
-          />
-        </a>
-      ) : (
-        <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
-          <MapPin className="h-5 w-5 shrink-0 text-primary" />
-          <span>
-            {share.lat.toFixed(5)}, {share.lng.toFixed(5)}
-            {share.accuracyM != null && (
-              <span className="block text-[11px] opacity-80">±{Math.round(share.accuracyM)} м</span>
+    <>
+      <div
+        className="relative w-full shrink-0 overflow-hidden rounded-2xl bg-muted/20"
+        style={{ maxWidth: CHAT_LOCATION_MAP_PREVIEW_MAX_WIDTH_PX }}
+      >
+        {share.staticMapUrl ? (
+          <button
+            type="button"
+            onClick={openMap}
+            className="relative block w-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Открыть карту"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={share.staticMapUrl}
+              alt="Карта"
+              className="h-auto w-full max-h-[120px] object-cover bg-muted"
+              loading="lazy"
+            />
+            {showTimestamps && (
+              <MessageStatus
+                timestamp={createdAt}
+                isCurrentUser={isCurrentUser}
+                deliveryStatus={deliveryStatus}
+                readAt={readAt}
+                overlay
+                isColoredBubble={false}
+              />
             )}
-          </span>
-        </div>
-      )}
-      <div className="flex items-center justify-between gap-2 border-t border-black/5 px-2 py-1.5 dark:border-white/10">
-        <span className="flex flex-wrap items-center gap-1.5 px-1 text-[11px] font-medium text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5 text-primary" />
-          Геолокация
-          {share.liveSession && (
-            <Badge
-              variant="outline"
-              className="h-5 gap-0.5 border-emerald-500/40 bg-emerald-500/10 px-1.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300"
-            >
-              <Activity className="h-2.5 w-2.5 animate-pulse" aria-hidden />
-              Живое
-            </Badge>
-          )}
-        </span>
-        <Button variant="ghost" size="sm" className="h-8 shrink-0 gap-1 rounded-lg text-xs" asChild>
-          <a href={href} target="_blank" rel="noopener noreferrer">
-            Google Maps
-            <ExternalLink className="h-3 w-3 opacity-70" />
-          </a>
-        </Button>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={openMap}
+            className="relative flex w-full min-h-[4.5rem] items-center gap-2 px-3 py-3 pr-14 text-left text-sm text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Открыть карту"
+          >
+            <MapPin className="h-5 w-5 shrink-0 text-primary" />
+            <span>
+              {share.lat.toFixed(5)}, {share.lng.toFixed(5)}
+              {share.accuracyM != null && (
+                <span className="block text-[11px] opacity-80">±{Math.round(share.accuracyM)} м</span>
+              )}
+            </span>
+            {showTimestamps && (
+              <MessageStatus
+                timestamp={createdAt}
+                isCurrentUser={isCurrentUser}
+                deliveryStatus={deliveryStatus}
+                readAt={readAt}
+                overlay
+                isColoredBubble={false}
+              />
+            )}
+          </button>
+        )}
       </div>
-    </div>
+      <SharedLocationMapDialog
+        open={mapOpen}
+        onOpenChange={setMapOpen}
+        lat={share.lat}
+        lng={share.lng}
+        externalMapsUrl={externalHref}
+      />
+    </>
   );
 }

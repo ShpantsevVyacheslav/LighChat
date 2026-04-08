@@ -1,4 +1,5 @@
 import type { ChatAttachment } from '@/lib/types';
+import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
 
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|avif|heic|heif|bmp|jfif)(\?|#|$)/i;
 const VIDEO_EXT = /\.(mp4|webm|mov|mkv|m4v|ogv)(\?|#|$)/i;
@@ -9,6 +10,7 @@ const VIDEO_EXT = /\.(mp4|webm|mov|mkv|m4v|ogv)(\?|#|$)/i;
  */
 export function isGridGalleryAttachment(att: ChatAttachment): boolean {
   if (att.name.startsWith('sticker_') || att.name.startsWith('gif_') || att.name.startsWith('video-circle_')) return false;
+  if (isAttachmentLikelyIosStickerCutout(att)) return false;
   if (att.type.startsWith('image/') && !att.type.includes('svg')) return true;
   if (att.type.startsWith('video/')) return true;
   const loose =

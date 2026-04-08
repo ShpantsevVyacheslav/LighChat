@@ -1,5 +1,11 @@
 import type { User } from '@/lib/types';
 
+/** Строка «@login» для списков выбора собеседника или null, если логина нет. */
+export function atUsernameLabel(username: string | undefined | null): string | null {
+  const h = username?.trim().replace(/^@/, '');
+  return h ? `@${h}` : null;
+}
+
 /** Совпадение по имени или @username (подстрока, без учёта регистра). */
 export function userMatchesChatSearchQuery(user: User, query: string): boolean {
   const q = query.trim().toLowerCase();

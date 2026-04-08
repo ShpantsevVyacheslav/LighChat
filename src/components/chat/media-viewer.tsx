@@ -20,19 +20,13 @@ import { ru } from 'date-fns/locale';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useChatAttachmentDisplaySrc } from '@/components/chat/use-chat-attachment-display-src';
 
 export type MediaViewerItem = ChatAttachment & {
     messageId: string;
     senderId: string;
     createdAt: string;
 };
-
-/** Императивный ref TransformWrapper отдаёт только getControls — scale в instance.transformState. */
-function getTransformScaleFromRef(tref: { instance?: { transformState?: { scale?: number } }; state?: { scale?: number } } | null): number {
-  if (!tref) return 1;
-  const s = tref.instance?.transformState?.scale ?? tref.state?.scale;
-  return typeof s === 'number' && Number.isFinite(s) ? s : 1;
-}
 
 interface MediaViewerProps {
   isOpen: boolean;
@@ -55,57 +49,47 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
   const [translateY, setTranslateY] = useState(0);
   
   const transformRefs = useRef<Record<number, any>>({});
-  const touchStartRef = useRef<{ x: number, y: number } | null>(null);
-  const swipeDirectionRef = useRef<'none' | 'horizontal' | 'vertical'>('none');
+  /** Синхронно для `watchDrag` карусели: не вызывать `reInit` при зуме (ломает pinch на мобильных). */
+  const isZoomedRef = useRef(false);
+  const pinchActiveRef = useRef(false);
+  /** После pinch не обрабатывать «двойной тап» (иначе touchend двух пальцев даёт ложное срабатывание). */
+  const suppressDoubleTapUntilRef = useRef(0);
   const lastTapRef = useRef<{ t: number; index: number } | null>(null);
   const lastToggleAtRef = useRef(0);
+  const gestureScopeRef = useRef<'none' | 'media' | 'overlay'>('none');
+  const touchStartRef = useRef<{ x: number, y: number } | null>(null);
+  const swipeDirectionRef = useRef<'none' | 'horizontal' | 'vertical'>('none');
 
-  const ZOOMED_EPS = 1.02;
-
-  const toggleSlideZoom = React.useCallback((index: number) => {
+  const toggleSlideZoomFromRef = React.useCallback((index: number) => {
     const now = Date.now();
-    if (now - lastToggleAtRef.current < 400) return;
+    if (now - lastToggleAtRef.current < 350) return;
     lastToggleAtRef.current = now;
     const tref = transformRefs.current[index];
-    if (!tref) return;
-    const scale = getTransformScaleFromRef(tref);
-    if (scale > ZOOMED_EPS) {
-      tref.resetTransform(200);
-    } else {
-      tref.zoomIn(0.7, 200);
-    }
+    if (!tref?.instance) return;
+    const scale = tref.instance.transformState.scale;
+    if (scale > 1.05) tref.resetTransform(200);
+    else tref.zoomIn(0.7, 200);
   }, []);
-
-  const onImageDoubleTapOrClick = React.useCallback(
-    (e: React.MouseEvent | React.TouchEvent, index: number) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleSlideZoom(index);
-    },
-    [toggleSlideZoom],
-  );
 
   const onImageTouchEnd = React.useCallback(
     (e: React.TouchEvent, index: number) => {
+      if (pinchActiveRef.current || Date.now() < suppressDoubleTapUntilRef.current) return;
+      if (e.changedTouches.length !== 1) return;
       const now = Date.now();
       const prev = lastTapRef.current;
-      if (prev && prev.index === index && now - prev.t < 320) {
+      if (prev && prev.index === index && now - prev.t < 300) {
         lastTapRef.current = null;
-        onImageDoubleTapOrClick(e, index);
+        e.preventDefault();
+        toggleSlideZoomFromRef(index);
       } else {
         lastTapRef.current = { t: now, index };
         window.setTimeout(() => {
           if (lastTapRef.current?.t === now) lastTapRef.current = null;
-        }, 360);
+        }, 320);
       }
     },
-    [onImageDoubleTapOrClick],
+    [toggleSlideZoomFromRef]
   );
-
-  useEffect(() => {
-    if (!api) return;
-    api.reInit({ watchDrag: !isZoomed });
-  }, [api, isZoomed]);
 
   useEffect(() => {
     if (!api) return;
@@ -120,6 +104,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
             ref.resetTransform(0);
         }
       });
+      isZoomedRef.current = false;
       setIsZoomed(false);
       setTranslateY(0);
     };
@@ -129,6 +114,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
     if (isOpen) {
       setCurrent(startIndex + 1);
       api.scrollTo(startIndex, true);
+      isZoomedRef.current = false;
       setIsZoomed(false);
       setTranslateY(0);
     }
@@ -182,7 +168,18 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
   };
 
   const onTouchStart = (e: React.TouchEvent) => {
-    if (isZoomed) return;
+    const target = e.target;
+    const fromMediaZone =
+      target instanceof Element &&
+      Boolean(target.closest('[data-media-interactive="true"]'));
+
+    /** Зум: жесты остаются у TransformWrapper; без зума — свайп вверх/вниз закрывает с любой точки, включая фото/видео */
+    if (fromMediaZone && isZoomedRef.current) {
+      gestureScopeRef.current = 'media';
+      return;
+    }
+
+    gestureScopeRef.current = 'overlay';
     e.stopPropagation(); // Prevent global chat back swipe
     const touch = e.touches[0];
     touchStartRef.current = { x: touch.clientX, y: touch.clientY };
@@ -190,6 +187,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
+    if (gestureScopeRef.current === 'media') return;
     if (isZoomed || !touchStartRef.current) return;
     e.stopPropagation(); // Prevent global chat back swipe
     const touch = e.touches[0];
@@ -208,6 +206,13 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
   };
 
   const onTouchEnd = (e: React.TouchEvent) => {
+    if (gestureScopeRef.current === 'media') {
+      touchStartRef.current = null;
+      swipeDirectionRef.current = 'none';
+      gestureScopeRef.current = 'none';
+      return;
+    }
+
     if (!isZoomed && swipeDirectionRef.current === 'vertical') {
       e.stopPropagation();
       if (Math.abs(translateY) > 120) onOpenChange(false);
@@ -217,6 +222,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
     }
     touchStartRef.current = null;
     swipeDirectionRef.current = 'none';
+    gestureScopeRef.current = 'none';
   };
 
   const formatMediaDate = (dateStr?: string) => {
@@ -249,12 +255,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
         {/* Размытый фон по текущему кадру (не сплошной чёрный) */}
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
           {currentMedia?.type.startsWith('image/') ? (
-            <img
-              key={currentMedia.url}
-              src={currentMedia.url}
-              alt=""
-              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-55 blur-3xl"
-            />
+            <MediaViewerBackdropImage item={currentMedia} />
           ) : currentMedia ? (
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-950 to-black" />
           ) : (
@@ -264,7 +265,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
         </div>
 
         <header className={cn(
-          "absolute top-0 left-0 right-0 z-[160] h-20 bg-gradient-to-b from-black/80 to-transparent flex items-center justify-between px-4 text-white transition-opacity duration-300",
+          "absolute top-0 left-0 right-0 z-[160] min-h-[5rem] bg-gradient-to-b from-black/80 to-transparent flex items-center justify-between px-4 pt-[env(safe-area-inset-top,0px)] pb-2 text-white transition-opacity duration-300 box-border",
           isZoomed ? "opacity-0 pointer-events-none" : "opacity-100"
         )}>
           <div className="flex items-center gap-3 min-w-0">
@@ -308,7 +309,13 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
           </div>
         </header>
         
-        <Carousel setApi={setApi} className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden">
+        <Carousel
+          setApi={setApi}
+          opts={{
+            watchDrag: () => !isZoomedRef.current,
+          }}
+          className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden"
+        >
           <CarouselContent className="h-full ml-0 items-center">
             {media.map((item, index) => (
               <CarouselItem key={index} className="flex items-center justify-center p-0 h-full w-full shrink-0 overflow-hidden">
@@ -319,40 +326,48 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
                   maxScale={10}
                   centerOnInit
                   limitToBounds={true}
-                  panning={{ disabled: !isZoomed }}
+                  panning={{ disabled: !isZoomed, velocityDisabled: true }}
                   wheel={{ step: 0.5, smoothStep: 0.05 }}
-                  doubleClick={{ disabled: true }}
-                  onTransformed={(ref) => {
-                    const scale = ref.state?.scale ?? (ref as any).instance?.transformState?.scale ?? 1;
-                    setIsZoomed(scale > 1.05);
+                  doubleClick={{ disabled: false, mode: 'toggle', step: 0.7, animationTime: 200 }}
+                  alignmentAnimation={{ disabled: true }}
+                  onPinchingStart={() => {
+                    pinchActiveRef.current = true;
+                  }}
+                  onPinchingStop={() => {
+                    pinchActiveRef.current = false;
+                    suppressDoubleTapUntilRef.current = Date.now() + 450;
+                  }}
+                  onTransformed={(_ref, state) => {
+                    const scale = state?.scale ?? 1;
+                    const z = scale > 1.05;
+                    isZoomedRef.current = z;
+                    setIsZoomed(z);
                   }}
                 >
                   <TransformComponent 
-                    wrapperClass="!w-screen !h-screen overflow-hidden" 
-                    contentClass="w-screen h-screen flex items-center justify-center"
+                    wrapperClass="!w-full !h-full overflow-hidden" 
+                    contentClass="w-full h-full flex items-center justify-center"
                   >
-                    {item.type.startsWith('image/') ? (
-                      <img
-                        src={item.url}
-                        alt={item.name}
-                        className={cn(
-                          // react-zoom-pan-pinch задаёт .content img { pointer-events: none } — без !pointer-events-auto тапы не попадают в img
-                          "w-screen h-screen object-contain transition-opacity duration-300 touch-manipulation select-none !pointer-events-auto",
-                          isMediaLoading[index] ? "opacity-0" : "opacity-100"
-                        )}
-                        draggable={false}
-                        onDoubleClick={(e) => onImageDoubleTapOrClick(e, index)}
-                        onTouchEnd={(e) => onImageTouchEnd(e, index)}
-                        onLoad={() => setIsMediaLoading(prev => ({ ...prev, [index]: false }))}
-                        onLoadStart={() => setIsMediaLoading(prev => ({ ...prev, [index]: true }))}
-                      />
-                    ) : (
-                      <VideoPlayer 
-                        url={item.url} 
-                        onLoadStart={() => setIsMediaLoading(prev => ({ ...prev, [index]: true }))} 
-                        onCanPlay={() => setIsMediaLoading(prev => ({ ...prev, [index]: false }))} 
-                      />
-                    )}
+                    <div
+                      data-media-interactive="true"
+                      className="flex h-full w-full max-h-[100dvh] max-w-[100dvw] items-center justify-center touch-none min-h-0"
+                    >
+                      {item.type.startsWith('image/') ? (
+                        <MediaViewerMainImage
+                          item={item}
+                          index={index}
+                          isMediaLoading={isMediaLoading}
+                          setIsMediaLoading={setIsMediaLoading}
+                          onImageTouchEnd={onImageTouchEnd}
+                        />
+                      ) : (
+                        <VideoPlayer 
+                          url={item.url} 
+                          onLoadStart={() => setIsMediaLoading(prev => ({ ...prev, [index]: true }))} 
+                          onCanPlay={() => setIsMediaLoading(prev => ({ ...prev, [index]: false }))} 
+                        />
+                      )}
+                    </div>
                   </TransformComponent>
                 </TransformWrapper>
               </CarouselItem>
@@ -368,7 +383,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
         </Carousel>
 
         <footer className={cn(
-          "absolute bottom-8 left-1/2 -translate-x-1/2 z-[160] transition-all duration-300",
+          "absolute left-1/2 z-[160] -translate-x-1/2 transition-all duration-300 bottom-[max(2rem,env(safe-area-inset-bottom,0px))]",
           isZoomed ? "opacity-0 pointer-events-none translate-y-10" : "opacity-100 translate-y-0"
         )}>
           <div className="flex items-center gap-4 bg-black/40 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shadow-2xl">
@@ -385,6 +400,48 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
         </footer>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function MediaViewerBackdropImage({ item }: { item: MediaViewerItem }) {
+  const src = useChatAttachmentDisplaySrc(item);
+  return (
+    <img
+      key={src}
+      src={src}
+      alt=""
+      className="absolute inset-0 h-full w-full scale-125 object-cover opacity-55 blur-3xl"
+    />
+  );
+}
+
+function MediaViewerMainImage({
+  item,
+  index,
+  isMediaLoading,
+  setIsMediaLoading,
+  onImageTouchEnd,
+}: {
+  item: MediaViewerItem;
+  index: number;
+  isMediaLoading: Record<number, boolean>;
+  setIsMediaLoading: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  onImageTouchEnd: (e: React.TouchEvent, index: number) => void;
+}) {
+  const src = useChatAttachmentDisplaySrc(item);
+  return (
+    <img
+      src={src}
+      alt={item.name}
+      className={cn(
+        "max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] max-w-[100dvw] w-auto h-auto object-contain transition-opacity duration-300 select-none !pointer-events-auto",
+        isMediaLoading[index] ? "opacity-0" : "opacity-100"
+      )}
+      draggable={false}
+      onTouchEnd={(e) => onImageTouchEnd(e, index)}
+      onLoad={() => setIsMediaLoading((prev) => ({ ...prev, [index]: false }))}
+      onLoadStart={() => setIsMediaLoading((prev) => ({ ...prev, [index]: true }))}
+    />
   );
 }
 
@@ -405,11 +462,11 @@ function VideoPlayer({ url, onLoadStart, onCanPlay }: { url: string, onLoadStart
   };
 
   return (
-    <div className="relative w-screen h-screen flex items-center justify-center bg-black">
+    <div className="relative flex h-full min-h-0 w-full max-h-[100dvh] max-w-[100dvw] items-center justify-center bg-black">
       <video
         ref={videoRef}
         src={url}
-        className="w-screen h-screen object-contain"
+        className="max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] max-w-[100dvw] object-contain"
         onLoadStart={onLoadStart}
         onCanPlay={onCanPlay}
         controls

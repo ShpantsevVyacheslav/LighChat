@@ -7,6 +7,7 @@
 - Storage: медиа/вложения/аватары/фоновые ресурсы.
 - Cloud Functions (v2): auth/firestore/http/scheduler automation.
 - FCM: data-push для уведомлений и входящих звонков.
+- Web push подписка на клиентах зависит от корректных ограничений Browser API key (referrer + API restrictions) и контекста запуска (на iOS — установленное Home Screen PWA).
 - Hosting: публикация web-приложения.
 
 ### Cloud Functions surface (ключевые вызовы)
@@ -27,6 +28,11 @@
 - Библиотека: `simple-peer`.
 - Канал сигналинга: Firestore (`calls/*`, `meetings/*/signals`).
 - Контексты использования: 1:1 calls и meetings.
+
+## Google Maps (геолокация в чате)
+
+- Превью в ленте: Static Maps API при наличии `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (`src/lib/google-maps.ts`).
+- Полная карта **внутри приложения**: iframe по `buildGoogleMapsEmbedUrl` в `SharedLocationMapDialog` и в `LiveLocationMapDialog` (без ухода со страницы). Внешний браузер — опционально через кнопку «Открыть в браузере».
 
 ## Media/UX вспомогательные интеграции
 

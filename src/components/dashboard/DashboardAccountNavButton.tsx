@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import type { ChatSettings } from '@/lib/types';
 import { DashboardAccountMenuContent } from '@/components/dashboard/DashboardAccountMenuContent';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 
 type DashboardAccountNavButtonProps = {
   className?: string;
@@ -54,7 +55,7 @@ export function DashboardAccountNavButton({
               minimal ? 'ring-0' : 'ring-1 ring-white/60 dark:ring-white/10'
             )}
           >
-            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarImage src={userAvatarListUrl(user)} alt={user.name} />
             <AvatarFallback className="text-xs font-bold">{user.name.charAt(0)}</AvatarFallback>
           </Avatar>
         </button>

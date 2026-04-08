@@ -2,6 +2,7 @@
 
 import { doc, updateDoc, increment, writeBatch, type Firestore } from 'firebase/firestore';
 import type { ChatAttachment, ChatMessage, User, ReplyContext } from '@/lib/types';
+import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
 
 // Track messages currently being marked as read to prevent double-decrementing counters.
 // We no longer clear this with setTimeout to prevent race conditions on slow connections.
@@ -35,7 +36,8 @@ export const getReplyPreview = (message: ChatMessage, allUsers: User[]): ReplyCo
 
     if (message.attachments && message.attachments.length > 0) {
         const att = message.attachments[0];
-        const isSticker = att.name.startsWith('sticker_') || att.type === 'image/svg+xml';
+        const isSticker =
+            att.name.startsWith('sticker_') || att.type === 'image/svg+xml' || isAttachmentLikelyIosStickerCutout(att);
         const isGifInline = att.name.startsWith('gif_');
         const isVideoCircle = att.name.startsWith('video-circle_');
         const isVideo = att.type.startsWith('video/');
@@ -188,7 +190,8 @@ export async function markConversationAsRead(
 /** Первое вложение-стикер или GIF в сообщении (для «Сохранить в мои стикеры»). */
 export function getFirstStickerOrGifAttachment(message: ChatMessage): ChatAttachment | null {
   for (const a of message.attachments || []) {
-    if (a.name.startsWith('sticker_') || a.name.startsWith('gif_')) return a;
+    if (a.name.startsWith('gif_')) return a;
+    if (a.name.startsWith('sticker_') || isAttachmentLikelyIosStickerCutout(a)) return a;
   }
   return null;
 }

@@ -1,6 +1,7 @@
 /**
- * Подмножество эмодзи для вкладки «Крупные»: те же символы Unicode, крупная сетка в пикере.
- * На iOS/macOS часть глифов рендерится анимированно системным шрифтом (как в iMessage).
+ * Дополнительные эмодзи: объединяются с [`CHAT_INPUT_EMOJI_PALETTE`](./chat-emoji-palette.ts)
+ * в [`MessageInputEmojiPicker`](../components/chat/MessageInputEmojiPicker.tsx) (одна сетка без вкладок).
+ * На iOS/macOS часть глифов анимирована системным шрифтом.
  */
 export const CHAT_LARGE_EMOJI_PALETTE: string[] = [
   '😀',

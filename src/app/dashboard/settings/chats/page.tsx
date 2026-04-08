@@ -8,7 +8,6 @@ import { useFirestore, useStorage } from "@/firebase";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { compressImage } from "@/lib/image-compression";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -165,16 +164,12 @@ export default function ChatSettingsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <LayoutTemplate className="h-4 w-4 text-primary shrink-0" />
-            Нижнее меню
-          </CardTitle>
-          <CardDescription>Как выглядят иконки чатов, контактов и остальных разделов внизу экрана.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2">
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight flex items-center gap-2">
+          <LayoutTemplate className="h-4 w-4 text-primary shrink-0" />
+          Нижнее меню
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
             {BOTTOM_NAV_OPTIONS.map((opt) => {
               const isOn = bottomNavLook === opt.value;
               return (
@@ -199,20 +194,14 @@ export default function ChatSettingsPage() {
                 </button>
               );
             })}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <BottomNavIconsSettingsSection />
 
-      {/* Preview card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Предпросмотр</CardTitle>
-          <CardDescription>Так будут выглядеть сообщения.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight">Предпросмотр</h2>
+        <div
             className="relative rounded-2xl overflow-hidden p-4 min-h-[160px] flex flex-col justify-end gap-2"
             style={{
               background: isCustomImage ? undefined : (currentWallpaper ?? "var(--muted)"),
@@ -260,17 +249,11 @@ export default function ChatSettingsPage() {
               {chatSettings.showTimestamps && <span className="text-[10px] text-muted-foreground mr-1">12:00</span>}
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </section>
 
-      {/* Outgoing bubble color */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Исходящие сообщения</CardTitle>
-          <CardDescription>Цвет ваших отправленных сообщений.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight">Исходящие сообщения</h2>
+        <div className="flex flex-wrap gap-3">
             {BUBBLE_COLORS.map((opt) => {
               const isActive = chatSettings.bubbleColor === opt.value;
               const bg = opt.value ?? "hsl(var(--primary))";
@@ -290,18 +273,12 @@ export default function ChatSettingsPage() {
                 </button>
               );
             })}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Incoming bubble color */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Входящие сообщения</CardTitle>
-          <CardDescription>Цвет сообщений от других пользователей.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight">Входящие сообщения</h2>
+        <div className="flex flex-wrap gap-3">
             {BUBBLE_COLORS.map((opt) => {
               const isActive = chatSettings.incomingBubbleColor === opt.value;
               const bg = opt.value ?? "hsl(var(--muted))";
@@ -321,18 +298,12 @@ export default function ChatSettingsPage() {
                 </button>
               );
             })}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Font size */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Размер шрифта</CardTitle>
-          <CardDescription>Размер текста в сообщениях.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight">Размер шрифта</h2>
+        <div className="flex gap-2">
             {FONT_SIZES.map((opt) => (
               <Button
                 key={opt.value}
@@ -344,18 +315,12 @@ export default function ChatSettingsPage() {
                 <span className={opt.textClass}>{opt.label}</span>
               </Button>
             ))}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Bubble shape */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Форма пузырьков</CardTitle>
-          <CardDescription>Степень скругления углов.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3 max-w-md">
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight">Форма пузырьков</h2>
+        <div className="grid grid-cols-2 gap-3 max-w-md">
             {BUBBLE_RADIUS_OPTIONS.map((opt) => {
               const isActive = activeBubblePreset === opt.value;
               return (
@@ -384,17 +349,12 @@ export default function ChatSettingsPage() {
                 </button>
               );
             })}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Wallpaper */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Фон чата</CardTitle>
-          <CardDescription>Градиент или изображение позади сообщений.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight">Фон чата</h2>
+        <div className="space-y-4">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {WALLPAPERS.map((wp) => {
               const isActive = currentWallpaper === wp.value;
@@ -491,15 +451,12 @@ export default function ChatSettingsPage() {
             className="hidden"
             onChange={handleUploadWallpaper}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Toggles */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Дополнительно</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold leading-none tracking-tight">Дополнительно</h2>
+        <div className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label className="text-sm font-medium">Показывать время</Label>
@@ -510,8 +467,8 @@ export default function ChatSettingsPage() {
               onCheckedChange={(v) => handleUpdate({ showTimestamps: v })}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* Reset */}
       <div className="flex justify-center pt-2">

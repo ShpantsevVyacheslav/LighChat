@@ -14,6 +14,7 @@ import { DashboardAccountNavButton } from '@/components/dashboard/DashboardAccou
 import { bottomNavIosTileClasses } from '@/lib/bottom-nav-ios-tiles';
 import { resolveBottomNavLucideIconName } from '@/lib/bottom-nav-icons';
 import { LucideBottomNavIcon } from '@/components/dashboard/LucideBottomNavIcon';
+import { mergeBottomNavIconVisualStyles } from '@/lib/bottom-nav-icon-style-merge';
 
 export type DashboardBottomNavVariant = 'fullWidth' | 'chatSidebar';
 
@@ -85,7 +86,10 @@ export function DashboardBottomNav({
             link.href,
             chatSettings.bottomNavIconNames
           );
-          const visual = chatSettings.bottomNavIconStyles?.[link.href];
+          const visual = mergeBottomNavIconVisualStyles(
+            chatSettings.bottomNavIconGlobalStyle,
+            chatSettings.bottomNavIconStyles?.[link.href]
+          );
           const defaultStroke = appearance === 'colorful' ? 2.35 : isActive ? 2.35 : 2;
           const strokeW =
             typeof visual?.strokeWidth === 'number' &&

@@ -68,6 +68,17 @@ export function applyPhoneMask(value: string): string {
   return result;
 }
 
+/**
+ * Нормализует значение из Firestore/регистрации к виду для `PhoneInput` / полей с маской:
+ * всегда `+` и до 11 цифр, чтобы `PhoneInput` корректно показал маску.
+ */
+export function phoneFormValueFromStored(raw: string | undefined): string {
+  if (!raw?.trim()) return "";
+  const d = normalizePhoneDigits(raw);
+  if (d.length < 10) return raw.trim();
+  return `+${d.slice(0, 11)}`;
+}
+
 /** Значение телефона для форм / API: «+» и до 11 цифр (как из `PhoneInput`). */
 export function phoneStorageFromFormatted(formatted: string): string {
   const d = formatted.replace(/\D/g, "").slice(0, 11);

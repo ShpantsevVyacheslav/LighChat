@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useTransition, useState } from "react";
+import React, { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -27,19 +28,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { applyPhoneMask } from "@/lib/phone-utils";
-import { tryApplyRuPhoneMaskKeyEdit } from "@/lib/ru-phone-mask-edit";
+import { phoneFormValueFromStored } from "@/lib/phone-utils";
 import { ScrollArea } from "../ui/scroll-area";
-import { Loader2, X, Eye, EyeOff, User as UserIcon } from "lucide-react";
+import { Loader2, X, Eye, EyeOff, User as UserIcon, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useStorage, useFirestore, updateDocumentNonBlocking } from "@/firebase";
-import { doc } from 'firebase/firestore';
+import { doc, deleteField } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { compressImage } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RegisterAvatarCropOverlay } from "@/components/auth/register-avatar-crop-overlay";
+import { uploadUserAvatarPair } from "@/lib/upload-user-avatar-pair";
+import { userAvatarListUrl } from "@/lib/user-avatar-display";
+import { useDashboardMainColumnScope } from "@/contexts/dashboard-main-column-scope";
 
 const applyDateMask = (value: string): string => {
   if (!value) return "";
@@ -97,6 +101,7 @@ const userFormSchema = z.object({
   confirmPassword: z.string().optional(),
   role: z.enum(Object.keys(ROLES) as [UserRole, ...UserRole[]], { required_error: "Необходимо выбрать роль." }),
   avatar: z.string().url({ message: "Пожалуйста, введите действительный URL." }).optional().or(z.literal('')),
+  avatarThumb: z.string().url({ message: "Некорректный URL превью." }).optional().or(z.literal('')),
 });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;
@@ -116,13 +121,22 @@ interface UserFormProps {
 
 export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfilePage = false, hideCancelButton = false, layout = 'vertical' }: UserFormProps) {
   const isEditing = !!(initialData && 'id' in initialData && initialData.id);
+  const getDashboardMainColumnEl = useDashboardMainColumnScope();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [isUploading, startUploading] = useTransition();
   const [showPassword, setShowPassword] = React.useState(false);
+  const [profileCropOpen, setProfileCropOpen] = React.useState(false);
+  const [profileCropSrc, setProfileCropSrc] = React.useState<string | null>(null);
+  const profileAvatarFullRef = React.useRef<File | null>(null);
   const storage = useStorage();
   const firestore = useFirestore();
 
+  React.useEffect(() => {
+    return () => {
+      if (profileCropSrc?.startsWith("blob:")) URL.revokeObjectURL(profileCropSrc);
+    };
+  }, [profileCropSrc]);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema.superRefine((data, ctx) => {
@@ -191,69 +205,133 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
       name: initialData?.name || "",
       username: initialData?.username || "",
       email: initialData?.email || "",
-      phone: initialData?.phone || "",
+      phone: phoneFormValueFromStored(initialData?.phone),
       dateOfBirth: isoToDisplay(initialData?.dateOfBirth) || "",
       bio: initialData?.bio || "",
       password: "",
       confirmPassword: "",
       role: initialData?.role || "worker",
       avatar: initialData?.avatar || "",
+      avatarThumb: initialData?.avatarThumb || "",
     },
   });
   
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    if (!initialData?.id || !firestore) {
-      // Handle case for new user (no initialData.id)
+  const processAvatarFile = React.useCallback(
+    (file: File | undefined) => {
+      if (!file || !file.type.startsWith("image/")) return;
+
+      if (!initialData?.id || !firestore) {
+        startUploading(async () => {
+          try {
+            const compressedDataUri = await compressImage(file);
+            form.setValue("avatar", compressedDataUri, { shouldValidate: true });
+            toast({
+              title: "Фото готово к загрузке",
+              description: "Аватар будет загружен после создания пользователя.",
+            });
+          } catch (e) {
+            console.error("[UserForm] avatar preview", e);
+            toast({ variant: "destructive", title: "Ошибка обработки фото" });
+          }
+        });
+        return;
+      }
+
       startUploading(async () => {
-         try {
-           const compressedDataUri = await compressImage(file);
-           form.setValue('avatar', compressedDataUri, { shouldValidate: true });
-            toast({ title: 'Фото готово к загрузке', description: 'Аватар будет загружен после создания пользователя.' });
-         } catch(e) {
-            toast({ variant: 'destructive', title: 'Ошибка обработки фото' });
-         }
+        try {
+          const MAX_SIZE_BYTES = 500 * 1024;
+          let imageBlob: Blob = file;
+
+          if (file.size > MAX_SIZE_BYTES && file.type.startsWith("image/")) {
+            toast({ title: "Файл слишком большой", description: "Сжимаем изображение..." });
+            const compressedDataUri = await compressImage(file);
+            const response = await fetch(compressedDataUri);
+            imageBlob = await response.blob();
+          }
+
+          const filePath = `avatars/${initialData.id}/${Date.now()}_${file.name.replace(/\s/g, "_")}`;
+          const fileRef = storageRef(storage, filePath);
+          await uploadBytes(fileRef, imageBlob);
+          const publicUrl = await getDownloadURL(fileRef);
+
+          form.setValue("avatar", publicUrl, { shouldValidate: true, shouldDirty: true });
+          form.setValue("avatarThumb", "", { shouldValidate: true, shouldDirty: true });
+
+          const userDocRef = doc(firestore, "users", initialData.id!);
+          await updateDocumentNonBlocking(userDocRef, {
+            avatar: publicUrl,
+            avatarThumb: deleteField(),
+          });
+
+          toast({ title: "Аватар обновлен!", description: "Новый аватар сохранён." });
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error("[UserForm] avatar upload failed:", error);
+          toast({ variant: "destructive", title: "Ошибка загрузки", description: message });
+        }
       });
-      return;
-    }
+    },
+    [firestore, form, initialData?.id, startUploading, storage, toast]
+  );
+
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    processAvatarFile(file);
+  };
+
+  const handleProfileAvatarPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !file.type.startsWith("image/")) return;
+    profileAvatarFullRef.current = file;
+    const url = URL.createObjectURL(file);
+    setProfileCropSrc(url);
+    setProfileCropOpen(true);
+  };
+
+  const handleProfileCropCancel = () => {
+    profileAvatarFullRef.current = null;
+    if (profileCropSrc?.startsWith("blob:")) URL.revokeObjectURL(profileCropSrc);
+    setProfileCropSrc(null);
+    setProfileCropOpen(false);
+  };
+
+  const handleProfileCropApply = (circleFile: File) => {
+    const full = profileAvatarFullRef.current;
+    profileAvatarFullRef.current = null;
+    if (profileCropSrc?.startsWith("blob:")) URL.revokeObjectURL(profileCropSrc);
+    setProfileCropSrc(null);
+    setProfileCropOpen(false);
+    if (!full || !initialData?.id || !storage || !firestore) return;
 
     startUploading(async () => {
       try {
-        const MAX_SIZE_BYTES = 500 * 1024; // 500 KB
-        let imageBlob: Blob = file;
-
-        if (file.size > MAX_SIZE_BYTES && file.type.startsWith('image/')) {
-          toast({ title: 'Файл слишком большой', description: 'Сжимаем изображение...' });
-          const compressedDataUri = await compressImage(file);
-          const response = await fetch(compressedDataUri);
-          imageBlob = await response.blob();
+        const { avatarUrl, avatarThumbUrl } = await uploadUserAvatarPair(
+          storage,
+          initialData.id!,
+          full,
+          circleFile,
+        );
+        form.setValue("avatar", avatarUrl, { shouldValidate: true, shouldDirty: true });
+        if (avatarThumbUrl) {
+          form.setValue("avatarThumb", avatarThumbUrl, { shouldValidate: true, shouldDirty: true });
+        } else {
+          form.setValue("avatarThumb", "", { shouldValidate: true, shouldDirty: true });
         }
-
-        // 1. Create a storage reference on the client
-        const filePath = `avatars/${initialData.id}/${Date.now()}_${file.name.replace(/\s/g, '_')}`;
-        const fileRef = storageRef(storage, filePath);
-
-        // 2. Upload the file using the client SDK
-        await uploadBytes(fileRef, imageBlob);
-
-        // 3. Get the public download URL
-        const publicUrl = await getDownloadURL(fileRef);
-
-        // 4. Update the form for immediate UI feedback
-        form.setValue('avatar', publicUrl, { shouldValidate: true, shouldDirty: true });
-        
-        // 5. Asynchronously update the user document in Firestore.
-        // The onSnapshot listener in useAuth will handle the state update.
-        const userDocRef = doc(firestore, 'users', initialData.id!);
-        await updateDocumentNonBlocking(userDocRef, { avatar: publicUrl });
-
-        toast({ title: 'Аватар обновлен!', description: 'Ваш новый аватар был успешно сохранен.' });
-
-      } catch (error: any) {
-        console.error("Upload failed:", error);
-        toast({ variant: 'destructive', title: 'Ошибка загрузки', description: error.message });
+        const userDocRef = doc(firestore, "users", initialData!.id!);
+        await updateDocumentNonBlocking(userDocRef, {
+          avatar: avatarUrl,
+          avatarThumb: avatarThumbUrl ?? deleteField(),
+        });
+        toast({
+          title: "Аватар обновлён!",
+          description: "Сохранены полное фото и круглое превью.",
+        });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[UserForm] profile avatar pair upload failed:", error);
+        toast({ variant: "destructive", title: "Ошибка загрузки", description: message });
       }
     });
   };
@@ -279,7 +357,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
       "space-y-4 p-1",
       layout === 'horizontal' && "grid grid-cols-1 md:grid-cols-3 gap-8"
     )}>
-      {/* Avatar Section */}
+      {/* Avatar: профиль — как при регистрации (круг + обрезка); админ — превью в диалоге */}
       <div className={cn(layout === 'horizontal' && "md:col-span-1")}>
         <FormField
           control={form.control}
@@ -287,58 +365,121 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div className="flex flex-col items-center gap-4">
-                  <Dialog>
-                    <DialogTrigger asChild disabled={!field.value}>
-                       <div className="relative w-32 h-32 rounded-full overflow-hidden cursor-pointer group bg-muted border">
-                        {field.value ? (
-                          <Avatar className="h-full w-full">
-                            <AvatarImage src={field.value} alt={form.getValues('name')} className="object-cover" />
-                            <AvatarFallback><UserIcon className="h-16 w-16 text-muted-foreground"/></AvatarFallback>
-                          </Avatar>
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <UserIcon className="h-16 w-16 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    </DialogTrigger>
-                    {field.value && (
-                       <DialogContent showCloseButton={false} className="bg-black/90 backdrop-blur-sm border-none shadow-none p-0 w-screen h-screen max-w-full max-h-full rounded-none flex flex-col items-center justify-center">
-                        <header className="absolute top-0 left-0 right-0 z-50 h-24 bg-gradient-to-b from-black/70 to-transparent flex items-start justify-between p-4 text-white">
-                            <p className="font-semibold">{form.getValues('name')}</p>
-                            <DialogClose asChild>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white" aria-label="Закрыть">
-                                    <X className="h-6 w-6" />
-                                </Button>
-                            </DialogClose>
-                        </header>
-                        <div className="relative h-[85vh] w-[95vw]">
-                            <Image src={field.value} alt={form.getValues('name')} fill sizes="(max-width: 768px) 100vw, 80vw" className="object-contain w-full h-full" />
-                        </div>
-                    </DialogContent>
-                    )}
-                  </Dialog>
-                  <div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleAvatarUpload}
-                      className="hidden"
-                      accept="image/*"
-                    />
-                    <Button
+                {isProfilePage ? (
+                  <div className="flex flex-col items-center gap-1 pb-2">
+                    <button
                       type="button"
-                      variant="outline"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isUploading}
-                      className="rounded-full"
+                      className="group relative disabled:opacity-60"
+                      aria-label="Изменить аватар"
                     >
-                      {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isEditing ? 'Изменить аватар' : 'Добавить аватар'}
-                    </Button>
+                      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-white/45 bg-white/20 backdrop-blur-md transition-colors group-hover:border-primary/60 group-disabled:pointer-events-none dark:border-white/25 dark:bg-white/[0.06]">
+                        {field.value ? (
+                          <img
+                            src={userAvatarListUrl({
+                              avatar: field.value,
+                              avatarThumb: form.watch("avatarThumb"),
+                            })}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <Camera className="h-7 w-7 text-slate-500 transition-colors group-hover:text-primary dark:text-white/45" />
+                        )}
+                      </div>
+                      <div className="pointer-events-none absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary shadow-md">
+                        <span className="text-xs font-bold text-white">+</span>
+                      </div>
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleProfileAvatarPick}
+                    />
+                    <p className="max-w-[240px] text-center text-[10px] leading-snug text-slate-500 dark:text-white/40">
+                      Необязательно. Полный кадр — в профиле при открытии фото; круг из окна — в списках и сообщениях.
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                    <Dialog>
+                      <DialogTrigger asChild disabled={!field.value}>
+                        <div className="relative h-32 w-32 cursor-pointer overflow-hidden rounded-full border bg-muted group">
+                          {field.value ? (
+                            <Avatar className="h-full w-full">
+                              <AvatarImage
+                                src={userAvatarListUrl({
+                                  avatar: field.value,
+                                  avatarThumb: form.watch("avatarThumb"),
+                                })}
+                                alt={form.getValues("name")}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>
+                                <UserIcon className="h-16 w-16 text-muted-foreground" />
+                              </AvatarFallback>
+                            </Avatar>
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <UserIcon className="h-16 w-16 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      </DialogTrigger>
+                      {field.value && (
+                        <DialogContent
+                          showCloseButton={false}
+                          className="flex h-screen max-h-full w-screen max-w-full flex-col items-center justify-center rounded-none border-none bg-black/90 p-0 shadow-none backdrop-blur-sm"
+                        >
+                          <header className="absolute left-0 right-0 top-0 z-50 flex h-24 items-start justify-between bg-gradient-to-b from-black/70 to-transparent p-4 text-white">
+                            <p className="font-semibold">{form.getValues("name")}</p>
+                            <DialogClose asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-white hover:bg-white/20 hover:text-white"
+                                aria-label="Закрыть"
+                              >
+                                <X className="h-6 w-6" />
+                              </Button>
+                            </DialogClose>
+                          </header>
+                          <div className="relative h-[85vh] w-[95vw]">
+                            <Image
+                              src={field.value}
+                              alt={form.getValues("name")}
+                              fill
+                              sizes="(max-width: 768px) 100vw, 80vw"
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    <div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="rounded-full"
+                      >
+                        {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isEditing ? "Изменить аватар" : "Добавить аватар"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -412,27 +553,10 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                 <FormItem>
                 <FormLabel>Телефон</FormLabel>
                 <FormControl>
-                    <Input 
-                    type="tel" 
-                    inputMode="tel"
-                    placeholder="+7 (999) 123-45-67" 
-                    {...field} 
-                    value={field.value ?? ''}
-                    onChange={(e) => field.onChange(applyPhoneMask(e.target.value))}
-                    onKeyDown={(e) => {
-                      const el = e.currentTarget;
-                      const res = tryApplyRuPhoneMaskKeyEdit(
-                        e.key,
-                        field.value ?? "",
-                        el.selectionStart ?? 0,
-                        el.selectionEnd ?? 0
-                      );
-                      if (!res) return;
-                      e.preventDefault();
-                      field.onChange(res.display);
-                      requestAnimationFrame(() => el.setSelectionRange(res.caret, res.caret));
-                    }}
-                    className="rounded-xl"
+                    <PhoneInput
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      className="rounded-xl"
                     />
                 </FormControl>
                 <FormMessage />
@@ -627,6 +751,16 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           </Button>
         </div>
       </form>
+      {isProfilePage && (
+        <RegisterAvatarCropOverlay
+          variant="compact"
+          open={profileCropOpen}
+          imageSrc={profileCropSrc}
+          onCancel={handleProfileCropCancel}
+          onApply={handleProfileCropApply}
+          scopeWithinElement={getDashboardMainColumnEl ?? undefined}
+        />
+      )}
     </Form>
   );
 }

@@ -8,6 +8,8 @@
   - `notifications/{notificationId}`
   - `stickerPacks/{packId}/items/{itemId}`
 - `registrationIndex/{docId}` - индекс уникальности (email/phone/username), только server-write.
+- `publicStickerPacks/{packId}` - общие стикерпаки (read: авторизованные; write: admin).
+  - `items/{itemId}` - стикеры/GIF (те же поля, что у `users/*/stickerPacks/*/items`).
 - `conversations/{conversationId}` - чат и метаданные участников.
   - `members/{memberId}` - server-maintained индекс участников для правил.
   - `typing/{typingUserId}`

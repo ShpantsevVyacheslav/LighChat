@@ -23,6 +23,8 @@ export interface ParticipantState {
   id: string;
   name: string;
   avatar: string;
+  /** Круглое превью (как в профиле) — денормализация в meetings/.../participants */
+  avatarThumb?: string;
   stream?: MediaStream | null;
   isAudioMuted?: boolean;
   isVideoMuted?: boolean;
@@ -484,7 +486,10 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     const myRef = doc(firestore, `meetings/${meeting.id}/participants`, currentUser.id);
     
     setDoc(myRef, {
-      id: currentUser.id, name: initialSettings.name || currentUser.name, avatar: currentUser.avatar || '',
+      id: currentUser.id,
+      name: initialSettings.name || currentUser.name,
+      avatar: currentUser.avatar || '',
+      avatarThumb: currentUser.avatarThumb?.trim() || '',
       role: currentUser.role || 'worker', joinedAt: serverTimestamp(), lastSeen: new Date().toISOString(),
       isAudioMuted: isMicMuted, isVideoMuted: isVideoOff, isHandRaised: isHandRaised,
       backgroundConfig: { type: backgroundConfig.type, url: backgroundConfig.url || null }

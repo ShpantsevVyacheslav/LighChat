@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, User } from '@/lib/types';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 
 interface ChatSearchOverlayProps {
   query: string;
@@ -121,7 +122,7 @@ export function ChatSearchOverlay({
                       )}
                     >
                       <Avatar className="h-9 w-9 shrink-0 dark:border dark:border-white/15">
-                        <AvatarImage src={sender?.avatar} className="object-cover" />
+                        <AvatarImage src={userAvatarListUrl(sender)} className="object-cover" />
                         <AvatarFallback className="text-foreground">{sender?.name?.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">

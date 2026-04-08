@@ -1,5 +1,6 @@
 import type { Firestore } from 'firebase/firestore';
 import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
+import { participantInfoEntryForWrite } from '@/lib/conversation-participant-info-firestore';
 import type { User, Conversation } from '@/lib/types';
 
 /**
@@ -39,8 +40,8 @@ export async function createOrOpenDirectChat(
     participantIds: [currentUser.id, otherUser.id],
     adminIds: [],
     participantInfo: {
-      [currentUser.id]: { name: currentUser.name, avatar: currentUser.avatar },
-      [otherUser.id]: { name: otherUser.name, avatar: otherUser.avatar },
+      [currentUser.id]: participantInfoEntryForWrite(currentUser),
+      [otherUser.id]: participantInfoEntryForWrite(otherUser),
     },
     lastMessageTimestamp: new Date().toISOString(),
     lastMessageText: 'Чат создан',

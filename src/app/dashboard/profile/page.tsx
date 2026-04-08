@@ -3,7 +3,6 @@
 import { useAuth } from '@/hooks/use-auth';
 import type { UserFormSavePayload } from '@/components/admin/user-form';
 import { UserForm } from '@/components/admin/user-form';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { UserCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,10 +15,18 @@ export default function ProfilePage() {
   const handleSave = async (data: UserFormSavePayload) => {
     const result = await updateUser(data);
     if (result.ok) {
-      toast({
-        title: 'Профиль обновлен',
-        description: 'Ваши данные были успешно сохранены.',
-      });
+      if (result.emailVerificationSent) {
+        toast({
+          title: 'Подтвердите новый email',
+          description:
+            'Отправлено письмо на новый адрес. Перейдите по ссылке в письме, чтобы завершить смену. Остальные изменения профиля сохранены.',
+        });
+      } else {
+        toast({
+          title: 'Профиль обновлен',
+          description: 'Ваши данные были успешно сохранены.',
+        });
+      }
     } else {
       toast({
         variant: 'destructive',
@@ -31,26 +38,21 @@ export default function ProfilePage() {
 
   if (isLoading || !user) {
       return (
-          <div className="space-y-4">
-                <Card>
-                    <CardHeader>
-                        <Skeleton className="h-7 w-48" />
-                        <Skeleton className="h-4 w-96" />
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="md:col-span-1">
-                                <Skeleton className="w-full aspect-[3/4] rounded-xl" />
-                            </div>
-                            <div className="md:col-span-2 space-y-4">
-                                <Skeleton className="h-10 w-full" />
-                                <Skeleton className="h-10 w-full" />
-                                <Skeleton className="h-10 w-full" />
-                                <Skeleton className="h-10 w-full" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+          <div className="space-y-4 max-w-5xl mx-auto pb-10">
+                <div className="animate-in fade-in slide-in-from-top-4 duration-700 flex items-center gap-2">
+                  <Skeleton className="h-9 w-64" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-2">
+                    <div className="md:col-span-1 flex justify-center">
+                        <Skeleton className="h-20 w-20 rounded-full" />
+                    </div>
+                    <div className="md:col-span-2 space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </div>
           </div>
       )
   }
@@ -62,29 +64,18 @@ export default function ProfilePage() {
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
             <UserCircle className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Мой профиль
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Управление личными данными и настройками безопасности.</p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Редактирование профиля</CardTitle>
-          <CardDescription>
-            Здесь вы можете изменить свою информацию. Для смены пароля откройте блок «Изменить пароль», введите новый пароль и подтверждение (не менее 6 символов).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <UserForm
-              layout="horizontal"
-              initialData={user}
-              onSave={handleSave}
-              onCancel={() => router.back()}
-              isSubmitting={isUpdatingUser}
-              isProfilePage={true}
-              hideCancelButton={false}
-            />
-        </CardContent>
-      </Card>
+      <UserForm
+        layout="horizontal"
+        initialData={user}
+        onSave={handleSave}
+        onCancel={() => router.back()}
+        isSubmitting={isUpdatingUser}
+        isProfilePage={true}
+        hideCancelButton={false}
+      />
     </div>
   );
 }

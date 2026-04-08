@@ -12,6 +12,8 @@ interface ChatAnchorProps {
   lastReaction: { emoji: string; messageId: string } | null;
   onClick: () => void;
   onNavigateToReaction: () => void;
+  /** Не показывать кнопку (оверлей профиля, медиапросмотр, document fullscreen — z-index якоря выше листов). */
+  suppressed?: boolean;
 }
 
 /**
@@ -29,11 +31,13 @@ export function ChatAnchor({
   unreadCount, 
   lastReaction, 
   onClick, 
-  onNavigateToReaction 
+  onNavigateToReaction,
+  suppressed = false,
 }: ChatAnchorProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  if (suppressed) return null;
   if (!isVisible && unreadCount === 0 && !lastReaction) return null;
   if (!mounted || typeof document === 'undefined') return null;
 

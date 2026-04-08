@@ -1,4 +1,5 @@
 import type { Conversation, User } from '@/lib/types';
+import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 
 /** Участник группы для подбора @ и разбора текста сообщения. */
 export type GroupMentionCandidate = {
@@ -27,12 +28,22 @@ export function buildGroupMentionCandidates(
     if (id === currentUserId) continue;
     const u = allUsers.find((x) => x.id === id);
     if (u && !u.deletedAt) {
-      out.push({ id: u.id, name: u.name || '', username: u.username || '', avatar: u.avatar || '' });
+      out.push({
+        id: u.id,
+        name: u.name || '',
+        username: u.username || '',
+        avatar: participantListAvatarUrl(u, undefined),
+      });
       continue;
     }
     const info = conversation.participantInfo[id];
     if (!info?.name) continue;
-    out.push({ id, name: info.name, username: '', avatar: info.avatar || '' });
+    out.push({
+      id,
+      name: info.name,
+      username: '',
+      avatar: participantListAvatarUrl(undefined, info),
+    });
   }
   return out;
 }

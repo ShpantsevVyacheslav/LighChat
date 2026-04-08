@@ -6,14 +6,32 @@ const nextConfig = {
    * COOP: same-origin блокирует это и шумит в консоли. same-origin-allow-popups — рекомендуемый
    * компромисс для приложений с входом через всплывающее окно.
    */
+  /**
+   * Кэширование: Safari иначе может долго держать HTML документа, а `/_next/static/*`
+   * при следующем деплое уже другие — смесь версий даёт долгую загрузку / Firestore-ошибки
+   * до «Разработка → Очистить кэши». Правило для static — первым (первое совпадение в Next).
+   */
   async headers() {
     return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
       {
         source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Opener-Policy',
             value: 'same-origin-allow-popups',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0, must-revalidate',
           },
         ],
       },

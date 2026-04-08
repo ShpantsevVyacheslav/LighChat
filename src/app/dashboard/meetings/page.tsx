@@ -25,7 +25,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 const DURATION_OPTIONS = [
   { label: '15 минут', value: '15' },
   { label: '30 минут', value: '30' },
@@ -123,12 +123,8 @@ export default function MeetingsDashboardPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
-        <Card className="rounded-[2.5rem] border-2 shadow-sm">
-          <CardHeader>
-            <CardTitle>Новая встреча</CardTitle>
-            <CardDescription>Задайте название и параметры доступа.</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold leading-none tracking-tight">Новая встреча</h2>
             <form onSubmit={handleCreateMeeting} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Название встречи</Label>
@@ -181,31 +177,26 @@ export default function MeetingsDashboardPage() {
                 Создать встречу
               </Button>
             </form>
-          </CardContent>
-        </Card>
+        </section>
 
-        <div className="space-y-4">
-          <Card className="rounded-[2.5rem] bg-primary/5 border-primary/10 border shadow-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <LinkIcon className="h-5 w-5 text-primary" /> Зал ожидания
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground font-medium opacity-80 leading-relaxed">
+        <div className="space-y-8">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+              <LinkIcon className="h-5 w-5 text-primary shrink-0" /> Зал ожидания
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium opacity-90 leading-relaxed">
               В приватных комнатах вы полностью контролируете список участников. Пока вы не нажмете «Принять», гость будет видеть экран ожидания.
-            </CardContent>
-          </Card>
+            </p>
+          </section>
 
-          <Card className="rounded-[2.5rem] bg-muted/50 border shadow-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5" /> Виртуальные фоны
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground font-medium opacity-80 leading-relaxed">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+              <Users className="h-5 w-5 shrink-0" /> Виртуальные фоны
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium opacity-90 leading-relaxed">
               Участники могут размыть задний план или выбрать изображение из галереи. Также доступна загрузка собственных фонов.
-            </CardContent>
-          </Card>
+            </p>
+          </section>
         </div>
       </div>
 
@@ -217,11 +208,11 @@ export default function MeetingsDashboardPage() {
         {isIndexLoading || isHistoryLoading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(3)].map((_, i) => (
-                    <Card key={i} className="rounded-3xl border p-4 space-y-3">
+                    <div key={i} className="space-y-3 py-1">
                         <Skeleton className="h-6 w-3/4 rounded-lg" />
                         <Skeleton className="h-4 w-1/2 rounded-lg" />
                         <Skeleton className="h-10 w-full rounded-xl" />
-                    </Card>
+                    </div>
                 ))}
             </div>
         ) : sortedHistory.length > 0 ? (

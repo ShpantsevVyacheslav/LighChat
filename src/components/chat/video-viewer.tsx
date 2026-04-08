@@ -6,6 +6,7 @@ import { type ChatAttachment } from '@/lib/types';
 import { X, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+import { useVerticalSwipeToDismiss } from '@/hooks/use-vertical-swipe-dismiss';
 
 interface VideoViewerProps {
   isOpen: boolean;
@@ -112,14 +113,27 @@ export function VideoViewer({ isOpen, onOpenChange, video }: VideoViewerProps) {
       }
     };
   }, []);
-  
+
+  const swipeDismiss = useVerticalSwipeToDismiss({
+    enabled: isOpen && !isFullscreen,
+    onDismiss: () => onOpenChange(false),
+    thresholdPx: 100,
+  });
+
   if(!video) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         showCloseButton={false}
-        className="bg-black/90 backdrop-blur-sm border-none shadow-none p-0 w-screen h-screen max-w-full max-h-full rounded-none flex items-center justify-center"
+        style={swipeDismiss.contentStyle}
+        onTouchStart={swipeDismiss.onTouchStart}
+        onTouchMove={swipeDismiss.onTouchMove}
+        onTouchEnd={swipeDismiss.onTouchEnd}
+        className={cn(
+          'bg-black/90 backdrop-blur-sm border-none shadow-none p-0 w-screen h-[100dvh] max-w-full max-h-[100dvh] rounded-none flex items-center justify-center pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]',
+          swipeDismiss.transitionClass
+        )}
         onMouseMove={showControls}
         onMouseLeave={hideControls}
         ref={containerRef}
@@ -136,17 +150,17 @@ export function VideoViewer({ isOpen, onOpenChange, video }: VideoViewerProps) {
           loop
           onClick={handlePlayPause}
           onPlay={() => showControls()}
-          className="max-w-full max-h-full object-contain"
+          className="max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-0.5rem)] max-w-full object-contain"
         />
 
         <DialogClose asChild>
-            <Button variant="ghost" size="icon" className={cn("absolute top-4 right-4 z-50 text-white hover:bg-white/20 hover:text-white transition-opacity", isControlsVisible ? "opacity-100" : "opacity-0")} aria-label="Закрыть">
+            <Button variant="ghost" size="icon" className={cn("absolute z-50 text-white hover:bg-white/20 hover:text-white transition-opacity top-[calc(1rem+env(safe-area-inset-top,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))]", isControlsVisible ? "opacity-100" : "opacity-0")} aria-label="Закрыть">
             <X className="h-6 w-6" />
             </Button>
         </DialogClose>
         
         <div className={cn(
-            "absolute bottom-4 right-4 z-50 flex items-center gap-2 transition-opacity",
+            "absolute z-50 flex items-center gap-2 transition-opacity bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))]",
             isControlsVisible ? "opacity-100" : "opacity-0"
         )}>
             <Button variant="ghost" size="icon" onClick={handleMuteToggle} className="text-white hover:bg-white/20">

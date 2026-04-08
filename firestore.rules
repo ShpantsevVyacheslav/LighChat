@@ -77,6 +77,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /**
+     * Общие стикерпаки для всех вошедших пользователей.
+     * Запись только у admin (поле users/{uid}.role == «admin»).
+     */
+    match /publicStickerPacks/{packId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      match /items/{itemId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
+    }
+
     match /users/{userId} {
       /**
        * Чтение профилей: любой авторизованный (чат, звонки, контакты, упоминания).

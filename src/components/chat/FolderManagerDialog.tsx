@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
+import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 
 interface FolderManagerDialogProps {
   open: boolean;
@@ -229,10 +230,11 @@ export function FolderManagerDialog({
                     : otherId
                       ? allUsers.find((u) => u.id === otherId)?.name || conv.participantInfo[otherId]?.name || 'Чат'
                       : 'Чат';
+                  const liveOther = otherId ? allUsers.find((u) => u.id === otherId) : undefined;
                   const avatar = conv.isGroup
                     ? conv.photoUrl
                     : otherId
-                      ? allUsers.find((u) => u.id === otherId)?.avatar || conv.participantInfo[otherId]?.avatar || ''
+                      ? participantListAvatarUrl(liveOther, conv.participantInfo[otherId])
                       : '';
 
                   return (

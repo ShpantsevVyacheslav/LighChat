@@ -7,7 +7,11 @@ import type { FirebaseStorage } from 'firebase/storage';
 
 import { useCollection, useFirestore, useMemoFirebase, useStorage } from '@/firebase';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { addImageFilesToUserStickerPack, createUserStickerPack } from '@/lib/user-sticker-packs-client';
+import {
+  addImageFilesToUserStickerPack,
+  createUserStickerPack,
+  deleteUserStickerPack,
+} from '@/lib/user-sticker-packs-client';
 import type { UserStickerItemDoc, UserStickerPackDoc } from '@/lib/user-sticker-packs';
 
 type PackRow = UserStickerPackDoc & { id: string };
@@ -111,6 +115,15 @@ export function useUserStickerPacks(userId: string | undefined) {
     [firestore, userId]
   );
 
+  const deletePack = useCallback(
+    async (packId: string): Promise<boolean> => {
+      if (!firestore || !userId || !storage) return false;
+      const res = await deleteUserStickerPack(firestore, storage, userId, packId);
+      return res.ok;
+    },
+    [firestore, storage, userId]
+  );
+
   const selectedPack = packs?.find((p) => p.id === selectedPackId);
 
   return {
@@ -129,5 +142,6 @@ export function useUserStickerPacks(userId: string | undefined) {
     duplicateCurrentPack,
     addFilesToPack,
     deleteItem,
+    deletePack,
   };
 }

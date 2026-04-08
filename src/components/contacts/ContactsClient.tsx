@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { buildPathWithConversation } from '@/lib/dashboard-conversation-url';
 import { useAuth } from '@/hooks/use-auth';
 import { useDoc, useFirestore, useMemoFirebase, useUsersByDocumentIds, useUser as useFirebaseUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -15,6 +16,8 @@ import {
   MessageSquare,
   Trash2,
   Smartphone,
+  Phone,
+  Video,
   AlertCircle as AlertCircleIcon,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +30,7 @@ import {
 } from '@/lib/contacts-client-actions';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { normalizePhoneDigits } from '@/lib/phone-utils';
 import { isPwaDisplayMode } from '@/lib/pwa-display-mode';
 import { cn } from '@/lib/utils';
@@ -42,6 +46,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ContactsSyncPromoBanner } from '@/components/contacts/ContactsSyncPromoBanner';
 import { ContactsPermissionGuideDialog } from '@/components/contacts/ContactsPermissionGuideDialog';
+import { initiateCall } from '@/components/chat/AudioCallOverlay';
 
 type ContactPickerNavigator = Navigator & {
   contacts?: {
@@ -63,11 +68,14 @@ export function ContactsClient() {
   const ownerUid = firebaseUser?.uid ?? null;
   const firestore = useFirestore();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [phoneInput, setPhoneInput] = useState('');
   const [searchBusy, setSearchBusy] = useState(false);
   const [chatBusyId, setChatBusyId] = useState<string | null>(null);
+  const [callBusy, setCallBusy] = useState<{ userId: string; video: boolean } | null>(null);
   const [removeBusyId, setRemoveBusyId] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -237,7 +245,9 @@ export function ContactsClient() {
     setChatBusyId(other.id);
     try {
       const id = await createOrOpenDirectChat(firestore, currentUser, other);
-      router.push(`/dashboard/chat?conversationId=${encodeURIComponent(id)}`);
+      router.replace(
+        buildPathWithConversation(pathname, searchParams.toString(), id)
+      );
     } catch (e) {
       console.error(e);
       toast({ title: 'Не удалось открыть чат', variant: 'destructive' });
@@ -245,6 +255,27 @@ export function ContactsClient() {
       setChatBusyId(null);
     }
   };
+
+  const startCall = useCallback(
+    async (other: User, isVideo: boolean) => {
+      if (!firestore || !currentUser) return;
+      if (!canStartDirectChat(currentUser, other)) {
+        toast({
+          title: 'Звонок недоступен',
+          description: 'С этим пользователем нельзя связаться по правилам ролей.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setCallBusy({ userId: other.id, video: isVideo });
+      try {
+        await initiateCall(firestore, currentUser, other, isVideo, toast);
+      } finally {
+        setCallBusy(null);
+      }
+    },
+    [firestore, currentUser, toast]
+  );
 
   const removeContact = async (otherId: string) => {
     if (!firestore || !currentUser || !ownerUid) return;
@@ -357,7 +388,7 @@ export function ContactsClient() {
             <li key={id}>
               <div className="flex items-center gap-3 py-3">
                 <Avatar className="h-11 w-11 shrink-0 ring-1 ring-black/5 dark:ring-white/10">
-                  {u ? <AvatarImage src={u.avatar} alt="" /> : null}
+                  {u ? <AvatarImage src={userAvatarListUrl(u)} alt="" /> : null}
                   <AvatarFallback className="text-sm font-medium">{u ? u.name.charAt(0) : '?'}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
@@ -377,7 +408,7 @@ export function ContactsClient() {
                     type="button"
                     className={cn(glassIconButtonClass, 'h-9 w-9 rounded-[0.75rem]')}
                     onClick={() => u && openChat(u)}
-                    disabled={!u || chatBusyId === id}
+                    disabled={!u || chatBusyId === id || callBusy?.userId === id}
                     aria-label="Написать"
                   >
                     {chatBusyId === id ? (
@@ -390,10 +421,42 @@ export function ContactsClient() {
                     type="button"
                     className={cn(
                       glassIconButtonClass,
+                      'h-9 w-9 rounded-[0.75rem] text-[#34C759] dark:text-[#48E074]'
+                    )}
+                    onClick={() => u && void startCall(u, true)}
+                    disabled={!u || callBusy?.userId === id || chatBusyId === id}
+                    aria-label="Видеозвонок"
+                  >
+                    {callBusy?.userId === id && callBusy.video ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Video className="h-4 w-4" strokeWidth={1.75} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      glassIconButtonClass,
+                      'h-9 w-9 rounded-[0.75rem] text-[#34C759] dark:text-[#48E074]'
+                    )}
+                    onClick={() => u && void startCall(u, false)}
+                    disabled={!u || callBusy?.userId === id || chatBusyId === id}
+                    aria-label="Аудиозвонок"
+                  >
+                    {callBusy?.userId === id && !callBusy.video ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Phone className="h-4 w-4" strokeWidth={1.75} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      glassIconButtonClass,
                       'h-9 w-9 rounded-[0.75rem] text-destructive hover:text-destructive'
                     )}
                     onClick={() => removeContact(id)}
-                    disabled={removeBusyId === id}
+                    disabled={removeBusyId === id || callBusy?.userId === id}
                     aria-label="Удалить из контактов"
                   >
                     {removeBusyId === id ? (

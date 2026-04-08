@@ -1,4 +1,5 @@
 import { collection, doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
+import { participantInfoEntryForWrite } from '@/lib/conversation-participant-info-firestore';
 import type { Conversation, User } from '@/lib/types';
 import {
   isFirestorePermissionDeniedError,
@@ -76,7 +77,7 @@ export async function ensureSavedMessagesChat(firestore: Firestore, user: User):
     participantIds: [user.id],
     adminIds: [],
     participantInfo: {
-      [user.id]: { name: user.name, avatar: user.avatar },
+      [user.id]: participantInfoEntryForWrite(user),
     },
     lastMessageTimestamp: new Date().toISOString(),
     lastMessageText: '',

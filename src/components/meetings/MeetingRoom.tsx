@@ -8,16 +8,22 @@ import { collection, doc, onSnapshot, serverTimestamp, query, where, orderBy, de
 import { ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Check, XCircle } from 'lucide-react';
+import { Check, XCircle, ChevronRight, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { ParticipantView } from './ParticipantView';
+import {
+  MeetingParticipantTileStage,
+  MEETING_TILES_PER_PAGE,
+  chunkMeetingTiles,
+} from './MeetingParticipantTileStage';
 import { MeetingRoomHeader } from './MeetingRoomHeader';
 import { MeetingControls } from './MeetingControls';
 import { MeetingSidebar } from './MeetingSidebar';
 import { MeetingPolls } from './MeetingPolls';
 import { useMeetingWebRTC, type BackgroundConfig } from '@/hooks/use-meeting-webrtc';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '../ui/button';
 
 interface MeetingRoomProps {
@@ -63,7 +69,7 @@ export function MeetingRoom({
   const [newMessageText, setNewMessageText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [waitingCount, setWaitingCount] = useState(0);
-  const [viewMode, setViewMode] = useState<'speaker' | 'grid'>('speaker');
+  const [viewMode, setViewMode] = useState<'speaker' | 'grid'>('grid');
   const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null);
   const [manualFocusId, setManualFocusId] = useState<string | null>(null);
   const [standardBackgrounds, setStandardBackgrounds] = useState<{ id: string; url: string; name: string }[]>([]);
@@ -184,17 +190,35 @@ export function MeetingRoom({
   const participantList = Object.values(rtc.participants);
   const totalPeople = participantList.length + 1;
 
-  /** Квадратные плитки: до 4 — 2×2, 5–6 — 3 колонки, 7+ — до 4 колонок на широком экране */
-  const conferenceGridClass = useMemo(() => {
-    if (totalPeople === 1) return 'grid-cols-1 max-w-md mx-auto w-full';
-    if (totalPeople === 2) return 'grid-cols-1 sm:grid-cols-2';
-    if (totalPeople <= 4) return 'grid-cols-2';
-    if (totalPeople <= 6) return 'grid-cols-2 sm:grid-cols-3';
-    return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4';
-  }, [totalPeople]);
-  
+  const tileScrollRef = useRef<HTMLDivElement>(null);
+  const [tileScrollState, setTileScrollState] = useState({ left: false, right: false });
+
+  const syncTileScrollArrows = useCallback(() => {
+    const el = tileScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setTileScrollState({
+      left: scrollLeft > 8,
+      right: scrollLeft < scrollWidth - clientWidth - 8,
+    });
+  }, []);
+
+  const scrollTilePage = useCallback(
+    (dir: 1 | -1) => {
+      const el = tileScrollRef.current;
+      if (!el) return;
+      el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' });
+      window.setTimeout(syncTileScrollArrows, 350);
+    },
+    [syncTileScrollArrows]
+  );
+
+  useEffect(() => {
+    syncTileScrollArrows();
+  }, [totalPeople, viewMode, syncTileScrollArrows]);
+
   const screenSharingParticipant = useMemo(() => {
-    if (rtc.isScreenSharing) return { id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, stream: rtc.localStream, isScreenSharing: true };
+    if (rtc.isScreenSharing) return { id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, avatarThumb: currentUser.avatarThumb, stream: rtc.localStream, isScreenSharing: true };
     return participantList.find(p => p.isScreenSharing);
   }, [rtc.isScreenSharing, rtc.localStream, currentUser, participantList]);
 
@@ -212,6 +236,7 @@ export function MeetingRoom({
         id: currentUser.id, 
         name: currentUser.name, 
         avatar: currentUser.avatar, 
+        avatarThumb: currentUser.avatarThumb,
         stream: rtc.localStream, 
         isAudioMuted: rtc.isMicMuted, 
         isVideoMuted: rtc.isVideoOff, 
@@ -235,6 +260,81 @@ export function MeetingRoom({
     lastSpeakerSwitchTime.current = now;
     setActiveSpeakerId(id);
   }, [screenSharingParticipant]);
+
+  const gridTilePages = useMemo(() => {
+    const tiles: React.ReactNode[] = [
+      <ParticipantView
+        key={currentUser.id}
+        participant={
+          {
+            id: currentUser.id,
+            name: currentUser.name,
+            avatar: currentUser.avatar,
+            avatarThumb: currentUser.avatarThumb,
+            stream: rtc.localStream,
+            isAudioMuted: rtc.isMicMuted,
+            isVideoMuted: rtc.isVideoOff,
+            isHandRaised: rtc.isHandRaised,
+            isScreenSharing: rtc.isScreenSharing,
+            backgroundConfig: rtc.backgroundConfig,
+            facingMode: rtc.facingMode,
+          } as any
+        }
+        isLocal
+        isHost={meeting.hostId === currentUser.id}
+        layout="grid"
+        gridTileSizing="fill"
+        onClick={() => {
+          setViewMode('speaker');
+          setManualFocusId(currentUser.id);
+        }}
+      />,
+      ...participantList.map((p) => (
+        <ParticipantView
+          key={p.id}
+          participant={p}
+          isHost={p.id === meeting.hostId}
+          layout="grid"
+          gridTileSizing="fill"
+          onClick={() => {
+            setViewMode('speaker');
+            setManualFocusId(p.id);
+          }}
+          onSpeaking={(isSpeaking) => isSpeaking && handleSpeakerChange(p.id)}
+        />
+      )),
+    ];
+    return chunkMeetingTiles(tiles, MEETING_TILES_PER_PAGE);
+  }, [
+    currentUser.id,
+    currentUser.name,
+    currentUser.avatar,
+    currentUser.avatarThumb,
+    meeting.hostId,
+    participantList,
+    rtc.localStream,
+    rtc.isMicMuted,
+    rtc.isVideoOff,
+    rtc.isHandRaised,
+    rtc.isScreenSharing,
+    rtc.backgroundConfig,
+    rtc.facingMode,
+    handleSpeakerChange,
+  ]);
+
+  useEffect(() => {
+    if (viewMode !== 'grid') return;
+    const needsPaging = totalPeople > MEETING_TILES_PER_PAGE;
+    if (!needsPaging) return;
+    const el = tileScrollRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => syncTileScrollArrows());
+    });
+    ro.observe(el);
+    window.requestAnimationFrame(() => syncTileScrollArrows());
+    return () => ro.disconnect();
+  }, [viewMode, totalPeople, syncTileScrollArrows]);
 
   const formattedStopwatch = useMemo(() => {
     const min = Math.floor(meetingDuration / 60).toString().padStart(2, '0');
@@ -352,7 +452,7 @@ export function MeetingRoom({
             {viewMode === 'speaker' && (
                 <div className="h-28 sm:h-36 bg-black/40 border-b border-white/5 flex gap-2 p-2 overflow-x-auto no-scrollbar shrink-0">
                     <ParticipantView 
-                        participant={{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, stream: rtc.localStream, isAudioMuted: rtc.isMicMuted, isVideoMuted: rtc.isVideoOff, isHandRaised: rtc.isHandRaised, isScreenSharing: rtc.isScreenSharing, backgroundConfig: rtc.backgroundConfig, facingMode: rtc.facingMode } as any}
+                        participant={{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, avatarThumb: currentUser.avatarThumb, stream: rtc.localStream, isAudioMuted: rtc.isMicMuted, isVideoMuted: rtc.isVideoOff, isHandRaised: rtc.isHandRaised, isScreenSharing: rtc.isScreenSharing, backgroundConfig: rtc.backgroundConfig, facingMode: rtc.facingMode } as any}
                         isLocal={true} isCompact={true} isHost={meeting.hostId === currentUser.id}
                         className={cn("w-44 sm:w-56 shrink-0", effectiveFocusId === currentUser.id && "ring-2 ring-primary")}
                         onClick={() => setManualFocusId(currentUser.id)}
@@ -380,28 +480,57 @@ export function MeetingRoom({
                         />
                     </div>
                 ) : (
-                    <div
-                      className={cn(
-                        'w-full h-full max-w-[1400px] mx-auto grid gap-3 sm:gap-3 transition-all duration-500 content-start justify-items-stretch items-start overflow-y-auto overflow-x-hidden py-1',
-                        conferenceGridClass
-                      )}
-                    >
-                        <ParticipantView 
-                            participant={{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, stream: rtc.localStream, isAudioMuted: rtc.isMicMuted, isVideoMuted: rtc.isVideoOff, isHandRaised: rtc.isHandRaised, isScreenSharing: rtc.isScreenSharing, backgroundConfig: rtc.backgroundConfig, facingMode: rtc.facingMode } as any} 
-                            isLocal={true}
-                            layout="grid"
-                            onClick={() => { setViewMode('speaker'); setManualFocusId(currentUser.id); }}
-                        />
-                        {participantList.map((p) => (
-                          <ParticipantView
-                            key={p.id}
-                            participant={p}
-                            isHost={p.id === meeting.hostId}
-                            layout="grid"
-                            onClick={() => { setViewMode('speaker'); setManualFocusId(p.id); }}
-                            onSpeaking={(isSpeaking) => isSpeaking && handleSpeakerChange(p.id)}
-                          />
+                    <div className="relative h-full w-full min-h-0">
+                      <div
+                        ref={tileScrollRef}
+                        onScroll={syncTileScrollArrows}
+                        className={cn(
+                          'flex h-full w-full min-h-0 overflow-x-auto overflow-y-hidden scroll-smooth',
+                          gridTilePages.length > 1 && 'snap-x snap-mandatory',
+                          /** Скрыть горизонтальный скроллбар — листание через стрелки при >9 участников */
+                          '[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
+                        )}
+                      >
+                        {gridTilePages.map((pageTiles, pageIdx) => (
+                          <div
+                            key={pageIdx}
+                            className={cn(
+                              'h-full w-full min-h-0 shrink-0 basis-full',
+                              gridTilePages.length > 1 && 'snap-center snap-always'
+                            )}
+                          >
+                            <MeetingParticipantTileStage tiles={pageTiles} />
+                          </div>
                         ))}
+                      </div>
+                      {gridTilePages.length > 1 && (
+                        <>
+                          {tileScrollState.left ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="icon"
+                              className="absolute left-2 top-1/2 z-20 h-11 w-11 -translate-y-1/2 rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md hover:bg-black/70"
+                              aria-label="Предыдущая страница участников"
+                              onClick={() => scrollTilePage(-1)}
+                            >
+                              <ChevronLeft className="h-6 w-6" />
+                            </Button>
+                          ) : null}
+                          {tileScrollState.right ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="icon"
+                              className="absolute right-2 top-1/2 z-20 h-11 w-11 -translate-y-1/2 rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md hover:bg-black/70"
+                              aria-label="Следующие участники"
+                              onClick={() => scrollTilePage(1)}
+                            >
+                              <ChevronRight className="h-6 w-6" />
+                            </Button>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                 )}
                 
@@ -474,7 +603,7 @@ function MeetingRequests({ meetingId }: { meetingId: string }) {
                     <div key={req.userId} className="flex flex-col gap-3 p-3 bg-black/40 rounded-2xl border border-white/5">
                         <div className="flex items-center gap-3 min-w-0">
                             <Avatar className="h-9 w-9 shrink-0 border-2 border-white/5 shadow-md">
-                                <AvatarImage src={req.avatar} className="object-cover" />
+                                <AvatarImage src={userAvatarListUrl({ avatar: req.avatar, avatarThumb: req.avatarThumb })} className="object-cover" />
                                 <AvatarFallback className="bg-slate-800 text-slate-400 font-bold">{req.name[0]}</AvatarFallback>
                             </Avatar>
                             <span className="text-sm font-bold truncate leading-tight">{req.name}</span>

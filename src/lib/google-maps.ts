@@ -1,11 +1,21 @@
 /**
  * Ссылки на карты. Для превью нужен ключ Static Maps API в NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.
- * Открыть в приложении можно и без ключа: {@link buildGoogleMapsPlaceUrl}.
+ * Открыть в приложении можно и без ключа: {@link buildGoogleMapsEmbedUrl}, {@link buildGoogleMapsPlaceUrl}.
  */
 export function buildGoogleMapsPlaceUrl(lat: number, lng: number): string {
   const safeLat = Number(lat.toFixed(6));
   const safeLng = Number(lng.toFixed(6));
   return `https://www.google.com/maps?q=${safeLat},${safeLng}`;
+}
+
+/**
+ * URL для встраивания карты в iframe (без ключа API). Используется во внутреннем диалоге LighChat.
+ */
+export function buildGoogleMapsEmbedUrl(lat: number, lng: number, zoom = 16): string {
+  const safeLat = Number(lat.toFixed(6));
+  const safeLng = Number(lng.toFixed(6));
+  const z = Math.min(Math.max(Math.round(zoom), 1), 21);
+  return `https://maps.google.com/maps?q=${safeLat},${safeLng}&z=${z}&output=embed&hl=ru`;
 }
 
 export function buildGoogleStaticMapUrl(

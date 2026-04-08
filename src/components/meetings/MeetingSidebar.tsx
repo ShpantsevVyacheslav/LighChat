@@ -24,11 +24,13 @@ import { ru } from 'date-fns/locale';
 import { Badge } from '../ui/badge';
 import { MeetingChatMessageItem } from './MeetingChatMessageItem';
 import { MeetingChatMessageInput } from './MeetingChatMessageInput';
+import { userAvatarListUrl } from '@/lib/user-avatar-display';
 
 interface ParticipantState {
   id: string;
   name: string;
   avatar: string;
+  avatarThumb?: string;
   role?: string;
   isAudioMuted?: boolean;
   isVideoMuted?: boolean;
@@ -40,7 +42,7 @@ interface MeetingSidebarProps {
   activeTab: 'participants' | 'polls' | 'chat' | null;
   onActiveTabChange: (tab: 'participants' | 'polls' | 'chat' | null) => void;
   onClose: () => void;
-  currentUser: { id: string; name: string; avatar: string; role?: string };
+  currentUser: { id: string; name: string; avatar: string; avatarThumb?: string; role?: string };
   chatMessages: MeetingMessage[];
   newMessageText: string;
   setNewMessageText: (text: string) => void;
@@ -230,13 +232,13 @@ export function MeetingSidebar({
                                 {requestsNode}
                                 <div className="space-y-1">
                                     <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 px-2 mb-3">В комнате</h4>
-                                    <ParticipantRow name={`${currentUser.name} (Вы)`} avatar={currentUser.avatar} role={getRoleLabel(currentUser.id, hostId, adminIds)} isMe />
+                                    <ParticipantRow name={`${currentUser.name} (Вы)`} avatar={currentUser.avatar} avatarThumb={currentUser.avatarThumb} role={getRoleLabel(currentUser.id, hostId, adminIds)} isMe />
                                     {participants.map(p => {
                                         const isAlreadyAdmin = adminIds.includes(p.id);
                                         const isParticipantHost = p.id === hostId;
                                         return (
                                             <ParticipantRow 
-                                                key={p.id} name={p.name} avatar={p.avatar} role={getRoleLabel(p.id, hostId, adminIds)} isAudioMuted={p.isAudioMuted} isVideoMuted={p.isVideoMuted} isHost={isHost}
+                                                key={p.id} name={p.name} avatar={p.avatar} avatarThumb={p.avatarThumb} role={getRoleLabel(p.id, hostId, adminIds)} isAudioMuted={p.isAudioMuted} isVideoMuted={p.isVideoMuted} isHost={isHost}
                                                 controls={isHost && p.id !== currentUser.id && !isParticipantHost && (
                                                     <div className="flex items-center gap-1">
                                                         <Button variant="ghost" size="icon" onClick={() => onToggleAdmin(p.id)} className={cn("h-8 w-8 rounded-full hover:bg-primary/20", isAlreadyAdmin ? "text-primary" : "text-white/30")} title={isAlreadyAdmin ? "Убрать админа" : "Сделать админом"}>{isAlreadyAdmin ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}</Button>
@@ -348,12 +350,13 @@ export function MeetingSidebar({
   );
 }
 
-function ParticipantRow({ name, avatar, role, isMe, controls, isAudioMuted, isVideoMuted }: any) {
+function ParticipantRow({ name, avatar, avatarThumb, role, isMe, controls, isAudioMuted, isVideoMuted }: { name: string; avatar: string; avatarThumb?: string; role?: string | null; isMe?: boolean; controls?: React.ReactNode; isAudioMuted?: boolean; isVideoMuted?: boolean; isHost?: boolean }) {
+    const avatarSrc = userAvatarListUrl({ avatar, avatarThumb });
     return (
         <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 transition-all hover:bg-white/10 group mb-2">
             <div className="flex items-center gap-3 min-w-0">
                 <Avatar className="h-10 w-10 shrink-0 border-2 border-white/5 shadow-md">
-                    <AvatarImage src={avatar} className="object-cover" />
+                    <AvatarImage src={avatarSrc} className="object-cover" />
                     <AvatarFallback className="font-black text-xs">{name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">

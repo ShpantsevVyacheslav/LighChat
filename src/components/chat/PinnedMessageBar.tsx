@@ -7,7 +7,18 @@ import type { PinnedMessage } from '@/lib/types';
 import { Pin, X, FileIcon, Film, Sticker, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function PinnedMessageBar({ pinnedMessage, onUnpin, onNavigate }: { pinnedMessage: PinnedMessage; onUnpin: () => void; onNavigate: () => void; }) {
+export function PinnedMessageBar({
+  pinnedMessage,
+  totalPins,
+  onUnpin,
+  onNavigate,
+}: {
+  pinnedMessage: PinnedMessage;
+  /** Нужно только для заголовка: одно vs несколько закрепов (без счётчика «k из n»). */
+  totalPins: number;
+  onUnpin: () => void;
+  onNavigate: () => void;
+}) {
   const getMediaIcon = () => {
     switch (pinnedMessage.mediaType) {
       case 'video': return <Film className="h-3 w-3 text-white/70" />;
@@ -36,7 +47,14 @@ export function PinnedMessageBar({ pinnedMessage, onUnpin, onNavigate }: { pinne
         <Pin className="h-4 w-4 shrink-0 rotate-45 text-primary" strokeWidth={2} />
         
         {pinnedMessage.mediaPreviewUrl && (
-            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-border/80 bg-muted dark:border-white/15 dark:bg-black/40 group/pinned-media">
+            <div
+              className={cn(
+                'relative h-[18px] w-[18px] shrink-0 overflow-hidden rounded-md border border-border/80 group/pinned-media dark:border-white/15',
+                pinnedMessage.mediaType === 'sticker'
+                  ? 'bg-transparent'
+                  : 'bg-muted dark:bg-black/40',
+              )}
+            >
                 {pinnedMessage.mediaType === 'video' || pinnedMessage.mediaType === 'video-circle' ? (
                     <video 
                         src={pinnedMessage.mediaPreviewUrl} 
@@ -48,13 +66,16 @@ export function PinnedMessageBar({ pinnedMessage, onUnpin, onNavigate }: { pinne
                     <img 
                         src={pinnedMessage.mediaPreviewUrl} 
                         className={cn(
-                            "h-full w-full object-cover",
-                            pinnedMessage.mediaType === 'sticker' && "object-contain p-1"
+                            "h-full w-full",
+                            pinnedMessage.mediaType === 'sticker' ? "object-contain p-px" : "object-cover"
                         )} 
                         alt="" 
                     />
                 )}
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/pinned-media:opacity-100 transition-opacity">
+                <div className={cn(
+                  "absolute inset-0 flex items-center justify-center opacity-0 group-hover/pinned-media:opacity-100 transition-opacity",
+                  pinnedMessage.mediaType === 'sticker' ? "bg-black/10" : "bg-black/20"
+                )}>
                     {getMediaIcon()}
                 </div>
             </div>
@@ -62,7 +83,7 @@ export function PinnedMessageBar({ pinnedMessage, onUnpin, onNavigate }: { pinne
 
         <div className="min-w-0 flex-1 antialiased">
           <p className="text-[10px] font-semibold uppercase leading-snug tracking-[0.08em] text-primary">
-            Закрепленное сообщение
+            {totalPins > 1 ? 'Закреплённые сообщения' : 'Закреплённое сообщение'}
           </p>
           <p className="mt-1 truncate text-sm leading-snug text-card-foreground">
             <span className="font-semibold text-foreground">{pinnedMessage.senderName}:</span>{' '}
@@ -84,7 +105,7 @@ export function PinnedMessageBar({ pinnedMessage, onUnpin, onNavigate }: { pinne
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">
-            <p>Открепить</p>
+            <p>Открепить это сообщение</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

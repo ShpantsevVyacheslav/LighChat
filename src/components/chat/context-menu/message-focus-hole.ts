@@ -1,0 +1,33 @@
+import type { ChatMessage } from '@/lib/types';
+import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
+
+/**
+ * Одиночный стикер/вырез без подписи и без ответа — меню: круглый вырез под blur
+ * (как Telegram/iMessage), без тёмного «квадрата» по периметру контейнера.
+ */
+export function shouldUseCircularStickerMenuHole(message: ChatMessage): boolean {
+  if (message.isDeleted) return false;
+  const att = message.attachments;
+  if (!att || att.length !== 1) return false;
+  const a = att[0];
+  if (a.name.startsWith('gif_') || a.name.startsWith('video-circle_') || a.type.startsWith('video/') || a.type.startsWith('audio/'))
+    return false;
+  if (!isAttachmentLikelyIosStickerCutout(a)) return false;
+  if (message.replyTo || message.locationShare || message.chatPollId) return false;
+  const plain = (message.text || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  if (plain.length > 0) return false;
+  return true;
+}
+
+export type FocusCircleHole = { cx: number; cy: number; r: number };
+
+/** Круг с лёгким inset, чтобы по краю не оставалась кайма незаблюренного фона. */
+export function readStickerCircleHoleFromRect(el: HTMLElement, insetRatio = 0.96): FocusCircleHole {
+  const br = el.getBoundingClientRect();
+  const r = (Math.min(br.width, br.height) / 2) * insetRatio;
+  return {
+    cx: br.left + br.width / 2,
+    cy: br.top + br.height / 2,
+    r,
+  };
+}
