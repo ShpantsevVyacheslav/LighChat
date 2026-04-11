@@ -3,6 +3,7 @@
 import { doc, updateDoc, increment, writeBatch, type Firestore } from 'firebase/firestore';
 import type { ChatAttachment, ChatMessage, User, ReplyContext } from '@/lib/types';
 import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
+import { isGridGalleryAttachment, isGridGalleryVideo } from '@/components/chat/attachment-visual';
 
 // Track messages currently being marked as read to prevent double-decrementing counters.
 // We no longer clear this with setTimeout to prevent race conditions on slow connections.
@@ -21,8 +22,13 @@ export const isOnlyEmojis = (text: string) => {
 
 /**
  * Generates a preview object for replies or pinned messages.
+ * @param decryptedPlaintextByMessageId — расшифрованный HTML для E2E-сообщений (ключ — id сообщения).
  */
-export const getReplyPreview = (message: ChatMessage, allUsers: User[]): ReplyContext => {
+export const getReplyPreview = (
+    message: ChatMessage,
+    allUsers: User[],
+    decryptedPlaintextByMessageId?: Record<string, string>
+): ReplyContext => {
     const sender = allUsers.find(u => u.id === message.senderId);
     const senderName = sender?.name || 'Участник';
     
@@ -30,7 +36,10 @@ export const getReplyPreview = (message: ChatMessage, allUsers: User[]): ReplyCo
     let mediaPreviewUrl = null;
     let mediaType: ReplyContext['mediaType'] = null;
 
-    if (message.text) {
+    const decryptedHtml = decryptedPlaintextByMessageId?.[message.id];
+    if (message.e2ee?.ciphertext && decryptedHtml) {
+        text = decryptedHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    } else if (message.text) {
         text = message.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
     }
 
@@ -192,6 +201,15 @@ export function getFirstStickerOrGifAttachment(message: ChatMessage): ChatAttach
   for (const a of message.attachments || []) {
     if (a.name.startsWith('gif_')) return a;
     if (a.name.startsWith('sticker_') || isAttachmentLikelyIosStickerCutout(a)) return a;
+  }
+  return null;
+}
+
+/** Первое изображение из сетки галереи (не видео) — для «Создать стикер». */
+export function getFirstGridGalleryImageForStickerCreation(message: ChatMessage): ChatAttachment | null {
+  for (const a of message.attachments || []) {
+    if (!isGridGalleryAttachment(a) || isGridGalleryVideo(a)) continue;
+    return a;
   }
   return null;
 }

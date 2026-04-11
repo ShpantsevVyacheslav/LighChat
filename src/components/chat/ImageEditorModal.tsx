@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import { 
   Undo2, RefreshCcw, 
   SendHorizonal, Image as ImageIcon,
@@ -56,6 +57,8 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
   const [caption, setCaption] = useState('');
   const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [activeColor, setActiveColor] = useState(COLORS[4].hex);
+  /** Толщина линии в пикселях канваса (совпадает с логикой VideoEditorModal). */
+  const [brushSize, setBrushSize] = useState(8);
   const [history, setHistory] = useState<HistoryStep[]>([]);
   const [isImageLoading, setIsImageLoading] = useState(true);
   
@@ -281,7 +284,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.strokeStyle = activeColor;
-      ctx.lineWidth = Math.max(4, canvas.width / 150);
+      ctx.lineWidth = brushSize;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
     }
@@ -430,7 +433,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
   return createPortal(
     <div className="fixed inset-0 z-[200] bg-black flex flex-col text-white animate-in fade-in duration-300 overflow-hidden font-body">
       
-      <header className="absolute top-0 left-0 right-0 z-[210] h-20 bg-gradient-to-b from-black/60 to-transparent px-4 flex items-center justify-between pointer-events-none">
+      <header className="pointer-events-none absolute left-0 right-0 top-0 z-[210] box-border flex min-h-20 items-center justify-between bg-gradient-to-b from-black/60 to-transparent pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pt-[env(safe-area-inset-top,0px)] pb-2">
         <div className="pointer-events-auto">
           <Button variant="ghost" size="icon" className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 transition-all border-none h-10 w-10 shadow-xl" onClick={onClose}>
             <X className="h-6 w-6" />
@@ -533,21 +536,56 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
         )}
 
         {activeTool === 'draw' && (
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-50 pointer-events-auto">
-            {COLORS.map(color => (
-              <button 
-                key={color.hex} 
-                onClick={() => setActiveColor(color.hex)} 
-                className={cn("w-8 h-8 rounded-full border-2 transition-all active:scale-125 shadow-2xl", activeColor === color.hex ? "border-white scale-125 ring-4 ring-primary/30" : "border-white/10")} 
-                style={{ backgroundColor: color.hex }} 
-              />
-            ))}
+          <div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50 pointer-events-auto w-[min(220px,calc(100vw-5rem))]">
+            <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/50 p-3 backdrop-blur-md">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                Толщина кисти
+              </span>
+              <div className="flex items-center gap-3">
+                <Slider
+                  value={[brushSize]}
+                  min={2}
+                  max={48}
+                  step={1}
+                  onValueChange={([v]) => setBrushSize(v)}
+                  className="flex-1"
+                />
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/30"
+                  title="Предпросмотр"
+                >
+                  <span
+                    className="rounded-full bg-white"
+                    style={{
+                      width: `${Math.min(brushSize, 20)}px`,
+                      height: `${Math.min(brushSize, 20)}px`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              {COLORS.map((color) => (
+                <button
+                  key={color.hex}
+                  type="button"
+                  onClick={() => setActiveColor(color.hex)}
+                  className={cn(
+                    'h-8 w-8 rounded-full border-2 shadow-2xl transition-all active:scale-125',
+                    activeColor === color.hex
+                      ? 'scale-125 border-white ring-4 ring-primary/30'
+                      : 'border-white/10',
+                  )}
+                  style={{ backgroundColor: color.hex }}
+                />
+              ))}
+            </div>
           </div>
         )}
       </main>
 
       {activeTool !== 'crop' && (
-        <footer className="absolute bottom-0 left-0 right-0 z-[210] p-6 space-y-6 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+        <footer className="absolute bottom-0 left-0 right-0 z-[210] space-y-6 bg-gradient-to-t from-black/80 via-black/20 to-transparent pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-6">
             <div className="max-w-3xl mx-auto flex items-center gap-2 overflow-hidden pointer-events-auto">
                 <ScrollArea className="flex-1 w-full">
                     <div className="flex items-center gap-3 pb-2 px-2 pt-2">

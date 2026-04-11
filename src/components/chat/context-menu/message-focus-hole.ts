@@ -5,7 +5,7 @@ import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
  * Одиночный стикер/вырез без подписи и без ответа — меню: круглый вырез под blur
  * (как Telegram/iMessage), без тёмного «квадрата» по периметру контейнера.
  */
-export function shouldUseCircularStickerMenuHole(message: ChatMessage): boolean {
+export function shouldUseCircularStickerMenuHole(message: ChatMessage, captionPlainOverride?: string): boolean {
   if (message.isDeleted) return false;
   const att = message.attachments;
   if (!att || att.length !== 1) return false;
@@ -14,7 +14,10 @@ export function shouldUseCircularStickerMenuHole(message: ChatMessage): boolean 
     return false;
   if (!isAttachmentLikelyIosStickerCutout(a)) return false;
   if (message.replyTo || message.locationShare || message.chatPollId) return false;
-  const plain = (message.text || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  const plain =
+    captionPlainOverride !== undefined
+      ? captionPlainOverride
+      : (message.text || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
   if (plain.length > 0) return false;
   return true;
 }

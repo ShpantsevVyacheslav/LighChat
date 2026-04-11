@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Copy, ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import { usePublicStickerPacks } from '@/hooks/use-public-sticker-packs';
 import { useUserStickerPacks } from '@/hooks/use-user-sticker-packs';
 import type { ChatAttachment } from '@/lib/types';
 import { USER_STICKER_MAX_FILE_BYTES, userStickerItemToAttachment } from '@/lib/user-sticker-packs';
+import { USER_STICKER_VIDEO_MAX_UPLOAD_SEC } from '@/lib/sticker-media-normalize';
 import { cn } from '@/lib/utils';
 
 type UserStickersTabProps = {
@@ -36,7 +37,7 @@ type UserStickersTabProps = {
 };
 
 /**
- * Вкладка «Стикеры»: общие паки (`publicStickerPacks`) и свои паки; дублирование, загрузка, удаление — только для своих.
+ * Вкладка «Стикеры»: общие паки (`publicStickerPacks`) и свои паки; загрузка и удаление — только для своих.
  */
 export function UserStickersTab({ userId, onPickSticker, className }: UserStickersTabProps) {
   const { toast } = useToast();
@@ -45,6 +46,16 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
   const [newPackName, setNewPackName] = useState('');
   const [busy, setBusy] = useState(false);
   const [deletePackOpen, setDeletePackOpen] = useState(false);
+  const [packIdPendingDelete, setPackIdPendingDelete] = useState<string | null>(null);
+  const packLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const packLongPressFiredRef = useRef(false);
+
+  const clearPackLongPressTimer = () => {
+    if (packLongPressTimerRef.current != null) {
+      clearTimeout(packLongPressTimerRef.current);
+      packLongPressTimerRef.current = null;
+    }
+  };
   const [stickerScope, setStickerScope] = useState<'my' | 'public'>('my');
 
   const {
@@ -60,7 +71,6 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     setSelectedPackId,
     selectedPack,
     createPack,
-    duplicateCurrentPack,
     addFilesToPack,
     deleteItem,
     deletePack,
@@ -111,14 +121,17 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     }
   }, [createPack, newPackName, setSelectedPackId, setStickerScope, toast]);
 
+  const packPendingDelete = packs?.find((p) => p.id === packIdPendingDelete);
+
   const handleDeletePack = useCallback(async () => {
-    if (!selectedPackId) return;
-    const pid = selectedPackId;
+    const pid = packIdPendingDelete;
+    if (!pid) return;
     setBusy(true);
     try {
       const ok = await deletePack(pid);
       if (ok) {
         setDeletePackOpen(false);
+        setPackIdPendingDelete(null);
         toast({ title: 'Стикерпак удалён' });
       } else {
         toast({ title: 'Не удалось удалить пак', variant: 'destructive' });
@@ -129,21 +142,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     } finally {
       setBusy(false);
     }
-  }, [deletePack, selectedPackId, toast]);
-
-  const handleDuplicatePack = useCallback(async () => {
-    if (!selectedPack || !items) return;
-    setBusy(true);
-    try {
-      await duplicateCurrentPack(selectedPack, items);
-      toast({ title: 'Пак скопирован', description: 'Новый пак с теми же стикерами.' });
-    } catch (e) {
-      console.warn('[LighChat:stickers] duplicate', e);
-      toast({ title: 'Не удалось скопировать пак', variant: 'destructive' });
-    } finally {
-      setBusy(false);
-    }
-  }, [duplicateCurrentPack, items, selectedPack, toast]);
+  }, [deletePack, packIdPendingDelete, toast]);
 
   const onFilesChosen = useCallback(
     async (list: FileList | null) => {
@@ -162,8 +161,15 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
             variant: 'destructive',
           });
         }
+        if (res.errors.includes('video_too_long')) {
+          toast({
+            title: 'Видео слишком длинное',
+            description: `В пак можно добавить только ролики до ${USER_STICKER_VIDEO_MAX_UPLOAD_SEC} с.`,
+            variant: 'destructive',
+          });
+        }
         if (res.ok === 0 && res.skipped > 0 && !res.errors.length) {
-          toast({ title: 'Нет подходящих изображений', variant: 'destructive' });
+          toast({ title: 'Нет подходящих файлов', variant: 'destructive' });
         }
       } finally {
         setBusy(false);
@@ -228,7 +234,33 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
                 size="sm"
                 variant={!isPublicScope && p.id === selectedPackId ? 'default' : 'outline'}
                 className="shrink-0 rounded-lg text-[10px] font-semibold uppercase tracking-wide h-8 px-2.5"
+                title="Долгое нажатие или правая кнопка — удалить пак"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setStickerScope('my');
+                  setSelectedPackId(p.id);
+                  setPackIdPendingDelete(p.id);
+                  setDeletePackOpen(true);
+                }}
+                onTouchStart={() => {
+                  clearPackLongPressTimer();
+                  packLongPressFiredRef.current = false;
+                  packLongPressTimerRef.current = setTimeout(() => {
+                    packLongPressTimerRef.current = null;
+                    packLongPressFiredRef.current = true;
+                    setStickerScope('my');
+                    setSelectedPackId(p.id);
+                    setPackIdPendingDelete(p.id);
+                    setDeletePackOpen(true);
+                  }, 600);
+                }}
+                onTouchEnd={clearPackLongPressTimer}
+                onTouchCancel={clearPackLongPressTimer}
                 onClick={() => {
+                  if (packLongPressFiredRef.current) {
+                    packLongPressFiredRef.current = false;
+                    return;
+                  }
                   setStickerScope('my');
                   setSelectedPackId(p.id);
                 }}
@@ -272,34 +304,10 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           <ImagePlus className="mr-1.5 h-3.5 w-3.5" />
           С устройства
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide"
-          disabled={busy || isPublicScope || !selectedPack}
-          onClick={() => void handleDuplicatePack()}
-          title="Копия текущего пака (те же файлы в новом паке)"
-        >
-          <Copy className="mr-1.5 h-3.5 w-3.5" />
-          Дублировать пак
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide text-destructive hover:text-destructive"
-          disabled={busy || isPublicScope || !selectedPackId}
-          onClick={() => setDeletePackOpen(true)}
-          title="Удалить текущий стикерпак"
-        >
-          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-          Удалить пак
-        </Button>
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           className="hidden"
           onChange={(e) => void onFilesChosen(e.target.files)}
@@ -321,7 +329,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
             <p className="py-6 text-center text-xs text-muted-foreground">
               {isPublicScope
                 ? 'В этом общем паке пока пусто.'
-                : 'В этом паке пока пусто — загрузите изображения.'}
+                : `В этом паке пока пусто — загрузите изображения или короткое видео (до ${USER_STICKER_VIDEO_MAX_UPLOAD_SEC} с).`}
             </p>
           ) : (
             <div className="grid grid-cols-4 gap-2 p-1">
@@ -333,13 +341,24 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
                     onClick={() => onPickSticker(userStickerItemToAttachment(st))}
                     className="relative w-full rounded-xl p-1 transition-transform hover:scale-105 active:scale-95 hover:bg-muted/80"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={st.downloadUrl}
-                      alt=""
-                      className="mx-auto h-14 w-14 object-contain"
-                      loading="lazy"
-                    />
+                    {st.contentType.startsWith('video/') ? (
+                      <video
+                        src={st.downloadUrl}
+                        className="mx-auto h-14 w-14 object-cover rounded-md bg-black"
+                        loop
+                        muted
+                        playsInline
+                        autoPlay
+                      />
+                    ) : (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={st.downloadUrl}
+                        alt=""
+                        className="mx-auto h-14 w-14 object-contain"
+                        loading="lazy"
+                      />
+                    )}
                   </button>
                   {!isPublicScope ? (
                     <button
@@ -383,13 +402,19 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deletePackOpen} onOpenChange={setDeletePackOpen}>
+      <AlertDialog
+        open={deletePackOpen}
+        onOpenChange={(o) => {
+          setDeletePackOpen(o);
+          if (!o) setPackIdPendingDelete(null);
+        }}
+      >
         <AlertDialogContent className="rounded-2xl" onMouseDown={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить стикерпак?</AlertDialogTitle>
             <AlertDialogDescription>
-              Пак «{selectedPack?.name ?? '…'}» и все его стикеры будут удалены. Общие паки здесь удалить нельзя. Файлы,
-              которые используются в других паках (например после «Дублировать»), в хранилище не трогаем.
+              Пак «{packPendingDelete?.name ?? '…'}» и все его стикеры будут удалены. Общие паки здесь удалить нельзя. Файлы,
+              которые используются в других паках, в хранилище не трогаем.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-0">

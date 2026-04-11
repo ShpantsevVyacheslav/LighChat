@@ -39,7 +39,15 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   showDateOfBirthToOthers: true,
   showInGlobalUserSearch: true,
   groupInvitePolicy: "everyone",
+  e2eeForNewDirectChats: false,
 };
+
+/** Строка фона или null; пустые значения из БД не ломают тему «Авто» и слой обоев. */
+function normalizeChatWallpaperStored(value: unknown): string | null {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s === "" ? null : s;
+}
 
 export function useSettings() {
   const { user } = useAuth();
@@ -52,6 +60,7 @@ export function useSettings() {
     const { sendByEnter: _legacySendByEnter, ...rest } = merged;
     return {
       ...rest,
+      chatWallpaper: normalizeChatWallpaperStored(rest.chatWallpaper),
       bubbleRadius: normalizeBubbleRadius(merged.bubbleRadius as string | undefined),
       bottomNavIconNames:
         rest.bottomNavIconNames && typeof rest.bottomNavIconNames === "object"
@@ -66,7 +75,7 @@ export function useSettings() {
           ? rest.bottomNavIconStyles
           : {},
     };
-  }, [user?.chatSettings]);
+  }, [user?.chatSettings, user?.chatSettings?.chatWallpaper]);
 
   const notificationSettings = useMemo<NotificationSettings>(
     () => ({ ...DEFAULT_NOTIFICATION_SETTINGS, ...user?.notificationSettings }),

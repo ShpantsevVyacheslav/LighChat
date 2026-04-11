@@ -12,6 +12,11 @@ import {
   Image as ImageIcon, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  clientDeltaToVideoDelta,
+  elementPointToVideoIntrinsics,
+  intrinsicCropRectToOverlayBoxPx,
+} from '@/lib/video-editor-display-geometry';
 
 interface VideoEditorModalProps {
   file: File;
@@ -37,6 +42,30 @@ const ASPECT_RATIOS = [
 
 type ToolType = 'none' | 'draw' | 'crop';
 type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w';
+
+/** Без `opus` в типе Chrome часто пишет только видео — звук в файле пропадает. */
+function pickVideoRecorderMimeType(includeAudio: boolean): string | undefined {
+  const withAudio = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+  ];
+  const videoOnly = [
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+    'video/mp4',
+  ];
+  const candidates = includeAudio ? withAudio : videoOnly;
+  for (const c of candidates) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c)) {
+      return c;
+    }
+  }
+  return undefined;
+}
 
 interface Rect {
   x: number;
@@ -90,6 +119,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
   const isDrawing = useRef(false);
   const activeHandle = useRef<ResizeHandle | null>(null);
   const startPos = useRef({ x: 0, y: 0, rect: { x: 0, y: 0, width: 0, height: 0 } });
+  const [, setVideoLayoutTick] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -283,14 +313,25 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
     }
   };
 
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setVideoLayoutTick((t) => t + 1));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [videoUrl]);
+
   const startDrawing = useCallback((e: any) => {
-    if (activeTool !== 'draw' || isProcessing || !drawCanvasRef.current) return;
+    if (activeTool !== 'draw' || isProcessing || !drawCanvasRef.current || !videoRef.current) return;
     const canvas = drawCanvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    const video = videoRef.current;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const x = (clientX - rect.left) * (canvas.width / rect.width);
-    const y = (clientY - rect.top) * (canvas.height / rect.height);
+    const br = video.getBoundingClientRect();
+    const p = elementPointToVideoIntrinsics(video, clientX - br.left, clientY - br.top);
+    if (!p) return;
+    const x = p.x;
+    const y = p.y;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       saveToHistory();
@@ -302,15 +343,19 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
   }, [activeTool, isProcessing, brushColor, brushSize, saveToHistory]);
 
   const draw = useCallback((e: any) => {
-    if (!isDrawing.current || !drawCanvasRef.current) return;
+    if (!isDrawing.current || !drawCanvasRef.current || !videoRef.current) return;
     const canvas = drawCanvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    const video = videoRef.current;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const x = (clientX - rect.left) * (canvas.width / rect.width);
-    const y = (clientY - rect.top) * (canvas.height / rect.height);
+    const br = video.getBoundingClientRect();
+    const p = elementPointToVideoIntrinsics(video, clientX - br.left, clientY - br.top);
+    if (!p) return;
     const ctx = canvas.getContext('2d');
-    if (ctx) { ctx.lineTo(x, y); ctx.stroke(); }
+    if (ctx) {
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
   }, []);
 
   const stopDrawing = useCallback(() => {
@@ -329,14 +374,16 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
   useEffect(() => {
     if (!isResizingCrop && !isDraggingCrop) return;
     const onMove = (e: MouseEvent | TouchEvent) => {
-      if (!tempCropRect || !videoRef.current) return;
+      if (!videoRef.current) return;
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-      const rect = videoRef.current.getBoundingClientRect();
-      
-      const dx = (clientX - startPos.current.x) * (videoRef.current.videoWidth / rect.width);
-      const dy = (clientY - startPos.current.y) * (videoRef.current.videoHeight / rect.height);
-      
+
+      const dClientX = clientX - startPos.current.x;
+      const dClientY = clientY - startPos.current.y;
+      const delta = clientDeltaToVideoDelta(videoRef.current, dClientX, dClientY);
+      if (!delta) return;
+      const { dx, dy } = delta;
+
       let newRect = { ...startPos.current.rect };
       if (isDraggingCrop) { 
           newRect.x += dx; 
@@ -369,7 +416,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
     window.addEventListener('touchmove', onMove); window.addEventListener('touchend', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onUp); };
-  }, [isResizingCrop, isDraggingCrop, tempCropRect, selectedRatio]);
+  }, [isResizingCrop, isDraggingCrop, selectedRatio]);
 
   const applyCrop = () => { saveToHistory(); setCropRect(tempCropRect); setActiveTool('none'); };
   const cancelCrop = () => { setTempCropRect(cropRect); setActiveTool('none'); };
@@ -377,53 +424,136 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
   const handleFinish = async () => {
     const v = videoRef.current; const drawCanvas = drawCanvasRef.current; const procCanvas = processingCanvasRef.current;
     if (!v || !procCanvas || !drawCanvas || !isFinite(startTime) || !isFinite(endTime) || !cropRect) return;
-    
-    setIsProcessing(true); 
-    v.pause(); 
-    
+
+    const ctx = procCanvas.getContext('2d');
+    if (!ctx) return;
+
+    const rw = cropRect.width;
+    const rh = cropRect.height;
+    const rotNorm = ((rotation % 360) + 360) % 360;
+    const outW = rotNorm % 180 === 0 ? rw : rh;
+    const outH = rotNorm % 180 === 0 ? rh : rw;
+    procCanvas.width = outW;
+    procCanvas.height = outH;
+
+    const composite = document.createElement('canvas');
+    composite.width = rw;
+    composite.height = rh;
+    const cctx = composite.getContext('2d');
+    if (!cctx) return;
+
+    setIsProcessing(true);
+    v.pause();
+
+    const prevMuted = v.muted;
+    const prevVolume = v.volume;
+
     v.currentTime = startTime;
     await new Promise(res => { const onS = () => { v.removeEventListener('seeked', onS); res(null); }; v.addEventListener('seeked', onS); });
-    
-    const stream = procCanvas.captureStream(30);
-    
-    if ((v as any).captureStream) {
-        const audioStream = (v as any).captureStream();
-        const audioTracks = audioStream.getAudioTracks();
-        if (audioTracks.length > 0) stream.addTrack(audioTracks[0]);
+
+    /** Звук в файл: элемент не должен быть muted; громкость 0 — чтобы не орало в динамики при кодировании. */
+    if (!isMuted) {
+      v.muted = false;
+      v.volume = 0;
+    } else {
+      v.muted = true;
     }
 
-    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+    try {
+      await v.play();
+    } catch (playErr) {
+      console.error('[VideoEditor] play before encode failed:', playErr);
+      v.muted = prevMuted;
+      v.volume = prevVolume;
+      setIsProcessing(false);
+      return;
+    }
+
+    await new Promise<void>((r) => {
+      requestAnimationFrame(() => r());
+    });
+
+    const stream = procCanvas.captureStream(30);
+
+    let hasAudioTrack = false;
+    if (!isMuted && typeof (v as HTMLVideoElement & { captureStream?: () => MediaStream }).captureStream === 'function') {
+      try {
+        const vStream = (v as HTMLVideoElement & { captureStream: () => MediaStream }).captureStream();
+        for (const t of vStream.getAudioTracks()) {
+          stream.addTrack(t);
+          hasAudioTrack = true;
+        }
+      } catch (audioErr) {
+        console.warn('[VideoEditor] captureStream audio:', audioErr);
+      }
+    }
+
+    const mimeType = pickVideoRecorderMimeType(hasAudioTrack);
+    let recorder: MediaRecorder;
+    try {
+      recorder =
+        mimeType != null
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+    } catch (e) {
+      console.error('[VideoEditor] MediaRecorder constructor failed:', e);
+      v.pause();
+      v.muted = prevMuted;
+      v.volume = prevVolume;
+      setIsProcessing(false);
+      return;
+    }
     const chunks: Blob[] = [];
+    const outType = recorder.mimeType || pickVideoRecorderMimeType(hasAudioTrack) || 'video/webm';
+    const outExt = outType.includes('mp4') ? 'mp4' : 'webm';
     recorder.ondataavailable = (e) => chunks.push(e.data);
     recorder.onstop = () => {
-      const processedFile = new File([new Blob(chunks, { type: 'video/webm' })], 'processed.webm', { type: 'video/webm' });
-      setIsProcessing(false); onSave(processedFile, caption);
+      v.pause();
+      v.muted = prevMuted;
+      v.volume = prevVolume;
+      const processedFile = new File(
+        [new Blob(chunks, { type: outType })],
+        `processed.${outExt}`,
+        { type: outType },
+      );
+      setIsProcessing(false);
+      onSave(processedFile, caption);
     };
-    
-    const ctx = procCanvas.getContext('2d'); if (!ctx) return;
-    procCanvas.width = cropRect.width; procCanvas.height = cropRect.height;
-    
-    recorder.start();
-    
+
+    try {
+      recorder.start();
+    } catch (recErr) {
+      console.error('[VideoEditor] MediaRecorder.start failed:', recErr);
+      v.pause();
+      v.muted = prevMuted;
+      v.volume = prevVolume;
+      setIsProcessing(false);
+      return;
+    }
+
     const renderFrame = () => {
-      if (v.currentTime >= endTime - 0.05 || v.paused) { 
-          if(recorder.state === 'recording') recorder.stop(); 
-          return; 
+      if (v.currentTime >= endTime - 0.05 || v.paused) {
+        if (recorder.state === 'recording') recorder.stop();
+        return;
       }
-      
-      ctx.save();
+
+      cctx.fillStyle = '#000000';
+      cctx.fillRect(0, 0, rw, rh);
+      cctx.drawImage(v, cropRect.x, cropRect.y, cropRect.width, cropRect.height, 0, 0, rw, rh);
+      cctx.drawImage(drawCanvas, cropRect.x, cropRect.y, cropRect.width, cropRect.height, 0, 0, rw, rh);
+
       ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, procCanvas.width, procCanvas.height);
-      ctx.drawImage(v, cropRect.x, cropRect.y, cropRect.width, cropRect.height, 0, 0, procCanvas.width, procCanvas.height);
-      ctx.drawImage(drawCanvas, cropRect.x, cropRect.y, cropRect.width, cropRect.height, 0, 0, procCanvas.width, procCanvas.height);
+      ctx.fillRect(0, 0, outW, outH);
+      ctx.save();
+      ctx.translate(outW / 2, outH / 2);
+      ctx.rotate((rotNorm * Math.PI) / 180);
+      ctx.drawImage(composite, -rw / 2, -rh / 2);
       ctx.restore();
-      
+
       setProcessingProgress(((v.currentTime - startTime) / (endTime - startTime)) * 100);
       requestAnimationFrame(renderFrame);
     };
-    
-    v.muted = isMuted;
-    await v.play(); 
+
     renderFrame();
   };
 
@@ -471,11 +601,19 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
       });
   };
 
+  const cropOverlayBox =
+    activeTool === 'crop' &&
+    tempCropRect &&
+    videoRef.current &&
+    videoRef.current.videoWidth > 0
+      ? intrinsicCropRectToOverlayBoxPx(videoRef.current, tempCropRect)
+      : null;
+
   if (!mounted || !videoUrl) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[200] bg-background/20 backdrop-blur-3xl flex flex-col text-white animate-in fade-in duration-300 overflow-hidden font-body">
-      <header className="absolute top-0 left-0 right-0 z-[210] h-20 bg-gradient-to-b from-black/40 to-transparent px-4 flex items-center justify-between">
+      <header className="absolute left-0 right-0 top-0 z-[210] box-border flex min-h-20 items-center justify-between bg-gradient-to-b from-black/40 to-transparent pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pb-2 pt-[env(safe-area-inset-top,0px)]">
         <Button variant="glass" size="icon" className="h-10 w-10 shadow-xl" onClick={onClose} disabled={isProcessing}><X className="h-6 w-6" /></Button>
         
         <div className="flex items-center gap-2">
@@ -524,12 +662,14 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
           />
           <canvas ref={drawCanvasRef} className={cn("absolute inset-0 w-full h-full pointer-events-none z-10", activeTool === 'draw' && "pointer-events-auto cursor-crosshair")} />
           
-          {activeTool === 'crop' && tempCropRect && videoRef.current && videoRef.current.videoWidth > 0 && (
+          {cropOverlayBox && (
               <div 
-                className="absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] z-20 cursor-move"
+                className="absolute box-border border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] z-20 cursor-move"
                 style={{
-                    left: `${(tempCropRect.x / videoRef.current.videoWidth) * 100}%`, top: `${(tempCropRect.y / videoRef.current.videoHeight) * 100}%`,
-                    width: `${(tempCropRect.width / videoRef.current.videoWidth) * 100}%`, height: `${(tempCropRect.height / videoRef.current.videoHeight) * 100}%`,
+                    left: cropOverlayBox.left,
+                    top: cropOverlayBox.top,
+                    width: cropOverlayBox.width,
+                    height: cropOverlayBox.height,
                 }}
                 onMouseDown={(e) => onCropDown(e, 'drag')} onTouchStart={(e) => onCropDown(e, 'drag')}
               >
@@ -554,7 +694,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
         )}
       </main>
 
-      <footer className="bg-gradient-to-t from-black/80 to-transparent p-6 space-y-6 shrink-0 relative z-[210]">
+      <footer className="relative z-[210] shrink-0 space-y-6 bg-gradient-to-t from-black/80 to-transparent pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-6">
         {activeTool !== 'crop' && (
             <div className="max-w-3xl mx-auto space-y-3 relative">
                 <div className="relative h-12 bg-black/40 rounded-xl border border-white/5 flex items-center shadow-inner overflow-visible">

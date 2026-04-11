@@ -8,10 +8,10 @@ export const CHAT_MEDIA_PREVIEW_MAX_WIDTH_PX = Math.round(160 * 1.3);
 export const CHAT_MEDIA_GRID_MIN_WIDTH_PX = Math.round(130 * 1.3);
 
 /**
- * Превью карты в сообщении с геолокацией — в 1.5 раза шире, чем сетка медиа.
+ * Превью карты в сообщении с геолокацией — шире сетки медиа (коэф. ×1.5×1.5 от базовой сетки).
  */
 export const CHAT_LOCATION_MAP_PREVIEW_MAX_WIDTH_PX = Math.round(
-  CHAT_MEDIA_PREVIEW_MAX_WIDTH_PX * 1.5
+  CHAT_MEDIA_PREVIEW_MAX_WIDTH_PX * 1.5 * 1.5
 );
 
 /**

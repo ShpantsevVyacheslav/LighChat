@@ -27,19 +27,11 @@ import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2, Minimize2, Vid
 import type { User, Call } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { getWebRtcIceConfig } from '@/lib/webrtc-ice-servers';
 
 interface AudioCallOverlayProps {
   currentUser: User;
 }
-
-const servers = {
-  iceServers: [
-    {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
 
 /** Firestore отдаёт { type, sdp }; проверяем перед RTCSessionDescription. */
 function normalizeRtcDesc(raw: unknown): RTCSessionDescriptionInit | null {
@@ -269,7 +261,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
   // --- 3. PEER CONNECTION & MEDIA ---
   const setupPeerConnection = useCallback(async (callId: string, isVideoCall: boolean) => {
     console.log(`[WebRTC] Setting up PC for call ${callId}, video: ${isVideoCall}`);
-    const pc = new RTCPeerConnection(servers);
+    const pc = new RTCPeerConnection(await getWebRtcIceConfig());
     peerConnection.current = pc;
 
     try {
@@ -678,7 +670,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
 
   if (isMinimized) {
     return (
-        <div onClick={() => setIsMinimized(false)} className="fixed bottom-20 right-4 z-[100] w-48 bg-background/90 backdrop-blur-xl p-3 rounded-2xl shadow-2xl border border-primary/20 cursor-pointer animate-in zoom-in-95">
+        <div onClick={() => setIsMinimized(false)} className="fixed bottom-[max(5rem,env(safe-area-inset-bottom,0px)+1rem)] right-[max(1rem,env(safe-area-inset-right,0px))] z-[100] w-48 cursor-pointer rounded-2xl border border-primary/20 bg-background/90 p-3 shadow-2xl backdrop-blur-xl animate-in zoom-in-95">
             <div className="relative aspect-video rounded-xl overflow-hidden bg-muted flex items-center justify-center">
                 {activeCall.status === 'ongoing' && remoteStream?.getVideoTracks().length ? <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain" /> : <Avatar className="h-12 w-12"><AvatarImage src={userAvatarListUrl(otherUser)} /><AvatarFallback>{otherUser?.name?.[0]}</AvatarFallback></Avatar>}
             </div>
@@ -749,14 +741,14 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
       )}
 
       {localStream && activeCall.isVideo && !showLocalPreview && (
-        <Button variant="outline" size="sm" className="fixed bottom-32 right-6 z-40 rounded-full bg-black/40 backdrop-blur-md border-white/20 text-white animate-in slide-in-from-right-4 h-10 px-4 shadow-xl" onClick={() => setShowLocalPreview(true)}><Maximize2 className="h-4 w-4 mr-2" /> Своё видео</Button>
+        <Button variant="outline" size="sm" className="fixed bottom-[max(8rem,env(safe-area-inset-bottom,0px)+5.5rem)] right-[max(1.5rem,env(safe-area-inset-right,0px))] z-40 h-10 rounded-full border-white/20 bg-black/40 px-4 text-white shadow-xl backdrop-blur-md animate-in slide-in-from-right-4" onClick={() => setShowLocalPreview(true)}><Maximize2 className="mr-2 h-4 w-4" /> Своё видео</Button>
       )}
       
-      <div className="absolute top-4 right-4 z-40">
-          <Button variant="ghost" size="icon" className="text-white/50 bg-black/20 rounded-full h-10 w-10 border-none shadow-none" onClick={() => setIsMinimized(true)}><Minimize2 className="h-5 w-5"/></Button>
+      <div className="absolute right-[max(1rem,env(safe-area-inset-right,0px))] top-[max(1rem,env(safe-area-inset-top,0px))] z-40">
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full border-none bg-black/20 text-white/50 shadow-none" onClick={() => setIsMinimized(true)}><Minimize2 className="h-5 w-5"/></Button>
       </div>
 
-      <div className="absolute bottom-12 inset-x-0 z-30 flex flex-col items-center px-4">
+      <div className="absolute inset-x-0 bottom-[max(3rem,env(safe-area-inset-bottom,0px))] z-30 flex flex-col items-center pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
         <div className="flex items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-2xl p-2.5 md:p-3 rounded-full border border-white/10 shadow-2xl max-w-full overflow-x-auto no-scrollbar transition-all duration-300">
             {isIncoming && activeCall.status === 'calling' && (
                 <Button size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-green-500 hover:bg-green-600 animate-pulse shadow-lg border-none" onClick={acceptCall} disabled={isConnecting}>

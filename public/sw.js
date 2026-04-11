@@ -14,6 +14,22 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+/** Абсолютный URL: Safari/macOS часто не подхватывает относительный icon для web-push. */
+function pushIconUrl(payload) {
+  const origin = self.location.origin;
+  const fallback = origin + '/pwa/icon-192.png';
+  const raw = payload.data && payload.data.icon;
+  if (typeof raw === 'string' && raw.length > 0) {
+    if (raw.startsWith('https://') || raw.startsWith('http://')) {
+      return raw;
+    }
+    if (raw.startsWith('/')) {
+      return origin + raw;
+    }
+  }
+  return fallback;
+}
+
 // Принудительная активация новой версии воркера
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -28,10 +44,11 @@ messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
   
   const title = payload.data?.title || 'LighChat';
+  const iconUrl = pushIconUrl(payload);
   const options = {
     body: payload.data?.body || 'Новое уведомление',
-    icon: '/pwa/icon-192.png',
-    badge: '/pwa/icon-192.png',
+    icon: iconUrl,
+    badge: iconUrl,
     data: {
       link: payload.data?.link || '/dashboard'
     }

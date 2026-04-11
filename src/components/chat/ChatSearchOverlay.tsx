@@ -9,6 +9,7 @@ import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, User } from '@/lib/types';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
+import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 
 interface ChatSearchOverlayProps {
   query: string;
@@ -60,7 +61,8 @@ export function ChatSearchOverlay({
     return messages
       .filter((m) => {
         if (m.isDeleted) return false;
-        const textMatch = m.text?.replace(/<[^>]*>/g, '').toLowerCase().includes(query.toLowerCase());
+        const plain = m.text?.replace(/<[^>]*>/g, '') ?? '';
+        const textMatch = ruEnSubstringMatch(plain, query);
         return textMatch;
       })
       .reverse();

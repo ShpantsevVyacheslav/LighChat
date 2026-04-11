@@ -1,9 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { useDoc, useFirestore, useMemoFirebase, useFirebaseApp } from '@/firebase';
+import {
+  useDoc,
+  useFirestore,
+  useMemoFirebase,
+  useFirebaseApp,
+  useUser as useFirebaseUser,
+  useAuth as useFirebaseAuth,
+} from '@/firebase';
 import { doc, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { Meeting, MeetingJoinRequest } from '@/lib/types';
@@ -15,15 +22,23 @@ import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { ShieldAlert, Clock, ArrowLeft, Loader2 } from 'lucide-react';
 import { signInAnonymously, updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import {
+  guestMeetingAuthScreenBullets,
+  guestMeetingAuthToastDescription,
+} from '@/lib/meetings-guest-auth-message';
 
 export default function MeetingPage() {
   const params = useParams();
   const meetingId = typeof params.meetingId === 'string' ? params.meetingId : '';
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { user: firebaseUser, isUserLoading: isFirebaseUserLoading } = useFirebaseUser();
+  const auth = useFirebaseAuth();
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
   const router = useRouter();
   const { toast } = useToast();
+  const [guestAuthFailed, setGuestAuthFailed] = useState(false);
+  const [guestAuthErrorCode, setGuestAuthErrorCode] = useState<string | null>(null);
   
   const [isJoined, setIsJoined] = useState(false);
   const [joinSettings, setJoinSettings] = useState({
@@ -37,8 +52,46 @@ export default function MeetingPage() {
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const meetingRef = useMemoFirebase(() => (firestore && meetingId ? doc(firestore, 'meetings', meetingId) : null), [firestore, meetingId]);
+  /**
+   * Правила Firestore для `meetings/*` требуют `request.auth != null`.
+   * Гость по ссылке изначально без сессии — без этого `useDoc` получает permission-denied.
+   * Анонимный вход сразу после готовности Auth (см. эффект ниже) даёт uid для чтения и для комнаты.
+   */
+  const meetingRef = useMemoFirebase(
+    () => (firestore && meetingId && firebaseUser ? doc(firestore, 'meetings', meetingId) : null),
+    [firestore, meetingId, firebaseUser],
+  );
   const { data: meeting, isLoading: isLoadingMeeting } = useDoc<Meeting>(meetingRef);
+
+  useEffect(() => {
+    if (isFirebaseUserLoading || !auth || !meetingId) return;
+    if (firebaseUser) {
+      setGuestAuthFailed(false);
+      setGuestAuthErrorCode(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await signInAnonymously(auth);
+      } catch (e: unknown) {
+        if (cancelled) return;
+        const err = e as { code?: string; message?: string };
+        console.error('[meetings/guest] Anonymous sign-in failed:', e);
+        setGuestAuthFailed(true);
+        setGuestAuthErrorCode(err.code ?? null);
+        toast({
+          variant: 'destructive',
+          title: 'Не удалось открыть встречу',
+          description: guestMeetingAuthToastDescription(err),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFirebaseUserLoading, auth, meetingId, firebaseUser, toast]);
 
   const isHostOrAdmin = useMemo(() => {
     if (!meeting || !user) return false;
@@ -83,6 +136,10 @@ export default function MeetingPage() {
 
   const handleJoinAttempt = async (settings: { micMuted: boolean; videoOff: boolean; name: string; stream: MediaStream | null }) => {
     if (!meeting) return;
+
+    if (auth?.currentUser?.isAnonymous) {
+      await updateProfile(auth.currentUser, { displayName: settings.name }).catch(() => {});
+    }
     
     if (!meeting.isPrivate || isHostOrAdmin) { 
         setJoinSettings(settings); 
@@ -133,10 +190,40 @@ export default function MeetingPage() {
     }
   };
 
-  if (isAuthLoading || isLoadingMeeting) {
+  const waitingForGuestFirebase =
+    !isFirebaseUserLoading && !firebaseUser && !guestAuthFailed;
+
+  if (
+    isAuthLoading ||
+    isFirebaseUserLoading ||
+    waitingForGuestFirebase ||
+    (firebaseUser && isLoadingMeeting)
+  ) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#0a0e17]">
         <Icons.spinner className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (guestAuthFailed) {
+    const bullets = guestMeetingAuthScreenBullets(guestAuthErrorCode);
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#0a0e17] p-4 text-white">
+        <div className="mx-auto max-w-lg w-full text-center">
+          <h1 className="text-2xl font-bold mb-2">Не удалось войти как гость</h1>
+          {guestAuthErrorCode ? (
+            <p className="text-white/50 text-xs font-mono mb-4 break-all">{guestAuthErrorCode}</p>
+          ) : null}
+          <ol className="text-left text-white/70 text-sm space-y-3 mb-8 list-decimal pl-5">
+            {bullets.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ol>
+          <Button variant="ghost" onClick={() => router.refresh()} className="text-white/70">
+            Обновить
+          </Button>
+        </div>
       </div>
     );
   }
@@ -190,6 +277,11 @@ export default function MeetingPage() {
       </div>
     </div>
   ) : (
-    <JoinMeeting meeting={meeting} currentUser={user} onJoin={handleJoinAttempt} />
+    <JoinMeeting
+      meeting={meeting}
+      currentUser={user}
+      requireNameInput={!user || !!firebaseUser?.isAnonymous}
+      onJoin={handleJoinAttempt}
+    />
   );
 }

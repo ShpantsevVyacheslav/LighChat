@@ -25,7 +25,9 @@ export function MessageReply({ replyTo, isCurrentUser, onClick }: MessageReplyPr
           {replyTo.senderName}
         </div>
         <div className={cn("text-xs line-clamp-1", isCurrentUser ? "text-white/80" : "text-muted-foreground")}>
-          {replyTo.text}
+          {replyTo.text?.trim()
+            ? replyTo.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+            : 'Сообщение'}
         </div>
       </div>
       {replyTo.mediaPreviewUrl && (

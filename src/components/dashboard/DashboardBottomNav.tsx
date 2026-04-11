@@ -115,6 +115,18 @@ export function DashboardBottomNav({
             ? { color: customIconColor }
             : undefined;
 
+          /** Без кастомного цвета: «цветные» плитки раньше всегда давали text-white — на светлой теме сливалось с верхом градиента и со стеклом панели. */
+          const iconToneClass =
+            customIconColor != null
+              ? ''
+              : useCustomTileBg
+                ? 'text-foreground dark:text-zinc-100'
+                : appearance === 'colorful'
+                  ? 'text-zinc-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.55)] dark:text-white dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]'
+                  : isActive
+                    ? 'text-primary'
+                    : 'text-foreground/80 dark:text-muted-foreground';
+
           return (
             <Tooltip key={link.href}>
               <TooltipTrigger asChild>
@@ -139,19 +151,7 @@ export function DashboardBottomNav({
                       <LucideBottomNavIcon
                         name={dynamicIconName}
                         fallbackIcon={Icon}
-                        className={cn(
-                          'h-[22px] w-[22px] shrink-0',
-                          appearance === 'colorful' &&
-                            !customIconColor &&
-                            'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]',
-                          appearance === 'minimal' &&
-                            !customIconColor &&
-                            (useCustomTileBg
-                              ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]'
-                              : isActive
-                                ? 'text-primary'
-                                : 'text-muted-foreground')
-                        )}
+                        className={cn('h-[22px] w-[22px] shrink-0', iconToneClass)}
                         style={iconInlineStyle}
                         strokeWidth={strokeW}
                       />

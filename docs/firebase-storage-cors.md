@@ -54,7 +54,9 @@
 
 ## Почему возникает ошибка
 
-В [src/lib/chat-app-theme.ts](src/lib/chat-app-theme.ts) функция `sampleWallpaperImageAverageRgb` создаёт `Image()` с **`crossOrigin = 'anonymous'`**, чтобы нарисовать картинку в `<canvas>` и прочитать пиксели (`getImageData`). Такой запрос — **CORS**, и ответ Storage должен содержать `Access-Control-Allow-Origin` с вашим хостом (или подходящий wildcard-ответ от GCS).
+Тот же механизим CORS нужен, когда картинка с Storage рисуется в **canvas** для **виртуального фона в звонке**: в [src/hooks/use-meeting-webrtc.ts](src/hooks/use-meeting-webrtc.ts) для фонов используется `Image` с **`crossOrigin = 'anonymous'`** и `drawImage` после MediaPipe Selfie Segmentation. Без CORS на бакете консоль покажет что-то вроде `Access to image at 'https://firebasestorage.googleapis.com/...' ... blocked by CORS policy`.
+
+В [src/lib/chat-app-theme.ts](src/lib/chat-app-theme.ts) функция `sampleWallpaperImageAverageRgb` тоже создаёт `Image()` с **`crossOrigin = 'anonymous'`**, чтобы нарисовать картинку в `<canvas>` и прочитать пиксели (`getImageData`). Такой запрос — **CORS**, и ответ Storage должен содержать `Access-Control-Allow-Origin` с вашим хостом (или подходящий wildcard-ответ от GCS).
 
 Если CORS на **бакете** не настроен, в Safari/WebKit чаще всего:
 

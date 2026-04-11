@@ -34,6 +34,10 @@ service cloud.firestore {
         || (data.participantIds is map && request.auth.uid in data.participantIds);
     }
 
+    function isSavedMessagesConversationData(data) {
+      return data.participantIds is list && data.participantIds.size() == 1;
+    }
+
     /** Запасной путь, пока CF ещё не создала members/{uid} (миллисекунды после создания чата). */
     function conversationMemberFallbackFromParent(conversationId) {
       let d = get(/databases/$(database)/documents/conversations/$(conversationId));
@@ -113,6 +117,12 @@ service cloud.firestore {
           allow read, write: if isSignedIn() && request.auth.uid == userId;
         }
       }
+
+      /** Публичные ключи E2E (только обёртки для участников чатов). */
+      match /e2ee/{docId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     match /meetings/{meetingId} {
@@ -171,10 +181,14 @@ service cloud.firestore {
        * userChats подписка useConversationsByDocumentIds могла получать permission-denied, если поле parent
        * временно не сопоставимо с правилами, а members уже записан (см. onConversationCreated).
        */
-      allow read: if isSignedIn() && (
-        isAdmin() ||
-        exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
-        (resource != null && uidIsConversationParticipantFromData(resource.data))
+      allow read: if isSignedIn() && resource != null && (
+        isSavedMessagesConversationData(resource.data)
+          ? uidIsConversationParticipantFromData(resource.data)
+          : (
+              isAdmin() ||
+              exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
+              uidIsConversationParticipantFromData(resource.data)
+            )
       );
       allow create: if isSignedIn()
         && uidIsConversationParticipantFromData(request.resource.data)
@@ -216,6 +230,11 @@ service cloud.firestore {
       }
 
       match /polls/{pollId} {
+        allow read, write: if isConversationMember(conversationId);
+      }
+
+      /** Эпохи ключей E2E (ciphertext обёрток на участника). */
+      match /e2eeSessions/{sessionId} {
         allow read, write: if isConversationMember(conversationId);
       }
     }

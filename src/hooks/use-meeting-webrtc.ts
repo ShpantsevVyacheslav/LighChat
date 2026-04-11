@@ -5,10 +5,11 @@ import {
   doc, onSnapshot, collection, setDoc, deleteDoc, updateDoc, 
   serverTimestamp, query, where 
 } from 'firebase/firestore';
-import { useFirestore, useStorage } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { Meeting, User, MeetingSignal } from '@/lib/types';
+import { getWebRtcIceConfig } from '@/lib/webrtc-ice-servers';
 
 if (typeof window !== 'undefined' && !window.process) {
     (window as any).process = { env: {} };
@@ -260,11 +261,12 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     
     try {
         const Peer = (await import('simple-peer')).default;
+        const rtcConfig = await getWebRtcIceConfig();
         const p = new Peer({
           initiator,
           trickle: true,
           stream: localStreamRef.current || undefined,
-          config: { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] }
+          config: rtcConfig,
         });
 
         p.on('signal', (data: any) => {

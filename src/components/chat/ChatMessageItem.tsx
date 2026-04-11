@@ -5,7 +5,12 @@ import { parseISO } from 'date-fns';
 
 import type { User, Conversation, ChatMessage, ChatAttachment, ReplyContext, ChatSettings } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { isOnlyEmojis, getReplyPreview, getFirstStickerOrGifAttachment } from '@/lib/chat-utils';
+import {
+  isOnlyEmojis,
+  getReplyPreview,
+  getFirstStickerOrGifAttachment,
+  getFirstGridGalleryImageForStickerCreation,
+} from '@/lib/chat-utils';
 import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
 import { bubbleRadiusToClass } from '@/lib/chat-bubble-radius';
 
@@ -19,6 +24,7 @@ import { MessageLocationCard } from './parts/MessageLocationCard';
 import { MessagePollInline } from './parts/MessagePollInline';
 import { MessageMedia } from './parts/MessageMedia';
 import { HeicAwareChatImage } from './parts/HeicAwareChatImage';
+import { useChatAttachmentDisplaySrc } from '@/components/chat/use-chat-attachment-display-src';
 import { MessageStatus } from './parts/MessageStatus';
 import { MessageReply } from './parts/MessageReply';
 import { MessageReactions } from './parts/MessageReactions';
@@ -66,6 +72,23 @@ const getUserColor = (userId: string) => {
     return USER_COLORS[index];
 };
 
+function GifAttachmentImage({ att }: { att: ChatAttachment }) {
+    const displaySrc = useChatAttachmentDisplaySrc(att);
+    if (att.type.startsWith('video/')) {
+        return (
+            <video
+                src={displaySrc}
+                className="h-auto w-full max-h-64 object-contain"
+                loop
+                muted
+                playsInline
+                autoPlay
+            />
+        );
+    }
+    return <img src={displaySrc} alt="" loading="lazy" decoding="async" className="h-auto w-full max-h-64 object-contain" />;
+}
+
 interface ChatMessageItemProps {
     message: ChatMessage;
     currentUser: User;
@@ -97,7 +120,12 @@ interface ChatMessageItemProps {
     /** Группа: из меню отправителя — открыть или создать личный чат с автором сообщения */
     onGroupSenderWritePrivate?: (userId: string) => void | Promise<void>;
     /** Сохранить стикер/GIF из сообщения в пак текущего пользователя (контекстное меню). */
-    onSaveStickerGif?: (attachment: ChatAttachment) => void;
+    onSaveStickerGif?: (attachment: ChatAttachment, mode?: 'copy' | 'normalize_sticker') => void;
+    /** Расшифрованный HTML для E2E (id сообщения → текст). */
+    e2eeDecryptedByMessageId?: Record<string, string>;
+    /** Избранное (только основная лента; в ветке не передаётся). */
+    isStarred?: boolean;
+    onToggleStar?: (messageId: string, nextStarred: boolean) => void;
 }
 
 const ChatMessageItemComponent = ({
@@ -114,12 +142,26 @@ const ChatMessageItemComponent = ({
     onMentionProfileOpen,
     onGroupSenderWritePrivate,
     onSaveStickerGif,
+    e2eeDecryptedByMessageId,
+    isStarred = false,
+    onToggleStar,
 }: ChatMessageItemProps) => {
     const isCurrentUser = message.senderId === currentUser.id;
     const isDeleted = !!message.isDeleted;
 
+    const hasDecryptedEntry =
+        e2eeDecryptedByMessageId != null && Object.prototype.hasOwnProperty.call(e2eeDecryptedByMessageId, message.id);
+    const isE2eePending = !!(message.e2ee?.ciphertext && !message.text && !hasDecryptedEntry);
+    const displayTextHtml = hasDecryptedEntry
+        ? (e2eeDecryptedByMessageId![message.id] ?? '')
+        : (message.text ?? '');
+
     const stickerGifForSave = useMemo(
         () => (!isDeleted ? getFirstStickerOrGifAttachment(message) : null),
+        [isDeleted, message]
+    );
+    const gridImageForStickerCreate = useMemo(
+        () => (!isDeleted ? getFirstGridGalleryImageForStickerCreation(message) : null),
         [isDeleted, message]
     );
     
@@ -145,6 +187,17 @@ const ChatMessageItemComponent = ({
       [conversation.isGroup, allUsers, message.senderId],
     );
 
+    const senderLiveShareForLocation = useMemo(() => {
+        if (isCurrentUser) return currentUser.liveLocationShare ?? null;
+        const u = allUsers.find((x) => x.id === message.senderId);
+        return u?.liveLocationShare ?? null;
+    }, [isCurrentUser, currentUser.liveLocationShare, allUsers, message.senderId]);
+
+    const senderProfileResolvedForLocation = useMemo(() => {
+        if (isCurrentUser) return true;
+        return allUsers.some((u) => u.id === message.senderId);
+    }, [isCurrentUser, allUsers, message.senderId]);
+
     const isSticker = useMemo(
         () => message.attachments?.some((att) => isAttachmentLikelyIosStickerCutout(att)) ?? false,
         [message.attachments],
@@ -153,25 +206,25 @@ const ChatMessageItemComponent = ({
     const isStickerLike = isSticker || isGifAttachment;
     const isPureEmoji = useMemo(
         () =>
-            message.text &&
-            isOnlyEmojis(message.text) &&
+            displayTextHtml &&
+            isOnlyEmojis(displayTextHtml) &&
             !message.attachments?.length &&
             !message.replyTo &&
             !message.locationShare &&
             !message.chatPollId,
-        [message.text, message.attachments, message.replyTo, message.locationShare, message.chatPollId]
+        [displayTextHtml, message.attachments, message.replyTo, message.locationShare, message.chatPollId]
     );
     const isVideoCircle = useMemo(() => message.attachments?.some(att => att.name.startsWith('video-circle_')), [message.attachments]);
     const isPollMessage = !!message.chatPollId;
     const stickerCaptionPlain = useMemo(() => {
-        if (!message.text) return '';
-        return message.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-    }, [message.text]);
+        if (!displayTextHtml) return '';
+        return displayTextHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    }, [displayTextHtml]);
     const hasStickerCaption = isStickerLike && stickerCaptionPlain.length > 0;
-    const circularStickerMenuHole = useMemo(() => shouldUseCircularStickerMenuHole(message), [
+    const circularStickerMenuHole = useMemo(() => shouldUseCircularStickerMenuHole(message, stickerCaptionPlain), [
         message.id,
         message.isDeleted,
-        message.text,
+        stickerCaptionPlain,
         message.replyTo,
         message.locationShare,
         message.chatPollId,
@@ -179,12 +232,12 @@ const ChatMessageItemComponent = ({
     ]);
     const isMediaOnly = useMemo(
         () =>
-            !message.text &&
+            !displayTextHtml &&
             !!message.attachments?.length &&
             !message.replyTo &&
             !message.locationShare &&
             !message.chatPollId,
-        [message.text, message.attachments, message.replyTo, message.locationShare, message.chatPollId]
+        [displayTextHtml, message.attachments, message.replyTo, message.locationShare, message.chatPollId]
     );
 
     /** Сетка MessageMedia — ширины 208px / 169px = `CHAT_MEDIA_*` в `@/lib/chat-media-preview-max`. */
@@ -208,9 +261,9 @@ const ChatMessageItemComponent = ({
                 message.chatPollId ||
                 hasGridVisualMedia ||
                 (message.attachments?.length ?? 0) > 0 ||
-                !!(message.text?.trim())
+                !!(displayTextHtml?.trim())
             ),
-        [isDeleted, message.chatPollId, hasGridVisualMedia, message.attachments?.length, message.text]
+        [isDeleted, message.chatPollId, hasGridVisualMedia, message.attachments?.length, displayTextHtml]
     );
 
     const radiusClass = bubbleRadiusToClass(chatSettings?.bubbleRadius);
@@ -330,9 +383,9 @@ const ChatMessageItemComponent = ({
 
     const onMenuAction = (action: string, payload?: string) => {
         switch(action) {
-            case 'reply': onReply(getReplyPreview(message, allUsers)); break;
-            case 'copy': onCopy(message.text || ''); break;
-            case 'edit': onEdit({ id: message.id, text: message.text || '', attachments: message.attachments }); break;
+            case 'reply': onReply(getReplyPreview(message, allUsers, e2eeDecryptedByMessageId)); break;
+            case 'copy': onCopy(displayTextHtml || ''); break;
+            case 'edit': onEdit({ id: message.id, text: displayTextHtml || '', attachments: message.attachments }); break;
             case 'pin': onPin(message); break;
             case 'forward': onForward(message); break;
             case 'delete': onDelete(message.id); break;
@@ -341,9 +394,17 @@ const ChatMessageItemComponent = ({
             case 'thread': onOpenThread?.(message); break;
             case 'save_sticker': {
                 const a = getFirstStickerOrGifAttachment(message);
-                if (a && onSaveStickerGif) onSaveStickerGif(a);
+                if (a && onSaveStickerGif) onSaveStickerGif(a, 'copy');
                 break;
             }
+            case 'create_sticker': {
+                const a = getFirstGridGalleryImageForStickerCreation(message);
+                if (a && onSaveStickerGif) onSaveStickerGif(a, 'normalize_sticker');
+                break;
+            }
+            case 'star':
+                if (onToggleStar) onToggleStar(message.id, !isStarred);
+                break;
         }
     };
 
@@ -376,7 +437,7 @@ const ChatMessageItemComponent = ({
     const handleTouchEnd = () => {
         if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
         if (swipeX < -60 && !isDeleted) {
-            onReply(getReplyPreview(message, allUsers));
+            onReply(getReplyPreview(message, allUsers, e2eeDecryptedByMessageId));
         }
         setSwipeX(0); touchStartRef.current = null;
     };
@@ -480,10 +541,10 @@ const ChatMessageItemComponent = ({
                             </button>
                         </GroupMessageSenderMenu>
                     ) : (
-                        <Avatar className="h-8 w-8 shrink-0 mb-1 border border-black/5">
+                    <Avatar className="h-8 w-8 shrink-0 mb-1 border border-black/5">
                             <AvatarImage src={groupSenderAvatar} />
                             <AvatarFallback>{groupSenderInitial}</AvatarFallback>
-                        </Avatar>
+                    </Avatar>
                     )
                 )}
                 
@@ -570,6 +631,8 @@ const ChatMessageItemComponent = ({
                                         share={message.locationShare!}
                                         isCurrentUser={isCurrentUser}
                                         createdAt={message.createdAt}
+                                        senderLiveShare={senderLiveShareForLocation}
+                                        senderProfileResolved={senderProfileResolvedForLocation}
                                         deliveryStatus={message.deliveryStatus}
                                         readAt={message.readAt}
                                         showTimestamps={showTimestamps}
@@ -668,7 +731,7 @@ const ChatMessageItemComponent = ({
                                                             )}
                                                         </div>
                                                     )}
-                                                    {message.attachments?.map((att, idx) => {
+                                        {message.attachments?.map((att, idx) => {
                                                         if (att.name.startsWith('video-circle_'))
                                                             return (
                                                                 <VideoCirclePlayer
@@ -702,7 +765,7 @@ const ChatMessageItemComponent = ({
                                                         if (att.name.startsWith('gif_'))
                                                             return (
                                                                 <div key={idx} className="relative max-w-[min(100%,280px)] w-48 sm:w-64 p-2 shrink-0">
-                                                                    <img src={att.url} alt="" className="h-auto w-full max-h-64 object-contain" />
+                                                                    <GifAttachmentImage att={att} />
                                                                 </div>
                                                             );
                                                         if (att.type.startsWith('audio/'))
@@ -711,12 +774,16 @@ const ChatMessageItemComponent = ({
                                                                     <AudioMessagePlayer attachment={att} isCurrentUser={isCurrentUser} />
                                                                 </div>
                                                             );
-                                                        return null;
-                                                    })}
+                                            return null;
+                                        })}
                                                     {(!isVideoCircle && !message.chatPollId) && (!isStickerLike || hasStickerCaption) && (
-                                                        <div className="relative group/text">
+                                            <div className="relative group/text">
                                                             <MessageText
-                                                                text={message.text}
+                                                                text={
+                                                                    isE2eePending
+                                                                        ? '<p class="text-muted-foreground italic">Расшифровка…</p>'
+                                                                        : displayTextHtml
+                                                                }
                                                                 isCurrentUser={isCurrentUser}
                                                                 isPureEmoji={!!isPureEmoji}
                                                                 fontSizeClass={fontSizeClass}
@@ -737,11 +804,11 @@ const ChatMessageItemComponent = ({
                                                                             isColoredBubble={isColoredBubble}
                                                                         />
                                                                     )}
-                                                            </MessageText>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                </MessageText>
                                             </div>
+                                        )}
+                                    </div>
+                                </div>
                                         </div>
                                     </div>
                                 )}
@@ -754,7 +821,20 @@ const ChatMessageItemComponent = ({
                     )}
                 </div>
             </div>
-            <MessageContextMenu isOpen={isMenuOpen} onClose={closeContextMenu} position={menuPosition} message={message} isCurrentUser={isCurrentUser} hasText={!!message.text} canEdit={isCurrentUser && !!message.text && !isOnlyEmojis(message.text)} canSaveSticker={!!onSaveStickerGif && !!stickerGifForSave} onAction={onMenuAction} />
+            <MessageContextMenu
+                isOpen={isMenuOpen}
+                onClose={closeContextMenu}
+                position={menuPosition}
+                message={message}
+                isCurrentUser={isCurrentUser}
+                hasText={!!displayTextHtml}
+                canEdit={isCurrentUser && !!displayTextHtml && !isOnlyEmojis(displayTextHtml)}
+                canSaveSticker={!!onSaveStickerGif && !!stickerGifForSave}
+                canCreateSticker={!!onSaveStickerGif && !!gridImageForStickerCreate}
+                showStarAction={!isDeleted && !!onToggleStar && !isThreadMessage}
+                isStarred={isStarred}
+                onAction={onMenuAction}
+            />
         </div>
     );
 };

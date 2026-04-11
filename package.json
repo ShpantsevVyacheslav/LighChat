@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true});\" && next dev",
+    "build:clean": "node -e \"require('fs').rmSync('.next-desktop',{recursive:true,force:true});\" && env LIGHCHAT_DESKTOP_BUILD=1 next build && node -e \"const fs=require('fs');const p=require('path');const root=p.join('.next-desktop','standalone');const st=p.join(root,'.next-desktop','static');fs.mkdirSync(st,{recursive:true});fs.cpSync(p.join('.next-desktop','static'),st,{recursive:true});const pub=p.join(root,'public');fs.mkdirSync(pub,{recursive:true});fs.cpSync('public',pub,{recursive:true});\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -15,12 +16,17 @@
     "brand:square-mark": "node scripts/transparent-lighchat-mark.mjs --square-only && npm run icons:pwa",
     "deploy:firestore": "firebase deploy --only firestore:rules",
     "deploy:hosting": "firebase deploy --only hosting",
+    "predeploy:clean-next": "node -e \"try { require('fs').rmSync('.next', { recursive: true, force: true }); } catch (e) { if (e.code !== 'ENOENT') throw e; }\"",
+    "deploy:hosting:clean": "npm run predeploy:clean-next && firebase deploy --only hosting",
+    "deploy:functions-hosting:clean": "npm run predeploy:clean-next && firebase deploy --only functions,hosting",
     "desktop": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "dist": "npm run build && electron-builder"
+    "icons:mac": "bash scripts/generate-mac-icon.sh",
+    "dist": "npm run build:clean && npm run icons:mac && electron-builder"
   },
   "build": {
     "appId": "com.lighchat.app",
     "productName": "LighChat",
+    "includeSubNodeModules": true,
     "directories": {
       "output": "dist_desktop"
     },
@@ -36,12 +42,25 @@
       "shortcutName": "LighChat"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "build/icon-mac.png"
     },
+    "asarUnpack": [
+      ".next-desktop/standalone/**"
+    ],
     "files": [
       "electron/**/*",
+      ".next-desktop/standalone/**/*",
+      ".next-desktop/static/**/*",
+      "public/**/*",
       "package.json",
-      "public/icon.png"
+      "public/icon.png",
+      "build/icon-mac.png",
+      {
+        "from": ".next-desktop/standalone/node_modules",
+        "to": ".next-desktop/standalone/node_modules",
+        "filter": ["**/*"]
+      }
     ]
   },
   "dependencies": {

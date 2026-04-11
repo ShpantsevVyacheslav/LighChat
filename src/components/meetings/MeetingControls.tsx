@@ -60,7 +60,7 @@ export function MeetingControls({
   screenShareDisabled
 }: MeetingControlsProps) {
   return (
-    <div className="absolute bottom-8 inset-x-0 z-30 flex flex-col items-center gap-4 px-4 pointer-events-none">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[max(2rem,env(safe-area-inset-bottom,0px))] z-30 flex flex-col items-center gap-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
         <div className="flex items-center gap-3 bg-black/30 backdrop-blur-3xl p-3 rounded-full shadow-[0_32px_64px_rgba(0,0,0,0.5)] pointer-events-auto border border-white/10 animate-in slide-in-from-bottom-10 duration-1000 max-w-full overflow-x-auto no-scrollbar">
             <TooltipProvider delayDuration={0}>
                 <ControlGroup>

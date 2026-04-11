@@ -20,6 +20,8 @@ interface VideoCirclePlayerProps {
   hideTimestamp?: boolean;
   /** Последнее сообщение в ленте — включает нижний резерв Virtuoso под развёрнутый круг */
   isLastInChat?: boolean;
+  /** Сетка в медиа-панели профиля: вписать в ячейку (иначе фикс. 192px наезжает на соседей). */
+  layout?: 'message' | 'grid';
 }
 
 export function VideoCirclePlayer({ 
@@ -32,6 +34,7 @@ export function VideoCirclePlayer({
   onClick,
   hideTimestamp = false,
   isLastInChat = false,
+  layout = 'message',
 }: VideoCirclePlayerProps) {
   const tailCtx = useVideoCircleTailOptional();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -263,10 +266,12 @@ export function VideoCirclePlayer({
     <div
       ref={rootRef}
       className={cn(
-        'relative cursor-pointer group/circle bg-transparent transition-all duration-500 ease-in-out overflow-visible origin-center aspect-square flex items-center justify-center border-none shadow-none',
+        'relative cursor-pointer group/circle bg-transparent transition-all duration-500 ease-in-out overflow-visible origin-center flex items-center justify-center border-none shadow-none',
         isPlaying
           ? 'z-[100] mx-auto aspect-square w-[min(448px,calc(100dvw-2rem),calc(100dvh-12rem))]'
-          : 'w-[192px] z-0'
+          : layout === 'grid'
+            ? 'aspect-square z-0 h-full w-full min-h-0 max-w-full'
+            : 'aspect-square w-[192px] z-0'
       )}
       style={{
         scrollMarginTop: '4.5rem',
@@ -281,10 +286,10 @@ export function VideoCirclePlayer({
           "absolute inset-0 z-30 pointer-events-none transition-opacity duration-300", 
           (isHovered && !isPlaying) ? "opacity-100" : "opacity-0"
       )}>
-        <Button onClick={toggleMute} variant="ghost" size="icon" className="absolute bottom-2 left-1/2 -translate-x-1/2 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/60 pointer-events-auto shadow-none border-none">
+        <Button onClick={toggleMute} variant="ghost" size="icon" className="pointer-events-auto absolute bottom-[max(0.5rem,env(safe-area-inset-bottom,0px))] left-1/2 h-8 w-8 -translate-x-1/2 rounded-full border-none bg-black/50 text-white shadow-none hover:bg-black/60">
           {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </Button>
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/40 text-white/90 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap font-bold">
+        <div className="absolute left-1/2 top-[max(0.5rem,env(safe-area-inset-top,0px))] -translate-x-1/2 whitespace-nowrap rounded-full bg-black/40 px-2 py-0.5 text-[10px] font-bold text-white/90">
             {formatTime(duration)}
         </div>
       </div>

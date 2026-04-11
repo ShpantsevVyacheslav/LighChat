@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { PlatformSettingsDoc } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, HardDrive } from 'lucide-react';
+import { Loader2, HardDrive, Shield } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/use-auth';
 import { AdminStorageStatsPanel } from '@/components/admin/admin-storage-stats-panel';
 
@@ -38,6 +39,7 @@ export function AdminStorageSettingsPanel() {
   const [convQuotaGb, setConvQuotaGb] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [e2eeDefaultForNewDirectChats, setE2eeDefaultForNewDirectChats] = useState(false);
 
   useEffect(() => {
     if (!ref) return;
@@ -56,6 +58,7 @@ export function AdminStorageSettingsPanel() {
         const s = data?.storage ?? defaultStorage();
         setRetentionDays(s.mediaRetentionDays != null ? String(s.mediaRetentionDays) : '');
         setTotalGb(s.totalQuotaGb != null ? String(s.totalQuotaGb) : '');
+        setE2eeDefaultForNewDirectChats(data?.e2eeDefaultForNewDirectChats === true);
       } catch (e: unknown) {
         console.error(e);
         const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
@@ -143,6 +146,29 @@ export function AdminStorageSettingsPanel() {
     }
   };
 
+  const saveE2eePlatformDefault = async (checked: boolean) => {
+    if (!firestore || !ref || !user) return;
+    setSaving(true);
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, { e2eeDefaultForNewDirectChats: checked });
+      } else {
+        await setDoc(ref, {
+          storage: defaultStorage(),
+          e2eeDefaultForNewDirectChats: checked,
+        } satisfies Partial<PlatformSettingsDoc>);
+      }
+      setE2eeDefaultForNewDirectChats(checked);
+      toast({ title: 'Сохранено', description: 'Параметр E2E для новых личных чатов обновлён.' });
+    } catch (e) {
+      console.error(e);
+      toast({ variant: 'destructive', title: 'Не удалось сохранить' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveConvQuota = async () => {
     if (!firestore || !convQuotaId.trim()) {
       toast({ variant: 'destructive', title: 'Укажите ID чата' });
@@ -195,6 +221,26 @@ export function AdminStorageSettingsPanel() {
           </div>
         ) : (
           <>
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 p-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <Shield className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                <div>
+                  <Label htmlFor="admin-e2ee-default" className="text-sm font-medium">
+                    E2E для новых личных чатов по умолчанию
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    После создания личного чата клиент попытается включить сквозное шифрование, если у обоих участников
+                    есть ключи. Поле <code className="text-xs">platformSettings/main.e2eeDefaultForNewDirectChats</code>.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="admin-e2ee-default"
+                checked={e2eeDefaultForNewDirectChats}
+                disabled={saving}
+                onCheckedChange={(v) => void saveE2eePlatformDefault(v)}
+              />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="retention">Автоудаление медиа (дней после отправки)</Label>

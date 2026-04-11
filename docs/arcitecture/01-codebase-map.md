@@ -10,7 +10,7 @@
   - `chat/*` - окно чата, ввод, контекстные действия, медиа, 1:1 call overlay.
   - `meetings/*` - комната, сайдбар, controls, чат и опросы встречи.
   - `dashboard/*`, `admin/*`, `auth/*`, `contacts/*`, `settings/*`, `ui/*`.
-- `src/hooks` - клиентские хуки приложения (`use-auth`, `use-settings`, `use-meeting-webrtc`, и т.д.).
+- `src/hooks` - клиентские хуки приложения (`use-auth`, `use-settings`, `use-meeting-webrtc`, `use-chat-main-draft-preview` для метки черновика в списке чатов, и т.д.).
 - `src/contexts` - локальные React contexts для feature-state.
 
 ## Firebase integration layer
@@ -42,3 +42,15 @@
 - `electron/main.js`, `electron/preload.js` - desktop shell.
 - `scripts/*` - утилиты генерации иконок/брендинга.
 - `public/*` - статика и PWA-ассеты.
+
+## Mobile (Flutter)
+
+- `mobile/app` - Flutter приложение (iOS/Android) — новый клиент для стора.
+  - `lib/features/chat/ui/chat_list_screen.dart` - список чатов, папки, поиск, empty-state, запуск нового чата.
+  - `lib/features/chat/ui/chat_bottom_nav.dart`, `lib/features/chat/ui/chat_account_menu_sheet.dart` - нижняя навигация и аккаунт-меню по аватару.
+  - `lib/features/chat/ui/chat_settings_screen.dart` - экран «Настройки чатов» (пресеты/превью/загрузка своих фонов).
+  - `lib/features/chat/data/chat_settings_repository.dart` - чтение/запись `users.chatSettings` и `users.customBackgrounds`, upload фонов в Storage.
+  - `lib/features/auth/ui/profile_screen.dart` - страница «Мой профиль» (редактирование базовых полей пользователя).
+- `mobile/packages/lighchat_models` - доменные модели/DTO и мапперы (контракты Firestore на стороне Flutter).
+- `mobile/packages/lighchat_firebase` - слой доступа к Firebase (Auth/Firestore/FCM) для Flutter-клиента.
+- `mobile/packages/lighchat_ui` - дизайн-система Flutter (темы/типографика/общие виджеты).

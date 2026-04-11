@@ -82,6 +82,13 @@ export type ChatMessage = {
   id: string;
   senderId: string;
   text?: string;
+  /** Сквозное шифрование; push-функции не читают ciphertext. */
+  e2ee?: {
+    protocolVersion: string;
+    epoch: number;
+    iv: string;
+    ciphertext: string;
+  };
   createdAt: string;
   readAt: string | null;
   updatedAt?: string | null;
@@ -107,7 +114,7 @@ export type MeetingJoinRequest = {
   name: string;
   avatar: string;
   status: 'pending' | 'approved' | 'denied';
-  createdAt: string | any;
+  createdAt: string | unknown;
   requestId?: string;
   lastSeen?: string;
 };

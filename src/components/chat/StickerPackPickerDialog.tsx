@@ -25,7 +25,7 @@ type StickerPackPickerDialogProps = {
   title: string;
   description?: string;
   busy?: boolean;
-  /** Выполняется после выбора пака; по успеху диалог закрывает вызывающий код. */
+  /** Выполняется по нажатию «Сохранить» после выбора пака. */
   onConfirmPack: (packId: string) => Promise<void>;
   createPack: (name: string) => Promise<string | null>;
 };
@@ -53,6 +53,7 @@ export function StickerPackPickerDialog({
   const [newPackOpen, setNewPackOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [innerBusy, setInnerBusy] = useState(false);
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
   const combinedBusy = busy || innerBusy;
 
@@ -60,20 +61,28 @@ export function StickerPackPickerDialog({
     if (!open) {
       setNewPackOpen(false);
       setNewName('');
+      setSelectedPackId(null);
     }
   }, [open]);
 
-  const handlePick = useCallback(
-    async (packId: string) => {
-      setInnerBusy(true);
-      try {
-        await onConfirmPack(packId);
-      } finally {
-        setInnerBusy(false);
-      }
-    },
-    [onConfirmPack]
-  );
+  useEffect(() => {
+    if (!open || newPackOpen) return;
+    if (!packs?.length) {
+      setSelectedPackId(null);
+      return;
+    }
+    setSelectedPackId((prev) => (prev && packs.some((p) => p.id === prev) ? prev : packs[0].id));
+  }, [open, newPackOpen, packs]);
+
+  const handleSave = useCallback(async () => {
+    if (!selectedPackId) return;
+    setInnerBusy(true);
+    try {
+      await onConfirmPack(selectedPackId);
+    } finally {
+      setInnerBusy(false);
+    }
+  }, [onConfirmPack, selectedPackId]);
 
   const handleCreate = useCallback(async () => {
     setInnerBusy(true);
@@ -94,6 +103,7 @@ export function StickerPackPickerDialog({
       <Dialog open={open && !newPackOpen} onOpenChange={onOpenChange}>
         <DialogContent
           className="max-h-[min(90vh,420px)] rounded-2xl sm:max-w-sm"
+          showCloseButton={false}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <DialogHeader>
@@ -127,28 +137,48 @@ export function StickerPackPickerDialog({
                   <Button
                     key={p.id}
                     type="button"
-                    variant="secondary"
-                    className="h-auto justify-start rounded-xl py-2.5 text-left font-semibold"
+                    variant={selectedPackId === p.id ? 'default' : 'secondary'}
+                    className={cn(
+                      'h-auto justify-start rounded-xl py-2.5 text-left font-semibold',
+                      selectedPackId === p.id && 'ring-2 ring-primary/40'
+                    )}
                     disabled={combinedBusy}
-                    onClick={() => void handlePick(p.id)}
+                    onClick={() => setSelectedPackId(p.id)}
                   >
-                    {combinedBusy ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : null}
                     <span className="truncate">{p.name}</span>
                   </Button>
                 ))}
               </div>
             )}
           </ScrollArea>
-          <DialogFooter>
-            <Button type="button" variant="ghost" className="rounded-xl" disabled={combinedBusy} onClick={() => onOpenChange(false)}>
+          <DialogFooter className="flex w-full flex-row items-center justify-between gap-2 sm:justify-between sm:space-x-0">
+            <Button
+              type="button"
+              variant="ghost"
+              className="rounded-xl"
+              disabled={combinedBusy}
+              onClick={() => onOpenChange(false)}
+            >
               Отмена
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={combinedBusy || !selectedPackId || !packs?.length}
+              onClick={() => void handleSave()}
+            >
+              {combinedBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Сохранить'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={newPackOpen} onOpenChange={setNewPackOpen}>
-        <DialogContent className="rounded-2xl sm:max-w-sm" onMouseDown={(e) => e.stopPropagation()}>
+        <DialogContent
+          className="rounded-2xl sm:max-w-sm"
+          showCloseButton={false}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           <DialogHeader>
             <DialogTitle>Новый стикерпак</DialogTitle>
           </DialogHeader>

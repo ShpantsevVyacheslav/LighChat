@@ -28,6 +28,11 @@
 - Библиотека: `simple-peer`.
 - Канал сигналинга: Firestore (`calls/*`, `meetings/*/signals`).
 - Контексты использования: 1:1 calls и meetings.
+- ICE-конфиг общий для calls/meetings: `src/lib/webrtc-ice-servers.ts`.
+- По умолчанию используются публичные STUN Google; для стабильной связи за NAT/CGNAT добавляется TURN через ENV:
+  - Рекомендуемый путь: серверный прокси `src/app/api/webrtc/ice/route.ts` с приватными ENV `METERED_DOMAIN`, `METERED_API_KEY`.
+  - Временный fallback (без серверного прокси): `NEXT_PUBLIC_WEBRTC_TURN_URLS` (или `NEXT_PUBLIC_WEBRTC_TURN_URL`), `NEXT_PUBLIC_WEBRTC_TURN_USERNAME`, `NEXT_PUBLIC_WEBRTC_TURN_CREDENTIAL`.
+- Диагностика: `GET /api/webrtc/ice/health` возвращает источник ICE (`metered` или `fallback-stun`) и причину fallback; клиент также пишет источник в browser console (`[WebRTC] ICE source: ...`).
 
 ## Google Maps (геолокация в чате)
 
@@ -41,8 +46,20 @@
 
 ## Desktop and PWA
 
-- Electron: `electron/main.js`, `electron/preload.js`.
+- Electron: `electron/main.js` (в проде — локальный Next из **`.next-desktop/standalone`**), `electron/preload.js`, кэш вложений `electron/media-cache.js`.
+- Electron media delivery: локальный кэш из `electron/media-cache.js` публикуется в renderer через кастомный протокол `lighchat-media://` (хэндлер в `electron/main.js`), а не через прямые `file://` ссылки.
+- Сборка десктопа: `npm run dist` (чистый **`build:clean`**, затем **`icons:mac`** → `build/icon-mac.png` из `public/icon.png`, затем `electron-builder`); артефакты в `dist_desktop/`. Обычный `next build` для web/hosting использует каталог **`.next`** без standalone. В **`package.json` → `build.files`** отдельным entry копируется **`.next-desktop/standalone/node_modules`** (корень проекта по-прежнему исключает `!**/node_modules`). Дополнительно **`"includeSubNodeModules": true`** в **`build`**: обходчик `app-builder-lib` иначе не спускается в **вложенные** каталоги `node_modules` внутри уже разрешённого пути, из-за чего часть зависимостей пакета `next` (и др.) не копируется. Без полного `standalone/node_modules` в **`app.asar.unpacked`** встроенный сервер может упасть с `Cannot find module 'next'` — после смены упаковки нужно пересобрать DMG и заново поставить приложение (проверка: есть ли **`…/app.asar.unpacked/.next-desktop/standalone/node_modules/next/package.json`**).
+- Иконка macOS для DMG/Dock: `build/icon-mac.png` (1024×1024, генерируется скриптом; исходник — `public/icon.png`).
+- Отладка чёрного экрана / сети UI: запуск из терминала с **`LIGHCHAT_ELECTRON_DEBUG=1`** — откроются DevTools (отдельное окно), в **Application Support** пишутся **`electron-debug.log`** (консоль рендера) и **`next-embedded.log`** (stdout/stderr встроенного Next). Путь к каталогу: `~/Library/Application Support/lighchat/` (имя из `package.json`).
 - PWA: `public/manifest.json`, иконки в `public/pwa/*`, app icon в `src/app/icon.png`.
+
+## Mobile (Flutter)
+
+- Flutter клиент находится в `mobile/app`.
+- Для Firebase в Flutter используются плагины `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`, `firebase_messaging`.
+- `mobile/app/lib/firebase_options.dart` синхронизирован с веб-конфигом `src/firebase/config.ts` (тот же проект Firebase). После добавления отдельных приложений iOS/Android/macOS в консоли Firebase обновите `appId` через FlutterFire CLI (`flutterfire configure`), иначе нативная инициализация может отказать.
+- Auth parity: чеклист соответствия web↔mobile — `docs/mobile/auth-parity.md`. Требования к полям/валидациям — `docs/mobile/auth-requirements.md`.
+- Push: Android — FCM из коробки; iOS — связка FCM + APNS (настраивается в Apple Developer + Firebase console).
 
 ## Конфиги и деплой
 

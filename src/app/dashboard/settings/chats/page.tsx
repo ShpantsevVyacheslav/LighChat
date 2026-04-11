@@ -12,23 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Check, RotateCcw, ImagePlus, Loader2, Trash2, LayoutTemplate } from "lucide-react";
+import { MessageSquare, Check, RotateCcw, ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUBBLE_RADIUS_OPTIONS, bubbleRadiusToClass, normalizeBubbleRadius } from "@/lib/chat-bubble-radius";
 import { BottomNavIconsSettingsSection } from "@/components/settings/BottomNavIconsSettingsSection";
-
-const BOTTOM_NAV_OPTIONS = [
-  {
-    value: "colorful" as const,
-    label: "Цветные плитки",
-    description: "Насыщенные градиенты за иконками (как на iOS).",
-  },
-  {
-    value: "minimal" as const,
-    label: "Минимальные",
-    description: "Только контур иконок, без цветного фона.",
-  },
-];
 
 const FONT_SIZES = [
   { value: "small" as const, label: "Мелкий", textClass: "text-xs" },
@@ -151,7 +138,6 @@ export default function ChatSettingsPage() {
   const activeBubblePreset = normalizeBubbleRadius(
     chatSettings.bubbleRadius as string | undefined
   );
-  const bottomNavLook = chatSettings.bottomNavAppearance ?? "colorful";
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-10">
@@ -163,39 +149,6 @@ export default function ChatSettingsPage() {
           <p className="text-xs sm:text-sm text-muted-foreground">Внешний вид сообщений и чатов.</p>
         </div>
       </div>
-
-      <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight flex items-center gap-2">
-          <LayoutTemplate className="h-4 w-4 text-primary shrink-0" />
-          Нижнее меню
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-            {BOTTOM_NAV_OPTIONS.map((opt) => {
-              const isOn = bottomNavLook === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleUpdate({ bottomNavAppearance: opt.value })}
-                  className={cn(
-                    "flex flex-col items-start gap-1 rounded-2xl border-2 p-4 text-left transition-all",
-                    isOn
-                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/15"
-                      : "border-transparent bg-muted/50 hover:bg-muted"
-                  )}
-                >
-                  <span className="text-sm font-semibold">{opt.label}</span>
-                  <span className="text-xs text-muted-foreground">{opt.description}</span>
-                  {isOn && (
-                    <span className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
-                      <Check className="h-3.5 w-3.5" /> Выбрано
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-        </div>
-      </section>
 
       <BottomNavIconsSettingsSection />
 

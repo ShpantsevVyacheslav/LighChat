@@ -3,12 +3,31 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-const tileSquareWrap = 'aspect-square w-[min(44vmin,400px)] max-w-[46vw] sm:max-w-[380px] shrink-0 min-w-0';
-const rowGap = 'gap-3 sm:gap-4';
+/** Зазоры между плитками в одном ряду / сетке. */
+const gridGap = 'gap-3 sm:gap-4';
 
-function wrapSquare(tile: React.ReactNode, key: React.Key) {
+/** Вертикальный зазор между рядами плиток. */
+const stackGap = 'gap-3 sm:gap-4';
+
+/**
+ * 16:9 плитка (`aspect-video` в Tailwind = 16:9): как в эталонной раскладке конференции.
+ */
+const tileVideoShell = 'relative min-h-0 min-w-0 overflow-hidden rounded-2xl aspect-video';
+
+/** Ширина одной колонки при сетке из 2 столбцов (учёт одного gap-3 / gap-4). */
+const widthOneHalf =
+  'w-full max-w-[calc((100%-0.75rem)/2)] sm:max-w-[calc((100%-1rem)/2)]';
+
+/** Ширина одной колонки при сетке из 3 столбцов (учёт двух зазоров). */
+const widthOneThird =
+  'w-full max-w-[calc((100%-1.5rem)/3)] sm:max-w-[calc((100%-2rem)/3)]';
+
+const stageShell =
+  'mx-auto flex h-full w-full min-h-0 max-w-[min(96vw,1600px)] flex-col items-center justify-center px-2 py-4 sm:px-3';
+
+function wrapVideoTile(tile: React.ReactNode, key: React.Key, className?: string) {
   return (
-    <div key={key} className={cn(tileSquareWrap, 'overflow-hidden rounded-xl')}>
+    <div key={key} className={cn(tileVideoShell, className)}>
       {tile}
     </div>
   );
@@ -20,9 +39,8 @@ export type MeetingParticipantTileStageProps = {
 };
 
 /**
- * Один «кадр» плиточного режима: раскладка зависит только от числа участников на этой странице.
- * 1 — на весь экран; 2 — два квадрата по центру; 3 — два сверху, один по центру снизу;
- * 4 — 2×2; 5–8 — ряды по правилам; 9 — 3×3.
+ * Один «кадр» плиточного режима: раскладка зависит только от числа участников на странице.
+ * Плитки 16:9; при 3 участниках — два сверху, один по центру снизу той же ширины, что верхняя половина.
  */
 export function MeetingParticipantTileStage({ tiles }: MeetingParticipantTileStageProps) {
   const n = tiles.length;
@@ -38,91 +56,82 @@ export function MeetingParticipantTileStage({ tiles }: MeetingParticipantTileSta
 
   if (n === 2) {
     return (
-      <div
-        className={cn(
-          'flex h-full w-full min-h-0 flex-row flex-wrap items-center justify-center content-center',
-          rowGap,
-          'px-2 py-4'
-        )}
-      >
-        {tiles.map((t, i) => wrapSquare(t, i))}
+      <div className={stageShell}>
+        <div className={cn('grid min-h-0 w-full grid-cols-2', gridGap)}>
+          {wrapVideoTile(tiles[0], 0)}
+          {wrapVideoTile(tiles[1], 1)}
+        </div>
       </div>
     );
   }
 
   if (n === 3) {
     return (
-      <div
-        className={cn(
-          'flex h-full w-full min-h-0 flex-col items-center justify-center',
-          rowGap,
-          'px-2 py-4'
-        )}
-      >
-        <div className={cn('flex flex-row items-center justify-center', rowGap)}>
-          {wrapSquare(tiles[0], 0)}
-          {wrapSquare(tiles[1], 1)}
+      <div className={cn(stageShell, stackGap)}>
+        <div className={cn('grid min-h-0 w-full grid-cols-2', gridGap)}>
+          {wrapVideoTile(tiles[0], 0)}
+          {wrapVideoTile(tiles[1], 1)}
         </div>
-        <div className="flex w-full justify-center">{wrapSquare(tiles[2], 2)}</div>
+        <div className="flex w-full min-h-0 shrink-0 justify-center">
+          <div className={cn(tileVideoShell, widthOneHalf)}>{tiles[2]}</div>
+        </div>
       </div>
     );
   }
 
   if (n === 4) {
     return (
-      <div className="mx-auto grid h-full min-h-0 w-full max-w-[min(100%,960px)] grid-cols-2 grid-rows-2 gap-3 content-center justify-items-stretch px-2 py-2 [&>*]:min-h-0">
-        {tiles.map((t, i) => (
-          <div key={i} className="min-h-0 min-w-0 overflow-hidden rounded-xl">
-            {t}
-          </div>
-        ))}
+      <div className={stageShell}>
+        <div className={cn('grid min-h-0 w-full grid-cols-2 grid-rows-2', gridGap, '[&>*]:min-h-0')}>
+          {tiles.map((t, i) => wrapVideoTile(t, i))}
+        </div>
       </div>
     );
   }
 
   if (n === 5) {
     return (
-      <div className={cn('flex h-full min-h-0 w-full flex-col items-center justify-center', rowGap, 'py-2')}>
-        <div className={cn('flex flex-row flex-wrap justify-center', rowGap)}>{[0, 1].map((i) => wrapSquare(tiles[i], i))}</div>
-        <div className={cn('flex flex-row flex-wrap justify-center', rowGap)}>{[2, 3].map((i) => wrapSquare(tiles[i], i))}</div>
-        <div className="flex justify-center">{wrapSquare(tiles[4], 4)}</div>
+      <div className={cn(stageShell, stackGap)}>
+        <div className={cn('grid min-h-0 w-full max-w-[min(100%,1200px)] grid-cols-2', gridGap)}>
+          {[0, 1].map((i) => wrapVideoTile(tiles[i], i))}
+        </div>
+        <div className={cn('grid min-h-0 w-full max-w-[min(100%,1200px)] grid-cols-2', gridGap)}>
+          {[2, 3].map((i) => wrapVideoTile(tiles[i], i))}
+        </div>
+        <div className="flex w-full max-w-[min(100%,1200px)] justify-center">
+          <div className={cn(tileVideoShell, widthOneHalf)}>{tiles[4]}</div>
+        </div>
       </div>
     );
   }
 
   if (n === 6) {
     return (
-      <div className="mx-auto grid h-full min-h-0 w-full max-w-[min(100%,1200px)] grid-cols-3 grid-rows-2 gap-3 px-2 py-2 content-center">
-        {tiles.map((t, i) => (
-          <div key={i} className="min-h-0 min-w-0 overflow-hidden rounded-xl">
-            {t}
-          </div>
-        ))}
+      <div className={stageShell}>
+        <div
+          className={cn(
+            'grid min-h-0 w-full grid-cols-3 auto-rows-auto',
+            gridGap,
+            '[&>*]:min-h-0',
+          )}
+        >
+          {tiles.map((t, i) => wrapVideoTile(t, i))}
+        </div>
       </div>
     );
   }
 
   if (n === 7) {
     return (
-      <div className={cn('flex h-full min-h-0 w-full flex-col items-center justify-center', rowGap, 'py-2')}>
-        <div className="grid w-full max-w-[min(100%,1200px)] grid-cols-3 gap-3 px-2">
-          {tiles.slice(0, 3).map((t, i) => (
-            <div key={i} className="min-h-0 min-w-0 overflow-hidden rounded-xl">
-              {t}
-            </div>
-          ))}
+      <div className={cn(stageShell, stackGap)}>
+        <div className={cn('grid w-full max-w-[min(100%,1200px)] grid-cols-3', gridGap)}>
+          {tiles.slice(0, 3).map((t, i) => wrapVideoTile(t, i))}
         </div>
-        <div className="grid w-full max-w-[min(100%,1200px)] grid-cols-3 gap-3 px-2">
-          {tiles.slice(3, 6).map((t, i) => (
-            <div key={i + 3} className="min-h-0 min-w-0 overflow-hidden rounded-xl">
-              {t}
-            </div>
-          ))}
+        <div className={cn('grid w-full max-w-[min(100%,1200px)] grid-cols-3', gridGap)}>
+          {tiles.slice(3, 6).map((t, i) => wrapVideoTile(t, i + 3))}
         </div>
-        <div className="flex w-full justify-center px-2">
-          <div className="aspect-square w-[min(44vmin,400px)] max-w-[46vw] overflow-hidden rounded-xl sm:max-w-[380px]">
-            {tiles[6]}
-          </div>
+        <div className="flex w-full max-w-[min(100%,1200px)] justify-center">
+          <div className={cn(tileVideoShell, widthOneThird)}>{tiles[6]}</div>
         </div>
       </div>
     );
@@ -130,36 +139,26 @@ export function MeetingParticipantTileStage({ tiles }: MeetingParticipantTileSta
 
   if (n === 8) {
     return (
-      <div className={cn('flex h-full min-h-0 w-full flex-col items-center justify-center', rowGap, 'py-2')}>
-        <div className="grid w-full max-w-[min(100%,1200px)] grid-cols-3 gap-3 px-2">
-          {tiles.slice(0, 3).map((t, i) => (
-            <div key={i} className="min-h-0 min-w-0 overflow-hidden rounded-xl">
-              {t}
-            </div>
-          ))}
+      <div className={cn(stageShell, stackGap)}>
+        <div className={cn('grid w-full max-w-[min(100%,1200px)] grid-cols-3', gridGap)}>
+          {tiles.slice(0, 3).map((t, i) => wrapVideoTile(t, i))}
         </div>
-        <div className="grid w-full max-w-[min(100%,1200px)] grid-cols-3 gap-3 px-2">
-          {tiles.slice(3, 6).map((t, i) => (
-            <div key={i + 3} className="min-h-0 min-w-0 overflow-hidden rounded-xl">
-              {t}
-            </div>
-          ))}
+        <div className={cn('grid w-full max-w-[min(100%,1200px)] grid-cols-3', gridGap)}>
+          {tiles.slice(3, 6).map((t, i) => wrapVideoTile(t, i + 3))}
         </div>
-        <div className={cn('flex flex-row flex-wrap justify-center', rowGap)}>
-          {wrapSquare(tiles[6], 6)}
-          {wrapSquare(tiles[7], 7)}
+        <div className={cn('flex w-full max-w-[min(100%,1200px)] flex-row flex-wrap justify-center', gridGap)}>
+          {wrapVideoTile(tiles[6], 6, widthOneThird)}
+          {wrapVideoTile(tiles[7], 7, widthOneThird)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto grid h-full min-h-0 w-full max-w-[min(100%,1200px)] grid-cols-3 grid-rows-3 gap-3 px-2 py-2 content-center">
-      {tiles.slice(0, 9).map((t, i) => (
-        <div key={i} className="min-h-0 min-w-0 overflow-hidden rounded-xl">
-          {t}
-        </div>
-      ))}
+    <div className={stageShell}>
+      <div className={cn('grid min-h-0 w-full grid-cols-3 grid-rows-3', gridGap, '[&>*]:min-h-0')}>
+        {tiles.slice(0, 9).map((t, i) => wrapVideoTile(t, i))}
+      </div>
     </div>
   );
 }

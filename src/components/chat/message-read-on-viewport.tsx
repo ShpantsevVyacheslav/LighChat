@@ -12,6 +12,7 @@ import type { Firestore } from 'firebase/firestore';
 import type { ChatMessage } from '@/lib/types';
 import { markMessagesAsRead } from '@/lib/chat-utils';
 import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
+import { incrementChatPerfCounter } from '@/components/chat/chat-performance-metrics';
 
 /** Ref на DOM-скроллер Virtuoso (см. prop scrollerRef) — root для IntersectionObserver. */
 export const ChatViewportScrollerRefContext = createContext<MutableRefObject<HTMLElement | null> | null>(
@@ -20,6 +21,52 @@ export const ChatViewportScrollerRefContext = createContext<MutableRefObject<HTM
 
 export function useChatViewportScrollerRef(): MutableRefObject<HTMLElement | null> | null {
   return useContext(ChatViewportScrollerRefContext);
+}
+
+type ObserverCallback = (entry: IntersectionObserverEntry) => void;
+
+type ObserverPool = {
+  observer: IntersectionObserver;
+  callbacksByElement: Map<Element, ObserverCallback>;
+};
+
+const observerPoolByRoot = new WeakMap<HTMLElement, ObserverPool>();
+
+function getOrCreateObserverPool(root: HTMLElement): ObserverPool {
+  const existing = observerPoolByRoot.get(root);
+  if (existing) return existing;
+
+  const callbacksByElement = new Map<Element, ObserverCallback>();
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const cb = callbacksByElement.get(entry.target);
+        if (cb) cb(entry);
+      }
+    },
+    { root, rootMargin: '0px', threshold: [0, 0.12, 0.35, 0.6] }
+  );
+
+  const pool: ObserverPool = { observer, callbacksByElement };
+  observerPoolByRoot.set(root, pool);
+  incrementChatPerfCounter('message-read-observer-created');
+  return pool;
+}
+
+function observeWithPool(root: HTMLElement, element: Element, cb: ObserverCallback): () => void {
+  const pool = getOrCreateObserverPool(root);
+  pool.callbacksByElement.set(element, cb);
+  pool.observer.observe(element);
+
+  return () => {
+    pool.observer.unobserve(element);
+    pool.callbacksByElement.delete(element);
+    if (pool.callbacksByElement.size === 0) {
+      pool.observer.disconnect();
+      observerPoolByRoot.delete(root);
+      incrementChatPerfCounter('message-read-observer-disposed');
+    }
+  };
 }
 
 export type MessageReadOnViewportProps = {
@@ -57,15 +104,18 @@ export function MessageReadOnViewport({
 }: MessageReadOnViewportProps) {
   const scrollerRef = useChatViewportScrollerRef();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const senderId = message.senderId;
+  const readAt = message.readAt;
+
   useEffect(() => {
     const root = scrollerRef?.current ?? null;
     const el = wrapRef.current;
     if (!canMarkReadByViewport || !root || !el || !firestore) return;
-    if (!isIncomingUnreadForViewer(message, currentUserId)) return;
+    if (!isIncomingUnreadForViewer({ senderId, readAt }, currentUserId)) return;
 
     const tryMark = () => {
       if (!firestore) return;
-      if (!isIncomingUnreadForViewer(message, currentUserId)) return;
+      if (!isIncomingUnreadForViewer({ senderId, readAt }, currentUserId)) return;
       if (sessionReadIds.current.has(messageId)) return;
       sessionReadIds.current.add(messageId);
       void markMessagesAsRead(
@@ -81,25 +131,21 @@ export function MessageReadOnViewport({
       });
     };
 
-    let observer: IntersectionObserver;
     try {
-      observer = new IntersectionObserver(
-        (entries) => {
-          const visible = entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.12);
-          if (visible) tryMark();
-        },
-        { root, rootMargin: '0px', threshold: [0, 0.12, 0.35, 0.6] }
-      );
-      observer.observe(el);
+      return observeWithPool(root, el, (entry) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.12) {
+          tryMark();
+        }
+      });
     } catch (e) {
       console.warn('[MessageReadOnViewport] IntersectionObserver unsupported or invalid root (iOS/WebKit)', e);
       return;
     }
-    return () => observer.disconnect();
   }, [
     scrollerRef,
     messageId,
-    message,
+    senderId,
+    readAt,
     currentUserId,
     canMarkReadByViewport,
     viewportLayoutKey,

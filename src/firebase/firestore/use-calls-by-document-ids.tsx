@@ -41,6 +41,8 @@ export function useCallsByDocumentIds(
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (!firestore) {
       setData(null);
       setIsLoading(false);
@@ -60,6 +62,7 @@ export function useCallsByDocumentIds(
     const initialReceived = new Set<number>();
 
     const mergeAndPublish = () => {
+      if (!isMounted) return;
       const merged = new Map<string, CallWithId>();
       for (let i = 0; i < batches.length; i++) {
         const part = perBatch.get(i);
@@ -69,42 +72,54 @@ export function useCallsByDocumentIds(
       setData([...merged.values()]);
     };
 
-    return scheduleFirestoreListen(() => {
-      const unsubs: Array<() => void> = [];
-      batches.forEach((batch, index) => {
-        const q = query(collection(firestore, 'calls'), where(documentId(), 'in', batch));
-        unsubs.push(
-          onSnapshot(
-            q,
-            (snap) => {
-              const m = new Map<string, CallWithId>();
-              snap.docs.forEach((d) => {
-                m.set(d.id, { ...(d.data() as Call), id: d.id });
-              });
-              perBatch.set(index, m);
-              mergeAndPublish();
-              initialReceived.add(index);
-              if (initialReceived.size >= batches.length) {
-                setIsLoading(false);
+    const safeSetLoading = (v: boolean) => {
+      if (isMounted) setIsLoading(v);
+    };
+
+    const unsubscribe = scheduleFirestoreListen(
+      () => {
+        const unsubs: Array<() => void> = [];
+        batches.forEach((batch, index) => {
+          const q = query(collection(firestore, 'calls'), where(documentId(), 'in', batch));
+          unsubs.push(
+            onSnapshot(
+              q,
+              (snap) => {
+                const m = new Map<string, CallWithId>();
+                snap.docs.forEach((d) => {
+                  m.set(d.id, { ...(d.data() as Call), id: d.id });
+                });
+                perBatch.set(index, m);
+                mergeAndPublish();
+                initialReceived.add(index);
+                if (initialReceived.size >= batches.length) {
+                  safeSetLoading(false);
+                }
+              },
+              (err) => {
+                console.error('[useCallsByDocumentIds] snapshot error', err);
+                safeSetLoading(false);
               }
-            },
-            (err) => {
-              console.error('[useCallsByDocumentIds] snapshot error', err);
-              setIsLoading(false);
-            }
-          )
-        );
-      });
-      return () => {
-        unsubs.forEach((u) => {
-          try {
-            u();
-          } catch (e) {
-            console.warn('[useCallsByDocumentIds] unsubscribe', e);
-          }
+            )
+          );
         });
-      };
-    });
+        return () => {
+          unsubs.forEach((u) => {
+            try {
+              u();
+            } catch (e) {
+              console.warn('[useCallsByDocumentIds] unsubscribe', e);
+            }
+          });
+        };
+      },
+      () => safeSetLoading(false)
+    );
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [firestore, idsKey]);
 
   return { data, isLoading };

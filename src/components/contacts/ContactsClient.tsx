@@ -5,8 +5,8 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { buildPathWithConversation } from '@/lib/dashboard-conversation-url';
 import { useAuth } from '@/hooks/use-auth';
 import { useDoc, useFirestore, useMemoFirebase, useUsersByDocumentIds, useUser as useFirebaseUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { User, UserContactsIndex } from '@/lib/types';
+import { doc, getDoc } from 'firebase/firestore';
+import type { User, UserContactsIndex, PlatformSettingsDoc } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -29,6 +29,8 @@ import {
   dismissPhoneBookOffer,
 } from '@/lib/contacts-client-actions';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import { tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee';
+import { useSettings } from '@/hooks/use-settings';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { normalizePhoneDigits } from '@/lib/phone-utils';
@@ -43,6 +45,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { ContactsSyncPromoBanner } from '@/components/contacts/ContactsSyncPromoBanner';
 import { ContactsPermissionGuideDialog } from '@/components/contacts/ContactsPermissionGuideDialog';
@@ -62,6 +65,15 @@ const glassIconButtonClass = cn(
   'dark:bg-white/[0.09] dark:ring-white/[0.06] dark:shadow-[0_2px_20px_rgba(0,0,0,0.25)] dark:hover:bg-white/[0.14]'
 );
 
+/** Панель подтверждения в том же стеклянном ключе, что и кнопки контактов. */
+const contactRemoveDialogSurfaceClass = cn(
+  'max-w-[min(100%,380px)] gap-5 rounded-[1.35rem] border border-white/30 p-6 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.55)]',
+  'bg-background/[0.72] backdrop-blur-2xl backdrop-saturate-150',
+  'dark:border-white/[0.12] dark:bg-white/[0.08] dark:shadow-[0_28px_90px_-24px_rgba(0,0,0,0.75)]'
+);
+
+const contactRemoveDialogOverlayClass = 'bg-black/45 backdrop-blur-md';
+
 export function ContactsClient() {
   const { user: currentUser } = useAuth();
   const { user: firebaseUser } = useFirebaseUser();
@@ -71,6 +83,7 @@ export function ContactsClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { privacySettings } = useSettings();
 
   const [phoneInput, setPhoneInput] = useState('');
   const [searchBusy, setSearchBusy] = useState(false);
@@ -81,6 +94,8 @@ export function ContactsClient() {
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [pwaPhoneBookOpen, setPwaPhoneBookOpen] = useState(false);
   const [contactPermissionGuideOpen, setContactPermissionGuideOpen] = useState(false);
+  /** Подтверждение удаления из списка контактов. */
+  const [contactPendingRemove, setContactPendingRemove] = useState<{ id: string; name: string } | null>(null);
   const skipDismissOnCloseRef = useRef(false);
 
   const contactsRef = useMemoFirebase(() => {
@@ -245,6 +260,18 @@ export function ContactsClient() {
     setChatBusyId(other.id);
     try {
       const id = await createOrOpenDirectChat(firestore, currentUser, other);
+      let platformWants = false;
+      try {
+        const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));
+        const p = ps.data() as PlatformSettingsDoc | undefined;
+        platformWants = !!p?.e2eeDefaultForNewDirectChats;
+      } catch {
+        /* ignore */
+      }
+      await tryAutoEnableE2eeNewDirectChat(firestore, id, currentUser.id, {
+        userWants: privacySettings.e2eeForNewDirectChats === true,
+        platformWants,
+      });
       router.replace(
         buildPathWithConversation(pathname, searchParams.toString(), id)
       );
@@ -277,7 +304,7 @@ export function ContactsClient() {
     [firestore, currentUser, toast]
   );
 
-  const removeContact = async (otherId: string) => {
+  const performRemoveContact = async (otherId: string) => {
     if (!firestore || !currentUser || !ownerUid) return;
     setRemoveBusyId(otherId);
     try {
@@ -289,6 +316,13 @@ export function ContactsClient() {
     } finally {
       setRemoveBusyId(null);
     }
+  };
+
+  const handleConfirmRemoveContact = async () => {
+    if (!contactPendingRemove) return;
+    const { id } = contactPendingRemove;
+    await performRemoveContact(id);
+    setContactPendingRemove(null);
   };
 
   const handlePhoneBookAllow = async () => {
@@ -455,7 +489,12 @@ export function ContactsClient() {
                       glassIconButtonClass,
                       'h-9 w-9 rounded-[0.75rem] text-destructive hover:text-destructive'
                     )}
-                    onClick={() => removeContact(id)}
+                    onClick={() =>
+                      setContactPendingRemove({
+                        id,
+                        name: (u?.name?.trim() || 'Контакт').slice(0, 120),
+                      })
+                    }
                     disabled={removeBusyId === id || callBusy?.userId === id}
                     aria-label="Удалить из контактов"
                   >
@@ -493,6 +532,51 @@ export function ContactsClient() {
           />
         </>
       )}
+
+      <AlertDialog
+        open={contactPendingRemove !== null}
+        onOpenChange={(open) => {
+          if (!open) setContactPendingRemove(null);
+        }}
+      >
+        <AlertDialogContent overlayClassName={contactRemoveDialogOverlayClass} className={contactRemoveDialogSurfaceClass}>
+          <AlertDialogHeader className="space-y-2 text-left">
+            <div className="mb-0.5 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 ring-1 ring-destructive/25">
+              <Trash2 className="h-5 w-5 text-destructive" strokeWidth={1.75} aria-hidden />
+            </div>
+            <AlertDialogTitle className="text-base font-semibold">Удалить из контактов?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground/90">{contactPendingRemove?.name}</span> будет убран из вашего
+              списка. Переписки в чатах не удаляются.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-1 flex-col gap-2 sm:flex-col sm:space-x-0">
+            <Button
+              type="button"
+              variant="destructive"
+              className="h-11 w-full rounded-xl font-semibold shadow-sm"
+              disabled={!!contactPendingRemove && removeBusyId === contactPendingRemove.id}
+              onClick={() => void handleConfirmRemoveContact()}
+            >
+              {contactPendingRemove && removeBusyId === contactPendingRemove.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                'Удалить'
+              )}
+            </Button>
+            <AlertDialogCancel
+              type="button"
+              className={cn(
+                'mt-0 h-11 w-full rounded-xl border border-white/35 bg-white/30 font-semibold backdrop-blur-xl',
+                'hover:bg-white/45 dark:border-white/[0.14] dark:bg-white/[0.08] dark:hover:bg-white/[0.12]'
+              )}
+              disabled={!!contactPendingRemove && removeBusyId === contactPendingRemove.id}
+            >
+              Отмена
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={pwaPhoneBookOpen} onOpenChange={handlePhoneBookOpenChange}>
         <AlertDialogContent className="max-w-[min(100%,380px)] rounded-2xl border border-border/60 shadow-2xl">

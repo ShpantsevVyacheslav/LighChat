@@ -6,6 +6,10 @@ import { useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { ROLES } from '@/lib/constants';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import { tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee';
+import { useSettings } from '@/hooks/use-settings';
+import { doc, getDoc } from 'firebase/firestore';
+import type { PlatformSettingsDoc } from '@/lib/types';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import {
   atUsernameLabel,
@@ -42,6 +46,7 @@ export function NewChatDialog({
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const firestore = useFirestore();
+  const { privacySettings } = useSettings();
 
   const { fromContacts, fromGlobal } = useMemo(() => {
     const matched = (users || []).filter(
@@ -56,6 +61,18 @@ export function NewChatDialog({
 
     try {
         const id = await createOrOpenDirectChat(firestore, currentUser, user);
+        let platformWants = false;
+        try {
+          const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));
+          const p = ps.data() as PlatformSettingsDoc | undefined;
+          platformWants = !!p?.e2eeDefaultForNewDirectChats;
+        } catch {
+          /* ignore */
+        }
+        await tryAutoEnableE2eeNewDirectChat(firestore, id, currentUser.id, {
+          userWants: privacySettings.e2eeForNewDirectChats === true,
+          platformWants,
+        });
         onSelectConversation(id);
         setIsOpen(false);
     } catch (error) {

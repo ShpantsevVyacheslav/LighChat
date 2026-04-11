@@ -16,15 +16,26 @@ export default function NotificationSettingsPage() {
   const { notificationSettings, updateNotificationSettings } = useSettings();
   const { toast } = useToast();
 
+  const clientTimeZone =
+    typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+
   const handleUpdate = async (patch: Partial<typeof notificationSettings>) => {
-    const ok = await updateNotificationSettings(patch);
+    const withTz =
+      clientTimeZone != null && clientTimeZone.length > 0
+        ? { ...patch, quietHoursTimeZone: clientTimeZone }
+        : patch;
+    const ok = await updateNotificationSettings(withTz);
     if (!ok) {
       toast({ variant: "destructive", title: "Ошибка", description: "Не удалось сохранить настройки." });
     }
   };
 
   const handleReset = async () => {
-    const ok = await updateNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS);
+    const withTz =
+      clientTimeZone != null && clientTimeZone.length > 0
+        ? { ...DEFAULT_NOTIFICATION_SETTINGS, quietHoursTimeZone: clientTimeZone }
+        : DEFAULT_NOTIFICATION_SETTINGS;
+    const ok = await updateNotificationSettings(withTz);
     if (ok) {
       toast({ title: "Сброшено", description: "Настройки уведомлений восстановлены по умолчанию." });
     }

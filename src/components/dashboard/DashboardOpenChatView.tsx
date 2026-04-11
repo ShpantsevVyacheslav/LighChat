@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import {
   useDoc,
@@ -10,9 +11,8 @@ import {
   useUser as useFirebaseAuthUser,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import type { User, Conversation, UserContactsIndex } from '@/lib/types';
+import type { User, Conversation } from '@/lib/types';
 import { ChatWindow } from '@/components/chat/ChatWindow';
-import { GroupChatFormDialog } from '@/components/chat/GroupChatFormDialog';
 import { Loader2 } from 'lucide-react';
 
 type DashboardOpenChatViewProps = {
@@ -24,6 +24,7 @@ type DashboardOpenChatViewProps = {
 
 /**
  * Правая колонка: активный чат по id из URL (Firestore + `ChatWindow`).
+ * Редактирование группы — внутри sheet профиля (`ChatParticipantProfile`), не отдельным диалогом.
  */
 export function DashboardOpenChatView({
   conversationId,
@@ -31,6 +32,18 @@ export function DashboardOpenChatView({
   onSelectConversation,
   messageSearchBlurInsetLeftPx,
 }: DashboardOpenChatViewProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const focusMessageId = searchParams.get('focusMessageId');
+
+  const clearFocusMessageFromUrl = React.useCallback(() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('focusMessageId');
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
+
   const { user: currentUser } = useAuth();
   const { user: firebaseAuthUser } = useFirebaseAuthUser();
   const authUid = firebaseAuthUser?.uid ?? currentUser?.id ?? null;
@@ -42,17 +55,6 @@ export function DashboardOpenChatView({
   }, [currentUser, authUid]);
 
   const firestore = useFirestore();
-  const [editingGroup, setEditingGroup] = React.useState<Conversation | null>(null);
-
-  const userContactsRef = useMemoFirebase(
-    () => (firestore && authUid ? doc(firestore, 'userContacts', authUid) : null),
-    [firestore, authUid]
-  );
-  const { data: userContactsIndex } = useDoc<UserContactsIndex>(userContactsRef);
-  const contactIdsForSearch = React.useMemo(
-    () => userContactsIndex?.contactIds ?? [],
-    [userContactsIndex?.contactIds]
-  );
 
   const { data: usersData } = useCollection<User>(
     useMemoFirebase(
@@ -93,33 +95,16 @@ export function DashboardOpenChatView({
   }
 
   return (
-    <>
-      <ChatWindow
-        key={conversation.id}
-        conversation={conversation}
-        currentUser={currentUserForFirestore}
-        allUsers={allUsers}
-        onBack={onBack}
-        onSelectConversation={onSelectConversation}
-        onEditGroup={(c) => {
-          setEditingGroup(c);
-        }}
-        messageSearchBlurInsetLeftPx={messageSearchBlurInsetLeftPx}
-      />
-      <GroupChatFormDialog
-        open={!!editingGroup}
-        onOpenChange={(open) => {
-          if (!open) setEditingGroup(null);
-        }}
-        allUsers={allUsers.filter((u) => u.id !== authUid && !u.deletedAt)}
-        contactIds={contactIdsForSearch}
-        currentUser={currentUserForFirestore}
-        onGroupCreated={(id) => {
-          setEditingGroup(null);
-          onSelectConversation(id);
-        }}
-        initialData={editingGroup}
-      />
-    </>
+    <ChatWindow
+      key={conversation.id}
+      conversation={conversation}
+      currentUser={currentUserForFirestore}
+      allUsers={allUsers}
+      onBack={onBack}
+      onSelectConversation={onSelectConversation}
+      messageSearchBlurInsetLeftPx={messageSearchBlurInsetLeftPx}
+      focusMessageId={focusMessageId}
+      onFocusMessageConsumed={clearFocusMessageFromUrl}
+    />
   );
 }

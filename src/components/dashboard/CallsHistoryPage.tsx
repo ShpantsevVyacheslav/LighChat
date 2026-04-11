@@ -14,6 +14,7 @@ import {
 import { doc } from 'firebase/firestore';
 import { cn, formatDuration } from '@/lib/utils';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
+import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,9 +26,7 @@ import {
   Search,
   Calendar as CalendarIcon,
   Clock,
-  HelpCircle,
 } from 'lucide-react';
-import Link from 'next/link';
 import { format, isToday, isYesterday, parseISO, differenceInSeconds } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -58,7 +57,8 @@ export function CallsHistoryPage() {
     if (!firestore || !authUid) return null;
     return doc(firestore, 'userCalls', authUid);
   }, [firestore, authUid]);
-  const { data: userCallsIndex } = useDoc<UserCallsIndex>(userCallsIndexRef);
+  const { data: userCallsIndex, isLoading: isLoadingUserCallsIndex } =
+    useDoc<UserCallsIndex>(userCallsIndexRef);
   const callIds = useMemo(() => userCallsIndex?.callIds || [], [userCallsIndex]);
 
   const { data: rawCalls, isLoading: isLoadingCalls } = useCallsByDocumentIds(firestore, callIds);
@@ -91,7 +91,7 @@ export function CallsHistoryPage() {
       const foundUser = allUsers.find((u) => u.id === otherId);
       const name =
         foundUser?.name || (isOutgoing ? call.receiverName : call.callerName) || 'Неизвестный';
-      return name.toLowerCase().includes(searchTerm.toLowerCase());
+      return ruEnSubstringMatch(name, searchTerm);
     });
   }, [calls, searchTerm, allUsers, authUid]);
 
@@ -116,7 +116,8 @@ export function CallsHistoryPage() {
     await initiateCall(firestore, currentUserForFirestore, peer, isVideo, toast);
   };
 
-  const listLoading = isLoadingUsers || isLoadingCalls;
+  /** Пока нет снимка userCalls, callIds пустой и useCallsByDocumentIds даёт isLoading=false — без индекса ловили ложное «пусто». */
+  const listLoading = isLoadingUserCallsIndex || isLoadingUsers || isLoadingCalls;
 
   const callDetailsPeer = useMemo(() => {
     if (!selectedCall || !authUid) return null;
@@ -132,16 +133,9 @@ export function CallsHistoryPage() {
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-col">
-      <div className="shrink-0 border-b border-border/60 px-1 pb-3 pt-1">
-        <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+      <div className="shrink-0 px-1 pb-3 pt-1">
+        <div className="px-2 pb-2 pt-1">
           <h1 className="text-lg font-bold tracking-tight">Звонки</h1>
-          <Link
-            href="/dashboard/calls/help"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Справка по звонкам"
-          >
-            <HelpCircle className="h-5 w-5" />
-          </Link>
         </div>
         <div className="relative min-w-0 px-2">
           <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

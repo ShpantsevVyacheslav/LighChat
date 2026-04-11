@@ -11,7 +11,16 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 import { ChatAttachment, User } from '@/lib/types';
-import { Download, Trash2, Reply, Forward, ArrowLeft, Play, MoreVertical } from 'lucide-react';
+import {
+  Download,
+  Trash2,
+  Reply,
+  Forward,
+  ArrowLeft,
+  Play,
+  MoreVertical,
+  CornerUpLeft,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -19,8 +28,21 @@ import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useChatAttachmentDisplaySrc } from '@/components/chat/use-chat-attachment-display-src';
+import { useElectronCachedUrl } from '@/hooks/use-electron-cached-url';
+
+/** Тёмное «стекло»: контраст и на светлом, и на тёмном фоне кадра (светлая заливка терялась на белых фото). */
+const mediaViewerFloatingActionClass = cn(
+  'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
+  'border border-white/30 bg-black/55 text-white shadow-lg shadow-black/40 backdrop-blur-xl',
+  'transition-transform duration-150 hover:border-white/45 hover:bg-black/70 active:scale-[0.94]',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/55 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
+);
+
+const mediaViewerFloatingDangerClass = cn(
+  mediaViewerFloatingActionClass,
+  'border-red-400/60 text-red-200 hover:border-red-400/85 hover:bg-red-950/75'
+);
 
 export type MediaViewerItem = ChatAttachment & {
     messageId: string;
@@ -67,7 +89,8 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
     const tref = transformRefs.current[index];
     if (!tref?.instance) return;
     const scale = tref.instance.transformState.scale;
-    if (scale > 1.05) tref.resetTransform(200);
+    /** resetTransform даёт 0,0 — кадр уезжает от центра; centerView(1) = масштаб 1 и позиция по центру вьюпорта */
+    if (scale > 1.05) tref.centerView(1, 200);
     else tref.zoomIn(0.7, 200);
   }, []);
 
@@ -100,8 +123,8 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
       lastTapRef.current = null;
 
       Object.entries(transformRefs.current).forEach(([idx, ref]) => {
-        if (Number(idx) !== newIndex && ref) {
-            ref.resetTransform(0);
+        if (Number(idx) !== newIndex && ref?.centerView) {
+          ref.centerView(1, 0);
         }
       });
       isZoomedRef.current = false;
@@ -125,6 +148,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
   }, [api, isOpen, startIndex]);
 
   const currentMedia = media[current - 1];
+  const currentIndex = current > 0 ? current - 1 : startIndex;
   const sender = useMemo(() => allUsers.find(u => u.id === currentMedia?.senderId), [currentMedia, allUsers]);
   const canDelete = currentMedia && currentMedia.senderId === currentUserId;
 
@@ -236,7 +260,8 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
       <DialogContent 
         showCloseButton={false}
         className={cn(
-          "fixed inset-0 left-0 top-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none max-h-none m-0 bg-transparent border-none shadow-none p-0 rounded-none flex flex-col items-center justify-center z-[150] overflow-hidden",
+          /* Без justify-center/items-center: иначе карусель по высоте = «полоска» под object-contain, зум не на весь экран */
+          "fixed inset-0 left-0 top-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none max-h-none m-0 bg-transparent border-none shadow-none p-0 rounded-none flex min-h-0 flex-col items-stretch z-[150] overflow-hidden",
           touchStartRef.current === null ? "transition-all duration-300 ease-out" : "transition-none"
         )}
         style={{ 
@@ -314,62 +339,89 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
           opts={{
             watchDrag: () => !isZoomedRef.current,
           }}
-          className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden"
+          className="relative z-10 flex min-h-0 flex-1 w-full flex-col overflow-hidden"
         >
-          <CarouselContent className="h-full ml-0 items-center">
+          <CarouselContent
+            viewportClassName="h-full min-h-0"
+            className="ml-0 flex h-full min-h-0 items-stretch pl-0"
+          >
             {media.map((item, index) => (
-              <CarouselItem key={index} className="flex items-center justify-center p-0 h-full w-full shrink-0 overflow-hidden">
-                <TransformWrapper
-                  ref={(ref: any) => { transformRefs.current[index] = ref; }}
-                  initialScale={1}
-                  minScale={1}
-                  maxScale={10}
-                  centerOnInit
-                  limitToBounds={true}
-                  panning={{ disabled: !isZoomed, velocityDisabled: true }}
-                  wheel={{ step: 0.5, smoothStep: 0.05 }}
-                  doubleClick={{ disabled: false, mode: 'toggle', step: 0.7, animationTime: 200 }}
-                  alignmentAnimation={{ disabled: true }}
-                  onPinchingStart={() => {
-                    pinchActiveRef.current = true;
-                  }}
-                  onPinchingStop={() => {
-                    pinchActiveRef.current = false;
-                    suppressDoubleTapUntilRef.current = Date.now() + 450;
-                  }}
-                  onTransformed={(_ref, state) => {
-                    const scale = state?.scale ?? 1;
-                    const z = scale > 1.05;
-                    isZoomedRef.current = z;
-                    setIsZoomed(z);
-                  }}
-                >
-                  <TransformComponent 
-                    wrapperClass="!w-full !h-full overflow-hidden" 
-                    contentClass="w-full h-full flex items-center justify-center"
+              <CarouselItem
+                key={index}
+                className="flex h-full min-h-0 w-full shrink-0 basis-full flex-col overflow-hidden p-0 pl-0"
+              >
+                {Math.abs(index - currentIndex) <= 1 ? (
+                  <TransformWrapper
+                    ref={(ref: any) => { transformRefs.current[index] = ref; }}
+                    initialScale={1}
+                    minScale={1}
+                    maxScale={10}
+                    centerOnInit
+                    /** Ограничение pan; контент трансформа = весь вьюпорт, чтобы max-h/w % у img давали object-contain */
+                    limitToBounds
+                    disablePadding
+                    centerZoomedOut
+                    panning={{ disabled: !isZoomed, velocityDisabled: true }}
+                    wheel={{ step: 0.5, smoothStep: 0.05 }}
+                    /** Встроенный dblclick использует resetTransform — смещение; тоггл — свой touch + onDoubleClick */
+                    doubleClick={{ disabled: true }}
+                    onPinchingStart={() => {
+                      pinchActiveRef.current = true;
+                    }}
+                    onPinchingStop={() => {
+                      pinchActiveRef.current = false;
+                      suppressDoubleTapUntilRef.current = Date.now() + 450;
+                    }}
+                    onTransformed={(_ref, state) => {
+                      const scale = state?.scale ?? 1;
+                      const z = scale > 1.05;
+                      isZoomedRef.current = z;
+                      setIsZoomed(z);
+                    }}
                   >
-                    <div
-                      data-media-interactive="true"
-                      className="flex h-full w-full max-h-[100dvh] max-w-[100dvw] items-center justify-center touch-none min-h-0"
+                    <TransformComponent
+                      wrapperClass="!h-full !w-full !max-w-none min-h-0 overflow-hidden"
+                      wrapperStyle={{ width: '100%', height: '100%' }}
+                      contentClass="!flex !h-full !w-full min-h-0 min-w-0 items-center justify-center"
+                      contentStyle={{ width: '100%', height: '100%' }}
                     >
                       {item.type.startsWith('image/') ? (
-                        <MediaViewerMainImage
-                          item={item}
-                          index={index}
-                          isMediaLoading={isMediaLoading}
-                          setIsMediaLoading={setIsMediaLoading}
-                          onImageTouchEnd={onImageTouchEnd}
-                        />
+                        <div
+                          data-media-interactive="true"
+                          className="flex h-full min-h-0 w-full min-w-0 touch-none items-center justify-center"
+                          onDoubleClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleSlideZoomFromRef(index);
+                          }}
+                        >
+                          <MediaViewerMainImage
+                            item={item}
+                            index={index}
+                            isMediaLoading={isMediaLoading}
+                            setIsMediaLoading={setIsMediaLoading}
+                            onImageTouchEnd={onImageTouchEnd}
+                          />
+                        </div>
                       ) : (
-                        <VideoPlayer 
-                          url={item.url} 
-                          onLoadStart={() => setIsMediaLoading(prev => ({ ...prev, [index]: true }))} 
-                          onCanPlay={() => setIsMediaLoading(prev => ({ ...prev, [index]: false }))} 
-                        />
+                        <div
+                          data-media-interactive="true"
+                          className="flex h-full min-h-0 w-full min-w-0 items-center justify-center touch-none"
+                        >
+                          <VideoPlayer
+                            url={item.url}
+                            onLoadStart={() => setIsMediaLoading((prev) => ({ ...prev, [index]: true }))}
+                            onCanPlay={() => setIsMediaLoading((prev) => ({ ...prev, [index]: false }))}
+                          />
+                        </div>
                       )}
-                    </div>
-                  </TransformComponent>
-                </TransformWrapper>
+                    </TransformComponent>
+                  </TransformWrapper>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-black/10" aria-hidden>
+                    <div className="h-10 w-10 rounded-full border-2 border-white/25 border-t-white/70 animate-spin" />
+                  </div>
+                )}
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -382,20 +434,51 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
           )}
         </Carousel>
 
-        <footer className={cn(
-          "absolute left-1/2 z-[160] -translate-x-1/2 transition-all duration-300 bottom-[max(2rem,env(safe-area-inset-bottom,0px))]",
-          isZoomed ? "opacity-0 pointer-events-none translate-y-10" : "opacity-100 translate-y-0"
-        )}>
-          <div className="flex items-center gap-4 bg-black/40 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shadow-2xl">
-            <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-white/10 border-none shadow-none" onClick={(e) => { e.stopPropagation(); handleReply(); }}><Reply className="h-5 w-5" /></Button>
-            <Separator orientation="vertical" className="h-6 bg-white/10" />
-            <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-white/10 border-none shadow-none" onClick={(e) => { e.stopPropagation(); onForward?.(currentMedia); }}><Forward className="h-5 w-5" /></Button>
-            {canDelete && (
-                <>
-                    <Separator orientation="vertical" className="h-6 bg-white/10" />
-                    <Button variant="ghost" size="icon" className="rounded-full text-destructive hover:bg-destructive/10 border-none shadow-none" onClick={(e) => { e.stopPropagation(); handleDelete(); }}><Trash2 className="h-5 w-5" /></Button>
-                </>
-            )}
+        <footer
+          className={cn(
+            'absolute left-1/2 z-[160] flex -translate-x-1/2 justify-center transition-all duration-300 bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]',
+            isZoomed ? 'pointer-events-none translate-y-10 opacity-0' : 'translate-y-0 opacity-100'
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className={mediaViewerFloatingActionClass}
+              aria-label="Ответить"
+              title="Ответить"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReply();
+              }}
+            >
+              <CornerUpLeft className="h-5 w-5" strokeWidth={1.85} />
+            </button>
+            <button
+              type="button"
+              className={mediaViewerFloatingActionClass}
+              aria-label="Переслать"
+              title="Переслать"
+              onClick={(e) => {
+                e.stopPropagation();
+                onForward?.(currentMedia);
+              }}
+            >
+              <Forward className="h-5 w-5" strokeWidth={1.85} />
+            </button>
+            {canDelete ? (
+              <button
+                type="button"
+                className={mediaViewerFloatingDangerClass}
+                aria-label="Удалить"
+                title="Удалить"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+              >
+                <Trash2 className="h-5 w-5" strokeWidth={1.85} />
+              </button>
+            ) : null}
           </div>
         </footer>
       </DialogContent>
@@ -434,7 +517,8 @@ function MediaViewerMainImage({
       src={src}
       alt={item.name}
       className={cn(
-        "max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] max-w-[100dvw] w-auto h-auto object-contain transition-opacity duration-300 select-none !pointer-events-auto",
+        /* Родитель на весь слайд — object-contain, картинка целиком в кадре при масштабе 1 */
+        "block max-h-full max-w-full h-auto w-auto min-h-0 min-w-0 object-contain transition-opacity duration-300 select-none !pointer-events-auto",
         isMediaLoading[index] ? "opacity-0" : "opacity-100"
       )}
       draggable={false}
@@ -448,6 +532,7 @@ function MediaViewerMainImage({
 function VideoPlayer({ url, onLoadStart, onCanPlay }: { url: string, onLoadStart: () => void, onCanPlay: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const cachedUrl = useElectronCachedUrl(url);
 
   const handleSystemFullscreen = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -462,11 +547,11 @@ function VideoPlayer({ url, onLoadStart, onCanPlay }: { url: string, onLoadStart
   };
 
   return (
-    <div className="relative flex h-full min-h-0 w-full max-h-[100dvh] max-w-[100dvw] items-center justify-center bg-black">
+    <div className="relative flex h-full min-h-0 w-full min-w-0 items-center justify-center bg-black">
       <video
         ref={videoRef}
-        src={url}
-        className="max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] max-w-[100dvw] object-contain"
+        src={cachedUrl || url}
+        className="max-h-full max-w-full object-contain"
         onLoadStart={onLoadStart}
         onCanPlay={onCanPlay}
         controls

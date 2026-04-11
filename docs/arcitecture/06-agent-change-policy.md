@@ -10,6 +10,7 @@
 - Не ломай связку `participantIds` <-> `conversations/*/members/*` без синхронного обновления trigger/rules.
 - При изменениях Firestore security обновляй одновременно `firestore.rules` и `src/firestore.rules`.
 - Не добавляй новую интеграцию без отражения в `docs/arcitecture/05-integrations.md`.
+- Для **mobile (Flutter)** изменения в auth/registration должны сохранять **паритет с web**: обновляй чеклист `docs/mobile/auth-parity.md` вместе с кодом.
 
 ## Правило документации (обязательное)
 

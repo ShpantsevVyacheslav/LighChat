@@ -103,7 +103,7 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
         
         {/* Carousel */}
         <Carousel setApi={setApi} className="flex h-full min-h-0 w-full flex-1 items-center pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
-          <CarouselContent>
+          <CarouselContent viewportClassName="h-full min-h-0">
             {images.map((image, index) => (
               <CarouselItem key={index} className="flex items-center justify-center">
                 <div className="relative mx-auto h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-6.5rem)] w-[95vw] max-w-full">

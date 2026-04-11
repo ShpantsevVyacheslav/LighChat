@@ -3,7 +3,9 @@
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useFirestore, useMemoFirebase, useStorage, useCollection } from '@/firebase';
-import { collection, query, doc, updateDoc, increment, orderBy, setDoc, getDocs, where, limit, documentId, writeBatch, onSnapshot, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, increment, orderBy, setDoc, getDocs, where, limit, documentId, writeBatch, onSnapshot, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { E2EE_LAST_MESSAGE_PREVIEW } from '@/lib/e2ee';
+import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import type {
     User,
@@ -35,7 +37,7 @@ import { ChatDateListAnchor } from '@/components/chat/ChatDateListAnchor';
 import { ChatFloatingDateLabel } from '@/components/chat/ChatFloatingDateLabel';
 import { firstCalendarDayInViewport } from '@/components/chat/visible-range-date';
 import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
-import { VIRTUOSO_CHAT_INCREASE_VIEWPORT, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
+import { getVirtuosoChatIncreaseViewport, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
 import { VideoCircleTailProvider } from '@/components/chat/video-circle-tail-context';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/hooks/use-settings';
@@ -45,6 +47,11 @@ import {
     ChatViewportScrollerRefContext,
     MessageReadOnViewport,
 } from '@/components/chat/message-read-on-viewport';
+import {
+    incrementChatPerfCounter,
+    markChatPerf,
+    measureChatPerf,
+} from '@/components/chat/chat-performance-metrics';
 import { CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 
 interface ThreadWindowProps {
@@ -71,9 +78,13 @@ interface ThreadWindowProps {
     /** Группа: меню отправителя — личный чат (родительский `ChatWindow`). */
     onGroupSenderWritePrivate?: (userId: string) => void | Promise<void>;
     /** Сохранить стикер/GIF из сообщения в пак текущего пользователя. */
-    onSaveStickerGif?: (attachment: ChatAttachment) => void;
+    onSaveStickerGif?: (attachment: ChatAttachment, mode?: 'copy' | 'normalize_sticker') => void;
     /** Скрыть плавающий якорь (оверлей профиля родителя — тот же высокий z-index). */
     suppressFloatingAnchor?: boolean;
+    /** Расшифровка родительского сообщения (из основного чата). */
+    parentE2eeDecryptedByMessageId?: Record<string, string>;
+    /** Фон ветки: совпадает с основным чатом (например персональный фон беседы). */
+    chatWallpaper?: string | null;
 }
 
 type FlatThreadItem = 
@@ -96,12 +107,17 @@ export function ThreadWindow({
     onGroupSenderWritePrivate,
     onSaveStickerGif,
     suppressFloatingAnchor = false,
+    parentE2eeDecryptedByMessageId = {},
+    chatWallpaper: chatWallpaperProp = null,
 }: ThreadWindowProps) {
     const firestore = useFirestore();
     const storage = useStorage();
     const { toast } = useToast();
     const router = useRouter();
     const { chatSettings } = useSettings();
+    const effectiveThreadWallpaper = chatWallpaperProp != null && chatWallpaperProp !== '' ? chatWallpaperProp : chatSettings.chatWallpaper;
+    const e2eeConv = useE2eeConversation(firestore, conversation, currentUser.id);
+    const [threadE2eePlaintextByMessageId, setThreadE2eePlaintextByMessageId] = useState<Record<string, string>>({});
     
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [displayLimit, setDisplayLimit] = useState(INITIAL_MESSAGE_LIMIT);
@@ -111,6 +127,10 @@ export function ThreadWindow({
     const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
     const [editingMessage, setEditingMessage] = useState<{ id: string; text: string; attachments?: ChatAttachment[] } | null>(null);
     const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
+    useEffect(() => {
+        setReplyingTo(null);
+        setEditingMessage(null);
+    }, [parentMessage.id]);
     const [selection, setSelection] = useState({ active: false, ids: new Set<string>() });
     const [mediaViewerState, setMediaViewerState] = useState({ isOpen: false, startIndex: 0 });
     const [hasScrolledToUnread, setHasScrolledToUnread] = useState(false);
@@ -183,6 +203,7 @@ export function ThreadWindow({
             prevTailReserveRef.current = 0;
             sessionReadIds.current.clear();
             setViewportCalendarDayKey(null);
+            setThreadE2eePlaintextByMessageId({});
             prevParentIdRef.current = parentMessage.id;
         }
 
@@ -208,8 +229,15 @@ export function ThreadWindow({
         );
     }, [firestore, conversation.id, parentMessage.id, displayLimit]);
 
-    const handleLoadMore = useCallback(() => {
-        if (!hasMore || isLoadingOlder) return;
+    const handleLoadMore = useCallback((source: 'startReached' | 'scroll-fallback' | 'manual' = 'manual') => {
+        incrementChatPerfCounter(`thread-load-more-trigger:${source}`);
+        if (!hasMore || isLoadingOlder || loadMoreInFlightRef.current) {
+            incrementChatPerfCounter('thread-load-more-skipped');
+            return;
+        }
+        loadMoreInFlightRef.current = true;
+        incrementChatPerfCounter('thread-load-more-accepted');
+        markChatPerf('thread-load-more-start');
         const scroller = viewportScrollerRef.current;
         if (scroller) {
             pendingPrependAdjustRef.current = {
@@ -231,6 +259,44 @@ export function ThreadWindow({
             ? combined.filter(m => new Date(m.createdAt) > new Date(clearedAt))
             : combined;
     }, [messages, optimisticMessages, conversation.clearedAt, currentUser.id]);
+
+    useEffect(() => {
+        const hasCiphertext = allMessages.some((m) => m.e2ee?.ciphertext);
+        if (!hasCiphertext) {
+            setThreadE2eePlaintextByMessageId({});
+            return;
+        }
+        let cancelled = false;
+        void (async () => {
+            const updates: Record<string, string> = {};
+            for (const m of allMessages) {
+                if (!m.e2ee?.ciphertext) continue;
+                const plain = await e2eeConv.decryptMessagePayload(m.e2ee);
+                updates[m.id] = plain;
+            }
+            if (!cancelled) {
+                setThreadE2eePlaintextByMessageId((prev) => {
+                    const merged = { ...prev };
+                    let changed = false;
+                    for (const [k, v] of Object.entries(updates)) {
+                        if (merged[k] !== v) {
+                            merged[k] = v;
+                            changed = true;
+                        }
+                    }
+                    return changed ? merged : prev;
+                });
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [allMessages, e2eeConv.decryptMessagePayload]);
+
+    const threadE2eeMergedMap = useMemo(
+        () => ({ ...parentE2eeDecryptedByMessageId, ...threadE2eePlaintextByMessageId }),
+        [parentE2eeDecryptedByMessageId, threadE2eePlaintextByMessageId]
+    );
 
     const unreadCount = useMemo(() => {
         return allMessages.filter(m => m.senderId !== currentUser.id && !m.readAt).length;
@@ -284,6 +350,7 @@ export function ThreadWindow({
 
     const flatItemsRef = useRef(flatItems);
     useEffect(() => { flatItemsRef.current = flatItems; }, [flatItems]);
+    const increaseViewportBy = useMemo(() => getVirtuosoChatIncreaseViewport(), []);
 
     const syncViewportCalendarDay = useCallback(
         (startIndex: number, endIndex: number) => {
@@ -329,6 +396,14 @@ export function ThreadWindow({
     const pendingScrollToBottomAfterSendRef = useRef(false);
     const pendingPrependAdjustRef = useRef<{ scrollTop: number; scrollHeight: number } | null>(null);
     const loadMoreCooldownUntilRef = useRef(0);
+    const loadMoreInFlightRef = useRef(false);
+
+    useEffect(() => {
+        if (!isLoadingOlder) {
+            loadMoreInFlightRef.current = false;
+            measureChatPerf('thread-load-more-start', 'thread-load-more-duration');
+        }
+    }, [isLoadingOlder]);
 
     useEffect(() => {
         if (!pendingScrollToBottomAfterSendRef.current || !isFullyReady || !virtuosoRef.current) return;
@@ -353,6 +428,7 @@ export function ThreadWindow({
     }, [flatItems]);
 
     const tryLoadMoreByTopPosition = useCallback(() => {
+        incrementChatPerfCounter('thread-load-more-top-check');
         const now = Date.now();
         if (now < loadMoreCooldownUntilRef.current) return;
         if (!isFullyReady || !hasMore || isLoadingOlder) return;
@@ -360,7 +436,7 @@ export function ThreadWindow({
         if (!scroller) return;
         if (scroller.scrollTop > TOP_LOAD_THRESHOLD_PX) return;
         loadMoreCooldownUntilRef.current = now + LOAD_MORE_COOLDOWN_MS;
-        handleLoadMore();
+        handleLoadMore('scroll-fallback');
     }, [isFullyReady, hasMore, isLoadingOlder, handleLoadMore]);
 
     useEffect(() => {
@@ -459,7 +535,6 @@ export function ThreadWindow({
     const handleRangeChanged = useCallback((range: { startIndex: number; endIndex: number }) => {
         currentVisibleRange.current = range;
         syncViewportCalendarDay(range.startIndex, range.endIndex);
-        tryLoadMoreByTopPosition();
         if (!isFullyReady || !firestore || !conversation.id) return;
 
         const currentItems = flatItemsRef.current;
@@ -472,7 +547,36 @@ export function ThreadWindow({
                 return prev;
             });
         }
-    }, [tryLoadMoreByTopPosition, isFullyReady, firestore, conversation.id, currentUser.id, parentMessage.id, syncViewportCalendarDay]);
+    }, [isFullyReady, firestore, conversation.id, currentUser.id, parentMessage.id, syncViewportCalendarDay]);
+
+    const handleThreadUpdateMessage = useCallback(
+        async (id: string, text: string, attachments?: ChatAttachment[]) => {
+            if (!firestore || !conversation.id) return;
+            const msgRef = doc(
+                firestore,
+                `conversations/${conversation.id}/messages/${parentMessage.id}/thread`,
+                id
+            );
+            const now = new Date().toISOString();
+            const existing = allMessages.find((m) => m.id === id);
+            try {
+                if (e2eeConv.e2eeEnabled && existing?.e2ee?.ciphertext) {
+                    const e2eePayload = await e2eeConv.encryptOutgoingHtml(text);
+                    await updateDoc(msgRef, {
+                        e2ee: e2eePayload,
+                        text: deleteField(),
+                        attachments: attachments || [],
+                        updatedAt: now,
+                    });
+                } else {
+                    await updateDoc(msgRef, { text, attachments: attachments || [], updatedAt: now });
+                }
+            } catch {
+                toast({ variant: 'destructive', title: 'Ошибка обновления' });
+            }
+        },
+        [firestore, conversation.id, parentMessage.id, allMessages, e2eeConv.e2eeEnabled, e2eeConv.encryptOutgoingHtml, toast]
+    );
 
     const handleSendMessage = async (
         text?: string,
@@ -519,17 +623,33 @@ export function ThreadWindow({
                 }
             }
 
-            const messageData: Partial<ChatMessage> = {
+            const plainBody = text
+                ? text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+                : '';
+            const useE2eeForText =
+                e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
+            const replyForWrite =
+                useE2eeForText && replyContext
+                    ? { ...replyContext, text: undefined }
+                    : replyContext;
+
+            const messageData: Record<string, unknown> = {
                 id: messageId,
                 senderId: currentUser.id,
                 createdAt: now,
                 readAt: null,
                 attachments: uploadedAttachments,
-                ...(text && { text: text }),
-                ...(replyContext && { replyTo: replyContext })
+                ...(replyForWrite && { replyTo: replyForWrite }),
             };
+            if (useE2eeForText) {
+                const e2eePayload = await e2eeConv.encryptOutgoingHtml(text!);
+                messageData.e2ee = e2eePayload;
+                messageData.text = deleteField();
+            } else if (text) {
+                messageData.text = text;
+            }
 
-            await setDoc(newDocRef, messageData);
+            await setDoc(newDocRef, messageData as Parameters<typeof setDoc>[1]);
 
             const parentMessageRef = doc(firestore, `conversations/${conversation.id}/messages`, parentMessage.id);
             const convRef = doc(firestore, 'conversations', conversation.id);
@@ -542,7 +662,9 @@ export function ThreadWindow({
 
             const strip = text ? text.replace(/<[^>]*>/g, '') : '';
             let threadLastText = strip;
-            if (!threadLastText) {
+            if (useE2eeForText) {
+                threadLastText = E2EE_LAST_MESSAGE_PREVIEW;
+            } else if (!threadLastText) {
                 if (prebuilt.some((a) => a.name.startsWith('gif_'))) threadLastText = 'GIF';
                 else if (prebuilt.some((a) => a.name.startsWith('sticker_'))) threadLastText = 'Стикер';
                 else if (files.length === 1 && files[0].name.startsWith('sticker_')) threadLastText = 'Стикер';
@@ -569,11 +691,30 @@ export function ThreadWindow({
         } catch (error) {
             console.error("Thread send failed:", error);
             setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
+            const msg = error instanceof Error ? error.message : '';
+            if (msg === 'E2EE_NO_CHAT_KEY' || msg === 'E2EE_UNWRAP_FAILED') {
+                toast({
+                    variant: 'destructive',
+                    title: 'Не удалось зашифровать сообщение',
+                    description:
+                        msg === 'E2EE_UNWRAP_FAILED'
+                            ? 'Этот браузер не совпадает с ключом, под который включали шифрование (часто: другое устройство/браузер или очистка данных). Откройте профиль чата → «Шифрование» и выключите/включите снова на этом устройстве.'
+                            : 'Этот браузер не может открыть ключ чата. Попробуйте тот же браузер, где включали шифрование, или перевключите «Шифрование» в профиле чата.',
+                });
+            }
         }
     };
 
     const handleSendLocationShare = useCallback(
         async (share: ChatLocationShare, replyContext: ReplyContext | null, meta: ChatLocationSendMeta) => {
+            if (e2eeConv.e2eeEnabled) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Геолокация недоступна',
+                    description: 'В чате со сквозным шифрованием отправка геолокации пока не поддерживается.',
+                });
+                return;
+            }
             if (!firestore || !currentUser) {
                 console.warn(GEOLOCATION_FIRESTORE_LOG, 'thread.aborted', { reason: 'no firestore or user' });
                 return;
@@ -652,11 +793,19 @@ export function ThreadWindow({
                 setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
             }
         },
-        [firestore, currentUser, conversation.id, conversation.participantIds, parentMessage.id]
+        [firestore, currentUser, conversation.id, conversation.participantIds, parentMessage.id, e2eeConv.e2eeEnabled, toast]
     );
 
     const handleSendPoll = useCallback(
         async (input: ChatPollCreateInput, replyContext: ReplyContext | null) => {
+            if (e2eeConv.e2eeEnabled) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Опрос недоступен',
+                    description: 'В чате со сквозным шифрованием опросы пока не поддерживаются.',
+                });
+                return;
+            }
             if (!firestore || !currentUser) return;
             const pollId = `chat-poll-${Date.now()}`;
             const pollRef = doc(firestore, `conversations/${conversation.id}/polls`, pollId);
@@ -730,7 +879,7 @@ export function ThreadWindow({
                 }
             }
         },
-        [firestore, currentUser, conversation.id, conversation.participantIds, parentMessage.id]
+        [firestore, currentUser, conversation.id, conversation.participantIds, parentMessage.id, e2eeConv.e2eeEnabled, toast]
     );
 
     const handleAnchorClick = () => {
@@ -795,7 +944,7 @@ export function ThreadWindow({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
-            <ChatWallpaperLayer wallpaper={chatSettings.chatWallpaper} />
+            <ChatWallpaperLayer wallpaper={effectiveThreadWallpaper} />
 
             <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
             <div
@@ -853,7 +1002,7 @@ export function ThreadWindow({
                     followOutput="auto"
                     alignToBottom
                     scrollerRef={onVirtuosoScrollerRef}
-                    startReached={handleLoadMore}
+                    startReached={() => handleLoadMore('startReached')}
                     atBottomStateChange={(atBottom) => {
                         atBottomRef.current = atBottom;
                         setShowScrollButton(!atBottom);
@@ -864,7 +1013,7 @@ export function ThreadWindow({
                         if (item.type === 'unread-separator') return `thr-u-${parentMessage.id}-${unreadSeparatorId ?? index}`;
                         return `thr-m-${item.message.id}`;
                     }}
-                    increaseViewportBy={VIRTUOSO_CHAT_INCREASE_VIEWPORT}
+                    increaseViewportBy={increaseViewportBy}
                     minOverscanItemCount={VIRTUOSO_CHAT_MIN_OVERSCAN}
                     rangeChanged={handleRangeChanged}
                     components={{
@@ -915,6 +1064,7 @@ export function ThreadWindow({
                                         chatSettings={chatSettings}
                                         onMentionProfileOpen={onMentionProfileOpen}
                                         onGroupSenderWritePrivate={onGroupSenderWritePrivate}
+                                        e2eeDecryptedByMessageId={parentE2eeDecryptedByMessageId}
                                     />
                                     <div className="flex items-center gap-2 px-4 py-2 mt-2">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
@@ -967,7 +1117,7 @@ export function ThreadWindow({
                                             return { active: true, ids: next };
                                         })}
                                         onEdit={(edit) => setEditingMessage(edit)}
-                                        onUpdateMessage={onUpdateMessage}
+                                        onUpdateMessage={handleThreadUpdateMessage}
                                         onDelete={onDeleteMessage}
                                         onCopy={(txt) => {
                                             const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -987,6 +1137,7 @@ export function ThreadWindow({
                                         onMentionProfileOpen={onMentionProfileOpen}
                                         onGroupSenderWritePrivate={onGroupSenderWritePrivate}
                                         onSaveStickerGif={onSaveStickerGif}
+                                        e2eeDecryptedByMessageId={threadE2eeMergedMap}
                                     />
                                 </div>
                             </MessageReadOnViewport>
@@ -1022,6 +1173,8 @@ export function ThreadWindow({
                         currentUser={currentUser}
                         allUsers={allUsers}
                         isPartnerDeleted={isPartnerDeleted}
+                        draftScopeKey={`t:${conversation.id}:${parentMessage.id}`}
+                        onRestoreDraftReply={(reply) => setReplyingTo(reply)}
                     />
                 </div>
             )}

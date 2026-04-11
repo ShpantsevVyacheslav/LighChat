@@ -8,17 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, Video, VideoOff, Mic, MicOff, User as UserIcon, ArrowLeft } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 interface JoinMeetingProps {
   meeting: Meeting;
   currentUser: AppUser | null;
+  requireNameInput?: boolean;
   onJoin: (settings: { micMuted: boolean; videoOff: boolean; name: string; stream: MediaStream | null }) => void;
 }
 
-export function JoinMeeting({ meeting, currentUser, onJoin }: JoinMeetingProps) {
-  const [name, setName] = useState(currentUser?.name || '');
+export function JoinMeeting({ meeting, currentUser, requireNameInput = false, onJoin }: JoinMeetingProps) {
+  const [name, setName] = useState(requireNameInput ? '' : (currentUser?.name || ''));
   const [isJoining, setIsJoining] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
@@ -26,8 +25,15 @@ export function JoinMeeting({ meeting, currentUser, onJoin }: JoinMeetingProps) 
   const [permissionError, setPermissionError] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    if (requireNameInput) {
+      setName('');
+      return;
+    }
+    setName(currentUser?.name || '');
+  }, [requireNameInput, currentUser?.name]);
 
   useEffect(() => {
     async function startPreview() {
@@ -80,7 +86,7 @@ export function JoinMeeting({ meeting, currentUser, onJoin }: JoinMeetingProps) 
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-[#0a0e17] text-white relative">
-      <div className="absolute top-6 left-6 z-50">
+      <div className="absolute left-[max(1.5rem,env(safe-area-inset-left,0px))] top-[max(1.5rem,env(safe-area-inset-top,0px))] z-50">
         <Button variant="ghost" onClick={() => router.push('/dashboard/meetings')} className="rounded-full bg-white/5 text-white hover:bg-white/10 border-none shadow-none">
           <ArrowLeft className="mr-2 h-4 w-4" /> Назад
         </Button>
@@ -117,7 +123,7 @@ export function JoinMeeting({ meeting, currentUser, onJoin }: JoinMeetingProps) 
               </CardHeader>
               <CardContent className="p-8">
                   <form onSubmit={handleJoinClick} className="space-y-6">
-                      {!currentUser && (
+                      {(requireNameInput || !currentUser) && (
                           <div className="space-y-2">
                               <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1">Ваше имя</Label>
                               <Input value={name} onChange={e => setName(e.target.value)} className="h-14 rounded-2xl bg-white/5 border-white/10 focus:ring-primary" required placeholder="Введите имя..." />

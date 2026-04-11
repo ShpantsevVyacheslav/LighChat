@@ -4,7 +4,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Trash2, Edit, Copy, Pin, Forward, Reply, 
-  CheckSquare, MessageSquare, BookmarkPlus
+  CheckSquare, MessageSquare, BookmarkPlus, Star, ImagePlus
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -39,7 +39,11 @@ interface MessageContextMenuProps {
   canEdit: boolean;
   /** Показать «Сохранить в мои стикеры» (сообщение со стикером/GIF из чата). */
   canSaveSticker?: boolean;
-  onAction: (action: 'reply' | 'copy' | 'edit' | 'pin' | 'forward' | 'delete' | 'react' | 'select' | 'thread' | 'save_sticker', payload?: string) => void;
+  /** Картинка из сетки — «Создать стикер» (квадрат под размер пака). */
+  canCreateSticker?: boolean;
+  onAction: (action: 'reply' | 'copy' | 'edit' | 'pin' | 'forward' | 'delete' | 'react' | 'select' | 'thread' | 'save_sticker' | 'create_sticker' | 'star', payload?: string) => void;
+  showStarAction?: boolean;
+  isStarred?: boolean;
 }
 
 function buildRoundedHoleMaskDataUrl(
@@ -119,7 +123,7 @@ function MessageFocusBackdropMasked({
  * Рендерится через Portal поверх всего интерфейса.
  */
 export function MessageContextMenu({ 
-  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, canSaveSticker = false, onAction 
+  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, canSaveSticker = false, canCreateSticker = false, showStarAction = false, isStarred = false, onAction 
 }: MessageContextMenuProps) {
   if (!isOpen || !position) return null;
 
@@ -186,11 +190,25 @@ export function MessageContextMenu({
               <MenuButton icon={Edit} label="Изменить" onClick={() => { onAction('edit'); onClose(); }} />
             )}
             <MenuButton icon={Pin} label="Закрепить" onClick={() => { onAction('pin'); onClose(); }} />
+            {showStarAction && (
+              <MenuButton
+                icon={Star}
+                label={isStarred ? 'Убрать из избранного' : 'Добавить в избранное'}
+                onClick={() => { onAction('star'); onClose(); }}
+              />
+            )}
             {canSaveSticker && (
               <MenuButton
                 icon={BookmarkPlus}
                 label="Сохранить в мои стикеры"
                 onClick={() => { onAction('save_sticker'); onClose(); }}
+              />
+            )}
+            {canCreateSticker && (
+              <MenuButton
+                icon={ImagePlus}
+                label="Создать стикер"
+                onClick={() => { onAction('create_sticker'); onClose(); }}
               />
             )}
             <MenuButton icon={Forward} label="Переслать" onClick={() => { onAction('forward'); onClose(); }} />

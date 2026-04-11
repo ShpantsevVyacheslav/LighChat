@@ -2,17 +2,22 @@
 
 import React, { useEffect, useReducer, useState } from 'react';
 import { MapPin } from 'lucide-react';
-import type { ChatLocationShare } from '@/lib/types';
+import type { ChatLocationShare, UserLiveLocationShare } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { isChatLiveLocationShareExpired } from '@/lib/live-location-utils';
+import { isChatLiveLocationMessageStillStreaming } from '@/lib/live-location-utils';
 import { CHAT_LOCATION_MAP_PREVIEW_MAX_WIDTH_PX } from '@/lib/chat-media-preview-max';
 import { SharedLocationMapDialog } from '@/components/location/SharedLocationMapDialog';
+import { LocationLiveCountdown } from '@/components/location/LocationLiveCountdown';
 import { MessageStatus } from '@/components/chat/parts/MessageStatus';
 
 interface MessageLocationCardProps {
   share: ChatLocationShare;
   isCurrentUser: boolean;
   createdAt: string;
+  /** Профиль отправителя: актуальная трансляция из `users/{senderId}.liveLocationShare`. */
+  senderLiveShare?: UserLiveLocationShare | null;
+  /** false — пока нет снимка участника в `allUsers`: только таймер сообщения, без мигания «завершено». */
+  senderProfileResolved?: boolean;
   deliveryStatus?: 'sending' | 'sent' | 'failed';
   readAt: string | null;
   showTimestamps?: boolean;
@@ -22,6 +27,8 @@ export function MessageLocationCard({
   share,
   isCurrentUser,
   createdAt,
+  senderLiveShare = null,
+  senderProfileResolved = false,
   deliveryStatus,
   readAt,
   showTimestamps = true,
@@ -29,6 +36,10 @@ export function MessageLocationCard({
   const [mapOpen, setMapOpen] = useState(false);
   const [, bump] = useReducer((x: number) => x + 1, 0);
   const externalHref = share.mapsUrl || `https://www.google.com/maps?q=${share.lat},${share.lng}`;
+
+  const stillStreamingLive =
+    !!share.liveSession &&
+    isChatLiveLocationMessageStillStreaming(share, createdAt, senderLiveShare, senderProfileResolved);
 
   useEffect(() => {
     if (!share.liveSession?.expiresAt) return;
@@ -38,7 +49,7 @@ export function MessageLocationCard({
     return () => window.clearTimeout(t);
   }, [share.liveSession?.expiresAt]);
 
-  const expiredLive = !!share.liveSession && isChatLiveLocationShareExpired(share);
+  const expiredLive = !!share.liveSession && !stillStreamingLive;
 
   if (expiredLive) {
     return (
@@ -59,6 +70,7 @@ export function MessageLocationCard({
   }
 
   const openMap = () => setMapOpen(true);
+  const liveExpiresAt = share.liveSession?.expiresAt ?? null;
 
   return (
     <>
@@ -77,9 +89,14 @@ export function MessageLocationCard({
             <img
               src={share.staticMapUrl}
               alt="Карта"
-              className="h-auto w-full max-h-[120px] object-cover bg-muted"
+              className="h-auto w-full max-h-[180px] object-cover bg-muted"
               loading="lazy"
             />
+            {liveExpiresAt ? (
+              <div className="pointer-events-none absolute bottom-2 left-2">
+                <LocationLiveCountdown compact expiresAtIso={liveExpiresAt} />
+              </div>
+            ) : null}
             {showTimestamps && (
               <MessageStatus
                 timestamp={createdAt}
@@ -95,16 +112,27 @@ export function MessageLocationCard({
           <button
             type="button"
             onClick={openMap}
-            className="relative flex w-full min-h-[4.5rem] items-center gap-2 px-3 py-3 pr-14 text-left text-sm text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className={cn(
+              'relative flex w-full min-h-[6.75rem] items-center gap-2 px-3 py-3 pr-14 text-left',
+              'text-sm text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            )}
             aria-label="Открыть карту"
           >
             <MapPin className="h-5 w-5 shrink-0 text-primary" />
-            <span>
-              {share.lat.toFixed(5)}, {share.lng.toFixed(5)}
-              {share.accuracyM != null && (
-                <span className="block text-[11px] opacity-80">±{Math.round(share.accuracyM)} м</span>
-              )}
+            <span className="min-w-0">
+              <span className="font-medium text-foreground">Местоположение</span>
+              {share.accuracyM != null ? (
+                <span className="mt-0.5 block text-[11px] opacity-80">
+                  ±{Math.round(share.accuracyM)} м
+                </span>
+              ) : null}
             </span>
+            {liveExpiresAt ? (
+              <span className="pointer-events-none absolute bottom-2 left-2">
+                <LocationLiveCountdown compact expiresAtIso={liveExpiresAt} />
+              </span>
+            ) : null}
             {showTimestamps && (
               <MessageStatus
                 timestamp={createdAt}
@@ -124,6 +152,7 @@ export function MessageLocationCard({
         lat={share.lat}
         lng={share.lng}
         externalMapsUrl={externalHref}
+        liveExpiresAt={liveExpiresAt}
       />
     </>
   );

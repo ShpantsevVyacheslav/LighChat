@@ -209,6 +209,12 @@ export type Conversation = {
   usersWithPendingGroupMention?: string[];
   /** Лимит хранилища для группового чата, байт (задаёт админ). */
   storageQuotaBytes?: number | null;
+  /** Сквозное шифрование (E2E): новые сообщения с полем `e2ee`, сервер не видит plaintext. */
+  e2eeEnabled?: boolean;
+  /** Номер эпохи ключа чата; при смене участников увеличивается. */
+  e2eeKeyEpoch?: number;
+  /** ISO: с этого момента новые сообщения в E2E-формате (гибрид со старым plaintext). */
+  e2eeEnabledAt?: string | null;
 };
 
 /** Документ Firestore: platformSettings/main */
@@ -251,14 +257,53 @@ export type AdminChatStorageStatsResult = {
 
 export type PlatformSettingsDoc = {
   storage: PlatformStoragePolicy;
+  /** Если true — при создании нового личного чата клиент пытается включить E2E (если у обоих есть ключи). */
+  e2eeDefaultForNewDirectChats?: boolean;
 };
 
 export type ReplyContext = {
   messageId: string;
   senderName: string;
-  text: string;
+  /** Для E2E может отсутствовать — превью подставляется из расшифрованного родительского сообщения в UI. */
+  text?: string;
   mediaPreviewUrl?: string | null;
   mediaType?: 'image' | 'video' | 'video-circle' | 'sticker' | 'file' | null;
+};
+
+/** Версия протокола E2E (MVP: P-256 ECDH + AES-GCM). См. `src/lib/e2ee/protocol.ts`. */
+export type E2eeProtocolVersion = 'v1-p256-aesgcm';
+
+/** Зашифрованное тело сообщения в Firestore (plaintext только на клиенте). */
+export type ChatMessageE2eePayload = {
+  protocolVersion: E2eeProtocolVersion;
+  epoch: number;
+  iv: string;
+  ciphertext: string;
+};
+
+/**
+ * Обёртка ключа чата для участника (одноразовый ephemeral ECDH + AES-GCM).
+ * Документ эпохи: `conversations/{id}/e2eeSessions/{epoch}`.
+ */
+export type E2eeKeyWrapEntry = {
+  ephPub: string;
+  iv: string;
+  ct: string;
+};
+
+/** Документ `conversations/{conversationId}/e2eeSessions/{epoch}` */
+export type E2eeSessionDoc = {
+  epoch: number;
+  protocolVersion: E2eeProtocolVersion;
+  createdAt: string;
+  createdByUserId: string;
+  wraps: Record<string, E2eeKeyWrapEntry>;
+};
+
+/** Публичный ключ устройства: `users/{uid}/e2ee/device` */
+export type UserE2eePublicDoc = {
+  publicKeySpki: string;
+  updatedAt: string;
 };
 
 export type ReactionDetail = {
@@ -290,6 +335,8 @@ export type ChatMessage = {
   id: string;
   senderId: string;
   text?: string;
+  /** Сквозное шифрование; при наличии `text` с секретом не используется. */
+  e2ee?: ChatMessageE2eePayload;
   createdAt: string;
   readAt: string | null;
   updatedAt?: string | null;
@@ -354,6 +401,34 @@ export type UserCallsIndex = {
 
 export type ProfileTab = 'media' | 'files' | 'links' | 'threads' | 'audios' | 'circles';
 
+/** Избранные сообщения пользователя: `users/{userId}/starredChatMessages/{docId}` (id — см. `buildStarredMessageDocId`). */
+export type StarredChatMessageDoc = {
+  conversationId: string;
+  messageId: string;
+  createdAt: string;
+  /** Обрезка текста на момент добавления (без HTML). */
+  previewText?: string;
+};
+
+/**
+ * Персональные настройки конкретной переписки: `users/{userId}/chatConversationPrefs/{conversationId}`.
+ */
+export type UserChatConversationPrefs = {
+  conversationId: string;
+  /** Не беспокоить по уведомлениям для этого чата (локально для аккаунта). */
+  notificationsMuted?: boolean;
+  /**
+   * Показывать превью текста в уведомлениях для этого чата.
+   * null/undefined — как в глобальных настройках уведомлений.
+   */
+  notificationShowPreview?: boolean | null;
+  /** Фон этой переписки; null/пусто — наследовать из глобальных настроек чата. */
+  chatWallpaper?: string | null;
+  /** Не отправлять собеседнику отметки «прочитано» в этом чате. */
+  suppressReadReceipts?: boolean;
+  updatedAt?: string;
+};
+
 /** Доп. оформление иконки пункта нижней навигации (цвет, штрих, фон плитки). */
 export type BottomNavIconVisualStyle = {
   /** CSS-цвет обводки/заливки иконки (режим «цветной» и «минимальный»). */
@@ -398,6 +473,8 @@ export type NotificationSettings = {
   quietHoursEnabled: boolean;
   quietHoursStart: string;
   quietHoursEnd: string;
+  /** IANA TZ для интерпретации тихих часов на сервере (подставляется с клиента). */
+  quietHoursTimeZone?: string;
 };
 
 /**
@@ -409,6 +486,11 @@ export type PrivacySettings = {
   showOnlineStatus: boolean;
   showLastSeen: boolean;
   showReadReceipts: boolean;
+  /**
+   * Новые личные чаты: при создании попытаться включить E2E, если у собеседника опубликован ключ.
+   * Не гарантирует E2E без ключа у второй стороны.
+   */
+  e2eeForNewDirectChats?: boolean;
   /** Показывать другим в карточке профиля / списках (по умолчанию true, если не задано). */
   showEmailToOthers?: boolean;
   showPhoneToOthers?: boolean;

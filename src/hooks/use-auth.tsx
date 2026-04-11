@@ -365,12 +365,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 ...userData,
                 id: docSnap.id,
               } as User;
+              const snapshotFromCache = docSnap.metadata.fromCache;
               /**
                * После register / completeGoogleProfile делаем getDoc с сервера и setAppUser.
                * Следующий onSnapshot часто приходит из локального кэша со старым документом (без username/phone)
                * и откатывает профиль — дашборд снова шлёт на анкету. Не применяем такой откат с кэша.
                */
-              if (docSnap.metadata.fromCache) {
+              const skipStaleIncompleteFromCache = (): boolean => {
+                if (!snapshotFromCache) return false;
                 const prev = appUserRef.current;
                 if (
                   prev &&
@@ -382,12 +384,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     docSnap.id,
                   );
                   setIsProfileLoading(false);
-                  return;
+                  return true;
                 }
+                return false;
+              };
+
+              const commitMerged = () => {
+                if (skipStaleIncompleteFromCache()) return;
+                appUserRef.current = merged;
+                setAppUser(merged);
+                setError(null);
+              };
+
+              /**
+               * Safari/WebKit: первый снимок из кэша после входа через Google может быть старым
+               * (пустой username) — на мгновение открывается анкета. Подтверждаем сервером перед применением.
+               */
+              if (
+                snapshotFromCache &&
+                !isRegistrationProfileComplete(merged) &&
+                firebaseUser.providerData.some((p) => p.providerId === 'google.com')
+              ) {
+                void (async () => {
+                  try {
+                    const serverSnap = await getDocFromServer(userDocRef);
+                    if (serverSnap.exists()) {
+                      const serverMerged = {
+                        ...serverSnap.data(),
+                        id: serverSnap.id,
+                      } as User;
+                      if (isRegistrationProfileComplete(serverMerged)) {
+                        appUserRef.current = serverMerged;
+                        setAppUser(serverMerged);
+                        setError(null);
+                        setIsProfileLoading(false);
+                        return;
+                      }
+                    }
+                    commitMerged();
+                  } catch (e) {
+                    console.warn(
+                      '[auth] getDocFromServer after incomplete cached Google profile',
+                      e,
+                    );
+                    commitMerged();
+                  }
+                  setIsProfileLoading(false);
+                })();
+                return;
               }
-              appUserRef.current = merged;
-              setAppUser(merged);
-              setError(null);
+
+              commitMerged();
             }
           } else {
             const stub = {

@@ -2,6 +2,7 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import { MulticastMessage } from "firebase-admin/messaging";
+import { mergeNotificationSettings } from "../../lib/push-notification-policy";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -61,6 +62,11 @@ export const oncallcreated = onDocumentCreated(
       }
 
       const userData = userSnap.data();
+      const ns = mergeNotificationSettings(userData?.notificationSettings);
+      if (ns.muteAll) {
+        logger.log("Call push skipped: receiver muteAll.", { receiverId });
+        return;
+      }
       if (!userData?.fcmTokens || !Array.isArray(userData.fcmTokens) || userData.fcmTokens.length === 0) {
         logger.log("Receiver has no FCM tokens.", { receiverId });
         return;

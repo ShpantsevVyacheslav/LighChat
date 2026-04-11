@@ -39,6 +39,9 @@ export function AppThemeController() {
     }
   }, [mounted, isLoading, user?.appTheme, user?.id, setTheme]);
 
+  /** Режим «Авто» (`chat`): палитра только из глобального фона (`users.chatSettings.chatWallpaper`). */
+  const globalWallpaperForTheme = chatSettings.chatWallpaper ?? null;
+
   useEffect(() => {
     const el = document.documentElement;
     const active = theme === 'chat' || resolvedTheme === 'chat';
@@ -50,7 +53,7 @@ export function AppThemeController() {
 
     let cancelled = false;
     void (async () => {
-      const rgbs = await resolveWallpaperAccentRgbs(chatSettings.chatWallpaper ?? null);
+      const rgbs = await resolveWallpaperAccentRgbs(globalWallpaperForTheme);
       if (cancelled) return;
       const props =
         rgbs.length > 0 ? buildChatThemeStyleProps(rgbs) : defaultChatThemeWhenNoWallpaper();
@@ -60,7 +63,7 @@ export function AppThemeController() {
     return () => {
       cancelled = true;
     };
-  }, [theme, resolvedTheme, chatSettings.chatWallpaper]);
+  }, [theme, resolvedTheme, globalWallpaperForTheme]);
 
   /** Tailwind `dark:` зависит от класса `.dark` на `html`; next-themes в режиме `chat` выставляет только `chat`. */
   useEffect(() => {
@@ -70,7 +73,7 @@ export function AppThemeController() {
 
     let cancelled = false;
     void (async () => {
-      const rgbs = await resolveWallpaperAccentRgbs(chatSettings.chatWallpaper ?? null);
+      const rgbs = await resolveWallpaperAccentRgbs(globalWallpaperForTheme);
       if (cancelled) return;
       const light = isLightChatBackdropFromRgbs(rgbs);
       if (light) el.classList.remove('dark');
@@ -80,7 +83,7 @@ export function AppThemeController() {
     return () => {
       cancelled = true;
     };
-  }, [theme, resolvedTheme, chatSettings.chatWallpaper]);
+  }, [theme, resolvedTheme, globalWallpaperForTheme]);
 
   return null;
 }

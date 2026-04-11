@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
+import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 
 interface FolderManagerDialogProps {
   open: boolean;
@@ -71,7 +72,6 @@ export function FolderManagerDialog({
   }, [open, editingFolder, savedMessagesConvId]);
 
   const filteredChatList = useMemo(() => {
-    const term = searchTerm.toLowerCase();
     return conversations
       .filter((conv) => !isSavedMessagesChat(conv, currentUser.id))
       .filter((conv) => {
@@ -81,7 +81,7 @@ export function FolderManagerDialog({
           : otherId
             ? allUsers.find((u) => u.id === otherId)?.name || conv.participantInfo[otherId]?.name || ''
             : '';
-        return (name || '').toLowerCase().includes(term);
+        return ruEnSubstringMatch(name || '', searchTerm);
       });
   }, [conversations, searchTerm, currentUser.id, allUsers]);
 

@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
-import { doc, arrayUnion } from 'firebase/firestore';
+import { doc, arrayUnion, getDoc } from 'firebase/firestore';
+import {
+  parseConversationIdFromDashboardChatLink,
+  shouldSuppressForegroundChatPush,
+} from '@/lib/push-notification-policy';
 import { useToast } from './use-toast';
 import {
   ensureFcmServiceWorkerRegistered,
@@ -12,7 +16,7 @@ import {
 import { fcmSubscribeUserMessage } from '@/lib/fcm-subscribe-user-message';
 
 // СЮДА ВСТАВЬТЕ ВАШ VAPID KEY ИЗ КОНСОЛИ FIREBASE
-const VAPID_KEY = 'BAM9yUWyoijaJurNB0q0GpiW_eq0yWBgbrIwFAZnaIWeNaBMgHYHplwSJTlRwZ0Om5kfomHoOv56vArqhZa0FfU';
+const VAPID_KEY = 'BO5th519pVXQkMoTXHWEU6WSHt75hV2l4dFn5Ohs_zMxOQ-eY8zHewWXSMZIDaa4vSmWyL6Z5vAy8lWACdjHIzU';
 
 /** После активации SW — запас на ответ FCM / сеть (особенно iOS PWA). */
 const FCM_GET_TOKEN_AFTER_SW_MS = 45_000;
@@ -95,10 +99,31 @@ export function useNotifications() {
           const title = payload.data?.title || payload.notification?.title || 'Уведомление';
           const body = payload.data?.body || payload.notification?.body || '';
 
-          toast({
-            title: title,
-            description: body,
-          });
+          void (async () => {
+            const authUid = user?.uid;
+            if (!firestore || !authUid) {
+              toast({ title, description: body });
+              return;
+            }
+            try {
+              const userSnap = await getDoc(doc(firestore, 'users', authUid));
+              const userData = (userSnap.exists() ? userSnap.data() : {}) as Record<string, unknown>;
+              const convId = parseConversationIdFromDashboardChatLink(payload.data?.link);
+              let chatPrefs: Record<string, unknown> | undefined;
+              if (convId) {
+                const prefSnap = await getDoc(
+                  doc(firestore, 'users', authUid, 'chatConversationPrefs', convId)
+                );
+                chatPrefs = prefSnap.exists() ? (prefSnap.data() as Record<string, unknown>) : undefined;
+              }
+              if (shouldSuppressForegroundChatPush({ userData, chatPrefs })) {
+                return;
+              }
+            } catch (e) {
+              console.warn('[useNotifications] foreground policy', e);
+            }
+            toast({ title, description: body });
+          })();
         });
       } catch (e) {
         console.warn('[useNotifications] FCM foreground listener недоступен', e);
@@ -109,7 +134,7 @@ export function useNotifications() {
       cancelled = true;
       unsubscribeOnMessage?.();
     };
-  }, [firebaseApp, toast, permission]);
+  }, [firebaseApp, firestore, user?.uid, toast, permission]);
   
   const subscribe = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent === true;

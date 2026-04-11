@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatAttachment } from '@/lib/types';
 import { Play } from 'lucide-react';
@@ -12,7 +12,9 @@ import {
   CHAT_MEDIA_PREVIEW_MAX_WIDTH_PX,
   CHAT_GIF_ALBUM_GRID_MAX_WIDTH_PX,
 } from '@/lib/chat-media-preview-max';
+import { CHAT_GRID_VIDEO_GIFLIKE_MAX_SEC } from '@/lib/sticker-media-normalize';
 import { HeicAwareChatImage } from '@/components/chat/parts/HeicAwareChatImage';
+import { useChatAttachmentDisplaySrc } from '@/components/chat/use-chat-attachment-display-src';
 /** Если в БД нет width/height — квадрат в пределах max-width. */
 const FALLBACK_ASPECT_RATIO = '1 / 1';
 
@@ -112,10 +114,12 @@ export function MessageMedia({ attachments, isCurrentUser, onImageClick }: Messa
 }
 
 function MediaItem({ att }: { att: ChatAttachment }) {
+  const [shortLoopVideo, setShortLoopVideo] = useState(false);
   const placeholderUrl = useMemo(() => thumbHashToUrl(att.thumbHash), [att.thumbHash]);
   const isVideo = isGridGalleryVideo(att);
   const isBlobPreview = att.url.startsWith('blob:');
   const eagerLoad = isBlobPreview || isChatGalleryMediaUrlSeen(att.url);
+  const displaySrc = useChatAttachmentDisplaySrc(att);
 
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -130,16 +134,28 @@ function MediaItem({ att }: { att: ChatAttachment }) {
       {isVideo ? (
         <>
           <video
-            src={`${att.url}#t=0.1`}
+            src={`${displaySrc}#t=0.1`}
             preload="metadata"
+            loop={shortLoopVideo}
+            autoPlay={shortLoopVideo}
             className="absolute inset-0 h-full w-full object-cover bg-black"
             muted
             playsInline
+            onLoadedMetadata={(e) => {
+              const el = e.currentTarget;
+              const d = el.duration;
+              if (Number.isFinite(d) && d > 0 && d <= CHAT_GRID_VIDEO_GIFLIKE_MAX_SEC) {
+                setShortLoopVideo(true);
+                el.play().catch(() => {});
+              }
+            }}
             onLoadedData={() => markChatGalleryMediaUrlSeen(att.url)}
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
-            <Play className="h-5 w-5 text-white/80 fill-white" />
-          </div>
+          {!shortLoopVideo ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
+              <Play className="h-5 w-5 text-white/80 fill-white" />
+            </div>
+          ) : null}
         </>
       ) : (
         <HeicAwareChatImage

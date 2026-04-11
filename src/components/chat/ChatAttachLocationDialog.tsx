@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -150,12 +149,6 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
             <MapPin className="h-5 w-5 text-primary" />
             Поделиться геолокацией
           </DialogTitle>
-          <DialogDescription>
-            Точка уходит в чат. Режим «не одноразово» включает трансляцию: в вашем профиле для собеседника появится значок
-            карты, позиция будет обновляться. Остановить можно в любой момент (полоска внизу экрана). Ключ{' '}
-            <code className="rounded bg-muted px-1 text-xs">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> — только для превью
-            Static Maps.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2 py-1">
@@ -169,11 +162,11 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
           >
             <SelectTrigger
               id="location-share-mode"
-              className="w-full rounded-xl border-border/60 bg-muted/20"
+              className="w-full rounded-xl border-0 bg-muted/40 shadow-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <SelectValue placeholder="Выберите режим" />
             </SelectTrigger>
-            <SelectContent className="max-h-[min(60vh,320px)] rounded-xl">
+            <SelectContent className="z-[200] max-h-[min(60vh,320px)] rounded-xl border-0 shadow-lg">
               {LIVE_LOCATION_DURATION_OPTIONS.map((opt) => (
                 <SelectItem key={opt.id} value={opt.id} className="rounded-lg py-2.5 text-left leading-snug">
                   {opt.label}

@@ -2,6 +2,8 @@
  * Третья тема интерфейса («по фону чата»): цвета из градиента или усреднение загруженного изображения.
  */
 
+import { wallpaperImageUrlForThemeSampling } from "@/lib/wallpaper-theme-image-url";
+
 function parseHexToRgb(hex: string): { r: number; g: number; b: number } | null {
   let h = hex.replace('#', '').trim();
   if (h.length === 3) {
@@ -85,9 +87,17 @@ export async function sampleWallpaperImageAverageRgb(
   url: string
 ): Promise<{ r: number; g: number; b: number } | null> {
   if (typeof window === 'undefined') return null;
+  const src = wallpaperImageUrlForThemeSampling(url);
+  const usedProxy = src !== url;
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    /** Прокси same-origin — canvas не «tainted»; прямой внешний URL без прокси требует CORS (в Safari часто падает). */
+    if (
+      !usedProxy &&
+      (url.startsWith('http://') || url.startsWith('https://'))
+    ) {
+      img.crossOrigin = 'anonymous';
+    }
     const done = (v: { r: number; g: number; b: number } | null) => resolve(v);
     img.onload = () => {
       try {
@@ -119,7 +129,7 @@ export async function sampleWallpaperImageAverageRgb(
       }
     };
     img.onerror = () => done(null);
-    img.src = url;
+    img.src = src;
   });
 }
 

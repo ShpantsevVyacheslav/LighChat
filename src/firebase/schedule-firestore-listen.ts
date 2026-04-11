@@ -2,8 +2,13 @@
  * Откладывает вызов onSnapshot на следующий microtask.
  * React 18 Strict Mode в dev дважды монтирует эффекты: синхронный subscribe → immediate unsubscribe
  * иногда приводит к FIRESTORE INTERNAL ASSERTION FAILED (WatchChangeAggregator / Unexpected state).
+ *
+ * @param onSetupFailed — если startListen() синхронно бросает, вызывается здесь (сбросить isLoading и т.п.).
  */
-export function scheduleFirestoreListen(startListen: () => () => void): () => void {
+export function scheduleFirestoreListen(
+  startListen: () => () => void,
+  onSetupFailed?: (error: unknown) => void
+): () => void {
   let cancelled = false;
   let innerUnsub: (() => void) | undefined;
 
@@ -13,6 +18,7 @@ export function scheduleFirestoreListen(startListen: () => () => void): () => vo
       innerUnsub = startListen();
     } catch (e) {
       console.error("[LighChat] Firestore listen failed:", e);
+      onSetupFailed?.(e);
     }
   };
 

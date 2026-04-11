@@ -8,10 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { GroupInvitePolicy } from "@/lib/types";
-
+import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users, Lock } from "lucide-react";
 export default function PrivacySettingsPage() {
   const { user, isLoading } = useAuth();
   const { privacySettings, updatePrivacySettings } = useSettings();
@@ -30,6 +27,8 @@ export default function PrivacySettingsPage() {
       toast({ title: "Сброшено", description: "Настройки конфиденциальности восстановлены по умолчанию." });
     }
   };
+
+  const groupInvitePolicy = privacySettings.groupInvitePolicy ?? "everyone";
 
   if (isLoading || !user) {
     return (
@@ -52,6 +51,34 @@ export default function PrivacySettingsPage() {
           </p>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            Сквозное шифрование
+          </CardTitle>
+          <CardDescription>
+            Новые личные чаты: при создании приложение попробует включить E2E, если у вас и у собеседника опубликованы
+            ключи (нужен хотя бы один вход на устройстве). Администраторы и сервер не читают зашифрованные сообщения.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">Пытаться включать E2E в новых личных чатах</Label>
+              <p className="text-xs text-muted-foreground">
+                Работает вместе с платформенной настройкой (если её включил админ). Если ключей нет — чат останется
+                обычным.
+              </p>
+            </div>
+            <Switch
+              checked={privacySettings.e2eeForNewDirectChats === true}
+              onCheckedChange={(v) => handleUpdate({ e2eeForNewDirectChats: v })}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -102,48 +129,49 @@ export default function PrivacySettingsPage() {
             Кто может добавлять вас в групповой чат. Администраторы приложения не ограничены этим правилом.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <RadioGroup
-            value={privacySettings.groupInvitePolicy ?? "everyone"}
-            onValueChange={(v) =>
-              handleUpdate({ groupInvitePolicy: v as GroupInvitePolicy })
-            }
-            className="space-y-4"
-          >
-            <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
-              <RadioGroupItem value="everyone" id="gip-everyone" className="mt-0.5" />
-              <div className="space-y-0.5 min-w-0">
-                <Label htmlFor="gip-everyone" className="text-sm font-medium cursor-pointer">
-                  Все пользователи
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Любой участник может включить вас в новую группу или добавить в существующую.
-                </p>
-              </div>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">Все пользователи</Label>
+              <p className="text-xs text-muted-foreground">
+                Любой участник может включить вас в новую группу или добавить в существующую.
+              </p>
             </div>
-            <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
-              <RadioGroupItem value="contacts" id="gip-contacts" className="mt-0.5" />
-              <div className="space-y-0.5 min-w-0">
-                <Label htmlFor="gip-contacts" className="text-sm font-medium cursor-pointer">
-                  Только контакты
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  В группу вас сможет добавить только тот, кого вы сами сохранили в «Контактах».
-                </p>
-              </div>
+            <Switch
+              checked={groupInvitePolicy === "everyone"}
+              onCheckedChange={(on) => {
+                if (on) void handleUpdate({ groupInvitePolicy: "everyone" });
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">Только контакты</Label>
+              <p className="text-xs text-muted-foreground">
+                В группу вас сможет добавить только тот, кого вы сами сохранили в «Контактах».
+              </p>
             </div>
-            <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
-              <RadioGroupItem value="none" id="gip-none" className="mt-0.5" />
-              <div className="space-y-0.5 min-w-0">
-                <Label htmlFor="gip-none" className="text-sm font-medium cursor-pointer">
-                  Никто
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Обычные пользователи не смогут добавить вас в группу.
-                </p>
-              </div>
+            <Switch
+              checked={groupInvitePolicy === "contacts"}
+              onCheckedChange={(on) => {
+                if (on) void handleUpdate({ groupInvitePolicy: "contacts" });
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">Никто</Label>
+              <p className="text-xs text-muted-foreground">
+                Обычные пользователи не смогут добавить вас в группу.
+              </p>
             </div>
-          </RadioGroup>
+            <Switch
+              checked={groupInvitePolicy === "none"}
+              onCheckedChange={(on) => {
+                if (on) void handleUpdate({ groupInvitePolicy: "none" });
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
 

@@ -41,6 +41,12 @@ import { ChatAttachLocationDialog } from '@/components/chat/ChatAttachLocationDi
 import { ChatAttachPollDialog, type ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
 import { AudioMessagePreviewBar } from '@/components/chat/AudioMessagePreviewBar';
 import { normalizeFilesAsStickersIfApplicable } from '@/lib/ios-sticker-detect';
+import {
+  chatDraftPlainFromHtml,
+  clearChatMessageDraft,
+  getChatMessageDraft,
+  saveChatMessageDraft,
+} from '@/lib/chat-message-draft-storage';
 
 /** Не чаще ~2.5–3 раз/с обновлять документ «печатает» в Firestore. */
 const TYPING_WRITE_THROTTLE_MS = 350;
@@ -92,6 +98,8 @@ const ChatMessageInputInner = (
     currentUser,
     allUsers,
     isPartnerDeleted = false,
+    draftScopeKey,
+    onRestoreDraftReply,
   }: ChatMessageInputProps,
   ref: React.ForwardedRef<ChatMessageInputHandle>
 ) => {
@@ -113,6 +121,8 @@ const ChatMessageInputInner = (
     const [pollDialogOpen, setPollDialogOpen] = useState(false);
     const [attachmentSubview, setAttachmentSubview] = useState<'main' | 'sticker-gif'>('main');
 
+    const draftKey = draftScopeKey ?? conversation.id;
+
     const editorInstance = useRef<any>(null);
     const mentionAnchorRef = useRef<HTMLDivElement>(null);
     const audioRecorderRef = useRef<MediaRecorder | null>(null);
@@ -124,6 +134,17 @@ const ChatMessageInputInner = (
     const videoChunksRef = useRef<Blob[]>([]);
     const videoStreamRef = useRef<MediaStream | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const editingMessageRef = useRef(editingMessage);
+    editingMessageRef.current = editingMessage;
+    const replyingToRef = useRef(replyingTo);
+    replyingToRef.current = replyingTo;
+    const attachmentsRef = useRef<File[]>([]);
+    attachmentsRef.current = attachments;
+    /** Превью «кружка» до отправки — участвует в решении, сохранять ли черновик. */
+    const circleVideoDraftRef = useRef<typeof videoPreview>(null);
+    circleVideoDraftRef.current = videoPreview;
+    const onRestoreDraftReplyRef = useRef(onRestoreDraftReply);
+    onRestoreDraftReplyRef.current = onRestoreDraftReply;
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const typingThrottleTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastTypingWriteAtRef = useRef(0);
@@ -248,6 +269,64 @@ const ChatMessageInputInner = (
         };
     }, [typingDocRef, isPartnerDeleted, firebaseAuth]);
 
+    const flushDraftToStorageForKey = useCallback(
+        (scopeKey: string) => {
+            const uid = currentUser.id;
+            if (!uid || typeof window === 'undefined') return;
+            if (editingMessageRef.current) return;
+            const ed = editorInstance.current;
+            const html = ed?.getHTML() ?? '';
+            const plain = chatDraftPlainFromHtml(html);
+            const reply = replyingToRef.current;
+            if (!plain && !reply) {
+                clearChatMessageDraft(uid, scopeKey);
+                return;
+            }
+            saveChatMessageDraft(uid, scopeKey, {
+                html,
+                replyTo: reply,
+                updatedAt: Date.now(),
+            });
+        },
+        [currentUser.id]
+    );
+
+    useEffect(() => {
+        const keyAtMount = draftKey;
+        const onPageHide = () => flushDraftToStorageForKey(keyAtMount);
+        window.addEventListener('pagehide', onPageHide);
+        return () => {
+            window.removeEventListener('pagehide', onPageHide);
+            flushDraftToStorageForKey(keyAtMount);
+        };
+    }, [draftKey, flushDraftToStorageForKey]);
+
+    useEffect(() => {
+        if (editingMessage) return;
+        let cancelled = false;
+        const id = window.setInterval(() => {
+            const ed = editorInstance.current;
+            if (!ed || cancelled) return;
+            window.clearInterval(id);
+            const draft = getChatMessageDraft(currentUser.id, draftKey);
+            if (!draft) return;
+            const plain = chatDraftPlainFromHtml(draft.html);
+            if (!plain && !draft.replyTo) return;
+            ed.commands.setContent(draft.html?.trim() ? draft.html : '<p></p>');
+            onRestoreDraftReplyRef.current?.(draft.replyTo ?? null);
+            setHasContent(plain.length > 0);
+        }, 24);
+        const to = window.setTimeout(() => {
+            cancelled = true;
+            window.clearInterval(id);
+        }, 4000);
+        return () => {
+            cancelled = true;
+            window.clearInterval(id);
+            window.clearTimeout(to);
+        };
+    }, [draftKey, currentUser.id, editingMessage]);
+
     const handleSend = async () => {
         const editor = editorInstance.current;
         if (isSending || isPartnerDeleted || !editor) return;
@@ -285,6 +364,7 @@ const ChatMessageInputInner = (
                 }
                 await onSendMessage(hasText ? text : undefined, preparedFiles, currentReplyingTo, undefined);
             }
+            clearChatMessageDraft(currentUser.id, draftKey);
         } catch (error) {
             console.error("Failed to send message:", error);
         } finally {
@@ -308,7 +388,7 @@ const ChatMessageInputInner = (
         setHasContent(hasMeaningfulContent);
         const urlMatch = text.match(/https?:\/\/[^\s<"']+/g);
         setDetectedUrl(urlMatch ? urlMatch[urlMatch.length - 1].replace(/[.,!?;:)}\]]+$/, '') : null);
-
+        
         syncMentionUiFromQuery(mentionQuery);
 
         updateTypingStatus(true);
@@ -643,11 +723,11 @@ const ChatMessageInputInner = (
                                     </Button>
                                 </div>
                             ) : (
-                                <div className={cn(
+                            <div className={cn(
                                     /* overflow-visible — иначе панель @ обрезается и клики ломаются */
                                     "flex flex-1 items-center gap-1 p-1 bg-muted/50 rounded-[1.25rem] backdrop-blur-xl min-w-0 overflow-visible",
-                                    (replyingTo || editingMessage || attachments.length > 0) && "rounded-t-none"
-                                )}>
+                                (replyingTo || editingMessage || attachments.length > 0) && "rounded-t-none"
+                            )}>
                                     <Popover
                                         open={isAttachmentMenuOpen}
                                         onOpenChange={(open) => {
@@ -655,7 +735,7 @@ const ChatMessageInputInner = (
                                             if (!open) setAttachmentSubview('main');
                                         }}
                                     >
-                                        <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9 shrink-0"><Paperclip className="h-4 w-4" /></Button></PopoverTrigger>
+                                    <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9 shrink-0"><Paperclip className="h-4 w-4" /></Button></PopoverTrigger>
                                         <PopoverContent
                                             className={cn(
                                                 attachmentSubview === 'sticker-gif' ? 'w-[min(100vw-1.5rem,20rem)]' : 'w-64',
@@ -668,8 +748,8 @@ const ChatMessageInputInner = (
                                             side="top"
                                             align="start"
                                         >
-                                            {showFormatting ? (
-                                                <FormattingToolbar editor={editorInstance.current} onBack={() => setShowFormatting(false)} />
+                                        {showFormatting ? (
+                                            <FormattingToolbar editor={editorInstance.current} onBack={() => setShowFormatting(false)} />
                                             ) : attachmentSubview === 'sticker-gif' ? (
                                                 <div className="space-y-2">
                                                     <Button
@@ -694,8 +774,8 @@ const ChatMessageInputInner = (
                                                         }}
                                                     />
                                                 </div>
-                                            ) : (
-                                                <div className="space-y-0.5">
+                                        ) : (
+                                            <div className="space-y-0.5">
                                                     <Button
                                                         variant="ghost"
                                                         onClick={() => {
@@ -749,13 +829,13 @@ const ChatMessageInputInner = (
                                                         <SmilePlus className="mr-3 h-4 w-4 opacity-70" />
                                                         Стикеры и GIF
                                                     </Button>
-                                                    <Separator className="my-1" />
-                                                    <Button variant="ghost" onClick={() => setShowFormatting(true)} className="w-full justify-start rounded-xl h-11"><Type className="mr-3 h-4 w-4" />Форматировать</Button>
-                                                </div>
-                                            )}
-                                        </PopoverContent>
-                                    </Popover>
-
+                                                <Separator className="my-1" />
+                                                <Button variant="ghost" onClick={() => setShowFormatting(true)} className="w-full justify-start rounded-xl h-11"><Type className="mr-3 h-4 w-4" />Форматировать</Button>
+                                            </div>
+                                        )}
+                                    </PopoverContent>
+                                </Popover>
+                                
                                     <MessageInputEmojiPicker editorRef={editorInstance} disabled={isPartnerDeleted} />
 
                                     <div ref={mentionAnchorRef} className="relative flex-1 min-w-0 min-h-0">
@@ -765,12 +845,12 @@ const ChatMessageInputInner = (
                                             participants={filteredMentionList}
                                             onPick={applyMention}
                                         />
-                                        <MessageEditor
-                                            onUpdate={handleEditorUpdate}
+                                <MessageEditor 
+                                    onUpdate={handleEditorUpdate} 
                                             onMentionQueryCursor={syncMentionUiFromQuery}
-                                            onEnter={handleSend}
-                                            editorRef={editorInstance}
-                                            onPasteFiles={handlePasteFiles}
+                                    onEnter={handleSend} 
+                                    editorRef={editorInstance} 
+                                    onPasteFiles={handlePasteFiles} 
                                             shouldBlockEnter={() => showMentions && conversation.isGroup}
                                             mentionBoundaryNames={mentionBoundaryNames}
                                         />
@@ -784,8 +864,8 @@ const ChatMessageInputInner = (
                                             onClick={handleSend}
                                             disabled={isSending}
                                         >
-                                            {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
-                                        </Button>
+                                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+                                </Button>
                                     ) : (
                                         <Button
                                             type="button"
@@ -797,7 +877,7 @@ const ChatMessageInputInner = (
                                             <Mic className="h-4 w-4" />
                                         </Button>
                                     )}
-                                </div>
+                            </div>
                             )}
                         </div>
                     </>
@@ -882,4 +962,8 @@ export interface ChatMessageInputProps {
     currentUser: User;
     allUsers: User[];
     isPartnerDeleted?: boolean;
+    /** Ключ в localStorage; по умолчанию `conversation.id`. Для треда: `t:{conversationId}:{parentMessageId}`. */
+    draftScopeKey?: string;
+    /** Восстановить «Ответ» из черновика при открытии чата. */
+    onRestoreDraftReply?: (reply: ReplyContext | null) => void;
 }

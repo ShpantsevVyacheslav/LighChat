@@ -1,16 +1,15 @@
 'use client';
 
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import { buildGoogleMapsEmbedUrl, buildGoogleMapsPlaceUrl } from '@/lib/google-maps';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { LocationLiveCountdown } from '@/components/location/LocationLiveCountdown';
+import { cn } from '@/lib/utils';
+
+/** Выше плавающего якоря чата (`ChatAnchor`, z-[10050]). */
+const MAP_SHEET_Z = 'z-[10100]';
 
 export interface SharedLocationMapDialogProps {
   open: boolean;
@@ -19,6 +18,8 @@ export interface SharedLocationMapDialogProps {
   lng: number;
   /** Запасная внешняя ссылка (как в сообщении); иначе собирается из lat/lng. */
   externalMapsUrl?: string | null;
+  /** Окончание временной трансляции из сообщения (`liveSession.expiresAt`). */
+  liveExpiresAt?: string | null;
 }
 
 export function SharedLocationMapDialog({
@@ -27,41 +28,77 @@ export function SharedLocationMapDialog({
   lat,
   lng,
   externalMapsUrl,
+  liveExpiresAt,
 }: SharedLocationMapDialogProps) {
   const embedUrl = buildGoogleMapsEmbedUrl(lat, lng);
-  const external = (externalMapsUrl && externalMapsUrl.trim()) || buildGoogleMapsPlaceUrl(lat, lng);
+  const external =
+    (externalMapsUrl && externalMapsUrl.trim()) || buildGoogleMapsPlaceUrl(lat, lng);
+
+  const floatBtn =
+    'flex h-11 w-11 items-center justify-center rounded-full border-0 bg-transparent text-white shadow-none backdrop-blur-0 transition-colors hover:bg-white/15 active:scale-[0.98] [&_svg]:drop-shadow-md';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[min(100vw-1rem,32rem)] gap-3 rounded-2xl p-4 sm:max-w-lg">
-        <DialogHeader className="space-y-1">
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <MapPin className="h-5 w-5 shrink-0 text-primary" />
-            Местоположение
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            {lat.toFixed(5)}, {lng.toFixed(5)}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="overflow-hidden rounded-xl bg-muted">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        overlayClassName={MAP_SHEET_Z}
+        className={cn(
+          MAP_SHEET_Z,
+          'flex h-full max-h-[100dvh] w-full max-w-full flex-col gap-0 border-0 p-0 shadow-2xl',
+          'rounded-none data-[state=open]:duration-300 sm:max-w-[min(100vw-0px,440px)] sm:rounded-l-3xl md:max-w-[480px]',
+        )}
+      >
+        <div className="relative min-h-0 flex-1 bg-muted">
           <iframe
             title="Карта: выбранная точка"
             src={embedUrl}
-            className="h-[min(55vh,360px)] w-full border-0 sm:h-[380px]"
+            className="absolute inset-0 h-full w-full border-0"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             allowFullScreen
           />
-        </div>
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" className="gap-1.5" asChild>
-            <a href={external} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" />
-              Открыть в браузере
-            </a>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              floatBtn,
+              'absolute left-[max(0.75rem,env(safe-area-inset-left))] top-[max(0.75rem,env(safe-area-inset-top))] z-20',
+            )}
+            aria-label="Закрыть"
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="h-6 w-6" strokeWidth={2} />
           </Button>
+          {liveExpiresAt ? (
+            <div
+              className={cn(
+                'absolute left-[max(0.75rem,env(safe-area-inset-left))] z-20 max-w-[min(100%-6rem,280px)]',
+                'top-[max(3.75rem,env(safe-area-inset-top)+2.75rem)]',
+              )}
+            >
+              <LocationLiveCountdown
+                compact
+                expiresAtIso={liveExpiresAt}
+                className="border-zinc-500/50 bg-black/50 text-zinc-100"
+              />
+            </div>
+          ) : null}
+          <a
+            href={external}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              floatBtn,
+              'absolute right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-20',
+            )}
+            aria-label="Открыть в браузере"
+          >
+            <ExternalLink className="h-5 w-5" strokeWidth={2} />
+          </a>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

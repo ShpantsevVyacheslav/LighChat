@@ -13,6 +13,7 @@ import { useFirestore } from '@/firebase';
 import { useConversationTypingOthers } from '@/hooks/use-conversation-typing-others';
 import { useElementInViewport } from '@/hooks/use-element-in-viewport';
 import { usePageVisibility } from '@/hooks/use-page-visibility';
+import { useChatMainDraftPreview } from '@/hooks/use-chat-main-draft-preview';
 
 interface ConversationItemProps {
     conv: Conversation;
@@ -46,6 +47,7 @@ export function ConversationItem({
         currentUser.id,
         typingEnabled
     );
+    const mainDraft = useChatMainDraftPreview(currentUser.id, conv.id);
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const touchStart = useRef<number | null>(null);
@@ -267,6 +269,15 @@ export function ConversationItem({
                         >
                             {isSomeoneTyping ? (
                                 <span className="text-primary font-bold animate-pulse">Печатает...</span>
+                            ) : mainDraft.hasDraft ? (
+                                <>
+                                    <span className="shrink-0 rounded-md bg-amber-500/15 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-500/25 dark:text-amber-400 dark:ring-amber-400/30">
+                                        Черновик
+                                    </span>
+                                    <span className="min-w-0 flex-1 truncate italic text-foreground/85">
+                                        {mainDraft.preview}
+                                    </span>
+                                </>
                             ) : isLastMessageHiddenByClear ? (
                                 <span className="italic opacity-60">История очищена</span>
                             ) : isReactionNewer ? (

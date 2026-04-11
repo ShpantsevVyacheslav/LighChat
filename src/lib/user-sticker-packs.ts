@@ -27,14 +27,17 @@ export function extensionForMime(mime: string): string {
   if (mime === 'image/webp') return 'webp';
   if (mime === 'image/gif') return 'gif';
   if (mime === 'image/svg+xml') return 'svg';
+  if (mime === 'video/mp4') return 'mp4';
+  if (mime === 'video/webm') return 'webm';
+  if (mime === 'video/quicktime') return 'mov';
   return 'img';
 }
 
-/** Вложение для отправки в чат (`gif_` для GIF, иначе `sticker_`). */
+/** Вложение для отправки в чат (`gif_` для GIF и короткого видео в паке, иначе `sticker_`). */
 export function userStickerItemToAttachment(item: UserStickerItemDoc & { id: string }): ChatAttachment {
   const ext = extensionForMime(item.contentType);
-  const isGif = item.contentType === 'image/gif';
-  const prefix = isGif ? 'gif' : 'sticker';
+  const isGifLike = item.contentType === 'image/gif' || item.contentType.startsWith('video/');
+  const prefix = isGifLike ? 'gif' : 'sticker';
   return {
     url: item.downloadUrl,
     name: `${prefix}_${item.id}_${Date.now()}.${ext}`,

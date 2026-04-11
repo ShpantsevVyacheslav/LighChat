@@ -1,11 +1,12 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
-import { MulticastMessage } from "firebase-admin/messaging";
 import {
   participantIdsFromConversationData,
   setMemberDocsForConversation,
 } from "../../lib/sync-conversation-members";
+import { buildDataPayload, evaluateSimpleNotificationPush } from "../../lib/push-notification-policy";
+import { sendDataMulticastGrouped } from "../../lib/fcm-send-data-batches";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -73,31 +74,44 @@ export const onconversationcreated = onDocumentCreated(
       const recipientIds = participantIds.filter(id => id !== creatorId);
 
       if (recipientIds.length > 0) {
-        const tokens: string[] = [];
+        const now = new Date();
+        const plainBody = `Вы стали участником группы "${groupName}"`;
+        const noPreviewBody = "Вас добавили в группу";
+        const link = `/dashboard/chat?conversationId=${conversationId}`;
+        const sendItems: Array<{ tokens: string[]; data: Record<string, string> }> = [];
+
         for (const userId of recipientIds) {
           const userSnap = await db.doc(`users/${userId}`).get();
-          const userData = userSnap.data();
-          if (userData && Array.isArray(userData.fcmTokens)) {
-            const validTokens = userData.fcmTokens.filter((t): t is string => typeof t === 'string' && t.length > 0);
-            tokens.push(...validTokens);
-          }
+          if (!userSnap.exists) continue;
+          const userData = userSnap.data() as Record<string, unknown>;
+          const tokens = (userData.fcmTokens as unknown[] | undefined)?.filter(
+            (t): t is string => typeof t === "string" && t.length > 0
+          );
+          if (!tokens?.length) continue;
+
+          const decision = evaluateSimpleNotificationPush({
+            userData,
+            plainBody,
+            noPreviewBody,
+            now,
+          });
+          if (!decision.deliver) continue;
+
+          const data = buildDataPayload({
+            title: "Вас добавили в группу",
+            body: decision.body,
+            link,
+            tag: `group-add-${conversationId}`,
+            icon: "/pwa/icon-192.png",
+            silent: decision.silent,
+          });
+          sendItems.push({ tokens, data });
         }
 
-        if (tokens.length > 0) {
-          const uniqueTokens = [...new Set(tokens)];
-          const message: MulticastMessage = {
-            data: {
-              title: "Вас добавили в группу",
-              body: `Вы стали участником группы "${groupName}"`,
-              link: `/dashboard/chat?conversationId=${conversationId}`,
-              icon: "/pwa/icon-192.png",
-            },
-            tokens: uniqueTokens,
-          };
-
+        if (sendItems.length > 0) {
           try {
-            const response = await messaging.sendEachForMulticast(message);
-            logger.log(`Group addition notifications sent. Success: ${response.successCount}`);
+            await sendDataMulticastGrouped(messaging, sendItems);
+            logger.log(`Group addition notifications sent (${sendItems.length} payload group(s)).`);
           } catch (error) {
             logger.error("Error sending group addition notifications:", error);
           }

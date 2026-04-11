@@ -33,6 +33,29 @@
    npm run desktop
    ```
 
+## Mobile (Flutter)
+
+Flutter-клиент находится в `mobile/app` (iOS/Android).
+
+- Статус паритета чата (рендер reply/deleted/reactions, порядок/скролл, профиль собеседника): `docs/mobile/chat-rendering-parity.md`
+
+1. Установите Flutter (macOS):
+   ```bash
+   brew install --cask flutter
+   ```
+
+2. Установите зависимости Flutter-приложения:
+   ```bash
+   cd mobile/app
+   flutter pub get
+   ```
+
+3. Запуск (потребуется установленный Xcode для iOS/macOS и Android Studio/SDK для Android):
+   ```bash
+   flutter doctor -v
+   flutter run
+   ```
+
 ## Сборка десктоп-приложения
 
 ```bash
@@ -51,6 +74,7 @@ CLI входит в проект как **devDependency** (`firebase-tools`), ч
 - **Один раз на машине** (Next из корня в `firebase.json`): `npx firebase experiments:enable webframeworks`.
 - **Только Hosting:** `npm run deploy:hosting` (перед этим обычно `npm run build`, если нужна свежая сборка).
 - **Только правила Firestore:** `npm run deploy:firestore`.
+- **Сборка падает с `Cannot find module '.../.next/server/next-font-manifest.json'`** — обычно битый или недособранный кэш `.next` (прерванный `next build`, одновременный `next dev`, копирование папки). Закройте dev-сервер и выполните **`npm run deploy:hosting:clean`** или **`npm run deploy:functions-hosting:clean`** (скрипты удаляют `.next` и затем деплоят). При необходимости дополнительно: `rm -rf node_modules/.cache`.
 - **Уникальность телефона/email при регистрации:** в Firestore добавлена коллекция `registrationIndex` (правила: публичное чтение, запись только с сервера). После деплоя Cloud Function `onuserwritesyncregistrationindex` и правил один раз вызовите из-под админа callable `backfillRegistrationIndex`, чтобы проиндексировать уже существующих пользователей в `users/*`.
 
 Команды используют бинарник из `node_modules/.bin`. Если когда‑нибудь снова понадобится глобальный CLI и падает `EACCES` на кэше npm, почините владельца каталога: `sudo chown -R "$(id -u):$(id -g)" ~/.npm` (один раз на машине).
@@ -63,6 +87,7 @@ CLI входит в проект как **devDependency** (`firebase-tools`), ч
 - **Safari, Firestore «due to access control checks»** — пошаговый чеклист: [docs/troubleshooting-safari-firestore.md](docs/troubleshooting-safari-firestore.md).
 - **Регистрация / вход: `API_KEY_HTTP_REFERRER_BLOCKED`, referer `http://localhost:3000` (identitytoolkit)** — у Browser API key в Google Cloud в списке HTTP referrer нет вашего origin или не разрешён **Identity Toolkit API**: [docs/troubleshooting-firebase-web-api-key.md](docs/troubleshooting-firebase-web-api-key.md).
 - **FCM / пуши: «missing required authentication credential», token-subscribe-failed** — настройка Browser API key в Google Cloud (referrer + API): [docs/troubleshooting-fcm-web.md](docs/troubleshooting-fcm-web.md).
+- **Гость, видеоконференция: `auth/admin-restricted-operation` / не открывается встреча** — включите **Anonymous** в Firebase Authentication; проверьте App Check и домены: [docs/troubleshooting-meetings-guest-auth.md](docs/troubleshooting-meetings-guest-auth.md).
 - **Картинки Storage (обои): Origin не разрешён / access control checks** — на бакете нужен CORS: [docs/firebase-storage-cors.md](docs/firebase-storage-cors.md) и шаблон [scripts/firebase-storage-cors.json](scripts/firebase-storage-cors.json).
 - **Стикеры: диалог создания пака под меню вложений** — исправлено: модальные окна (`Dialog` / `AlertDialog`) рендерятся с `z-index` выше всплывающего меню вложений (`Popover`, `z-[100]`). Логика: [src/components/ui/dialog.tsx](src/components/ui/dialog.tsx), [src/components/ui/popover.tsx](src/components/ui/popover.tsx).
 - **Стикеры: удалить целиком стикерпак** — во вкладке «Стикеры» в меню вложений кнопка «Удалить пак» (с подтверждением). Удаляются документы пака и вложений в Firestore; из Storage удаляются только файлы, на которые больше нет ссылок в других паках (чтобы копии после «Дублировать» не ломались). Код: [src/lib/user-sticker-packs-client.ts](src/lib/user-sticker-packs-client.ts) (`deleteUserStickerPack`), [src/components/chat/UserStickersTab.tsx](src/components/chat/UserStickersTab.tsx).

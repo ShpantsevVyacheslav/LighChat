@@ -15,10 +15,14 @@
 
 # next.js
 /.next/
+/.next-desktop/
 /out/
 
 # production
 /build
+
+# electron / desktop distributables
+/dist_desktop/
 
 # misc
 .DS_Store
@@ -45,3 +49,19 @@ firebase-debug.log
 firestore-debug.log
 # Локальная сборка эмулятора (.next, node_modules внутри) — лимит GitHub 100 MB
 .firebase/
+
+# local dev artifacts
+.turbo/
+.swc/
+.cache/
+*.log
+
+# secrets (keep examples tracked separately)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Локальный архив Flutter SDK — >100 MB, GitHub не примет
+tools/flutter.zip

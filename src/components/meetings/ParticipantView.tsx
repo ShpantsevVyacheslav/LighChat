@@ -27,7 +27,7 @@ interface ParticipantState {
   facingMode?: 'user' | 'environment';
 }
 
-/** grid — квадратные плитки в сетке; stage — крупное видео в режиме докладчика; strip задаётся через isCompact */
+/** grid — плитки в сетке (ячейка задаётся родителем, обычно 16:9); stage — крупное видео докладчика; strip задаётся через isCompact */
 export type ParticipantTileLayout = 'grid' | 'stage';
 
 interface ParticipantViewProps {
@@ -37,7 +37,7 @@ interface ParticipantViewProps {
   isCompact?: boolean;
   /** Только при isCompact === false: сетка конференции или крупный кадр */
   layout?: ParticipantTileLayout;
-  /** В режиме grid: квадратная плитка или заполнение ячейки (один участник на весь кадр). */
+  /** В режиме grid: заполнение ячейки (16:9 контейнер задаёт MeetingParticipantTileStage) или квадрат для особых раскладок. */
   gridTileSizing?: 'square' | 'fill';
   isHost?: boolean;
   onSpeaking?: (isSpeaking: boolean) => void;

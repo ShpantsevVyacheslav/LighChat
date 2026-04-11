@@ -280,7 +280,7 @@ export function ChatStickerGifPanel({
         }}
         userId={userId}
         title="Сохранить в стикерпак"
-        description="Выберите пак или создайте новый. Потом откройте вкладку «Стикеры» и отправьте оттуда."
+        description="Выберите пак, нажмите «Сохранить» или создайте новый пак. Затем отправляйте из вкладки «Стикеры»."
         busy={saveBusy}
         onConfirmPack={handleConfirmPack}
         createPack={(name) => createPack(name)}

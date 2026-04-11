@@ -21,8 +21,8 @@ export default function ChatPage() {
           <p className="mt-1 text-sm">
             Нажмите на диалог в списке чатов, чтобы начать общение.
           </p>
-        </div>
-      </div>
+                    </div>
+                </div>
     </div>
   );
 }

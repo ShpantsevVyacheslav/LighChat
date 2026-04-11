@@ -1,0 +1,68 @@
+import 'phone_ru_format.dart';
+
+String normalizeUsername(String raw) =>
+    raw.trim().replaceFirst(RegExp(r'^@'), '').toLowerCase();
+
+String normalizePhoneDigits(String raw) => raw.replaceAll(RegExp(r'\D'), '');
+
+String? validateName(String value) {
+  if (value.trim().length < 2) {
+    return 'Укажите имя (не менее 2 символов).';
+  }
+  return null;
+}
+
+String? validateUsername(String value) {
+  final raw = value.trim();
+  final normalized = normalizeUsername(raw);
+  if (normalized.length < 3) {
+    return 'Логин должен содержать не менее 3 символов.';
+  }
+  if (normalized.length > 30) return 'Логин не должен превышать 30 символов.';
+  if (!RegExp(r'^@?[a-zA-Z0-9_]+$').hasMatch(raw)) {
+    return 'Только латиница, цифры и _.';
+  }
+  return null;
+}
+
+String? validatePhone11(String value) {
+  final digits = normalizePhoneDigits(normalizePhoneRuToE164(value));
+  if (digits.length != 11) return 'Введите полный номер телефона (11 цифр).';
+  return null;
+}
+
+String? validateEmail(String value) {
+  final v = value.trim();
+  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v)) {
+    return 'Неверный формат email.';
+  }
+  return null;
+}
+
+String? validateDateOfBirth(String value) {
+  final v = value.trim();
+  if (v.isEmpty) return null;
+  final dt = DateTime.tryParse(v);
+  if (dt == null) return 'Некорректная дата рождения.';
+  final year = dt.year;
+  final currentYear = DateTime.now().year;
+  if (year < 1920 || year > currentYear) return 'Некорректная дата рождения.';
+  return null;
+}
+
+String? validateBio(String value) {
+  final v = value.trim();
+  if (v.isEmpty) return null;
+  if (v.length > 200) return 'Не более 200 символов.';
+  return null;
+}
+
+String? validatePassword(String value) {
+  if (value.length < 6) return 'Пароль должен содержать не менее 6 символов.';
+  return null;
+}
+
+String? validateConfirmPassword(String password, String confirm) {
+  if (password != confirm) return 'Пароли не совпадают.';
+  return null;
+}

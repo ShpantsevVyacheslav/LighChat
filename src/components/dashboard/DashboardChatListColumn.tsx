@@ -29,6 +29,7 @@ import { GroupChatFormDialog } from '@/components/chat/GroupChatFormDialog';
 import { FolderManagerDialog } from '@/components/chat/FolderManagerDialog';
 import { ChatFolderAssignmentDialog } from '@/components/chat/ChatFolderAssignmentDialog';
 import { useToast } from '@/hooks/use-toast';
+import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import { ConversationItem } from '@/components/chat/ConversationItem';
 import { ChatFolderRail } from '@/components/chat/ChatFolderRail';
 import { LighChatSidebarMarkButton } from '@/components/chat/LighChatSidebarMarkButton';
@@ -190,7 +191,6 @@ export function DashboardChatListColumn({
   const filteredConversations = useMemo(() => {
     if (!conversations || !currentUser || !authUid) return [];
     const folderConvIds = new Set(activeFolder?.conversationIds || []);
-    const term = chatSearchTerm.toLowerCase();
     return conversations
       .filter((c) => folderConvIds.has(c.id))
       .filter((conv) => {
@@ -205,7 +205,7 @@ export function DashboardChatListColumn({
                 conv.participantInfo[otherId]?.name ||
                 ''
               : '';
-        return (name || '').toLowerCase().includes(term);
+        return ruEnSubstringMatch(name || '', chatSearchTerm);
       });
   }, [conversations, chatSearchTerm, currentUser, authUid, allUsers, activeFolder]);
 

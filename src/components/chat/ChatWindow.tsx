@@ -4,6 +4,8 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useFirestore, useStorage } from '@/firebase';
 import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { E2EE_LAST_MESSAGE_PREVIEW, tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee';
+import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
 import type {
@@ -12,12 +14,12 @@ import type {
   ChatMessage,
   ChatAttachment,
   ReplyContext,
-  ProfileTab,
   ReactionDetail,
   UserChatIndex,
   ChatLocationShare,
   ChatLocationSendMeta,
   PinnedMessage,
+  PlatformSettingsDoc,
 } from '@/lib/types';
 import type { ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
 import { cn } from '@/lib/utils';
@@ -30,7 +32,11 @@ import {
   getReplyPreview,
 } from '@/lib/chat-utils';
 import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
-import { addChatAttachmentToUserStickerPack, createUserStickerPack } from '@/lib/user-sticker-packs-client';
+import {
+  addChatAttachmentToUserStickerPack,
+  addChatImageAsSquareStickerToPack,
+  createUserStickerPack,
+} from '@/lib/user-sticker-packs-client';
 import { USER_STICKER_MAX_FILE_BYTES } from '@/lib/user-sticker-packs';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
@@ -61,16 +67,28 @@ import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat
 import { ChatDateSeparatorRow } from '@/components/chat/ChatDateSeparatorRow';
 import { buildChatListRows, type ChatListRow } from '@/components/chat/build-chat-message-groups';
 import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
-import { VIRTUOSO_CHAT_INCREASE_VIEWPORT, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
+import { getVirtuosoChatIncreaseViewport, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
 import { GEOLOCATION_FIRESTORE_LOG } from '@/lib/geolocation-client';
 import { VideoCircleTailProvider } from '@/components/chat/video-circle-tail-context';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useChatConversationPrefs } from '@/hooks/use-chat-conversation-prefs';
+import { useStarredInConversation } from '@/hooks/use-starred-in-conversation';
+import { buildStarredMessageDocId } from '@/lib/starred-chat-messages';
+import {
+  LIGHCHAT_THREAD_OPEN_CONVERSATION_KEY,
+  LIGHCHAT_THREAD_OPEN_MESSAGE_KEY,
+} from '@/lib/thread-open-from-utility';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
 import { StickerPackPickerDialog } from '@/components/chat/StickerPackPickerDialog';
 import {
   ChatViewportScrollerRefContext,
   MessageReadOnViewport,
 } from '@/components/chat/message-read-on-viewport';
+import {
+  incrementChatPerfCounter,
+  markChatPerf,
+  measureChatPerf,
+} from '@/components/chat/chat-performance-metrics';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 import {
   MAX_PINNED_MESSAGES,
@@ -85,9 +103,11 @@ interface ChatWindowProps {
   allUsers: User[];
   onBack: () => void;
   onSelectConversation: (conversationId: string) => void;
-  onEditGroup: (conversation: Conversation) => void;
   /** Смещение оверлея поиска по сообщениям от левого края viewport (колонка чата на /dashboard/chat). */
   messageSearchBlurInsetLeftPx?: number;
+  /** Query `focusMessageId`: открыть чат с прокруткой к сообщению (избранное и т.д.). */
+  focusMessageId?: string | null;
+  onFocusMessageConsumed?: () => void;
 }
 
 /** Подложки шапки чата на фоне обоев — без обводки, только лёгкое стекло */
@@ -107,20 +127,31 @@ const CHAT_HEADER_IOS = {
 const TOP_LOAD_THRESHOLD_PX = 40;
 const LOAD_MORE_COOLDOWN_MS = 600;
 
-export function ChatWindow({
-  conversation,
-  currentUser,
-  allUsers,
-  onBack,
-  onSelectConversation,
-  onEditGroup,
+export function ChatWindow({ 
+  conversation, 
+  currentUser, 
+  allUsers, 
+  onBack, 
+  onSelectConversation, 
   messageSearchBlurInsetLeftPx = 0,
+  focusMessageId = null,
+  onFocusMessageConsumed,
 }: ChatWindowProps) {
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
   const router = useRouter();
-  const { chatSettings } = useSettings();
+  const { chatSettings, privacySettings } = useSettings();
+  const { prefs } = useChatConversationPrefs(currentUser.id, conversation.id);
+  const { starredMessageIds } = useStarredInConversation(currentUser.id, conversation.id);
+  const suppressReadReceipts = prefs?.suppressReadReceipts === true;
+  const effectiveWallpaper =
+    prefs?.chatWallpaper != null && prefs.chatWallpaper !== ''
+      ? prefs.chatWallpaper
+      : chatSettings.chatWallpaper;
+  const e2eeConv = useE2eeConversation(firestore, conversation, currentUser.id);
+  const [e2eePlaintextByMessageId, setE2eePlaintextByMessageId] = useState<Record<string, string>>({});
+  // E2E enable UI removed from main chat header (kept via auto-enable paths).
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [displayLimit, setDisplayLimit] = useState(INITIAL_MESSAGE_LIMIT);
@@ -134,7 +165,6 @@ export function ChatWindow({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   /** Просмотр карточки участника группы (клик по @ в сообщении). */
   const [profileFocusUserId, setProfileFocusUserId] = useState<string | null>(null);
-  const [profileTab, setProfileOpenTab] = useState<ProfileTab>('threads');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   /** Индекс в sortedPins: какой закреп показан в шапке (синхрон с viewport + клик). */
@@ -148,6 +178,7 @@ export function ChatWindow({
   const [stickerSaveOpen, setStickerSaveOpen] = useState(false);
   const [stickerSaveAttachment, setStickerSaveAttachment] = useState<ChatAttachment | null>(null);
   const [stickerSaveBusy, setStickerSaveBusy] = useState(false);
+  const [stickerSaveMode, setStickerSaveMode] = useState<'copy' | 'normalize_sticker'>('copy');
   /** Якорь с z-[10050] — скрываем при оверлеях и при document fullscreen (видео). */
   const [documentFullscreen, setDocumentFullscreen] = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
@@ -190,6 +221,32 @@ export function ChatWindow({
   }, [hasScrolledToUnread]);
 
   useEffect(() => {
+    if (!firestore || !conversation.id) return;
+    let convStored: string | null = null;
+    let msgId: string | null = null;
+    try {
+      convStored = sessionStorage.getItem(LIGHCHAT_THREAD_OPEN_CONVERSATION_KEY);
+      msgId = sessionStorage.getItem(LIGHCHAT_THREAD_OPEN_MESSAGE_KEY);
+    } catch {
+      return;
+    }
+    if (!convStored || !msgId || convStored !== conversation.id) return;
+    try {
+      sessionStorage.removeItem(LIGHCHAT_THREAD_OPEN_CONVERSATION_KEY);
+      sessionStorage.removeItem(LIGHCHAT_THREAD_OPEN_MESSAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    void getDoc(doc(firestore, `conversations/${conversation.id}/messages`, msgId)).then((snap) => {
+      if (!snap.exists()) {
+        toast({ title: 'Обсуждение не найдено' });
+        return;
+      }
+      setSelectedThreadMessage({ ...snap.data(), id: snap.id } as ChatMessage);
+    });
+  }, [firestore, conversation.id, toast]);
+
+  useEffect(() => {
     const sync = () => {
       const docRef = document as Document & { webkitFullscreenElement?: Element | null };
       setDocumentFullscreen(!!(document.fullscreenElement ?? docRef.webkitFullscreenElement));
@@ -225,39 +282,49 @@ export function ChatWindow({
         pendingNavigateMessageIdRef.current = null;
         setThreadReactionScrollToId(null);
         setSelectedThreadMessage(null);
+        setE2eePlaintextByMessageId({});
+        setReplyingTo(null);
+        setEditingMessage(null);
         prevConvIdRef.current = conversation.id;
     }
 
     const msgCollection = collection(firestore, `conversations/${conversation.id}/messages`);
     const q = query(msgCollection, orderBy('createdAt', 'desc'), limit(displayLimit));
-
+    
     return scheduleFirestoreListen(() =>
       onSnapshot(
         q,
         (snap) => {
           const msgs = snap.docs.map((d) => ({ ...d.data(), id: d.id } as ChatMessage)).reverse();
-          setMessages(msgs);
-          setHasMore(snap.docs.length === displayLimit);
-          setIsFullyReady(true);
+        setMessages(msgs);
+        setHasMore(snap.docs.length === displayLimit);
+        setIsFullyReady(true);
           setIsLoadingOlder(false);
         },
         (err) => {
-          console.error("Chat fetch error:", err);
+        console.error("Chat fetch error:", err);
           if (process.env.NODE_ENV === "development" && firestore) {
             console.info(
               "[LighChat] permission-denied → опубликуйте правила: npm run deploy:firestore · Firebase projectId:",
               firestore.app.options.projectId
             );
           }
-          setIsFullyReady(true);
+        setIsFullyReady(true);
           setIsLoadingOlder(false);
         }
       )
     );
   }, [firestore, conversation.id, displayLimit]);
 
-  const handleLoadMore = useCallback(() => {
-    if (!hasMore || isLoadingOlder) return;
+  const handleLoadMore = useCallback((source: 'startReached' | 'scroll-fallback' | 'manual' = 'manual') => {
+    incrementChatPerfCounter(`chat-load-more-trigger:${source}`);
+    if (!hasMore || isLoadingOlder || loadMoreInFlightRef.current) {
+      incrementChatPerfCounter('chat-load-more-skipped');
+      return;
+    }
+    loadMoreInFlightRef.current = true;
+    incrementChatPerfCounter('chat-load-more-accepted');
+    markChatPerf('chat-load-more-start');
     const scroller = viewportScrollerRef.current;
     if (scroller) {
       pendingPrependAdjustRef.current = {
@@ -301,10 +368,72 @@ export function ChatWindow({
     return [...messages, ...uniqueOptimistic];
   }, [messages, optimisticMessages]);
 
+  useEffect(() => {
+    const hasCiphertext = allMessages.some((m) => m.e2ee?.ciphertext);
+    if (!hasCiphertext) {
+      setE2eePlaintextByMessageId({});
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const updates: Record<string, string> = {};
+      for (const m of allMessages) {
+        if (!m.e2ee?.ciphertext) continue;
+        const plain = await e2eeConv.decryptMessagePayload(m.e2ee);
+        updates[m.id] = plain;
+      }
+      if (!cancelled) {
+        setE2eePlaintextByMessageId((prev) => {
+          const merged = { ...prev };
+          let changed = false;
+          for (const [k, v] of Object.entries(updates)) {
+            if (merged[k] !== v) {
+              merged[k] = v;
+              changed = true;
+            }
+          }
+          return changed ? merged : prev;
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [allMessages, e2eeConv.decryptMessagePayload]);
+
   const messagesForList = useMemo(() => {
     const clearedAt = conversation.clearedAt?.[currentUser.id];
     return clearedAt ? allMessages.filter(m => new Date(m.createdAt) > new Date(clearedAt)) : allMessages;
   }, [allMessages, conversation.clearedAt, currentUser.id]);
+
+  const handleToggleStar = useCallback(
+    (messageId: string, nextStarred: boolean) => {
+      if (!firestore || !currentUser.id) return;
+      const ref = doc(
+        firestore,
+        'users',
+        currentUser.id,
+        'starredChatMessages',
+        buildStarredMessageDocId(conversation.id, messageId)
+      );
+      if (nextStarred) {
+        const msg = messagesForList.find((m) => m.id === messageId);
+        const html = e2eePlaintextByMessageId[messageId] ?? msg?.text ?? '';
+        const previewText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
+        setDocumentNonBlocking(ref, {
+          conversationId: conversation.id,
+          messageId,
+          createdAt: new Date().toISOString(),
+          ...(previewText ? { previewText } : {}),
+        });
+        toast({ title: 'Добавлено в избранное' });
+      } else {
+        deleteDocumentNonBlocking(ref);
+        toast({ title: 'Удалено из избранного' });
+      }
+    },
+    [firestore, currentUser.id, conversation.id, messagesForList, e2eePlaintextByMessageId, toast]
+  );
 
   /** Сколько входящих в загруженном окне ещё без readAt — бейдж якоря и разделитель, чтобы не расходиться с conversation.unreadCounts. */
   const incomingUnreadCount = useMemo(
@@ -315,18 +444,18 @@ export function ChatWindow({
   const prevUnreadCount = useRef(unreadCount);
   useEffect(() => {
     if (!isFullyReady) return;
-
+    
     if (unreadCount > prevUnreadCount.current) {
       /** Новые непрочитанные с сервера: снова разрешаем разделитель (иначе при приходе с низа hasClearedSeparatorRef блокирует id и «стартовый» скролл не завершается — пометка read не включается). */
-      hasClearedSeparatorRef.current = false;
+            hasClearedSeparatorRef.current = false;
       anchorUnreadStepRef.current = 0;
     }
     prevUnreadCount.current = unreadCount;
 
     if (incomingUnreadCount === 0) {
       if (unreadSeparatorId) {
-        setUnreadSeparatorId(null);
-        hasClearedSeparatorRef.current = false;
+          setUnreadSeparatorId(null);
+          hasClearedSeparatorRef.current = false;
       }
       anchorUnreadStepRef.current = 0;
       return;
@@ -347,6 +476,7 @@ export function ChatWindow({
 
   const flatItemsRef = useRef(flatItems);
   useEffect(() => { flatItemsRef.current = flatItems; }, [flatItems]);
+  const increaseViewportBy = useMemo(() => getVirtuosoChatIncreaseViewport(), []);
 
   const sortedPins = useMemo(() => {
     const raw = conversationPinnedList(conversation);
@@ -403,6 +533,14 @@ export function ChatWindow({
   const pendingScrollToBottomAfterSendRef = useRef(false);
   const pendingPrependAdjustRef = useRef<{ scrollTop: number; scrollHeight: number } | null>(null);
   const loadMoreCooldownUntilRef = useRef(0);
+  const loadMoreInFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (!isLoadingOlder) {
+      loadMoreInFlightRef.current = false;
+      measureChatPerf('chat-load-more-start', 'chat-load-more-duration');
+    }
+  }, [isLoadingOlder]);
 
   useEffect(() => {
     if (!pendingScrollToBottomAfterSendRef.current || !isFullyReady || !virtuosoRef.current) return;
@@ -427,6 +565,7 @@ export function ChatWindow({
   }, [flatItems]);
 
   const tryLoadMoreByTopPosition = useCallback(() => {
+    incrementChatPerfCounter('chat-load-more-top-check');
     const now = Date.now();
     if (now < loadMoreCooldownUntilRef.current) return;
     if (!isFullyReady || !hasMore || isLoadingOlder) return;
@@ -434,7 +573,7 @@ export function ChatWindow({
     if (!scroller) return;
     if (scroller.scrollTop > TOP_LOAD_THRESHOLD_PX) return;
     loadMoreCooldownUntilRef.current = now + LOAD_MORE_COOLDOWN_MS;
-    handleLoadMore();
+    handleLoadMore('scroll-fallback');
   }, [isFullyReady, hasMore, isLoadingOlder, handleLoadMore]);
 
   useEffect(() => {
@@ -464,7 +603,7 @@ export function ChatWindow({
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
                 hasScrolledToUnreadRef.current = true;
-                setHasScrolledToUnread(true);
+            setHasScrolledToUnread(true);
               });
             });
         }, 200);
@@ -474,7 +613,6 @@ export function ChatWindow({
 
   const handleRangeChanged = useCallback((range: { startIndex: number; endIndex: number }) => {
     currentVisibleRange.current = range;
-    tryLoadMoreByTopPosition();
     if (!isFullyReady || !firestore || !conversation.id) return;
 
     const currentItems = flatItemsRef.current;
@@ -494,7 +632,7 @@ export function ChatWindow({
       const idx = pickPinnedBarIndexForViewport(pins, flatItemsRef.current, range.startIndex, range.endIndex);
       setBarPinIndex(idx);
     }
-  }, [tryLoadMoreByTopPosition, isFullyReady, firestore, conversation.id, currentUser.id]);
+  }, [isFullyReady, firestore, conversation.id, currentUser.id]);
 
   const allMediaItems = useMemo((): MediaViewerItem[] => {
     const items: MediaViewerItem[] = [];
@@ -564,6 +702,18 @@ export function ChatWindow({
       }
       try {
         const id = await createOrOpenDirectChat(firestore, currentUser, other);
+        let platformWants = false;
+        try {
+          const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));
+          const p = ps.data() as PlatformSettingsDoc | undefined;
+          platformWants = !!p?.e2eeDefaultForNewDirectChats;
+        } catch {
+          /* ignore */
+        }
+        await tryAutoEnableE2eeNewDirectChat(firestore, id, currentUser.id, {
+          userWants: privacySettings.e2eeForNewDirectChats === true,
+          platformWants,
+        });
         onSelectConversation(id);
       } catch (e) {
         console.error('[ChatWindow] createOrOpenDirectChat', e);
@@ -582,30 +732,48 @@ export function ChatWindow({
       allUsers,
       onSelectConversation,
       toast,
+      privacySettings.e2eeForNewDirectChats,
     ]
   );
 
-  const handleSaveStickerFromMessage = useCallback((att: ChatAttachment) => {
-    setStickerSaveAttachment(att);
-    setStickerSaveOpen(true);
-  }, []);
+  const handleSaveStickerFromMessage = useCallback(
+    (att: ChatAttachment, mode: 'copy' | 'normalize_sticker' = 'copy') => {
+      setStickerSaveMode(mode);
+      setStickerSaveAttachment(att);
+      setStickerSaveOpen(true);
+    },
+    []
+  );
 
   const handleStickerSaveConfirmPack = useCallback(
     async (packId: string) => {
       if (!stickerSaveAttachment || !firestore || !storage) return;
       setStickerSaveBusy(true);
       try {
-        const r = await addChatAttachmentToUserStickerPack(
-          stickerSaveAttachment,
-          packId,
-          currentUser.id,
-          firestore,
-          storage
-        );
+        const r =
+          stickerSaveMode === 'normalize_sticker'
+            ? await addChatImageAsSquareStickerToPack(
+                stickerSaveAttachment,
+                packId,
+                currentUser.id,
+                firestore,
+                storage
+              )
+            : await addChatAttachmentToUserStickerPack(
+                stickerSaveAttachment,
+                packId,
+                currentUser.id,
+                firestore,
+                storage
+              );
         if (r.ok) {
-          toast({ title: 'Сохранено в стикерпак' });
+          toast({
+            title: 'Сохранено в стикерпак',
+            description: stickerSaveMode === 'normalize_sticker' ? 'Изображение приведено к квадрату под размер стикера.' : undefined,
+          });
           setStickerSaveOpen(false);
           setStickerSaveAttachment(null);
+          setStickerSaveMode('copy');
         } else if (r.error === 'file_too_large') {
           toast({
             title: 'Файл слишком большой',
@@ -626,7 +794,7 @@ export function ChatWindow({
         setStickerSaveBusy(false);
       }
     },
-    [stickerSaveAttachment, firestore, storage, currentUser.id, toast]
+    [stickerSaveAttachment, stickerSaveMode, firestore, storage, currentUser.id, toast]
   );
 
   const handleStickerPackCreate = useCallback(
@@ -651,7 +819,7 @@ export function ChatWindow({
     const newDocRef = doc(messagesCollection);
     const messageId = newDocRef.id;
     const now = new Date().toISOString();
-
+    
     const optimisticAttachments: ChatAttachment[] = [
       ...prebuilt.map((a) => ({ ...a })),
       ...files.map((f) => ({ url: URL.createObjectURL(f), name: f.name, type: f.type, size: f.size })),
@@ -676,15 +844,34 @@ export function ChatWindow({
           }
       }
       
-      await setDoc(newDocRef, { 
+      const plainBody = text
+        ? text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+        : '';
+      const useE2eeForText =
+        e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
+      const replyForWrite =
+        useE2eeForText && replyContext
+          ? { ...replyContext, text: undefined }
+          : replyContext;
+
+      const basePayload: Record<string, unknown> = {
           id: messageId, 
           senderId: currentUser.id, 
           createdAt: now, 
           readAt: null, 
           attachments: uploadedAttachments, 
-          ...(text && { text }), 
-          ...(replyContext && { replyTo: replyContext }) 
-      });
+        ...(replyForWrite && { replyTo: replyForWrite }),
+      };
+
+      if (useE2eeForText) {
+        const e2eePayload = await e2eeConv.encryptOutgoingHtml(text!);
+        basePayload.e2ee = e2eePayload;
+        basePayload.text = deleteField();
+      } else if (text) {
+        basePayload.text = text;
+      }
+
+      await setDoc(newDocRef, basePayload as Parameters<typeof setDoc>[1]);
 
       const conversationRef = doc(firestore, 'conversations', conversation.id);
       const unreadUpdates = getUnreadIncrementUpdate(conversation.participantIds, currentUser.id, 1);
@@ -701,14 +888,16 @@ export function ChatWindow({
 
       const stripHtml = text ? text.replace(/<[^>]*>/g, '') : '';
       let lastPreview = stripHtml;
-      if (!lastPreview) {
+      if (useE2eeForText) {
+        lastPreview = E2EE_LAST_MESSAGE_PREVIEW;
+      } else if (!lastPreview) {
         if (prebuilt.some((a) => a.name.startsWith('gif_'))) lastPreview = 'GIF';
         else if (prebuilt.some((a) => a.name.startsWith('sticker_'))) lastPreview = 'Стикер';
         else if (files.length === 1 && files[0].name.startsWith('sticker_')) lastPreview = 'Стикер';
         else if (files.length > 0 || prebuilt.length > 0) lastPreview = 'Вложение';
         else lastPreview = 'Сообщение';
       }
-
+      
       await updateDoc(conversationRef, { 
           lastMessageText: lastPreview, 
           lastMessageTimestamp: now, 
@@ -721,11 +910,30 @@ export function ChatWindow({
       });
     } catch (error) {
       setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
+      const msg = error instanceof Error ? error.message : '';
+      if (msg === 'E2EE_NO_CHAT_KEY' || msg === 'E2EE_UNWRAP_FAILED') {
+        toast({
+          variant: 'destructive',
+          title: 'Не удалось зашифровать сообщение',
+          description:
+            msg === 'E2EE_UNWRAP_FAILED'
+              ? 'Этот браузер не совпадает с ключом, под который включали шифрование (часто: другое устройство/браузер или очистка данных). Откройте профиль чата → «Шифрование» и выключите/включите снова на этом устройстве.'
+              : 'Этот браузер не может открыть ключ чата. Попробуйте тот же браузер, где включали шифрование, или перевключите «Шифрование» в профиле чата.',
+        });
+      }
     }
   };
 
   const handleSendLocationShare = useCallback(
     async (share: ChatLocationShare, replyContext: ReplyContext | null, meta: ChatLocationSendMeta) => {
+      if (e2eeConv.e2eeEnabled) {
+        toast({
+          variant: 'destructive',
+          title: 'Геолокация недоступна',
+          description: 'В чате со сквозным шифрованием отправка геолокации пока не поддерживается.',
+        });
+        return;
+      }
       if (!firestore || !currentUser) {
         console.warn(GEOLOCATION_FIRESTORE_LOG, 'aborted', { reason: 'no firestore or user' });
         return;
@@ -794,11 +1002,19 @@ export function ChatWindow({
         setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
       }
     },
-    [firestore, currentUser, conversation.id, conversation.participantIds]
+    [firestore, currentUser, conversation.id, conversation.participantIds, e2eeConv.e2eeEnabled, toast]
   );
 
   const handleSendPoll = useCallback(
     async (input: ChatPollCreateInput, replyContext: ReplyContext | null) => {
+      if (e2eeConv.e2eeEnabled) {
+        toast({
+          variant: 'destructive',
+          title: 'Опрос недоступен',
+          description: 'В чате со сквозным шифрованием опросы пока не поддерживаются.',
+        });
+        return;
+      }
       if (!firestore || !currentUser) return;
       const pollId = `chat-poll-${Date.now()}`;
       const pollRef = doc(firestore, `conversations/${conversation.id}/polls`, pollId);
@@ -860,19 +1076,35 @@ export function ChatWindow({
         }
       }
     },
-    [firestore, currentUser, conversation.id, conversation.participantIds]
+    [firestore, currentUser, conversation.id, conversation.participantIds, e2eeConv.e2eeEnabled, toast]
   );
 
   const handleUpdateMessage = async (id: string, text: string, attachments?: ChatAttachment[]) => {
     if (!firestore || !conversation.id) return;
     const msgRef = doc(firestore, `conversations/${conversation.id}/messages`, id);
     const now = new Date().toISOString();
+    const existing = allMessages.find((m) => m.id === id);
     try {
+        if (e2eeConv.e2eeEnabled && existing?.e2ee?.ciphertext) {
+          const e2eePayload = await e2eeConv.encryptOutgoingHtml(text);
+          await updateDoc(msgRef, {
+            e2ee: e2eePayload,
+            text: deleteField(),
+            attachments: attachments || [],
+            updatedAt: now,
+          });
+          if (conversation.lastMessageTimestamp === existing?.createdAt) {
+            await updateDoc(doc(firestore, 'conversations', conversation.id), {
+              lastMessageText: E2EE_LAST_MESSAGE_PREVIEW,
+            });
+          }
+        } else {
         await updateDoc(msgRef, { text, attachments: attachments || [], updatedAt: now });
         if (conversation.lastMessageTimestamp === allMessages.find(m => m.id === id)?.createdAt) {
             await updateDoc(doc(firestore, 'conversations', conversation.id), {
                 lastMessageText: text.replace(/<[^>]*>/g, '').slice(0, 100),
             });
+          }
         }
     } catch (e) {
         toast({ variant: 'destructive', title: 'Ошибка обновления' });
@@ -940,11 +1172,11 @@ export function ChatWindow({
     }
 
     const entry: PinnedMessage = {
-      messageId: msg.id,
-      text: replyPreview.text,
-      senderName: replyPreview.senderName,
-      senderId: msg.senderId,
-      mediaPreviewUrl: replyPreview.mediaPreviewUrl,
+                messageId: msg.id,
+      text: replyPreview.text ?? '',
+                senderName: replyPreview.senderName,
+                senderId: msg.senderId,
+                mediaPreviewUrl: replyPreview.mediaPreviewUrl,
       mediaType: replyPreview.mediaType,
       messageCreatedAt: msg.createdAt,
     };
@@ -955,10 +1187,10 @@ export function ChatWindow({
       await updateDoc(convRef, {
         pinnedMessages: next,
         pinnedMessage: deleteField(),
-      });
-      toast({ title: 'Сообщение закреплено' });
+        });
+        toast({ title: 'Сообщение закреплено' });
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Ошибка закрепления' });
+        toast({ variant: 'destructive', title: 'Ошибка закрепления' });
     }
   };
 
@@ -1036,9 +1268,9 @@ export function ChatWindow({
 
   const highlightMessageElement = useCallback((messageId: string) => {
     const run = () => {
-      const element = document.getElementById(`msg-${messageId}`);
-      if (element) {
-        element.classList.add('animate-message-highlight');
+        const element = document.getElementById(`msg-${messageId}`);
+        if (element) {
+            element.classList.add('animate-message-highlight');
         window.setTimeout(() => element.classList.remove('animate-message-highlight'), 2000);
       }
     };
@@ -1076,6 +1308,19 @@ export function ChatWindow({
     },
     [hasMore, tryScrollToMessageInList, toast]
   );
+
+  const focusMessageHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    focusMessageHandledRef.current = null;
+  }, [focusMessageId, conversation.id]);
+
+  useEffect(() => {
+    if (!focusMessageId || !isFullyReady) return;
+    if (focusMessageHandledRef.current === focusMessageId) return;
+    focusMessageHandledRef.current = focusMessageId;
+    navigateToMessage(focusMessageId);
+    onFocusMessageConsumed?.();
+  }, [focusMessageId, isFullyReady, navigateToMessage, onFocusMessageConsumed]);
 
   const handlePinnedBarNavigate = useCallback(() => {
     const pins = sortedPinsRef.current;
@@ -1128,8 +1373,8 @@ export function ChatWindow({
     if (unreadIds.length > 0) {
       if (anchorUnreadStepRef.current === 0) {
         if (separatorIdx !== -1) {
-          virtuosoRef.current?.scrollToIndex({ index: separatorIdx, align: 'start', behavior: 'smooth' });
-        } else {
+        virtuosoRef.current?.scrollToIndex({ index: separatorIdx, align: 'start', behavior: 'smooth' });
+    } else {
           const mi = currentItems.findIndex(
             (it): it is Extract<ChatListRow, { type: 'message' }> =>
               it.type === 'message' && isIncomingUnreadForViewer(it.message, currentUser.id)
@@ -1141,9 +1386,10 @@ export function ChatWindow({
         anchorUnreadStepRef.current = 1;
         return;
       }
-      virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
+        virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
       anchorUnreadStepRef.current = 0;
       void (async () => {
+        if (suppressReadReceipts) return;
         try {
           await markManyMessagesAsRead(firestore, conversation.id, currentUser.id, unreadIds);
           unreadIds.forEach((id) => sessionReadIds.current.add(id));
@@ -1165,14 +1411,14 @@ export function ChatWindow({
     if (!target || !firestore) return;
     if (target.parentId) {
       const parentMsgRef = doc(firestore, `conversations/${conversation.id}/messages`, target.parentId);
-      const parentMsgSnap = await getDoc(parentMsgRef);
-      if (parentMsgSnap.exists()) {
+            const parentMsgSnap = await getDoc(parentMsgRef);
+            if (parentMsgSnap.exists()) {
         setThreadReactionScrollToId(target.messageId);
-        setSelectedThreadMessage({ ...parentMsgSnap.data(), id: parentMsgSnap.id } as ChatMessage);
-      } else {
-        toast({ title: 'Обсуждение не найдено' });
-      }
-    } else {
+                setSelectedThreadMessage({ ...parentMsgSnap.data(), id: parentMsgSnap.id } as ChatMessage);
+            } else {
+                toast({ title: 'Обсуждение не найдено' });
+            }
+        } else {
       navigateToMessage(target.messageId);
     }
     window.setTimeout(() => {
@@ -1231,7 +1477,7 @@ export function ChatWindow({
 
   return (
     <div className="h-full flex flex-col overflow-hidden relative bg-transparent touch-pan-y" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        <ChatWallpaperLayer wallpaper={chatSettings.chatWallpaper} />
+        <ChatWallpaperLayer wallpaper={effectiveWallpaper} />
 
         <div
           className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col"
@@ -1311,11 +1557,9 @@ export function ChatWindow({
                               variant="ghost"
                               size="icon"
                               className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
-                              onClick={() => {
-                                setProfileOpenTab('threads');
-                                setProfileFocusUserId(null);
-                                setIsProfileOpen(true);
-                              }}
+                              aria-label="Обсуждения"
+                              title="Обсуждения"
+                              onClick={() => router.push(`/dashboard/chat/${conversation.id}/threads`)}
                             >
                               <MessageCircle className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.threads)} strokeWidth={2} />
                             </Button>
@@ -1346,7 +1590,7 @@ export function ChatWindow({
                                 strokeWidth={2}
                               />
                             </Button>
-                        </div>
+                </div>
                         {!conversation.isGroup && otherId && !isSelfSavedChat && (
                           <>
                             <div className={cn('p-0.5', chatHeaderIconGlass)}>
@@ -1404,26 +1648,26 @@ export function ChatWindow({
                 <div className={cn('relative h-full w-full min-h-0 min-w-0 overflow-hidden transition-opacity duration-500', isFullyReady ? 'opacity-100' : 'opacity-0')}>
                     <VideoCircleTailProvider setTailReservePx={setVideoCircleTailReservePx}>
                     <ChatViewportScrollerRefContext.Provider value={viewportScrollerRef}>
-                    <Virtuoso
-                        ref={virtuosoRef}
-                        data={flatItems}
-                        followOutput="auto"
-                        alignToBottom
+                    <Virtuoso 
+                        ref={virtuosoRef} 
+                        data={flatItems} 
+                        followOutput="auto" 
+                        alignToBottom 
                         scrollerRef={onVirtuosoScrollerRef}
-                        startReached={handleLoadMore}
+                        startReached={() => handleLoadMore('startReached')} 
                         atBottomStateChange={(atBottom) => {
                             atBottomRef.current = atBottom;
                             setShowScrollButton(!atBottom);
                         }}
-                        rangeChanged={handleRangeChanged}
+                        rangeChanged={handleRangeChanged} 
                         computeItemKey={(index, item) => {
                             if (item.type === 'date') return `chat-d-${item.dateKey}-${item.dayStickyOrder}`;
                             if (item.type === 'unread-separator') return `chat-u-${unreadSeparatorId ?? index}`;
                             return `chat-m-${item.message.id}`;
                         }}
-                        increaseViewportBy={VIRTUOSO_CHAT_INCREASE_VIEWPORT}
+                        increaseViewportBy={increaseViewportBy}
                         minOverscanItemCount={VIRTUOSO_CHAT_MIN_OVERSCAN}
-                        components={{
+                        components={{ 
                             Header: () => isLoadingOlder ? (
                                 <div className="p-4 flex items-center justify-center text-muted-foreground">
                                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -1437,7 +1681,7 @@ export function ChatWindow({
                                     aria-hidden
                                 />
                             ),
-                        }}
+                        }} 
                         itemContent={(index, item) => {
                             if (item.type === 'date') {
                               return (
@@ -1456,12 +1700,12 @@ export function ChatWindow({
                                 currentUserId={currentUser.id}
                                 conversationId={conversation.id}
                                 firestore={firestore}
-                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread}
+                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread && !suppressReadReceipts}
                                 viewportLayoutKey={viewportScrollerKey}
                                 sessionReadIds={sessionReadIds}
                               >
                                 <div className="py-1 px-4">
-                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} />
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} />
                                 </div>
                               </MessageReadOnViewport>
                             );
@@ -1497,6 +1741,7 @@ export function ChatWindow({
               currentUser={currentUser}
               allUsers={allUsers}
               isPartnerDeleted={isPartnerDeleted}
+              onRestoreDraftReply={(reply) => setReplyingTo(reply)}
             />
           </div>
         )}
@@ -1504,17 +1749,13 @@ export function ChatWindow({
         <ChatParticipantProfile
           open={isProfileOpen}
           onOpenChange={handleProfileSheetOpenChange}
-          initialTab={profileTab}
           focusUserId={profileFocusUserId}
           onClearProfileFocus={() => setProfileFocusUserId(null)}
           conversation={conversation}
           allUsers={allUsers}
           currentUser={currentUser}
           messages={messagesForList}
-          onImageClick={handleOpenMediaViewer}
           onSelectConversation={onSelectConversation}
-          onEditGroup={onEditGroup}
-          onOpenThread={(msg) => setSelectedThreadMessage(msg)}
         />
         {selectedThreadMessage && (
           <ThreadWindow
@@ -1544,17 +1785,22 @@ export function ChatWindow({
             onMentionProfileOpen={handleMentionProfileOpen}
             onGroupSenderWritePrivate={handleGroupSenderWritePrivate}
             onSaveStickerGif={handleSaveStickerFromMessage}
+            parentE2eeDecryptedByMessageId={e2eePlaintextByMessageId}
+            chatWallpaper={effectiveWallpaper}
           />
         )}
         <StickerPackPickerDialog
           open={stickerSaveOpen}
           onOpenChange={(o) => {
             setStickerSaveOpen(o);
-            if (!o) setStickerSaveAttachment(null);
+            if (!o) {
+              setStickerSaveAttachment(null);
+              setStickerSaveMode('copy');
+            }
           }}
           userId={currentUser.id}
           title="Сохранить в стикерпак"
-          description="Копия стикера или GIF попадёт в выбранный пак. Отправляйте из вкладки «Стикеры»."
+          description="Выберите пак и нажмите «Сохранить». Отправка из вкладки «Стикеры». Пункт «Создать стикер» делает квадратное превью под размер стикера."
           busy={stickerSaveBusy}
           onConfirmPack={handleStickerSaveConfirmPack}
           createPack={handleStickerPackCreate}

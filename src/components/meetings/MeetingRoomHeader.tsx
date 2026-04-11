@@ -100,7 +100,7 @@ export function MeetingRoomHeader({
   };
 
   return (
-    <div className="absolute top-6 right-6 z-50 flex items-center gap-3 pointer-events-none">
+    <div className="pointer-events-none absolute right-[max(1.5rem,env(safe-area-inset-right,0px))] top-[max(1.5rem,env(safe-area-inset-top,0px))] z-50 flex items-center gap-3">
       <div className="flex items-center gap-3 p-1.5 pl-4 pr-3 bg-black/30 backdrop-blur-2xl border border-white/10 rounded-full pointer-events-auto shadow-2xl transition-all hover:bg-black/40 group">
           <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">

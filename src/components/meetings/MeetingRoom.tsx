@@ -444,7 +444,12 @@ export function MeetingRoom({
         standardBackgrounds={standardBackgrounds} isVideoOff={rtc.isVideoOff}
         isHost={isAdmin} onStartRecording={handleStartRecording} onStopRecording={handleStopRecording}
         duration={formattedStopwatch} viewMode={viewMode} onToggleViewMode={() => { setViewMode(viewMode === 'speaker' ? 'grid' : 'speaker'); setManualFocusId(null); }}
-        onCopyLink={() => { navigator.clipboard.writeText(window.location.href); toast({ title: 'Ссылка скопирована' }); }}
+        onCopyLink={() => {
+          const origin = typeof window !== 'undefined' ? window.location.origin : '';
+          const url = `${origin}/meetings/${meeting.id}`;
+          void navigator.clipboard.writeText(url);
+          toast({ title: 'Ссылка скопирована' });
+        }}
       />
 
       <div className="flex-1 flex relative min-h-0 overflow-hidden">
@@ -559,7 +564,7 @@ export function MeetingRoom({
 
       <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
         {flyingEmojis.map(item => (
-          <div key={item.id} className="absolute bottom-20 text-6xl animate-reaction-float select-none will-change-transform" style={{ left: `${item.left}%` }}>{item.emoji}</div>
+          <div key={item.id} className="absolute bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] text-6xl animate-reaction-float select-none will-change-transform" style={{ left: `${item.left}%` }}>{item.emoji}</div>
         ))}
       </div>
     </div>

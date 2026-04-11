@@ -1,4 +1,5 @@
 import type { User } from '@/lib/types';
+import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 
 /** Строка «@login» для списков выбора собеседника или null, если логина нет. */
 export function atUsernameLabel(username: string | undefined | null): string | null {
@@ -6,15 +7,15 @@ export function atUsernameLabel(username: string | undefined | null): string | n
   return h ? `@${h}` : null;
 }
 
-/** Совпадение по имени или @username (подстрока, без учёта регистра). */
+/** Совпадение по имени или @username (подстрока; кириллица ↔ латиница). */
 export function userMatchesChatSearchQuery(user: User, query: string): boolean {
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
   if (!q) return true;
-  if (user.name?.toLowerCase().includes(q)) return true;
+  if (user.name && ruEnSubstringMatch(user.name, q)) return true;
   const un = user.username?.trim().toLowerCase();
   if (un) {
-    const needle = q.startsWith('@') ? q.slice(1) : q;
-    if (needle && un.includes(needle)) return true;
+    const needle = (q.startsWith('@') ? q.slice(1) : q).trim();
+    if (needle && ruEnSubstringMatch(un, needle)) return true;
   }
   return false;
 }

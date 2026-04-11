@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
+const isDesktopBuild = process.env.LIGHCHAT_DESKTOP_BUILD === '1';
+
 const nextConfig = {
-  output: 'standalone',
+  ...(isDesktopBuild
+    ? {
+        output: 'standalone',
+        distDir: '.next-desktop',
+      }
+    : {}),
   /**
    * OAuth popup (Google gapi / Firebase signInWithPopup) вызывает window.close() в дочернем окне.
    * COOP: same-origin блокирует это и шумит в консоли. same-origin-allow-popups — рекомендуемый

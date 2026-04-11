@@ -1,0 +1,86 @@
+import 'package:flutter/material.dart';
+import 'package:lighchat_models/lighchat_models.dart';
+
+import 'message_html_text.dart';
+
+class MessageReplyPreview extends StatelessWidget {
+  const MessageReplyPreview({
+    super.key,
+    required this.replyTo,
+    required this.isMine,
+  });
+
+  final ReplyContext replyTo;
+  final bool isMine;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bg = isMine ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.06);
+    final border = isMine ? Colors.white.withValues(alpha: 0.35) : scheme.primary.withValues(alpha: 0.35);
+
+    final rawText = (replyTo.text ?? '').trim();
+    final preview = rawText.isEmpty ? 'Сообщение' : (rawText.contains('<') ? messageHtmlToPlainText(rawText) : rawText);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border(left: BorderSide(color: border, width: 3)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  replyTo.senderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: isMine ? Colors.white.withValues(alpha: 0.92) : scheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  preview,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isMine ? Colors.white.withValues(alpha: 0.75) : scheme.onSurface.withValues(alpha: 0.60),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if ((replyTo.mediaPreviewUrl ?? '').isNotEmpty) ...[
+            const SizedBox(width: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: Image.network(
+                  replyTo.mediaPreviewUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) => DecoratedBox(
+                    decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.35)),
+                    child: Icon(Icons.image_not_supported_rounded, size: 14, color: scheme.onSurface.withValues(alpha: 0.55)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+

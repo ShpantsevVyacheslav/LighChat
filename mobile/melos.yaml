@@ -1,0 +1,4 @@
+name: lighchat_mobile_workspace
+packages:
+  - app
+  - packages/*
