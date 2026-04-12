@@ -347,7 +347,7 @@ export function ChatParticipantProfile({
       try {
         const lastSeenDate =
           typeof displayParticipantInfo.lastSeen === 'string'
-            ? parseISO(displayParticipantInfo.lastSeen)
+            ? parseISO(displayParticipantInfo.lastSeen) 
             : (displayParticipantInfo.lastSeen as { toDate?: () => Date }).toDate?.() ||
               new Date(displayParticipantInfo.lastSeen as string | number | Date);
         if (Number.isNaN(lastSeenDate.getTime())) return 'Не в сети';
@@ -598,7 +598,7 @@ export function ChatParticipantProfile({
               >
                 <Share2 className="h-[18px] w-[18px]" strokeWidth={2} />
               </Button>
-            </div>
+                    </div>
 
             <div className="flex flex-col items-center px-4 pb-2 pt-4 text-center">
               <div className="relative mx-auto w-fit">
@@ -673,7 +673,7 @@ export function ChatParticipantProfile({
                     {profileHeaderSubtitles.line2}
                   </p>
                 ) : null}
-              </div>
+            </div>
           </div>
 
             <div className="mt-3 space-y-1 px-2 sm:px-3">
@@ -900,7 +900,7 @@ export function ChatParticipantProfile({
                   />
                 ) : null}
               </WaMenuSection>
-              </div>
+                                                            </div>
               {!isSelfSavedChat && (showMemberFocus || !isGroup) ? (
                 <>
                   <WaFooterCaption>Нет общих групп</WaFooterCaption>

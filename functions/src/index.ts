@@ -28,6 +28,10 @@ export { onconversationdeleted } from './triggers/firestore/onConversationDelete
 export { onconversationupdated } from './triggers/firestore/onConversationUpdated';
 export { onmessagecreated } from './triggers/firestore/onMessageCreated';
 export { onthreadmessagecreated } from './triggers/firestore/onThreadMessageCreated';
+export {
+  onchatmessagemediatranscode,
+  onchatthreadmessagemediatranscode,
+} from './triggers/firestore/onChatMessageMediaTranscode';
 export { oncallcreated } from './triggers/firestore/onCallCreated';
 export { onmeetingparticipantcreated } from './triggers/firestore/onMeetingParticipantCreated';
 

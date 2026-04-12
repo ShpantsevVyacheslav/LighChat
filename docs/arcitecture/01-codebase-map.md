@@ -47,10 +47,17 @@
 
 - `mobile/app` - Flutter приложение (iOS/Android) — новый клиент для стора.
   - `lib/features/chat/ui/chat_list_screen.dart` - список чатов, папки, поиск, empty-state, запуск нового чата.
+  - `lib/features/chat/ui/new_chat_screen.dart`, `lib/features/chat/ui/new_group_chat_screen.dart` - новый личный чат (поиск с секциями «контакты / все пользователи») и создание группы; маршруты `/chats/new`, `/chats/new/group` в `lib/app_router.dart`.
+  - `lib/features/chat/ui/conversation_threads_screen.dart`, `lib/features/chat/ui/thread_screen.dart` - список обсуждений (веток) и экран ветки; маршруты `/chats/:id/threads`, `/chats/:id/thread/:parentMessageId` в `lib/app_router.dart`; `chat_wallpaper_background.dart` — общий фон (обои/градиент) для основного чата и экрана ветки.
+  - `lib/features/chat/data/new_chat_user_search.dart` - фильтр гостей (`guest_*@anonymous.com`), ru/latin-поиск и разбиение списка как на web (`splitUsersByContactsAndGlobalVisibility`).
   - `lib/features/chat/ui/chat_bottom_nav.dart`, `lib/features/chat/ui/chat_account_menu_sheet.dart` - нижняя навигация и аккаунт-меню по аватару.
   - `lib/features/chat/ui/chat_settings_screen.dart` - экран «Настройки чатов» (пресеты/превью/загрузка своих фонов).
   - `lib/features/chat/data/chat_settings_repository.dart` - чтение/запись `users.chatSettings` и `users.customBackgrounds`, upload фонов в Storage.
+  - `lib/features/chat/ui/message_attachments.dart`, `lib/features/chat/data/chat_attachment_mosaic_layout.dart` - альбомные фото в сообщении (мозаика по числу и пропорциям).
+  - `lib/features/chat/data/chat_media_gallery.dart`, `lib/features/chat/ui/chat_media_viewer_screen.dart` - полноэкранная галерея фото/видео из чата (фильтр как веб `isGridGalleryAttachment`, размытый фон, жесты, меню Ответить/Переслать/Сохранить/Удалить); зависимость `share_plus` для «Сохранить».
+  - `lib/features/chat/ui/composer_sticker_gif_sheet.dart`, `lib/features/chat/data/user_sticker_packs_repository.dart` - стикеры/GIF в композере (паки `users/*/stickerPacks`, каталог `publicStickerPacks`, Tenor через `TENOR_PROXY_BASE_URL`).
+  - `lib/features/chat/ui/composer_formatting_toolbar.dart`, `lib/features/chat/data/composer_html_editing.dart`, `lib/features/chat/data/sanitize_message_html.dart` - форматирование сообщений (HTML как на веб TipTap).
   - `lib/features/auth/ui/profile_screen.dart` - страница «Мой профиль» (редактирование базовых полей пользователя).
 - `mobile/packages/lighchat_models` - доменные модели/DTO и мапперы (контракты Firestore на стороне Flutter).
-- `mobile/packages/lighchat_firebase` - слой доступа к Firebase (Auth/Firestore/FCM) для Flutter-клиента.
+- `mobile/packages/lighchat_firebase` - слой доступа к Firebase (Auth/Firestore/FCM/Functions) для Flutter-клиента; `ChatRepository.createGroupChat` + callable `checkGroupInvitesAllowed` (паритет с web).
 - `mobile/packages/lighchat_ui` - дизайн-система Flutter (темы/типографика/общие виджеты).

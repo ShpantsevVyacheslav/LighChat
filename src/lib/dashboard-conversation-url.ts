@@ -4,17 +4,23 @@ export const DASHBOARD_CONVERSATION_QUERY = 'conversationId';
 /** После открытия чата — прокрутить и подсветить сообщение (список избранного и т.п.). */
 export const DASHBOARD_FOCUS_MESSAGE_QUERY = 'focusMessageId';
 
+/** Открыть ветку обсуждения корневого сообщения (список обсуждений / профиль чата). */
+export const DASHBOARD_THREAD_ROOT_MESSAGE_QUERY = 'threadRootMessageId';
+
 /**
- * Ссылка на открытый чат с опциональным переходом к сообщению.
+ * Ссылка на открытый чат с опциональным переходом к сообщению или открытием ветки.
  */
 export function buildDashboardChatOpenUrl(
   conversationId: string,
-  options?: { focusMessageId?: string | null }
+  options?: { focusMessageId?: string | null; threadRootMessageId?: string | null }
 ): string {
   const p = new URLSearchParams();
   p.set(DASHBOARD_CONVERSATION_QUERY, conversationId);
   if (options?.focusMessageId) {
     p.set(DASHBOARD_FOCUS_MESSAGE_QUERY, options.focusMessageId);
+  }
+  if (options?.threadRootMessageId) {
+    p.set(DASHBOARD_THREAD_ROOT_MESSAGE_QUERY, options.threadRootMessageId);
   }
   return `/dashboard/chat?${p.toString()}`;
 }

@@ -74,10 +74,6 @@ import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlo
 import { useChatConversationPrefs } from '@/hooks/use-chat-conversation-prefs';
 import { useStarredInConversation } from '@/hooks/use-starred-in-conversation';
 import { buildStarredMessageDocId } from '@/lib/starred-chat-messages';
-import {
-  LIGHCHAT_THREAD_OPEN_CONVERSATION_KEY,
-  LIGHCHAT_THREAD_OPEN_MESSAGE_KEY,
-} from '@/lib/thread-open-from-utility';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
 import { StickerPackPickerDialog } from '@/components/chat/StickerPackPickerDialog';
 import {
@@ -108,6 +104,8 @@ interface ChatWindowProps {
   /** Query `focusMessageId`: открыть чат с прокруткой к сообщению (избранное и т.д.). */
   focusMessageId?: string | null;
   onFocusMessageConsumed?: () => void;
+  threadRootMessageId?: string | null;
+  onThreadRootMessageConsumed?: () => void;
 }
 
 /** Подложки шапки чата на фоне обоев — без обводки, только лёгкое стекло */
@@ -136,6 +134,8 @@ export function ChatWindow({
   messageSearchBlurInsetLeftPx = 0,
   focusMessageId = null,
   onFocusMessageConsumed,
+  threadRootMessageId = null,
+  onThreadRootMessageConsumed,
 }: ChatWindowProps) {
   const firestore = useFirestore();
   const storage = useStorage();
@@ -220,31 +220,41 @@ export function ChatWindow({
     hasScrolledToUnreadRef.current = hasScrolledToUnread;
   }, [hasScrolledToUnread]);
 
+  const threadRootHandledRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!firestore || !conversation.id) return;
-    let convStored: string | null = null;
-    let msgId: string | null = null;
-    try {
-      convStored = sessionStorage.getItem(LIGHCHAT_THREAD_OPEN_CONVERSATION_KEY);
-      msgId = sessionStorage.getItem(LIGHCHAT_THREAD_OPEN_MESSAGE_KEY);
-    } catch {
-      return;
-    }
-    if (!convStored || !msgId || convStored !== conversation.id) return;
-    try {
-      sessionStorage.removeItem(LIGHCHAT_THREAD_OPEN_CONVERSATION_KEY);
-      sessionStorage.removeItem(LIGHCHAT_THREAD_OPEN_MESSAGE_KEY);
-    } catch {
-      /* ignore */
-    }
-    void getDoc(doc(firestore, `conversations/${conversation.id}/messages`, msgId)).then((snap) => {
-      if (!snap.exists()) {
-        toast({ title: 'Обсуждение не найдено' });
-        return;
-      }
-      setSelectedThreadMessage({ ...snap.data(), id: snap.id } as ChatMessage);
-    });
-  }, [firestore, conversation.id, toast]);
+    threadRootHandledRef.current = null;
+  }, [threadRootMessageId, conversation.id]);
+
+  useEffect(() => {
+    if (!firestore || !conversation.id || !threadRootMessageId) return;
+    if (threadRootHandledRef.current === threadRootMessageId) return;
+    threadRootHandledRef.current = threadRootMessageId;
+    const convId = conversation.id;
+    const rootId = threadRootMessageId;
+    let cancelled = false;
+    void getDoc(doc(firestore, `conversations/${convId}/messages`, rootId))
+      .then((snap) => {
+        if (cancelled) return;
+        if (!snap.exists()) {
+          toast({ title: 'Обсуждение не найдено' });
+          onThreadRootMessageConsumed?.();
+          return;
+        }
+        setSelectedThreadMessage({ ...snap.data(), id: snap.id } as ChatMessage);
+        onThreadRootMessageConsumed?.();
+      })
+      .catch((e) => {
+        console.warn('[LighChat] open thread from URL', e);
+        if (!cancelled) {
+          toast({ title: 'Не удалось открыть обсуждение', variant: 'destructive' });
+          onThreadRootMessageConsumed?.();
+        }
+      });
+    return () => {
+      cancelled = true;
+      if (threadRootHandledRef.current === rootId) threadRootHandledRef.current = null;
+    };
+  }, [firestore, conversation.id, threadRootMessageId, toast, onThreadRootMessageConsumed]);
 
   useEffect(() => {
     const sync = () => {

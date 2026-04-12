@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'chat_cached_network_image.dart';
+
 class ChatAvatar extends StatelessWidget {
   const ChatAvatar({
     super.key,
@@ -17,10 +19,27 @@ class ChatAvatar extends StatelessWidget {
     final url = avatarUrl;
     final canRenderNetwork = url != null && url.isNotEmpty && !_looksLikeSvg(url);
 
-    return CircleAvatar(
-      radius: radius,
-      backgroundImage: canRenderNetwork ? NetworkImage(url) : null,
-      child: !canRenderNetwork ? Text(title.characters.first) : null,
+    if (!canRenderNetwork) {
+      return CircleAvatar(
+        radius: radius,
+        child: Text(title.isEmpty ? '?' : title.characters.first.toString()),
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: radius * 2,
+        height: radius * 2,
+        child: ChatCachedNetworkImage(
+          url: url,
+          fit: BoxFit.cover,
+          compact: true,
+          errorOverride: CircleAvatar(
+            radius: radius,
+            child: Text(title.isEmpty ? '?' : title.characters.first.toString()),
+          ),
+        ),
+      ),
     );
   }
 

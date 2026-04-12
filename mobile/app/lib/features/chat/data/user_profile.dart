@@ -7,12 +7,15 @@ class UserPrivacySettings {
     this.showPhoneToOthers,
     this.showBioToOthers,
     this.showDateOfBirthToOthers,
+    this.showInGlobalUserSearch,
   });
 
   final bool? showEmailToOthers;
   final bool? showPhoneToOthers;
   final bool? showBioToOthers;
   final bool? showDateOfBirthToOthers;
+  /// Web `privacySettings.showInGlobalUserSearch` — листинг в «все пользователи» при новом чате.
+  final bool? showInGlobalUserSearch;
 
   static UserPrivacySettings? fromJson(Object? raw) {
     if (raw is! Map) return null;
@@ -22,6 +25,8 @@ class UserPrivacySettings {
       showPhoneToOthers: m['showPhoneToOthers'] is bool ? m['showPhoneToOthers'] as bool : null,
       showBioToOthers: m['showBioToOthers'] is bool ? m['showBioToOthers'] as bool : null,
       showDateOfBirthToOthers: m['showDateOfBirthToOthers'] is bool ? m['showDateOfBirthToOthers'] as bool : null,
+      showInGlobalUserSearch:
+          m['showInGlobalUserSearch'] is bool ? m['showInGlobalUserSearch'] as bool : null,
     );
   }
 }

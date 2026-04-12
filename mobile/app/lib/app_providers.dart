@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -8,6 +10,7 @@ import 'features/chat/data/chat_folders_repository.dart';
 import 'features/chat/data/chat_settings_repository.dart';
 import 'features/chat/data/user_contacts_repository.dart';
 import 'features/chat/data/user_profiles_repository.dart';
+import 'features/chat/data/user_sticker_packs_repository.dart';
 
 final firebaseReadyProvider = Provider<bool>((ref) => isFirebaseReady());
 
@@ -94,6 +97,29 @@ final messagesProvider =
       );
     });
 
+final threadMessagesProvider = StreamProvider.family<
+    List<ChatMessage>,
+    ({String conversationId, String parentMessageId, int limit})>((ref, args) {
+  final repo = ref.watch(chatRepositoryProvider);
+  if (repo == null) return Stream.value(const <ChatMessage>[]);
+  return repo.watchThreadMessages(
+    conversationId: args.conversationId,
+    parentMessageId: args.parentMessageId,
+    limit: args.limit,
+  );
+});
+
+final chatMessageByIdProvider = FutureProvider.family<
+    ChatMessage?,
+    ({String conversationId, String messageId})>((ref, args) async {
+  final repo = ref.watch(chatRepositoryProvider);
+  if (repo == null) return null;
+  return repo.getChatMessage(
+    conversationId: args.conversationId,
+    messageId: args.messageId,
+  );
+});
+
 final registrationServiceProvider = Provider<RegistrationService?>((ref) {
   if (!isFirebaseReady()) return null;
   return RegistrationService();
@@ -126,6 +152,15 @@ final chatFoldersRepositoryProvider = Provider<ChatFoldersRepository?>((ref) {
 final chatSettingsRepositoryProvider = Provider<ChatSettingsRepository?>((ref) {
   if (!isFirebaseReady()) return null;
   return ChatSettingsRepository();
+});
+
+final userStickerPacksRepositoryProvider =
+    Provider<UserStickerPacksRepository?>((ref) {
+  if (!isFirebaseReady()) return null;
+  return UserStickerPacksRepository(
+    firestore: FirebaseFirestore.instance,
+    storage: FirebaseStorage.instance,
+  );
 });
 
 final userChatSettingsDocProvider =

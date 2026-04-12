@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
@@ -179,13 +180,23 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
     final isContact = partnerId != null && contactIds.contains(partnerId);
     final hasDetailRows = _hasContactDetailRows(fresh, partnerId);
 
-    final msgsAsync = ref.watch(messagesProvider((conversationId: widget.conversationId, limit: 100)));
+    final msgsAsync = ref.watch(
+      messagesProvider((conversationId: widget.conversationId, limit: 400)),
+    );
     final mediaCount = msgsAsync.when(
       data: (m) => profileMediaDocsCount(m),
       loading: () => 0,
       error: (_, _) => 0,
     );
     final mediaLabel = mediaCount == 0 ? 'Нет' : '$mediaCount';
+
+    final threadsCount = msgsAsync.when(
+      data: (m) =>
+          m.where((x) => !x.isDeleted && (x.threadCount ?? 0) > 0).length,
+      loading: () => 0,
+      error: (_, _) => 0,
+    );
+    final threadsLabel = threadsCount == 0 ? 'Нет' : '$threadsCount';
 
     final showEncryptionRow = !_isGroup && !_isSaved;
     final e2eeOn = widget.conversation.e2eeEnabled == true && (widget.conversation.e2eeKeyEpoch ?? 0) > 0;
@@ -391,8 +402,11 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
                         context,
                         icon: Icons.forum_rounded,
                         title: 'Обсуждения',
-                        trailing: 'Нет',
-                        onTap: () => _toast('Обсуждения: скоро'),
+                        trailing: threadsLabel,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.push('/chats/${widget.conversationId}/threads');
+                        },
                       ),
                       const SizedBox(height: 6),
                       _menuButton(

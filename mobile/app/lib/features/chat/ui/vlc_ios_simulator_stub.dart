@@ -1,0 +1,1 @@
+bool vlcIosSimulatorHost() => false;

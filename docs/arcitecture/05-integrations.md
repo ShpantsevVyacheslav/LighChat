@@ -13,7 +13,8 @@
 ### Cloud Functions surface (ключевые вызовы)
 
 - Callable HTTP: `createNewUser`, `updateUserAdmin`, `backfillConversationMembers`, `backfillRegistrationIndex`, `requestMeetingAccess`, `respondToMeetingRequest`, `checkGroupInvitesAllowed`.
-- Firestore triggers: `onconversationcreated`, `onconversationupdated`, `onconversationdeleted`, `onmessagecreated`, `onthreadmessagecreated`, `oncallcreated`, `onmeetingparticipantcreated`, `onuserwritesyncregistrationindex`.
+- Firestore triggers: `onconversationcreated`, `onconversationupdated`, `onconversationdeleted`, `onmessagecreated`, `onthreadmessagecreated`, `onchatmessagemediatranscode`, `onchatthreadmessagemediatranscode`, `oncallcreated`, `onmeetingparticipantcreated`, `onuserwritesyncregistrationindex`.
+- **Медиа в чате (нормализация):** после создания документа сообщения (основной ленты или треда) функции `onchatmessagemediatranscode` / `onchatthreadmessagemediatranscode` скачивают вложения по публичному URL, при необходимости перекодируют **FFmpeg** (видео → **MP4 H.264 + AAC**, прочее аудио → **M4A AAC**), загружают в Storage по пути `chat-attachments/{conversationId}/norm/{messageId}/…_lcnorm.{mp4|m4a}`, **обновляют** `attachments` на новый URL и **удаляют исходный объект** в `chat-attachments/{conversationId}/…` (если путь распознан из старого URL), чтобы не хранить два файла. Уже `video/mp4` и `audio/mp4` / `audio/mpeg` не перекодируются — оригинал не трогается. Лимит входного размера ~220 МБ; требуются **2 GiB RAM**, до **540 s** таймаут.
 - Auth trigger: `onUserCreated`.
 - Scheduler: `checkUserPresence`.
 

@@ -10,8 +10,7 @@ import { categorizeAttachmentsFromMessages } from '@/lib/chat-attachments-from-m
 import { sanitizeMessageHtml } from '@/lib/sanitize-message-html';
 import { Badge } from '@/components/ui/badge';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
-import { buildPathWithConversation } from '@/lib/dashboard-conversation-url';
-import { scheduleOpenThreadFromUtilityPage } from '@/lib/thread-open-from-utility';
+import { buildDashboardChatOpenUrl } from '@/lib/dashboard-conversation-url';
 
 function formatLastThreadTime(dateStr?: string) {
   if (!dateStr) return '';
@@ -56,8 +55,9 @@ export function ConversationThreadsPanel({
   const { threadMessages } = useMemo(() => categorizeAttachmentsFromMessages(messages), [messages]);
 
   const openThread = (msg: ChatMessage) => {
-    scheduleOpenThreadFromUtilityPage(conversationId, msg.id);
-    router.push(buildPathWithConversation('/dashboard/chat', '', conversationId));
+    router.push(
+      buildDashboardChatOpenUrl(conversationId, { threadRootMessageId: msg.id })
+    );
     onAfterThreadNavigate?.();
   };
 

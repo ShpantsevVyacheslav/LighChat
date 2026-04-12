@@ -281,6 +281,115 @@ class PinnedMessage {
       };
 }
 
+double? _jsonDouble(Object? raw) {
+  if (raw is num) return raw.toDouble();
+  return null;
+}
+
+/// `locationShare.liveSession` в сообщении чата.
+class ChatLocationLiveSession {
+  const ChatLocationLiveSession({this.expiresAt});
+
+  final String? expiresAt;
+
+  static ChatLocationLiveSession? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final exp = m['expiresAt'];
+    final expiresAt = exp is String && exp.isNotEmpty ? exp : null;
+    return ChatLocationLiveSession(expiresAt: expiresAt);
+  }
+}
+
+/// Геолокация в сообщении (веб `ChatLocationShare`).
+class ChatLocationShare {
+  const ChatLocationShare({
+    required this.lat,
+    required this.lng,
+    required this.mapsUrl,
+    required this.capturedAt,
+    this.accuracyM,
+    this.staticMapUrl,
+    this.liveSession,
+  });
+
+  final double lat;
+  final double lng;
+  final String mapsUrl;
+  final String capturedAt;
+  final double? accuracyM;
+  final String? staticMapUrl;
+  final ChatLocationLiveSession? liveSession;
+
+  static ChatLocationShare? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final lat = _jsonDouble(m['lat']);
+    final lng = _jsonDouble(m['lng']);
+    if (lat == null || lng == null) return null;
+    final mapsUrl = m['mapsUrl'];
+    if (mapsUrl is! String || mapsUrl.isEmpty) return null;
+    final capturedAt = m['capturedAt'];
+    if (capturedAt is! String || capturedAt.isEmpty) return null;
+    final staticMapRaw = m['staticMapUrl'];
+    final staticMapUrl =
+        staticMapRaw is String && staticMapRaw.trim().isNotEmpty ? staticMapRaw.trim() : null;
+    return ChatLocationShare(
+      lat: lat,
+      lng: lng,
+      mapsUrl: mapsUrl,
+      capturedAt: capturedAt,
+      accuracyM: _jsonDouble(m['accuracyM']),
+      staticMapUrl: staticMapUrl,
+      liveSession: ChatLocationLiveSession.fromJson(m['liveSession']),
+    );
+  }
+}
+
+/// `users/{uid}.liveLocationShare`.
+class UserLiveLocationShare {
+  const UserLiveLocationShare({
+    required this.active,
+    this.expiresAt,
+    required this.lat,
+    required this.lng,
+    required this.updatedAt,
+    required this.startedAt,
+    this.accuracyM,
+  });
+
+  final bool active;
+  final String? expiresAt;
+  final double lat;
+  final double lng;
+  final String updatedAt;
+  final String startedAt;
+  final double? accuracyM;
+
+  static UserLiveLocationShare? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final lat = _jsonDouble(m['lat']);
+    final lng = _jsonDouble(m['lng']);
+    final updatedAt = m['updatedAt'];
+    final startedAt = m['startedAt'];
+    if (lat == null || lng == null) return null;
+    if (updatedAt is! String || updatedAt.isEmpty) return null;
+    if (startedAt is! String || startedAt.isEmpty) return null;
+    final exp = m['expiresAt'];
+    final expiresAt = exp is String && exp.isNotEmpty ? exp : null;
+    return UserLiveLocationShare(
+      active: m['active'] == true,
+      expiresAt: expiresAt,
+      lat: lat,
+      lng: lng,
+      updatedAt: updatedAt,
+      startedAt: startedAt,
+      accuracyM: _jsonDouble(m['accuracyM']),
+    );
+  }
+}
+
 class ForwardedFrom {
   const ForwardedFrom({required this.name});
 
@@ -309,6 +418,66 @@ class ConversationWithId {
   }
 }
 
+/// Опрос в чате: `conversations/{id}/polls/{pollId}` (как веб `MeetingPoll`).
+class MeetingPoll {
+  const MeetingPoll({
+    required this.id,
+    required this.question,
+    required this.options,
+    required this.creatorId,
+    required this.status,
+    required this.isAnonymous,
+    this.votes = const <String, int>{},
+  });
+
+  final String id;
+  final String question;
+  final List<String> options;
+  final String creatorId;
+  /// `active` | `ended` | `cancelled` | `draft`
+  final String status;
+  final bool isAnonymous;
+  final Map<String, int> votes;
+
+  static MeetingPoll? fromDoc(DocumentSnapshot<Map<String, Object?>> doc) {
+    if (!doc.exists) return null;
+    final d = doc.data();
+    if (d == null) return null;
+    final id = doc.id;
+    final question = d['question'];
+    if (question is! String || question.isEmpty) return null;
+    final optsRaw = d['options'];
+    final options = (optsRaw is List ? optsRaw : const <Object?>[])
+        .map((e) => e?.toString() ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList(growable: false);
+    if (options.isEmpty) return null;
+    final creatorId = d['creatorId'];
+    if (creatorId is! String) return null;
+    final status = d['status'] is String ? d['status'] as String : 'active';
+    final isAnonymous = d['isAnonymous'] == true;
+    final votesRaw = d['votes'];
+    final votes = <String, int>{};
+    if (votesRaw is Map) {
+      for (final e in votesRaw.entries) {
+        final k = e.key.toString();
+        final v = e.value;
+        if (v is int) votes[k] = v;
+        if (v is num) votes[k] = v.toInt();
+      }
+    }
+    return MeetingPoll(
+      id: id,
+      question: question,
+      options: options,
+      creatorId: creatorId,
+      status: status,
+      isAnonymous: isAnonymous,
+      votes: votes,
+    );
+  }
+}
+
 class ChatMessage {
   const ChatMessage({
     required this.id,
@@ -322,6 +491,14 @@ class ChatMessage {
     this.readAt,
     this.updatedAt,
     this.forwardedFrom,
+    this.deliveryStatus,
+    this.chatPollId,
+    this.locationShare,
+    this.threadCount,
+    this.unreadThreadCounts,
+    this.lastThreadMessageText,
+    this.lastThreadMessageSenderId,
+    this.lastThreadMessageTimestamp,
   });
 
   final String id;
@@ -336,6 +513,20 @@ class ChatMessage {
   final DateTime? readAt;
   final String? updatedAt;
   final ForwardedFrom? forwardedFrom;
+  /// Web `deliveryStatus`: `sending` | `sent` | `failed`.
+  final String? deliveryStatus;
+  /// Ссылка на документ `conversations/.../polls/{id}`.
+  final String? chatPollId;
+  /// Веб `locationShare`.
+  final ChatLocationShare? locationShare;
+  /// Количество сообщений в ветке `.../messages/{id}/thread` (веб `threadCount`).
+  final int? threadCount;
+  /// Непрочитанные ответы в ветке по uid (веб `unreadThreadCounts`).
+  final Map<String, int>? unreadThreadCounts;
+  final String? lastThreadMessageText;
+  final String? lastThreadMessageSenderId;
+  /// ISO-строка или сериализованный момент с веба (`lastThreadMessageTimestamp`).
+  final String? lastThreadMessageTimestamp;
 
   static ChatMessage? fromDoc(DocumentSnapshot<Map<String, Object?>> doc) {
     if (!doc.exists) return null;
@@ -352,6 +543,53 @@ class ChatMessage {
     final readAtRaw = data['readAt'];
     final updatedAtRaw = data['updatedAt'];
     final forwardedFromRaw = data['forwardedFrom'];
+    final deliveryStatusRaw = data['deliveryStatus'];
+    final chatPollIdRaw = data['chatPollId'];
+    final chatPollId =
+        chatPollIdRaw is String && chatPollIdRaw.trim().isNotEmpty
+            ? chatPollIdRaw.trim()
+            : null;
+    final locationShare = ChatLocationShare.fromJson(data['locationShare']);
+
+    int? threadCount;
+    final threadCountRaw = data['threadCount'];
+    if (threadCountRaw is int) {
+      threadCount = threadCountRaw;
+    } else if (threadCountRaw is num) {
+      threadCount = threadCountRaw.toInt();
+    }
+
+    Map<String, int>? unreadThreadCounts;
+    final uraw = data['unreadThreadCounts'];
+    if (uraw is Map) {
+      final um = <String, int>{};
+      for (final e in uraw.entries) {
+        final k = e.key.toString();
+        final v = e.value;
+        if (k.isEmpty) continue;
+        if (v is int) um[k] = v;
+        if (v is num) um[k] = v.toInt();
+      }
+      if (um.isNotEmpty) unreadThreadCounts = um;
+    }
+
+    final lastThreadMessageText =
+        data['lastThreadMessageText'] is String
+            ? data['lastThreadMessageText'] as String
+            : null;
+    final lastThreadMessageSenderId =
+        data['lastThreadMessageSenderId'] is String
+            ? data['lastThreadMessageSenderId'] as String
+            : null;
+
+    String? lastThreadMessageTimestamp;
+    final ltsRaw = data['lastThreadMessageTimestamp'];
+    if (ltsRaw is String && ltsRaw.isNotEmpty) {
+      lastThreadMessageTimestamp = ltsRaw;
+    } else if (ltsRaw is Timestamp) {
+      lastThreadMessageTimestamp =
+          ltsRaw.toDate().toUtc().toIso8601String();
+    }
 
     DateTime createdAt;
     if (createdAtRaw is Timestamp) {
@@ -382,6 +620,10 @@ class ChatMessage {
 
     final updatedAt = updatedAtRaw is String ? updatedAtRaw : null;
     final forwardedFrom = ForwardedFrom.fromJson(forwardedFromRaw);
+    final deliveryStatus =
+        deliveryStatusRaw is String && deliveryStatusRaw.isNotEmpty
+            ? deliveryStatusRaw
+            : null;
 
     return ChatMessage(
       id: doc.id,
@@ -395,6 +637,14 @@ class ChatMessage {
       readAt: readAt,
       updatedAt: updatedAt,
       forwardedFrom: forwardedFrom,
+      deliveryStatus: deliveryStatus,
+      chatPollId: chatPollId,
+      locationShare: locationShare,
+      threadCount: threadCount,
+      unreadThreadCounts: unreadThreadCounts,
+      lastThreadMessageText: lastThreadMessageText,
+      lastThreadMessageSenderId: lastThreadMessageSenderId,
+      lastThreadMessageTimestamp: lastThreadMessageTimestamp,
     );
   }
 }

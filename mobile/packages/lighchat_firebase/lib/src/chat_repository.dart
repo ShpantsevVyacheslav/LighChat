@@ -1,19 +1,48 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:logger/logger.dart';
 
 import 'package:lighchat_models/lighchat_models.dart';
 
+/// Элемент ответа callable `checkGroupInvitesAllowed` (web `CheckGroupInvitesResult`).
+class GroupInviteDenied {
+  const GroupInviteDenied({required this.uid, required this.reason});
+
+  final String uid;
+  final String reason;
+}
+
+class GroupInvitesCheckResult {
+  const GroupInvitesCheckResult({required this.ok, required this.denied});
+
+  final bool ok;
+  final List<GroupInviteDenied> denied;
+}
+
 class ChatRepository {
-  ChatRepository({FirebaseFirestore? firestore, Logger? logger})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      _logger = logger ?? Logger();
+  ChatRepository({
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+    Logger? logger,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _storage = storage ?? FirebaseStorage.instance,
+        _logger = logger ?? Logger();
 
   static const Duration _userChatIndexInitialTimeout = Duration(seconds: 15);
 
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
   final Logger _logger;
+
+  /// Web `placeholder-images.json` → `group-avatar-placeholder`.
+  static const String _groupAvatarPlaceholderUrl =
+      'https://images.unsplash.com/photo-1511632765486-a01980e01a18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNDE5ODJ8MHwxfHNlYXJjaHwxfHxncm91cCUyMHBvcHVsYXRpb258ZW58MHx8fHwxNjYwNjIzNzY5&ixlib=rb-4.1.0&q=80&w=1080';
 
   /// Сначала [DocumentReference.get] с таймаутом — иначе при проблемах сети первый [snapshots] может не прийти
   /// и [StreamProvider] в приложении остаётся в loading.
@@ -159,21 +188,170 @@ class ChatRepository {
     });
   }
 
-  Future<void> sendTextMessage({
+  /// Сообщение из основной ленты (для экрана ветки без `extra` в роуте).
+  Future<ChatMessage?> getChatMessage({
     required String conversationId,
+    required String messageId,
+  }) async {
+    if (conversationId.isEmpty || messageId.isEmpty) return null;
+    final doc = await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(messageId)
+        .get();
+    return ChatMessage.fromDoc(doc);
+  }
+
+  /// Подколлекция веба: `conversations/.../messages/{parentId}/thread`.
+  Stream<List<ChatMessage>> watchThreadMessages({
+    required String conversationId,
+    required String parentMessageId,
+    int limit = 200,
+  }) {
+    if (conversationId.isEmpty || parentMessageId.isEmpty) {
+      return Stream.value(const <ChatMessage>[]);
+    }
+    final q = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId)
+        .collection('thread')
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .withConverter<ChatMessage?>(
+          fromFirestore: (snap, options) => ChatMessage.fromDoc(snap),
+          toFirestore: (value, options) => <String, Object?>{},
+        );
+
+    return q.snapshots().map((snap) {
+      return snap.docs
+          .map((d) => d.data())
+          .whereType<ChatMessage>()
+          .toList(growable: false);
+    });
+  }
+
+  static String _threadLastPreviewText({
+    required String trimmedPlainText,
+    required List<ChatAttachment> attachments,
+  }) {
+    if (trimmedPlainText.isNotEmpty) return trimmedPlainText;
+    if (attachments.isEmpty) return 'Сообщение';
+    final n = attachments.first.name.toLowerCase();
+    if (n.startsWith('sticker_')) return 'Стикер';
+    if (n.startsWith('gif_')) return 'GIF';
+    return 'Вложение';
+  }
+
+  /// Отправка текста в ветку (паритет `ThreadWindow.handleSendMessage` без E2EE/загрузки файлов).
+  Future<void> sendThreadTextMessage({
+    required String conversationId,
+    required String parentMessageId,
     required String senderId,
-    required String text,
+    String text = '',
+    List<ChatAttachment> attachments = const [],
     ReplyContext? replyTo,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty && attachments.isEmpty) return;
+
+    final convSnap =
+        await _firestore.collection('conversations').doc(conversationId).get();
+    final convData = convSnap.data();
+    if (convData == null) return;
+
+    final pRaw = convData['participantIds'];
+    final participantIds = (pRaw is List ? pRaw : const <Object?>[])
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final others = participantIds.where((id) => id != senderId).toList();
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final threadLastText = _threadLastPreviewText(
+      trimmedPlainText: trimmed,
+      attachments: attachments,
+    );
+
+    final threadCol = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId)
+        .collection('thread');
+
+    final newDoc = threadCol.doc();
+    final payload = <String, Object?>{
+      'senderId': senderId,
+      'createdAt': nowIso,
+      'attachments': attachments.map((a) => a.toFirestoreMap()).toList(),
+      if (trimmed.isNotEmpty) 'text': trimmed,
+    };
+    if (replyTo != null) {
+      payload['replyTo'] = <String, Object?>{
+        'messageId': replyTo.messageId,
+        'senderName': replyTo.senderName,
+        if (replyTo.text != null && replyTo.text!.trim().isNotEmpty)
+          'text': replyTo.text!.trim(),
+        if (replyTo.mediaPreviewUrl != null &&
+            replyTo.mediaPreviewUrl!.trim().isNotEmpty)
+          'mediaPreviewUrl': replyTo.mediaPreviewUrl!.trim(),
+        if (replyTo.mediaType != null && replyTo.mediaType!.trim().isNotEmpty)
+          'mediaType': replyTo.mediaType!.trim(),
+      };
+    }
+
+    await newDoc.set(payload);
+
+    final parentRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId);
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+
+    final unreadUpdates = <String, Object?>{};
+    for (final id in others) {
+      unreadUpdates['unreadThreadCounts.$id'] = FieldValue.increment(1);
+    }
+
+    await parentRef.update(<String, Object?>{
+      'threadCount': FieldValue.increment(1),
+      'lastThreadMessageText': threadLastText,
+      'lastThreadMessageSenderId': senderId,
+      'lastThreadMessageTimestamp': nowIso,
+      ...unreadUpdates,
+    });
+
+    await convRef.update(<String, Object?>{
+      'lastMessageText': threadLastText,
+      'lastMessageTimestamp': nowIso,
+      'lastMessageSenderId': senderId,
+      'lastMessageIsThread': true,
+      ...unreadUpdates,
+    });
+  }
+
+  Future<void> sendTextMessage({
+    required String conversationId,
+    required String senderId,
+    String text = '',
+    ReplyContext? replyTo,
+    List<ChatAttachment> attachments = const [],
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty && attachments.isEmpty) return;
 
     final payload = <String, Object?>{
       'senderId': senderId,
-      'text': trimmed,
       // Use client device time (requested parity for mobile timestamps).
       // NOTE: this may differ from server time if device clock is skewed.
       'createdAt': Timestamp.now(),
+      if (trimmed.isNotEmpty) 'text': trimmed,
+      if (attachments.isNotEmpty)
+        'attachments': attachments.map((a) => a.toFirestoreMap()).toList(),
     };
 
     if (replyTo != null) {
@@ -195,6 +373,89 @@ class ChatRepository {
         .doc(conversationId)
         .collection('messages')
         .add(payload);
+  }
+
+  Map<String, Object?> _locationShareToFirestore(ChatLocationShare s) {
+    return <String, Object?>{
+      'lat': s.lat,
+      'lng': s.lng,
+      'mapsUrl': s.mapsUrl,
+      'capturedAt': s.capturedAt,
+      if (s.accuracyM != null) 'accuracyM': s.accuracyM,
+      if (s.staticMapUrl != null && s.staticMapUrl!.trim().isNotEmpty)
+        'staticMapUrl': s.staticMapUrl!.trim(),
+      if (s.liveSession != null)
+        'liveSession': <String, Object?>{
+          'expiresAt': s.liveSession!.expiresAt,
+        },
+    };
+  }
+
+  /// Паритет `ChatWindow.handleSendLocationShare`.
+  Future<void> sendLocationShareMessage({
+    required String conversationId,
+    required String senderId,
+    required List<String> participantIds,
+    required ChatLocationShare locationShare,
+    ReplyContext? replyTo,
+    required bool activateUserLiveShare,
+    String? userLiveExpiresAt,
+  }) async {
+    final payload = <String, Object?>{
+      'senderId': senderId,
+      'createdAt': Timestamp.now(),
+      'locationShare': _locationShareToFirestore(locationShare),
+    };
+    if (replyTo != null) {
+      payload['replyTo'] = <String, Object?>{
+        'messageId': replyTo.messageId,
+        'senderName': replyTo.senderName,
+        if (replyTo.text != null && replyTo.text!.trim().isNotEmpty)
+          'text': replyTo.text!.trim(),
+        if (replyTo.mediaPreviewUrl != null &&
+            replyTo.mediaPreviewUrl!.trim().isNotEmpty)
+          'mediaPreviewUrl': replyTo.mediaPreviewUrl!.trim(),
+        if (replyTo.mediaType != null && replyTo.mediaType!.trim().isNotEmpty)
+          'mediaType': replyTo.mediaType!.trim(),
+      };
+    }
+
+    await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .add(payload);
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+    final unread = <String, Object?>{};
+    for (final id in participantIds) {
+      if (id.isNotEmpty && id != senderId) {
+        unread['unreadCounts.$id'] = FieldValue.increment(1);
+      }
+    }
+    await convRef.update(<String, Object?>{
+      'lastMessageText': '📍 Геолокация',
+      'lastMessageTimestamp': nowIso,
+      'lastMessageSenderId': senderId,
+      'lastMessageIsThread': false,
+      ...unread,
+    });
+
+    if (activateUserLiveShare) {
+      await _firestore.collection('users').doc(senderId).update(<String, Object?>{
+        'liveLocationShare': <String, Object?>{
+          'active': true,
+          'expiresAt': userLiveExpiresAt,
+          'lat': locationShare.lat,
+          'lng': locationShare.lng,
+          if (locationShare.accuracyM != null) 'accuracyM': locationShare.accuracyM,
+          'updatedAt': nowIso,
+          'startedAt': nowIso,
+        },
+      });
+    }
+    _logger.i('Location share sent in $conversationId');
   }
 
   /// Web-parity: find existing 1:1 chat between users or create it.
@@ -435,6 +696,78 @@ class ChatRepository {
     }
   }
 
+  /// Реакция на сообщение (паритет `ChatWindow.handleReactTo` на вебе).
+  Future<void> toggleMessageReaction({
+    required String conversationId,
+    required String messageId,
+    required String userId,
+    required String emoji,
+  }) async {
+    if (emoji.isEmpty) return;
+    final msgRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(messageId);
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+
+    final snap = await msgRef.get();
+    if (!snap.exists) return;
+    final data = snap.data();
+    if (data == null) return;
+
+    final parsed = parseReactions(data['reactions']) ?? <String, List<ReactionEntry>>{};
+    final reactions = <String, List<ReactionEntry>>{
+      for (final e in parsed.entries) e.key: List<ReactionEntry>.from(e.value),
+    };
+    final list = List<ReactionEntry>.from(reactions[emoji] ?? []);
+    final existingIdx = list.indexWhere((r) => r.userId == userId);
+    final now = DateTime.now().toUtc().toIso8601String();
+    var added = false;
+    if (existingIdx >= 0) {
+      list.removeAt(existingIdx);
+      if (list.isEmpty) {
+        reactions.remove(emoji);
+      } else {
+        reactions[emoji] = list;
+      }
+    } else {
+      reactions[emoji] = [...list, ReactionEntry(userId: userId, timestamp: now)];
+      added = true;
+    }
+
+    final firestoreMap = <String, dynamic>{};
+    for (final e in reactions.entries) {
+      firestoreMap[e.key] = e.value
+          .map(
+            (r) => <String, dynamic>{
+              'userId': r.userId,
+              if (r.timestamp != null && r.timestamp!.isNotEmpty) 'timestamp': r.timestamp,
+            },
+          )
+          .toList();
+    }
+
+    await msgRef.update(<String, Object?>{
+      'reactions': firestoreMap,
+      'lastReactionTimestamp': now,
+    });
+
+    if (added) {
+      try {
+        await convRef.update(<String, Object?>{
+          'lastReactionEmoji': emoji,
+          'lastReactionTimestamp': now,
+          'lastReactionSenderId': userId,
+          'lastReactionMessageId': messageId,
+          'lastReactionParentId': null,
+        });
+      } catch (e, st) {
+        _logger.w('conv lastReaction update failed', error: e, stackTrace: st);
+      }
+    }
+  }
+
   /// Replace `pinnedMessages` and clear legacy `pinnedMessage` (web parity).
   Future<void> setPinnedMessages({
     required String conversationId,
@@ -534,5 +867,212 @@ class ChatRepository {
 
       await batch.commit();
     }
+  }
+
+  static const String _groupInviteConnectivityMessage =
+      'Не удалось связаться с сервером для проверки приглашений в группу. '
+      'Проверьте интернет и DNS (например, отключите VPN или смените сеть), '
+      'затем повторите попытку.';
+
+  static bool _isCloudFunctionConnectivityFailure(Object error) {
+    if (error is FirebaseException) {
+      final code = error.code.toLowerCase();
+      final msg = (error.message ?? '').toLowerCase();
+      if (code == 'unavailable' ||
+          code == 'unknown' ||
+          code == 'deadline-exceeded' ||
+          code == 'network-error' ||
+          msg.contains('hostname') ||
+          msg.contains('could not be found') ||
+          msg.contains('host lookup failed')) {
+        return true;
+      }
+    }
+    if (error is PlatformException) {
+      final m = '${error.message}'.toLowerCase();
+      final d = '${error.details}'.toLowerCase();
+      if (m.contains('hostname') ||
+          m.contains('could not be found') ||
+          d.contains('hostname')) {
+        return true;
+      }
+    }
+    final s = error.toString().toLowerCase();
+    return s.contains('hostname could not be found') ||
+        (s.contains('could not be found') && s.contains('server'));
+  }
+
+  /// Web `checkGroupInvitesAllowed` (us-central1).
+  Future<GroupInvitesCheckResult> checkGroupInvitesAllowed(
+    List<String> targetUserIds,
+  ) async {
+    final ids = targetUserIds.where((s) => s.isNotEmpty).toList();
+    if (ids.isEmpty) {
+      return const GroupInvitesCheckResult(ok: true, denied: []);
+    }
+    final FirebaseApp app;
+    try {
+      app = Firebase.app();
+    } catch (e, st) {
+      _logger.w('checkGroupInvitesAllowed: no Firebase app', error: e, stackTrace: st);
+      throw StateError(
+        'Firebase не инициализирован. Перезапустите приложение или проверьте '
+        'настройки FlutterFire (нужен нативный appId, не :web:).',
+      );
+    }
+
+    final functions = FirebaseFunctions.instanceFor(app: app, region: 'us-central1');
+    final callable = functions.httpsCallable(
+      'checkGroupInvitesAllowed',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 40)),
+    );
+    try {
+      final res = await callable.call(<String, dynamic>{'targetUserIds': ids});
+      final raw = res.data;
+      if (raw is! Map) {
+        _logger.w('checkGroupInvitesAllowed: unexpected response $raw');
+        return const GroupInvitesCheckResult(ok: true, denied: []);
+      }
+      final m = raw.map((k, v) => MapEntry(k.toString(), v));
+      final ok = m['ok'] == true;
+      final deniedRaw = m['denied'];
+      final denied = <GroupInviteDenied>[];
+      if (deniedRaw is List) {
+        for (final e in deniedRaw) {
+          if (e is! Map) continue;
+          final dm = e.map((k, v) => MapEntry(k.toString(), v));
+          final uid = dm['uid'];
+          final reason = dm['reason'];
+          if (uid is String && uid.isNotEmpty && reason is String) {
+            denied.add(GroupInviteDenied(uid: uid, reason: reason));
+          }
+        }
+      }
+      return GroupInvitesCheckResult(ok: ok, denied: denied);
+    } catch (e, st) {
+      if (_isCloudFunctionConnectivityFailure(e)) {
+        _logger.w(
+          'checkGroupInvitesAllowed: connectivity/DNS failure',
+          error: e,
+          stackTrace: st,
+        );
+        throw StateError(_groupInviteConnectivityMessage);
+      }
+      rethrow;
+    }
+  }
+
+  /// Новая групповая беседа (web `GroupChatFormPanel`, только создание).
+  ///
+  /// [groupPhotoJpeg]: после [set] документа беседы загружается в `group-avatars/{id}/`
+  /// (иначе Storage rules не дадут записать до появления участника в Firestore).
+  Future<String> createGroupChat({
+    required String currentUserId,
+    required String currentUserName,
+    required String name,
+    String? description,
+    required List<({String id, String name})> additionalParticipants,
+    Uint8List? groupPhotoJpeg,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'empty');
+    }
+
+    final extra = additionalParticipants.where((e) => e.id.isNotEmpty).toList();
+    if (extra.any((e) => e.id == currentUserId)) {
+      throw ArgumentError('additionalParticipants must not contain current user');
+    }
+
+    final extraIds = extra.map((e) => e.id).toList();
+    if (extraIds.isNotEmpty) {
+      final check = await checkGroupInvitesAllowed(extraIds);
+      if (!check.ok) {
+        final msg = _formatGroupInviteDenied(check.denied, extra);
+        throw StateError(msg);
+      }
+    }
+
+    final conversationId = 'group_${DateTime.now().millisecondsSinceEpoch}';
+    final participantIds = <String>[currentUserId, ...extraIds];
+    final nameById = <String, String>{
+      currentUserId: currentUserName,
+      for (final e in extra) e.id: e.name,
+    };
+
+    final participantInfo = <String, Object?>{
+      for (final id in participantIds)
+        id: <String, Object?>{
+          'name': nameById[id] ?? 'Неизвестный',
+        },
+    };
+
+    final unreadCounts = <String, Object?>{
+      for (final id in participantIds) id: 0,
+    };
+    final unreadThreadCounts = <String, Object?>{
+      for (final id in participantIds) id: 0,
+    };
+
+    await _firestore.collection('conversations').doc(conversationId).set(<String, Object?>{
+      'isGroup': true,
+      'name': trimmedName,
+      if (description != null && description.trim().isNotEmpty) 'description': description.trim(),
+      'photoUrl': _groupAvatarPlaceholderUrl,
+      'participantIds': participantIds,
+      'adminIds': const <String>[],
+      'participantInfo': participantInfo,
+      'createdByUserId': currentUserId,
+      'lastMessageTimestamp': DateTime.now().toUtc().toIso8601String(),
+      'lastMessageText': '$currentUserName создал(а) группу',
+      'unreadCounts': unreadCounts,
+      'unreadThreadCounts': unreadThreadCounts,
+      'typing': <String, Object?>{},
+    });
+
+    final photo = groupPhotoJpeg;
+    if (photo != null && photo.isNotEmpty) {
+      try {
+        final objectPath =
+            'group-avatars/$conversationId/${DateTime.now().millisecondsSinceEpoch}_group.jpg';
+        final ref = _storage.ref(objectPath);
+        await ref.putData(
+          photo,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+        final url = await ref.getDownloadURL();
+        await _firestore.collection('conversations').doc(conversationId).update(<String, Object?>{
+          'photoUrl': url,
+        });
+      } catch (e, st) {
+        _logger.w(
+          'Group avatar upload failed, placeholder kept',
+          error: e,
+          stackTrace: st,
+        );
+      }
+    }
+
+    _logger.i('Created group chat: $conversationId');
+    return conversationId;
+  }
+
+  String _formatGroupInviteDenied(
+    List<GroupInviteDenied> denied,
+    List<({String id, String name})> participants,
+  ) {
+    String nameFor(String uid) {
+      for (final e in participants) {
+        if (e.id == uid) return e.name;
+      }
+      return 'Участник';
+    }
+
+    return denied.map((d) {
+      final n = nameFor(d.uid);
+      return d.reason == 'none'
+          ? '$n не принимает приглашения в группы'
+          : '$n разрешает групповые приглашения только от людей из своих контактов';
+    }).join(' ');
   }
 }

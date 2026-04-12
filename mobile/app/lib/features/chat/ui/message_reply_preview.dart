@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../data/chat_media_layout_tokens.dart';
+import 'chat_cached_network_image.dart';
 import 'message_html_text.dart';
 
 class MessageReplyPreview extends StatelessWidget {
@@ -8,10 +10,13 @@ class MessageReplyPreview extends StatelessWidget {
     super.key,
     required this.replyTo,
     required this.isMine,
+    this.onOpenOriginal,
   });
 
   final ReplyContext replyTo;
   final bool isMine;
+  /// Переход к исходному сообщению в истории (если задан).
+  final VoidCallback? onOpenOriginal;
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +27,11 @@ class MessageReplyPreview extends StatelessWidget {
     final rawText = (replyTo.text ?? '').trim();
     final preview = rawText.isEmpty ? 'Сообщение' : (rawText.contains('<') ? messageHtmlToPlainText(rawText) : rawText);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+    final hasThumb = (replyTo.mediaPreviewUrl ?? '').isNotEmpty;
+    final textMax = ChatMediaLayoutTokens.messageBubbleMaxWidth -
+        (hasThumb ? 44 : 16);
+
+    final inner = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: bg,
@@ -31,9 +39,13 @@ class MessageReplyPreview extends StatelessWidget {
         border: Border(left: BorderSide(color: border, width: 3)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: textMax.toDouble()),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -60,25 +72,45 @@ class MessageReplyPreview extends StatelessWidget {
               ],
             ),
           ),
-          if ((replyTo.mediaPreviewUrl ?? '').isNotEmpty) ...[
+          if (hasThumb) ...[
             const SizedBox(width: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: Image.network(
-                  replyTo.mediaPreviewUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stack) => DecoratedBox(
-                    decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.35)),
-                    child: Icon(Icons.image_not_supported_rounded, size: 14, color: scheme.onSurface.withValues(alpha: 0.55)),
-                  ),
-                ),
+                child: replyTo.mediaType == 'audio'
+                    ? DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                        ),
+                        child: Icon(
+                          Icons.mic_rounded,
+                          size: 14,
+                          color: scheme.onSurface.withValues(alpha: 0.65),
+                        ),
+                      )
+                    : ChatCachedNetworkImage(
+                        url: replyTo.mediaPreviewUrl!,
+                        fit: BoxFit.cover,
+                        compact: true,
+                      ),
               ),
             ),
           ],
         ],
+      ),
+    );
+
+    if (onOpenOriginal == null) {
+      return inner;
+    }
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onOpenOriginal,
+        borderRadius: BorderRadius.circular(14),
+        child: inner,
       ),
     );
   }

@@ -1,4 +1,5 @@
 import type { ChatMessage, Conversation, PinnedMessage } from '@/lib/types';
+import { parseChatMessageCreatedAt } from '@/lib/message-calendar-day';
 
 export const MAX_PINNED_MESSAGES = 20;
 
@@ -30,6 +31,14 @@ function dedupePinsPreserveOrder(pins: PinnedMessage[]): PinnedMessage[] {
   return out;
 }
 
+/** Миллисекунды для сортировки; `createdAt` может быть ISO-строкой или Firestore Timestamp с мобильных клиентов. */
+function pinnedSortTimeMs(createdAt: unknown): number {
+  if (createdAt === '' || createdAt == null) return 0;
+  const d = parseChatMessageCreatedAt(createdAt);
+  const t = d.getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
 /** Порядок по времени сообщения (старые первыми — вверху истории). */
 export function sortPinnedMessagesByTime(
   pins: PinnedMessage[],
@@ -38,7 +47,7 @@ export function sortPinnedMessagesByTime(
   return [...pins].sort((a, b) => {
     const ta = messagesById.get(a.messageId)?.createdAt ?? a.messageCreatedAt ?? '';
     const tb = messagesById.get(b.messageId)?.createdAt ?? b.messageCreatedAt ?? '';
-    return ta.localeCompare(tb);
+    return pinnedSortTimeMs(ta) - pinnedSortTimeMs(tb);
   });
 }
 

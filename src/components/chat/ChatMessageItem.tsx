@@ -833,6 +833,7 @@ const ChatMessageItemComponent = ({
                 canCreateSticker={!!onSaveStickerGif && !!gridImageForStickerCreate}
                 showStarAction={!isDeleted && !!onToggleStar && !isThreadMessage}
                 isStarred={isStarred}
+                showThreadAction={!isDeleted && !isThreadMessage && !!onOpenThread}
                 onAction={onMenuAction}
             />
         </div>

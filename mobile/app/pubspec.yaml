@@ -60,6 +60,18 @@ dependencies:
 
   google_fonts: any
   video_player: any
+  just_audio: ^0.10.5
+  flutter_vlc_player: ^7.4.4
+  webview_flutter: ^4.10.0
+  url_launcher: ^6.3.1
+  file_picker: ^11.0.2
+  geolocator: ^13.0.2
+  camera: ^0.11.0+2
+  visibility_detector: ^0.4.0+2
+  cached_network_image: ^3.4.1
+  http: ^1.6.0
+  html: ^0.15.6
+  share_plus: ^11.0.0
 
 dev_dependencies:
   flutter_test:

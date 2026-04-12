@@ -21,7 +21,7 @@ class ChatFolderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      height: 48,
+      height: 40,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         scrollDirection: Axis.horizontal,
@@ -35,6 +35,7 @@ class ChatFolderBar extends StatelessWidget {
           final active = f.id == activeFolderId;
           final unread = unreadByFolderId[f.id] ?? 0;
           return _FolderChip(
+            folderId: f.id,
             icon: _folderIcon(f.id),
             label: f.name,
             active: active,
@@ -67,6 +68,7 @@ IconData _folderIcon(String id) {
 
 class _FolderChip extends StatelessWidget {
   const _FolderChip({
+    required this.folderId,
     required this.icon,
     required this.label,
     required this.active,
@@ -75,6 +77,7 @@ class _FolderChip extends StatelessWidget {
     required this.scheme,
   });
 
+  final String folderId;
   final IconData icon;
   final String label;
   final bool active;
@@ -85,14 +88,18 @@ class _FolderChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = scheme.brightness == Brightness.dark;
+    final iconOnly = folderId == 'favorites';
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(
+          horizontal: iconOnly ? 10 : 11,
+          vertical: 6,
+        ),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           color: (active ? scheme.primary : Colors.white).withValues(
             alpha: active ? 0.18 : (dark ? 0.08 : 0.35),
           ),
@@ -107,24 +114,26 @@ class _FolderChip extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 18,
+              size: 17,
               color: active
                   ? scheme.primary
                   : scheme.onSurface.withValues(alpha: 0.68),
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                color: active
-                    ? scheme.primary
-                    : scheme.onSurface.withValues(alpha: 0.82),
+            if (!iconOnly) ...[
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                  color: active
+                      ? scheme.primary
+                      : scheme.onSurface.withValues(alpha: 0.82),
+                ),
               ),
-            ),
+            ],
             if (unread > 0) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: iconOnly ? 6 : 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
@@ -159,11 +168,11 @@ class _NewChip extends StatelessWidget {
     final dark = scheme.brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           color: Colors.white.withValues(alpha: dark ? 0.06 : 0.18),
           border: Border.all(
             color: Colors.white.withValues(alpha: dark ? 0.14 : 0.40),

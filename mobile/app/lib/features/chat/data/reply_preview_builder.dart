@@ -21,6 +21,7 @@ ReplyContext buildReplyPreview({
   var text = '';
   String? mediaPreviewUrl;
   String? mediaType;
+  final hasPoll = (message.chatPollId ?? '').trim().isNotEmpty;
 
   final raw = message.text ?? '';
   if (raw.trim().isNotEmpty) {
@@ -34,6 +35,8 @@ ReplyContext buildReplyPreview({
     final isGif = att.name.startsWith('gif_');
     final isVideoCircle = att.name.startsWith('video-circle_');
     final t = (att.type ?? '').toLowerCase();
+    final isAudio =
+        t.startsWith('audio/') || att.name.toLowerCase().startsWith('audio_');
     final isVideo = t.startsWith('video/');
     final isImage = t.startsWith('image/');
 
@@ -44,6 +47,8 @@ ReplyContext buildReplyPreview({
         text = 'GIF';
       } else if (isVideoCircle) {
         text = 'Кружок';
+      } else if (isAudio) {
+        text = 'Голосовое сообщение';
       } else if (isVideo) {
         text = 'Видео';
       } else if (isImage) {
@@ -60,6 +65,8 @@ ReplyContext buildReplyPreview({
       mediaType = 'image';
     } else if (isVideoCircle) {
       mediaType = 'video-circle';
+    } else if (isAudio) {
+      mediaType = 'audio';
     } else if (isVideo) {
       mediaType = 'video';
     } else if (isImage) {
@@ -67,6 +74,11 @@ ReplyContext buildReplyPreview({
     } else {
       mediaType = 'file';
     }
+  }
+
+  if (text.isEmpty && hasPoll) {
+    text = 'Опрос';
+    mediaType ??= 'poll';
   }
 
   if (text.isEmpty) text = 'Сообщение';

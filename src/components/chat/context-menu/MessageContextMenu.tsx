@@ -44,6 +44,8 @@ interface MessageContextMenuProps {
   onAction: (action: 'reply' | 'copy' | 'edit' | 'pin' | 'forward' | 'delete' | 'react' | 'select' | 'thread' | 'save_sticker' | 'create_sticker' | 'star', payload?: string) => void;
   showStarAction?: boolean;
   isStarred?: boolean;
+  /** Основная лента с `onOpenThread`; в ветке и без колбэка — скрыть. */
+  showThreadAction?: boolean;
 }
 
 function buildRoundedHoleMaskDataUrl(
@@ -123,7 +125,7 @@ function MessageFocusBackdropMasked({
  * Рендерится через Portal поверх всего интерфейса.
  */
 export function MessageContextMenu({ 
-  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, canSaveSticker = false, canCreateSticker = false, showStarAction = false, isStarred = false, onAction 
+  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, canSaveSticker = false, canCreateSticker = false, showStarAction = false, isStarred = false, showThreadAction = true, onAction 
 }: MessageContextMenuProps) {
   if (!isOpen || !position) return null;
 
@@ -182,7 +184,9 @@ export function MessageContextMenu({
           {/* Action List */}
           <div className="p-1 space-y-0.5">
             <MenuButton icon={Reply} label="Ответить" onClick={() => { onAction('reply'); onClose(); }} />
-            <MenuButton icon={MessageSquare} label="Обсудить" onClick={() => { onAction('thread'); onClose(); }} />
+            {showThreadAction && (
+              <MenuButton icon={MessageSquare} label="Обсудить" onClick={() => { onAction('thread'); onClose(); }} />
+            )}
             {hasText && (
               <MenuButton icon={Copy} label="Копировать" onClick={() => { onAction('copy'); onClose(); }} />
             )}

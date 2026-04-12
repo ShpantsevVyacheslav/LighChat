@@ -36,10 +36,18 @@ export function DashboardOpenChatView({
   const router = useRouter();
   const pathname = usePathname();
   const focusMessageId = searchParams.get('focusMessageId');
+  const threadRootMessageId = searchParams.get('threadRootMessageId');
 
   const clearFocusMessageFromUrl = React.useCallback(() => {
     const p = new URLSearchParams(searchParams.toString());
     p.delete('focusMessageId');
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
+
+  const clearThreadRootMessageFromUrl = React.useCallback(() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('threadRootMessageId');
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [searchParams, router, pathname]);
@@ -105,6 +113,8 @@ export function DashboardOpenChatView({
       messageSearchBlurInsetLeftPx={messageSearchBlurInsetLeftPx}
       focusMessageId={focusMessageId}
       onFocusMessageConsumed={clearFocusMessageFromUrl}
+      threadRootMessageId={threadRootMessageId}
+      onThreadRootMessageConsumed={clearThreadRootMessageFromUrl}
     />
   );
 }

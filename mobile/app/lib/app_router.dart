@@ -11,7 +11,10 @@ import 'features/chat/ui/chat_forward_screen.dart';
 import 'features/chat/ui/chat_list_screen.dart';
 import 'features/chat/ui/chat_settings_screen.dart';
 import 'features/chat/ui/chat_screen.dart';
+import 'features/chat/ui/conversation_threads_screen.dart';
 import 'features/chat/ui/new_chat_screen.dart';
+import 'features/chat/ui/new_group_chat_screen.dart';
+import 'features/chat/ui/thread_screen.dart';
 
 GoRouter createRouter() {
   return GoRouter(
@@ -55,6 +58,10 @@ GoRouter createRouter() {
         builder: (context, state) => const NewChatScreen(),
       ),
       GoRoute(
+        path: '/chats/new/group',
+        builder: (context, state) => const NewGroupChatScreen(),
+      ),
+      GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
       ),
@@ -75,6 +82,27 @@ GoRouter createRouter() {
             }
           }
           return ChatForwardScreen(messages: msgs);
+        },
+      ),
+      GoRoute(
+        path: '/chats/:conversationId/threads',
+        builder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          return ConversationThreadsScreen(conversationId: conversationId);
+        },
+      ),
+      GoRoute(
+        path: '/chats/:conversationId/thread/:parentMessageId',
+        builder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          final parentMessageId =
+              state.pathParameters['parentMessageId'] ?? '';
+          final extra = state.extra;
+          return ThreadScreen(
+            conversationId: conversationId,
+            parentMessageId: parentMessageId,
+            parentMessage: extra is ChatMessage ? extra : null,
+          );
         },
       ),
       GoRoute(

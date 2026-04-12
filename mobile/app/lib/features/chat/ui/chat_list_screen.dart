@@ -392,7 +392,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                 _openNewSheet(context);
               },
             ),
-            const SizedBox(height: 1),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(

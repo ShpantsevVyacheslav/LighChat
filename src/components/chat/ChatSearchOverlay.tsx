@@ -4,10 +4,11 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Search, X } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, User } from '@/lib/types';
+import { parseChatMessageCreatedAt } from '@/lib/message-calendar-day';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 
@@ -133,7 +134,9 @@ export function ChatSearchOverlay({
                             {sender?.name || 'Участник'}
                           </span>
                           <span className="shrink-0 whitespace-nowrap text-[10px] font-semibold text-foreground/70">
-                            {format(parseISO(msg.createdAt), 'dd.MM.yy HH:mm', { locale: ru })}
+                            {format(parseChatMessageCreatedAt(msg.createdAt), 'dd.MM.yy HH:mm', {
+                              locale: ru,
+                            })}
                           </span>
                         </div>
                         <p className="truncate text-sm leading-snug text-foreground/88">

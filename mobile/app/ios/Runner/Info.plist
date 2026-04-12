@@ -78,5 +78,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Чтобы снимать фото и видео для сообщений в чате</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Для записи видео со звуком в чате</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Чтобы прикреплять фото и видео из галереи</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Чтобы отправлять и обновлять геолокацию в чате</string>
 </dict>
 </plist>

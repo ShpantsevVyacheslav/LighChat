@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'chat_cached_network_image.dart';
+
 class ChatListItem extends StatelessWidget {
   const ChatListItem({
     super.key,
@@ -160,10 +162,11 @@ class _AvatarCircle extends StatelessWidget {
         child: SizedBox(
           width: 44,
           height: 44,
-          child: Image.network(
-            url,
+          child: ChatCachedNetworkImage(
+            url: url,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _AvatarPlaceholder(title: title),
+            compact: true,
+            errorOverride: _AvatarPlaceholder(title: title),
           ),
         ),
       );
