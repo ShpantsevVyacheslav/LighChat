@@ -3,7 +3,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 
 import 'chat_cached_network_image.dart';
 
-class ChatListItem extends StatelessWidget {
+class ChatListItem extends StatefulWidget {
   const ChatListItem({
     super.key,
     required this.conversation,
@@ -12,7 +12,15 @@ class ChatListItem extends StatelessWidget {
     required this.unreadCount,
     required this.trailingTimeLabel,
     this.avatarUrl,
+    this.isOnline = false,
     required this.onTap,
+    this.onLongPress,
+    this.onFoldersTap,
+    this.onClearTap,
+    this.onDeleteTap,
+    this.enableSwipeActions = false,
+    this.allowDelete = true,
+    this.isPinned = false,
   });
 
   final ConversationWithId conversation;
@@ -21,93 +29,272 @@ class ChatListItem extends StatelessWidget {
   final int unreadCount;
   final String trailingTimeLabel;
   final String? avatarUrl;
+  final bool isOnline;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onFoldersTap;
+  final VoidCallback? onClearTap;
+  final VoidCallback? onDeleteTap;
+  final bool enableSwipeActions;
+  final bool allowDelete;
+  final bool isPinned;
+
+  @override
+  State<ChatListItem> createState() => _ChatListItemState();
+}
+
+class _ChatListItemState extends State<ChatListItem> {
+  static const double _actionWidth = 84;
+  double _swipeX = 0;
+
+  double get _maxSwipe {
+    final count = widget.allowDelete ? 3 : 2;
+    return count * _actionWidth;
+  }
+
+  void _handleHorizontalDragUpdate(DragUpdateDetails details) {
+    if (!widget.enableSwipeActions) return;
+    final next = (_swipeX - details.delta.dx).clamp(0.0, _maxSwipe);
+    setState(() => _swipeX = next);
+  }
+
+  void _handleHorizontalDragEnd(DragEndDetails details) {
+    if (!widget.enableSwipeActions) return;
+    final shouldOpen = _swipeX > (_maxSwipe * 0.35);
+    setState(() => _swipeX = shouldOpen ? _maxSwipe : 0);
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onTap,
+    return ClipRRect(
       borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: dark ? 0.10 : 0.35),
-          ),
-          color: Colors.white.withValues(alpha: dark ? 0.06 : 0.22),
-        ),
-        child: Row(
-          children: [
-            _AvatarCircle(title: title, avatarUrl: avatarUrl),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+      child: Stack(
+        children: [
+          if (widget.enableSwipeActions)
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: _swipeX,
+              child: ClipRect(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: _maxSwipe,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.onFoldersTap != null)
+                          _SwipeActionButton(
+                            width: _actionWidth,
+                            background: const Color(0xFF6ED0D8),
+                            icon: Icons.folder_open_rounded,
+                            label: 'ПАПКИ',
+                            onTap: () {
+                              widget.onFoldersTap!.call();
+                              setState(() => _swipeX = 0);
+                            },
+                          ),
+                        if (widget.onClearTap != null)
+                          _SwipeActionButton(
+                            width: _actionWidth,
+                            background: const Color(0xFFF0AA3C),
+                            icon: Icons.auto_fix_off_rounded,
+                            label: 'ОЧИСТИТЬ',
+                            onTap: () {
+                              widget.onClearTap!.call();
+                              setState(() => _swipeX = 0);
+                            },
+                          ),
+                        if (widget.allowDelete && widget.onDeleteTap != null)
+                          _SwipeActionButton(
+                            width: _actionWidth,
+                            background: const Color(0xFFE2554D),
+                            icon: Icons.delete_outline_rounded,
+                            label: 'УДАЛИТЬ',
+                            onTap: () {
+                              widget.onDeleteTap!.call();
+                              setState(() => _swipeX = 0);
+                            },
+                          ),
+                      ],
                     ),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: scheme.onSurface.withValues(alpha: 0.60),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  trailingTimeLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.onSurface.withValues(alpha: 0.55),
                   ),
                 ),
-                const SizedBox(height: 8),
-                if (unreadCount > 0)
-                  Container(
+              ),
+            ),
+          GestureDetector(
+            onHorizontalDragUpdate: _handleHorizontalDragUpdate,
+            onHorizontalDragEnd: _handleHorizontalDragEnd,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              transform: Matrix4.translationValues(-_swipeX, 0, 0),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    if (_swipeX > 0) {
+                      setState(() => _swipeX = 0);
+                      return;
+                    }
+                    widget.onTap();
+                  },
+                  onLongPress: widget.onLongPress,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: 24,
+                      vertical: 8,
                     ),
-                    decoration: BoxDecoration(
-                      color: scheme.primary,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      unreadCount > 99 ? '99+' : '$unreadCount',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        color: scheme.onPrimary,
-                      ),
+                    color: Colors.transparent,
+                    child: Row(
+                      children: [
+                        _AvatarCircle(
+                          title: widget.title,
+                          avatarUrl: widget.avatarUrl,
+                          isOnline: widget.isOnline,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      widget.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  if (widget.isPinned) ...[
+                                    const SizedBox(width: 6),
+                                    Icon(
+                                      Icons.push_pin_rounded,
+                                      size: 14,
+                                      color: const Color(0xFF2A79FF),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (widget.subtitle.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: scheme.onSurface.withValues(
+                                      alpha: dark ? 0.50 : 0.58,
+                                    ),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              widget.trailingTimeLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: scheme.onSurface.withValues(
+                                  alpha: dark ? 0.45 : 0.52,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            if (widget.unreadCount > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2A79FF),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  widget.unreadCount > 99
+                                      ? '99+'
+                                      : '${widget.unreadCount}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwipeActionButton extends StatelessWidget {
+  const _SwipeActionButton({
+    required this.width,
+    required this.background,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final double width;
+  final Color background;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: background,
+        child: InkWell(
+          onTap: onTap,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: Colors.white, size: 24),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                  ),
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -121,25 +308,35 @@ class _AvatarPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final initial = title.trim().isEmpty
         ? '?'
         : title.trim().characters.first.toUpperCase();
+    final dark = Theme.of(context).colorScheme.brightness == Brightness.dark;
     return Container(
-      width: 44,
-      height: 44,
+      width: 50,
+      height: 50,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: scheme.primary.withValues(alpha: 0.18),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.22)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? const [Color(0xFF18357C), Color(0xFF29133F)]
+              : const [Color(0xFFE5ECFF), Color(0xFFDCE5FF)],
+        ),
+        border: Border.all(
+          color: dark
+              ? Colors.white.withValues(alpha: 0.18)
+              : Colors.black.withValues(alpha: 0.10),
+        ),
       ),
       alignment: Alignment.center,
       child: Text(
         initial,
         style: TextStyle(
-          fontSize: 16,
+          fontSize: 20,
           fontWeight: FontWeight.w900,
-          color: scheme.primary,
+          color: dark ? Colors.white : const Color(0xFF23315F),
         ),
       ),
     );
@@ -147,10 +344,15 @@ class _AvatarPlaceholder extends StatelessWidget {
 }
 
 class _AvatarCircle extends StatelessWidget {
-  const _AvatarCircle({required this.title, required this.avatarUrl});
+  const _AvatarCircle({
+    required this.title,
+    required this.avatarUrl,
+    required this.isOnline,
+  });
 
   final String title;
   final String? avatarUrl;
+  final bool isOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -158,20 +360,32 @@ class _AvatarCircle extends StatelessWidget {
     final canRender =
         url != null && url.trim().isNotEmpty && !_looksLikeSvg(url);
     if (canRender) {
-      return ClipOval(
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: ChatCachedNetworkImage(
-            url: url,
-            fit: BoxFit.cover,
-            compact: true,
-            errorOverride: _AvatarPlaceholder(title: title),
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ClipOval(
+            child: SizedBox(
+              width: 50,
+              height: 50,
+              child: ChatCachedNetworkImage(
+                url: url,
+                fit: BoxFit.cover,
+                compact: true,
+                errorOverride: _AvatarPlaceholder(title: title),
+              ),
+            ),
           ),
-        ),
+          if (isOnline) const _OnlineBadge(),
+        ],
       );
     }
-    return _AvatarPlaceholder(title: title);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _AvatarPlaceholder(title: title),
+        if (isOnline) const _OnlineBadge(),
+      ],
+    );
   }
 
   bool _looksLikeSvg(String url) {
@@ -180,5 +394,30 @@ class _AvatarCircle extends StatelessWidget {
     if (u.endsWith('.svg')) return true;
     if (u.contains('format=svg')) return true;
     return false;
+  }
+}
+
+class _OnlineBadge extends StatelessWidget {
+  const _OnlineBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).colorScheme.brightness == Brightness.dark;
+    return Positioned(
+      right: -1,
+      bottom: -1,
+      child: Container(
+        width: 13,
+        height: 13,
+        decoration: BoxDecoration(
+          color: const Color(0xFF00C35F),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: dark ? const Color(0xFF05070D) : Colors.white,
+            width: 2,
+          ),
+        ),
+      ),
+    );
   }
 }

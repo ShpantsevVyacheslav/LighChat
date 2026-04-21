@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../ui/app_backdrop.dart';
+
 class AuthBackground extends StatelessWidget {
   const AuthBackground({super.key, required this.child});
 
@@ -9,38 +11,7 @@ class AuthBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Stack(
-      children: [
-        // Base tone.
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: scheme.brightness == Brightness.dark ? const Color(0xFF070B14) : const Color(0xFFF1F5F9),
-            ),
-          ),
-        ),
-        // Main gradient wash.
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.22 : 0.18),
-                  scheme.secondary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.18 : 0.10),
-                  scheme.tertiary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.20 : 0.14),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // Content
-        Positioned.fill(child: child),
-      ],
-    );
+    return AppBackdrop(child: child);
   }
 }
 

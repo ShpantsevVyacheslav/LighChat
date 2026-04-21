@@ -80,6 +80,9 @@ interface ChatParticipantProfileProps {
   /** В группе: показать шапку и поля выбранного участника (клик по @). */
   focusUserId?: string | null;
   onClearProfileFocus?: () => void;
+  /** Программно открыть конкретный подраздел профиля (например, "Обсуждения" из шапки чата). */
+  initialSubMenu?: ChatProfileSubMenu | null;
+  onInitialSubMenuConsumed?: () => void;
 }
 
 export function ChatParticipantProfile({ 
@@ -92,6 +95,8 @@ export function ChatParticipantProfile({
     onSelectConversation, 
     focusUserId = null,
     onClearProfileFocus,
+    initialSubMenu = null,
+    onInitialSubMenuConsumed,
 }: ChatParticipantProfileProps) {
   type GroupProfileLayer = 'main' | 'participants' | 'edit';
   const [groupProfileLayer, setGroupProfileLayer] = useState<GroupProfileLayer>('main');
@@ -167,6 +172,13 @@ export function ChatParticipantProfile({
   useEffect(() => {
     if (!open) setProfileSubMenu(null);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !initialSubMenu) return;
+    setGroupProfileLayer('main');
+    setProfileSubMenu(initialSubMenu);
+    onInitialSubMenuConsumed?.();
+  }, [open, initialSubMenu, onInitialSubMenuConsumed]);
 
   useEffect(() => {
     if (groupProfileLayer !== 'main') setProfileSubMenu(null);

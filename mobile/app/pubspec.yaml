@@ -42,6 +42,10 @@ dependencies:
   image_cropper: any
   image: any
 
+  # Используется DevicesScreen для fingerprint (SHA-256 от publicKeySpki).
+  # Уже доступен транзитивно, но объявляем явно (depend_on_referenced_packages).
+  crypto: ^3.0.3
+
   # Versions are managed via `flutter pub add` to match Flutter SDK.
   firebase_core: any
   firebase_auth: any
@@ -60,8 +64,8 @@ dependencies:
 
   google_fonts: any
   video_player: any
+  ffmpeg_kit_min_gpl: ^6.0.3+2-LTS
   just_audio: ^0.10.5
-  flutter_vlc_player: ^7.4.4
   webview_flutter: ^4.10.0
   url_launcher: ^6.3.1
   file_picker: ^11.0.2
@@ -72,6 +76,13 @@ dependencies:
   http: ^1.6.0
   html: ^0.15.6
   share_plus: ^11.0.0
+  gal: ^2.3.2
+  shared_preferences: ^2.5.3
+  flutter_contacts: ^2.0.2
+  flutter_webrtc: ^1.2.0
+  record: ^6.1.2
+  path_provider: ^2.1.5
+  super_clipboard: ^0.9.1
 
 dev_dependencies:
   flutter_test:
@@ -92,6 +103,7 @@ flutter:
   assets:
     - assets/lighchat_mark.png
     - assets/lighchat_wordmark.png
+    - assets/google_icon.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

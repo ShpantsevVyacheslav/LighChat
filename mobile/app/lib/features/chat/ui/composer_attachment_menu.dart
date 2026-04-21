@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 enum ComposerAttachmentAction {
   /// Галерея / камера фото / камера видео (через подменю).
   photoVideo,
+
   /// Системный выбор файлов (iOS/Android).
   deviceFiles,
+  clipboard,
   videoCircle,
   location,
   poll,
@@ -20,89 +22,214 @@ class ComposerAttachmentMenuPanel extends StatelessWidget {
   const ComposerAttachmentMenuPanel({
     super.key,
     required this.onItemTap,
+    required this.onClose,
   });
 
   final void Function(ComposerAttachmentAction action) onItemTap;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    final fg = Colors.white.withValues(alpha: 0.92);
-    final iconFg = Colors.white.withValues(alpha: 0.82);
-
-    Widget row(ComposerAttachmentAction id, IconData icon, String label) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => onItemTap(id),
-          borderRadius: BorderRadius.circular(12),
-          splashColor: Colors.white.withValues(alpha: 0.10),
-          highlightColor: Colors.white.withValues(alpha: 0.06),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 22, color: iconFg),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: fg,
-                  ),
-                ),
-              ],
-            ),
+    final titleColor = Colors.white.withValues(alpha: 0.95);
+    final labelColor = Colors.white.withValues(alpha: 0.84);
+    final items =
+        <
+          ({
+            ComposerAttachmentAction action,
+            IconData icon,
+            String label,
+            Color color,
+          })
+        >[
+          (
+            action: ComposerAttachmentAction.photoVideo,
+            icon: Icons.photo_camera_outlined,
+            label: 'Фото/Видео',
+            color: const Color(0xFF8B3DFF),
           ),
-        ),
-      );
-    }
+          (
+            action: ComposerAttachmentAction.deviceFiles,
+            icon: Icons.insert_drive_file_outlined,
+            label: 'Файлы',
+            color: const Color(0xFF2D7BFF),
+          ),
+          (
+            action: ComposerAttachmentAction.videoCircle,
+            icon: Icons.radio_button_checked_rounded,
+            label: 'Кружок',
+            color: const Color(0xFFFF2C9C),
+          ),
+          (
+            action: ComposerAttachmentAction.location,
+            icon: Icons.location_on_outlined,
+            label: 'Локация',
+            color: const Color(0xFF04C853),
+          ),
+          (
+            action: ComposerAttachmentAction.poll,
+            icon: Icons.receipt_long_rounded,
+            label: 'Опрос',
+            color: const Color(0xFFFF7A00),
+          ),
+          (
+            action: ComposerAttachmentAction.stickersGif,
+            icon: Icons.emoji_emotions_outlined,
+            label: 'Стикеры',
+            color: const Color(0xFFE8AA00),
+          ),
+          (
+            action: ComposerAttachmentAction.clipboard,
+            icon: Icons.content_paste_rounded,
+            label: 'Буфер',
+            color: const Color(0xFF1AB6E6),
+          ),
+          (
+            action: ComposerAttachmentAction.format,
+            icon: Icons.text_fields_rounded,
+            label: 'Текст',
+            color: const Color(0xFF5A56FF),
+          ),
+        ];
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(28),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.38),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+            color: Colors.black.withValues(alpha: 0.72),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.11)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+                color: Colors.black.withValues(alpha: 0.45),
+                blurRadius: 26,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final tileW = ((width - 18) / 4).clamp(66.0, 88.0);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Прикрепить',
+                        style: TextStyle(
+                          color: titleColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Material(
+                        color: Colors.white.withValues(alpha: 0.10),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          onTap: onClose,
+                          customBorder: const CircleBorder(),
+                          child: SizedBox(
+                            width: 38,
+                            height: 38,
+                            child: Icon(
+                              Icons.close_rounded,
+                              color: Colors.white.withValues(alpha: 0.78),
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 12,
+                    children: [
+                      for (final item in items)
+                        SizedBox(
+                          width: tileW,
+                          child: _MenuGridActionTile(
+                            icon: item.icon,
+                            label: item.label,
+                            color: item.color,
+                            labelColor: labelColor,
+                            onTap: () => onItemTap(item.action),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuGridActionTile extends StatelessWidget {
+  const _MenuGridActionTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.labelColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color labelColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        splashColor: Colors.white.withValues(alpha: 0.10),
+        highlightColor: Colors.white.withValues(alpha: 0.05),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              row(
-                ComposerAttachmentAction.photoVideo,
-                Icons.collections_outlined,
-                'Фото и видео',
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withValues(alpha: 0.95),
+                      color.withValues(alpha: 0.78),
+                    ],
+                  ),
+                ),
+                child: Icon(icon, color: Colors.white, size: 30),
               ),
-              row(
-                ComposerAttachmentAction.deviceFiles,
-                Icons.folder_outlined,
-                'Файлы',
+              const SizedBox(height: 7),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  height: 1.15,
+                ),
               ),
-              row(ComposerAttachmentAction.videoCircle, Icons.videocam_rounded, 'Кружок'),
-              row(ComposerAttachmentAction.location, Icons.location_on_outlined, 'Локация'),
-              row(ComposerAttachmentAction.poll, Icons.poll_outlined, 'Опрос'),
-              row(
-                ComposerAttachmentAction.stickersGif,
-                Icons.emoji_emotions_outlined,
-                'Стикеры и GIF',
-              ),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: Colors.white.withValues(alpha: 0.10),
-              ),
-              row(ComposerAttachmentAction.format, Icons.text_fields_rounded, 'Форматировать'),
             ],
           ),
         ),
@@ -136,35 +263,25 @@ OverlayEntry showComposerAttachmentOverlay({
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: dismiss,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.40),
-                      ),
-                    ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.40),
                   ),
                 ),
               ),
             ),
             Positioned(
-              left: 12,
+              left: 10,
+              right: 10,
               bottom: bottomFromScreenBottom,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.sizeOf(ctx).width - 24,
-                  ),
-                  child: IntrinsicWidth(
-                    child: ComposerAttachmentMenuPanel(
-                      onItemTap: (a) {
-                        dismiss();
-                        onSelected(a);
-                      },
-                    ),
-                  ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ComposerAttachmentMenuPanel(
+                  onClose: dismiss,
+                  onItemTap: (a) {
+                    dismiss();
+                    onSelected(a);
+                  },
                 ),
               ),
             ),

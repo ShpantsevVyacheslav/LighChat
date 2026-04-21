@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../auth/ui/auth_glass.dart';
 import 'chat_cached_network_image.dart';
 
 /// Фон чата по `users/*/chatSettings.chatWallpaper` — тот же слой, что в [ChatScreen].
@@ -46,7 +45,7 @@ class ChatWallpaperBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final raw = wallpaper?.trim();
     if (raw == null || raw.isEmpty) {
-      return AuthBackground(child: child);
+      return _DefaultChatBackdrop(child: child);
     }
 
     final gradient = _gradients[raw];
@@ -65,9 +64,79 @@ class ChatWallpaperBackground extends StatelessWidget {
         else if (gradient != null)
           DecoratedBox(decoration: BoxDecoration(gradient: gradient))
         else
-          AuthBackground(child: const SizedBox.expand()),
+          const _DefaultChatBackdrop(child: SizedBox.expand()),
         if (raw.startsWith('http'))
           Container(color: Colors.black.withValues(alpha: 0.35)),
+        child,
+      ],
+    );
+  }
+}
+
+class _DefaultChatBackdrop extends StatelessWidget {
+  const _DefaultChatBackdrop({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(decoration: BoxDecoration(color: Color(0xFF04070C))),
+        Positioned(
+          left: -120,
+          top: -140,
+          child: IgnorePointer(
+            child: Container(
+              width: 390,
+              height: 390,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF1F60F8).withValues(alpha: 0.28),
+                    const Color(0xFF1F60F8).withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          right: -110,
+          bottom: -120,
+          child: IgnorePointer(
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF661CFF).withValues(alpha: 0.24),
+                    const Color(0xFF661CFF).withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.20),
+                  Colors.black.withValues(alpha: 0.45),
+                ],
+              ),
+            ),
+          ),
+        ),
         child,
       ],
     );

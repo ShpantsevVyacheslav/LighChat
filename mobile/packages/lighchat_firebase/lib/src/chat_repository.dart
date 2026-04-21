@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:logger/logger.dart';
@@ -25,20 +26,90 @@ class GroupInvitesCheckResult {
   final List<GroupInviteDenied> denied;
 }
 
+/// Phase 0 safety guard: mobile пока не умеет шифровать исходящие сообщения
+/// и редактировать зашифрованные. Пока нет Phase 4 клиента — мы блокируем
+/// такие операции на уровне репозитория, чтобы не утечь plaintext в Firestore
+/// в чатах, где собеседник на вебе ждёт E2EE-ciphertext.
+///
+/// Распознаётся по code='e2ee_not_supported_on_mobile'. UI переводит в
+/// человекочитаемое сообщение и предлагает отправить с веба.
+class E2eeNotSupportedOnMobileException implements Exception {
+  const E2eeNotSupportedOnMobileException([this.message]);
+
+  final String? message;
+
+  String get code => 'e2ee_not_supported_on_mobile';
+
+  @override
+  String toString() =>
+      'E2eeNotSupportedOnMobileException(${message ?? code})';
+}
+
 class ChatRepository {
   ChatRepository({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
     Logger? logger,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance,
-        _logger = logger ?? Logger();
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _storage = storage ?? FirebaseStorage.instance,
+       _logger = logger ?? Logger();
 
   static const Duration _userChatIndexInitialTimeout = Duration(seconds: 15);
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
   final Logger _logger;
+  final Set<String> _inFlightReadKeys = <String>{};
+
+  /// Возвращает true, если документ диалога активно зашифрован (E2EE
+  /// включён И эпоха ключа > 0 — значит обёртки ключа уже созданы на вебе).
+  /// Используется Phase 0 safety guard'ом, чтобы не писать plaintext в чаты,
+  /// где веб-клиент ждёт ciphertext.
+  static bool _isE2eeActive(Map<String, dynamic> convData) {
+    final enabled = convData['e2eeEnabled'];
+    if (enabled != true) return false;
+    final epoch = convData['e2eeKeyEpoch'];
+    if (epoch is int) return epoch > 0;
+    if (epoch is num) return epoch.toInt() > 0;
+    return false;
+  }
+
+  bool _shouldRetryWithFreshToken(FirebaseException e) {
+    final code = e.code.toLowerCase();
+    return code == 'permission-denied' || code == 'unauthenticated';
+  }
+
+  Future<T> _withAuthRefreshRetry<T>(Future<T> Function() op) async {
+    try {
+      return await op();
+    } on FirebaseException catch (e, st) {
+      if (!_shouldRetryWithFreshToken(e)) rethrow;
+      _logger.w(
+        'Retrying Firebase operation after token refresh code=${e.code}',
+        error: e,
+        stackTrace: st,
+      );
+      await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+      return op();
+    }
+  }
+
+  DocumentReference<Map<String, dynamic>> _messageDocRef({
+    required String conversationId,
+    required String messageId,
+    String? threadParentMessageId,
+  }) {
+    final conv = _firestore.collection('conversations').doc(conversationId);
+    final parent = threadParentMessageId?.trim();
+    if (parent == null || parent.isEmpty) {
+      return conv.collection('messages').doc(messageId);
+    }
+    return conv
+        .collection('messages')
+        .doc(parent)
+        .collection('thread')
+        .doc(messageId);
+  }
 
   /// Web `placeholder-images.json` → `group-avatar-placeholder`.
   static const String _groupAvatarPlaceholderUrl =
@@ -176,7 +247,18 @@ class ChatRepository {
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .withConverter<ChatMessage?>(
-          fromFirestore: (snap, options) => ChatMessage.fromDoc(snap),
+          fromFirestore: (snap, options) {
+            try {
+              return ChatMessage.fromDoc(snap);
+            } catch (e, st) {
+              _logger.w(
+                'ChatMessage parse failed ${snap.id}',
+                error: e,
+                stackTrace: st,
+              );
+              return null;
+            }
+          },
           toFirestore: (value, options) => <String, Object?>{},
         );
 
@@ -221,7 +303,18 @@ class ChatRepository {
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .withConverter<ChatMessage?>(
-          fromFirestore: (snap, options) => ChatMessage.fromDoc(snap),
+          fromFirestore: (snap, options) {
+            try {
+              return ChatMessage.fromDoc(snap);
+            } catch (e, st) {
+              _logger.w(
+                'Thread ChatMessage parse failed ${snap.id}',
+                error: e,
+                stackTrace: st,
+              );
+              return null;
+            }
+          },
           toFirestore: (value, options) => <String, Object?>{},
         );
 
@@ -245,6 +338,22 @@ class ChatRepository {
     return 'Вложение';
   }
 
+  /// Превью для `conversations.lastMessageText` из HTML основного чата.
+  static String _mainChatLastPreviewText({
+    required String trimmedHtml,
+    required List<ChatAttachment> attachments,
+  }) {
+    var plain = trimmedHtml
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .trim();
+    if (plain.length > 100) plain = plain.substring(0, 100);
+    return _threadLastPreviewText(
+      trimmedPlainText: plain,
+      attachments: attachments,
+    );
+  }
+
   /// Отправка текста в ветку (паритет `ThreadWindow.handleSendMessage` без E2EE/загрузки файлов).
   Future<void> sendThreadTextMessage({
     required String conversationId,
@@ -253,14 +362,26 @@ class ChatRepository {
     String text = '',
     List<ChatAttachment> attachments = const [],
     ReplyContext? replyTo,
+    Map<String, Object?>? e2eeEnvelope,
+    String? messageIdOverride,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty && attachments.isEmpty) return;
+    final hasE2ee = e2eeEnvelope != null;
+    if (trimmed.isEmpty && attachments.isEmpty && !hasE2ee) return;
 
-    final convSnap =
-        await _firestore.collection('conversations').doc(conversationId).get();
+    final convSnap = await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .get();
     final convData = convSnap.data();
     if (convData == null) return;
+    // Phase 4: пропускаем E2EE-active чат только если есть envelope.
+    if (_isE2eeActive(convData) && !hasE2ee) {
+      throw const E2eeNotSupportedOnMobileException(
+        'E2EE thread reply requires encrypted envelope '
+        '(attachments not yet supported on mobile)',
+      );
+    }
 
     final pRaw = convData['participantIds'];
     final participantIds = (pRaw is List ? pRaw : const <Object?>[])
@@ -270,10 +391,12 @@ class ChatRepository {
     final others = participantIds.where((id) => id != senderId).toList();
 
     final nowIso = DateTime.now().toUtc().toIso8601String();
-    final threadLastText = _threadLastPreviewText(
-      trimmedPlainText: trimmed,
-      attachments: attachments,
-    );
+    final threadLastText = hasE2ee
+        ? 'Зашифрованное сообщение'
+        : _threadLastPreviewText(
+            trimmedPlainText: trimmed,
+            attachments: attachments,
+          );
 
     final threadCol = _firestore
         .collection('conversations')
@@ -282,12 +405,16 @@ class ChatRepository {
         .doc(parentMessageId)
         .collection('thread');
 
-    final newDoc = threadCol.doc();
+    final newDoc = messageIdOverride != null &&
+            messageIdOverride.trim().isNotEmpty
+        ? threadCol.doc(messageIdOverride)
+        : threadCol.doc();
     final payload = <String, Object?>{
       'senderId': senderId,
       'createdAt': nowIso,
       'attachments': attachments.map((a) => a.toFirestoreMap()).toList(),
-      if (trimmed.isNotEmpty) 'text': trimmed,
+      if (!hasE2ee && trimmed.isNotEmpty) 'text': trimmed,
+      if (hasE2ee) 'e2ee': e2eeEnvelope,
     };
     if (replyTo != null) {
       payload['replyTo'] = <String, Object?>{
@@ -334,24 +461,205 @@ class ChatRepository {
     });
   }
 
+  /// Геолокация в подколлекцию `messages/{parentId}/thread` (паритет основного чата).
+  Future<void> sendThreadLocationShareMessage({
+    required String conversationId,
+    required String parentMessageId,
+    required String senderId,
+    required List<String> participantIds,
+    required ChatLocationShare locationShare,
+    required bool activateUserLiveShare,
+    String? userLiveExpiresAt,
+  }) async {
+    if (conversationId.isEmpty || parentMessageId.isEmpty) return;
+    final others = participantIds.where((id) => id != senderId).toList();
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+
+    final threadCol = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId)
+        .collection('thread');
+
+    final newDoc = threadCol.doc();
+    await newDoc.set(<String, Object?>{
+      'senderId': senderId,
+      'createdAt': nowIso,
+      'locationShare': _locationShareToFirestore(locationShare),
+    });
+
+    final parentRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId);
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+
+    final unreadUpdates = <String, Object?>{};
+    for (final id in others) {
+      unreadUpdates['unreadThreadCounts.$id'] = FieldValue.increment(1);
+    }
+
+    await parentRef.update(<String, Object?>{
+      'threadCount': FieldValue.increment(1),
+      'lastThreadMessageText': '📍 Геолокация',
+      'lastThreadMessageSenderId': senderId,
+      'lastThreadMessageTimestamp': nowIso,
+      ...unreadUpdates,
+    });
+
+    await convRef.update(<String, Object?>{
+      'lastMessageText': '📍 Геолокация',
+      'lastMessageTimestamp': nowIso,
+      'lastMessageSenderId': senderId,
+      'lastMessageIsThread': true,
+      ...unreadUpdates,
+    });
+
+    if (activateUserLiveShare) {
+      await _firestore.collection('users').doc(senderId).update(
+        <String, Object?>{
+          'liveLocationShare': <String, Object?>{
+            'active': true,
+            'expiresAt': userLiveExpiresAt,
+            'lat': locationShare.lat,
+            'lng': locationShare.lng,
+            if (locationShare.accuracyM != null)
+              'accuracyM': locationShare.accuracyM,
+            'updatedAt': nowIso,
+            'startedAt': nowIso,
+          },
+        },
+      );
+    }
+    _logger.i('Thread location share sent in $conversationId/$parentMessageId');
+  }
+
+  /// Опрос в ветку: документ опроса в `polls/` + сообщение в `…/thread/`.
+  Future<void> sendThreadChatPollMessage({
+    required String conversationId,
+    required String parentMessageId,
+    required String senderId,
+    required List<String> participantIds,
+    required ChatPollCreatePayload pollPayload,
+  }) async {
+    if (conversationId.isEmpty || parentMessageId.isEmpty) return;
+    final opts = pollPayload.options
+        .map((e) => e.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (pollPayload.question.trim().isEmpty || opts.length < 2) return;
+
+    final others = participantIds.where((id) => id != senderId).toList();
+    final pollId = 'chat-poll-${DateTime.now().millisecondsSinceEpoch}';
+    final pollRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('polls')
+        .doc(pollId);
+
+    final threadMsgRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId)
+        .collection('thread')
+        .doc();
+
+    final parentRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId);
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+
+    Future<void> runStep(String step, Future<void> Function() fn) async {
+      try {
+        await fn();
+      } on TimeoutException catch (_) {
+        _logger.e('sendThreadChatPollMessage timeout at step=$step');
+        throw StateError('poll_send_timeout:$step');
+      } on FirebaseException catch (e, st) {
+        _logger.e(
+          'sendThreadChatPollMessage firebase error at step=$step code=${e.code} message=${e.message}',
+          error: e,
+          stackTrace: st,
+        );
+        throw StateError(
+          'poll_send_firebase:$step:${e.code}:${e.message ?? ''}',
+        );
+      } catch (e, st) {
+        _logger.e(
+          'sendThreadChatPollMessage error at step=$step',
+          error: e,
+          stackTrace: st,
+        );
+        throw StateError('poll_send_error:$step:$e');
+      }
+    }
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final msg = <String, Object?>{
+      'senderId': senderId,
+      'createdAt': nowIso,
+      'text': '<p>📊 Опрос</p>',
+      'chatPollId': pollId,
+    };
+
+    final unreadUpdates = <String, Object?>{};
+    for (final id in others) {
+      unreadUpdates['unreadThreadCounts.$id'] = FieldValue.increment(1);
+    }
+
+    await runStep('batch_commit', () async {
+      final batch = _firestore.batch();
+      batch.set(pollRef, <String, Object?>{
+        ...pollPayload.pollDocumentFields(pollId, senderId),
+        'createdAt': nowIso,
+      });
+      batch.set(threadMsgRef, msg);
+      batch.update(parentRef, <String, Object?>{
+        'threadCount': FieldValue.increment(1),
+        'lastThreadMessageText': '📊 Опрос',
+        'lastThreadMessageSenderId': senderId,
+        'lastThreadMessageTimestamp': nowIso,
+        ...unreadUpdates,
+      });
+      batch.update(convRef, <String, Object?>{
+        'lastMessageText': '📊 Опрос',
+        'lastMessageTimestamp': nowIso,
+        'lastMessageSenderId': senderId,
+        'lastMessageIsThread': true,
+        ...unreadUpdates,
+      });
+      await batch.commit().timeout(const Duration(seconds: 15));
+    });
+  }
+
   Future<void> sendTextMessage({
     required String conversationId,
     required String senderId,
     String text = '',
     ReplyContext? replyTo,
     List<ChatAttachment> attachments = const [],
+    Map<String, Object?>? e2eeEnvelope,
+    String? messageIdOverride,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty && attachments.isEmpty) return;
+    final hasE2ee = e2eeEnvelope != null;
+    if (trimmed.isEmpty && attachments.isEmpty && !hasE2ee) return;
+    final nowIso = DateTime.now().toUtc().toIso8601String();
 
+    // Phase 4: при E2EE записываем `e2ee.*` и placeholder-preview вместо
+    // plaintext. `text` НЕ пишем (собеседник всё равно декодирует из envelope).
     final payload = <String, Object?>{
       'senderId': senderId,
-      // Use client device time (requested parity for mobile timestamps).
-      // NOTE: this may differ from server time if device clock is skewed.
-      'createdAt': Timestamp.now(),
-      if (trimmed.isNotEmpty) 'text': trimmed,
+      'createdAt': nowIso,
+      if (!hasE2ee && trimmed.isNotEmpty) 'text': trimmed,
       if (attachments.isNotEmpty)
         'attachments': attachments.map((a) => a.toFirestoreMap()).toList(),
+      if (hasE2ee) 'e2ee': e2eeEnvelope,
     };
 
     if (replyTo != null) {
@@ -368,11 +676,182 @@ class ChatRepository {
       };
     }
 
-    await _firestore
+    try {
+      await _withAuthRefreshRetry(() async {
+        final convSnap = await _firestore
+            .collection('conversations')
+            .doc(conversationId)
+            .get();
+        final convData = convSnap.data();
+        if (convData == null) {
+          throw StateError('conversation_not_found:$conversationId');
+        }
+        // Phase 4: если чат E2EE-активен и envelope НЕ подан — это всё ещё
+        // leak plaintext. Допускаем только два состояния:
+        //   (a) E2EE active + envelope — шифрованный send (ожидаемый путь);
+        //   (b) E2EE active + attachments (без envelope) — пока блокируем до
+        //       Phase 7 (media encryption);
+        //   (c) E2EE inactive — обычный plaintext.
+        if (_isE2eeActive(convData) && !hasE2ee) {
+          throw const E2eeNotSupportedOnMobileException(
+            'E2EE conversation requires encrypted envelope '
+            '(attachments not yet supported on mobile)',
+          );
+        }
+        final pRaw = convData['participantIds'];
+        final participantIds = (pRaw is List ? pRaw : const <Object?>[])
+            .whereType<String>()
+            .where((s) => s.isNotEmpty)
+            .toList();
+
+        final msgRef = messageIdOverride != null &&
+                messageIdOverride.trim().isNotEmpty
+            ? _firestore
+                .collection('conversations')
+                .doc(conversationId)
+                .collection('messages')
+                .doc(messageIdOverride)
+            : _firestore
+                .collection('conversations')
+                .doc(conversationId)
+                .collection('messages')
+                .doc();
+        final convRef = _firestore.collection('conversations').doc(conversationId);
+
+        final unread = <String, Object?>{};
+        for (final id in participantIds) {
+          if (id.isNotEmpty && id != senderId) {
+            unread['unreadCounts.$id'] = FieldValue.increment(1);
+          }
+        }
+
+        final preview = hasE2ee
+            ? 'Зашифрованное сообщение'
+            : _mainChatLastPreviewText(
+                trimmedHtml: trimmed,
+                attachments: attachments,
+              );
+
+        final batch = _firestore.batch();
+        batch.set(msgRef, payload);
+        batch.update(
+          convRef,
+          <String, Object?>{
+            'lastMessageText': preview,
+            'lastMessageTimestamp': nowIso,
+            'lastMessageSenderId': senderId,
+            'lastMessageIsThread': false,
+            ...unread,
+          },
+        );
+        await batch.commit();
+      });
+    } on FirebaseException catch (e, st) {
+      _logger.e(
+        'sendTextMessage failed conversationId=$conversationId senderId=$senderId code=${e.code} message=${e.message}',
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
+    }
+  }
+
+  /// Паритет веб `ChatWindow.handleSendPoll`.
+  Future<void> sendChatPollMessage({
+    required String conversationId,
+    required String senderId,
+    required List<String> participantIds,
+    required ChatPollCreatePayload pollPayload,
+    ReplyContext? replyTo,
+  }) async {
+    final opts = pollPayload.options
+        .map((e) => e.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (pollPayload.question.trim().isEmpty || opts.length < 2) return;
+
+    final pollId = 'chat-poll-${DateTime.now().millisecondsSinceEpoch}';
+    final pollRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('polls')
+        .doc(pollId);
+    final messageRef = _firestore
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
-        .add(payload);
+        .doc();
+
+    Future<void> runStep(String step, Future<void> Function() fn) async {
+      try {
+        await fn();
+      } on TimeoutException catch (_) {
+        _logger.e('sendChatPollMessage timeout at step=$step');
+        throw StateError('poll_send_timeout:$step');
+      } on FirebaseException catch (e, st) {
+        _logger.e(
+          'sendChatPollMessage firebase error at step=$step code=${e.code} message=${e.message}',
+          error: e,
+          stackTrace: st,
+        );
+        throw StateError(
+          'poll_send_firebase:$step:${e.code}:${e.message ?? ''}',
+        );
+      } catch (e, st) {
+        _logger.e(
+          'sendChatPollMessage error at step=$step',
+          error: e,
+          stackTrace: st,
+        );
+        throw StateError('poll_send_error:$step:$e');
+      }
+    }
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final msg = <String, Object?>{
+      'senderId': senderId,
+      'createdAt': nowIso,
+      'text': '<p>📊 Опрос</p>',
+      'chatPollId': pollId,
+    };
+    if (replyTo != null) {
+      msg['replyTo'] = <String, Object?>{
+        'messageId': replyTo.messageId,
+        'senderName': replyTo.senderName,
+        if (replyTo.text != null && replyTo.text!.trim().isNotEmpty)
+          'text': replyTo.text!.trim(),
+        if (replyTo.mediaPreviewUrl != null &&
+            replyTo.mediaPreviewUrl!.trim().isNotEmpty)
+          'mediaPreviewUrl': replyTo.mediaPreviewUrl!.trim(),
+        if (replyTo.mediaType != null && replyTo.mediaType!.trim().isNotEmpty)
+          'mediaType': replyTo.mediaType!.trim(),
+      };
+    }
+
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+    final unread = <String, Object?>{};
+    for (final id in participantIds) {
+      if (id.isNotEmpty && id != senderId) {
+        unread['unreadCounts.$id'] = FieldValue.increment(1);
+      }
+    }
+
+    await runStep('batch_commit', () async {
+      final batch = _firestore.batch();
+      batch.set(pollRef, <String, Object?>{
+        ...pollPayload.pollDocumentFields(pollId, senderId),
+        'createdAt': nowIso,
+      });
+      batch.set(messageRef, msg);
+      batch.update(convRef, <String, Object?>{
+        'lastMessageText': '📊 Опрос',
+        'lastMessageTimestamp': nowIso,
+        'lastMessageSenderId': senderId,
+        'lastMessageIsThread': false,
+        ...unread,
+      });
+      await batch.commit().timeout(const Duration(seconds: 15));
+    });
   }
 
   Map<String, Object?> _locationShareToFirestore(ChatLocationShare s) {
@@ -385,9 +864,7 @@ class ChatRepository {
       if (s.staticMapUrl != null && s.staticMapUrl!.trim().isNotEmpty)
         'staticMapUrl': s.staticMapUrl!.trim(),
       if (s.liveSession != null)
-        'liveSession': <String, Object?>{
-          'expiresAt': s.liveSession!.expiresAt,
-        },
+        'liveSession': <String, Object?>{'expiresAt': s.liveSession!.expiresAt},
     };
   }
 
@@ -401,9 +878,10 @@ class ChatRepository {
     required bool activateUserLiveShare,
     String? userLiveExpiresAt,
   }) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
     final payload = <String, Object?>{
       'senderId': senderId,
-      'createdAt': Timestamp.now(),
+      'createdAt': nowIso,
       'locationShare': _locationShareToFirestore(locationShare),
     };
     if (replyTo != null) {
@@ -426,7 +904,6 @@ class ChatRepository {
         .collection('messages')
         .add(payload);
 
-    final nowIso = DateTime.now().toUtc().toIso8601String();
     final convRef = _firestore.collection('conversations').doc(conversationId);
     final unread = <String, Object?>{};
     for (final id in participantIds) {
@@ -443,17 +920,20 @@ class ChatRepository {
     });
 
     if (activateUserLiveShare) {
-      await _firestore.collection('users').doc(senderId).update(<String, Object?>{
-        'liveLocationShare': <String, Object?>{
-          'active': true,
-          'expiresAt': userLiveExpiresAt,
-          'lat': locationShare.lat,
-          'lng': locationShare.lng,
-          if (locationShare.accuracyM != null) 'accuracyM': locationShare.accuracyM,
-          'updatedAt': nowIso,
-          'startedAt': nowIso,
+      await _firestore.collection('users').doc(senderId).update(
+        <String, Object?>{
+          'liveLocationShare': <String, Object?>{
+            'active': true,
+            'expiresAt': userLiveExpiresAt,
+            'lat': locationShare.lat,
+            'lng': locationShare.lng,
+            if (locationShare.accuracyM != null)
+              'accuracyM': locationShare.accuracyM,
+            'updatedAt': nowIso,
+            'startedAt': nowIso,
+          },
         },
-      });
+      );
     }
     _logger.i('Location share sent in $conversationId');
   }
@@ -467,64 +947,129 @@ class ChatRepository {
     currentUserInfo,
     required ({String name, String? avatar, String? avatarThumb}) otherUserInfo,
   }) async {
-    final indexSnap = await _firestore
-        .collection('userChats')
-        .doc(currentUserId)
-        .get();
-    final ids = indexSnap.exists
-        ? ((indexSnap.data()?['conversationIds'] as List?)
-                  ?.whereType<String>()
-                  .where((s) => s.isNotEmpty)
-                  .toList() ??
-              const <String>[])
-        : const <String>[];
+    String buildDirectChatId(String left, String right) {
+      final ids = <String>[left.trim(), right.trim()]..sort();
+      String part(String v) => '${v.length}:$v';
+      return 'dm_${part(ids[0])}_${part(ids[1])}';
+    }
 
-    for (final convId in ids) {
-      final d = await _firestore.collection('conversations').doc(convId).get();
-      if (!d.exists) continue;
-      final data = d.data();
-      if (data == null) continue;
-      final isGroup = data['isGroup'] == true;
+    bool isDirectForPair(Map<String, dynamic>? data) {
+      if (data == null) return false;
+      if (data['isGroup'] == true) return false;
       final pRaw = data['participantIds'];
       final p = (pRaw is List ? pRaw : const <Object?>[])
           .whereType<String>()
           .where((s) => s.isNotEmpty)
-          .toList();
-      if (!isGroup &&
-          p.length == 2 &&
+          .toList(growable: false);
+      return p.length == 2 &&
           p.contains(currentUserId) &&
-          p.contains(otherUserId)) {
-        return d.id;
-      }
+          p.contains(otherUserId);
     }
 
-    final newRef = _firestore.collection('conversations').doc();
-    await newRef.set(<String, Object?>{
-      'isGroup': false,
-      'participantIds': [currentUserId, otherUserId],
-      'adminIds': const <String>[],
-      'participantInfo': <String, Object?>{
-        currentUserId: <String, Object?>{
-          'name': currentUserInfo.name,
-          if (currentUserInfo.avatar != null) 'avatar': currentUserInfo.avatar,
-          if (currentUserInfo.avatarThumb != null)
-            'avatarThumb': currentUserInfo.avatarThumb,
+    if (currentUserId.trim().isEmpty || otherUserId.trim().isEmpty) {
+      throw ArgumentError('createOrOpenDirectChat requires non-empty user ids');
+    }
+    if (currentUserId == otherUserId) {
+      throw ArgumentError('createOrOpenDirectChat requires distinct users');
+    }
+
+    final canonicalId = buildDirectChatId(currentUserId, otherUserId);
+    final canonicalRef = _firestore
+        .collection('conversations')
+        .doc(canonicalId);
+    final canonicalSnap = await canonicalRef.get();
+    if (canonicalSnap.exists && isDirectForPair(canonicalSnap.data())) {
+      return canonicalSnap.id;
+    }
+
+    int tsScore(Object? raw) {
+      if (raw is Timestamp) return raw.toDate().millisecondsSinceEpoch;
+      if (raw is String) {
+        return DateTime.tryParse(raw)?.millisecondsSinceEpoch ?? 0;
+      }
+      return 0;
+    }
+
+    try {
+      final q = await _firestore
+          .collection('conversations')
+          .where('participantIds', arrayContains: currentUserId)
+          .get();
+      DocumentSnapshot<Map<String, dynamic>>? best;
+      var bestTs = -1;
+      for (final d in q.docs) {
+        final data = d.data();
+        if (!isDirectForPair(data)) continue;
+        final ts = tsScore(data['lastMessageTimestamp']);
+        if (best == null || ts > bestTs) {
+          best = d;
+          bestTs = ts;
+        }
+      }
+      if (best != null) return best.id;
+    } on FirebaseException catch (e, st) {
+      // На некоторых правилах list-query по conversations может дать permission-denied.
+      // Не блокируем открытие чата: ниже идем через детерминированный id + transaction.
+      _logger.w(
+        'createOrOpenDirectChat: fallback list-query denied, continue with canonical id',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(canonicalRef);
+      if (snap.exists && isDirectForPair(snap.data())) return;
+
+      tx.set(canonicalRef, <String, Object?>{
+        'isGroup': false,
+        'participantIds': [currentUserId, otherUserId],
+        'adminIds': const <String>[],
+        'participantInfo': <String, Object?>{
+          currentUserId: <String, Object?>{
+            'name': currentUserInfo.name,
+            if (currentUserInfo.avatar != null)
+              'avatar': currentUserInfo.avatar,
+            if (currentUserInfo.avatarThumb != null)
+              'avatarThumb': currentUserInfo.avatarThumb,
+          },
+          otherUserId: <String, Object?>{
+            'name': otherUserInfo.name,
+            if (otherUserInfo.avatar != null) 'avatar': otherUserInfo.avatar,
+            if (otherUserInfo.avatarThumb != null)
+              'avatarThumb': otherUserInfo.avatarThumb,
+          },
         },
-        otherUserId: <String, Object?>{
-          'name': otherUserInfo.name,
-          if (otherUserInfo.avatar != null) 'avatar': otherUserInfo.avatar,
-          if (otherUserInfo.avatarThumb != null)
-            'avatarThumb': otherUserInfo.avatarThumb,
+        'lastMessageTimestamp': nowIso,
+        'lastMessageText': 'Чат создан',
+        'unreadCounts': <String, Object?>{currentUserId: 0, otherUserId: 0},
+        'unreadThreadCounts': <String, Object?>{
+          currentUserId: 0,
+          otherUserId: 0,
         },
-      },
-      'lastMessageTimestamp': DateTime.now().toUtc().toIso8601String(),
-      'lastMessageText': 'Чат создан',
-      'unreadCounts': <String, Object?>{currentUserId: 0, otherUserId: 0},
-      'unreadThreadCounts': <String, Object?>{currentUserId: 0, otherUserId: 0},
-      'typing': <String, Object?>{},
+        // При повторном создании чата после удаления скрываем исторические
+        // "сиротские" сообщения (подколлекции, оставшиеся без parent-документа).
+        'clearedAt': <String, Object?>{
+          currentUserId: nowIso,
+          otherUserId: nowIso,
+        },
+        'typing': <String, Object?>{},
+      });
     });
-    _logger.i('Created direct chat: ${newRef.id}');
-    return newRef.id;
+
+    // Ускоряем отображение в собственном списке чатов, не ожидая Cloud Function.
+    try {
+      await _firestore.collection('userChats').doc(currentUserId).set(
+        <String, Object?>{
+          'conversationIds': FieldValue.arrayUnion(<String>[canonicalId]),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (_) {}
+
+    _logger.i('Ensured direct chat: $canonicalId');
+    return canonicalId;
   }
 
   /// Ensure personal saved-messages chat exists for current user and return its id.
@@ -533,6 +1078,7 @@ class ChatRepository {
     required ({String name, String? avatar, String? avatarThumb})
     currentUserInfo,
   }) async {
+    final canonicalId = 'saved_${currentUserId.length}:${currentUserId.trim()}';
     final indexSnap = await _firestore
         .collection('userChats')
         .doc(currentUserId)
@@ -544,6 +1090,14 @@ class ChatRepository {
                   .toList() ??
               const <String>[])
         : const <String>[];
+
+    final savedCandidates = <({String id, int ts})>[];
+    var canonicalExists = false;
+    final seenCandidateIds = <String>{};
+    void addCandidate(String id, int ts) {
+      if (!seenCandidateIds.add(id)) return;
+      savedCandidates.add((id: id, ts: ts));
+    }
 
     for (final convId in ids) {
       final d = await _firestore.collection('conversations').doc(convId).get();
@@ -557,32 +1111,110 @@ class ChatRepository {
           .where((s) => s.isNotEmpty)
           .toList();
       if (!isGroup && p.length == 1 && p.first == currentUserId) {
-        return d.id;
+        final rawTs = data['lastMessageTimestamp'];
+        final ts = rawTs is String
+            ? DateTime.tryParse(rawTs)?.millisecondsSinceEpoch ?? 0
+            : 0;
+        addCandidate(d.id, ts);
+        if (d.id == canonicalId) canonicalExists = true;
       }
     }
 
-    final newRef = _firestore.collection('conversations').doc();
-    await newRef.set(<String, Object?>{
-      'isGroup': false,
-      'name': 'Избранное',
-      'participantIds': <String>[currentUserId],
-      'adminIds': const <String>[],
-      'participantInfo': <String, Object?>{
-        currentUserId: <String, Object?>{
-          'name': currentUserInfo.name,
-          if (currentUserInfo.avatar != null) 'avatar': currentUserInfo.avatar,
-          if (currentUserInfo.avatarThumb != null)
-            'avatarThumb': currentUserInfo.avatarThumb,
+    // Fallback: если userChats неполный/устаревший, ищем saved-чат напрямую
+    // по conversations (аналог web-паритета createOrOpenDirectChat).
+    try {
+      final q = await _firestore
+          .collection('conversations')
+          .where('participantIds', arrayContains: currentUserId)
+          .get();
+      for (final d in q.docs) {
+        final data = d.data();
+        final isGroup = data['isGroup'] == true;
+        final pRaw = data['participantIds'];
+        final p = (pRaw is List ? pRaw : const <Object?>[])
+            .whereType<String>()
+            .where((s) => s.isNotEmpty)
+            .toList();
+        if (!isGroup && p.length == 1 && p.first == currentUserId) {
+          final rawTs = data['lastMessageTimestamp'];
+          final ts = rawTs is String
+              ? DateTime.tryParse(rawTs)?.millisecondsSinceEpoch ?? 0
+              : 0;
+          addCandidate(d.id, ts);
+          if (d.id == canonicalId) canonicalExists = true;
+        }
+      }
+    } on FirebaseException catch (e, st) {
+      _logger.w(
+        'ensureSavedMessagesChat: fallback list-query denied, continue with known candidates',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    savedCandidates.sort((a, b) => b.ts.compareTo(a.ts));
+    var ensuredId = canonicalExists
+        ? canonicalId
+        : (savedCandidates.isNotEmpty ? savedCandidates.first.id : null);
+
+    if (ensuredId == null) {
+      final canonicalRef = _firestore
+          .collection('conversations')
+          .doc(canonicalId);
+      await _firestore.runTransaction((tx) async {
+        final snap = await tx.get(canonicalRef);
+        if (snap.exists) return;
+        tx.set(canonicalRef, <String, Object?>{
+          'isGroup': false,
+          'name': 'Избранное',
+          'participantIds': <String>[currentUserId],
+          'adminIds': const <String>[],
+          'participantInfo': <String, Object?>{
+            currentUserId: <String, Object?>{
+              'name': currentUserInfo.name,
+              if (currentUserInfo.avatar != null)
+                'avatar': currentUserInfo.avatar,
+              if (currentUserInfo.avatarThumb != null)
+                'avatarThumb': currentUserInfo.avatarThumb,
+            },
+          },
+          'lastMessageTimestamp': DateTime.now().toUtc().toIso8601String(),
+          'lastMessageText': '',
+          'unreadCounts': <String, Object?>{currentUserId: 0},
+          'unreadThreadCounts': <String, Object?>{currentUserId: 0},
+          'typing': <String, Object?>{},
+        });
+      });
+      ensuredId = canonicalId;
+    }
+
+    final duplicateIds = savedCandidates
+        .map((e) => e.id)
+        .where((id) => id != ensuredId)
+        .toList(growable: false);
+
+    if (duplicateIds.isNotEmpty) {
+      try {
+        await _firestore.collection('userChats').doc(currentUserId).set(
+          <String, Object?>{
+            'conversationIds': FieldValue.arrayRemove(duplicateIds),
+          },
+          SetOptions(merge: true),
+        );
+      } catch (_) {}
+    }
+
+    try {
+      await _firestore.collection('userChats').doc(currentUserId).set(
+        <String, Object?>{
+          'conversationIds': FieldValue.arrayUnion(<String>[ensuredId]),
         },
-      },
-      'lastMessageTimestamp': DateTime.now().toUtc().toIso8601String(),
-      'lastMessageText': '',
-      'unreadCounts': <String, Object?>{currentUserId: 0},
-      'unreadThreadCounts': <String, Object?>{currentUserId: 0},
-      'typing': <String, Object?>{},
-    });
-    _logger.i('Created saved messages chat: ${newRef.id}');
-    return newRef.id;
+        SetOptions(merge: true),
+      );
+    } catch (_) {}
+
+    _logger.i('Ensured saved messages chat: $ensuredId');
+    return ensuredId;
   }
 
   String _createdAtComparable(Object? raw) {
@@ -600,15 +1232,19 @@ class ChatRepository {
         .toList();
   }
 
-  /// Plain-text edit (web parity for non-E2E messages).
+  /// Редактирование текста сообщения. В E2EE-чате принимает готовый envelope
+  /// (см. [sendTextMessage]): вместо `text` записывается `e2ee.*`, старый
+  /// plaintext удаляется (через FieldValue.delete).
   Future<void> updateMessageText({
     required String conversationId,
     required String messageId,
     required String text,
     List<ChatAttachment>? attachments,
+    Map<String, Object?>? e2eeEnvelope,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    final hasE2ee = e2eeEnvelope != null;
+    if (trimmed.isEmpty && !hasE2ee) return;
     final msgRef = _firestore
         .collection('conversations')
         .doc(conversationId)
@@ -619,8 +1255,42 @@ class ChatRepository {
     final msgData = msgSnap.data();
     if (msgData == null) return;
 
+    // Phase 4: если сообщение E2EE — должен прийти новый envelope. Plaintext
+    // edit поверх зашифрованного сообщения по-прежнему запрещён.
+    final e2eeRaw = msgData['e2ee'];
+    final msgHasCiphertext = e2eeRaw is Map &&
+        e2eeRaw['ciphertext'] is String &&
+        (e2eeRaw['ciphertext'] as String).isNotEmpty;
+    if (msgHasCiphertext && !hasE2ee) {
+      throw const E2eeNotSupportedOnMobileException(
+        'Encrypted message can only be edited with a new encrypted envelope',
+      );
+    }
+    // Для plaintext-edit сохраняем старый guard: в E2EE-чате plaintext
+    // запрещён. Если envelope есть — это валидный send-path.
+    if (!hasE2ee) {
+      final convSnapGuard = await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .get();
+      final convGuardData = convSnapGuard.data();
+      if (convGuardData != null && _isE2eeActive(convGuardData)) {
+        throw const E2eeNotSupportedOnMobileException(
+          'Cannot edit plaintext message in an E2EE conversation',
+        );
+      }
+    }
+
     final now = DateTime.now().toUtc().toIso8601String();
-    final update = <String, Object?>{'text': trimmed, 'updatedAt': now};
+    final update = <String, Object?>{'updatedAt': now};
+    if (hasE2ee) {
+      update['e2ee'] = e2eeEnvelope;
+      // Удаляем старый plaintext, если был: иначе клиент мог бы дешифровать
+      // и одновременно видеть старое содержимое.
+      update['text'] = FieldValue.delete();
+    } else {
+      update['text'] = trimmed;
+    }
     final att = attachments ?? _attachmentsFromRaw(msgData['attachments']);
     update['attachments'] = att.map((a) => a.toFirestoreMap()).toList();
 
@@ -634,25 +1304,289 @@ class ChatRepository {
     final createdKey = _createdAtComparable(msgData['createdAt']);
     final lastKey = lastTs is String ? lastTs : '';
     if (lastKey.isNotEmpty && createdKey.isNotEmpty && lastKey == createdKey) {
-      var plain = trimmed
-          .replaceAll(RegExp(r'<[^>]*>'), '')
-          .replaceAll('&nbsp;', ' ')
-          .trim();
-      if (plain.length > 100) plain = plain.substring(0, 100);
-      await convRef.update(<String, Object?>{'lastMessageText': plain});
+      final String preview;
+      if (hasE2ee) {
+        preview = 'Зашифрованное сообщение';
+      } else {
+        var plain = trimmed
+            .replaceAll(RegExp(r'<[^>]*>'), '')
+            .replaceAll('&nbsp;', ' ')
+            .trim();
+        if (plain.length > 100) plain = plain.substring(0, 100);
+        preview = plain;
+      }
+      await convRef.update(<String, Object?>{'lastMessageText': preview});
     }
+  }
+
+  Future<void> clearConversationForMe({
+    required String conversationId,
+    required String userId,
+  }) async {
+    if (conversationId.trim().isEmpty || userId.trim().isEmpty) return;
+    final ref = _firestore.collection('conversations').doc(conversationId);
+    final now = DateTime.now().toUtc().toIso8601String();
+    await ref.update(<String, Object?>{
+      'clearedAt.$userId': now,
+      'unreadCounts.$userId': 0,
+      'unreadThreadCounts.$userId': 0,
+    });
+  }
+
+  String _readFlightKey({
+    required String conversationId,
+    required String messageId,
+    bool isThread = false,
+    String? threadParentMessageId,
+  }) {
+    final parentPart = isThread ? (threadParentMessageId ?? '') : '';
+    return '$conversationId|$parentPart|$messageId';
+  }
+
+  /// Web parity: отметить сообщения прочитанными и декрементнуть unread-счётчик.
+  Future<void> markMessagesAsRead({
+    required String conversationId,
+    required String userId,
+    required List<String> messageIds,
+    bool isThread = false,
+    String? threadParentMessageId,
+  }) async {
+    final convId = conversationId.trim();
+    final uid = userId.trim();
+    if (convId.isEmpty || uid.isEmpty || messageIds.isEmpty) return;
+
+    final parentId = threadParentMessageId?.trim();
+    if (isThread && (parentId == null || parentId.isEmpty)) return;
+
+    final normalized = messageIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalized.isEmpty) return;
+
+    final filtered = <String>[];
+    final inflightKeys = <String>[];
+    for (final id in normalized) {
+      final key = _readFlightKey(
+        conversationId: convId,
+        messageId: id,
+        isThread: isThread,
+        threadParentMessageId: parentId,
+      );
+      if (_inFlightReadKeys.contains(key)) continue;
+      _inFlightReadKeys.add(key);
+      inflightKeys.add(key);
+      filtered.add(id);
+    }
+    if (filtered.isEmpty) return;
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    try {
+      await _withAuthRefreshRetry(() async {
+        final batch = _firestore.batch();
+        for (final id in filtered) {
+          final ref = _messageDocRef(
+            conversationId: convId,
+            messageId: id,
+            threadParentMessageId: isThread ? parentId : null,
+          );
+          batch.update(ref, <String, Object?>{'readAt': now});
+        }
+        final convRef = _firestore.collection('conversations').doc(convId);
+        final counterField = isThread
+            ? 'unreadThreadCounts.$uid'
+            : 'unreadCounts.$uid';
+        batch.update(convRef, <String, Object?>{
+          counterField: FieldValue.increment(-filtered.length),
+        });
+        if (isThread && parentId != null && parentId.isNotEmpty) {
+          final parentRef = _firestore
+              .collection('conversations')
+              .doc(convId)
+              .collection('messages')
+              .doc(parentId);
+          batch.update(parentRef, <String, Object?>{
+            'unreadThreadCounts.$uid': FieldValue.increment(-filtered.length),
+          });
+        }
+        await batch.commit();
+      });
+      if (_inFlightReadKeys.length > 12000) {
+        _inFlightReadKeys.clear();
+      }
+    } catch (_) {
+      for (final key in inflightKeys) {
+        _inFlightReadKeys.remove(key);
+      }
+      rethrow;
+    }
+  }
+
+  /// Web parity: пакетная отметка read, чтобы не переполнить batch.
+  Future<void> markManyMessagesAsRead({
+    required String conversationId,
+    required String userId,
+    required List<String> messageIds,
+    bool isThread = false,
+    String? threadParentMessageId,
+  }) async {
+    const chunkSize = 200;
+    if (messageIds.isEmpty) return;
+    for (var i = 0; i < messageIds.length; i += chunkSize) {
+      final chunk = messageIds.skip(i).take(chunkSize).toList(growable: false);
+      await markMessagesAsRead(
+        conversationId: conversationId,
+        userId: userId,
+        messageIds: chunk,
+        isThread: isThread,
+        threadParentMessageId: threadParentMessageId,
+      );
+    }
+  }
+
+  /// Web parity: сброс unread-счётчиков разговора для пользователя.
+  Future<void> markConversationAsRead({
+    required String conversationId,
+    required String userId,
+  }) async {
+    final convId = conversationId.trim();
+    final uid = userId.trim();
+    if (convId.isEmpty || uid.isEmpty) return;
+    final convRef = _firestore.collection('conversations').doc(convId);
+    await _withAuthRefreshRetry(() async {
+      await convRef.update(<String, Object?>{
+        'unreadCounts.$uid': 0,
+        'unreadThreadCounts.$uid': 0,
+      });
+    });
+  }
+
+  Future<void> markReactionSeen({
+    required String conversationId,
+    required String userId,
+    String? seenAtIso,
+  }) async {
+    final convId = conversationId.trim();
+    final uid = userId.trim();
+    if (convId.isEmpty || uid.isEmpty) return;
+    final now = (seenAtIso ?? '').trim().isEmpty
+        ? DateTime.now().toUtc().toIso8601String()
+        : seenAtIso!.trim();
+    final convRef = _firestore.collection('conversations').doc(convId);
+    await _withAuthRefreshRetry(() async {
+      await convRef.update(<String, Object?>{'lastReactionSeenAt.$uid': now});
+    });
+  }
+
+  Future<void> deleteDirectConversationForAll({
+    required String conversationId,
+    required String currentUserId,
+  }) async {
+    if (conversationId.trim().isEmpty) return;
+    final ref = _firestore.collection('conversations').doc(conversationId);
+    final snap = await ref.get();
+    final data = snap.data();
+    if (data == null) return;
+    final conversation = Conversation.fromJson(data);
+    if (conversation.isGroup) {
+      throw StateError(
+        'Group conversations cannot be deleted from this action.',
+      );
+    }
+
+    final participantIds = conversation.participantIds
+        .where((id) => id.trim().isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    await ref.delete();
+
+    for (final uid in participantIds) {
+      try {
+        await _firestore.collection('userChats').doc(uid).set(<String, Object?>{
+          'conversationIds': FieldValue.arrayRemove(<String>[conversationId]),
+        }, SetOptions(merge: true));
+      } catch (e, st) {
+        _logger.w(
+          'deleteDirectConversationForAll: userChats arrayRemove failed for $uid',
+          error: e,
+          stackTrace: st,
+        );
+      }
+    }
+
+    if (!participantIds.contains(currentUserId)) {
+      try {
+        await _firestore.collection('userChats').doc(currentUserId).set(
+          <String, Object?>{
+            'conversationIds': FieldValue.arrayRemove(<String>[conversationId]),
+          },
+          SetOptions(merge: true),
+        );
+      } catch (_) {}
+    }
+  }
+
+  /// Удалить одно вложение из сообщения. Если вложений не осталось и текста нет — soft delete.
+  Future<void> removeMessageAttachment({
+    required String conversationId,
+    required String messageId,
+    required String attachmentUrl,
+    String? threadParentMessageId,
+  }) async {
+    final target = attachmentUrl.trim();
+    if (target.isEmpty) return;
+    final msgRef = _messageDocRef(
+      conversationId: conversationId,
+      messageId: messageId,
+      threadParentMessageId: threadParentMessageId,
+    );
+    final msgSnap = await msgRef.get();
+    if (!msgSnap.exists) return;
+    final msgData = msgSnap.data();
+    if (msgData == null) return;
+
+    final atts = _attachmentsFromRaw(msgData['attachments']);
+    final next = atts
+        .where((a) => a.url.trim() != target)
+        .toList(growable: false);
+    if (next.length == atts.length) return;
+
+    final textRaw = msgData['text'];
+    final plain = textRaw is String
+        ? textRaw
+              .replaceAll(RegExp(r'<[^>]*>'), '')
+              .replaceAll('&nbsp;', ' ')
+              .trim()
+        : '';
+
+    if (next.isEmpty && plain.isEmpty) {
+      await softDeleteMessage(
+        conversationId: conversationId,
+        messageId: messageId,
+        threadParentMessageId: threadParentMessageId,
+      );
+      return;
+    }
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    await msgRef.update(<String, Object?>{
+      'attachments': next.map((a) => a.toFirestoreMap()).toList(),
+      'updatedAt': now,
+    });
   }
 
   /// Soft delete (web: `isDeleted: true` + optional unread fix).
   Future<void> softDeleteMessage({
     required String conversationId,
     required String messageId,
+    String? threadParentMessageId,
   }) async {
-    final msgRef = _firestore
-        .collection('conversations')
-        .doc(conversationId)
-        .collection('messages')
-        .doc(messageId);
+    final msgRef = _messageDocRef(
+      conversationId: conversationId,
+      messageId: messageId,
+      threadParentMessageId: threadParentMessageId,
+    );
     final msgSnap = await msgRef.get();
     if (!msgSnap.exists) return;
     final msgData = msgSnap.data();
@@ -716,7 +1650,8 @@ class ChatRepository {
     final data = snap.data();
     if (data == null) return;
 
-    final parsed = parseReactions(data['reactions']) ?? <String, List<ReactionEntry>>{};
+    final parsed =
+        parseReactions(data['reactions']) ?? <String, List<ReactionEntry>>{};
     final reactions = <String, List<ReactionEntry>>{
       for (final e in parsed.entries) e.key: List<ReactionEntry>.from(e.value),
     };
@@ -732,7 +1667,10 @@ class ChatRepository {
         reactions[emoji] = list;
       }
     } else {
-      reactions[emoji] = [...list, ReactionEntry(userId: userId, timestamp: now)];
+      reactions[emoji] = [
+        ...list,
+        ReactionEntry(userId: userId, timestamp: now),
+      ];
       added = true;
     }
 
@@ -742,7 +1680,8 @@ class ChatRepository {
           .map(
             (r) => <String, dynamic>{
               'userId': r.userId,
-              if (r.timestamp != null && r.timestamp!.isNotEmpty) 'timestamp': r.timestamp,
+              if (r.timestamp != null && r.timestamp!.isNotEmpty)
+                'timestamp': r.timestamp,
             },
           )
           .toList();
@@ -766,6 +1705,44 @@ class ChatRepository {
         _logger.w('conv lastReaction update failed', error: e, stackTrace: st);
       }
     }
+  }
+
+  /// Публикует одноразовое событие emoji-burst для синхронизации эффекта между клиентами.
+  Future<void> emitEmojiBurstEvent({
+    required String conversationId,
+    required String messageId,
+    required String senderId,
+    required String emoji,
+    required String eventId,
+    String? threadParentMessageId,
+  }) async {
+    final convId = conversationId.trim();
+    final msgId = messageId.trim();
+    final by = senderId.trim();
+    final token = emoji.trim();
+    final id = eventId.trim();
+    if (convId.isEmpty ||
+        msgId.isEmpty ||
+        by.isEmpty ||
+        token.isEmpty ||
+        id.isEmpty) {
+      return;
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    final burst = ChatEmojiBurstEvent(
+      eventId: id,
+      emoji: token,
+      by: by,
+      at: now,
+    ).toFirestoreMap();
+    final msgRef = _messageDocRef(
+      conversationId: convId,
+      messageId: msgId,
+      threadParentMessageId: threadParentMessageId,
+    );
+    await _withAuthRefreshRetry(() async {
+      await msgRef.update(<String, Object?>{'emojiBurst': burst});
+    });
   }
 
   /// Replace `pinnedMessages` and clear legacy `pinnedMessage` (web parity).
@@ -796,76 +1773,90 @@ class ChatRepository {
   }) async {
     if (targetConversationIds.isEmpty || sourceMessages.isEmpty) return;
     final nowIso = DateTime.now().toUtc().toIso8601String();
+    var sentToAny = false;
 
     for (final convId in targetConversationIds) {
-      final convRef = _firestore.collection('conversations').doc(convId);
-      final convSnap = await convRef.get();
-      if (!convSnap.exists) continue;
-      final convData = convSnap.data();
-      if (convData == null) continue;
-      final pRaw = convData['participantIds'];
-      final participantIds = (pRaw is List ? pRaw : const <Object?>[])
-          .whereType<String>()
-          .where((s) => s.isNotEmpty)
-          .toList();
-      if (!participantIds.contains(currentUserId)) continue;
+      try {
+        final convRef = _firestore.collection('conversations').doc(convId);
+        final convSnap = await convRef.get();
+        if (!convSnap.exists) continue;
+        final convData = convSnap.data();
+        if (convData == null) continue;
+        final pRaw = convData['participantIds'];
+        final participantIds = (pRaw is List ? pRaw : const <Object?>[])
+            .whereType<String>()
+            .where((s) => s.isNotEmpty)
+            .toList();
+        if (!participantIds.contains(currentUserId)) continue;
 
-      final batch = _firestore.batch();
-      for (final m in sourceMessages) {
-        if (m.isDeleted) continue;
-        final newRef = convRef.collection('messages').doc();
-        final fromName = senderIdToDisplayName[m.senderId] ?? 'Неизвестный';
-        final payload = <String, Object?>{
-          'senderId': currentUserId,
-          'createdAt': Timestamp.now(),
-          'isDeleted': false,
-          'readAt': null,
-          'forwardedFrom': <String, Object?>{'name': fromName},
-          if (m.text != null && m.text!.trim().isNotEmpty)
-            'text': m.text!.trim(),
-          if (m.attachments.isNotEmpty)
-            'attachments': m.attachments
-                .map((a) => a.toFirestoreMap())
-                .toList(),
-        };
-        batch.set(newRef, payload);
-      }
-
-      var lastMessageText = 'Пересланное сообщение';
-      final active = sourceMessages.where((x) => !x.isDeleted).toList();
-      if (active.length > 1) {
-        lastMessageText = 'Переслано ${active.length} сообщений';
-      } else if (active.isNotEmpty) {
-        final one = active.first;
-        if (one.text != null && one.text!.trim().isNotEmpty) {
-          var plain = one.text!
-              .replaceAll(RegExp(r'<[^>]*>'), '')
-              .replaceAll('&nbsp;', ' ')
-              .trim();
-          if (plain.length > 50) plain = '${plain.substring(0, 50)}...';
-          lastMessageText = 'Переслано: $plain';
-        } else if (one.attachments.isNotEmpty) {
-          lastMessageText = 'Пересланное вложение';
+        final batch = _firestore.batch();
+        for (final m in sourceMessages) {
+          if (m.isDeleted) continue;
+          final newRef = convRef.collection('messages').doc();
+          final fromName = senderIdToDisplayName[m.senderId] ?? 'Неизвестный';
+          final payload = <String, Object?>{
+            'senderId': currentUserId,
+            'createdAt': nowIso,
+            'isDeleted': false,
+            'readAt': null,
+            'forwardedFrom': <String, Object?>{'name': fromName},
+            if (m.text != null && m.text!.trim().isNotEmpty)
+              'text': m.text!.trim(),
+            if (m.attachments.isNotEmpty)
+              'attachments': m.attachments
+                  .map((a) => a.toFirestoreMap())
+                  .toList(),
+          };
+          batch.set(newRef, payload);
         }
-      }
 
-      final unread = <String, Object?>{};
-      final n = active.length;
-      for (final id in participantIds) {
-        if (id != currentUserId) {
-          unread['unreadCounts.$id'] = FieldValue.increment(n);
+        var lastMessageText = 'Пересланное сообщение';
+        final active = sourceMessages.where((x) => !x.isDeleted).toList();
+        if (active.length > 1) {
+          lastMessageText = 'Переслано ${active.length} сообщений';
+        } else if (active.isNotEmpty) {
+          final one = active.first;
+          if (one.text != null && one.text!.trim().isNotEmpty) {
+            var plain = one.text!
+                .replaceAll(RegExp(r'<[^>]*>'), '')
+                .replaceAll('&nbsp;', ' ')
+                .trim();
+            if (plain.length > 50) plain = '${plain.substring(0, 50)}...';
+            lastMessageText = 'Переслано: $plain';
+          } else if (one.attachments.isNotEmpty) {
+            lastMessageText = 'Пересланное вложение';
+          }
         }
+
+        final unread = <String, Object?>{};
+        final n = active.length;
+        for (final id in participantIds) {
+          if (id != currentUserId) {
+            unread['unreadCounts.$id'] = FieldValue.increment(n);
+          }
+        }
+
+        batch.update(convRef, <String, Object?>{
+          'lastMessageText': lastMessageText,
+          'lastMessageTimestamp': nowIso,
+          'lastMessageSenderId': currentUserId,
+          'lastMessageIsThread': false,
+          ...unread,
+        });
+
+        await batch.commit();
+        sentToAny = true;
+      } on FirebaseException catch (e, st) {
+        _logger.w(
+          'forwardMessagesToChats skip conv=$convId due FirebaseException',
+          error: e,
+          stackTrace: st,
+        );
       }
+    }
 
-      batch.update(convRef, <String, Object?>{
-        'lastMessageText': lastMessageText,
-        'lastMessageTimestamp': nowIso,
-        'lastMessageSenderId': currentUserId,
-        'lastMessageIsThread': false,
-        ...unread,
-      });
-
-      await batch.commit();
+    if (!sentToAny) {
+      throw StateError('forward_failed_permission_or_membership');
     }
   }
 
@@ -914,14 +1905,21 @@ class ChatRepository {
     try {
       app = Firebase.app();
     } catch (e, st) {
-      _logger.w('checkGroupInvitesAllowed: no Firebase app', error: e, stackTrace: st);
+      _logger.w(
+        'checkGroupInvitesAllowed: no Firebase app',
+        error: e,
+        stackTrace: st,
+      );
       throw StateError(
         'Firebase не инициализирован. Перезапустите приложение или проверьте '
         'настройки FlutterFire (нужен нативный appId, не :web:).',
       );
     }
 
-    final functions = FirebaseFunctions.instanceFor(app: app, region: 'us-central1');
+    final functions = FirebaseFunctions.instanceFor(
+      app: app,
+      region: 'us-central1',
+    );
     final callable = functions.httpsCallable(
       'checkGroupInvitesAllowed',
       options: HttpsCallableOptions(timeout: const Duration(seconds: 40)),
@@ -962,6 +1960,36 @@ class ChatRepository {
     }
   }
 
+  Future<void> retryChatMediaTranscode({
+    required String conversationId,
+    required String messageId,
+    bool isThread = false,
+    String? parentMessageId,
+  }) async {
+    final convId = conversationId.trim();
+    final msgId = messageId.trim();
+    final parentId = (parentMessageId ?? '').trim();
+    if (convId.isEmpty || msgId.isEmpty) return;
+    if (isThread && parentId.isEmpty) {
+      throw StateError('Для thread retry требуется parentMessageId.');
+    }
+    final app = Firebase.app();
+    final functions = FirebaseFunctions.instanceFor(
+      app: app,
+      region: 'us-central1',
+    );
+    final callable = functions.httpsCallable(
+      'retryChatMediaTranscode',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 60)),
+    );
+    await callable.call(<String, dynamic>{
+      'conversationId': convId,
+      'messageId': msgId,
+      if (isThread) 'isThread': true,
+      if (isThread) 'parentMessageId': parentId,
+    });
+  }
+
   /// Новая групповая беседа (web `GroupChatFormPanel`, только создание).
   ///
   /// [groupPhotoJpeg]: после [set] документа беседы загружается в `group-avatars/{id}/`
@@ -981,7 +2009,9 @@ class ChatRepository {
 
     final extra = additionalParticipants.where((e) => e.id.isNotEmpty).toList();
     if (extra.any((e) => e.id == currentUserId)) {
-      throw ArgumentError('additionalParticipants must not contain current user');
+      throw ArgumentError(
+        'additionalParticipants must not contain current user',
+      );
     }
 
     final extraIds = extra.map((e) => e.id).toList();
@@ -1002,9 +2032,7 @@ class ChatRepository {
 
     final participantInfo = <String, Object?>{
       for (final id in participantIds)
-        id: <String, Object?>{
-          'name': nameById[id] ?? 'Неизвестный',
-        },
+        id: <String, Object?>{'name': nameById[id] ?? 'Неизвестный'},
     };
 
     final unreadCounts = <String, Object?>{
@@ -1014,21 +2042,25 @@ class ChatRepository {
       for (final id in participantIds) id: 0,
     };
 
-    await _firestore.collection('conversations').doc(conversationId).set(<String, Object?>{
-      'isGroup': true,
-      'name': trimmedName,
-      if (description != null && description.trim().isNotEmpty) 'description': description.trim(),
-      'photoUrl': _groupAvatarPlaceholderUrl,
-      'participantIds': participantIds,
-      'adminIds': const <String>[],
-      'participantInfo': participantInfo,
-      'createdByUserId': currentUserId,
-      'lastMessageTimestamp': DateTime.now().toUtc().toIso8601String(),
-      'lastMessageText': '$currentUserName создал(а) группу',
-      'unreadCounts': unreadCounts,
-      'unreadThreadCounts': unreadThreadCounts,
-      'typing': <String, Object?>{},
-    });
+    await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .set(<String, Object?>{
+          'isGroup': true,
+          'name': trimmedName,
+          if (description != null && description.trim().isNotEmpty)
+            'description': description.trim(),
+          'photoUrl': _groupAvatarPlaceholderUrl,
+          'participantIds': participantIds,
+          'adminIds': const <String>[],
+          'participantInfo': participantInfo,
+          'createdByUserId': currentUserId,
+          'lastMessageTimestamp': DateTime.now().toUtc().toIso8601String(),
+          'lastMessageText': '$currentUserName создал(а) группу',
+          'unreadCounts': unreadCounts,
+          'unreadThreadCounts': unreadThreadCounts,
+          'typing': <String, Object?>{},
+        });
 
     final photo = groupPhotoJpeg;
     if (photo != null && photo.isNotEmpty) {
@@ -1036,14 +2068,11 @@ class ChatRepository {
         final objectPath =
             'group-avatars/$conversationId/${DateTime.now().millisecondsSinceEpoch}_group.jpg';
         final ref = _storage.ref(objectPath);
-        await ref.putData(
-          photo,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
+        await ref.putData(photo, SettableMetadata(contentType: 'image/jpeg'));
         final url = await ref.getDownloadURL();
-        await _firestore.collection('conversations').doc(conversationId).update(<String, Object?>{
-          'photoUrl': url,
-        });
+        await _firestore.collection('conversations').doc(conversationId).update(
+          <String, Object?>{'photoUrl': url},
+        );
       } catch (e, st) {
         _logger.w(
           'Group avatar upload failed, placeholder kept',
@@ -1068,11 +2097,13 @@ class ChatRepository {
       return 'Участник';
     }
 
-    return denied.map((d) {
-      final n = nameFor(d.uid);
-      return d.reason == 'none'
-          ? '$n не принимает приглашения в группы'
-          : '$n разрешает групповые приглашения только от людей из своих контактов';
-    }).join(' ');
+    return denied
+        .map((d) {
+          final n = nameFor(d.uid);
+          return d.reason == 'none'
+              ? '$n не принимает приглашения в группы'
+              : '$n разрешает групповые приглашения только от людей из своих контактов';
+        })
+        .join(' ');
   }
 }

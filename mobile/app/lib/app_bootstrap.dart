@@ -8,6 +8,11 @@ final logger = Logger();
 
 /// Application bootstrap (Firebase must finish before [runApp]).
 Future<void> bootstrap() async {
+  // If native iOS configured Firebase early (AppDelegate), avoid double init.
+  if (Firebase.apps.isNotEmpty) {
+    return;
+  }
+
   // Prevent native Firebase from crashing the process when options are clearly
   // not meant for this platform (e.g. web appId on macOS/iOS/Android).
   if (!kIsWeb) {

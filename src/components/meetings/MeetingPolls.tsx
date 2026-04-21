@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
+import { countVotesForOption, normalizeUserVote, userHasVoted, userSelectedOption } from '@/lib/chat-poll-votes';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -173,9 +174,9 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
             </div>
           ) : (
             polls?.map(poll => {
-              const votes = poll.votes || {};
+              const votes = (poll.votes || {}) as Record<string, unknown>;
               const totalVotes = Object.keys(votes).length;
-              const hasVoted = votes[currentUser.id] !== undefined;
+              const hasVoted = userHasVoted(votes, currentUser.id);
               const isEnded = poll.status === 'ended';
               const isDraft = poll.status === 'draft';
               const isExpanded = expandedPolls.has(poll.id);
@@ -240,13 +241,13 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
 
                   <div className="grid grid-cols-1 gap-2.5">
                       {poll.options.map((opt, idx) => {
-                          const count = Object.values(votes).filter(v => v === idx).length;
+                          const count = countVotesForOption(votes, idx);
                           const percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-                          const votedForThis = votes[currentUser.id] === idx;
+                          const votedForThis = userSelectedOption(votes, currentUser.id, idx);
                           
                           // Get voters for this specific option
                           const votersForOption = !poll.isAnonymous ? Object.entries(votes)
-                            .filter(([_, vIdx]) => vIdx === idx)
+                            .filter(([_, raw]) => normalizeUserVote(raw).includes(idx))
                             .map(([uId]) => allParticipants.find(p => p.id === uId) || { id: uId, name: 'Участник', avatar: '' })
                             : [];
 

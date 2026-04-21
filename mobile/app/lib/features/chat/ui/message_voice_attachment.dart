@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -19,9 +18,7 @@ final class _VoicePlaybackExclusive {
     State<StatefulWidget> owner,
     Future<void> Function() pause,
   ) async {
-    if (_owner != null &&
-        !identical(_owner, owner) &&
-        _pause != null) {
+    if (_owner != null && !identical(_owner, owner) && _pause != null) {
       await _pause!();
     }
     _owner = owner;
@@ -37,24 +34,35 @@ final class _VoicePlaybackExclusive {
 }
 
 /// Голосовое / аудио вложение (паритет с вебом `AudioMessagePlayer`).
-/// На iOS WebM (Opus) — VLC.
+/// Для неподдерживаемых на iOS форматов показываем статус server-side нормализации.
 class MessageVoiceAttachment extends StatelessWidget {
   const MessageVoiceAttachment({
     super.key,
     required this.attachment,
+    required this.attachmentIndex,
     required this.alignRight,
+    this.mediaNorm,
+    this.onRetryNorm,
   });
 
   final ChatAttachment attachment;
+  final int attachmentIndex;
   final bool alignRight;
+  final ChatMediaNorm? mediaNorm;
+  final Future<void> Function()? onRetryNorm;
 
   @override
   Widget build(BuildContext context) {
-    if (chatMediaNeedsVlcOnIos(attachment.url, mimeType: attachment.type)) {
-      return _VoiceVlcIosBar(
-        key: ValueKey<String>('vlc-voice-${attachment.url}'),
-        attachment: attachment,
-        alignRight: alignRight,
+    final normState = chatMediaNormUiStateForAttachment(
+      attachment: attachment,
+      attachmentIndex: attachmentIndex,
+      mediaNorm: mediaNorm,
+    );
+    if (normState != ChatMediaNormUiState.none) {
+      return ChatMediaNormStatusWidget(
+        state: normState,
+        mediaKindLabel: 'аудио',
+        onRetry: onRetryNorm,
       );
     }
     return _VoiceJustAudioBar(
@@ -78,6 +86,7 @@ class _WebStyleVoiceRow extends StatelessWidget {
     required this.playbackRate,
     required this.onToggle,
     required this.onCycleRate,
+    this.onWaveformSeekFromLocal,
   });
 
   final bool isMine;
@@ -91,6 +100,8 @@ class _WebStyleVoiceRow extends StatelessWidget {
   final double playbackRate;
   final VoidCallback onToggle;
   final VoidCallback onCycleRate;
+  /// `localX` — по ширине волны; `width` — maxWidth из [LayoutBuilder].
+  final void Function(double localX, double width)? onWaveformSeekFromLocal;
 
   String _format(Duration d) {
     if (d.inMilliseconds <= 0) return '0:00';
@@ -119,90 +130,127 @@ class _WebStyleVoiceRow extends StatelessWidget {
     final metaColor = isMine
         ? scheme.onPrimary.withValues(alpha: 0.7)
         : scheme.onSurface.withValues(alpha: 0.55);
+    final borderColor = isMine
+        ? scheme.onPrimary.withValues(alpha: 0.18)
+        : scheme.onSurface.withValues(alpha: 0.16);
+    final fillColor = isMine
+        ? scheme.primary.withValues(alpha: 0.10)
+        : scheme.surfaceContainerHighest.withValues(alpha: 0.22);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Material(
-              color: scheme.primary,
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: failed || !ready ? null : onToggle,
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Icon(
-                    failed
-                        ? Icons.error_outline_rounded
-                        : (playing
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: 10),
+              Material(
+                color: scheme.primary,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: failed || !ready ? null : onToggle,
+                  child: SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Icon(
+                      failed
+                          ? Icons.error_outline_rounded
+                          : (playing
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded),
-                    color: scheme.onPrimary,
-                    size: failed ? 22 : 26,
+                      color: scheme.onPrimary,
+                      size: failed ? 22 : 26,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!failed)
-                    AudioMessageWaveformBars(
-                      progressPercent: progressPercent.clamp(0.0, 100.0),
-                      isMine: isMine,
-                      seedUrl: seedUrl,
-                    )
-                  else
-                    Text(
-                      'Не удалось загрузить',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: metaColor,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!failed)
+                        LayoutBuilder(
+                          builder: (context, cons) {
+                            final seek = onWaveformSeekFromLocal;
+                            final wave = AudioMessageWaveformBars(
+                              progressPercent: progressPercent.clamp(0.0, 100.0),
+                              isMine: isMine,
+                              seedUrl: seedUrl,
+                            );
+                            if (seek == null) return wave;
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTapUp: (d) {
+                                seek(d.localPosition.dx, cons.maxWidth);
+                              },
+                              onHorizontalDragStart: (d) {
+                                seek(d.localPosition.dx, cons.maxWidth);
+                              },
+                              onHorizontalDragUpdate: (d) {
+                                seek(d.localPosition.dx, cons.maxWidth);
+                              },
+                              child: wave,
+                            );
+                          },
+                        )
+                      else
+                        Text(
+                          'Не удалось загрузить',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: metaColor,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        failed
+                            ? 'Голосовое сообщение'
+                            : '${_format(displayTime)} · ${_sizeLabel()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          height: 1.2,
+                          color: metaColor,
+                        ),
                       ),
-                    ),
-                  const SizedBox(height: 4),
-                  Text(
-                    failed
-                        ? 'Голосовое сообщение'
-                        : '${_format(displayTime)} · ${_sizeLabel()}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2,
-                      color: metaColor,
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            TextButton(
-              onPressed: failed || !ready ? null : onCycleRate,
-              style: TextButton.styleFrom(
-                minimumSize: const Size(44, 36),
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                _rateButtonLabel(playbackRate),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isMine
-                      ? scheme.onPrimary.withValues(alpha: 0.85)
-                      : scheme.primary,
                 ),
               ),
-            ),
-          ],
+              TextButton(
+                onPressed: failed || !ready ? null : onCycleRate,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(44, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  _rateButtonLabel(playbackRate),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isMine
+                        ? scheme.onPrimary.withValues(alpha: 0.85)
+                        : scheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+          ),
         ),
       ),
     );
@@ -282,7 +330,10 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
         await _player.pause();
         _VoicePlaybackExclusive.clear(this);
       } else {
-        await _VoicePlaybackExclusive.beforeStartOther(this, () => _player.pause());
+        await _VoicePlaybackExclusive.beforeStartOther(
+          this,
+          () => _player.pause(),
+        );
         await _player.play();
       }
     } catch (_) {
@@ -290,15 +341,21 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
     }
   }
 
+  void _seekFromWaveformLocal(double localX, double width) {
+    if (_failed || !_ready || width <= 0) return;
+    final d = _duration;
+    if (d <= Duration.zero) return;
+    final f = (localX / width).clamp(0.0, 1.0);
+    final ms = (f * d.inMilliseconds).round();
+    unawaited(_player.seek(Duration(milliseconds: ms)));
+  }
+
   void _cycleRate() {
     if (_failed || !_ready) return;
     setState(() {
-      _rateIndex =
-          (_rateIndex + 1) % kAudioMessagePlaybackRates.length;
+      _rateIndex = (_rateIndex + 1) % kAudioMessagePlaybackRates.length;
     });
-    unawaited(
-      _player.setSpeed(kAudioMessagePlaybackRates[_rateIndex]),
-    );
+    unawaited(_player.setSpeed(kAudioMessagePlaybackRates[_rateIndex]));
   }
 
   @override
@@ -333,129 +390,7 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
         unawaited(_toggle());
       },
       onCycleRate: _cycleRate,
-    );
-  }
-}
-
-class _VoiceVlcIosBar extends StatefulWidget {
-  const _VoiceVlcIosBar({
-    super.key,
-    required this.attachment,
-    required this.alignRight,
-  });
-
-  final ChatAttachment attachment;
-  final bool alignRight;
-
-  @override
-  State<_VoiceVlcIosBar> createState() => _VoiceVlcIosBarState();
-}
-
-class _VoiceVlcIosBarState extends State<_VoiceVlcIosBar> {
-  late final VlcPlayerController _vlc;
-  int _rateIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _vlc = VlcPlayerController.network(
-      widget.attachment.url,
-      hwAcc: HwAcc.auto,
-      autoPlay: false,
-      autoInitialize: true,
-    );
-    _vlc.addListener(_onVlc);
-  }
-
-  void _onVlc() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _VoicePlaybackExclusive.clear(this);
-    _vlc.removeListener(_onVlc);
-    unawaited(_vlc.dispose());
-    super.dispose();
-  }
-
-  Future<void> _toggle() async {
-    final v = _vlc.value;
-    if (v.hasError || !v.isInitialized) return;
-    try {
-      if (v.isPlaying) {
-        await _vlc.pause();
-        _VoicePlaybackExclusive.clear(this);
-      } else {
-        await _VoicePlaybackExclusive.beforeStartOther(this, () => _vlc.pause());
-        await _vlc.setPlaybackSpeed(kAudioMessagePlaybackRates[_rateIndex]);
-        await _vlc.play();
-      }
-    } catch (_) {
-      if (mounted) setState(() {});
-    }
-    if (mounted) setState(() {});
-  }
-
-  void _cycleRate() {
-    final v = _vlc.value;
-    if (v.hasError || !v.isInitialized) return;
-    setState(() {
-      _rateIndex =
-          (_rateIndex + 1) % kAudioMessagePlaybackRates.length;
-    });
-    unawaited(
-      _vlc.setPlaybackSpeed(kAudioMessagePlaybackRates[_rateIndex]),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mine = widget.alignRight;
-    final v = _vlc.value;
-    final failed = v.hasError;
-    final ready = v.isInitialized;
-    final duration = v.duration;
-    final position = v.position;
-    final playing = v.isPlaying;
-    final progressPct = duration.inMilliseconds > 0
-        ? (position.inMilliseconds / duration.inMilliseconds) * 100.0
-        : 0.0;
-    final displayTime = playing ? position : duration;
-
-    return Stack(
-      clipBehavior: Clip.hardEdge,
-      children: [
-        Positioned(
-          left: 0,
-          top: 0,
-          width: 4,
-          height: 4,
-          child: Opacity(
-            opacity: 0.02,
-            child: VlcPlayer(
-              controller: _vlc,
-              aspectRatio: 1,
-              placeholder: const SizedBox.shrink(),
-            ),
-          ),
-        ),
-        _WebStyleVoiceRow(
-          isMine: mine,
-          failed: failed,
-          ready: ready,
-          playing: playing,
-          progressPercent: progressPct,
-          seedUrl: widget.attachment.url,
-          displayTime: displayTime,
-          sizeBytes: widget.attachment.size,
-          playbackRate: kAudioMessagePlaybackRates[_rateIndex],
-          onToggle: () {
-            unawaited(_toggle());
-          },
-          onCycleRate: _cycleRate,
-        ),
-      ],
+      onWaveformSeekFromLocal: _seekFromWaveformLocal,
     );
   }
 }

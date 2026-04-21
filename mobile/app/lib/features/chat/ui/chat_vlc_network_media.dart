@@ -1,140 +1,130 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:lighchat_models/lighchat_models.dart';
 
-import 'vlc_ios_simulator_stub.dart'
-    if (dart.library.io) 'vlc_ios_simulator_io.dart' as vlc_sim;
+/// Legacy filename kept intentionally to avoid broad import churn.
+/// VLC dependency is removed; helpers now describe unsupported media and
+/// server-side normalization state.
 
-/// AVPlayer / just_audio на iOS не декодируют WebM (VP8/VP9 + Opus). VLC — обходной путь.
-/// На iOS Simulator VLC часто падает с `channel-error` — не используем.
-bool chatMediaNeedsVlcOnIos(String url, {String? mimeType}) {
+bool chatMediaRequiresServerNormalizationOnIos(String url, {String? mimeType}) {
   if (kIsWeb) return false;
   if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-  if (vlc_sim.vlcIosSimulatorHost()) return false;
   final path = url.split('?').first.toLowerCase();
   if (path.endsWith('.webm')) return true;
   final t = (mimeType ?? '').toLowerCase();
   return t.contains('webm');
 }
 
-/// Полноэкранное видео по сети (WebM на iOS и при необходимости другие форматы).
-class ChatVlcFullscreenViewer extends StatefulWidget {
-  const ChatVlcFullscreenViewer({super.key, required this.url});
+enum ChatMediaNormUiState { none, pending, failed }
 
-  final String url;
-
-  @override
-  State<ChatVlcFullscreenViewer> createState() => _ChatVlcFullscreenViewerState();
+ChatMediaNormUiState chatMediaNormUiStateForAttachment({
+  required ChatAttachment attachment,
+  required int attachmentIndex,
+  required ChatMediaNorm? mediaNorm,
+}) {
+  if (!chatMediaRequiresServerNormalizationOnIos(
+    attachment.url,
+    mimeType: attachment.type,
+  )) {
+    return ChatMediaNormUiState.none;
+  }
+  if (mediaNorm == null) {
+    return ChatMediaNormUiState.pending;
+  }
+  if (mediaNorm.isFailed &&
+      (mediaNorm.failedIndexes.isEmpty ||
+          mediaNorm.isFailedIndex(attachmentIndex))) {
+    return ChatMediaNormUiState.failed;
+  }
+  if (mediaNorm.isPending) {
+    return ChatMediaNormUiState.pending;
+  }
+  return ChatMediaNormUiState.none;
 }
 
-class _ChatVlcFullscreenViewerState extends State<ChatVlcFullscreenViewer> {
-  late final VlcPlayerController _vlc;
+class ChatMediaNormStatusWidget extends StatelessWidget {
+  const ChatMediaNormStatusWidget({
+    super.key,
+    required this.state,
+    required this.mediaKindLabel,
+    this.onRetry,
+    this.compact = false,
+  });
 
-  @override
-  void initState() {
-    super.initState();
-    _vlc = VlcPlayerController.network(
-      widget.url,
-      hwAcc: HwAcc.auto,
-      autoPlay: true,
-      autoInitialize: true,
-    );
-    _vlc.addListener(_onVlc);
-  }
-
-  void _onVlc() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _vlc.removeListener(_onVlc);
-    unawaited(_vlc.dispose());
-    super.dispose();
-  }
-
-  Future<void> _togglePlay() async {
-    final v = _vlc.value;
-    if (!v.isInitialized || v.hasError) return;
-    if (v.isPlaying) {
-      await _vlc.pause();
-    } else {
-      await _vlc.play();
-    }
-    if (mounted) setState(() {});
-  }
+  final ChatMediaNormUiState state;
+  final String mediaKindLabel;
+  final Future<void> Function()? onRetry;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final v = _vlc.value;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('Видео'),
+    final scheme = Theme.of(context).colorScheme;
+    if (state == ChatMediaNormUiState.none) return const SizedBox.shrink();
+    final isPending = state == ChatMediaNormUiState.pending;
+    final icon = isPending
+        ? Icons.hourglass_top_rounded
+        : Icons.error_outline_rounded;
+    final title = isPending
+        ? 'Обрабатываем $mediaKindLabel…'
+        : 'Не удалось обработать $mediaKindLabel';
+    final subtitle = isPending
+        ? 'Файл станет доступен после серверной нормализации.'
+        : 'Попробуйте запустить обработку повторно.';
+    final padV = compact ? 8.0 : 12.0;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: (isPending ? scheme.primary : scheme.error).withValues(
+            alpha: 0.45,
+          ),
+        ),
       ),
-      body: Center(
-        child: v.hasError
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.videocam_off_rounded,
-                      color: Colors.white.withValues(alpha: 0.85),
-                      size: 44,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12, padV, 12, padV),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isPending ? scheme.primary : scheme.error,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: compact ? 12 : 13,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface.withValues(alpha: 0.92),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Не удалось воспроизвести видео.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        fontSize: 14,
-                        height: 1.35,
-                      ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: compact ? 11 : 12,
+                      color: scheme.onSurface.withValues(alpha: 0.65),
                     ),
-                  ],
-                ),
-              )
-            : !v.isInitialized
-            ? const CircularProgressIndicator()
-            : AspectRatio(
-                aspectRatio: v.aspectRatio > 0 ? v.aspectRatio : 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    VlcPlayer(
-                      controller: _vlc,
-                      aspectRatio: v.aspectRatio > 0 ? v.aspectRatio : 16 / 9,
-                      placeholder: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _togglePlay,
-                        child: AnimatedOpacity(
-                          opacity: v.isPlaying ? 0.0 : 1.0,
-                          duration: const Duration(milliseconds: 180),
-                          child: Center(
-                            child: Icon(
-                              Icons.play_circle_fill_rounded,
-                              size: 72,
-                              color: Colors.white.withValues(alpha: 0.92),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
+            if (!isPending && onRetry != null)
+              TextButton(
+                onPressed: () async {
+                  await onRetry!.call();
+                },
+                child: const Text('Повторить'),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 String _safeStorageSegment(String name) {
-  return name
-      .replaceAll(RegExp(r'\s+'), '_')
-      .replaceAll(RegExp(r'[/\\]'), '_');
+  return name.replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[/\\]'), '_');
 }
 
 String? _guessMimeFromName(String name) {
@@ -55,6 +54,29 @@ ChatAttachment _attachmentFromUpload({
   );
 }
 
+bool _isStorageAuthIssue(FirebaseException e) {
+  final code = e.code.toLowerCase();
+  if (code == 'unauthenticated' ||
+      code == 'permission-denied' ||
+      code == 'unauthorized') {
+    return true;
+  }
+  // iOS Firebase Storage sometimes surfaces auth failures as:
+  // "firebase_storage/unknown Unexpected -13020 code from backend".
+  final message = (e.message ?? '').toLowerCase();
+  return code == 'unknown' && message.contains('-13020');
+}
+
+Future<T> _withAuthRefreshRetry<T>(Future<T> Function() op) async {
+  try {
+    return await op();
+  } on FirebaseException catch (e) {
+    if (!_isStorageAuthIssue(e)) rethrow;
+    await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+    return op();
+  }
+}
+
 /// Загрузка с прогрессом (0..1) для превью в ленте при отправке альбома.
 Future<ChatAttachment> uploadChatAttachmentBytesWithProgress({
   required FirebaseStorage storage,
@@ -66,45 +88,55 @@ Future<ChatAttachment> uploadChatAttachmentBytesWithProgress({
   void Function(double progress)? onProgress,
   void Function(UploadTask task)? onTaskCreated,
 }) async {
-  final name =
-      displayName.isNotEmpty ? displayName : 'attachment';
+  final name = displayName.isNotEmpty ? displayName : 'attachment';
   final mime = mimeType ?? _guessMimeFromName(name);
   final path =
       'chat-attachments/$conversationId/${DateTime.now().microsecondsSinceEpoch}-$pathUniqueSegment-${_safeStorageSegment(name)}';
-  final ref = storage.ref(path);
-  final task = ref.putData(
-    bytes,
-    SettableMetadata(
-      contentType: mime ?? 'application/octet-stream',
-    ),
-  );
-  onTaskCreated?.call(task);
-  final sub = task.snapshotEvents.listen((snap) {
-    final total = snap.totalBytes;
-    if (total > 0) {
-      onProgress?.call(
-        (snap.bytesTransferred / total).clamp(0.0, 1.0),
-      );
+  return _withAuthRefreshRetry(() async {
+    final ref = storage.ref(path);
+    final task = ref.putData(
+      bytes,
+      SettableMetadata(contentType: mime ?? 'application/octet-stream'),
+    );
+    onTaskCreated?.call(task);
+    final sub = task.snapshotEvents.listen((snap) {
+      final total = snap.totalBytes;
+      if (total > 0) {
+        onProgress?.call((snap.bytesTransferred / total).clamp(0.0, 1.0));
+      }
+    });
+    try {
+      await task;
+      onProgress?.call(1.0);
+    } finally {
+      await sub.cancel();
     }
+    final url = await ref.getDownloadURL();
+    return _attachmentFromUpload(
+      url: url,
+      name: name,
+      mime: mime,
+      bytes: bytes,
+    );
   });
-  try {
-    await task;
-    onProgress?.call(1.0);
-  } finally {
-    await sub.cancel();
-  }
-  final url = await ref.getDownloadURL();
-  return _attachmentFromUpload(url: url, name: name, mime: mime, bytes: bytes);
 }
 
 /// Загрузка в `chat-attachments/{conversationId}/…` (как веб `ChatMessageInput.uploadFile`).
+///
+/// На `dart:io` у [XFile] поле `name` из конструктора **не используется** (см. cross_file):
+/// [XFile.name] всегда basename [XFile.path]. Для логических имён (например `video-circle_…`)
+/// передайте [displayName].
 Future<ChatAttachment> uploadChatAttachmentFromXFile({
   required FirebaseStorage storage,
   required String conversationId,
   required XFile file,
+  String? displayName,
 }) async {
   final bytes = await file.readAsBytes();
-  final name = file.name.isNotEmpty ? file.name : file.path.split('/').last;
+  final fromPath = file.name.isNotEmpty ? file.name : file.path.split('/').last;
+  final name = (displayName != null && displayName.trim().isNotEmpty)
+      ? displayName.trim()
+      : fromPath;
   final mime = file.mimeType ?? _guessMimeFromName(name);
   return uploadChatAttachmentBytesWithProgress(
     storage: storage,

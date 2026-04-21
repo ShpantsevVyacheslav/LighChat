@@ -75,3 +75,32 @@ int indexInChatMediaGallery(
   final i = items.indexWhere((e) => e.attachment.url == attachmentUrl);
   return i < 0 ? 0 : i;
 }
+
+/// Одно вложение для пересылки из полноэкранной галереи (альбом не уходит целиком).
+ChatMessage chatMessageForSingleAttachmentForward(
+  ChatMessage source,
+  ChatAttachment attachment,
+) {
+  final multi = source.attachments.length > 1;
+  return ChatMessage(
+    id: source.id,
+    senderId: source.senderId,
+    text: multi ? null : source.text,
+    attachments: [attachment],
+    replyTo: source.replyTo,
+    isDeleted: source.isDeleted,
+    reactions: source.reactions,
+    createdAt: source.createdAt,
+    readAt: source.readAt,
+    updatedAt: source.updatedAt,
+    forwardedFrom: source.forwardedFrom,
+    deliveryStatus: source.deliveryStatus,
+    chatPollId: multi ? null : source.chatPollId,
+    locationShare: multi ? null : source.locationShare,
+    threadCount: source.threadCount,
+    unreadThreadCounts: source.unreadThreadCounts,
+    lastThreadMessageText: source.lastThreadMessageText,
+    lastThreadMessageSenderId: source.lastThreadMessageSenderId,
+    lastThreadMessageTimestamp: source.lastThreadMessageTimestamp,
+  );
+}

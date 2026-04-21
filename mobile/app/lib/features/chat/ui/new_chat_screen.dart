@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,11 +6,11 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
-import '../../auth/ui/auth_glass.dart';
-import '../../shared/ui/app_back_button.dart';
+import '../data/e2ee_auto_enable_helper.dart';
 import '../data/new_chat_user_search.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
+import 'chat_shell_backdrop.dart';
 import 'new_chat_user_picker_row.dart';
 
 class NewChatScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,8 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   Future<List<UserProfile>>? _usersFuture;
   bool _busy = false;
   String? _error;
+
+  static const _horizontalPad = 18.0;
 
   @override
   void dispose() {
@@ -40,17 +43,25 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     }
   }
 
+  void _closeScreen() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/chats');
+    }
+  }
+
   Widget _sectionHeader(BuildContext context, String text) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      padding: const EdgeInsets.fromLTRB(_horizontalPad, 20, _horizontalPad, 10),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.7,
-          color: scheme.onSurface.withValues(alpha: 0.50),
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.85,
+          color: scheme.onSurface.withValues(alpha: 0.48),
         ),
       ),
     );
@@ -59,47 +70,160 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   Widget _searchField(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
+    final fill = dark
+        ? Colors.white.withValues(alpha: 0.09)
+        : scheme.surfaceContainerHighest.withValues(alpha: 0.85);
+
     return Container(
-      height: 46,
+      height: 48,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: Colors.white.withValues(alpha: dark ? 0.06 : 0.22),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: dark ? 0.12 : 0.35),
-        ),
+        borderRadius: BorderRadius.circular(16),
+        color: fill,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [
-          Icon(
-            Icons.search_rounded,
-            color: scheme.onSurface.withValues(alpha: 0.55),
-          ),
-          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
-              style: const TextStyle(fontSize: 16),
+              style: TextStyle(
+                fontSize: 15,
+                color: scheme.onSurface,
+              ),
+              cursorColor: scheme.primary,
               textAlignVertical: TextAlignVertical.center,
-              decoration: const InputDecoration(
-                hintText: 'Имя, ник или @username…',
+              decoration: InputDecoration(
+                hintText: 'Имя, ник или @username...',
+                hintStyle: TextStyle(
+                  fontSize: 15,
+                  color: scheme.onSurface.withValues(alpha: 0.42),
+                ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),
           if (_search.text.trim().isNotEmpty)
             IconButton(
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               padding: EdgeInsets.zero,
-              icon: const Icon(Icons.close_rounded),
+              icon: Icon(
+                Icons.close_rounded,
+                size: 20,
+                color: scheme.onSurface.withValues(alpha: 0.55),
+              ),
               onPressed: () {
                 _search.clear();
                 setState(() {});
               },
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _createGroupButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final fill = dark
+        ? Colors.white.withValues(alpha: 0.09)
+        : scheme.surfaceContainerHighest.withValues(alpha: 0.85);
+
+    return Material(
+      color: fill,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _busy ? null : () => context.push('/chats/new/group'),
+        child: SizedBox(
+          height: 48,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.people_outline_rounded,
+                size: 22,
+                color: scheme.onSurface.withValues(alpha: 0.92),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Создать группу',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface.withValues(alpha: 0.92),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _closeButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.white.withValues(
+        alpha: scheme.brightness == Brightness.dark ? 0.10 : 0.18,
+      ),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _closeScreen,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(
+            Icons.close_rounded,
+            size: 22,
+            color: scheme.onSurface.withValues(alpha: 0.95),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _headerBlock(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_horizontalPad, 6, _horizontalPad, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Новый чат',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Выберите пользователя, чтобы начать диалог, или создайте группу.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: scheme.onSurface.withValues(alpha: 0.52),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: _closeButton(context),
+          ),
         ],
       ),
     );
@@ -112,191 +236,185 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     final profilesRepo = ref.watch(userProfilesRepositoryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const AppBackButton(fallbackLocation: '/chats'),
-        title: const Text('Новый чат'),
-      ),
-      body: AuthBackground(
-        child: SafeArea(
-          child: userAsync.when(
-            data: (u) {
-              if (u == null) {
-                WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/auth'));
-                return const Center(child: CircularProgressIndicator());
-              }
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const ChatShellBackdrop(),
+          SafeArea(
+            child: userAsync.when(
+              data: (u) {
+                if (u == null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/auth'));
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              if (profilesRepo == null || repo == null || _usersFuture == null) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Firebase не готов.'),
-                );
-              }
+                if (profilesRepo == null || repo == null || _usersFuture == null) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Firebase не готов.'),
+                  );
+                }
 
-              final contactsAsync = ref.watch(userContactsIndexProvider(u.uid));
+                final contactsAsync = ref.watch(userContactsIndexProvider(u.uid));
 
-              return contactsAsync.when(
-                data: (contactsIdx) {
-                  return FutureBuilder<List<UserProfile>>(
-                    future: _usersFuture,
-                    builder: (context, snap) {
-                      if (snap.connectionState != ConnectionState.done) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                return contactsAsync.when(
+                  data: (contactsIdx) {
+                    return FutureBuilder<List<UserProfile>>(
+                      future: _usersFuture,
+                      builder: (context, snap) {
+                        if (snap.connectionState != ConnectionState.done) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
 
-                      final all = snap.data ?? const <UserProfile>[];
-                      UserProfile? me;
-                      for (final p in all) {
-                        if (p.id == u.uid) me = p;
-                      }
-                      if (me == null) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('Не найден профиль в users/{uid}.'),
+                        final all = snap.data ?? const <UserProfile>[];
+                        UserProfile? me;
+                        for (final p in all) {
+                          if (p.id == u.uid) me = p;
+                        }
+                        if (me == null) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('Не найден профиль в users/{uid}.'),
+                          );
+                        }
+                        final self = me;
+
+                        final others = all
+                            .where((p) => p.id != u.uid)
+                            .where(isEligibleRegisteredChatUser)
+                            .where((p) => canStartDirectChat(self, p))
+                            .toList(growable: false);
+
+                        final term = _search.text;
+                        final matched = others
+                            .where((p) => userMatchesChatSearchQuery(p, term))
+                            .toList(growable: false);
+
+                        final split = splitUsersByContactsAndGlobalVisibility(
+                          matched: matched,
+                          viewer: self,
+                          contactIds: contactsIdx.contactIds,
                         );
-                      }
-                      final self = me;
 
-                      final others = all
-                          .where((p) => p.id != u.uid)
-                          .where(isEligibleRegisteredChatUser)
-                          .where((p) => canStartDirectChat(self, p))
-                          .toList(growable: false);
+                        final scheme = Theme.of(context).colorScheme;
+                        final listChildren = <Widget>[];
 
-                      final term = _search.text;
-                      final matched = others
-                          .where((p) => userMatchesChatSearchQuery(p, term))
-                          .toList(growable: false);
-
-                      final split = splitUsersByContactsAndGlobalVisibility(
-                        matched: matched,
-                        viewer: self,
-                        contactIds: contactsIdx.contactIds,
-                      );
-
-                      final scheme = Theme.of(context).colorScheme;
-                      final listChildren = <Widget>[];
-
-                      if (split.fromContacts.isNotEmpty) {
-                        listChildren.add(_sectionHeader(context, 'КОНТАКТЫ'));
-                        for (final p in split.fromContacts) {
-                          listChildren.add(
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                              child: NewChatUserPickerRow(
-                                profile: p,
-                                enabled: !_busy,
-                                onTap: () => _openDirect(
-                                  repo: repo,
-                                  uid: u.uid,
-                                  me: self,
-                                  peer: p,
-                                  allProfiles: all,
+                        if (split.fromContacts.isNotEmpty) {
+                          listChildren.add(_sectionHeader(context, 'КОНТАКТЫ'));
+                          for (final p in split.fromContacts) {
+                            listChildren.add(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                                child: NewChatUserPickerRow(
+                                  profile: p,
+                                  style: NewChatUserPickerRowStyle.list,
+                                  enabled: !_busy,
+                                  onTap: () => _openDirect(
+                                    repo: repo,
+                                    uid: u.uid,
+                                    me: self,
+                                    peer: p,
+                                    allProfiles: all,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
+                            );
+                          }
                         }
-                      }
 
-                      if (split.fromGlobal.isNotEmpty) {
-                        listChildren.add(_sectionHeader(context, 'ВСЕ ПОЛЬЗОВАТЕЛИ'));
-                        for (final p in split.fromGlobal) {
-                          listChildren.add(
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                              child: NewChatUserPickerRow(
-                                profile: p,
-                                enabled: !_busy,
-                                onTap: () => _openDirect(
-                                  repo: repo,
-                                  uid: u.uid,
-                                  me: self,
-                                  peer: p,
-                                  allProfiles: all,
+                        if (split.fromGlobal.isNotEmpty) {
+                          listChildren.add(_sectionHeader(context, 'ВСЕ ПОЛЬЗОВАТЕЛИ'));
+                          for (final p in split.fromGlobal) {
+                            listChildren.add(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                                child: NewChatUserPickerRow(
+                                  profile: p,
+                                  style: NewChatUserPickerRowStyle.list,
+                                  enabled: !_busy,
+                                  onTap: () => _openDirect(
+                                    repo: repo,
+                                    uid: u.uid,
+                                    me: self,
+                                    peer: p,
+                                    allProfiles: all,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
+                            );
+                          }
                         }
-                      }
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                            child: Text(
-                              'Выберите пользователя, чтобы начать диалог, или создайте группу.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: scheme.onSurface.withValues(alpha: 0.62),
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                            child: _searchField(context),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.tonalIcon(
-                                onPressed: _busy ? null : () => context.push('/chats/new/group'),
-                                icon: const Icon(Icons.group_add_rounded),
-                                label: const Text('Создать группу'),
-                              ),
-                            ),
-                          ),
-                          if (_error != null)
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _headerBlock(context),
+                            const SizedBox(height: 22),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                              child: Text(
-                                _error!,
-                                style: TextStyle(color: scheme.error),
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                              child: _searchField(context),
                             ),
-                          Expanded(
-                            child: listChildren.isEmpty
-                                ? Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(24),
-                                      child: Text(
-                                        term.trim().isEmpty
-                                            ? 'Нет пользователей, с которыми можно начать чат.'
-                                            : 'Никого не найдено.',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: scheme.onSurface.withValues(alpha: 0.65),
+                            const SizedBox(height: 10),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                              child: _createGroupButton(context),
+                            ),
+                            if (_error != null)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  _horizontalPad,
+                                  12,
+                                  _horizontalPad,
+                                  0,
+                                ),
+                                child: Text(
+                                  _error!,
+                                  style: TextStyle(color: scheme.error, fontSize: 13),
+                                ),
+                              ),
+                            Expanded(
+                              child: listChildren.isEmpty
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(24),
+                                        child: Text(
+                                          term.trim().isEmpty
+                                              ? 'Нет пользователей, с которыми можно начать чат.'
+                                              : 'Никого не найдено.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: scheme.onSurface.withValues(alpha: 0.55),
+                                          ),
                                         ),
                                       ),
+                                    )
+                                  : ListView(
+                                      padding: const EdgeInsets.only(bottom: 24),
+                                      children: listChildren,
                                     ),
-                                  )
-                                : ListView(
-                                    padding: const EdgeInsets.only(bottom: 16),
-                                    children: listChildren,
-                                  ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Контакты: $e'),
-                ),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Auth error: $e'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text('Контакты: $e'),
+                  ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('Auth error: $e'),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -319,8 +437,16 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
         currentUserInfo: (name: me.name, avatar: me.avatar, avatarThumb: me.avatarThumb),
         otherUserInfo: (name: peer.name, avatar: peer.avatar, avatarThumb: peer.avatarThumb),
       );
+      // Phase 4: auto-enable E2EE, если это требует политика платформы или
+      // пользователя. Ошибки молча игнорируются (паритет web), не блокируют
+      // навигацию.
+      await tryAutoEnableE2eeForMobileDm(
+        firestore: FirebaseFirestore.instance,
+        conversationId: convId,
+        currentUserId: uid,
+      );
       if (!mounted) return;
-      context.go('/chats/$convId');
+      context.push('/chats/$convId');
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {

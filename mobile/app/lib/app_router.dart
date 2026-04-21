@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -8,13 +9,23 @@ import 'features/auth/ui/auth_screen.dart';
 import 'features/auth/ui/google_complete_profile_screen.dart';
 import 'features/auth/ui/profile_screen.dart';
 import 'features/chat/ui/chat_forward_screen.dart';
+import 'features/chat/ui/chat_account_screen.dart';
+import 'features/chat/ui/chat_contacts_screen.dart';
+import 'features/chat/ui/chat_call_detail_screen.dart';
+import 'features/chat/ui/chat_calls_screen.dart';
 import 'features/chat/ui/chat_list_screen.dart';
+import 'features/chat/ui/chat_meetings_screen.dart';
+import 'features/chat/ui/chat_notifications_screen.dart';
+import 'features/chat/ui/chat_privacy_screen.dart';
 import 'features/chat/ui/chat_settings_screen.dart';
 import 'features/chat/ui/chat_screen.dart';
 import 'features/chat/ui/conversation_threads_screen.dart';
+import 'features/settings/ui/devices_screen.dart';
+import 'features/settings/ui/e2ee_recovery_screen.dart';
 import 'features/chat/ui/new_chat_screen.dart';
 import 'features/chat/ui/new_group_chat_screen.dart';
 import 'features/chat/ui/thread_screen.dart';
+import 'features/chat/ui/thread_route_payload.dart';
 
 GoRouter createRouter() {
   return GoRouter(
@@ -54,6 +65,33 @@ GoRouter createRouter() {
         builder: (context, state) => const ChatListScreen(),
       ),
       GoRoute(
+        path: '/contacts',
+        builder: (context, state) => const ChatContactsScreen(),
+      ),
+      GoRoute(
+        path: '/calls',
+        builder: (context, state) => const ChatCallsScreen(),
+      ),
+      GoRoute(
+        path: '/meetings',
+        builder: (context, state) => const ChatMeetingsScreen(),
+      ),
+      GoRoute(
+        path: '/calls/:callId',
+        pageBuilder: (context, state) {
+          final callId = state.pathParameters['callId'] ?? '';
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            name: state.name,
+            child: ChatCallDetailScreen(callId: callId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/account',
+        builder: (context, state) => const ChatAccountScreen(),
+      ),
+      GoRoute(
         path: '/chats/new',
         builder: (context, state) => const NewChatScreen(),
       ),
@@ -68,6 +106,23 @@ GoRouter createRouter() {
       GoRoute(
         path: '/settings/chats',
         builder: (context, state) => const ChatSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (context, state) => const ChatNotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/privacy',
+        builder: (context, state) => const ChatPrivacyScreen(),
+      ),
+      GoRoute(
+        path: '/settings/devices',
+        builder: (context, state) => const DevicesScreen(),
+      ),
+      // Phase 6: recovery (password backup + QR pairing entry point).
+      GoRoute(
+        path: '/settings/e2ee-recovery',
+        builder: (context, state) => const E2eeRecoveryScreen(),
       ),
       GoRoute(
         path: '/chats/forward',
@@ -93,23 +148,49 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: '/chats/:conversationId/thread/:parentMessageId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final conversationId = state.pathParameters['conversationId'] ?? '';
-          final parentMessageId =
-              state.pathParameters['parentMessageId'] ?? '';
+          final parentMessageId = state.pathParameters['parentMessageId'] ?? '';
           final extra = state.extra;
-          return ThreadScreen(
-            conversationId: conversationId,
-            parentMessageId: parentMessageId,
-            parentMessage: extra is ChatMessage ? extra : null,
+          ChatMessage? parentMessage;
+          String? focusMessageId;
+          if (extra is ThreadRoutePayload) {
+            parentMessage = extra.parentMessage;
+            focusMessageId = extra.focusMessageId;
+          } else if (extra is ChatMessage) {
+            parentMessage = extra;
+          } else if (extra is Map) {
+            final m = extra.map((k, v) => MapEntry(k.toString(), v));
+            final rawFocus = m['focusMessageId'];
+            if (rawFocus is String && rawFocus.trim().isNotEmpty) {
+              focusMessageId = rawFocus.trim();
+            }
+            final rawParent = m['parentMessage'];
+            if (rawParent is ChatMessage) {
+              parentMessage = rawParent;
+            }
+          }
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            name: state.name,
+            child: ThreadScreen(
+              conversationId: conversationId,
+              parentMessageId: parentMessageId,
+              parentMessage: parentMessage,
+              focusMessageId: focusMessageId,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/chats/:conversationId',
-        builder: (context, state) {
-          final conversationId = state.pathParameters['conversationId'];
-          return ChatScreen(conversationId: conversationId ?? '');
+        pageBuilder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            name: state.name,
+            child: ChatScreen(conversationId: conversationId),
+          );
         },
       ),
     ],

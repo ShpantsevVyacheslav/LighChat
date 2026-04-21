@@ -60,6 +60,44 @@ async function upsertIndex(
   }
 }
 
+async function autoAttachMatchingOwnersByLookup({
+  lookupId,
+  userId,
+}: {
+  lookupId: string;
+  userId: string;
+}): Promise<void> {
+  try {
+    const snap = await db
+      .collectionGroup("deviceLookup")
+      .where("key", "==", lookupId)
+      .get();
+    if (snap.empty) return;
+
+    const owners = new Set<string>();
+    for (const d of snap.docs) {
+      // Path: userContacts/{ownerId}/deviceLookup/{lookupId}
+      const ownerRef = d.ref.parent.parent;
+      const ownerId = ownerRef?.id ?? "";
+      if (!ownerId || ownerId === userId) continue;
+      owners.add(ownerId);
+    }
+
+    const nowIso = new Date().toISOString();
+    for (const ownerId of owners) {
+      await db.collection("userContacts").doc(ownerId).set(
+        {
+          contactIds: admin.firestore.FieldValue.arrayUnion(userId),
+          lastDeviceSyncMatchAt: nowIso,
+        },
+        {merge: true},
+      );
+    }
+  } catch (e) {
+    logger.error("deviceLookup auto-attach failed", {lookupId, userId, e});
+  }
+}
+
 /**
  * Поддерживает `registrationIndex/*` в соответствии с `users/{uid}` (телефон, email, логин).
  * Нужен для проверки уникальности до входа (правила не дают читать `users` без auth).
@@ -90,6 +128,14 @@ export const onuserwritesyncregistrationindex = onDocumentWritten(
 
     for (const e of afterList) {
       await upsertIndex(e.id, userId, e.field);
+    }
+
+    for (const e of afterList) {
+      if (e.field !== "phone" && e.field !== "email") continue;
+      await autoAttachMatchingOwnersByLookup({
+        lookupId: e.id,
+        userId,
+      });
     }
   },
 );

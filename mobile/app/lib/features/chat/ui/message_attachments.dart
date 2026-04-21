@@ -87,6 +87,8 @@ class MessageAttachments extends StatefulWidget {
     this.showTimestamps = true,
     this.videoCirclePlayingSlotId,
     this.onOpenGridGallery,
+    this.mediaNorm,
+    this.onRetryMediaNorm,
   });
 
   final List<ChatAttachment> attachments;
@@ -98,8 +100,11 @@ class MessageAttachments extends StatefulWidget {
   final DateTime? readAt;
   final bool showTimestamps;
   final ValueNotifier<String?>? videoCirclePlayingSlotId;
+
   /// Тап по фото/видео из сетки галереи — полноэкранный просмотр (паритет веба).
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
+  final ChatMediaNorm? mediaNorm;
+  final Future<void> Function()? onRetryMediaNorm;
 
   @override
   State<MessageAttachments> createState() => _MessageAttachmentsState();
@@ -111,8 +116,7 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
   @override
   void initState() {
     super.initState();
-    final hasCircle =
-        widget.attachments.any((a) => isVideoCircleAttachment(a));
+    final hasCircle = widget.attachments.any((a) => isVideoCircleAttachment(a));
     if (hasCircle && widget.videoCirclePlayingSlotId == null) {
       _ownedCircleSlot = ValueNotifier<String?>(null);
     }
@@ -134,15 +138,19 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
 
     final alignRight = widget.alignRight;
 
-    final images = attachments
-        .where(_isImageAttachment)
-        .toList(growable: false);
-    final videoLike = attachments
-        .where(_isVideoAttachment)
-        .toList(growable: false);
-    final voices = attachments
-        .where(_isVoiceAttachment)
-        .toList(growable: false);
+    final images = <ChatAttachment>[];
+    final videoLike = <({ChatAttachment attachment, int index})>[];
+    final voices = <({ChatAttachment attachment, int index})>[];
+    for (var i = 0; i < attachments.length; i++) {
+      final a = attachments[i];
+      if (_isVoiceAttachment(a)) {
+        voices.add((attachment: a, index: i));
+      } else if (_isVideoAttachment(a)) {
+        videoLike.add((attachment: a, index: i));
+      } else if (_isImageAttachment(a)) {
+        images.add(a);
+      }
+    }
     final files = attachments
         .where(
           (a) =>
@@ -200,8 +208,11 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                         bottom: ChatMediaLayoutTokens.mediaToMediaGap,
                       ),
                       child: MessageVoiceAttachment(
-                        attachment: v,
+                        attachment: v.attachment,
+                        attachmentIndex: v.index,
                         alignRight: alignRight,
+                        mediaNorm: widget.mediaNorm,
+                        onRetryNorm: widget.onRetryMediaNorm,
                       ),
                     ),
                   ),
@@ -226,8 +237,9 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                                     : 0,
                               ),
                               child: _videoOrCircle(
-                                videoLike[vi],
+                                videoLike[vi].attachment,
                                 videoIndex: vi,
+                                attachmentIndex: videoLike[vi].index,
                               ),
                             ),
                         ],
@@ -246,12 +258,17 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
     );
   }
 
-  Widget _videoOrCircle(ChatAttachment v, {required int videoIndex}) {
+  Widget _videoOrCircle(
+    ChatAttachment v, {
+    required int videoIndex,
+    required int attachmentIndex,
+  }) {
     if (isVideoCircleAttachment(v)) {
       final mid = widget.messageId ?? '_local';
       final slot = '${mid}_vc_$videoIndex';
       return MessageVideoCirclePlayer(
         attachment: v,
+        attachmentIndex: attachmentIndex,
         playbackSlotId: slot,
         isMine: widget.isMine ?? widget.alignRight,
         createdAt: widget.messageCreatedAt ?? DateTime.now(),
@@ -259,13 +276,18 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
         readAt: widget.readAt,
         showTimestamps: widget.showTimestamps,
         playingSlotId: _circleSlot,
+        mediaNorm: widget.mediaNorm,
+        onRetryNorm: widget.onRetryMediaNorm,
       );
     }
     return MessageVideoAttachment(
       attachment: v,
+      attachmentIndex: attachmentIndex,
       onOpenInGallery: widget.onOpenGridGallery == null
           ? null
           : () => widget.onOpenGridGallery!(v),
+      mediaNorm: widget.mediaNorm,
+      onRetryNorm: widget.onRetryMediaNorm,
     );
   }
 }
@@ -370,8 +392,9 @@ class _ImageGrid extends StatelessWidget {
     }
 
     Widget equalRow(List<int> indices) {
-      final ratios =
-          indices.map((i) => mosaicAttachmentAspectRatio(slice[i])).toList();
+      final ratios = indices
+          .map((i) => mosaicAttachmentAspectRatio(slice[i]))
+          .toList();
       final h = mosaicEqualCellRowHeight(
         rowMaxWidth: maxWidth,
         cellCount: indices.length,
@@ -395,11 +418,7 @@ class _ImageGrid extends StatelessWidget {
     Widget oneFullWidth(int index) {
       final r = mosaicAttachmentAspectRatio(slice[index]);
       final h = mosaicFullWidthRowHeight(maxWidth: maxWidth, aspectRatio: r);
-      return SizedBox(
-        width: maxWidth,
-        height: h,
-        child: tile(index),
-      );
+      return SizedBox(width: maxWidth, height: h, child: tile(index));
     }
 
     final List<Widget> colChildren;
@@ -553,11 +572,7 @@ class _AspectImageBox extends StatelessWidget {
     return ClipRRect(
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAliasWithSaveLayer,
-      child: SizedBox(
-        width: boxW,
-        height: boxH,
-        child: wrapped,
-      ),
+      child: SizedBox(width: boxW, height: boxH, child: wrapped),
     );
   }
 }

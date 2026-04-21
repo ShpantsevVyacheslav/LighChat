@@ -9,6 +9,7 @@ class ChatFolderBar extends StatelessWidget {
     required this.onSelectFolder,
     required this.unreadByFolderId,
     this.onNewPressed,
+    this.onLongPressFolder,
   });
 
   final List<ChatFolder> folders;
@@ -16,32 +17,34 @@ class ChatFolderBar extends StatelessWidget {
   final void Function(String folderId) onSelectFolder;
   final Map<String, int> unreadByFolderId;
   final VoidCallback? onNewPressed;
+  final void Function(ChatFolder folder)? onLongPressFolder;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      height: 40,
+      height: 36,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         scrollDirection: Axis.horizontal,
         itemCount: folders.length + (onNewPressed != null ? 1 : 0),
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           if (onNewPressed != null && i == folders.length) {
-            return _NewChip(onTap: onNewPressed!, scheme: scheme);
+            return _NewChip(onTap: onNewPressed!);
           }
           final f = folders[i];
           final active = f.id == activeFolderId;
           final unread = unreadByFolderId[f.id] ?? 0;
           return _FolderChip(
+            folder: f,
             folderId: f.id,
-            icon: _folderIcon(f.id),
             label: f.name,
             active: active,
             unread: unread,
             onTap: () => onSelectFolder(f.id),
-            scheme: scheme,
+            onLongPress: onLongPressFolder == null
+                ? null
+                : () => onLongPressFolder!(f),
           );
         },
       ),
@@ -49,95 +52,73 @@ class ChatFolderBar extends StatelessWidget {
   }
 }
 
-IconData _folderIcon(String id) {
-  switch (id) {
-    case 'favorites':
-      return Icons.star_rounded;
-    case 'all':
-      return Icons.folder_rounded;
-    case 'unread':
-      return Icons.chat_bubble_rounded;
-    case 'personal':
-      return Icons.person_rounded;
-    case 'groups':
-      return Icons.group_rounded;
-    default:
-      return Icons.folder_open_rounded;
-  }
-}
-
 class _FolderChip extends StatelessWidget {
   const _FolderChip({
+    required this.folder,
     required this.folderId,
-    required this.icon,
     required this.label,
     required this.active,
     required this.unread,
     required this.onTap,
-    required this.scheme,
+    this.onLongPress,
   });
 
+  final ChatFolder folder;
   final String folderId;
-  final IconData icon;
   final String label;
   final bool active;
   final int unread;
   final VoidCallback onTap;
-  final ColorScheme scheme;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-    final iconOnly = folderId == 'favorites';
+    final shownLabel = folderId == 'favorites' ? 'Избранное' : label;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: EdgeInsets.symmetric(
-          horizontal: iconOnly ? 10 : 11,
-          vertical: 6,
-        ),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: (active ? scheme.primary : Colors.white).withValues(
-            alpha: active ? 0.18 : (dark ? 0.08 : 0.35),
-          ),
+          borderRadius: BorderRadius.circular(999),
+          color: active
+              ? const Color(0xFF2A79FF)
+              : Colors.white.withValues(alpha: dark ? 0.08 : 0.62),
           border: Border.all(
-            color: (active ? scheme.primary : Colors.white).withValues(
-              alpha: active ? 0.35 : (dark ? 0.14 : 0.40),
-            ),
+            color: active
+                ? const Color(0xFF3B8DFF)
+                : (dark
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.black.withValues(alpha: 0.08)),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 17,
-              color: active
-                  ? scheme.primary
-                  : scheme.onSurface.withValues(alpha: 0.68),
-            ),
-            if (!iconOnly) ...[
-              const SizedBox(width: 7),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                  color: active
-                      ? scheme.primary
-                      : scheme.onSurface.withValues(alpha: 0.82),
-                ),
+            Text(
+              shownLabel,
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.1,
+                fontWeight: FontWeight.w600,
+                color: active
+                    ? Colors.white
+                    : scheme.onSurface.withValues(alpha: 0.78),
               ),
-            ],
+            ),
             if (unread > 0) ...[
-              SizedBox(width: iconOnly ? 6 : 8),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: scheme.primary,
+                  color: active
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : const Color(0xFF2A79FF),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -145,7 +126,7 @@ class _FolderChip extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: scheme.onPrimary,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -158,36 +139,38 @@ class _FolderChip extends StatelessWidget {
 }
 
 class _NewChip extends StatelessWidget {
-  const _NewChip({required this.onTap, required this.scheme});
+  const _NewChip({required this.onTap});
 
   final VoidCallback onTap;
-  final ColorScheme scheme;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: Colors.white.withValues(alpha: dark ? 0.06 : 0.18),
+          borderRadius: BorderRadius.circular(999),
+          color: Colors.white.withValues(alpha: dark ? 0.06 : 0.62),
           border: Border.all(
-            color: Colors.white.withValues(alpha: dark ? 0.14 : 0.40),
+            color: dark
+                ? Colors.white.withValues(alpha: 0.14)
+                : Colors.black.withValues(alpha: 0.08),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add_rounded, size: 18, color: scheme.primary),
-            const SizedBox(width: 8),
+            Icon(Icons.add_rounded, size: 16, color: scheme.onSurface),
+            const SizedBox(width: 6),
             Text(
               'Новая',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
                 color: scheme.onSurface.withValues(alpha: 0.82),
               ),
             ),

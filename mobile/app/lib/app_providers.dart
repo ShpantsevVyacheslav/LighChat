@@ -12,6 +12,22 @@ import 'features/chat/data/user_contacts_repository.dart';
 import 'features/chat/data/user_profiles_repository.dart';
 import 'features/chat/data/user_sticker_packs_repository.dart';
 
+class StarredChatMessageEntry {
+  const StarredChatMessageEntry({
+    required this.docId,
+    required this.conversationId,
+    required this.messageId,
+    required this.createdAt,
+    this.previewText,
+  });
+
+  final String docId;
+  final String conversationId;
+  final String messageId;
+  final DateTime createdAt;
+  final String? previewText;
+}
+
 final firebaseReadyProvider = Provider<bool>((ref) => isFirebaseReady());
 
 /// Завершена ли регистрация по `users/{uid}` (сервер для Google при «пустом» кэше). После `completeGoogleProfile` — [Ref.invalidate].
@@ -97,28 +113,32 @@ final messagesProvider =
       );
     });
 
-final threadMessagesProvider = StreamProvider.family<
-    List<ChatMessage>,
-    ({String conversationId, String parentMessageId, int limit})>((ref, args) {
-  final repo = ref.watch(chatRepositoryProvider);
-  if (repo == null) return Stream.value(const <ChatMessage>[]);
-  return repo.watchThreadMessages(
-    conversationId: args.conversationId,
-    parentMessageId: args.parentMessageId,
-    limit: args.limit,
-  );
-});
+final threadMessagesProvider =
+    StreamProvider.family<
+      List<ChatMessage>,
+      ({String conversationId, String parentMessageId, int limit})
+    >((ref, args) {
+      final repo = ref.watch(chatRepositoryProvider);
+      if (repo == null) return Stream.value(const <ChatMessage>[]);
+      return repo.watchThreadMessages(
+        conversationId: args.conversationId,
+        parentMessageId: args.parentMessageId,
+        limit: args.limit,
+      );
+    });
 
-final chatMessageByIdProvider = FutureProvider.family<
-    ChatMessage?,
-    ({String conversationId, String messageId})>((ref, args) async {
-  final repo = ref.watch(chatRepositoryProvider);
-  if (repo == null) return null;
-  return repo.getChatMessage(
-    conversationId: args.conversationId,
-    messageId: args.messageId,
-  );
-});
+final chatMessageByIdProvider =
+    FutureProvider.family<
+      ChatMessage?,
+      ({String conversationId, String messageId})
+    >((ref, args) async {
+      final repo = ref.watch(chatRepositoryProvider);
+      if (repo == null) return null;
+      return repo.getChatMessage(
+        conversationId: args.conversationId,
+        messageId: args.messageId,
+      );
+    });
 
 final registrationServiceProvider = Provider<RegistrationService?>((ref) {
   if (!isFirebaseReady()) return null;
@@ -156,16 +176,96 @@ final chatSettingsRepositoryProvider = Provider<ChatSettingsRepository?>((ref) {
 
 final userStickerPacksRepositoryProvider =
     Provider<UserStickerPacksRepository?>((ref) {
-  if (!isFirebaseReady()) return null;
-  return UserStickerPacksRepository(
-    firestore: FirebaseFirestore.instance,
-    storage: FirebaseStorage.instance,
-  );
-});
+      if (!isFirebaseReady()) return null;
+      return UserStickerPacksRepository(
+        firestore: FirebaseFirestore.instance,
+        storage: FirebaseStorage.instance,
+      );
+    });
 
 final userChatSettingsDocProvider =
     StreamProvider.family<Map<String, dynamic>, String>((ref, uid) {
       final repo = ref.watch(chatSettingsRepositoryProvider);
       if (repo == null) return Stream.value(const <String, dynamic>{});
       return repo.watchUserDoc(uid);
+    });
+
+final starredMessageIdsInConversationProvider =
+    StreamProvider.family<
+      Set<String>,
+      ({String userId, String conversationId})
+    >((ref, args) {
+      if (!isFirebaseReady()) return Stream.value(const <String>{});
+      final uid = args.userId.trim();
+      final convId = args.conversationId.trim();
+      if (uid.isEmpty || convId.isEmpty) {
+        return Stream.value(const <String>{});
+      }
+      final q = FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('starredChatMessages')
+          .where('conversationId', isEqualTo: convId);
+      return q.snapshots().map((snap) {
+        final out = <String>{};
+        for (final d in snap.docs) {
+          final raw = d.data()['messageId'];
+          if (raw is String && raw.trim().isNotEmpty) {
+            out.add(raw.trim());
+          }
+        }
+        return out;
+      });
+    });
+
+final starredMessagesInConversationProvider =
+    StreamProvider.family<
+      List<StarredChatMessageEntry>,
+      ({String userId, String conversationId})
+    >((ref, args) {
+      if (!isFirebaseReady()) {
+        return Stream.value(const <StarredChatMessageEntry>[]);
+      }
+      final uid = args.userId.trim();
+      final convId = args.conversationId.trim();
+      if (uid.isEmpty || convId.isEmpty) {
+        return Stream.value(const <StarredChatMessageEntry>[]);
+      }
+      final q = FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('starredChatMessages')
+          .where('conversationId', isEqualTo: convId)
+          .orderBy('createdAt', descending: true);
+
+      DateTime parseCreatedAt(Object? raw) {
+        if (raw is Timestamp) return raw.toDate().toLocal();
+        if (raw is String) {
+          return DateTime.tryParse(raw)?.toLocal() ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+        }
+        return DateTime.fromMillisecondsSinceEpoch(0);
+      }
+
+      return q.snapshots().map((snap) {
+        return snap.docs
+            .map((d) {
+              final data = d.data();
+              final messageId = data['messageId'];
+              final createdAtRaw = data['createdAt'];
+              final previewText = data['previewText'];
+              return StarredChatMessageEntry(
+                docId: d.id,
+                conversationId: convId,
+                messageId: messageId is String ? messageId.trim() : '',
+                createdAt: parseCreatedAt(createdAtRaw),
+                previewText:
+                    previewText is String && previewText.trim().isNotEmpty
+                    ? previewText.trim()
+                    : null,
+              );
+            })
+            .where((x) => x.messageId.isNotEmpty)
+            .toList(growable: false);
+      });
     });

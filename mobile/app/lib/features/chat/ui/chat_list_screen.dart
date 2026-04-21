@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,12 +8,13 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 import '../data/user_profile.dart';
 import '../data/saved_messages_chat.dart';
+import '../data/chat_message_draft_storage.dart';
+import '../data/bottom_nav_icon_settings.dart';
 
-import '../../auth/ui/auth_glass.dart';
-import 'chat_account_menu_sheet.dart';
 import 'chat_folder_bar.dart';
 import 'chat_list_item.dart';
 import 'chat_bottom_nav.dart';
+import 'chat_shell_backdrop.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
@@ -31,23 +34,43 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   Widget _bootLoading(String message, {String? uid}) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => _retryBoot(uid: uid),
-              child: const Text('Повторить'),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const ChatShellBackdrop(),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(
+                      alpha: 0.78,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => _retryBoot(uid: uid),
+                  child: const Text('Повторить'),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -57,80 +80,74 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     final userAsync = ref.watch(authUserProvider);
 
     return Scaffold(
-      body: AuthBackground(
-        child: SafeArea(
-          child: !firebaseReady
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Firebase is not configured yet.'),
-                )
-              : userAsync.when(
-                  data: (user) {
-                    if (user == null) {
-                      // Hard-redirect away from chats when signed out.
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (context.mounted) context.go('/auth');
-                      });
-                      return _bootLoading('Выход…', uid: null);
-                    }
+      body: !firebaseReady
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Firebase is not configured yet.'),
+            )
+          : userAsync.when(
+              data: (user) {
+                if (user == null) {
+                  // Hard-redirect away from chats when signed out.
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) context.go('/auth');
+                  });
+                  return _bootLoading('Выход…', uid: null);
+                }
 
-                    final indexAsync = ref.watch(
-                      userChatIndexProvider(user.uid),
+                final indexAsync = ref.watch(userChatIndexProvider(user.uid));
+                return indexAsync.when(
+                  data: (idx) {
+                    final ids = idx?.conversationIds ?? const <String>[];
+                    final convAsync = ref.watch(
+                      conversationsProvider((
+                        key: conversationIdsCacheKey(ids),
+                      )),
                     );
-                    return indexAsync.when(
-                      data: (idx) {
-                        final ids = idx?.conversationIds ?? const <String>[];
-                        final convAsync = ref.watch(
-                          conversationsProvider((
-                            key: conversationIdsCacheKey(ids),
-                          )),
+                    return convAsync.when(
+                      data: (convs) {
+                        final visibleConversations = convs
+                            .where(
+                              (c) => _isVisibleConversationForUser(
+                                user.uid,
+                                c.data,
+                              ),
+                            )
+                            .toList(growable: false);
+                        final folders = _buildFolders(
+                          currentUserId: user.uid,
+                          idx: idx,
+                          conversations: visibleConversations,
                         );
-                        return convAsync.when(
-                          data: (convs) {
-                            final visibleConversations = convs
-                                .where(
-                                  (c) => _isVisibleConversationForUser(
-                                    user.uid,
-                                    c.data,
-                                  ),
-                                )
-                                .toList(growable: false);
-                            final folders = _buildFolders(
-                              currentUserId: user.uid,
-                              idx: idx,
-                              conversations: visibleConversations,
-                            );
-                            return _ChatListBody(
-                              currentUserId: user.uid,
-                              folders: folders,
-                              conversations: visibleConversations,
-                            );
-                          },
-                          loading: () =>
-                              _bootLoading('Загрузка бесед…', uid: user.uid),
-                          error: (e, _) => Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text('Conversations error: $e'),
-                          ),
+                        return _ChatListBody(
+                          currentUserId: user.uid,
+                          userChatIndex: idx,
+                          folders: folders,
+                          conversations: visibleConversations,
                         );
                       },
                       loading: () =>
-                          _bootLoading('Загрузка списка чатов…', uid: user.uid),
+                          _bootLoading('Загрузка бесед…', uid: user.uid),
                       error: (e, _) => Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text('userChats error: $e'),
+                        child: Text('Conversations error: $e'),
                       ),
                     );
                   },
                   loading: () =>
-                      _bootLoading('Подключение к аккаунту…', uid: null),
+                      _bootLoading('Загрузка списка чатов…', uid: user.uid),
                   error: (e, _) => Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text('Auth error: $e'),
+                    child: Text('userChats error: $e'),
                   ),
-                ),
-        ),
-      ),
+                );
+              },
+              loading: () => _bootLoading('Подключение к аккаунту…', uid: null),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('Auth error: $e'),
+              ),
+            ),
     );
   }
 
@@ -203,11 +220,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 class _ChatListBody extends ConsumerStatefulWidget {
   const _ChatListBody({
     required this.currentUserId,
+    required this.userChatIndex,
     required this.folders,
     required this.conversations,
   });
 
   final String currentUserId;
+  final UserChatIndex? userChatIndex;
   final List<ChatFolder> folders;
   final List<ConversationWithId> conversations;
 
@@ -218,6 +237,42 @@ class _ChatListBody extends ConsumerStatefulWidget {
 class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   String _activeFolderId = 'all';
   final _search = TextEditingController();
+  Map<String, StoredChatMessageDraft> _draftByConv =
+      <String, StoredChatMessageDraft>{};
+
+  late final VoidCallback _draftRevListener = _onChatDraftRevision;
+
+  void _onChatDraftRevision() {
+    unawaited(_reloadChatDrafts());
+  }
+
+  Future<void> _reloadChatDrafts() async {
+    final m = await loadAllChatDraftsForUser(widget.currentUserId);
+    if (!mounted) return;
+    setState(() => _draftByConv = m);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    chatDraftListRevision.addListener(_draftRevListener);
+    unawaited(_reloadChatDrafts());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChatListBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentUserId != widget.currentUserId) {
+      unawaited(_reloadChatDrafts());
+    }
+  }
+
+  @override
+  void dispose() {
+    chatDraftListRevision.removeListener(_draftRevListener);
+    _search.dispose();
+    super.dispose();
+  }
 
   Future<void> _openFavoritesChat({
     required String name,
@@ -242,7 +297,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         return tb.compareTo(ta);
       });
       if (!mounted) return;
-      context.go('/chats/${existing.first.id}');
+      context.push('/chats/${existing.first.id}');
       return;
     }
 
@@ -254,19 +309,13 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         currentUserInfo: (name: name, avatar: avatar, avatarThumb: avatarThumb),
       );
       if (!mounted) return;
-      context.go('/chats/$id');
+      context.push('/chats/$id');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось открыть Избранное: $e')),
       );
     }
-  }
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
   }
 
   String _formatTimeLabel(String? iso) {
@@ -289,37 +338,785 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     return '$dd.$mo.$yy';
   }
 
+  bool _isDefaultFolderId(String id) {
+    return id == 'favorites' ||
+        id == 'all' ||
+        id == 'unread' ||
+        id == 'personal' ||
+        id == 'groups';
+  }
+
+  Future<void> _handleFolderLongPress(
+    BuildContext context,
+    ChatFolder folder,
+  ) async {
+    if (_isDefaultFolderId(folder.id)) return;
+
+    final deleteRequested = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final dark = scheme.brightness == Brightness.dark;
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: const Color(
+                  0xFF101216,
+                ).withValues(alpha: dark ? 0.98 : 0.96),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: dark ? 0.10 : 0.20),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: scheme.onSurface.withValues(alpha: 0.20),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => Navigator.of(ctx).pop(true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          color: Colors.red.withValues(alpha: 0.10),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.20),
+                          ),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline_rounded,
+                              color: Color(0xFFFF6B6B),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Удалить',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFFF6B6B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (deleteRequested != true || !context.mounted) return;
+    final confirmed = await _confirmFolderDelete(context, folder);
+    if (!confirmed || !context.mounted) return;
+
+    final repo = ref.read(chatFoldersRepositoryProvider);
+    if (repo == null) return;
+    try {
+      await repo.deleteFolder(
+        userId: widget.currentUserId,
+        folderId: folder.id,
+      );
+      if (!mounted) return;
+      if (_activeFolderId == folder.id) {
+        setState(() => _activeFolderId = 'all');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Не удалось удалить папку: $e')));
+    }
+  }
+
+  Future<bool> _confirmFolderDelete(
+    BuildContext context,
+    ChatFolder folder,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final dark = scheme.brightness == Brightness.dark;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              color: const Color(
+                0xFF0C0D11,
+              ).withValues(alpha: dark ? 0.98 : 0.96),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: dark ? 0.10 : 0.20),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Удалить папку?',
+                  style: TextStyle(
+                    fontSize: 22 / 2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Папка "${folder.name}" будет удалена. Чаты останутся на месте.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: scheme.onSurface.withValues(alpha: 0.62),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          side: BorderSide(
+                            color: scheme.onSurface.withValues(alpha: 0.20),
+                          ),
+                        ),
+                        child: const Text('Отмена'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          backgroundColor: const Color(0xFFFF5A5F),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: const Text(
+                          'Удалить',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    return result == true;
+  }
+
+  bool _isPinnedInActiveFolder(String conversationId) {
+    final pins =
+        widget.userChatIndex?.folderPins?[_activeFolderId] ?? const <String>[];
+    return pins.contains(conversationId);
+  }
+
+  bool _hasPinnedSupportInActiveFolder() {
+    return _activeFolderId != 'favorites';
+  }
+
+  bool _isSavedConversation(ConversationWithId conversation) {
+    return isSavedMessagesConversation(conversation.data, widget.currentUserId);
+  }
+
+  Future<void> _togglePinInActiveFolder(
+    BuildContext context,
+    ConversationWithId conversation,
+  ) async {
+    if (!_hasPinnedSupportInActiveFolder()) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('В этой папке закрепление недоступно.')),
+      );
+      return;
+    }
+    final repo = ref.read(chatFoldersRepositoryProvider);
+    if (repo == null) return;
+    try {
+      final pinned = await repo.toggleFolderPin(
+        userId: widget.currentUserId,
+        folderId: _activeFolderId,
+        conversationId: conversation.id,
+      );
+      if (!context.mounted) return;
+      final folderName = widget.folders
+          .firstWhere(
+            (f) => f.id == _activeFolderId,
+            orElse: () => widget.folders.first,
+          )
+          .name;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            pinned
+                ? 'Чат закреплен в папке "$folderName"'
+                : 'Чат откреплен из папки "$folderName"',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось изменить закрепление: $e')),
+      );
+    }
+  }
+
+  Future<void> _openChatFoldersDialog(
+    BuildContext context,
+    ConversationWithId conversation,
+  ) async {
+    if (_isSavedConversation(conversation)) return;
+    final repo = ref.read(chatFoldersRepositoryProvider);
+    if (repo == null) return;
+    final customFolders = widget.folders
+        .where((f) => !_isDefaultFolderId(f.id))
+        .toList(growable: false);
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final dark = scheme.brightness == Brightness.dark;
+        bool busy = false;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> toggleFolder(ChatFolder folder) async {
+              setModalState(() => busy = true);
+              try {
+                await repo.toggleConversationInFolder(
+                  userId: widget.currentUserId,
+                  folderId: folder.id,
+                  conversationId: conversation.id,
+                );
+              } catch (e) {
+                if (!ctx.mounted) return;
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text('Не удалось обновить папку: $e')),
+                );
+              } finally {
+                if (ctx.mounted) setModalState(() => busy = false);
+              }
+            }
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  color: const Color(
+                    0xFF0C0D11,
+                  ).withValues(alpha: dark ? 0.98 : 0.96),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: dark ? 0.10 : 0.20),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Папки',
+                      style: TextStyle(
+                        fontSize: 22 / 2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Выберите папки для этого чата.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: scheme.onSurface.withValues(alpha: 0.62),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    if (customFolders.isEmpty)
+                      Text(
+                        'Пока нет кастомных папок.',
+                        style: TextStyle(
+                          color: scheme.onSurface.withValues(alpha: 0.56),
+                        ),
+                      )
+                    else
+                      ...customFolders.map((folder) {
+                        final selected = folder.conversationIds.contains(
+                          conversation.id,
+                        );
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: busy ? null : () => toggleFolder(folder),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                color: selected
+                                    ? const Color(
+                                        0xFF2A79FF,
+                                      ).withValues(alpha: 0.16)
+                                    : Colors.white.withValues(alpha: 0.05),
+                                border: Border.all(
+                                  color: selected
+                                      ? const Color(0xFF2A79FF)
+                                      : Colors.white.withValues(alpha: 0.10),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      folder.name,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  if (busy)
+                                    const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  else
+                                    Icon(
+                                      selected
+                                          ? Icons.check_circle_rounded
+                                          : Icons.circle_outlined,
+                                      color: selected
+                                          ? const Color(0xFF2A79FF)
+                                          : scheme.onSurface.withValues(
+                                              alpha: 0.38,
+                                            ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    const SizedBox(height: 6),
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: const Text('Закрыть'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _clearChatHistory(
+    BuildContext context,
+    ConversationWithId conversation,
+  ) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    final confirmed = await _confirmChatAction(
+      context: context,
+      title: 'Очистить историю?',
+      description:
+          'Сообщения исчезнут только из вашего окна чата. У собеседника история останется.',
+      confirmLabel: 'Очистить',
+      destructive: false,
+    );
+    if (!confirmed) return;
+    try {
+      await repo.clearConversationForMe(
+        conversationId: conversation.id,
+        userId: widget.currentUserId,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('История очищена.')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось очистить историю: $e')),
+      );
+    }
+  }
+
+  Future<void> _deleteConversation(
+    BuildContext context,
+    ConversationWithId conversation,
+  ) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    final confirmed = await _confirmChatAction(
+      context: context,
+      title: 'Удалить чат?',
+      description:
+          'Переписка будет безвозвратно удалена для всех участников. Это действие нельзя отменить.',
+      confirmLabel: 'Удалить',
+      destructive: true,
+    );
+    if (!confirmed) return;
+    try {
+      await repo.deleteDirectConversationForAll(
+        conversationId: conversation.id,
+        currentUserId: widget.currentUserId,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Не удалось удалить чат: $e')));
+    }
+  }
+
+  Future<bool> _confirmChatAction({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required String confirmLabel,
+    required bool destructive,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final dark = scheme.brightness == Brightness.dark;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              color: const Color(
+                0xFF0C0D11,
+              ).withValues(alpha: dark ? 0.98 : 0.96),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: dark ? 0.10 : 0.20),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: scheme.onSurface.withValues(alpha: 0.62),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          side: BorderSide(
+                            color: scheme.onSurface.withValues(alpha: 0.20),
+                          ),
+                        ),
+                        child: const Text('Отмена'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          backgroundColor: destructive
+                              ? const Color(0xFFE2554D)
+                              : const Color(0xFF2A79FF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Text(
+                          confirmLabel,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    return result == true;
+  }
+
+  Future<void> _openChatActionsMenu(
+    BuildContext context,
+    ConversationWithId conversation,
+  ) async {
+    final isSaved = _isSavedConversation(conversation);
+    final canDelete = !conversation.data.isGroup && !isSaved;
+    final canPin = _hasPinnedSupportInActiveFolder();
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final dark = scheme.brightness == Brightness.dark;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(color: Colors.black.withValues(alpha: 0.34)),
+              ),
+            ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: Container(
+                  width: 336,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    color: const Color(
+                      0xFF10161C,
+                    ).withValues(alpha: dark ? 0.98 : 0.95),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: dark ? 0.10 : 0.18),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.28),
+                        blurRadius: 32,
+                        offset: const Offset(0, 18),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (!isSaved)
+                        _ChatMenuButton(
+                          icon: Icons.folder_open_rounded,
+                          iconColor: const Color(0xFF45C7D7),
+                          label: 'Папки',
+                          onTap: () {
+                            Navigator.of(ctx).pop();
+                            _openChatFoldersDialog(context, conversation);
+                          },
+                        ),
+                      _ChatMenuButton(
+                        icon: _isPinnedInActiveFolder(conversation.id)
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        iconColor: canPin
+                            ? const Color(0xFFF0AA3C)
+                            : Colors.white.withValues(alpha: 0.32),
+                        label: _isPinnedInActiveFolder(conversation.id)
+                            ? 'Открепить чат'
+                            : 'Закрепить чат',
+                        labelColor: canPin
+                            ? null
+                            : Colors.white.withValues(alpha: 0.38),
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _togglePinInActiveFolder(context, conversation);
+                        },
+                      ),
+                      _ChatMenuButton(
+                        icon: Icons.auto_fix_high_rounded,
+                        iconColor: Colors.white.withValues(alpha: 0.78),
+                        label: 'Очистить историю',
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _clearChatHistory(context, conversation);
+                        },
+                      ),
+                      if (canDelete)
+                        _ChatMenuButton(
+                          icon: Icons.delete_outline_rounded,
+                          iconColor: const Color(0xFFC53A34),
+                          label: 'Удалить чат',
+                          labelColor: const Color(0xFFC53A34),
+                          onTap: () {
+                            Navigator.of(ctx).pop();
+                            _deleteConversation(context, conversation);
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final userDoc =
+        ref
+            .watch(userChatSettingsDocProvider(widget.currentUserId))
+            .asData
+            ?.value ??
+        const <String, dynamic>{};
+    final chatSettings = Map<String, dynamic>.from(
+      userDoc['chatSettings'] as Map? ?? const <String, dynamic>{},
+    );
+    final bottomNavAppearance =
+        (chatSettings['bottomNavAppearance'] as String?) ?? 'colorful';
+    final bottomNavIconNames = parseBottomNavIconNames(
+      chatSettings['bottomNavIconNames'],
+    );
+    final bottomNavGlobalStyle = BottomNavIconVisualStyle.fromJson(
+      chatSettings['bottomNavIconGlobalStyle'],
+    );
+    final bottomNavIconStyles = parseBottomNavIconStyles(
+      chatSettings['bottomNavIconStyles'],
+    );
+
     final folder = widget.folders.firstWhere(
       (f) => f.id == _activeFolderId,
       orElse: () => widget.folders.first,
     );
     final allowed = folder.conversationIds.toSet();
     final term = _search.text.trim().toLowerCase();
-    final convs =
-        widget.conversations
-            .where((c) => allowed.contains(c.id))
-            .where((c) {
-              if (term.isEmpty) return true;
-              final name = (c.data.name ?? '').toLowerCase();
-              final last = (c.data.lastMessageText ?? '').toLowerCase();
-              return name.contains(term) || last.contains(term);
-            })
-            .toList(growable: false)
-          ..sort((a, b) {
-            final ta =
-                DateTime.tryParse(
-                  a.data.lastMessageTimestamp ?? '',
-                )?.millisecondsSinceEpoch ??
-                0;
-            final tb =
-                DateTime.tryParse(
-                  b.data.lastMessageTimestamp ?? '',
-                )?.millisecondsSinceEpoch ??
-                0;
-            return tb.compareTo(ta);
-          });
+    final uniqueByKey = <String, ConversationWithId>{};
+    int tsScore(ConversationWithId c) =>
+        DateTime.tryParse(
+          c.data.lastMessageTimestamp ?? '',
+        )?.millisecondsSinceEpoch ??
+        0;
+    String keyFor(ConversationWithId c) {
+      if (c.data.isGroup) return 'conv:${c.id}';
+      if (isSavedMessagesConversation(c.data, widget.currentUserId)) {
+        return 'saved:${widget.currentUserId}';
+      }
+      final p = c.data.participantIds
+          .where((id) => id.trim().isNotEmpty)
+          .toList(growable: false);
+      if (p.length != 2) return 'conv:${c.id}';
+      final other = p.firstWhere(
+        (id) => id != widget.currentUserId,
+        orElse: () => '',
+      );
+      if (other.isEmpty) return 'conv:${c.id}';
+      return 'dm:$other';
+    }
+
+    for (final c in widget.conversations.where((c) => allowed.contains(c.id))) {
+      final key = keyFor(c);
+      final prev = uniqueByKey[key];
+      if (prev == null || tsScore(c) >= tsScore(prev)) {
+        uniqueByKey[key] = c;
+      }
+    }
+    final allUniqueByKey = <String, ConversationWithId>{};
+    for (final c in widget.conversations) {
+      final key = keyFor(c);
+      final prev = allUniqueByKey[key];
+      if (prev == null || tsScore(c) >= tsScore(prev)) {
+        allUniqueByKey[key] = c;
+      }
+    }
+    final folderConversations = uniqueByKey.values.toList(growable: false)
+      ..sort((a, b) {
+        final pins =
+            widget.userChatIndex?.folderPins?[_activeFolderId] ??
+            const <String>[];
+        final aPinIndex = pins.indexOf(a.id);
+        final bPinIndex = pins.indexOf(b.id);
+        final aPinned = aPinIndex >= 0;
+        final bPinned = bPinIndex >= 0;
+        if (aPinned && bPinned) return aPinIndex.compareTo(bPinIndex);
+        if (aPinned) return -1;
+        if (bPinned) return 1;
+        return tsScore(b).compareTo(tsScore(a));
+      });
 
     final otherIds = <String>{};
     for (final c in widget.conversations) {
@@ -359,81 +1156,175 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         final profiles = snapProfiles.data ?? const <String, UserProfile>{};
         final selfProfile = profiles[widget.currentUserId];
         final rawSelfName = selfProfile?.name ?? '';
-        final rawSelfUsername = selfProfile?.username ?? '';
         final selfName = rawSelfName.trim().isNotEmpty
             ? rawSelfName.trim()
             : 'Профиль';
-        final selfUsername = rawSelfUsername.trim().isNotEmpty
-            ? rawSelfUsername.trim().replaceFirst(RegExp(r'^@'), '')
-            : 'user';
         final selfAvatar = selfProfile?.avatarThumb ?? selfProfile?.avatar;
 
+        String conversationSearchText(ConversationWithId conversation) {
+          final parts = <String>[];
+          final data = conversation.data;
+          final rawName = (data.name ?? '').trim();
+          if (rawName.isNotEmpty) parts.add(rawName);
+
+          if (isSavedMessagesConversation(data, widget.currentUserId)) {
+            parts.add('Избранное');
+            final selfUsername = (selfProfile?.username ?? '').trim();
+            if (selfUsername.isNotEmpty) {
+              parts.add(selfUsername);
+              parts.add('@$selfUsername');
+            }
+          } else if (data.isGroup) {
+            for (final info
+                in data.participantInfo?.values ??
+                    const <ConversationParticipantInfo>[]) {
+              final participantName = info.name.trim();
+              if (participantName.isNotEmpty) parts.add(participantName);
+            }
+          } else {
+            final otherId = data.participantIds.firstWhere(
+              (id) => id != widget.currentUserId,
+              orElse: () => '',
+            );
+            final profile = profiles[otherId];
+            final profileName = (profile?.name ?? '').trim();
+            if (profileName.isNotEmpty) parts.add(profileName);
+            final username = (profile?.username ?? '').trim();
+            if (username.isNotEmpty) {
+              parts.add(username);
+              parts.add('@$username');
+            }
+            final cachedName = (data.participantInfo?[otherId]?.name ?? '')
+                .trim();
+            if (cachedName.isNotEmpty) parts.add(cachedName);
+          }
+
+          final lastMessage = (data.lastMessageText ?? '').trim();
+          if (lastMessage.isNotEmpty) parts.add(lastMessage);
+
+          final draft = _draftByConv[conversation.id];
+          final draftPlain = draft == null
+              ? ''
+              : chatDraftPlainFromHtml(draft.html);
+          if (draftPlain.trim().isNotEmpty) parts.add(draftPlain.trim());
+
+          return parts.join('\n').toLowerCase();
+        }
+
+        final convs = folderConversations
+            .where((conversation) {
+              if (term.isEmpty) return true;
+              return conversationSearchText(conversation).contains(term);
+            })
+            .toList(growable: false);
+
+        final hasAnyChats = allUniqueByKey.isNotEmpty;
+        final isSearchActive = term.isNotEmpty;
         final isEmptyList = convs.isEmpty;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        // Если в активной папке есть conversationIds, но сами беседы ещё не пришли
+        // (например, initial snapshot), показываем «загрузка». Если ids нет —
+        // это просто пустая папка.
+        final hasChatIdsButNotLoadedYet =
+            !isSearchActive && allowed.isNotEmpty && folderConversations.isEmpty;
+        final theme = Theme.of(context);
+        final dark = theme.colorScheme.brightness == Brightness.dark;
+        return Stack(
+          fit: StackFit.expand,
           children: [
-            ChatFolderBar(
-              folders: widget.folders,
-              activeFolderId: _activeFolderId,
-              onSelectFolder: (id) async {
-                if (id == 'favorites') {
-                  await _openFavoritesChat(
-                    name: selfName,
-                    avatar: selfProfile?.avatar,
-                    avatarThumb: selfProfile?.avatarThumb,
-                  );
-                  return;
-                }
-                if (!mounted) return;
-                setState(() => _activeFolderId = id);
-              },
-              unreadByFolderId: unreadByFolder,
-              onNewPressed: () {
-                _openNewSheet(context);
-              },
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
+            const ChatShellBackdrop(),
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Чаты',
+                            style: TextStyle(
+                              fontSize: 46 / 2,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                        _headerIconButton(
+                          context: context,
+                          icon: Icons.create_new_folder_outlined,
+                          tooltip: 'Новая папка',
+                          onPressed: () => _openCreateFolderModal(
+                            context,
+                            profiles: profiles,
+                            selfProfile: selfProfile,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _headerIconButton(
+                          context: context,
+                          icon: Icons.add_rounded,
+                          tooltip: 'Новый чат',
+                          onPressed: () => context.go('/chats/new'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ChatFolderBar(
+                    folders: widget.folders,
+                    activeFolderId: _activeFolderId,
+                    onSelectFolder: (id) async {
+                      if (id == 'favorites') {
+                        await _openFavoritesChat(
+                          name: selfName,
+                          avatar: selfProfile?.avatar,
+                          avatarThumb: selfProfile?.avatarThumb,
+                        );
+                        return;
+                      }
+                      if (!mounted) return;
+                      setState(() => _activeFolderId = id);
+                    },
+                    unreadByFolderId: unreadByFolder,
+                    onLongPressFolder: (folder) =>
+                        _handleFolderLongPress(context, folder),
+                  ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Container(
-                      height: 46,
+                      height: 40,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(14),
                         color: Colors.white.withValues(
-                          alpha:
-                              Theme.of(context).colorScheme.brightness ==
-                                  Brightness.dark
-                              ? 0.06
-                              : 0.22,
+                          alpha: dark ? 0.07 : 0.14,
                         ),
                         border: Border.all(
                           color: Colors.white.withValues(
-                            alpha:
-                                Theme.of(context).colorScheme.brightness ==
-                                    Brightness.dark
-                                ? 0.12
-                                : 0.35,
+                            alpha: dark ? 0.14 : 0.22,
                           ),
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(
                         children: [
                           Icon(
                             Icons.search_rounded,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.55),
+                            size: 23,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.45,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
                               controller: _search,
                               onChanged: (_) => setState(() {}),
-                              style: const TextStyle(fontSize: 16),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                               textAlignVertical: TextAlignVertical.center,
                               decoration: const InputDecoration(
                                 hintText: 'Поиск...',
@@ -448,11 +1339,18 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           if (_search.text.trim().isNotEmpty)
                             IconButton(
                               constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
+                                minWidth: 30,
+                                minHeight: 30,
                               ),
                               padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.close_rounded),
+                              splashRadius: 18,
+                              icon: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.55,
+                                ),
+                              ),
                               onPressed: () {
                                 _search.clear();
                                 setState(() {});
@@ -462,149 +1360,173 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: Colors.white.withValues(
-                        alpha:
-                            Theme.of(context).colorScheme.brightness ==
-                                Brightness.dark
-                            ? 0.06
-                            : 0.22,
-                      ),
-                      border: Border.all(
-                        color: Colors.white.withValues(
-                          alpha:
-                              Theme.of(context).colorScheme.brightness ==
-                                  Brightness.dark
-                              ? 0.12
-                              : 0.35,
-                        ),
-                      ),
-                    ),
-                    child: IconButton(
-                      tooltip: 'Новый чат',
-                      onPressed: () => context.go('/chats/new'),
-                      icon: const Icon(Icons.edit_rounded),
-                    ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: hasChatIdsButNotLoadedYet
+                        ? Center(
+                            child: Text(
+                              'Загрузка списка чатов…',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.65,
+                                ),
+                              ),
+                            ),
+                          )
+                        : isEmptyList
+                        ? _buildEmptyState(
+                            context: context,
+                            showCreateButton:
+                                !hasAnyChats && !isSearchActive,
+                            title: isSearchActive
+                                ? 'Чаты не найдены'
+                                : hasAnyChats
+                                ? 'В этой папке пока пусто'
+                                : 'Пока нет чатов',
+                            description: isSearchActive
+                                ? 'Попробуйте изменить запрос. Поиск работает по имени пользователя и логину.'
+                                : hasAnyChats
+                                ? 'Переключитесь на другую папку или создайте новый чат через кнопку вверху.'
+                                : 'Создайте новый чат, чтобы начать переписку.',
+                            onCreateTap: () => context.go('/chats/new'),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 88),
+                            itemCount: convs.length,
+                            separatorBuilder: (_, _) => Divider(
+                              height: 1,
+                              indent: 84,
+                              endIndent: 24,
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
+                            itemBuilder: (context, index) {
+                              final c = convs[index];
+                              String title;
+                              String? avatarUrl;
+                              var isOnline = false;
+                              if (isSavedMessagesConversation(
+                                c.data,
+                                widget.currentUserId,
+                              )) {
+                                title = 'Избранное';
+                                avatarUrl =
+                                    selfProfile?.avatarThumb ??
+                                    selfProfile?.avatar ??
+                                    c
+                                        .data
+                                        .participantInfo?[widget.currentUserId]
+                                        ?.avatarThumb ??
+                                    c
+                                        .data
+                                        .participantInfo?[widget.currentUserId]
+                                        ?.avatar;
+                              } else if (c.data.isGroup) {
+                                title =
+                                    (c.data.name?.trim().isNotEmpty ?? false)
+                                    ? c.data.name!.trim()
+                                    : c.id;
+                                avatarUrl = c.data.photoUrl;
+                              } else {
+                                final other = c.data.participantIds.firstWhere(
+                                  (id) => id != widget.currentUserId,
+                                  orElse: () => '',
+                                );
+                                final p = profiles[other];
+                                isOnline = p?.online ?? false;
+                                avatarUrl =
+                                    p?.avatarThumb ??
+                                    p?.avatar ??
+                                    c
+                                        .data
+                                        .participantInfo?[other]
+                                        ?.avatarThumb ??
+                                    c.data.participantInfo?[other]?.avatar;
+                                title =
+                                    p?.name ??
+                                    (c.data.name?.trim().isNotEmpty ?? false
+                                        ? c.data.name!.trim()
+                                        : other);
+                                if (title.trim().isEmpty) title = c.id;
+                              }
+                              final rawLast = (c.data.lastMessageText ?? '')
+                                  .trim();
+                              final clearedAtIso =
+                                  c.data.clearedAt?[widget.currentUserId];
+                              final clearedAt = DateTime.tryParse(
+                                clearedAtIso ?? '',
+                              );
+                              final lastAt = DateTime.tryParse(
+                                c.data.lastMessageTimestamp ?? '',
+                              );
+                              final isClearedForCurrentUser =
+                                  clearedAt != null &&
+                                  (lastAt == null ||
+                                      !lastAt.isAfter(clearedAt));
+                              final draft = _draftByConv[c.id];
+                              final draftLine = draft == null
+                                  ? null
+                                  : chatMainDraftPreviewLine(draft);
+                              final subtitle =
+                                  (draftLine != null && draftLine.isNotEmpty)
+                                  ? 'Черновик · $draftLine'
+                                  : (isClearedForCurrentUser
+                                        ? 'История очищена'
+                                        : rawLast);
+                              final unreadCount =
+                                  (c.data.unreadCounts?[widget.currentUserId] ??
+                                      0) +
+                                  (c.data.unreadThreadCounts?[widget
+                                          .currentUserId] ??
+                                      0);
+                              final timeLabel = _formatTimeLabel(
+                                c.data.lastMessageTimestamp,
+                              );
+                              return ChatListItem(
+                                conversation: c,
+                                title: title,
+                                subtitle: subtitle,
+                                unreadCount: unreadCount,
+                                trailingTimeLabel: timeLabel,
+                                isPinned: _isPinnedInActiveFolder(c.id),
+                                avatarUrl: avatarUrl,
+                                isOnline: isOnline,
+                                onTap: () => context.push('/chats/${c.id}'),
+                                onLongPress: () =>
+                                    _openChatActionsMenu(context, c),
+                                onFoldersTap: _isSavedConversation(c)
+                                    ? null
+                                    : () => _openChatFoldersDialog(context, c),
+                                onClearTap: () => _clearChatHistory(context, c),
+                                onDeleteTap:
+                                    (!c.data.isGroup &&
+                                        !_isSavedConversation(c))
+                                    ? () => _deleteConversation(context, c)
+                                    : null,
+                                allowDelete:
+                                    !c.data.isGroup && !_isSavedConversation(c),
+                                enableSwipeActions: true,
+                              );
+                            },
+                          ),
+                  ),
+                  ChatBottomNav(
+                    activeTab: ChatBottomNavTab.chats,
+                    onChatsTap: () => context.go('/chats'),
+                    onContactsTap: () => context.go('/contacts'),
+                    onCallsTap: () => context.go('/calls'),
+                    onMeetingsTap: () => context.go('/meetings'),
+                    onProfileTap: () => context.push('/account'),
+                    avatarUrl: selfAvatar,
+                    userTitle: selfName,
+                    bottomNavAppearance: bottomNavAppearance,
+                    bottomNavIconNames: bottomNavIconNames,
+                    bottomNavIconGlobalStyle: bottomNavGlobalStyle,
+                    bottomNavIconStyles: bottomNavIconStyles,
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: isEmptyList
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Пока нет чатов',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Создайте новый чат, чтобы начать переписку.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.62),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            FilledButton(
-                              onPressed: () => context.go('/chats/new'),
-                              child: const Text('Новая'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 96),
-                      itemCount: convs.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final c = convs[index];
-                        String title;
-                        String? avatarUrl;
-                        if (isSavedMessagesConversation(
-                          c.data,
-                          widget.currentUserId,
-                        )) {
-                          title = 'Избранное';
-                          avatarUrl =
-                              selfProfile?.avatarThumb ??
-                              selfProfile?.avatar ??
-                              c
-                                  .data
-                                  .participantInfo?[widget.currentUserId]
-                                  ?.avatarThumb ??
-                              c
-                                  .data
-                                  .participantInfo?[widget.currentUserId]
-                                  ?.avatar;
-                        } else if (c.data.isGroup) {
-                          title = (c.data.name?.trim().isNotEmpty ?? false)
-                              ? c.data.name!.trim()
-                              : c.id;
-                          avatarUrl = c.data.photoUrl;
-                        } else {
-                          final other = c.data.participantIds.firstWhere(
-                            (id) => id != widget.currentUserId,
-                            orElse: () => '',
-                          );
-                          final p = profiles[other];
-                          avatarUrl =
-                              p?.avatarThumb ??
-                              p?.avatar ??
-                              c.data.participantInfo?[other]?.avatarThumb ??
-                              c.data.participantInfo?[other]?.avatar;
-                          title =
-                              p?.name ??
-                              (c.data.name?.trim().isNotEmpty ?? false
-                                  ? c.data.name!.trim()
-                                  : other);
-                          if (title.trim().isEmpty) title = c.id;
-                        }
-                        final subtitle = (c.data.lastMessageText ?? '').trim();
-                        final unreadCount =
-                            (c.data.unreadCounts?[widget.currentUserId] ?? 0) +
-                            (c.data.unreadThreadCounts?[widget.currentUserId] ??
-                                0);
-                        final timeLabel = _formatTimeLabel(
-                          c.data.lastMessageTimestamp,
-                        );
-                        return ChatListItem(
-                          conversation: c,
-                          title: title,
-                          subtitle: subtitle,
-                          unreadCount: unreadCount,
-                          trailingTimeLabel: timeLabel,
-                          avatarUrl: avatarUrl,
-                          onTap: () => context.go('/chats/${c.id}'),
-                        );
-                      },
-                    ),
-            ),
-            ChatBottomNav(
-              onProfileTap: () => _openAccountMenu(
-                context,
-                name: selfName,
-                username: selfUsername,
-                avatarUrl: selfAvatar,
-              ),
-              avatarUrl: selfAvatar,
-              userTitle: selfName,
             ),
           ],
         );
@@ -612,152 +1534,881 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     );
   }
 
-  Future<void> _openAccountMenu(
-    BuildContext context, {
-    required String name,
-    required String username,
-    required String? avatarUrl,
-  }) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return ChatAccountMenuSheet(
-          name: name,
-          username: username,
-          avatarUrl: avatarUrl,
-          onProfileTap: () {
-            Navigator.of(ctx).pop();
-            context.go('/profile');
-          },
-          onChatSettingsTap: () {
-            Navigator.of(ctx).pop();
-            context.go('/settings/chats');
-          },
-          onSignOutTap: () async {
-            Navigator.of(ctx).pop();
-            final repo = ref.read(authRepositoryProvider);
-            try {
-              if (repo != null) {
-                await repo.signOut();
-              }
-              if (context.mounted) context.go('/auth');
-            } catch (e) {
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Не удалось выйти: $e')));
-            }
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _openNewSheet(BuildContext context) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: false,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final scheme = Theme.of(ctx).colorScheme;
-        final dark = scheme.brightness == Brightness.dark;
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                color: Colors.white.withValues(alpha: dark ? 0.08 : 0.22),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: dark ? 0.12 : 0.35),
-                ),
+  Widget _buildEmptyState({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required bool showCreateButton,
+    required VoidCallback onCreateTap,
+  }) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.35,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.62),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 10),
-                  Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: scheme.onSurface.withValues(alpha: 0.20),
-                      borderRadius: BorderRadius.circular(999),
+            ),
+            if (showCreateButton) ...[
+              const SizedBox(height: 18),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF58D5E4), Color(0xFF7BE1C8)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF58D5E4).withValues(alpha: 0.24),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(22),
+                    onTap: onCreateTap,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 34,
+                        vertical: 14,
+                      ),
+                      child: Text(
+                        'Создать',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF123238),
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  ListTile(
-                    leading: const Icon(Icons.create_new_folder_rounded),
-                    title: const Text('Новая папка'),
-                    onTap: () async {
-                      Navigator.of(ctx).pop();
-                      final name = await _promptFolderName(context);
-                      if (name == null) return;
-                      final repo = ref.read(chatFoldersRepositoryProvider);
-                      if (repo == null) return;
-                      try {
-                        await repo.createFolder(
-                          userId: widget.currentUserId,
-                          name: name,
-                        );
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-                      }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.chat_bubble_rounded),
-                    title: const Text('Новый чат'),
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      context.go('/chats/new');
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            ],
+          ],
+        ),
+      ),
     );
   }
 
-  Future<String?> _promptFolderName(BuildContext context) async {
-    final c = TextEditingController();
-    try {
-      return await showDialog<String?>(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            title: const Text('Новая папка'),
-            content: TextField(
-              controller: c,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Название папки',
-                border: OutlineInputBorder(),
+  Widget _headerIconButton({
+    required BuildContext context,
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    final dark = Theme.of(context).colorScheme.brightness == Brightness.dark;
+    final surface = Theme.of(context).colorScheme.surface;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: dark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : surface.withValues(alpha: 0.76),
+              border: Border.all(
+                color: dark
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : Colors.black.withValues(alpha: 0.08),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(null),
-                child: const Text('Отмена'),
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 23,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openCreateFolderModal(
+    BuildContext context, {
+    required Map<String, UserProfile> profiles,
+    required UserProfile? selfProfile,
+  }) async {
+    final controller = TextEditingController();
+    final searchController = TextEditingController();
+    final focus = FocusNode();
+    final searchFocus = FocusNode();
+    final selectableChats = _buildFolderCandidates(
+      profiles: profiles,
+      selfProfile: selfProfile,
+    );
+    final selectedIds = <String>{};
+
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) {
+          final scheme = Theme.of(ctx).colorScheme;
+          final dark = scheme.brightness == Brightness.dark;
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                12,
+                24,
+                12,
+                MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(c.text),
-                child: const Text('Создать'),
+              child: StatefulBuilder(
+                builder: (context, setModalState) {
+                  final query = searchController.text.trim().toLowerCase();
+                  final filteredChats = selectableChats
+                      .where((chat) {
+                        if (query.isEmpty) return true;
+                        return chat.title.toLowerCase().contains(query);
+                      })
+                      .toList(growable: false);
+                  final canCreate =
+                      controller.text.trim().isNotEmpty &&
+                      selectedIds.isNotEmpty;
+
+                  Future<void> submit() async {
+                    if (!canCreate) return;
+                    final repo = ref.read(chatFoldersRepositoryProvider);
+                    if (repo == null) return;
+                    final folderName = controller.text.trim();
+                    final folderConversationIds = selectedIds.toList(
+                      growable: false,
+                    );
+                    Navigator.of(ctx).pop();
+                    try {
+                      await repo.createFolder(
+                        userId: widget.currentUserId,
+                        name: folderName,
+                        conversationIds: folderConversationIds,
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(
+                        this.context,
+                      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+                    }
+                  }
+
+                  return Container(
+                    constraints: BoxConstraints(
+                      maxWidth: 760,
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.84,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      color: const Color(
+                        0xFF0C0D11,
+                      ).withValues(alpha: dark ? 0.96 : 0.92),
+                      border: Border.all(
+                        color: Colors.white.withValues(
+                          alpha: dark ? 0.10 : 0.22,
+                        ),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          blurRadius: 34,
+                          offset: const Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 86,
+                                height: 86,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(24),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      const Color(
+                                        0xFF2E86FF,
+                                      ).withValues(alpha: 0.20),
+                                      const Color(
+                                        0xFF9A18FF,
+                                      ).withValues(alpha: 0.18),
+                                    ],
+                                  ),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFF2A79FF,
+                                    ).withValues(alpha: 0.40),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF2A79FF,
+                                      ).withValues(alpha: 0.22),
+                                      blurRadius: 24,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.create_new_folder_rounded,
+                                  size: 40,
+                                  color: Color(0xFF5DA2FF),
+                                ),
+                              ),
+                              const SizedBox(width: 18),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Новая папка',
+                                      style: TextStyle(
+                                        fontSize: 28 / 2,
+                                        fontWeight: FontWeight.w700,
+                                        color: scheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Создайте папку для быстрой фильтрации чатов.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: scheme.onSurface.withValues(
+                                          alpha: dark ? 0.55 : 0.62,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Divider(
+                            height: 1,
+                            color: scheme.onSurface.withValues(
+                              alpha: dark ? 0.12 : 0.20,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'НАЗВАНИЕ ПАПКИ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.7,
+                                color: scheme.onSurface.withValues(
+                                  alpha: dark ? 0.50 : 0.56,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: controller,
+                            focusNode: focus,
+                            autofocus: true,
+                            onChanged: (_) => setModalState(() {}),
+                            textInputAction: TextInputAction.done,
+                            decoration: InputDecoration(
+                              hintText: 'MoonPath',
+                              hintStyle: TextStyle(
+                                color: scheme.onSurface.withValues(alpha: 0.32),
+                                fontSize: 15,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white.withValues(alpha: 0.06),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide(
+                                  color: scheme.onSurface.withValues(
+                                    alpha: dark ? 0.16 : 0.20,
+                                  ),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide(
+                                  color: scheme.onSurface.withValues(
+                                    alpha: dark ? 0.16 : 0.20,
+                                  ),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2A79FF),
+                                  width: 1.4,
+                                ),
+                              ),
+                            ),
+                            onSubmitted: (_) => submit(),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'ЧАТЫ (${selectedIds.length})',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.7,
+                                    color: scheme.onSurface.withValues(
+                                      alpha: dark ? 0.50 : 0.56,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: selectableChats.isEmpty
+                                    ? null
+                                    : () => setModalState(() {
+                                        selectedIds
+                                          ..clear()
+                                          ..addAll(
+                                            selectableChats.map((c) => c.id),
+                                          );
+                                      }),
+                                child: const Text(
+                                  'ВЫБРАТЬ ВСЁ',
+                                  style: TextStyle(
+                                    color: Color(0xFF2E86FF),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: selectedIds.isEmpty
+                                    ? null
+                                    : () => setModalState(selectedIds.clear),
+                                child: Text(
+                                  'СБРОСИТЬ',
+                                  style: TextStyle(
+                                    color: scheme.onSurface.withValues(
+                                      alpha: 0.60,
+                                    ),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              color: Colors.white.withValues(alpha: 0.06),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.10),
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.search_rounded,
+                                  size: 27,
+                                  color: scheme.onSurface.withValues(
+                                    alpha: 0.42,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: TextField(
+                                    controller: searchController,
+                                    focusNode: searchFocus,
+                                    onChanged: (_) => setModalState(() {}),
+                                    decoration: InputDecoration(
+                                      hintText: 'Поиск по названию...',
+                                      border: InputBorder.none,
+                                      hintStyle: TextStyle(
+                                        fontSize: 15,
+                                        color: scheme.onSurface.withValues(
+                                          alpha: 0.34,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Expanded(
+                            child: filteredChats.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      'Подходящие чаты не найдены',
+                                      style: TextStyle(
+                                        color: scheme.onSurface.withValues(
+                                          alpha: 0.56,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    padding: EdgeInsets.zero,
+                                    itemCount: filteredChats.length,
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox(height: 18),
+                                    itemBuilder: (context, index) {
+                                      final chat = filteredChats[index];
+                                      final selected = selectedIds.contains(
+                                        chat.id,
+                                      );
+                                      return InkWell(
+                                        onTap: () => setModalState(() {
+                                          if (selected) {
+                                            selectedIds.remove(chat.id);
+                                          } else {
+                                            selectedIds.add(chat.id);
+                                          }
+                                        }),
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 2,
+                                            vertical: 2,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 22,
+                                                    backgroundColor: Colors
+                                                        .white
+                                                        .withValues(
+                                                          alpha: 0.10,
+                                                        ),
+                                                    backgroundImage:
+                                                        chat.avatarUrl ==
+                                                                null ||
+                                                            chat
+                                                                .avatarUrl!
+                                                                .isEmpty
+                                                        ? null
+                                                        : NetworkImage(
+                                                            chat.avatarUrl!,
+                                                          ),
+                                                    child:
+                                                        chat.avatarUrl ==
+                                                                null ||
+                                                            chat
+                                                                .avatarUrl!
+                                                                .isEmpty
+                                                        ? Text(
+                                                            _initials(
+                                                              chat.title,
+                                                            ),
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                ),
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  Positioned(
+                                                    right: -2,
+                                                    top: -2,
+                                                    child: AnimatedContainer(
+                                                      duration: const Duration(
+                                                        milliseconds: 180,
+                                                      ),
+                                                      width: 20,
+                                                      height: 20,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: selected
+                                                            ? const Color(
+                                                                0xFF2E86FF,
+                                                              )
+                                                            : Colors.white
+                                                                  .withValues(
+                                                                    alpha: 0.12,
+                                                                  ),
+                                                        border: Border.all(
+                                                          color: selected
+                                                              ? const Color(
+                                                                  0xFF5DA2FF,
+                                                                )
+                                                              : Colors.white
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.08,
+                                                                    ),
+                                                        ),
+                                                      ),
+                                                      child: selected
+                                                          ? const Icon(
+                                                              Icons
+                                                                  .check_rounded,
+                                                              size: 14,
+                                                              color:
+                                                                  Colors.white,
+                                                            )
+                                                          : null,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(width: 14),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      chat.title,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: scheme.onSurface,
+                                                      ),
+                                                    ),
+                                                    if (chat.subtitle != null &&
+                                                        chat
+                                                            .subtitle!
+                                                            .isNotEmpty)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              top: 2,
+                                                            ),
+                                                        child: Text(
+                                                          chat.subtitle!,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: scheme
+                                                                .onSurface
+                                                                .withValues(
+                                                                  alpha: 0.46,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                          const SizedBox(height: 14),
+                          Divider(
+                            height: 1,
+                            color: scheme.onSurface.withValues(
+                              alpha: dark ? 0.12 : 0.20,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(58),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: 0.04,
+                                    ),
+                                    side: BorderSide(
+                                      color: scheme.onSurface.withValues(
+                                        alpha: dark ? 0.18 : 0.28,
+                                      ),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Отмена',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Container(
+                                  height: 58,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(18),
+                                    gradient: canCreate
+                                        ? const LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors: [
+                                              Color(0xFF2E86FF),
+                                              Color(0xFF5F90FF),
+                                              Color(0xFF9A18FF),
+                                            ],
+                                          )
+                                        : LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors: [
+                                              scheme.onSurface.withValues(
+                                                alpha: 0.14,
+                                              ),
+                                              scheme.onSurface.withValues(
+                                                alpha: 0.14,
+                                              ),
+                                            ],
+                                          ),
+                                  ),
+                                  child: FilledButton(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    onPressed: canCreate ? submit : null,
+                                    child: const Text(
+                                      'Создать',
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            ],
+            ),
           );
         },
       );
     } finally {
-      c.dispose();
+      controller.dispose();
+      searchController.dispose();
+      focus.dispose();
+      searchFocus.dispose();
     }
   }
+
+  List<_FolderCandidateChat> _buildFolderCandidates({
+    required Map<String, UserProfile> profiles,
+    required UserProfile? selfProfile,
+  }) {
+    final uniqueByKey = <String, _FolderCandidateChat>{};
+    int tsScore(ConversationWithId c) =>
+        DateTime.tryParse(
+          c.data.lastMessageTimestamp ?? '',
+        )?.millisecondsSinceEpoch ??
+        0;
+
+    for (final c in widget.conversations) {
+      if (isSavedMessagesConversation(c.data, widget.currentUserId)) continue;
+
+      String title;
+      String? subtitle;
+      String? avatarUrl;
+      String key;
+
+      if (c.data.isGroup) {
+        title = (c.data.name?.trim().isNotEmpty ?? false)
+            ? c.data.name!.trim()
+            : c.id;
+        subtitle = null;
+        avatarUrl = c.data.photoUrl;
+        key = 'conv:${c.id}';
+      } else {
+        final p = c.data.participantIds
+            .where((id) => id.trim().isNotEmpty)
+            .toList(growable: false);
+        final other = p.firstWhere(
+          (id) => id != widget.currentUserId,
+          orElse: () => '',
+        );
+        final profile = profiles[other];
+        title =
+            profile?.name ??
+            c.data.participantInfo?[other]?.name ??
+            c.data.name?.trim() ??
+            other;
+        if (title.trim().isEmpty) title = c.id;
+        subtitle = _usernameLabel(profile?.username);
+        avatarUrl =
+            profile?.avatarThumb ??
+            profile?.avatar ??
+            c.data.participantInfo?[other]?.avatarThumb ??
+            c.data.participantInfo?[other]?.avatar ??
+            selfProfile?.avatarThumb;
+        key = other.isEmpty ? 'conv:${c.id}' : 'dm:$other';
+      }
+
+      final candidate = _FolderCandidateChat(
+        id: c.id,
+        title: title,
+        subtitle: subtitle,
+        avatarUrl: avatarUrl,
+        sortTs: tsScore(c),
+      );
+      final prev = uniqueByKey[key];
+      if (prev == null || candidate.sortTs >= prev.sortTs) {
+        uniqueByKey[key] = candidate;
+      }
+    }
+
+    final list = uniqueByKey.values.toList(growable: false)
+      ..sort((a, b) => b.sortTs.compareTo(a.sortTs));
+    return list;
+  }
+
+  String _initials(String value) {
+    final parts = value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
+  }
+
+  String? _usernameLabel(String? username) {
+    final raw = (username ?? '').trim();
+    if (raw.isEmpty) return null;
+    return raw.startsWith('@') ? raw : '@$raw';
+  }
 }
+
+class _FolderCandidateChat {
+  const _FolderCandidateChat({
+    required this.id,
+    required this.title,
+    required this.sortTs,
+    this.subtitle,
+    this.avatarUrl,
+  });
+
+  final String id;
+  final String title;
+  final String? subtitle;
+  final String? avatarUrl;
+  final int sortTs;
+}
+
+class _ChatMenuButton extends StatelessWidget {
+  const _ChatMenuButton({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.onTap,
+    this.labelColor,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final Color? labelColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = labelColor ?? Theme.of(context).colorScheme.onSurface;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 22, color: iconColor),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

@@ -22,10 +22,6 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -38,6 +34,22 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Чтобы снимать фото и видео для сообщений в чате</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Чтобы находить знакомых и синхронизировать контакты из телефонной книги</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Чтобы отправлять и обновлять геолокацию в чате</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Для записи видео со звуком в чате</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Чтобы сохранять фото и видео из чата в галерею</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Чтобы прикреплять фото и видео из галереи</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -61,6 +73,11 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>audio</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -78,13 +95,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>Чтобы снимать фото и видео для сообщений в чате</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Для записи видео со звуком в чате</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Чтобы прикреплять фото и видео из галереи</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Чтобы отправлять и обновлять геолокацию в чате</string>
 </dict>
 </plist>

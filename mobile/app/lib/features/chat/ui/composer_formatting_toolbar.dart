@@ -78,17 +78,27 @@ class _ComposerFormattingToolbarState extends State<ComposerFormattingToolbar> {
       required VoidCallback onTap,
       bool active = false,
     }) {
+      final primary = Theme.of(context).colorScheme.primary;
       return Material(
         color: active
-            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.22)
+            ? primary.withValues(alpha: 0.38)
             : Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           splashColor: Colors.white.withValues(alpha: 0.12),
-          child: SizedBox(
+          child: Container(
             height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: active
+                  ? Border.all(
+                      color: primary.withValues(alpha: 0.85),
+                      width: 1.5,
+                    )
+                  : null,
+            ),
             child: Center(child: child),
           ),
         ),

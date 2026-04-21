@@ -43,6 +43,53 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      # Prevent stripping FFI symbols used by super_clipboard/super_native_extensions.
+      if target.name == 'super_native_extensions'
+        config.build_settings['STRIP_STYLE'] = 'non-global'
+        config.build_settings['DEAD_CODE_STRIPPING'] = 'NO'
+        config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'NO'
+      end
     end
+  end
+
+  # super_native_extensions ships Rust symbols in static archive.
+  # With `use_frameworks! :linkage => :static` they may not be force-loaded
+  # into Runner, which leads to undefined symbols at link time.
+  installer.aggregate_targets.each do |aggregate_target|
+    user_project = aggregate_target.user_project
+    next if user_project.nil?
+    user_project.native_targets.each do |target|
+      next unless target.name == 'Runner'
+      target.build_configurations.each do |config|
+        # iOS Archive/TestFlight may strip FFI-exported symbols, leading to:
+        # `Failed to lookup symbol 'super_native_extensions_init_message_channel_context'`.
+        # This keeps global symbols while still allowing size optimizations.
+        config.build_settings['STRIP_STYLE'] = 'non-global'
+        config.build_settings['DEAD_CODE_STRIPPING'] = 'NO'
+        config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'NO'
+
+        ldflags = config.build_settings['OTHER_LDFLAGS']
+        values =
+          case ldflags
+          when nil
+            ['$(inherited)']
+          when Array
+            ldflags.map(&:to_s)
+          else
+            [ldflags.to_s]
+          end
+        # Two separate argv entries — a single combined "-force_load ..." string can confuse Xcode
+        # (it may treat a lone "-force_load" pass as an input file path `ios/-force_load`).
+        lib_path = '${PODS_CONFIGURATION_BUILD_DIR}/super_native_extensions/libsuper_native_extensions.a'
+        values = values.reject do |v|
+          s = v.to_s
+          s.include?('libsuper_native_extensions.a') || s == '-force_load' || s.start_with?('-force_load ')
+        end
+        values << '-force_load'
+        values << lib_path
+        config.build_settings['OTHER_LDFLAGS'] = values
+      end
+    end
+    user_project.save
   end
 end

@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../data/chat_attachment_upload.dart';
 import '../data/tenor_gif_search.dart';
 import '../data/tenor_proxy_config.dart';
 import '../data/user_sticker_item_attachment.dart';
@@ -15,11 +17,15 @@ import '../data/user_sticker_packs_repository.dart';
 enum _StickerScope { my, public }
 
 /// Нижняя панель «Стикеры / GIF» (паритет `ChatStickerGifPanel` + `UserStickersTab`).
+///
+/// [directUploadConversationId] — если задан, вверху вкладки «Стикеры» показывается
+/// блок «С устройства»: выбор из галереи и сразу отправка в чат (как системные стикеры).
 Future<void> showComposerStickerGifSheet({
   required BuildContext context,
   required String userId,
   required UserStickerPacksRepository repo,
   required void Function(ChatAttachment attachment) onPickAttachment,
+  String? directUploadConversationId,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -33,6 +39,7 @@ Future<void> showComposerStickerGifSheet({
         child: _ComposerStickerGifPanel(
           userId: userId,
           repo: repo,
+          directUploadConversationId: directUploadConversationId,
           onPickAttachment: (a) {
             Navigator.of(ctx).pop();
             onPickAttachment(a);
@@ -48,10 +55,12 @@ class _ComposerStickerGifPanel extends StatefulWidget {
     required this.userId,
     required this.repo,
     required this.onPickAttachment,
+    this.directUploadConversationId,
   });
 
   final String userId;
   final UserStickerPacksRepository repo;
+  final String? directUploadConversationId;
   final void Function(ChatAttachment attachment) onPickAttachment;
 
   @override
@@ -73,6 +82,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   List<TenorGifItem> _tenorItems = [];
   bool _tenorLoading = false;
   bool _tenorMissingKey = false;
+  bool _deviceDirectBusy = false;
 
   @override
   void initState() {
@@ -225,6 +235,60 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       );
     } else {
       _snack('Не удалось сохранить');
+    }
+  }
+
+  Future<void> _pickFromGalleryAndSendDirect() async {
+    final convId = widget.directUploadConversationId;
+    if (convId == null || convId.isEmpty) return;
+    if (_deviceDirectBusy) return;
+
+    final picker = ImagePicker();
+    try {
+      final list = await picker.pickMultipleMedia(imageQuality: 92);
+      if (list.isEmpty || !mounted) return;
+      final images = list.where((x) {
+        final m = x.mimeType?.toLowerCase() ?? '';
+        final n = x.name.toLowerCase();
+        return m.startsWith('image/') ||
+            n.endsWith('.gif') ||
+            n.endsWith('.png') ||
+            n.endsWith('.jpg') ||
+            n.endsWith('.jpeg') ||
+            n.endsWith('.webp') ||
+            n.endsWith('.heic');
+      }).toList();
+      if (images.isEmpty) {
+        _snack('Выберите изображение или GIF');
+        return;
+      }
+      setState(() => _deviceDirectBusy = true);
+      final x = images.first;
+      final lower = x.path.toLowerCase();
+      String ext = 'jpg';
+      if (lower.endsWith('.png')) {
+        ext = 'png';
+      } else if (lower.endsWith('.gif')) {
+        ext = 'gif';
+      } else if (lower.endsWith('.webp')) {
+        ext = 'webp';
+      } else if (lower.endsWith('.heic')) {
+        ext = 'heic';
+      }
+      final att = await uploadChatAttachmentFromXFile(
+        storage: FirebaseStorage.instance,
+        conversationId: convId,
+        file: x,
+        displayName: 'sticker_${DateTime.now().millisecondsSinceEpoch}.$ext',
+      );
+      if (!mounted) return;
+      setState(() => _deviceDirectBusy = false);
+      widget.onPickAttachment(att);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _deviceDirectBusy = false);
+        _snack('Не удалось отправить: $e');
+      }
     }
   }
 
@@ -568,10 +632,82 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     );
   }
 
+  Widget _deviceDirectSection() {
+    final fg = Colors.white.withValues(alpha: 0.88);
+    final muted = Colors.white.withValues(alpha: 0.52);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'С УСТРОЙСТВА',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.85,
+              color: muted,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Material(
+            color: Colors.white.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: _deviceDirectBusy ? null : _pickFromGalleryAndSendDirect,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.photo_library_outlined, color: fg, size: 26),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Галерея',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: fg,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Фото, PNG, GIF с устройства — сразу в чат',
+                            style: TextStyle(fontSize: 12, color: muted, height: 1.25),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_deviceDirectBusy)
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      Icon(Icons.chevron_right_rounded, color: muted),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _stickersTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.directUploadConversationId != null) ...[
+          _deviceDirectSection(),
+          Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
+        ],
         _scopeToggle(),
         if (_scope == _StickerScope.my)
           StreamBuilder<List<UserStickerPackRow>>(

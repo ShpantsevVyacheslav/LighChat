@@ -3,19 +3,18 @@ import 'dart:io' show Directory, File, HttpException;
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:http/http.dart' as http;
+import 'package:gal/gal.dart';
 import 'package:lighchat_models/lighchat_models.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../data/chat_media_gallery.dart';
-import 'chat_cached_network_image.dart';
+import 'chat_gallery_video_local_cache.dart';
+import 'chat_media_viewer_photo_page.dart';
 import 'chat_vlc_network_media.dart';
-import 'vlc_ios_simulator_stub.dart'
-    if (dart.library.io) 'vlc_ios_simulator_io.dart' as vlc_sim;
 
 const _ruMonthsGenitive = <String>[
   '',
@@ -41,6 +40,49 @@ String formatChatMediaViewerDateRu(DateTime utcOrLocal) {
   return '${d.day} ${m.toUpperCase()} ${d.year}, $hh:$mm';
 }
 
+/// Маршрут без [MaterialPageRoute.fullscreenDialog]: при закрытии экран уезжает **вверх**, а не «падает» сверху вниз.
+Route<T> chatMediaViewerPageRoute<T extends Object?>(Widget page) {
+  return PageRouteBuilder<T>(
+    opaque: false,
+    barrierColor: Colors.transparent,
+    barrierDismissible: false,
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 240),
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return _ChatMediaViewerSlideTransition(
+        animation: animation,
+        child: child,
+      );
+    },
+  );
+}
+
+class _ChatMediaViewerSlideTransition extends StatelessWidget {
+  const _ChatMediaViewerSlideTransition({
+    required this.animation,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final t = animation.value.clamp(0.0, 1.0);
+        final dy = animation.status == AnimationStatus.reverse
+            ? -h * (1.0 - t)
+            : h * (1.0 - t);
+        return Transform.translate(offset: Offset(0, dy), child: child);
+      },
+    );
+  }
+}
+
 /// Полноэкранный просмотр изображений и видео из чата (паритет веба `media-viewer.tsx`).
 class ChatMediaViewerScreen extends StatefulWidget {
   const ChatMediaViewerScreen({
@@ -51,18 +93,26 @@ class ChatMediaViewerScreen extends StatefulWidget {
     required this.senderLabel,
     this.onReply,
     required this.onForward,
-    required this.onDeleteMessage,
+    required this.onDeleteItem,
+    this.onShowInChat,
   });
 
   final List<ChatMediaGalleryItem> items;
   final int initialIndex;
   final String currentUserId;
   final String Function(String senderId) senderLabel;
+
   /// Если `null`, кнопки «Ответить» скрыты (например, экран ветки без превью ответа).
   final void Function(ChatMessage message)? onReply;
-  final void Function(ChatMessage message) onForward;
-  /// `true`, если сообщение удалено (диалог подтверждения — на стороне родителя).
-  final Future<bool> Function(ChatMessage message) onDeleteMessage;
+
+  /// Пересылка текущего вложения (один файл, не весь альбом).
+  final void Function(ChatMediaGalleryItem item) onForward;
+
+  /// `true` после успешного удаления файла или сообщения (диалог — у родителя).
+  final Future<bool> Function(ChatMediaGalleryItem item) onDeleteItem;
+
+  /// Переход к сообщению во внутреннем чате (из fullscreen-viewer).
+  final void Function(ChatMediaGalleryItem item)? onShowInChat;
 
   @override
   State<ChatMediaViewerScreen> createState() => _ChatMediaViewerScreenState();
@@ -74,6 +124,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   late int _index;
   final Map<int, TransformationController> _imageTransforms = {};
   bool _zoomed = false;
+  double _dismissDragY = 0;
+  /// Скрывает нижние FAB (ответить / переслать / …), пока активная страница — видео и оно играет.
+  bool _galleryVideoPlaying = false;
 
   @override
   void initState() {
@@ -121,6 +174,20 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
         ? rawName.replaceAll(RegExp(r'[/\\]'), '_')
         : 'media';
     try {
+      final hasAccess = await Gal.hasAccess(toAlbum: true);
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess(toAlbum: true);
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Нет доступа к сохранению в галерею'),
+              ),
+            );
+          }
+          return;
+        }
+      }
       final res = await http.get(Uri.parse(url));
       if (res.statusCode != 200) {
         throw HttpException('HTTP ${res.statusCode}');
@@ -129,12 +196,22 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
         '${Directory.systemTemp.path}/lighchat_${DateTime.now().millisecondsSinceEpoch}_$name',
       );
       await f.writeAsBytes(res.bodyBytes);
-      await SharePlus.instance.share(ShareParams(files: [XFile(f.path)]));
+      final video = isChatGridGalleryVideo(item.attachment);
+      if (video) {
+        await Gal.putVideo(f.path);
+      } else {
+        await Gal.putImage(f.path);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Сохранено в галерею')));
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось сохранить: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Не удалось сохранить: $e')));
       }
     }
   }
@@ -148,20 +225,28 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   }
 
   void _forward() {
-    final m = _current?.message;
-    if (m == null) return;
+    final item = _current;
+    if (item == null) return;
     Navigator.of(context).pop();
-    widget.onForward(m);
+    widget.onForward(item);
+  }
+
+  void _showInChat() {
+    final item = _current;
+    final cb = widget.onShowInChat;
+    if (item == null || cb == null) return;
+    Navigator.of(context).pop();
+    cb(item);
   }
 
   Future<void> _delete() async {
-    final m = _current?.message;
-    if (m == null) return;
-    final ok = await widget.onDeleteMessage(m);
+    final item = _current;
+    if (item == null) return;
+    final url = item.attachment.url;
+    final ok = await widget.onDeleteItem(item);
     if (!ok || !mounted) return;
-    final mid = m.id;
     setState(() {
-      _items.removeWhere((e) => e.message.id == mid);
+      _items.removeWhere((e) => e.attachment.url == url);
     });
     if (_items.isEmpty) {
       Navigator.of(context).pop();
@@ -186,290 +271,369 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     final canDelete =
         cur != null && cur.message.senderId == widget.currentUserId;
     final showReply = widget.onReply != null;
+    final showInChat = widget.onShowInChat != null;
+
+    void goPrev() {
+      if (_index <= 0) return;
+      unawaited(
+        _pageController.previousPage(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        ),
+      );
+    }
+
+    void goNext() {
+      if (_index >= _items.length - 1) return;
+      unawaited(
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        ),
+      );
+    }
+
+    final multi = _items.length > 1;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _BackdropLayer(item: cur?.attachment),
-            Positioned.fill(
-              child: PageView.builder(
-                controller: _pageController,
-                physics: _zoomed
-                    ? const NeverScrollableScrollPhysics()
-                    : const PageScrollPhysics(),
-                onPageChanged: (i) {
-                  setState(() {
-                    _index = i;
-                    _zoomed = false;
-                  });
-                  for (final e in _imageTransforms.entries) {
-                    if (e.key != i) {
-                      e.value.value = Matrix4.identity();
-                    }
+        child: GestureDetector(
+          onVerticalDragUpdate: !_zoomed
+              ? (d) => setState(() => _dismissDragY += d.delta.dy)
+              : null,
+          onVerticalDragEnd: !_zoomed
+              ? (d) {
+                  final v = d.primaryVelocity ?? 0;
+                  if (_dismissDragY.abs() > 120 || v.abs() > 600) {
+                    Navigator.of(context).pop();
                   }
-                },
-                itemCount: _items.length,
-                itemBuilder: (context, i) {
-                  final it = _items[i];
-                  final att = it.attachment;
-                  if (isChatGridGalleryVideo(att)) {
-                    return _GalleryVideoPage(
-                      key: ValueKey<String>('v-${att.url}'),
-                      url: att.url,
-                      mimeType: att.type,
-                    );
-                  }
-                  final tc = _transformFor(i);
-                  return Center(
-                    child: InteractiveViewer(
-                      transformationController: tc,
-                      minScale: 1,
-                      maxScale: 5,
-                      clipBehavior: Clip.none,
-                      boundaryMargin: const EdgeInsets.all(120),
-                      child: ChatCachedNetworkImage(
-                        url: att.url,
-                        fit: BoxFit.contain,
-                        showProgressIndicator: true,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (!_zoomed)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.fromLTRB(4, top + 4, 8, 16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.78),
-                        Colors.black.withValues(alpha: 0),
-                      ],
+                  setState(() => _dismissDragY = 0);
+                }
+              : null,
+          child: Transform.translate(
+            offset: Offset(0, _dismissDragY),
+            child: Opacity(
+              opacity: (1.0 - _dismissDragY.abs() / 480).clamp(0.4, 1.0),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _BackdropLayer(item: cur?.attachment),
+                  Positioned.fill(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      physics: _zoomed
+                          ? const NeverScrollableScrollPhysics()
+                          : const PageScrollPhysics(),
+                      onPageChanged: (i) {
+                        setState(() {
+                          _index = i;
+                          _zoomed = false;
+                          _galleryVideoPlaying = false;
+                        });
+                        for (final e in _imageTransforms.entries) {
+                          if (e.key != i) {
+                            e.value.value = Matrix4.identity();
+                          }
+                        }
+                      },
+                      itemCount: _items.length,
+                      itemBuilder: (context, i) {
+                        final it = _items[i];
+                        final att = it.attachment;
+                        if (isChatGridGalleryVideo(att)) {
+                          return _GalleryVideoPage(
+                            key: ValueKey<String>('v-${att.url}'),
+                            pageIndex: i,
+                            url: att.url,
+                            mimeType: att.type,
+                            showEdgeNavigation: multi && !_zoomed,
+                            onTapPrev: i > 0 ? goPrev : null,
+                            onTapNext: i < _items.length - 1 ? goNext : null,
+                            onPlaybackStateChanged: (pageIdx, playing) {
+                              if (!mounted || pageIdx != _index) return;
+                              if (_galleryVideoPlaying != playing) {
+                                setState(() => _galleryVideoPlaying = playing);
+                              }
+                            },
+                          );
+                        }
+                        final tc = _transformFor(i);
+                        return ChatMediaViewerPhotoPage(
+                          key: ValueKey<String>('p-${att.url}'),
+                          url: att.url,
+                          transformationController: tc,
+                          showEdgeNavigation: !_zoomed,
+                          canGoPrev: multi && i > 0,
+                          canGoNext: multi && i < _items.length - 1,
+                          onGoPrev: goPrev,
+                          onGoNext: goNext,
+                        );
+                      },
                     ),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        color: Colors.white,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: cur == null
-                            ? const SizedBox.shrink()
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          widget.senderLabel(
-                                            cur.message.senderId,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 14,
-                                          ),
+                  if (!_zoomed)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: EdgeInsets.fromLTRB(4, top + 4, 8, 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.78),
+                              Colors.black.withValues(alpha: 0),
+                            ],
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              color: Colors.white,
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                            Expanded(
+                              child: cur == null
+                                  ? const SizedBox.shrink()
+                                  : Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                widget.senderLabel(
+                                                  cur.message.senderId,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                                border: Border.all(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.22),
+                                                ),
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.10,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                '${_index + 1} / ${_items.length}',
+                                                style: TextStyle(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.88),
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(999),
-                                          border: Border.all(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.22),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          formatChatMediaViewerDateRu(
+                                            cur.message.createdAt,
                                           ),
-                                          color: Colors.white
-                                              .withValues(alpha: 0.10),
-                                        ),
-                                        child: Text(
-                                          '${_index + 1} / ${_items.length}',
                                           style: TextStyle(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.88),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.52,
+                                            ),
                                             fontSize: 10,
                                             fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.6,
                                           ),
                                         ),
+                                      ],
+                                    ),
+                            ),
+                            PopupMenuButton<String>(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                color: Colors.white,
+                              ),
+                              color: const Color(0xEE1C1C1E),
+                              onSelected: (v) {
+                                switch (v) {
+                                  case 'reply':
+                                    _reply();
+                                    return;
+                                  case 'forward':
+                                    _forward();
+                                    return;
+                                  case 'save':
+                                    unawaited(_saveCurrent());
+                                    return;
+                                  case 'show_in_chat':
+                                    _showInChat();
+                                    return;
+                                  case 'delete':
+                                    unawaited(_delete());
+                                    return;
+                                  default:
+                                    return;
+                                }
+                              },
+                              itemBuilder: (ctx) {
+                                final hi = Colors.white.withValues(alpha: 0.92);
+                                return [
+                                  if (showReply)
+                                    PopupMenuItem(
+                                      value: 'reply',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.reply_rounded, color: hi),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Ответить',
+                                            style: TextStyle(
+                                              color: hi,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    formatChatMediaViewerDateRu(
-                                      cur.message.createdAt,
                                     ),
-                                    style: TextStyle(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.52),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.6,
+                                  PopupMenuItem(
+                                    value: 'forward',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.forward_rounded, color: hi),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Переслать',
+                                          style: TextStyle(
+                                            color: hi,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                      ),
-                      PopupMenuButton<String>(
-                        icon: const Icon(
-                          Icons.more_vert_rounded,
-                          color: Colors.white,
+                                  PopupMenuItem(
+                                    value: 'save',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.download_rounded, color: hi),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Сохранить',
+                                          style: TextStyle(
+                                            color: hi,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (showInChat)
+                                    PopupMenuItem(
+                                      value: 'show_in_chat',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.chat_rounded, color: hi),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Показать в чате',
+                                            style: TextStyle(
+                                              color: hi,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (canDelete)
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: Colors.redAccent,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Text(
+                                            'Удалить',
+                                            style: TextStyle(
+                                              color: Colors.redAccent,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ];
+                              },
+                            ),
+                          ],
                         ),
-                        color: const Color(0xEE1C1C1E),
-                        onSelected: (v) {
-                          switch (v) {
-                            case 'reply':
-                              _reply();
-                            case 'forward':
-                              _forward();
-                            case 'save':
-                              unawaited(_saveCurrent());
-                            case 'delete':
-                              unawaited(_delete());
-                            default:
-                              break;
-                          }
-                        },
-                        itemBuilder: (ctx) => [
-                          if (showReply)
-                            const PopupMenuItem(
-                              value: 'reply',
-                              child: ListTile(
-                                leading: Icon(Icons.reply_rounded),
-                                title: Text('Ответить'),
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          const PopupMenuItem(
-                            value: 'forward',
-                            child: ListTile(
-                              leading: Icon(Icons.forward_rounded),
-                              title: Text('Переслать'),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'save',
-                            child: ListTile(
-                              leading: Icon(Icons.download_rounded),
-                              title: Text('Сохранить'),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          if (canDelete)
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.delete_outline_rounded,
-                                  color: Colors.redAccent,
-                                ),
-                                title: Text(
-                                  'Удалить',
-                                  style: TextStyle(color: Colors.redAccent),
-                                ),
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            if (_items.length > 1 && !_zoomed) ...[
-              Positioned(
-                left: 8,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: _NavArrow(
-                    icon: Icons.chevron_left_rounded,
-                    onTap: _index > 0
-                        ? () {
-                            _pageController.previousPage(
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        : null,
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 8,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: _NavArrow(
-                    icon: Icons.chevron_right_rounded,
-                    onTap: _index < _items.length - 1
-                        ? () {
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        : null,
-                  ),
-                ),
-              ),
-            ],
-            if (!_zoomed)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: bottom + 16,
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (showReply) ...[
-                        _FabGlass(
-                          icon: Icons.reply_rounded,
-                          onTap: _reply,
+                    ),
+                  if (!_zoomed && !_galleryVideoPlaying)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: bottom + 16,
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (showReply) ...[
+                              _FabGlass(
+                                icon: Icons.reply_rounded,
+                                onTap: _reply,
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            _FabGlass(
+                              icon: Icons.forward_rounded,
+                              onTap: _forward,
+                            ),
+                            if (showInChat) ...[
+                              const SizedBox(width: 12),
+                              _FabGlass(
+                                icon: Icons.chat_rounded,
+                                onTap: _showInChat,
+                              ),
+                            ],
+                            if (canDelete) ...[
+                              const SizedBox(width: 12),
+                              _FabGlass(
+                                icon: Icons.delete_outline_rounded,
+                                danger: true,
+                                onTap: () => unawaited(_delete()),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                      ],
-                      _FabGlass(
-                        icon: Icons.forward_rounded,
-                        onTap: _forward,
                       ),
-                      if (canDelete) ...[
-                        const SizedBox(width: 12),
-                        _FabGlass(
-                          icon: Icons.delete_outline_rounded,
-                          danger: true,
-                          onTap: () => unawaited(_delete()),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );
@@ -493,11 +657,7 @@ class _BackdropLayer extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF27272A),
-              Color(0xFF09090B),
-              Color(0xFF000000),
-            ],
+            colors: [Color(0xFF27272A), Color(0xFF09090B), Color(0xFF000000)],
           ),
         ),
       );
@@ -520,41 +680,6 @@ class _BackdropLayer extends StatelessWidget {
         ),
         ColoredBox(color: Colors.black.withValues(alpha: 0.60)),
       ],
-    );
-  }
-}
-
-class _NavArrow extends StatelessWidget {
-  const _NavArrow({required this.icon, this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Ink(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black.withValues(alpha: enabled ? 0.35 : 0.12),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: enabled ? 0.18 : 0.08),
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: Colors.white.withValues(alpha: enabled ? 0.92 : 0.35),
-            size: 30,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -614,12 +739,22 @@ class _FabGlass extends StatelessWidget {
 class _GalleryVideoPage extends StatefulWidget {
   const _GalleryVideoPage({
     super.key,
+    required this.pageIndex,
     required this.url,
     this.mimeType,
+    this.showEdgeNavigation = true,
+    this.onTapPrev,
+    this.onTapNext,
+    this.onPlaybackStateChanged,
   });
 
+  final int pageIndex;
   final String url;
   final String? mimeType;
+  final bool showEdgeNavigation;
+  final VoidCallback? onTapPrev;
+  final VoidCallback? onTapNext;
+  final void Function(int pageIndex, bool isPlaying)? onPlaybackStateChanged;
 
   @override
   State<_GalleryVideoPage> createState() => _GalleryVideoPageState();
@@ -627,52 +762,75 @@ class _GalleryVideoPage extends StatefulWidget {
 
 class _GalleryVideoPageState extends State<_GalleryVideoPage> {
   VideoPlayerController? _av;
-  VlcPlayerController? _vlc;
   bool _failed = false;
-  bool _vlcMode = false;
+  bool _controlsVisible = true;
+  bool _muted = false;
+  bool _switchingQuality = false;
+  bool _scrubbing = false;
+  Duration _scrubPosition = Duration.zero;
+  double _playbackSpeed = 1.0;
+  _ViewerVideoQuality _quality = _ViewerVideoQuality.auto;
+  String _activeUrl = '';
+  Timer? _hideControlsTimer;
+  final TransformationController _videoZoom = TransformationController();
+  /// Прогресс сохранения в локальный кэш (0..1) или `null`, если полоска не нужна.
+  double? _cacheProgress;
+  bool _downloadCancelled = false;
+  bool _lastNotifiedPlaying = false;
+
+  /// Экземпляр, которому нативный PiP шлёт `pipFinished` (последний, открывший PiP).
+  static _GalleryVideoPageState? _pipResumeTarget;
 
   @override
   void initState() {
     super.initState();
-    _vlcMode = _needVlc;
-    if (_vlcMode) {
-      if (vlc_sim.vlcIosSimulatorHost()) {
-        setState(() => _failed = true);
-        return;
-      }
-      _vlc = VlcPlayerController.network(
-        widget.url,
-        hwAcc: HwAcc.auto,
-        autoPlay: false,
-        autoInitialize: true,
-      );
-      _vlc!.addListener(_onVlc);
-    } else {
-      unawaited(_initAv());
-    }
+    _activeUrl = _urlForQuality(_quality);
+    _PictureInPictureBridge.ensureDartInboundForPipFinished();
+    unawaited(_initAv(url: _activeUrl));
   }
 
-  bool get _needVlc =>
-      chatMediaNeedsVlcOnIos(widget.url, mimeType: widget.mimeType);
-
-  void _onVlc() {
-    if (!mounted) return;
-    setState(() {});
-  }
-
-  Future<void> _initAv() async {
-    final uri = Uri.tryParse(widget.url);
+  Future<void> _initAv({required String url}) async {
+    final uri = Uri.tryParse(url);
     if (uri == null || uri.scheme.isEmpty) {
       if (mounted) setState(() => _failed = true);
       return;
     }
     VideoPlayerController? c;
     try {
-      c = VideoPlayerController.networkUrl(
-        uri,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
+      if (await ChatGalleryVideoLocalCache.hasCachedFile(url)) {
+        final file = await ChatGalleryVideoLocalCache.fileForUrl(url);
+        c = VideoPlayerController.file(
+          file,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+      } else {
+        if (mounted) {
+          setState(() => _cacheProgress = 0);
+        }
+        await ChatGalleryVideoLocalCache.downloadToCache(
+          url: url,
+          onProgress: (p) {
+            if (!mounted || _downloadCancelled) return;
+            setState(() => _cacheProgress = p ?? _cacheProgress);
+          },
+          isCancelled: () => _downloadCancelled || !mounted,
+        );
+        if (_downloadCancelled || !mounted) return;
+        final file = await ChatGalleryVideoLocalCache.fileForUrl(url);
+        if (!await file.exists() || file.lengthSync() <= 0) {
+          if (mounted) setState(() => _failed = true);
+          return;
+        }
+        c = VideoPlayerController.file(
+          file,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+        if (mounted) setState(() => _cacheProgress = null);
+      }
       await c.initialize();
+      await c.setLooping(false);
+      await c.setVolume(_muted ? 0 : 1);
+      await c.setPlaybackSpeed(_playbackSpeed);
       if (!mounted) {
         await c.dispose();
         return;
@@ -682,156 +840,889 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
         setState(() => _failed = true);
         return;
       }
-      setState(() => _av = c);
+      setState(() {
+        _av = c;
+        _failed = false;
+      });
+      _showControlsTemporarily(force: true);
     } catch (_) {
       await c?.dispose();
-      if (mounted) setState(() => _failed = true);
+      if (mounted) {
+        setState(() {
+          _failed = true;
+          _cacheProgress = null;
+        });
+      }
     }
   }
 
   @override
   void dispose() {
-    final v = _vlc;
-    if (v != null) {
-      v.removeListener(_onVlc);
-      unawaited(v.dispose());
+    if (_lastNotifiedPlaying) {
+      _lastNotifiedPlaying = false;
+      widget.onPlaybackStateChanged?.call(widget.pageIndex, false);
     }
+    if (_pipResumeTarget == this) {
+      _pipResumeTarget = null;
+    }
+    _downloadCancelled = true;
+    _hideControlsTimer?.cancel();
     _av?.dispose();
+    _videoZoom.dispose();
     super.dispose();
   }
 
-  Future<void> _toggleVlcPlay() async {
-    final v = _vlc;
-    if (v == null) return;
-    final s = v.value;
-    if (!s.isInitialized || s.hasError) return;
-    if (s.isPlaying) {
-      await v.pause();
+  String _formatDuration(Duration d) {
+    final sec = d.inSeconds.clamp(0, 99 * 3600);
+    final h = sec ~/ 3600;
+    final m = (sec % 3600) ~/ 60;
+    final s = sec % 60;
+    if (h > 0) {
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  String _formatSpeed(double value) {
+    if ((value - value.roundToDouble()).abs() < 0.001) {
+      return value.toStringAsFixed(0);
+    }
+    final x10 = value * 10;
+    if ((x10 - x10.roundToDouble()).abs() < 0.001) {
+      return value.toStringAsFixed(1);
+    }
+    return value.toStringAsFixed(2);
+  }
+
+  Duration _safeDuration(VideoPlayerValue value) {
+    final d = value.duration;
+    if (d <= Duration.zero) return const Duration(seconds: 1);
+    return d;
+  }
+
+  void _showControlsTemporarily({bool force = false}) {
+    if (force && mounted && !_controlsVisible) {
+      setState(() => _controlsVisible = true);
+    } else if (!_controlsVisible) {
+      setState(() => _controlsVisible = true);
+    }
+    _hideControlsTimer?.cancel();
+    final c = _av;
+    if (c != null && c.value.isPlaying) {
+      _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        setState(() => _controlsVisible = false);
+      });
+    }
+  }
+
+  void _hideControlsNow() {
+    _hideControlsTimer?.cancel();
+    if (!_controlsVisible || !mounted) return;
+    setState(() => _controlsVisible = false);
+  }
+
+  Future<void> _togglePlayPause() async {
+    final c = _av;
+    if (c == null || !c.value.isInitialized || _switchingQuality) return;
+    if (c.value.isPlaying) {
+      await c.pause();
+      _hideControlsTimer?.cancel();
+      if (mounted) setState(() => _controlsVisible = true);
     } else {
-      await v.play();
+      await c.play();
+      _showControlsTemporarily(force: true);
+    }
+  }
+
+  Future<void> _toggleMute() async {
+    final c = _av;
+    if (c == null || !c.value.isInitialized || _switchingQuality) return;
+    final next = !_muted;
+    await c.setVolume(next ? 0 : 1);
+    if (!mounted) return;
+    setState(() => _muted = next);
+    _showControlsTemporarily(force: true);
+  }
+
+  Future<void> _seekBySeconds(int delta) async {
+    final c = _av;
+    if (c == null || !c.value.isInitialized || _switchingQuality) return;
+    final d = _safeDuration(c.value);
+    final target = c.value.position + Duration(seconds: delta);
+    final clamped = Duration(
+      milliseconds: target.inMilliseconds.clamp(0, d.inMilliseconds),
+    );
+    await c.seekTo(clamped);
+    _showControlsTemporarily(force: true);
+  }
+
+  Future<void> _setSpeed(double speed) async {
+    final c = _av;
+    if (c == null || !c.value.isInitialized || _switchingQuality) return;
+    await c.setPlaybackSpeed(speed);
+    if (!mounted) return;
+    setState(() => _playbackSpeed = speed);
+    _showControlsTemporarily(force: true);
+  }
+
+  Future<void> _pickSpeed() async {
+    final picked = await showModalBottomSheet<double>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1C),
+      builder: (context) {
+        const options = <double>[1.0, 1.25, 1.5, 1.75, 2.0];
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                'Скорость воспроизведения',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final speed in options)
+                ListTile(
+                  onTap: () => Navigator.of(context).pop(speed),
+                  title: Text(
+                    '${_formatSpeed(speed)}x',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: (speed - _playbackSpeed).abs() < 0.001
+                      ? const Icon(Icons.check_rounded, color: Colors.white)
+                      : null,
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (picked == null) return;
+    await _setSpeed(picked);
+  }
+
+  String _urlForQuality(_ViewerVideoQuality quality) {
+    final uri = Uri.tryParse(widget.url);
+    if (uri == null || uri.scheme.isEmpty) return widget.url;
+    final q = Map<String, String>.from(uri.queryParameters);
+    final target = quality.targetHeight;
+    if (target == null) {
+      q.remove('quality');
+    } else {
+      q['quality'] = '$target';
+    }
+    return uri.replace(queryParameters: q).toString();
+  }
+
+  Future<void> _pickQuality() async {
+    final picked = await showModalBottomSheet<_ViewerVideoQuality>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1C),
+      builder: (context) {
+        const options = <_ViewerVideoQuality>[
+          _ViewerVideoQuality.auto,
+          _ViewerVideoQuality.p1080,
+          _ViewerVideoQuality.p720,
+          _ViewerVideoQuality.p480,
+        ];
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                'Качество',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final quality in options)
+                ListTile(
+                  onTap: () => Navigator.of(context).pop(quality),
+                  title: Text(
+                    quality.label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: quality == _quality
+                      ? const Icon(Icons.check_rounded, color: Colors.white)
+                      : null,
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (picked == null || picked == _quality) return;
+    await _applyQuality(picked);
+  }
+
+  Future<void> _applyQuality(_ViewerVideoQuality next) async {
+    final old = _av;
+    if (old == null || !old.value.isInitialized || _switchingQuality) return;
+    final nextUrl = _urlForQuality(next);
+    if (nextUrl == _activeUrl && next == _quality) return;
+
+    final oldPos = old.value.position;
+    final oldPlaying = old.value.isPlaying;
+    setState(() => _switchingQuality = true);
+
+    VideoPlayerController? replacement;
+    try {
+      final uri = Uri.tryParse(nextUrl);
+      if (uri == null || uri.scheme.isEmpty) {
+        throw const FormatException('Bad URL');
+      }
+      if (await ChatGalleryVideoLocalCache.hasCachedFile(nextUrl)) {
+        final file = await ChatGalleryVideoLocalCache.fileForUrl(nextUrl);
+        replacement = VideoPlayerController.file(
+          file,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+      } else {
+        replacement = VideoPlayerController.networkUrl(
+          uri,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+      }
+      await replacement.initialize();
+      if (replacement.value.hasError) {
+        throw Exception(replacement.value.errorDescription ?? 'Playback error');
+      }
+      await replacement.setLooping(false);
+      await replacement.setPlaybackSpeed(_playbackSpeed);
+      await replacement.setVolume(_muted ? 0 : 1);
+      final maxMs = replacement.value.duration.inMilliseconds;
+      final target = Duration(
+        milliseconds: oldPos.inMilliseconds.clamp(0, maxMs > 0 ? maxMs : 0),
+      );
+      await replacement.seekTo(target);
+      if (oldPlaying) {
+        await replacement.play();
+      }
+      if (!mounted) {
+        await replacement.dispose();
+        return;
+      }
+      setState(() {
+        _av = replacement;
+        _quality = next;
+        _activeUrl = nextUrl;
+        _failed = false;
+      });
+      await old.dispose();
+      replacement = null;
+      _showControlsTemporarily(force: true);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось переключить качество')),
+      );
+    } finally {
+      await replacement?.dispose();
+      if (mounted) setState(() => _switchingQuality = false);
+    }
+  }
+
+  Future<void> _openPictureInPicture() async {
+    final c = _av;
+    if (c == null || !c.value.isInitialized) return;
+    final supported = await _PictureInPictureBridge.isSupported();
+    if (!supported) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('PiP не поддерживается на этом устройстве'),
+        ),
+      );
+      return;
+    }
+    final aspect = c.value.aspectRatio > 0 ? c.value.aspectRatio : 16 / 9;
+    final h = 1000;
+    final w = (aspect * h).round().clamp(240, 2400);
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      _pipResumeTarget = this;
+      await c.pause();
+      final posMs = c.value.position.inMilliseconds;
+      String urlForPip = _activeUrl;
+      if (await ChatGalleryVideoLocalCache.hasCachedFile(_activeUrl)) {
+        final f = await ChatGalleryVideoLocalCache.fileForUrl(_activeUrl);
+        urlForPip = f.uri.toString();
+      }
+      final ok = await _PictureInPictureBridge.enter(
+        aspectW: w,
+        aspectH: h,
+        videoUrl: urlForPip,
+        positionMs: posMs,
+      );
+      if (!ok) {
+        if (_pipResumeTarget == this) {
+          _pipResumeTarget = null;
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось открыть PiP')),
+          );
+        }
+      }
+      return;
+    }
+    if (!c.value.isPlaying) {
+      await c.play();
+    }
+    final ok = await _PictureInPictureBridge.enter(aspectW: w, aspectH: h);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Не удалось открыть PiP')));
+    }
+  }
+
+  Future<void> _resumePlaybackAfterNativePip(int positionMs) async {
+    final c = _av;
+    if (c == null || !c.value.isInitialized) return;
+    await c.seekTo(Duration(milliseconds: positionMs));
+    await c.play();
+    if (_pipResumeTarget == this) {
+      _pipResumeTarget = null;
     }
     if (mounted) setState(() {});
   }
 
+  Widget _wrapWithEdgeNav(Widget child) {
+    if (!widget.showEdgeNavigation) return child;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stripe = constraints.maxWidth * 0.22;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            child,
+            if (widget.onTapPrev != null)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: stripe,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onTapPrev,
+                ),
+              ),
+            if (widget.onTapNext != null)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: stripe,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onTapNext,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final unsupported = chatMediaRequiresServerNormalizationOnIos(
+      widget.url,
+      mimeType: widget.mimeType,
+    );
+    if (unsupported) {
+      return _wrapWithEdgeNav(
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              'Видео обрабатывается на сервере и скоро станет доступно.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
     if (_failed) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Не удалось воспроизвести видео.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.88),
-              fontSize: 14,
+      return _wrapWithEdgeNav(
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              'Не удалось воспроизвести видео.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.88),
+                fontSize: 14,
+              ),
             ),
           ),
         ),
       );
     }
 
-    if (_vlcMode) {
-      final v = _vlc!;
-      final s = v.value;
-      return ColoredBox(
+    final c = _av;
+    if (c == null || !c.value.isInitialized) {
+      return _wrapWithEdgeNav(
+        ColoredBox(
+          color: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const Center(child: CircularProgressIndicator()),
+              if (_cacheProgress != null)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ClipRect(
+                    child: LinearProgressIndicator(
+                      minHeight: 4,
+                      value: _cacheProgress! >= 1 ? null : _cacheProgress,
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        const Color(0xFF2F86FF).withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _wrapWithEdgeNav(
+      ColoredBox(
         color: Colors.black,
         child: Center(
-          child: s.hasError
-              ? const Text(
-                  'Ошибка воспроизведения',
-                  style: TextStyle(color: Colors.white70),
-                )
-              : !s.isInitialized
-              ? const CircularProgressIndicator()
-              : AspectRatio(
-                  aspectRatio: s.aspectRatio > 0 ? s.aspectRatio : 16 / 9,
+          child: AspectRatio(
+            aspectRatio: c.value.aspectRatio > 0 ? c.value.aspectRatio : 16 / 9,
+            child: ValueListenableBuilder<VideoPlayerValue>(
+              valueListenable: c,
+              builder: (context, value, _) {
+                final playing = value.isPlaying;
+                if (playing != _lastNotifiedPlaying) {
+                  _lastNotifiedPlaying = playing;
+                  final cb = widget.onPlaybackStateChanged;
+                  final idx = widget.pageIndex;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    cb?.call(idx, playing);
+                  });
+                }
+                final duration = _safeDuration(value);
+                final basePos = _scrubbing ? _scrubPosition : value.position;
+                final position = Duration(
+                  milliseconds: basePos.inMilliseconds.clamp(
+                    0,
+                    duration.inMilliseconds,
+                  ),
+                );
+                final sliderMax = duration.inMilliseconds > 0
+                    ? duration.inMilliseconds.toDouble()
+                    : 1.0;
+                final sliderValue = position.inMilliseconds.toDouble().clamp(
+                  0.0,
+                  sliderMax,
+                );
+
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    if (_controlsVisible) {
+                      if (value.isPlaying) {
+                        _hideControlsNow();
+                      } else {
+                        unawaited(_togglePlayPause());
+                      }
+                    } else {
+                      _showControlsTemporarily(force: true);
+                    }
+                  },
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      VlcPlayer(
-                        controller: v,
-                        aspectRatio:
-                            s.aspectRatio > 0 ? s.aspectRatio : 16 / 9,
-                        placeholder: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                      InteractiveViewer(
+                        clipBehavior: Clip.hardEdge,
+                        transformationController: _videoZoom,
+                        minScale: 1,
+                        maxScale: 4,
+                        panEnabled: false,
+                        child: VideoPlayer(c),
                       ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _toggleVlcPlay,
-                          child: AnimatedOpacity(
-                            opacity: s.isPlaying ? 0.0 : 1.0,
-                            duration: const Duration(milliseconds: 180),
-                            child: Center(
-                              child: Icon(
-                                Icons.play_circle_fill_rounded,
-                                size: 72,
-                                color: Colors.white.withValues(alpha: 0.92),
+                      if (_switchingQuality)
+                        Positioned.fill(
+                          child: ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                      AnimatedOpacity(
+                        opacity: _controlsVisible ? 1 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: IgnorePointer(
+                          ignoring: !_controlsVisible,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.54),
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.68),
+                                ],
+                                stops: const [0, 0.4, 1],
                               ),
+                            ),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 8),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      _VideoControlChip(
+                                        icon: _muted
+                                            ? Icons.volume_off_rounded
+                                            : Icons.volume_up_rounded,
+                                        onTap: _toggleMute,
+                                        active: !_muted,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _VideoControlChip(
+                                        icon: Icons.speed_rounded,
+                                        label:
+                                            '${_formatSpeed(_playbackSpeed)}x',
+                                        onTap: _pickSpeed,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _VideoControlChip(
+                                        icon: Icons.hd_rounded,
+                                        label: _quality.label,
+                                        onTap: _pickQuality,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _VideoControlChip(
+                                        icon: Icons
+                                            .picture_in_picture_alt_rounded,
+                                        onTap: _openPictureInPicture,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Spacer(),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _VideoTransportButton(
+                                      icon: Icons.replay_10_rounded,
+                                      onTap: () => _seekBySeconds(-10),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _VideoTransportButton(
+                                      icon: value.isPlaying
+                                          ? Icons.pause_rounded
+                                          : Icons.play_arrow_rounded,
+                                      onTap: _togglePlayPause,
+                                      large: true,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _VideoTransportButton(
+                                      icon: Icons.forward_10_rounded,
+                                      onTap: () => _seekBySeconds(10),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        _formatDuration(position),
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.92,
+                                          ),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        _formatDuration(duration),
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.78,
+                                          ),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 3.2,
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6,
+                                    ),
+                                    overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 12,
+                                    ),
+                                    activeTrackColor: const Color(0xFF2F86FF),
+                                    inactiveTrackColor: Colors.white.withValues(
+                                      alpha: 0.24,
+                                    ),
+                                    thumbColor: Colors.white,
+                                  ),
+                                  child: Slider(
+                                    min: 0,
+                                    max: sliderMax,
+                                    value: sliderValue,
+                                    onChangeStart: (v) {
+                                      setState(() {
+                                        _scrubbing = true;
+                                        _scrubPosition = Duration(
+                                          milliseconds: v.round(),
+                                        );
+                                      });
+                                    },
+                                    onChanged: (v) {
+                                      setState(() {
+                                        _scrubbing = true;
+                                        _scrubPosition = Duration(
+                                          milliseconds: v.round(),
+                                        );
+                                      });
+                                    },
+                                    onChangeEnd: (v) async {
+                                      setState(() {
+                                        _scrubbing = false;
+                                        _scrubPosition = Duration(
+                                          milliseconds: v.round(),
+                                        );
+                                      });
+                                      await c.seekTo(
+                                        Duration(milliseconds: v.round()),
+                                      );
+                                      _showControlsTemporarily(force: true);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
                             ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
+                );
+              },
+            ),
+          ),
         ),
-      );
-    }
+      ),
+    );
+  }
+}
 
-    final c = _av;
-    if (c == null || !c.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return ColoredBox(
-      color: Colors.black,
-      child: Center(
-        child: AspectRatio(
-          aspectRatio: c.value.aspectRatio > 0 ? c.value.aspectRatio : 16 / 9,
-          child: Stack(
-            fit: StackFit.expand,
+enum _ViewerVideoQuality {
+  auto(label: 'Авто', targetHeight: null),
+  p1080(label: '1080p', targetHeight: 1080),
+  p720(label: '720p', targetHeight: 720),
+  p480(label: '480p', targetHeight: 480);
+
+  const _ViewerVideoQuality({required this.label, required this.targetHeight});
+
+  final String label;
+  final int? targetHeight;
+}
+
+class _VideoControlChip extends StatelessWidget {
+  const _VideoControlChip({
+    required this.icon,
+    required this.onTap,
+    this.label,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String? label;
+  final VoidCallback onTap;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: active
+                ? const Color(0xFF2F86FF).withValues(alpha: 0.82)
+                : Colors.black.withValues(alpha: 0.48),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              VideoPlayer(c),
-              VideoProgressIndicator(
-                c,
-                allowScrubbing: true,
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-                colors: VideoProgressColors(
-                  playedColor: Colors.white.withValues(alpha: 0.92),
-                  bufferedColor: Colors.white.withValues(alpha: 0.35),
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
-                ),
-              ),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () async {
-                    if (c.value.isPlaying) {
-                      await c.pause();
-                    } else {
-                      await c.play();
-                    }
-                    setState(() {});
-                  },
-                  child: AnimatedOpacity(
-                    opacity: c.value.isPlaying ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 180),
-                    child: Center(
-                      child: Icon(
-                        Icons.play_circle_fill_rounded,
-                        size: 72,
-                        color: Colors.white.withValues(alpha: 0.92),
-                      ),
-                    ),
+              Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.96)),
+              if (label != null) ...[
+                const SizedBox(width: 6),
+                Text(
+                  label!,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.96),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+class _VideoTransportButton extends StatelessWidget {
+  const _VideoTransportButton({
+    required this.icon,
+    required this.onTap,
+    this.large = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = large ? 64.0 : 52.0;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Ink(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: large
+                ? const Color(0xFF2F86FF).withValues(alpha: 0.9)
+                : Colors.black.withValues(alpha: 0.5),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.26)),
+          ),
+          child: Icon(
+            icon,
+            size: large ? 34 : 28,
+            color: Colors.white.withValues(alpha: 0.97),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PictureInPictureBridge {
+  static const MethodChannel _channel = MethodChannel('lighchat/pip');
+  static bool _dartInboundInstalled = false;
+
+  /// Обработка `pipFinished` с iOS (нативный AVPlayer закрылся — продолжаем во Flutter).
+  static void ensureDartInboundForPipFinished() {
+    if (_dartInboundInstalled) return;
+    _dartInboundInstalled = true;
+    _channel.setMethodCallHandler((call) async {
+      if (call.method != 'pipFinished') return;
+      final args = call.arguments;
+      var ms = 0;
+      if (args is Map && args['positionMs'] is int) {
+        ms = args['positionMs'] as int;
+      }
+      final t = _GalleryVideoPageState._pipResumeTarget;
+      if (t != null && t.mounted) {
+        await t._resumePlaybackAfterNativePip(ms);
+      } else {
+        _GalleryVideoPageState._pipResumeTarget = null;
+      }
+    });
+  }
+
+  static Future<bool> isSupported() async {
+    if (kIsWeb) return false;
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    try {
+      final ok = await _channel.invokeMethod<bool>('isSupported');
+      return ok == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> enter({
+    required int aspectW,
+    required int aspectH,
+    String? videoUrl,
+    int positionMs = 0,
+  }) async {
+    if (kIsWeb) return false;
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final ok = await _channel.invokeMethod<bool>('enter', <String, int>{
+          'aspectW': aspectW,
+          'aspectH': aspectH,
+        });
+        return ok == true;
+      }
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        if (videoUrl == null || videoUrl.isEmpty) return false;
+        final ok = await _channel.invokeMethod<bool>('enter', <String, Object?>{
+          'aspectW': aspectW,
+          'aspectH': aspectH,
+          'videoUrl': videoUrl,
+          'positionMs': positionMs,
+        });
+        return ok == true;
+      }
+    } catch (_) {}
+    return false;
   }
 }

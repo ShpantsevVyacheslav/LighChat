@@ -10,8 +10,10 @@
 
 ## Чаты
 
-- `Conversation` - чат (личный/групповой), участники, last-message, unread, pinned/reactions; опционально `e2eeEnabled`, `e2eeKeyEpoch`, `e2eeEnabledAt`.
-- `ChatMessage` - сообщение, вложения, reply context, тред-метаданные, реакции, геолокация; опционально `e2ee` (ciphertext, без plaintext на сервере).
+- `Conversation` - чат (личный/групповой), участники, last-message, unread, pinned/reactions; для reaction-навигации хранит `lastReactionEmoji`, `lastReactionTimestamp`, `lastReactionSenderId`, `lastReactionMessageId`, `lastReactionParentId`, `lastReactionSeenAt`; опционально `e2eeEnabled`, `e2eeKeyEpoch`, `e2eeEnabledAt`.
+- `ChatMessage` - сообщение, вложения, reply context, тред-метаданные (`threadCount`, `lastThreadMessage*`, `threadParticipantIds` для аватаров ответивших), реакции, геолокация; опционально `e2ee` (ciphertext, без plaintext на сервере).
+- `ChatEmojiBurstEvent` - одноразовое событие fullscreen-анимации для single-emoji сообщений (`eventId`, `emoji`, `by`, `at`), хранится в `ChatMessage.emojiBurst` и используется для синхронизации эффекта между клиентами.
+- `ChatMediaNorm` - статус серверной нормализации медиа во вложениях сообщения: `pending | done | failed`, список `failedIndexes`, `updatedAt`.
 - `ChatMessageE2eePayload`, `E2eeSessionDoc`, `E2eeKeyWrapEntry`, `UserE2eePublicDoc` — структуры E2E (см. `src/lib/e2ee/`).
 - `ChatAttachment` - вложение (url/type/size + опциональная media metadata).
 - `ReplyContext` — в E2E-режиме поле `text` может отсутствовать (превью из расшифровки на клиенте). `PinnedMessage`, `ReactionDetail` — вспомогательные структуры сообщений.
@@ -23,7 +25,7 @@
 - `Meeting` - встреча (host/adminIds/status/privacy).
 - `MeetingSignal` - signaling payload для WebRTC во встрече.
 - `MeetingMessage` - чат-сообщение встречи.
-- `MeetingPoll` - опрос встречи.
+- `MeetingPoll` - опрос встречи и **тот же тип документа** для опросов в чате (`conversations/{id}/polls/{pollId}`): поля `question`, `options`, `creatorId`, `status`, `isAnonymous`, `votes` (uid → один индекс или массив индексов при множественном выборе), опционально `description`, `allowMultipleAnswers`, `allowAddingOptions`, `allowRevoting`, `shuffleOptions`, `quizMode`, `correctOptionIndex`, `quizExplanation`, `closesAt` (ISO). Создание: веб `ChatAttachPollDialog` + `chatPollFirestoreFields`, мобильный `ChatPollCreatePayload` + `ChatRepository.sendChatPollMessage`. Подсчёт голосов и порядок строк при shuffle: `src/lib/chat-poll-votes.ts` / `mobile/.../chat_poll_vote_utils.dart`.
 - `MeetingJoinRequest` - запрос доступа в приватную встречу.
 
 ## Уведомления и настройки

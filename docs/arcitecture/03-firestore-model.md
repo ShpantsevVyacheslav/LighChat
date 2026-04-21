@@ -8,17 +8,19 @@
   - `notifications/{notificationId}`
   - `stickerPacks/{packId}/items/{itemId}`
   - `e2ee/{docId}` - публичные ключи E2E (запись только владельцем; чтение — любой вошедший, для обёртки ключей чата).
+  - `devices/{deviceId}` - реестр клиентских устройств/сессий пользователя (`app`, `platform`, `isActive`, `lastSeenAt`, `lastLoginAt`), read/write только владельцем uid.
 - `registrationIndex/{docId}` - индекс уникальности (email/phone/username), только server-write.
 - `publicStickerPacks/{packId}` - общие стикерпаки (read: авторизованные; write: admin).
   - `items/{itemId}` - стикеры/GIF (те же поля, что у `users/*/stickerPacks/*/items`).
-- `conversations/{conversationId}` - чат и метаданные участников.
+- `conversations/{conversationId}` - чат и метаданные участников (в т.ч. unread-счётчики и reaction-anchor поля `lastReaction*` + `lastReactionSeenAt`).
   - `members/{memberId}` - server-maintained индекс участников для правил.
   - `typing/{typingUserId}`
-  - `messages/{messageId}` (+ вложенные thread-path документы)
+  - `messages/{messageId}` (+ вложенные thread-path документы; для медиа-нормализации используется поле `mediaNorm` со статусом `pending|done|failed` и `failedIndexes`; для синхронизации emoji-эффектов используется `emojiBurst: {eventId, emoji, by, at}`)
   - `polls/{pollId}`
   - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата: обёртки `wraps` на участника (ciphertext; сервер не знает plaintext).
 - `userChats/{userId}` - денормализованный индекс чатов пользователя.
 - `userContacts/{userId}` - список контактов пользователя.
+  - `deviceLookup/{registrationIndexKey}` - ключи телефонной книги устройства (phone/email) для авто-сопоставления с `registrationIndex` и автодобавления новых зарегистрированных контактов.
 - `calls/{callId}` - документ звонка.
   - `candidates/{candidateId}` - ICE candidates.
 - `userCalls/{userId}` - денормализованный индекс звонков.
@@ -35,8 +37,11 @@
 ## Ключевые связи
 
 - `users.id` == Firebase Auth uid.
+- `users/{uid}/devices/{deviceId}` хранит состояние конкретного клиента (web/mobile): при входе клиент помечает `isActive=true`, при выходе/скрытии — `isActive=false`.
 - `conversations.participantIds` определяет состав чата; `conversations/*/members/*` - серверный индекс для правил.
+- Для личных 1:1 чатов `conversationId` детерминирован по паре uid (`dm_{lenA}:{uidA}_{lenB}:{uidB}`, uid в лексикографическом порядке), чтобы не появлялись дубликаты диалогов между одной парой пользователей.
 - Личный чат «Избранное» хранится как `conversations` с `isGroup=false` и ровно одним `participantIds` (uid владельца).
+- Для «Избранного» используется детерминированный `conversationId` по uid владельца (`saved_{len}:{uid}`); web/mobile при входе делают идемпотентный ensure и очищают лишние `saved`-id из `userChats/{uid}.conversationIds`, чтобы в списке оставался один активный чат.
 - `userChats.conversationIds[]` ссылается на `conversations/{id}`.
 - `calls.callerId/receiverId` ссылается на `users/{id}`; `userCalls.callIds[]` ссылается на `calls/{id}`.
 - `meetings.hostId/adminIds` ссылается на `users/{id}`; `userMeetings.meetingIds[]` ссылается на `meetings/{id}`.
@@ -48,10 +53,13 @@
 - Создание `calls` синхронизирует `userCalls`.
 - Создание участника встречи синхронизирует `userMeetings`.
 - Изменения `users` синхронизируют `registrationIndex`.
+- Изменения `users` (phone/email) дополнительно проверяют совпадения в `userContacts/*/deviceLookup/*` (collectionGroup `deviceLookup`) и автоматически добавляют зарегистрировавшегося пользователя в `userContacts/{ownerId}.contactIds` у владельцев совпавших ключей.
 
 ## Критичные заметки для изменений
 
 - Нельзя менять только одну из двух моделей membership (`participantIds`/`members`) без обновления trigger-логики и правил.
 - При изменениях правил обновляй оба файла: `firestore.rules` и `src/firestore.rules`.
+- В fallback-проверках membership в правилах используй `exists(path)` + `get(path).data`; не полагайся на `get(...).exists` в Firestore rules, иначе запись в `messages/*` и другие подколлекции может отвалиться на клиентах при отсутствии `members/{uid}`.
 - Правила чтения `conversations` для saved-messages (`participantIds.size()==1`) должны оставаться owner-only даже при admin-доступе к обычным чатам.
+- Для детерминированных id (`saved_*`, `dm_*`) правила допускают `get` несуществующего документа для авторизованного пользователя (по префиксу id), чтобы клиентские `ensure/createOrOpen` потоки могли делать preflight `get` перед `create` без `permission-denied/internal`.
 - Проверяй релевантность `firestore.indexes.json` после добавления новых query-паттернов.

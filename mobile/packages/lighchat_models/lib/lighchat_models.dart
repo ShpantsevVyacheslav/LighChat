@@ -31,10 +31,11 @@ class UserChatIndex {
         .toList(growable: false);
 
     final sidebarOrderRaw = json['sidebarFolderOrder'];
-    final sidebarFolderOrder = (sidebarOrderRaw is List ? sidebarOrderRaw : const <Object?>[])
-        .whereType<String>()
-        .where((s) => s.isNotEmpty)
-        .toList(growable: false);
+    final sidebarFolderOrder =
+        (sidebarOrderRaw is List ? sidebarOrderRaw : const <Object?>[])
+            .whereType<String>()
+            .where((s) => s.isNotEmpty)
+            .toList(growable: false);
 
     final folderPinsRaw = json['folderPins'];
     final folderPins = <String, List<String>>{};
@@ -53,7 +54,9 @@ class UserChatIndex {
     return UserChatIndex(
       conversationIds: ids,
       folders: folders.isEmpty ? null : folders,
-      sidebarFolderOrder: sidebarFolderOrder.isEmpty ? null : sidebarFolderOrder,
+      sidebarFolderOrder: sidebarFolderOrder.isEmpty
+          ? null
+          : sidebarFolderOrder,
       folderPins: folderPins.isEmpty ? null : folderPins,
     );
   }
@@ -104,7 +107,9 @@ class ConversationParticipantInfo {
     return ConversationParticipantInfo(
       name: name.trim(),
       avatar: m['avatar'] is String ? m['avatar'] as String : null,
-      avatarThumb: m['avatarThumb'] is String ? m['avatarThumb'] as String : null,
+      avatarThumb: m['avatarThumb'] is String
+          ? m['avatarThumb'] as String
+          : null,
     );
   }
 }
@@ -123,6 +128,13 @@ class Conversation {
     this.lastMessageTimestamp,
     this.unreadCounts,
     this.unreadThreadCounts,
+    this.lastReactionEmoji,
+    this.lastReactionTimestamp,
+    this.lastReactionSenderId,
+    this.lastReactionMessageId,
+    this.lastReactionParentId,
+    this.lastReactionSeenAt,
+    this.clearedAt,
     this.pinnedMessages,
     this.legacyPinnedMessage,
     this.e2eeEnabled,
@@ -132,6 +144,7 @@ class Conversation {
   final bool isGroup;
   final String? name;
   final String? description;
+
   /// Group avatar URL (web `photoUrl`).
   final String? photoUrl;
   final String? createdByUserId;
@@ -139,11 +152,20 @@ class Conversation {
   final Map<String, ConversationParticipantInfo>? participantInfo;
   final List<String> participantIds;
   final String? lastMessageText;
+
   /// ISO string in your web model; in Firestore it is commonly stored as string.
   final String? lastMessageTimestamp;
   final Map<String, int>? unreadCounts;
   final Map<String, int>? unreadThreadCounts;
+  final String? lastReactionEmoji;
+  final String? lastReactionTimestamp;
+  final String? lastReactionSenderId;
+  final String? lastReactionMessageId;
+  final String? lastReactionParentId;
+  final Map<String, String>? lastReactionSeenAt;
+  final Map<String, String>? clearedAt;
   final List<PinnedMessage>? pinnedMessages;
+
   /// @deprecated web `pinnedMessage` single field.
   final PinnedMessage? legacyPinnedMessage;
   final bool? e2eeEnabled;
@@ -151,10 +173,11 @@ class Conversation {
 
   static Conversation fromJson(JsonMap json) {
     final rawParticipants = json['participantIds'];
-    final participantIds = (rawParticipants is List ? rawParticipants : const <Object?>[])
-        .whereType<String>()
-        .where((s) => s.isNotEmpty)
-        .toList(growable: false);
+    final participantIds =
+        (rawParticipants is List ? rawParticipants : const <Object?>[])
+            .whereType<String>()
+            .where((s) => s.isNotEmpty)
+            .toList(growable: false);
 
     final rawAdmins = json['adminIds'];
     final adminIds = (rawAdmins is List ? rawAdmins : const <Object?>[])
@@ -180,6 +203,18 @@ class Conversation {
       return out.isEmpty ? null : out;
     }
 
+    Map<String, String>? parseStrings(Object? raw) {
+      if (raw is! Map) return null;
+      final out = <String, String>{};
+      for (final entry in raw.entries) {
+        final key = entry.key.toString();
+        final value = entry.value;
+        if (key.isEmpty || value is! String || value.trim().isEmpty) continue;
+        out[key] = value.trim();
+      }
+      return out.isEmpty ? null : out;
+    }
+
     List<PinnedMessage>? parsePins(Object? raw) {
       if (raw is! List || raw.isEmpty) return null;
       final out = <PinnedMessage>[];
@@ -192,7 +227,9 @@ class Conversation {
       return out.isEmpty ? null : out;
     }
 
-    Map<String, ConversationParticipantInfo>? parseParticipantInfo(Object? raw) {
+    Map<String, ConversationParticipantInfo>? parseParticipantInfo(
+      Object? raw,
+    ) {
       if (raw is! Map) return null;
       final out = <String, ConversationParticipantInfo>{};
       for (final e in raw.entries) {
@@ -207,21 +244,55 @@ class Conversation {
     return Conversation(
       isGroup: json['isGroup'] == true,
       name: json['name'] is String ? json['name'] as String : null,
-      description: json['description'] is String ? json['description'] as String : null,
+      description: json['description'] is String
+          ? json['description'] as String
+          : null,
       photoUrl: json['photoUrl'] is String ? json['photoUrl'] as String : null,
-      createdByUserId: json['createdByUserId'] is String ? json['createdByUserId'] as String : null,
+      createdByUserId: json['createdByUserId'] is String
+          ? json['createdByUserId'] as String
+          : null,
       adminIds: adminIds,
       participantInfo: parseParticipantInfo(json['participantInfo']),
       participantIds: participantIds,
-      lastMessageText: json['lastMessageText'] is String ? json['lastMessageText'] as String : null,
-      lastMessageTimestamp: json['lastMessageTimestamp'] is String ? json['lastMessageTimestamp'] as String : null,
+      lastMessageText: json['lastMessageText'] is String
+          ? json['lastMessageText'] as String
+          : null,
+      lastMessageTimestamp: json['lastMessageTimestamp'] is String
+          ? json['lastMessageTimestamp'] as String
+          : null,
       unreadCounts: parseCounts(json['unreadCounts']),
       unreadThreadCounts: parseCounts(json['unreadThreadCounts']),
+      lastReactionEmoji: json['lastReactionEmoji'] is String
+          ? json['lastReactionEmoji'] as String
+          : null,
+      lastReactionTimestamp: (() {
+        final raw = json['lastReactionTimestamp'];
+        if (raw is String && raw.isNotEmpty) return raw;
+        if (raw is Timestamp) return raw.toDate().toUtc().toIso8601String();
+        return null;
+      })(),
+      lastReactionSenderId: json['lastReactionSenderId'] is String
+          ? json['lastReactionSenderId'] as String
+          : null,
+      lastReactionMessageId: json['lastReactionMessageId'] is String
+          ? json['lastReactionMessageId'] as String
+          : null,
+      lastReactionParentId: json['lastReactionParentId'] is String
+          ? json['lastReactionParentId'] as String
+          : null,
+      lastReactionSeenAt: parseStrings(json['lastReactionSeenAt']),
+      clearedAt: parseStrings(json['clearedAt']),
       pinnedMessages: parsePins(json['pinnedMessages']),
       legacyPinnedMessage: PinnedMessage.fromJson(
-        json['pinnedMessage'] is Map ? (json['pinnedMessage'] as Map).map((k, v) => MapEntry(k.toString(), v)) : null,
+        json['pinnedMessage'] is Map
+            ? (json['pinnedMessage'] as Map).map(
+                (k, v) => MapEntry(k.toString(), v),
+              )
+            : null,
       ),
-      e2eeEnabled: json['e2eeEnabled'] == true ? true : (json['e2eeEnabled'] == false ? false : null),
+      e2eeEnabled: json['e2eeEnabled'] == true
+          ? true
+          : (json['e2eeEnabled'] == false ? false : null),
       e2eeKeyEpoch: parseEpoch(json['e2eeKeyEpoch']),
     );
   }
@@ -256,9 +327,15 @@ class PinnedMessage {
     if (text is! String) return null;
     if (senderName is! String || senderName.isEmpty) return null;
     if (senderId is! String || senderId.isEmpty) return null;
-    final mediaPreviewUrl = json['mediaPreviewUrl'] is String ? json['mediaPreviewUrl'] as String : null;
-    final mediaType = json['mediaType'] is String ? json['mediaType'] as String : null;
-    final messageCreatedAt = json['messageCreatedAt'] is String ? json['messageCreatedAt'] as String : null;
+    final mediaPreviewUrl = json['mediaPreviewUrl'] is String
+        ? json['mediaPreviewUrl'] as String
+        : null;
+    final mediaType = json['mediaType'] is String
+        ? json['mediaType'] as String
+        : null;
+    final messageCreatedAt = json['messageCreatedAt'] is String
+        ? json['messageCreatedAt'] as String
+        : null;
     return PinnedMessage(
       messageId: messageId,
       text: text,
@@ -271,14 +348,16 @@ class PinnedMessage {
   }
 
   Map<String, Object?> toFirestoreMap() => <String, Object?>{
-        'messageId': messageId,
-        'text': text,
-        'senderName': senderName,
-        'senderId': senderId,
-        if (mediaPreviewUrl != null && mediaPreviewUrl!.isNotEmpty) 'mediaPreviewUrl': mediaPreviewUrl,
-        if (mediaType != null && mediaType!.isNotEmpty) 'mediaType': mediaType,
-        if (messageCreatedAt != null && messageCreatedAt!.isNotEmpty) 'messageCreatedAt': messageCreatedAt,
-      };
+    'messageId': messageId,
+    'text': text,
+    'senderName': senderName,
+    'senderId': senderId,
+    if (mediaPreviewUrl != null && mediaPreviewUrl!.isNotEmpty)
+      'mediaPreviewUrl': mediaPreviewUrl,
+    if (mediaType != null && mediaType!.isNotEmpty) 'mediaType': mediaType,
+    if (messageCreatedAt != null && messageCreatedAt!.isNotEmpty)
+      'messageCreatedAt': messageCreatedAt,
+  };
 }
 
 double? _jsonDouble(Object? raw) {
@@ -333,7 +412,9 @@ class ChatLocationShare {
     if (capturedAt is! String || capturedAt.isEmpty) return null;
     final staticMapRaw = m['staticMapUrl'];
     final staticMapUrl =
-        staticMapRaw is String && staticMapRaw.trim().isNotEmpty ? staticMapRaw.trim() : null;
+        staticMapRaw is String && staticMapRaw.trim().isNotEmpty
+        ? staticMapRaw.trim()
+        : null;
     return ChatLocationShare(
       lat: lat,
       lng: lng,
@@ -410,7 +491,9 @@ class ConversationWithId {
   final String id;
   final Conversation data;
 
-  static ConversationWithId? fromDoc(DocumentSnapshot<Map<String, Object?>> doc) {
+  static ConversationWithId? fromDoc(
+    DocumentSnapshot<Map<String, Object?>> doc,
+  ) {
     if (!doc.exists) return null;
     final data = doc.data();
     if (data == null) return null;
@@ -427,17 +510,60 @@ class MeetingPoll {
     required this.creatorId,
     required this.status,
     required this.isAnonymous,
-    this.votes = const <String, int>{},
+    this.description,
+    this.votes = const <String, List<int>>{},
+    this.allowMultipleAnswers = false,
+    this.allowAddingOptions = false,
+    this.allowRevoting = true,
+    this.shuffleOptions = false,
+    this.quizMode = false,
+    this.correctOptionIndex,
+    this.quizExplanation,
+    this.closesAt,
   });
 
   final String id;
   final String question;
+  final String? description;
   final List<String> options;
   final String creatorId;
+
   /// `active` | `ended` | `cancelled` | `draft`
   final String status;
   final bool isAnonymous;
-  final Map<String, int> votes;
+
+  /// uid → индексы выбранных вариантов (один или несколько).
+  final Map<String, List<int>> votes;
+  final bool allowMultipleAnswers;
+  final bool allowAddingOptions;
+  final bool allowRevoting;
+  final bool shuffleOptions;
+  final bool quizMode;
+  final int? correctOptionIndex;
+  final String? quizExplanation;
+  final DateTime? closesAt;
+
+  static Map<String, List<int>> _parseVotesMap(Object? votesRaw) {
+    final votes = <String, List<int>>{};
+    if (votesRaw is! Map) return votes;
+    for (final e in votesRaw.entries) {
+      final k = e.key.toString();
+      final v = e.value;
+      if (v is int) {
+        votes[k] = [v];
+      } else if (v is num) {
+        votes[k] = [v.toInt()];
+      } else if (v is List) {
+        final xs = <int>{};
+        for (final x in v) {
+          if (x is int) xs.add(x);
+          if (x is num) xs.add(x.toInt());
+        }
+        votes[k] = xs.toList()..sort();
+      }
+    }
+    return votes;
+  }
 
   static MeetingPoll? fromDoc(DocumentSnapshot<Map<String, Object?>> doc) {
     if (!doc.exists) return null;
@@ -456,26 +582,179 @@ class MeetingPoll {
     if (creatorId is! String) return null;
     final status = d['status'] is String ? d['status'] as String : 'active';
     final isAnonymous = d['isAnonymous'] == true;
-    final votesRaw = d['votes'];
-    final votes = <String, int>{};
-    if (votesRaw is Map) {
-      for (final e in votesRaw.entries) {
-        final k = e.key.toString();
-        final v = e.value;
-        if (v is int) votes[k] = v;
-        if (v is num) votes[k] = v.toInt();
-      }
+    final desc = d['description'];
+    DateTime? closesAt;
+    final ca = d['closesAt'];
+    if (ca is Timestamp) {
+      closesAt = ca.toDate();
+    } else if (ca is String && ca.isNotEmpty) {
+      closesAt = DateTime.tryParse(ca);
     }
+    int? correctIdx;
+    final ci = d['correctOptionIndex'];
+    if (ci is int) {
+      correctIdx = ci;
+    } else if (ci is num) {
+      correctIdx = ci.toInt();
+    }
+    final qe = d['quizExplanation'];
     return MeetingPoll(
       id: id,
       question: question,
+      description: desc is String && desc.trim().isNotEmpty
+          ? desc.trim()
+          : null,
       options: options,
       creatorId: creatorId,
       status: status,
       isAnonymous: isAnonymous,
-      votes: votes,
+      votes: _parseVotesMap(d['votes']),
+      allowMultipleAnswers: d['allowMultipleAnswers'] == true,
+      allowAddingOptions: d['allowAddingOptions'] == true,
+      allowRevoting: d['allowRevoting'] != false,
+      shuffleOptions: d['shuffleOptions'] == true,
+      quizMode: d['quizMode'] == true,
+      correctOptionIndex: correctIdx,
+      quizExplanation: qe is String && qe.trim().isNotEmpty ? qe.trim() : null,
+      closesAt: closesAt,
     );
   }
+}
+
+/// Данные для создания опроса в чате (паритет веб `ChatPollCreateInput`).
+class ChatPollCreatePayload {
+  const ChatPollCreatePayload({
+    required this.question,
+    this.description,
+    required this.options,
+    required this.isAnonymous,
+    this.allowMultipleAnswers = false,
+    this.allowAddingOptions = false,
+    this.allowRevoting = true,
+    this.shuffleOptions = false,
+    this.quizMode = false,
+    this.correctOptionIndex,
+    this.quizExplanation,
+    this.closesAt,
+  });
+
+  final String question;
+  final String? description;
+  final List<String> options;
+  final bool isAnonymous;
+  final bool allowMultipleAnswers;
+  final bool allowAddingOptions;
+  final bool allowRevoting;
+  final bool shuffleOptions;
+  final bool quizMode;
+  final int? correctOptionIndex;
+  final String? quizExplanation;
+  final DateTime? closesAt;
+
+  /// Поля документа опроса без `createdAt`.
+  Map<String, Object?> pollDocumentFields(String pollId, String creatorId) {
+    final q = question.trim();
+    final opts = options
+        .map((e) => e.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final m = <String, Object?>{
+      'id': pollId,
+      'question': q,
+      'options': opts,
+      'creatorId': creatorId,
+      'status': 'active',
+      'isAnonymous': isAnonymous,
+      'votes': <String, Object?>{},
+    };
+    final d = description?.trim();
+    if (d != null && d.isNotEmpty) m['description'] = d;
+    if (allowMultipleAnswers) m['allowMultipleAnswers'] = true;
+    if (allowAddingOptions) m['allowAddingOptions'] = true;
+    if (!allowRevoting) m['allowRevoting'] = false;
+    if (shuffleOptions) m['shuffleOptions'] = true;
+    if (quizMode && correctOptionIndex != null) {
+      m['quizMode'] = true;
+      m['correctOptionIndex'] = correctOptionIndex;
+      final ex = quizExplanation?.trim();
+      if (ex != null && ex.isNotEmpty) m['quizExplanation'] = ex;
+    }
+    final c = closesAt;
+    if (c != null) m['closesAt'] = c.toUtc().toIso8601String();
+    return m;
+  }
+}
+
+/// Полный payload поля `message.e2ee` — нужен mobile-клиенту для дешифровки
+/// (Phase 4 E2EE v2). Отдельный иммутабельный класс (user-rule #1 isolation)
+/// вместо набора полей внутри `ChatMessage`, чтобы логика парсинга и
+/// сравнения концентрировалась в одном месте и можно было безопасно
+/// расширить (например, для Phase 7 media wraps).
+class ChatMessageE2eePayload {
+  const ChatMessageE2eePayload({
+    required this.protocolVersion,
+    required this.epoch,
+    required this.ivB64,
+    required this.ciphertextB64,
+    this.senderDeviceId,
+  });
+
+  /// Например `'v1-p256-aesgcm'` или `'v2-p256-aesgcm-multi'`.
+  /// Не делаем enum: сервер может прислать неизвестную новую версию, её UI
+  /// должен корректно отрисовать как «обновите приложение».
+  final String protocolVersion;
+  final int epoch;
+  final String ivB64;
+  final String ciphertextB64;
+
+  /// `e2ee.senderDeviceId` — опционально; нужно AAD в v2 (читать из web).
+  final String? senderDeviceId;
+
+  bool get isV2 => protocolVersion == 'v2-p256-aesgcm-multi';
+  bool get isV1 => protocolVersion == 'v1-p256-aesgcm';
+
+  static ChatMessageE2eePayload? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final proto = m['protocolVersion'];
+    final epochRaw = m['epoch'];
+    final iv = m['iv'];
+    final ct = m['ciphertext'];
+    if (proto is! String || proto.isEmpty) return null;
+    if (iv is! String || iv.isEmpty) return null;
+    if (ct is! String || ct.isEmpty) return null;
+    final epoch = epochRaw is int
+        ? epochRaw
+        : (epochRaw is num ? epochRaw.toInt() : 0);
+    final senderDev = m['senderDeviceId'];
+    return ChatMessageE2eePayload(
+      protocolVersion: proto,
+      epoch: epoch,
+      ivB64: iv,
+      ciphertextB64: ct,
+      senderDeviceId:
+          senderDev is String && senderDev.isNotEmpty ? senderDev : null,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChatMessageE2eePayload &&
+          other.protocolVersion == protocolVersion &&
+          other.epoch == epoch &&
+          other.ivB64 == ivB64 &&
+          other.ciphertextB64 == ciphertextB64 &&
+          other.senderDeviceId == senderDeviceId);
+
+  @override
+  int get hashCode => Object.hash(
+        protocolVersion,
+        epoch,
+        ivB64,
+        ciphertextB64,
+        senderDeviceId,
+      );
 }
 
 class ChatMessage {
@@ -499,6 +778,11 @@ class ChatMessage {
     this.lastThreadMessageText,
     this.lastThreadMessageSenderId,
     this.lastThreadMessageTimestamp,
+    this.hasE2eeCiphertext = false,
+    this.e2eePayload,
+    this.mediaNorm,
+    this.emojiBurst,
+    this.systemEvent,
   });
 
   final String id;
@@ -507,26 +791,52 @@ class ChatMessage {
   final List<ChatAttachment> attachments;
   final ReplyContext? replyTo;
   final bool isDeleted;
+
   /// Map: emoji -> list of user ids or detailed objects (legacy + new format).
   final Map<String, List<ReactionEntry>>? reactions;
   final DateTime createdAt;
   final DateTime? readAt;
   final String? updatedAt;
   final ForwardedFrom? forwardedFrom;
+
   /// Web `deliveryStatus`: `sending` | `sent` | `failed`.
   final String? deliveryStatus;
+
   /// Ссылка на документ `conversations/.../polls/{id}`.
   final String? chatPollId;
+
   /// Веб `locationShare`.
   final ChatLocationShare? locationShare;
+
   /// Количество сообщений в ветке `.../messages/{id}/thread` (веб `threadCount`).
   final int? threadCount;
+
   /// Непрочитанные ответы в ветке по uid (веб `unreadThreadCounts`).
   final Map<String, int>? unreadThreadCounts;
   final String? lastThreadMessageText;
   final String? lastThreadMessageSenderId;
+
   /// ISO-строка или сериализованный момент с веба (`lastThreadMessageTimestamp`).
   final String? lastThreadMessageTimestamp;
+
+  /// Есть ли шифротекст в payload (`e2ee.ciphertext`).
+  /// Сохраняем для обратной совместимости — существующий код чатлиста использует
+  /// этот булевый флаг, чтобы скрыть компоновку «пустого» сообщения.
+  final bool hasE2eeCiphertext;
+
+  /// Полный payload `message.e2ee` — `null`, если поля нет в документе. Нужно
+  /// для дешифровки через `MobileE2eeRuntime` (Phase 4).
+  final ChatMessageE2eePayload? e2eePayload;
+
+  /// Статус серверной нормализации медиа (webm/mov → mp4/m4a).
+  final ChatMediaNorm? mediaNorm;
+
+  /// Событие полноэкранного emoji-burst (синхронизация между клиентами).
+  final ChatEmojiBurstEvent? emojiBurst;
+
+  /// Phase 8: system-событие E2EE (enabled / epoch rotated / device …).
+  /// Если присутствует — UI рендерит divider вместо bubble.
+  final ChatSystemEvent? systemEvent;
 
   static ChatMessage? fromDoc(DocumentSnapshot<Map<String, Object?>> doc) {
     if (!doc.exists) return null;
@@ -547,9 +857,14 @@ class ChatMessage {
     final chatPollIdRaw = data['chatPollId'];
     final chatPollId =
         chatPollIdRaw is String && chatPollIdRaw.trim().isNotEmpty
-            ? chatPollIdRaw.trim()
-            : null;
+        ? chatPollIdRaw.trim()
+        : null;
     final locationShare = ChatLocationShare.fromJson(data['locationShare']);
+    final mediaNorm = ChatMediaNorm.fromJson(data['mediaNorm']);
+    final emojiBurst = ChatEmojiBurstEvent.fromJson(data['emojiBurst']);
+    final e2eePayload = ChatMessageE2eePayload.fromJson(data['e2ee']);
+    final hasE2eeCiphertext = e2eePayload != null;
+    final systemEvent = ChatSystemEvent.fromJson(data['systemEvent']);
 
     int? threadCount;
     final threadCountRaw = data['threadCount'];
@@ -573,39 +888,40 @@ class ChatMessage {
       if (um.isNotEmpty) unreadThreadCounts = um;
     }
 
-    final lastThreadMessageText =
-        data['lastThreadMessageText'] is String
-            ? data['lastThreadMessageText'] as String
-            : null;
+    final lastThreadMessageText = data['lastThreadMessageText'] is String
+        ? data['lastThreadMessageText'] as String
+        : null;
     final lastThreadMessageSenderId =
         data['lastThreadMessageSenderId'] is String
-            ? data['lastThreadMessageSenderId'] as String
-            : null;
+        ? data['lastThreadMessageSenderId'] as String
+        : null;
 
     String? lastThreadMessageTimestamp;
     final ltsRaw = data['lastThreadMessageTimestamp'];
     if (ltsRaw is String && ltsRaw.isNotEmpty) {
       lastThreadMessageTimestamp = ltsRaw;
     } else if (ltsRaw is Timestamp) {
-      lastThreadMessageTimestamp =
-          ltsRaw.toDate().toUtc().toIso8601String();
+      lastThreadMessageTimestamp = ltsRaw.toDate().toUtc().toIso8601String();
     }
 
     DateTime createdAt;
     if (createdAtRaw is Timestamp) {
       createdAt = createdAtRaw.toDate();
     } else if (createdAtRaw is String) {
-      createdAt = DateTime.tryParse(createdAtRaw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      createdAt =
+          DateTime.tryParse(createdAtRaw) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
     } else {
       createdAt = DateTime.fromMillisecondsSinceEpoch(0);
     }
 
-    final attachments = (attachmentsRaw is List ? attachmentsRaw : const <Object?>[])
-        .whereType<Map>()
-        .map((m) => m.map((k, v) => MapEntry(k.toString(), v)))
-        .map((m) => ChatAttachment.fromJson(m))
-        .whereType<ChatAttachment>()
-        .toList(growable: false);
+    final attachments =
+        (attachmentsRaw is List ? attachmentsRaw : const <Object?>[])
+            .whereType<Map>()
+            .map((m) => m.map((k, v) => MapEntry(k.toString(), v)))
+            .map((m) => ChatAttachment.fromJson(m))
+            .whereType<ChatAttachment>()
+            .toList(growable: false);
 
     final replyTo = ReplyContext.fromJson(replyToRaw);
     final isDeleted = isDeletedRaw == true;
@@ -622,8 +938,8 @@ class ChatMessage {
     final forwardedFrom = ForwardedFrom.fromJson(forwardedFromRaw);
     final deliveryStatus =
         deliveryStatusRaw is String && deliveryStatusRaw.isNotEmpty
-            ? deliveryStatusRaw
-            : null;
+        ? deliveryStatusRaw
+        : null;
 
     return ChatMessage(
       id: doc.id,
@@ -645,6 +961,136 @@ class ChatMessage {
       lastThreadMessageText: lastThreadMessageText,
       lastThreadMessageSenderId: lastThreadMessageSenderId,
       lastThreadMessageTimestamp: lastThreadMessageTimestamp,
+      hasE2eeCiphertext: hasE2eeCiphertext,
+      e2eePayload: e2eePayload,
+      mediaNorm: mediaNorm,
+      emojiBurst: emojiBurst,
+      systemEvent: systemEvent,
+    );
+  }
+}
+
+/// Phase 8 — system-маркер E2EE в timeline чата.
+/// Зеркало `ChatSystemEvent` в `src/lib/types.ts`.
+enum ChatSystemEventType {
+  e2eeV2Enabled('e2ee.v2.enabled'),
+  e2eeV2EpochRotated('e2ee.v2.epoch.rotated'),
+  e2eeV2DeviceAdded('e2ee.v2.device.added'),
+  e2eeV2DeviceRevoked('e2ee.v2.device.revoked'),
+  e2eeV2FingerprintChanged('e2ee.v2.fingerprint.changed');
+
+  const ChatSystemEventType(this.wire);
+  final String wire;
+
+  static ChatSystemEventType? fromWire(String? wire) {
+    if (wire == null || wire.isEmpty) return null;
+    for (final v in values) {
+      if (v.wire == wire) return v;
+    }
+    return null;
+  }
+}
+
+class ChatSystemEvent {
+  const ChatSystemEvent({required this.type, this.data});
+
+  final ChatSystemEventType type;
+  final Map<String, Object?>? data;
+
+  static ChatSystemEvent? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final typeStr = raw['type'];
+    if (typeStr is! String) return null;
+    final type = ChatSystemEventType.fromWire(typeStr);
+    if (type == null) return null;
+    final d = raw['data'];
+    Map<String, Object?>? data;
+    if (d is Map) {
+      data = d.map((k, v) => MapEntry(k.toString(), v));
+    }
+    return ChatSystemEvent(type: type, data: data);
+  }
+}
+
+class ChatEmojiBurstEvent {
+  const ChatEmojiBurstEvent({
+    required this.eventId,
+    required this.emoji,
+    required this.by,
+    required this.at,
+  });
+
+  final String eventId;
+  final String emoji;
+  final String by;
+  final String at;
+
+  static ChatEmojiBurstEvent? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final eventIdRaw = m['eventId'];
+    final emojiRaw = m['emoji'];
+    final byRaw = m['by'];
+    final atRaw = m['at'];
+    if (eventIdRaw is! String || eventIdRaw.trim().isEmpty) return null;
+    if (emojiRaw is! String || emojiRaw.trim().isEmpty) return null;
+    if (byRaw is! String || byRaw.trim().isEmpty) return null;
+    if (atRaw is! String || atRaw.trim().isEmpty) return null;
+    return ChatEmojiBurstEvent(
+      eventId: eventIdRaw.trim(),
+      emoji: emojiRaw.trim(),
+      by: byRaw.trim(),
+      at: atRaw.trim(),
+    );
+  }
+
+  Map<String, Object?> toFirestoreMap() => <String, Object?>{
+    'eventId': eventId,
+    'emoji': emoji,
+    'by': by,
+    'at': at,
+  };
+}
+
+class ChatMediaNorm {
+  const ChatMediaNorm({
+    required this.status,
+    this.failedIndexes = const <int>[],
+    required this.updatedAt,
+  });
+
+  final String status;
+  final List<int> failedIndexes;
+  final String updatedAt;
+
+  bool get isPending => status == 'pending';
+  bool get isFailed => status == 'failed';
+  bool get isDone => status == 'done';
+
+  bool isFailedIndex(int index) => failedIndexes.contains(index);
+
+  static ChatMediaNorm? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final statusRaw = m['status'];
+    final updatedAtRaw = m['updatedAt'];
+    if (statusRaw is! String || statusRaw.isEmpty) return null;
+    if (updatedAtRaw is! String || updatedAtRaw.isEmpty) return null;
+    final failed = <int>[];
+    final failedRaw = m['failedIndexes'];
+    if (failedRaw is List) {
+      for (final one in failedRaw) {
+        if (one is int) {
+          failed.add(one);
+        } else if (one is num) {
+          failed.add(one.toInt());
+        }
+      }
+    }
+    return ChatMediaNorm(
+      status: statusRaw,
+      failedIndexes: failed,
+      updatedAt: updatedAtRaw,
     );
   }
 }
@@ -672,8 +1118,12 @@ class ReplyContext {
     if (messageId is! String || messageId.isEmpty) return null;
     if (senderName is! String || senderName.isEmpty) return null;
     final text = m['text'] is String ? m['text'] as String : null;
-    final mediaPreviewUrl = m['mediaPreviewUrl'] is String ? m['mediaPreviewUrl'] as String : null;
-    final mediaType = m['mediaType'] is String ? m['mediaType'] as String : null;
+    final mediaPreviewUrl = m['mediaPreviewUrl'] is String
+        ? m['mediaPreviewUrl'] as String
+        : null;
+    final mediaType = m['mediaType'] is String
+        ? m['mediaType'] as String
+        : null;
     return ReplyContext(
       messageId: messageId,
       senderName: senderName,
@@ -741,10 +1191,18 @@ class ChatAttachment {
     if (url is! String || url.isEmpty) return null;
     if (name is! String) return null;
     final type = json['type'] is String ? json['type'] as String : null;
-    final size = json['size'] is int ? json['size'] as int : (json['size'] is num ? (json['size'] as num).toInt() : null);
-    final width = json['width'] is int ? json['width'] as int : (json['width'] is num ? (json['width'] as num).toInt() : null);
-    final height = json['height'] is int ? json['height'] as int : (json['height'] is num ? (json['height'] as num).toInt() : null);
-    final thumbHash = json['thumbHash'] is String ? json['thumbHash'] as String : null;
+    final size = json['size'] is int
+        ? json['size'] as int
+        : (json['size'] is num ? (json['size'] as num).toInt() : null);
+    final width = json['width'] is int
+        ? json['width'] as int
+        : (json['width'] is num ? (json['width'] as num).toInt() : null);
+    final height = json['height'] is int
+        ? json['height'] as int
+        : (json['height'] is num ? (json['height'] as num).toInt() : null);
+    final thumbHash = json['thumbHash'] is String
+        ? json['thumbHash'] as String
+        : null;
     return ChatAttachment(
       url: url,
       name: name,
@@ -757,12 +1215,12 @@ class ChatAttachment {
   }
 
   Map<String, Object?> toFirestoreMap() => <String, Object?>{
-        'url': url,
-        'name': name,
-        if (type != null) 'type': type,
-        if (size != null) 'size': size,
-        if (width != null) 'width': width,
-        if (height != null) 'height': height,
-        if (thumbHash != null && thumbHash!.isNotEmpty) 'thumbHash': thumbHash,
-      };
+    'url': url,
+    'name': name,
+    if (type != null) 'type': type,
+    if (size != null) 'size': size,
+    if (width != null) 'width': width,
+    if (height != null) 'height': height,
+    if (thumbHash != null && thumbHash!.isNotEmpty) 'thumbHash': thumbHash,
+  };
 }

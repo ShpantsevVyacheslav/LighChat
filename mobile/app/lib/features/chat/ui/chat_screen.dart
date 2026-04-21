@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,9 +14,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
-
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../data/composer_clipboard_paste.dart';
+import '../data/e2ee_decryption_orchestrator.dart';
+import '../data/e2ee_runtime.dart';
 import '../data/composer_html_editing.dart';
 import '../data/sanitize_message_html.dart';
 import '../data/chat_attachment_upload.dart';
@@ -25,7 +30,10 @@ import '../data/chat_media_gallery.dart';
 import '../data/reply_preview_builder.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/user_profile.dart';
+import '../data/chat_message_draft_storage.dart';
 import 'chat_html_composer_controller.dart';
+import 'chat_audio_call_screen.dart';
+import 'chat_video_call_screen.dart';
 import 'chat_header.dart';
 import 'chat_message_search_overlay.dart';
 import 'chat_wallpaper_background.dart';
@@ -33,21 +41,26 @@ import 'chat_media_viewer_screen.dart';
 import 'chat_message_list.dart';
 import 'chat_partner_profile_sheet.dart';
 import 'chat_pinned_strip.dart';
+import 'chat_scroll_anchor_button.dart';
 import 'chat_selection_app_bar.dart';
 import 'composer_attachment_menu.dart';
-import 'composer_formatting_toolbar.dart';
 import 'composer_sticker_gif_sheet.dart';
-import 'composer_editing_banner.dart';
-import 'composer_pending_attachments_strip.dart';
-import 'composer_reply_banner.dart';
+import 'composer_sticker_suggestion_row.dart';
+import 'e2ee_mobile_block_banner.dart';
+import 'chat_image_editor_screen.dart';
+import 'chat_video_editor_screen.dart';
 import 'photo_video_source_sheet.dart';
+import 'chat_poll_create_sheet.dart';
 import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
+import 'voice_message_record_sheet.dart';
 import 'outgoing_pending_media_album.dart';
 import 'live_location_stop_banner.dart';
 import 'location_send_preview_sheet.dart';
 import 'message_context_menu.dart';
 import 'message_html_text.dart';
+import 'chat_composer.dart';
+import 'thread_route_payload.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversationId});
@@ -59,12 +72,16 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
+  static const bool _messageListReversed = true;
+
   int _limit = 100;
   final _controller = ChatHtmlComposerController();
   final _scrollController = ScrollController();
   final _composerFocusNode = FocusNode();
+
   /// Ключи строк сообщений — скролл к закреплённому / ответу и якорь подгрузки истории.
   final Map<String, GlobalKey> _messageItemKeys = <String, GlobalKey>{};
+
   /// Пока не пусто — в списке увеличен [cacheExtent], чтобы смонтировать строку вне экрана (грид и т.д.).
   String? _jumpScrollBoostMessageId;
   bool _loadingOlder = false;
@@ -79,15 +96,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   double? _pendingAnchorAlignment;
   List<ChatMessage> _sortedAscCache = const <ChatMessage>[];
   bool _suppressAutoScrollToBottom = false;
+  bool _chatAtBottom = true;
+  int _anchorUnreadStep = 0;
+  final Set<String> _sessionReadIds = <String>{};
+  bool _initialOpenPositionResolved = false;
+
   /// После подгрузки истории не дергать сразу повторный запрос у верхнего края.
   DateTime? _nearOldestCooldownUntil;
   ReplyContext? _replyingTo;
+
   /// Режим правки: id сообщения + превью для полосы над вводом (plain).
   String? _editingMessageId;
   String? _editingPreviewPlain;
   final Set<String> _selectedMessageIds = <String>{};
   bool _actionBusy = false;
   final List<XFile> _pendingAttachments = <XFile>[];
+
   /// Локальные файлы + текст, пока грузится альбом в ленте (превью + прогресс).
   _PendingImageAlbumSend? _outgoingImageAlbum;
   bool _sendBusy = false;
@@ -103,16 +127,239 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Паритет веба: какой закреп показан в полосе + индекс после тапа (см. `ChatWindow` / `pickPinnedBarIndexForViewport`).
   int _barPinIndex = 0;
   int _pinnedBarSkipSyncUntilMs = 0;
+
+  List<ChatMessage> _filterByClearedAt(
+    List<ChatMessage> messages,
+    String? clearedAtIso,
+  ) {
+    final cutoff = DateTime.tryParse(clearedAtIso ?? '')?.toUtc();
+    if (cutoff == null) return messages;
+    return messages
+        .where((m) => m.createdAt.toUtc().isAfter(cutoff))
+        .toList(growable: false);
+  }
+
+  bool _looksLikeVideoAttachment(XFile f) {
+    final m = (f.mimeType ?? '').toLowerCase();
+    if (m.startsWith('video/')) return true;
+    final p = f.path.toLowerCase();
+    return p.endsWith('.mp4') ||
+        p.endsWith('.mov') ||
+        p.endsWith('.webm') ||
+        p.endsWith('.m4v') ||
+        p.endsWith('.3gp');
+  }
+
   List<PinnedMessage> _cachedSortedPins = const <PinnedMessage>[];
 
   /// Краткая подсветка строки после перехода к сообщению (ответ / закреп / поиск).
   String? _flashHighlightMessageId;
   Timer? _flashHighlightTimer;
 
+  Timer? _chatDraftDebounce;
+  String? _lastChatDraftScheduleKey;
+  String? _chatDraftRestoredForConvId;
+  bool _callScreenOpening = false;
+  String? _handledIncomingCallId;
+
+  double _chatBottomOffset(ScrollController c) {
+    if (!c.hasClients) return 0;
+    return _messageListReversed
+        ? c.position.minScrollExtent
+        : c.position.maxScrollExtent;
+  }
+
+  void _jumpToChatBottom() {
+    final sc = _scrollController;
+    if (!sc.hasClients) return;
+    sc.jumpTo(_chatBottomOffset(sc));
+  }
+
+  Future<void> _animateToChatBottom() async {
+    final sc = _scrollController;
+    if (!sc.hasClients) return;
+    await sc.animateTo(
+      _chatBottomOffset(sc),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _scheduleAutoScrollToBottomIfNeeded() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_suppressAutoScrollToBottom) return;
+      if (!_chatAtBottom) return;
+      unawaited(_animateToChatBottom());
+    });
+  }
+
+  void _preserveViewportOnIncomingGrowth({
+    required int previousCount,
+    required int nextCount,
+  }) {
+    if (previousCount <= 0 || nextCount <= previousCount) return;
+    if (_chatAtBottom) return;
+    if (_historyLoadInFlight || _loadingOlder) return;
+    final sc = _scrollController;
+    if (!sc.hasClients) return;
+    final beforeMax = sc.position.maxScrollExtent;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatAtBottom) return;
+      if (_historyLoadInFlight || _loadingOlder) return;
+      if (!sc.hasClients) return;
+      final pos = sc.position;
+      final delta = pos.maxScrollExtent - beforeMax;
+      if (delta <= 0.5) return;
+      final target = (pos.pixels + delta).clamp(
+        pos.minScrollExtent,
+        pos.maxScrollExtent,
+      );
+      if ((target - pos.pixels).abs() <= 0.5) return;
+      pos.jumpTo(target);
+    });
+  }
+
+  void _maybeResolveInitialOpenPosition({
+    required String? unreadSeparatorMessageId,
+  }) {
+    if (_initialOpenPositionResolved) return;
+    _initialOpenPositionResolved = true;
+    final targetId = unreadSeparatorMessageId?.trim();
+    if (targetId == null || targetId.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToMessageId(targetId);
+      if (!mounted || _anchorUnreadStep != 0) return;
+      setState(() => _anchorUnreadStep = 1);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onPinnedBarScrollSync);
+    _controller.addListener(_scheduleChatDraftSave);
+  }
+
+  void _scheduleChatDraftSave() {
+    _chatDraftDebounce?.cancel();
+    _chatDraftDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      unawaited(_persistChatDraftNow(uid));
+    });
+  }
+
+  Future<void> _persistChatDraftNow(String uid) async {
+    final scope = widget.conversationId;
+    final html = _controller.text;
+    final plain = chatDraftPlainFromHtml(html);
+    final hasReply = _replyingTo != null;
+    final hasPending = _pendingAttachments.isNotEmpty;
+    if (plain.isEmpty && !hasReply && !hasPending) {
+      await clearChatMessageDraft(uid, scope);
+      return;
+    }
+    await saveChatMessageDraft(
+      uid,
+      scope,
+      StoredChatMessageDraft(
+        html: html,
+        replyTo: _replyingTo,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  Future<void> _persistChatDraftSnapshotForConv(
+    String uid,
+    String conversationId,
+  ) async {
+    final html = _controller.text;
+    final plain = chatDraftPlainFromHtml(html);
+    final hasReply = _replyingTo != null;
+    final hasPending = _pendingAttachments.isNotEmpty;
+    if (plain.isEmpty && !hasReply && !hasPending) {
+      await clearChatMessageDraft(uid, conversationId);
+      return;
+    }
+    await saveChatMessageDraft(
+      uid,
+      conversationId,
+      StoredChatMessageDraft(
+        html: html,
+        replyTo: _replyingTo,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  void _scheduleChatDraftRestoreIfNeeded(String uid) {
+    final key = '$uid|${widget.conversationId}';
+    if (_lastChatDraftScheduleKey == key) return;
+    _lastChatDraftScheduleKey = key;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_applyChatDraftFromStorage(uid));
+    });
+  }
+
+  Future<void> _applyChatDraftFromStorage(String uid) async {
+    final conv = widget.conversationId;
+    final d = await getChatMessageDraft(uid, conv);
+    if (!mounted || widget.conversationId != conv) return;
+    if (_chatDraftRestoredForConvId == conv) return;
+    _chatDraftRestoredForConvId = conv;
+    if (d == null) return;
+    final plain = chatDraftPlainFromHtml(d.html);
+    final hasReply = d.replyTo != null;
+    if (plain.isEmpty && !hasReply) return;
+    _controller.text = d.html;
+    setState(() => _replyingTo = d.replyTo);
+  }
+
+  Future<void> _openCallScreen({
+    required String currentUserId,
+    required String currentUserName,
+    required String? currentUserAvatarUrl,
+    required String peerUserId,
+    required String peerUserName,
+    required String? peerAvatarUrl,
+    required bool isVideo,
+    String? existingCallId,
+  }) async {
+    if (_callScreenOpening) return;
+    _callScreenOpening = true;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => isVideo
+              ? ChatVideoCallScreen(
+                  currentUserId: currentUserId,
+                  currentUserName: currentUserName,
+                  currentUserAvatarUrl: currentUserAvatarUrl,
+                  peerUserId: peerUserId,
+                  peerUserName: peerUserName,
+                  peerAvatarUrl: peerAvatarUrl,
+                  existingCallId: existingCallId,
+                )
+              : ChatAudioCallScreen(
+                  currentUserId: currentUserId,
+                  currentUserName: currentUserName,
+                  currentUserAvatarUrl: currentUserAvatarUrl,
+                  peerUserId: peerUserId,
+                  peerUserName: peerUserName,
+                  peerAvatarUrl: peerAvatarUrl,
+                  existingCallId: existingCallId,
+                ),
+        ),
+      );
+    } finally {
+      _callScreenOpening = false;
+    }
   }
 
   Color? _parseHexColor(Object? raw) {
@@ -130,6 +377,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void didUpdateWidget(ChatScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.conversationId != widget.conversationId) {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        unawaited(
+          _persistChatDraftSnapshotForConv(uid, oldWidget.conversationId),
+        );
+      }
+      _chatDraftDebounce?.cancel();
+      _controller.clear();
+      _pendingAttachments.clear();
+      _lastChatDraftScheduleKey = null;
+      _chatDraftRestoredForConvId = null;
       _limit = 100;
       _replyingTo = null;
       _editingMessageId = null;
@@ -147,6 +405,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _pendingAnchorAlignment = null;
       _sortedAscCache = const <ChatMessage>[];
       _suppressAutoScrollToBottom = false;
+      _chatAtBottom = true;
+      _anchorUnreadStep = 0;
+      _initialOpenPositionResolved = false;
+      _sessionReadIds.clear();
       _nearOldestCooldownUntil = null;
       _messageItemKeys.clear();
       _jumpScrollBoostMessageId = null;
@@ -185,6 +447,168 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  bool _isIncomingUnreadForViewer(ChatMessage m, String viewerId) {
+    if (m.senderId == viewerId) return false;
+    return m.readAt == null;
+  }
+
+  int _loadedIncomingUnreadCount(List<ChatMessage> sortedAsc, String viewerId) {
+    var count = 0;
+    for (final m in sortedAsc) {
+      if (_isIncomingUnreadForViewer(m, viewerId)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  String? _oldestIncomingUnreadId(
+    List<ChatMessage> sortedAsc,
+    String viewerId,
+  ) {
+    for (final m in sortedAsc) {
+      if (_isIncomingUnreadForViewer(m, viewerId)) {
+        return m.id;
+      }
+    }
+    return null;
+  }
+
+  List<String> _incomingUnreadIds(
+    List<ChatMessage> sortedAsc,
+    String viewerId,
+  ) {
+    final out = <String>[];
+    for (final m in sortedAsc) {
+      if (_isIncomingUnreadForViewer(m, viewerId)) {
+        out.add(m.id);
+      }
+    }
+    return out;
+  }
+
+  Future<void> _markVisibleMessageAsRead(
+    ChatMessage message,
+    String userId,
+  ) async {
+    if (!_isIncomingUnreadForViewer(message, userId)) return;
+    final id = message.id.trim();
+    if (id.isEmpty) return;
+    if (_sessionReadIds.contains(id)) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    _sessionReadIds.add(id);
+    try {
+      await repo.markMessagesAsRead(
+        conversationId: widget.conversationId,
+        userId: userId,
+        messageIds: <String>[id],
+      );
+    } catch (_) {
+      _sessionReadIds.remove(id);
+    }
+  }
+
+  Future<void> _markManyUnreadAsReadAndConversation({
+    required String userId,
+    required List<String> unreadIds,
+    bool forceConversationReset = false,
+  }) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    final toMark = unreadIds
+        .where((id) => !_sessionReadIds.contains(id))
+        .toList(growable: false);
+    if (toMark.isNotEmpty) {
+      _sessionReadIds.addAll(toMark);
+      try {
+        await repo.markManyMessagesAsRead(
+          conversationId: widget.conversationId,
+          userId: userId,
+          messageIds: toMark,
+        );
+      } catch (_) {
+        _sessionReadIds.removeAll(toMark);
+      }
+    }
+    if (!forceConversationReset && toMark.isEmpty) return;
+    try {
+      await repo.markConversationAsRead(
+        conversationId: widget.conversationId,
+        userId: userId,
+      );
+    } catch (_) {}
+  }
+
+  _AnchorReactionTarget? _latestAnchorReaction({
+    required Conversation? conversation,
+    required String currentUserId,
+  }) {
+    if (conversation == null) return null;
+    final ts = (conversation.lastReactionTimestamp ?? '').trim();
+    final emoji = (conversation.lastReactionEmoji ?? '').trim();
+    final messageId = (conversation.lastReactionMessageId ?? '').trim();
+    if (ts.isEmpty || emoji.isEmpty || messageId.isEmpty) return null;
+    if ((conversation.lastReactionSenderId ?? '').trim() == currentUserId) {
+      return null;
+    }
+    final seenAt = (conversation.lastReactionSeenAt?[currentUserId] ?? '')
+        .trim();
+    if (seenAt.isNotEmpty && ts.compareTo(seenAt) <= 0) return null;
+    final parentId = (conversation.lastReactionParentId ?? '').trim();
+    return _AnchorReactionTarget(
+      emoji: emoji,
+      messageId: messageId,
+      parentId: parentId.isEmpty ? null : parentId,
+    );
+  }
+
+  Future<void> _handleReactionAnchorTap({
+    required _AnchorReactionTarget reaction,
+    required String userId,
+  }) async {
+    if (reaction.parentId == null) {
+      _scrollToMessageId(reaction.messageId);
+    } else {
+      ChatMessage? parentMessage;
+      for (final m in _sortedAscCache) {
+        if (m.id == reaction.parentId) {
+          parentMessage = m;
+          break;
+        }
+      }
+      unawaited(
+        context.push(
+          '/chats/${widget.conversationId}/thread/${reaction.parentId}',
+          extra: ThreadRoutePayload(
+            parentMessage: parentMessage,
+            focusMessageId: reaction.messageId,
+          ),
+        ),
+      );
+    }
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+    try {
+      await repo.markReactionSeen(
+        conversationId: widget.conversationId,
+        userId: userId,
+      );
+    } catch (_) {}
+  }
+
+  void _onChatAtBottomChanged(bool atBottom) {
+    if (!mounted) return;
+    if (_chatAtBottom == atBottom) return;
+    setState(() {
+      _chatAtBottom = atBottom;
+      if (atBottom) {
+        _anchorUnreadStep = 0;
+      }
+    });
+  }
+
   void _scrollToMessageId(String messageId) {
     if (messageId.isEmpty) return;
     final idx = _sortedAscCache.indexWhere((m) => m.id == messageId);
@@ -199,7 +623,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final max = sc.position.maxScrollExtent;
       if (max > 0) {
         final frac = idx / (n - 1);
-        sc.jumpTo((max * frac).clamp(0.0, max));
+        final raw = _messageListReversed ? (max * (1 - frac)) : (max * frac);
+        sc.jumpTo(raw.clamp(0.0, max));
       }
     }
 
@@ -241,8 +666,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   void dispose() {
+    _chatDraftDebounce?.cancel();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      unawaited(_persistChatDraftSnapshotForConv(uid, widget.conversationId));
+    }
     _flashHighlightTimer?.cancel();
     _scrollController.removeListener(_onPinnedBarScrollSync);
+    _controller.removeListener(_scheduleChatDraftSave);
     _composerFocusNode.dispose();
     _scrollController.dispose();
     _controller.dispose();
@@ -269,8 +700,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (contentLen <= 1) return;
 
     final flatCount = flatRows.length;
-    final startFlat =
-        ((p.pixels / contentLen) * flatCount).floor().clamp(0, flatCount - 1);
+    final startFlat = ((p.pixels / contentLen) * flatCount).floor().clamp(
+      0,
+      flatCount - 1,
+    );
     final endFlat =
         (((p.pixels + p.viewportDimension) / contentLen) * flatCount)
             .ceil()
@@ -315,6 +748,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         }
 
         final userDocAsync = ref.watch(userChatSettingsDocProvider(user.uid));
+        final starredIdsAsync = ref.watch(
+          starredMessageIdsInConversationProvider((
+            userId: user.uid,
+            conversationId: widget.conversationId,
+          )),
+        );
         final userDoc = userDocAsync.asData?.value ?? const <String, dynamic>{};
         final rawChatSettings = Map<String, dynamic>.from(
           userDoc['chatSettings'] as Map? ?? const <String, dynamic>{},
@@ -370,6 +809,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             return StreamBuilder<Map<String, UserProfile>>(
               stream: profilesStream,
               builder: (context, snap) {
+                _scheduleChatDraftRestoreIfNeeded(user.uid);
                 final profileMap = snap.data;
                 final selfProfile = profileMap == null
                     ? null
@@ -414,10 +854,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     dmOtherId.isNotEmpty;
                 final threadsUnread =
                     conv?.data.unreadThreadCounts?[user.uid] ?? 0;
+                final effectiveWallpaper =
+                    (wallpaper != null && wallpaper.trim().isNotEmpty)
+                    ? wallpaper
+                    : null;
 
-                void toast(String msg) => ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(msg)));
                 void handleBack() {
                   if (_inChatSearch) {
                     _exitChatSearch();
@@ -437,27 +878,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
                 void openProfile() {
                   if (conv == null) return;
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (ctx) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(ctx).colorScheme.surface,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(22),
-                          ),
-                        ),
-                        child: ChatPartnerProfileSheet(
-                          conversationId: conversationId,
-                          conversation: conv.data,
-                          currentUserId: user.uid,
-                          selfProfile: selfProfile,
-                          partnerProfile: profile,
-                        ),
-                      );
-                    },
+                  Navigator.of(context).push<void>(
+                    CupertinoPageRoute(
+                      builder: (_) => ChatPartnerProfileSheet(
+                        conversationId: conversationId,
+                        conversation: conv.data,
+                        currentUserId: user.uid,
+                        selfProfile: selfProfile,
+                        partnerProfile: profile,
+                        onJumpToMessageId: _scrollToMessageId,
+                        fullScreen: true,
+                      ),
+                    ),
                   );
                 }
 
@@ -477,17 +909,98 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   final displayPinIdx = pinCount == 0
                       ? 0
                       : _barPinIndex.clamp(0, pinCount - 1);
-                  final topPin =
-                      pinCount == 0 ? null : sortedPins[displayPinIdx];
+                  final topPin = pinCount == 0
+                      ? null
+                      : sortedPins[displayPinIdx];
                   final topInset = MediaQuery.paddingOf(context).top;
-                  final headerBar = _selectedMessageIds.isEmpty ? 60.0 : 56.0;
+                  final headerBar = _selectedMessageIds.isEmpty ? 56.0 : 56.0;
                   final belowHeaderGap = topInset + headerBar;
+                  final sortedAscForAnchor = List<ChatMessage>.from(msgs)
+                    ..sort((a, b) {
+                      final t = a.createdAt.compareTo(b.createdAt);
+                      if (t != 0) return t;
+                      return a.id.compareTo(b.id);
+                    });
+                  final loadedIncomingUnreadCount = _loadedIncomingUnreadCount(
+                    sortedAscForAnchor,
+                    user.uid,
+                  );
+                  final loadedIncomingUnreadIds = _incomingUnreadIds(
+                    sortedAscForAnchor,
+                    user.uid,
+                  );
+                  final unreadSeparatorMessageId = _oldestIncomingUnreadId(
+                    sortedAscForAnchor,
+                    user.uid,
+                  );
+                  _maybeResolveInitialOpenPosition(
+                    unreadSeparatorMessageId: unreadSeparatorMessageId,
+                  );
+                  final serverUnreadCount =
+                      conv?.data.unreadCounts?[user.uid] ?? 0;
+                  final anchorUnreadBadgeCount = loadedIncomingUnreadCount > 0
+                      ? loadedIncomingUnreadCount
+                      : serverUnreadCount;
+                  final latestReaction = _latestAnchorReaction(
+                    conversation: conv?.data,
+                    currentUserId: user.uid,
+                  );
+                  final anchorSuppressed =
+                      _inChatSearch ||
+                      _selectedMessageIds.isNotEmpty ||
+                      showSpinner;
+                  final showScrollAnchor =
+                      !anchorSuppressed &&
+                      (latestReaction != null ||
+                          !_chatAtBottom ||
+                          anchorUnreadBadgeCount > 0);
+                  if (loadedIncomingUnreadCount == 0 &&
+                      _anchorUnreadStep != 0) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted || _anchorUnreadStep == 0) return;
+                      setState(() => _anchorUnreadStep = 0);
+                    });
+                  }
+
+                  void onScrollAnchorTap() {
+                    if (latestReaction != null) {
+                      unawaited(
+                        _handleReactionAnchorTap(
+                          reaction: latestReaction,
+                          userId: user.uid,
+                        ),
+                      );
+                      return;
+                    }
+                    final canJumpToUnread =
+                        anchorUnreadBadgeCount > 0 &&
+                        _anchorUnreadStep == 0 &&
+                        unreadSeparatorMessageId != null;
+                    if (canJumpToUnread) {
+                      _scrollToMessageId(unreadSeparatorMessageId);
+                      setState(() => _anchorUnreadStep = 1);
+                      return;
+                    }
+                    if (_anchorUnreadStep != 0) {
+                      setState(() => _anchorUnreadStep = 0);
+                    }
+                    unawaited(_animateToChatBottom());
+                    if (anchorUnreadBadgeCount > 0) {
+                      unawaited(
+                        _markManyUnreadAsReadAndConversation(
+                          userId: user.uid,
+                          unreadIds: loadedIncomingUnreadIds,
+                          forceConversationReset: true,
+                        ),
+                      );
+                    }
+                  }
 
                   return Scaffold(
                     extendBodyBehindAppBar: true,
                     appBar: _selectedMessageIds.isEmpty
                         ? PreferredSize(
-                            preferredSize: const Size.fromHeight(60),
+                            preferredSize: const Size.fromHeight(56),
                             child: SafeArea(
                               bottom: false,
                               child: ChatHeader(
@@ -503,10 +1016,84 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   );
                                 },
                                 onSearchTap: _openChatSearch,
-                                onVideoCallTap: () =>
-                                    toast('Видеозвонок: скоро'),
-                                onAudioCallTap: () =>
-                                    toast('Аудиозвонок: скоро'),
+                                onVideoCallTap: () async {
+                                  if (dmOtherId == null ||
+                                      dmOtherId.isEmpty ||
+                                      _callScreenOpening) {
+                                    return;
+                                  }
+                                  final peerName =
+                                      (profile?.name ?? dmFallbackName ?? title)
+                                              .trim()
+                                              .isNotEmpty ==
+                                          true
+                                      ? (profile?.name ??
+                                            dmFallbackName ??
+                                            title)
+                                      : 'Собеседник';
+                                  final peerAvatar =
+                                      profile?.avatarThumb ??
+                                      profile?.avatar ??
+                                      dmFallbackAvatarThumb ??
+                                      dmFallbackAvatar;
+                                  final meName =
+                                      (selfProfile?.name ?? user.uid)
+                                          .trim()
+                                          .isNotEmpty
+                                      ? (selfProfile?.name ?? user.uid)
+                                      : user.uid;
+                                  final meAvatar =
+                                      selfProfile?.avatarThumb ??
+                                      selfProfile?.avatar;
+                                  await _openCallScreen(
+                                    currentUserId: user.uid,
+                                    currentUserName: meName,
+                                    currentUserAvatarUrl: meAvatar,
+                                    peerUserId: dmOtherId,
+                                    peerUserName: peerName,
+                                    peerAvatarUrl: peerAvatar,
+                                    isVideo: true,
+                                  );
+                                },
+                                onAudioCallTap: () async {
+                                  if (dmOtherId == null ||
+                                      dmOtherId.isEmpty ||
+                                      _callScreenOpening) {
+                                    return;
+                                  }
+                                  final peerName =
+                                      (profile?.name ?? dmFallbackName ?? title)
+                                              .trim()
+                                              .isNotEmpty ==
+                                          true
+                                      ? (profile?.name ??
+                                            dmFallbackName ??
+                                            title)
+                                      : 'Собеседник';
+                                  final peerAvatar =
+                                      profile?.avatarThumb ??
+                                      profile?.avatar ??
+                                      dmFallbackAvatarThumb ??
+                                      dmFallbackAvatar;
+                                  final meName =
+                                      (selfProfile?.name ?? user.uid)
+                                          .trim()
+                                          .isNotEmpty
+                                      ? (selfProfile?.name ?? user.uid)
+                                      : user.uid;
+                                  final meAvatar =
+                                      selfProfile?.avatarThumb ??
+                                      selfProfile?.avatar;
+                                  await _openCallScreen(
+                                    currentUserId: user.uid,
+                                    currentUserName: meName,
+                                    currentUserAvatarUrl: meAvatar,
+                                    peerUserId: dmOtherId,
+                                    peerUserName: peerName,
+                                    peerAvatarUrl: peerAvatar,
+                                    isVideo: false,
+                                  );
+                                },
                                 onProfileTap: openProfile,
                                 searchActive: _inChatSearch,
                                 searchController: _chatSearchController,
@@ -537,285 +1124,792 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ),
                           ),
                     body: ChatWallpaperBackground(
-                      wallpaper: wallpaper,
-                      child: SafeArea(
-                        top: false,
-                        child: Column(
-                          children: [
-                            SizedBox(height: belowHeaderGap),
-                            if (topPin != null && conv != null)
-                              ChatPinnedStrip(
-                                pin: topPin,
-                                totalPins: sortedPins.length,
-                                onUnpin: () => _unpinMessage(topPin, conv.data),
-                                onOpenPinned: () {
-                                  final n = sortedPins.length;
-                                  if (n == 0) return;
-                                  final i = displayPinIdx;
-                                  final target = sortedPins[i];
-                                  _scrollToMessageId(target.messageId);
-                                  setState(() {
-                                    _pinnedBarSkipSyncUntilMs =
-                                        DateTime.now().millisecondsSinceEpoch +
+                      wallpaper: effectiveWallpaper,
+                      child: Stack(
+                        children: [
+                          SafeArea(
+                            top: false,
+                            child: Column(
+                              children: [
+                                SizedBox(height: belowHeaderGap),
+                                if (topPin != null && conv != null)
+                                  ChatPinnedStrip(
+                                    pin: topPin,
+                                    totalPins: sortedPins.length,
+                                    onUnpin: () =>
+                                        _unpinMessage(topPin, conv.data),
+                                    onOpenPinned: () {
+                                      final n = sortedPins.length;
+                                      if (n == 0) return;
+                                      final i = displayPinIdx;
+                                      final target = sortedPins[i];
+                                      _scrollToMessageId(target.messageId);
+                                      setState(() {
+                                        _pinnedBarSkipSyncUntilMs =
+                                            DateTime.now()
+                                                .millisecondsSinceEpoch +
                                             900;
-                                    _barPinIndex = (i - 1 + n) % n;
-                                  });
-                                },
-                              ),
-                            Expanded(
-                              child: showSpinner
-                                  ? const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  : Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: ChatMessageList(
-                                            messagesDesc: msgs,
-                                            currentUserId: user.uid,
-                                            conversationId: conversationId,
-                                            conversation: conv?.data,
-                                            scrollController: _scrollController,
-                                            onNearOldestEdge: _onScrollLoadOlder,
-                                            messageItemKeys: _messageItemKeys,
-                                            jumpScrollBoostMessageId:
-                                                _jumpScrollBoostMessageId,
-                                            onJumpToMessageId: _scrollToMessageId,
-                                            flashHighlightMessageId:
-                                                _flashHighlightMessageId,
-                                            selectionMode:
-                                                _selectedMessageIds.isNotEmpty,
-                                            selectedMessageIds:
-                                                _selectedMessageIds,
-                                            onMessageTap:
-                                                _toggleMessageSelected,
-                                            fontSize: fontSize,
-                                            bubbleRadius: bubbleRadius,
-                                            showTimestamps: showTimestamps,
-                                            outgoingBubbleColor: bubbleColor,
-                                            incomingBubbleColor:
-                                                incomingBubbleColor,
-                                            outgoingMediaFooter:
-                                                _outgoingImageAlbum == null ||
-                                                        repo == null
-                                                    ? null
-                                                    : Align(
-                                                        alignment: Alignment
-                                                            .centerRight,
-                                                        child:
-                                                            OutgoingPendingMediaAlbum(
-                                                          key: ValueKey(
-                                                            Object.hash(
-                                                              _outgoingImageAlbum!
-                                                                  .files.length,
-                                                              _outgoingImageAlbum!
-                                                                  .text,
-                                                              _outgoingImageAlbum!
-                                                                  .replyTo
-                                                                  ?.messageId,
+                                        _barPinIndex = (i - 1 + n) % n;
+                                      });
+                                    },
+                                  ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.translucent,
+                                    onTap: () {
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                    },
+                                    child: showSpinner
+                                        ? const Center(
+                                            child: CircularProgressIndicator(),
+                                          )
+                                        : Stack(
+                                            children: [
+                                              Positioned.fill(
+                                                child: E2eeMessagesResolver(
+                                                  conversationId:
+                                                      conversationId,
+                                                  messages: msgs,
+                                                  builder: (
+                                                    context,
+                                                    e2eeDecryptedMap,
+                                                    e2eeFailedIds,
+                                                  ) => ChatMessageList(
+                                                  messagesDesc: msgs,
+                                                  currentUserId: user.uid,
+                                                  conversationId:
+                                                      conversationId,
+                                                  e2eeDecryptedTextByMessageId:
+                                                      e2eeDecryptedMap,
+                                                  e2eeDecryptionFailedMessageIds:
+                                                      e2eeFailedIds,
+                                                  reversed:
+                                                      _messageListReversed,
+                                                  conversation: conv?.data,
+                                                  scrollController:
+                                                      _scrollController,
+                                                  onNearOldestEdge:
+                                                      _onScrollLoadOlder,
+                                                  unreadSeparatorMessageId:
+                                                      unreadSeparatorMessageId,
+                                                  onAtBottomChanged:
+                                                      _onChatAtBottomChanged,
+                                                  onMessageVisible: (message, _) {
+                                                    unawaited(
+                                                      _markVisibleMessageAsRead(
+                                                        message,
+                                                        user.uid,
+                                                      ),
+                                                    );
+                                                  },
+                                                  messageItemKeys:
+                                                      _messageItemKeys,
+                                                  jumpScrollBoostMessageId:
+                                                      _jumpScrollBoostMessageId,
+                                                  onJumpToMessageId:
+                                                      _scrollToMessageId,
+                                                  flashHighlightMessageId:
+                                                      _flashHighlightMessageId,
+                                                  selectionMode:
+                                                      _selectedMessageIds
+                                                          .isNotEmpty,
+                                                  selectedMessageIds:
+                                                      _selectedMessageIds,
+                                                  onMessageTap:
+                                                      _toggleMessageSelected,
+                                                  onRetryMediaNorm:
+                                                      _retryMediaNormForMainChat,
+                                                  onEmitEmojiBurstEvent:
+                                                      _emitEmojiBurstEvent,
+                                                  onSwipeReply: (m) {
+                                                    if (_editingMessageId !=
+                                                        null) {
+                                                      _toast(
+                                                        'Сначала завершите редактирование',
+                                                      );
+                                                      return;
+                                                    }
+                                                    if (_selectedMessageIds
+                                                        .isNotEmpty) {
+                                                      return;
+                                                    }
+                                                    setState(() {
+                                                      _editingMessageId = null;
+                                                      _editingPreviewPlain =
+                                                          null;
+                                                      _replyingTo =
+                                                          buildReplyPreview(
+                                                        message: m,
+                                                        currentUserId:
+                                                            user.uid,
+                                                        isGroup: conv?.data
+                                                                .isGroup ??
+                                                            false,
+                                                        otherUserId: dmOtherId,
+                                                        otherUserName:
+                                                            profile?.name,
+                                                      );
+                                                    });
+                                                    _scheduleChatDraftSave();
+                                                    _composerFocusNode
+                                                        .requestFocus();
+                                                  },
+                                                  onSwipeBack: () {
+                                                    if (context.canPop()) {
+                                                      context.pop();
+                                                    }
+                                                  },
+                                                  fontSize: fontSize,
+                                                  bubbleRadius: bubbleRadius,
+                                                  showTimestamps:
+                                                      showTimestamps,
+                                                  outgoingBubbleColor:
+                                                      bubbleColor,
+                                                  incomingBubbleColor:
+                                                      incomingBubbleColor,
+                                                  outgoingMediaFooter:
+                                                      _outgoingImageAlbum ==
+                                                              null ||
+                                                          repo == null
+                                                      ? null
+                                                      : Align(
+                                                          alignment: Alignment
+                                                              .centerRight,
+                                                          child: OutgoingPendingMediaAlbum(
+                                                            key: ValueKey(
+                                                              Object.hash(
+                                                                _outgoingImageAlbum!
+                                                                    .files
+                                                                    .length,
+                                                                _outgoingImageAlbum!
+                                                                    .text,
+                                                                _outgoingImageAlbum!
+                                                                    .replyTo
+                                                                    ?.messageId,
+                                                              ),
                                                             ),
-                                                          ),
-                                                          files:
-                                                              _outgoingImageAlbum!
-                                                                  .files,
-                                                          captionText:
-                                                              _outgoingImageAlbum!
-                                                                  .text,
-                                                          replyTo:
-                                                              _outgoingImageAlbum!
-                                                                  .replyTo,
-                                                          conversationId:
-                                                              widget
-                                                                  .conversationId,
-                                                          senderId: user.uid,
-                                                          repo: repo,
-                                                          isMine: true,
-                                                          outgoingBubbleColor:
-                                                              bubbleColor,
-                                                          onFinished: () {
-                                                            if (!mounted) {
-                                                              return;
-                                                            }
-                                                            setState(() {
-                                                              _outgoingImageAlbum =
-                                                                  null;
-                                                              _sendBusy =
-                                                                  false;
-                                                            });
-                                                            WidgetsBinding
-                                                                .instance
-                                                                .addPostFrameCallback(
-                                                                    (_) {
-                                                              if (!mounted ||
-                                                                  _suppressAutoScrollToBottom) {
-                                                                return;
-                                                              }
-                                                              final sc =
-                                                                  _scrollController;
-                                                              if (!sc.hasClients) {
+                                                            files:
+                                                                _outgoingImageAlbum!
+                                                                    .files,
+                                                            captionText:
+                                                                _outgoingImageAlbum!
+                                                                    .text,
+                                                            replyTo:
+                                                                _outgoingImageAlbum!
+                                                                    .replyTo,
+                                                            conversationId: widget
+                                                                .conversationId,
+                                                            senderId: user.uid,
+                                                            repo: repo,
+                                                            isMine: true,
+                                                            outgoingBubbleColor:
+                                                                bubbleColor,
+                                                            onFinished: () {
+                                                              if (!mounted) {
                                                                 return;
                                                               }
                                                               unawaited(
-                                                                sc.animateTo(
-                                                                  sc.position
-                                                                      .maxScrollExtent,
-                                                                  duration:
-                                                                      const Duration(
-                                                                    milliseconds:
-                                                                        220,
-                                                                  ),
-                                                                  curve: Curves
-                                                                      .easeOut,
+                                                                clearChatMessageDraft(
+                                                                  user.uid,
+                                                                  widget
+                                                                      .conversationId,
                                                                 ),
                                                               );
-                                                            });
-                                                          },
-                                                          onFailed: (e) {
-                                                            if (!mounted) {
-                                                              return;
-                                                            }
-                                                            final b =
-                                                                _outgoingImageAlbum;
-                                                            setState(() {
-                                                              _outgoingImageAlbum =
-                                                                  null;
-                                                              _sendBusy =
-                                                                  false;
-                                                              if (b != null) {
-                                                                _pendingAttachments
-                                                                  ..clear()
-                                                                  ..addAll(
-                                                                      b.files);
-                                                                _controller
-                                                                        .text =
-                                                                    b.text;
-                                                                _replyingTo =
-                                                                    b.replyTo;
+                                                              setState(() {
+                                                                _outgoingImageAlbum =
+                                                                    null;
+                                                                _sendBusy =
+                                                                    false;
+                                                              });
+                                                              WidgetsBinding
+                                                                  .instance
+                                                                  .addPostFrameCallback((
+                                                                    _,
+                                                                  ) {
+                                                                    _scheduleAutoScrollToBottomIfNeeded();
+                                                                  });
+                                                            },
+                                                            onFailed: (e) {
+                                                              if (!mounted) {
+                                                                return;
                                                               }
-                                                            });
-                                                            ScaffoldMessenger.of(
-                                                                    context)
-                                                                .showSnackBar(
-                                                              SnackBar(
-                                                                content: Text(
-                                                                  'Не удалось отправить: $e',
+                                                              final b =
+                                                                  _outgoingImageAlbum;
+                                                              setState(() {
+                                                                _outgoingImageAlbum =
+                                                                    null;
+                                                                _sendBusy =
+                                                                    false;
+                                                                if (b != null) {
+                                                                  _pendingAttachments
+                                                                    ..clear()
+                                                                    ..addAll(
+                                                                      b.files,
+                                                                    );
+                                                                  _controller
+                                                                      .text = b
+                                                                      .text;
+                                                                  _replyingTo =
+                                                                      b.replyTo;
+                                                                }
+                                                              });
+                                                              ScaffoldMessenger.of(
+                                                                context,
+                                                              ).showSnackBar(
+                                                                SnackBar(
+                                                                  content: Text(
+                                                                    'Не удалось отправить: $e',
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                            );
-                                                          },
+                                                              );
+                                                            },
+                                                          ),
                                                         ),
+                                                  onMessageLongPress: (m) =>
+                                                      _onMessageLongPress(
+                                                        m,
+                                                        user,
+                                                        conv,
+                                                        isGroup,
+                                                        dmOtherId,
+                                                        profile,
+                                                        fontSize: fontSize,
+                                                        starredMessageIds:
+                                                            starredIdsAsync
+                                                                .value ??
+                                                            const <String>{},
                                                       ),
-                                            onMessageLongPress: (m) =>
-                                                _onMessageLongPress(
-                                                  m,
-                                                  user,
-                                                  conv,
-                                                  isGroup,
-                                                  dmOtherId,
-                                                  profile,
-                                                  fontSize: fontSize,
-                                                  savedMessagesChat: isSaved,
+                                                  onOpenThread: (m) {
+                                                    context.push(
+                                                      '/chats/$conversationId/thread/${m.id}',
+                                                      extra: m,
+                                                    );
+                                                  },
+                                                  onOpenMediaGallery: (att, m) {
+                                                    _openMediaGallery(
+                                                      att,
+                                                      m,
+                                                      user: user,
+                                                      isGroup: isGroup,
+                                                      dmOtherId: dmOtherId,
+                                                      profile: profile,
+                                                      profileMap: profileMap,
+                                                      conv: conv?.data,
+                                                    );
+                                                  },
+                                                  profileMap: profileMap,
+                                                  onToggleReaction: (m, emoji) async {
+                                                    final r = ref.read(
+                                                      chatRepositoryProvider,
+                                                    );
+                                                    if (r == null ||
+                                                        emoji.trim().isEmpty) {
+                                                      return;
+                                                    }
+                                                    try {
+                                                      await r
+                                                          .toggleMessageReaction(
+                                                            conversationId: widget
+                                                                .conversationId,
+                                                            messageId: m.id,
+                                                            userId: user.uid,
+                                                            emoji: emoji.trim(),
+                                                          );
+                                                    } catch (e) {
+                                                      if (!context.mounted) {
+                                                        return;
+                                                      }
+                                                      ScaffoldMessenger.of(
+                                                        context,
+                                                      ).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                            'Не удалось поставить реакцию: $e',
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
                                                 ),
-                                            onOpenThread: (m) {
-                                              context.push(
-                                                '/chats/$conversationId/thread/${m.id}',
-                                                extra: m,
-                                              );
-                                            },
-                                            onOpenMediaGallery: (att, m) {
-                                              _openMediaGallery(
-                                                att,
-                                                m,
-                                                user: user,
-                                                isGroup: isGroup,
-                                                dmOtherId: dmOtherId,
-                                                profile: profile,
-                                                profileMap: profileMap,
-                                                conv: conv?.data,
-                                              );
-                                            },
+                                                ),
+                                              ),
+                                              if (_inChatSearch)
+                                                ListenableBuilder(
+                                                  listenable:
+                                                      _chatSearchController,
+                                                  builder: (context, _) {
+                                                    final t =
+                                                        _chatSearchController
+                                                            .text
+                                                            .trim();
+                                                    if (t.length < 2) {
+                                                      return const SizedBox.shrink();
+                                                    }
+                                                    final results =
+                                                        filterMessagesForInChatSearch(
+                                                          msgs,
+                                                          _chatSearchController
+                                                              .text,
+                                                        );
+                                                    return Positioned.fill(
+                                                      child: ChatMessageSearchOverlay(
+                                                        results: results,
+                                                        conversation:
+                                                            conv?.data,
+                                                        profileMap:
+                                                            profileMap ??
+                                                            <
+                                                              String,
+                                                              UserProfile
+                                                            >{},
+                                                        onSelectMessageId: (id) {
+                                                          _exitChatSearch();
+                                                          _scrollToMessageId(
+                                                            id,
+                                                          );
+                                                        },
+                                                        onTapScrim:
+                                                            _exitChatSearch,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              if (_loadingOlder)
+                                                const Positioned(
+                                                  top: 10,
+                                                  left: 0,
+                                                  right: 0,
+                                                  child: Center(
+                                                    child: SizedBox(
+                                                      width: 18,
+                                                      height: 18,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              Positioned(
+                                                right: 12,
+                                                bottom: 12,
+                                                child: ChatScrollAnchorButton(
+                                                  isVisible: showScrollAnchor,
+                                                  unreadCount:
+                                                      anchorUnreadBadgeCount,
+                                                  reactionEmoji:
+                                                      latestReaction?.emoji,
+                                                  onReactionTap:
+                                                      latestReaction == null
+                                                      ? null
+                                                      : () {
+                                                          unawaited(
+                                                            _handleReactionAnchorTap(
+                                                              reaction:
+                                                                  latestReaction,
+                                                              userId: user.uid,
+                                                            ),
+                                                          );
+                                                        },
+                                                  onTap: onScrollAnchorTap,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                                if (_selectedMessageIds.isEmpty) ...[
+                                  const LiveLocationStopBanner(),
+                                  ChatComposer(
+                                    controller: _controller,
+                                    focusNode: _composerFocusNode,
+                                    // Phase 4: в E2EE-чатах текст отправляется
+                                    // зашифрованным через [MobileE2eeRuntime].
+                                    // Баннер оставляем только когда runtime ещё
+                                    // не готов (нет identity) — на практике это
+                                    // краткий старт.
+                                    replyingTo: _replyingTo,
+                                    onCancelReply: () {
+                                      setState(() => _replyingTo = null);
+                                      _scheduleChatDraftSave();
+                                    },
+                                    editingPreviewPlain: _editingPreviewPlain,
+                                    onCancelEdit: _editingMessageId != null
+                                        ? _cancelInlineEdit
+                                        : null,
+                                    onSend: () =>
+                                        _submitComposer(user.uid, conv?.data),
+                                    pendingAttachments: _pendingAttachments,
+                                    onRemovePending: (i) {
+                                      setState(
+                                        () => _pendingAttachments.removeAt(i),
+                                      );
+                                      _scheduleChatDraftSave();
+                                    },
+                                    onEditPending: (i) async {
+                                      if (i < 0 ||
+                                          i >= _pendingAttachments.length) {
+                                        return;
+                                      }
+                                      final target = _pendingAttachments[i];
+                                      if (isOutgoingAlbumLocalImage(target)) {
+                                        final imageIndices = <int>[];
+                                        final imageFiles = <XFile>[];
+                                        for (
+                                          var idx = 0;
+                                          idx < _pendingAttachments.length;
+                                          idx++
+                                        ) {
+                                          final f = _pendingAttachments[idx];
+                                          if (isOutgoingAlbumLocalImage(f)) {
+                                            imageIndices.add(idx);
+                                            imageFiles.add(f);
+                                          }
+                                        }
+                                        if (imageFiles.isEmpty) return;
+
+                                        final initialImageIndex = imageIndices
+                                            .indexOf(i);
+                                        if (initialImageIndex < 0) return;
+
+                                        final edited =
+                                            await ChatImageEditorScreen.open(
+                                              context,
+                                              files: imageFiles,
+                                              initialIndex: initialImageIndex,
+                                              initialCaption: _controller.text,
+                                            );
+                                        if (edited == null || !mounted) return;
+
+                                        setState(() {
+                                          final merged = <XFile>[];
+                                          var editedImageCursor = 0;
+                                          for (final f in _pendingAttachments) {
+                                            if (isOutgoingAlbumLocalImage(f)) {
+                                              if (editedImageCursor <
+                                                  edited.files.length) {
+                                                merged.add(
+                                                  edited
+                                                      .files[editedImageCursor],
+                                                );
+                                                editedImageCursor += 1;
+                                              }
+                                              continue;
+                                            }
+                                            merged.add(f);
+                                          }
+                                          while (editedImageCursor <
+                                              edited.files.length) {
+                                            merged.add(
+                                              edited.files[editedImageCursor],
+                                            );
+                                            editedImageCursor += 1;
+                                          }
+                                          _pendingAttachments
+                                            ..clear()
+                                            ..addAll(merged);
+                                        });
+                                        _controller.text = edited.caption;
+                                        _scheduleChatDraftSave();
+                                        return;
+                                      }
+
+                                      if (_looksLikeVideoAttachment(target)) {
+                                        final edited =
+                                            await ChatVideoEditorScreen.open(
+                                              context,
+                                              file: target,
+                                              initialCaption: _controller.text,
+                                            );
+                                        if (edited == null || !mounted) return;
+                                        setState(() {
+                                          if (i < 0 ||
+                                              i >= _pendingAttachments.length) {
+                                            return;
+                                          }
+                                          _pendingAttachments[i] = edited.file;
+                                        });
+                                        _controller.text = edited.caption;
+                                        _scheduleChatDraftSave();
+                                      }
+                                    },
+                                    attachmentsEnabled:
+                                        _editingMessageId == null,
+                                    sendBusy:
+                                        _sendBusy ||
+                                        _outgoingImageAlbum != null,
+                                    onAttachmentSelected: (a) =>
+                                        unawaited(_handleComposerAttachment(a)),
+                                    onMicTap: () =>
+                                        unawaited(_sendVoiceMessage(user.uid)),
+                                    onStickersTap: () =>
+                                        unawaited(_openStickersGifPanel()),
+                                    stickerSuggestionBuilder: () {
+                                      final repo = ref.read(
+                                        userStickerPacksRepositoryProvider,
+                                      );
+                                      final chatRepo = ref.read(
+                                        chatRepositoryProvider,
+                                      );
+                                      if (repo == null || chatRepo == null) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return ComposerStickerSuggestionRow(
+                                        userId: user.uid,
+                                        repo: repo,
+                                        onPickAttachment: (att) => unawaited(
+                                          _sendStickerOrGifAttachment(
+                                            user.uid,
+                                            chatRepo,
+                                            att,
                                           ),
                                         ),
-                                        if (_inChatSearch)
-                                          ListenableBuilder(
-                                            listenable: _chatSearchController,
-                                            builder: (context, _) {
-                                              final t = _chatSearchController
-                                                  .text
-                                                  .trim();
-                                              if (t.length < 2) {
-                                                return const SizedBox.shrink();
-                                              }
-                                              final results =
-                                                  filterMessagesForInChatSearch(
-                                                msgs,
-                                                _chatSearchController.text,
-                                              );
-                                              return Positioned.fill(
-                                                child:
-                                                    ChatMessageSearchOverlay(
-                                                  results: results,
-                                                  conversation: conv?.data,
-                                                  profileMap: profileMap ??
-                                                      <String, UserProfile>{},
-                                                  onSelectMessageId: (id) {
-                                                    _exitChatSearch();
-                                                    _scrollToMessageId(id);
-                                                  },
-                                                  onTapScrim: _exitChatSearch,
+                                      );
+                                    },
+                                    onClipboardToolbarPaste: _pasteContentFromClipboard,
+                                    showFormattingToolbar:
+                                        _composerFormattingOpen,
+                                    onCloseFormattingToolbar: () => setState(
+                                      () => _composerFormattingOpen = false,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (showCalls &&
+                              dmOtherId != null &&
+                              dmOtherId.isNotEmpty)
+                            Positioned(
+                              top: belowHeaderGap + 8,
+                              left: 12,
+                              right: 12,
+                              child:
+                                  StreamBuilder<
+                                    QuerySnapshot<Map<String, dynamic>>
+                                  >(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('calls')
+                                        .where(
+                                          'receiverId',
+                                          isEqualTo: user.uid,
+                                        )
+                                        .snapshots(),
+                                    builder: (context, callSnap) {
+                                      if (!callSnap.hasData ||
+                                          callSnap.data!.docs.isEmpty ||
+                                          _callScreenOpening) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final activeDocs =
+                                          callSnap.data!.docs.where((d) {
+                                            final m = d.data();
+                                            if ((m['callerId'] as String?) !=
+                                                dmOtherId) {
+                                              return false;
+                                            }
+                                            final status =
+                                                (m['status'] as String?) ?? '';
+                                            return status == 'calling' ||
+                                                status == 'ongoing';
+                                          }).toList()..sort((a, b) {
+                                            final ta =
+                                                (a.data()['createdAt']
+                                                    as String?) ??
+                                                '';
+                                            final tb =
+                                                (b.data()['createdAt']
+                                                    as String?) ??
+                                                '';
+                                            return tb.compareTo(ta);
+                                          });
+                                      if (activeDocs.isEmpty) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final doc = activeDocs.first;
+                                      final callId = doc.id;
+                                      final map = doc.data();
+                                      final status =
+                                          (map['status'] as String?) ??
+                                          'calling';
+                                      final isVideo = map['isVideo'] == true;
+
+                                      if (status == 'calling' &&
+                                          _handledIncomingCallId != callId &&
+                                          !_callScreenOpening) {
+                                        _handledIncomingCallId = callId;
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                              if (!mounted) return;
+                                              final meName =
+                                                  (selfProfile?.name ??
+                                                          user.uid)
+                                                      .trim()
+                                                      .isNotEmpty
+                                                  ? (selfProfile?.name ??
+                                                        user.uid)
+                                                  : user.uid;
+                                              final meAvatar =
+                                                  selfProfile?.avatarThumb ??
+                                                  selfProfile?.avatar;
+                                              final peerName =
+                                                  (profile?.name ??
+                                                              dmFallbackName ??
+                                                              title)
+                                                          .trim()
+                                                          .isNotEmpty ==
+                                                      true
+                                                  ? (profile?.name ??
+                                                        dmFallbackName ??
+                                                        title)
+                                                  : 'Собеседник';
+                                              final peerAvatar =
+                                                  profile?.avatarThumb ??
+                                                  profile?.avatar ??
+                                                  dmFallbackAvatarThumb ??
+                                                  dmFallbackAvatar;
+                                              unawaited(
+                                                _openCallScreen(
+                                                  currentUserId: user.uid,
+                                                  currentUserName: meName,
+                                                  currentUserAvatarUrl:
+                                                      meAvatar,
+                                                  peerUserId: dmOtherId!,
+                                                  peerUserName: peerName,
+                                                  peerAvatarUrl: peerAvatar,
+                                                  isVideo: isVideo,
+                                                  existingCallId: callId,
                                                 ),
                                               );
-                                            },
+                                            });
+                                      }
+
+                                      final incomingLabel = status == 'ongoing'
+                                          ? (isVideo
+                                                ? 'Идёт видеозвонок'
+                                                : 'Идёт аудиозвонок')
+                                          : (isVideo
+                                                ? 'Входящий видеозвонок'
+                                                : 'Входящий аудиозвонок');
+                                      return DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.52,
                                           ),
-                                        if (_loadingOlder)
-                                          const Positioned(
-                                            top: 10,
-                                            left: 0,
-                                            right: 0,
-                                            child: Center(
-                                              child: SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                    ),
-                                              ),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.15,
                                             ),
                                           ),
-                                      ],
-                                    ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            12,
+                                            10,
+                                            10,
+                                            10,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                isVideo
+                                                    ? Icons.videocam_rounded
+                                                    : Icons.call_rounded,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.92,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  incomingLabel,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (status != 'ongoing')
+                                                TextButton(
+                                                  onPressed: () async {
+                                                    await FirebaseFirestore
+                                                        .instance
+                                                        .collection('calls')
+                                                        .doc(callId)
+                                                        .update(<
+                                                          String,
+                                                          Object?
+                                                        >{
+                                                          'status': 'rejected',
+                                                          'endedAt': DateTime.now()
+                                                              .toUtc()
+                                                              .toIso8601String(),
+                                                        });
+                                                  },
+                                                  child: const Text(
+                                                    'Отклонить',
+                                                  ),
+                                                ),
+                                              TextButton(
+                                                onPressed: () async {
+                                                  final meName =
+                                                      (selfProfile?.name ??
+                                                              user.uid)
+                                                          .trim()
+                                                          .isNotEmpty
+                                                      ? (selfProfile?.name ??
+                                                            user.uid)
+                                                      : user.uid;
+                                                  final meAvatar =
+                                                      selfProfile
+                                                          ?.avatarThumb ??
+                                                      selfProfile?.avatar;
+                                                  final peerName =
+                                                      (profile?.name ??
+                                                                  dmFallbackName ??
+                                                                  title)
+                                                              .trim()
+                                                              .isNotEmpty ==
+                                                          true
+                                                      ? (profile?.name ??
+                                                            dmFallbackName ??
+                                                            title)
+                                                      : 'Собеседник';
+                                                  final peerAvatar =
+                                                      profile?.avatarThumb ??
+                                                      profile?.avatar ??
+                                                      dmFallbackAvatarThumb ??
+                                                      dmFallbackAvatar;
+                                                  await _openCallScreen(
+                                                    currentUserId: user.uid,
+                                                    currentUserName: meName,
+                                                    currentUserAvatarUrl:
+                                                        meAvatar,
+                                                    peerUserId: dmOtherId!,
+                                                    peerUserName: peerName,
+                                                    peerAvatarUrl: peerAvatar,
+                                                    isVideo: isVideo,
+                                                    existingCallId: callId,
+                                                  );
+                                                },
+                                                child: Text(
+                                                  status == 'ongoing'
+                                                      ? 'Открыть'
+                                                      : 'Принять',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                             ),
-                            if (_selectedMessageIds.isEmpty) ...[
-                              const LiveLocationStopBanner(),
-                              _ChatComposer(
-                                controller: _controller,
-                                focusNode: _composerFocusNode,
-                                replyingTo: _replyingTo,
-                                onCancelReply: () =>
-                                    setState(() => _replyingTo = null),
-                                editingPreviewPlain: _editingPreviewPlain,
-                                onCancelEdit: _editingMessageId != null
-                                    ? _cancelInlineEdit
-                                    : null,
-                                onSend: () => _submitComposer(user.uid),
-                                pendingAttachments: _pendingAttachments,
-                                onRemovePending: (i) => setState(
-                                  () => _pendingAttachments.removeAt(i),
-                                ),
-                                attachmentsEnabled: _editingMessageId == null,
-                                sendBusy:
-                                    _sendBusy || _outgoingImageAlbum != null,
-                                onAttachmentSelected: (a) =>
-                                    unawaited(_handleComposerAttachment(a)),
-                                showFormattingToolbar: _composerFormattingOpen,
-                                onCloseFormattingToolbar: () => setState(
-                                  () => _composerFormattingOpen = false,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                        ],
                       ),
                     ),
                   );
@@ -824,16 +1918,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 return msgsAsync.when(
                   skipLoadingOnReload: true,
                   data: (msgs) {
-                    _lastMessagesCount = msgs.length;
-                    _sortedAscCache = List<ChatMessage>.from(msgs)
+                    final clearedAtIso = conv?.data.clearedAt?[user.uid];
+                    final visibleMsgs = _filterByClearedAt(msgs, clearedAtIso);
+                    final previousVisibleCount = _lastMessagesCount;
+                    _lastMessagesCount = visibleMsgs.length;
+                    _sortedAscCache = List<ChatMessage>.from(visibleMsgs)
                       ..sort((a, b) {
                         final t = a.createdAt.compareTo(b.createdAt);
                         if (t != 0) return t;
                         return a.id.compareTo(b.id);
                       });
                     _syncMessageItemKeys(_sortedAscCache);
-                    _scheduleHistoryAnchorRestore(msgs);
-                    return chatShell(msgs, showSpinner: false);
+                    _preserveViewportOnIncomingGrowth(
+                      previousCount: previousVisibleCount,
+                      nextCount: visibleMsgs.length,
+                    );
+                    _scheduleHistoryAnchorRestore(visibleMsgs);
+                    return chatShell(visibleMsgs, showSpinner: false);
                   },
                   // При смене limit новый family-провайдер даёт loading: не убираем список
                   // (иначе ChatMessageList dispose → снова jump вниз).
@@ -879,6 +1980,113 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _toast(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  void _insertComposerTextAtCursor(String rawText) {
+    final t = rawText.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    if (t.trim().isEmpty) return;
+    final escaped = ComposerHtmlEditing.escapeHtmlText(t);
+    final value = _controller.value;
+    final text = value.text;
+    final sel = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: text.length);
+    final start = sel.start.clamp(0, text.length);
+    final end = sel.end.clamp(0, text.length);
+    final next = text.replaceRange(start, end, escaped);
+    _controller.value = value.copyWith(
+      text: next,
+      selection: TextSelection.collapsed(offset: start + escaped.length),
+      composing: TextRange.empty,
+    );
+    _scheduleChatDraftSave();
+  }
+
+  Future<void> _pasteContentFromClipboard() async {
+    try {
+      final payload = await readComposerClipboardPayload();
+      if (!mounted) return;
+      if (payload.files.isNotEmpty) {
+        setState(() => _pendingAttachments.addAll(payload.files));
+        _scheduleChatDraftSave();
+      }
+      final pastedText = payload.text ?? '';
+      if (pastedText.trim().isNotEmpty) {
+        _insertComposerTextAtCursor(pastedText);
+      }
+      if (payload.files.isEmpty && pastedText.trim().isEmpty) {
+        _toast('Нечего вставлять из буфера');
+      }
+    } catch (e) {
+      // Безопасный фолбэк: даже если расширенный клипборд недоступен,
+      // стараемся хотя бы вставить plain text.
+      final fallback = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = fallback?.text ?? '';
+      if (!mounted) return;
+      if (text.trim().isNotEmpty) {
+        _insertComposerTextAtCursor(text);
+      } else {
+        _toast('Не удалось вставить содержимое буфера: $e');
+      }
+    }
+  }
+
+  String _starredDocId(String conversationId, String messageId) {
+    return 's_${conversationId}_$messageId';
+  }
+
+  String _starredPreviewText(ChatMessage m) {
+    final raw = (m.text ?? '').trim();
+    var plain = raw;
+    if (raw.contains('<')) {
+      plain = messageHtmlToPlainText(raw);
+    }
+    plain = plain.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (plain.isEmpty) {
+      if ((m.chatPollId ?? '').trim().isNotEmpty) {
+        plain = 'Опрос';
+      } else if (m.locationShare != null) {
+        plain = 'Локация';
+      } else if (m.attachments.isNotEmpty) {
+        plain = 'Вложение';
+      } else {
+        plain = 'Сообщение';
+      }
+    }
+    if (plain.length > 240) {
+      plain = '${plain.substring(0, 240)}…';
+    }
+    return plain;
+  }
+
+  Future<void> _toggleMessageStar({
+    required ChatMessage message,
+    required String currentUserId,
+    required bool isStarredNow,
+  }) async {
+    if (message.id.trim().isEmpty) return;
+    final ref = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .collection('starredChatMessages')
+        .doc(_starredDocId(widget.conversationId, message.id));
+    try {
+      if (isStarredNow) {
+        await ref.delete();
+        _toast('Удалено из избранного');
+        return;
+      }
+      final now = DateTime.now().toUtc().toIso8601String();
+      await ref.set(<String, Object?>{
+        'conversationId': widget.conversationId,
+        'messageId': message.id,
+        'createdAt': now,
+        'previewText': _starredPreviewText(message),
+      }, SetOptions(merge: true));
+      _toast('Добавлено в избранное');
+    } catch (e) {
+      _toast('Не удалось изменить избранное: $e');
+    }
   }
 
   String _senderLabelForMediaViewer(
@@ -929,6 +2137,91 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  Future<void> _retryMediaNormForMainChat(ChatMessage message) async {
+    try {
+      final repo = ref.read(chatRepositoryProvider);
+      if (repo == null) return;
+      await repo.retryChatMediaTranscode(
+        conversationId: widget.conversationId,
+        messageId: message.id,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Повторная обработка запущена')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось запустить обработку: $e')),
+      );
+    }
+  }
+
+  Future<void> _emitEmojiBurstEvent(
+    ChatMessage message,
+    String emoji,
+    String eventId,
+  ) async {
+    try {
+      final repo = ref.read(chatRepositoryProvider);
+      if (repo == null) return;
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (uid.trim().isEmpty) return;
+      await repo.emitEmojiBurstEvent(
+        conversationId: widget.conversationId,
+        messageId: message.id,
+        senderId: uid,
+        emoji: emoji,
+        eventId: eventId,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Не удалось синхронизировать эффект эмодзи: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<bool> _confirmDeleteMediaGalleryItem(ChatMediaGalleryItem item) async {
+    final m = item.message;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return false;
+    if (m.attachments.length <= 1) {
+      return _confirmDeleteMessageForViewer(m);
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Удалить файл?'),
+        content: const Text('Будет удалён только этот файл из сообщения.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return false;
+    try {
+      await repo.removeMessageAttachment(
+        conversationId: widget.conversationId,
+        messageId: m.id,
+        attachmentUrl: item.attachment.url,
+      );
+      return true;
+    } catch (e) {
+      _toast('Не удалось удалить: $e');
+      return false;
+    }
+  }
+
   void _openMediaGallery(
     ChatAttachment att,
     ChatMessage msg, {
@@ -944,9 +2237,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (items.isEmpty) return;
     final ix = indexInChatMediaGallery(items, att.url);
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (ctx) => ChatMediaViewerScreen(
+      chatMediaViewerPageRoute<void>(
+        ChatMediaViewerScreen(
           items: items,
           initialIndex: ix,
           currentUserId: user.uid,
@@ -970,12 +2262,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               );
             });
             if (leaveEdit) _controller.clear();
+            _scheduleChatDraftSave();
           },
-          onForward: (m) {
-            if (m.isDeleted) return;
+          onForward: (galleryItem) {
+            if (galleryItem.message.isDeleted) return;
+            final m = chatMessageForSingleAttachmentForward(
+              galleryItem.message,
+              galleryItem.attachment,
+            );
             context.push('/chats/forward', extra: <ChatMessage>[m]);
           },
-          onDeleteMessage: (m) => _confirmDeleteMessageForViewer(m),
+          onDeleteItem: _confirmDeleteMediaGalleryItem,
+          onShowInChat: (galleryItem) {
+            _scrollToMessageId(galleryItem.message.id);
+          },
         ),
       ),
     );
@@ -1149,7 +2449,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     String? otherId,
     UserProfile? profile, {
     required String fontSize,
-    required bool savedMessagesChat,
+    required Set<String> starredMessageIds,
   }) async {
     final isMine = m.senderId == user.uid;
     final canEdit =
@@ -1158,7 +2458,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final plain = (m.text ?? '').trim();
     final hasMenuText =
         plain.isNotEmpty &&
-        (plain.contains('<') ? messageHtmlToPlainText(plain).trim().isNotEmpty : true);
+        (plain.contains('<')
+            ? messageHtmlToPlainText(plain).trim().isNotEmpty
+            : true);
 
     final result = await showMessageContextMenu(
       context,
@@ -1167,11 +2469,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       hasText: hasMenuText,
       canEdit: canEdit,
       canDelete: canDelete,
-      showStarAction: savedMessagesChat && !m.isDeleted,
-      isStarred: false,
+      showStarAction: !m.isDeleted,
+      isStarred: starredMessageIds.contains(m.id),
       chatFontSize: fontSize,
     );
-    if (!mounted || result == null || result.type == MessageMenuActionType.dismissed) {
+    if (!mounted ||
+        result == null ||
+        result.type == MessageMenuActionType.dismissed) {
       return;
     }
 
@@ -1192,6 +2496,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           );
         });
         if (leaveEdit) _controller.clear();
+        _scheduleChatDraftSave();
       case MessageMenuActionType.thread:
         if (!mounted) return;
         context.push(
@@ -1209,7 +2514,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       case MessageMenuActionType.pin:
         await _pinMessage(m, user, convWrap, isGroup, otherId, profile);
       case MessageMenuActionType.star:
-        _toast('Избранное в сообщениях: скоро');
+        await _toggleMessageStar(
+          message: m,
+          currentUserId: user.uid,
+          isStarredNow: starredMessageIds.contains(m.id),
+        );
       case MessageMenuActionType.forward:
         if (m.isDeleted) return;
         if (!mounted) return;
@@ -1238,7 +2547,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _onScrollLoadOlder() {
     final now = DateTime.now();
-    if (_nearOldestCooldownUntil != null && now.isBefore(_nearOldestCooldownUntil!)) {
+    if (_nearOldestCooldownUntil != null &&
+        now.isBefore(_nearOldestCooldownUntil!)) {
       return;
     }
     if (_historyLoadInFlight || _loadingOlder) return;
@@ -1313,7 +2623,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _finishHistoryLoad() {
-    _nearOldestCooldownUntil = DateTime.now().add(const Duration(milliseconds: 800));
+    _nearOldestCooldownUntil = DateTime.now().add(
+      const Duration(milliseconds: 800),
+    );
     _historyLoadInFlight = false;
     _suppressAutoScrollToBottom = false;
     _activeHistoryCycleId = null;
@@ -1326,15 +2638,50 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  Future<void> _submitComposer(String uid) async {
+  Future<void> _submitComposer(String uid, [Conversation? conv]) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
+    // Phase 4: если чат в E2EE, нам нужны (а) заранее известный messageId,
+    // чтобы включить его в AAD, и (б) encrypted envelope. Все места ниже,
+    // отправляющие простой текст, используют этот helper.
+    final bool convIsE2ee = isConversationE2eeActive(conv);
+    final MobileE2eeRuntime? e2eeRuntime =
+        convIsE2ee ? ref.read(mobileE2eeRuntimeProvider) : null;
+    final int? e2eeEpoch = conv?.e2eeKeyEpoch;
+    Future<(String, Map<String, Object?>)?> buildE2eeForText(
+      String plaintextHtml,
+    ) async {
+      if (!convIsE2ee || e2eeRuntime == null || e2eeEpoch == null) return null;
+      final msgId = FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(widget.conversationId)
+          .collection('messages')
+          .doc()
+          .id;
+      try {
+        final env = await e2eeRuntime.encryptOutgoing(
+          conversationId: widget.conversationId,
+          messageId: msgId,
+          epoch: e2eeEpoch,
+          plaintext: plaintextHtml,
+        );
+        return (msgId, env);
+      } on MobileE2eeEncryptException catch (e) {
+        if (mounted) _toast('Шифрование недоступно: ${e.code}');
+        return null;
+      } catch (e) {
+        if (mounted) _toast('Не удалось зашифровать: $e');
+        return null;
+      }
+    }
     if (_sendBusy) return;
     final rawComposer = _controller.text;
-    final prepared =
-        ComposerHtmlEditing.prepareChatMessageHtmlForSend(rawComposer);
-    final plainOut =
-        prepared.isEmpty ? '' : messageHtmlToPlainText(prepared).trim();
+    final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
+      rawComposer,
+    );
+    final plainOut = prepared.isEmpty
+        ? ''
+        : messageHtmlToPlainText(prepared).trim();
     final editingId = _editingMessageId;
 
     if (editingId != null) {
@@ -1352,10 +2699,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     if (editingId != null) {
       try {
+        Map<String, Object?>? editEnvelope;
+        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
+          try {
+            editEnvelope = await e2eeRuntime.encryptOutgoing(
+              conversationId: widget.conversationId,
+              messageId: editingId,
+              epoch: e2eeEpoch,
+              plaintext: prepared,
+            );
+          } on MobileE2eeEncryptException catch (e) {
+            if (mounted) _toast('Шифрование недоступно: ${e.code}');
+            return;
+          }
+        }
         await repo.updateMessageText(
           conversationId: widget.conversationId,
           messageId: editingId,
           text: prepared,
+          e2eeEnvelope: editEnvelope,
         );
         if (!mounted) return;
         setState(() {
@@ -1364,6 +2726,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _composerFormattingOpen = false;
         });
         _controller.clear();
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
       } catch (e) {
         if (mounted) _toast('Не удалось сохранить: $e');
       }
@@ -1387,13 +2750,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _composerFormattingOpen = false;
           _sendBusy = true;
         });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          final sc = _scrollController;
-          if (sc.hasClients) {
-            sc.jumpTo(sc.position.maxScrollExtent);
-          }
-        });
+        if (_chatAtBottom && !_suppressAutoScrollToBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _jumpToChatBottom();
+          });
+        }
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
         return;
       }
       setState(() => _sendBusy = true);
@@ -1419,24 +2782,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           attachments: uploaded,
         );
         if (mounted) {
+          unawaited(clearChatMessageDraft(uid, widget.conversationId));
           setState(() {
             _replyingTo = null;
             _composerFormattingOpen = false;
           });
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || _suppressAutoScrollToBottom) return;
-            final sc = _scrollController;
-            if (!sc.hasClients) return;
-            unawaited(
-              sc.animateTo(
-                sc.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
-              ),
-            );
-          });
+          _scheduleAutoScrollToBottomIfNeeded();
         }
       } catch (e) {
+        final details = e is FirebaseException
+            ? '${e.code}${e.message == null ? '' : ': ${e.message}'}'
+            : '$e';
         if (mounted) {
           _controller.text = rawComposer;
           setState(() {
@@ -1446,7 +2802,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _replyingTo = replySnap;
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Не удалось отправить сообщение: $e')),
+            SnackBar(content: Text('Не удалось отправить сообщение: $details')),
           );
         }
       } finally {
@@ -1458,35 +2814,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final replySnap = _replyingTo;
     _controller.clear();
     try {
+      final e2eeTextPayload = plainOut.isEmpty
+          ? null
+          : await buildE2eeForText(prepared);
+      if (convIsE2ee && plainOut.isNotEmpty && e2eeTextPayload == null) {
+        // Шифрование не удалось (toast уже показан), plaintext отправлять
+        // нельзя. Возвращаем текст в composer и прерываем.
+        _controller.text = rawComposer;
+        return;
+      }
       await repo.sendTextMessage(
         conversationId: widget.conversationId,
         senderId: uid,
         text: plainOut.isEmpty ? '' : prepared,
         replyTo: replySnap,
+        e2eeEnvelope: e2eeTextPayload?.$2,
+        messageIdOverride: e2eeTextPayload?.$1,
       );
       if (mounted) {
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
         setState(() {
           _replyingTo = null;
           _composerFormattingOpen = false;
         });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _suppressAutoScrollToBottom) return;
-          final sc = _scrollController;
-          if (!sc.hasClients) return;
-          unawaited(
-            sc.animateTo(
-              sc.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-            ),
-          );
-        });
+        _scheduleAutoScrollToBottomIfNeeded();
       }
     } catch (e) {
+      final details = e is FirebaseException
+          ? '${e.code}${e.message == null ? '' : ': ${e.message}'}'
+          : '$e';
       _controller.text = rawComposer;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось отправить сообщение: $e')),
+        SnackBar(content: Text('Не удалось отправить сообщение: $details')),
       );
     }
   }
@@ -1505,7 +2865,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       )),
     );
     final convList = convAsync.asData?.value;
-    final conv = convList != null && convList.isNotEmpty ? convList.first : null;
+    final conv = convList != null && convList.isNotEmpty
+        ? convList.first
+        : null;
     if (conv == null) {
       _toast('Чат ещё загружается');
       return;
@@ -1579,19 +2941,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
 
       if (mounted) {
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
         setState(() => _replyingTo = null);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _suppressAutoScrollToBottom) return;
-          final sc = _scrollController;
-          if (!sc.hasClients) return;
-          unawaited(
-            sc.animateTo(
-              sc.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-            ),
-          );
-        });
+        _scheduleAutoScrollToBottomIfNeeded();
       }
     } catch (e) {
       if (mounted) {
@@ -1628,13 +2980,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     XFile raw,
   ) async {
     final lower = raw.path.toLowerCase();
-    final ext = lower.endsWith('.mov') || lower.endsWith('.qt')
-        ? 'mov'
-        : 'mp4';
+    final ext = lower.endsWith('.mov') || lower.endsWith('.qt') ? 'mov' : 'mp4';
     final mime = ext == 'mov' ? 'video/quicktime' : 'video/mp4';
-    final name =
-        'video-circle_${DateTime.now().millisecondsSinceEpoch}.$ext';
-    final file = XFile(raw.path, name: name, mimeType: mime);
+    final name = 'video-circle_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final file = XFile(raw.path, mimeType: mime);
     final replySnap = _replyingTo;
     setState(() => _sendBusy = true);
     try {
@@ -1642,6 +2991,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         storage: FirebaseStorage.instance,
         conversationId: widget.conversationId,
         file: file,
+        displayName: name,
       );
       await repo.sendTextMessage(
         conversationId: widget.conversationId,
@@ -1651,23 +3001,58 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         attachments: [uploaded],
       );
       if (mounted) {
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
         setState(() => _replyingTo = null);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _suppressAutoScrollToBottom) return;
-          final sc = _scrollController;
-          if (!sc.hasClients) return;
-          unawaited(
-            sc.animateTo(
-              sc.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-            ),
-          );
-        });
+        _scheduleAutoScrollToBottomIfNeeded();
       }
     } finally {
       if (mounted) setState(() => _sendBusy = false);
     }
+  }
+
+  Future<void> _sendVoiceMessage(String uid) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null || _sendBusy) return;
+    final rec = await showVoiceMessageRecordSheet(context);
+    if (!mounted || rec == null) return;
+    setState(() => _sendBusy = true);
+    try {
+      final audioName = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final file = XFile(rec.filePath, mimeType: 'audio/m4a');
+      final uploaded = await uploadChatAttachmentFromXFile(
+        storage: FirebaseStorage.instance,
+        conversationId: widget.conversationId,
+        file: file,
+        displayName: audioName,
+      );
+      await repo.sendTextMessage(
+        conversationId: widget.conversationId,
+        senderId: uid,
+        text: '',
+        replyTo: _replyingTo,
+        attachments: [uploaded],
+      );
+      if (mounted) {
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
+        setState(() {
+          _replyingTo = null;
+          _composerFormattingOpen = false;
+        });
+        _scheduleAutoScrollToBottomIfNeeded();
+      }
+    } catch (e) {
+      if (mounted) _toast('Не удалось отправить голосовое: $e');
+    } finally {
+      unawaited(_deleteFileSilently(rec.filePath));
+      if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _deleteFileSilently(String path) async {
+    if (path.trim().isEmpty) return;
+    try {
+      await File(path).delete();
+    } catch (_) {}
   }
 
   Future<void> _openStickersGifPanel() async {
@@ -1676,6 +3061,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _toast('Войдите в аккаунт');
       return;
     }
+    FocusManager.instance.primaryFocus?.unfocus();
     final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
     final chatRepo = ref.read(chatRepositoryProvider);
     if (stickerRepo == null || chatRepo == null) {
@@ -1686,6 +3072,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       context: context,
       userId: uid,
       repo: stickerRepo,
+      directUploadConversationId: widget.conversationId,
       onPickAttachment: (att) {
         unawaited(_sendStickerOrGifAttachment(uid, chatRepo, att));
       },
@@ -1708,32 +3095,108 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         attachments: [att],
       );
       if (mounted) {
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
         setState(() => _replyingTo = null);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _suppressAutoScrollToBottom) return;
-          final sc = _scrollController;
-          if (!sc.hasClients) return;
-          unawaited(
-            sc.animateTo(
-              sc.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-            ),
-          );
-        });
+        _scheduleAutoScrollToBottomIfNeeded();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось отправить: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Не удалось отправить: $e')));
       }
     } finally {
       if (mounted) setState(() => _sendBusy = false);
     }
   }
 
-  Future<void> _handleComposerAttachment(ComposerAttachmentAction action) async {
+  Future<void> _sendChatPoll() async {
+    if (_sendBusy) return;
+    if (_editingMessageId != null) {
+      _toast('Сначала завершите редактирование');
+      return;
+    }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      _toast('Войдите в аккаунт');
+      return;
+    }
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) {
+      _toast('Сервис чата недоступен');
+      return;
+    }
+    final convAsync = ref.read(
+      conversationsProvider((
+        key: conversationIdsCacheKey([widget.conversationId]),
+      )),
+    );
+    final convList = convAsync.asData?.value;
+    final conv = convList != null && convList.isNotEmpty
+        ? convList.first
+        : null;
+    if (conv == null) {
+      _toast('Чат ещё загружается');
+      return;
+    }
+    final participantIds = conv.data.participantIds;
+    if (participantIds.isEmpty) {
+      _toast('Нет участников чата');
+      return;
+    }
+    final payload = await showChatPollCreateSheet(context);
+    if (!mounted || payload == null) return;
+    setState(() => _sendBusy = true);
+    try {
+      await repo
+          .sendChatPollMessage(
+            conversationId: widget.conversationId,
+            senderId: uid,
+            participantIds: participantIds,
+            pollPayload: payload,
+            replyTo: _replyingTo,
+          )
+          .timeout(const Duration(seconds: 20));
+      if (mounted) {
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
+        setState(() => _replyingTo = null);
+        _scheduleAutoScrollToBottomIfNeeded();
+      }
+    } catch (e) {
+      if (mounted) {
+        final raw = e.toString();
+        String message;
+        if (e is TimeoutException) {
+          message =
+              'Не удалось отправить опрос: превышено время ожидания сети.';
+        } else if (raw.contains('poll_send_timeout:')) {
+          final step = raw
+              .split('poll_send_timeout:')
+              .last
+              .split(RegExp(r'[\s\)]'))
+              .first;
+          message = 'Опрос не отправлен (таймаут: $step).';
+        } else if (raw.contains('poll_send_firebase:')) {
+          final details = raw.split('poll_send_firebase:').last;
+          message = 'Опрос не отправлен (Firestore): $details';
+        } else if (raw.contains('poll_send_error:')) {
+          final details = raw.split('poll_send_error:').last;
+          message = 'Опрос не отправлен: $details';
+        } else {
+          message = 'Не удалось отправить опрос: $e';
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } finally {
+      if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _handleComposerAttachment(
+    ComposerAttachmentAction action,
+  ) async {
     if (_editingMessageId != null) {
       _toast('Сначала завершите редактирование');
       return;
@@ -1749,16 +3212,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               final list = await picker.pickMultipleMedia();
               if (!mounted || list.isEmpty) return;
               setState(() => _pendingAttachments.addAll(list));
+              _scheduleChatDraftSave();
               break;
             case 'camera_photo':
               final x = await picker.pickImage(source: ImageSource.camera);
               if (!mounted || x == null) return;
               setState(() => _pendingAttachments.add(x));
+              _scheduleChatDraftSave();
               break;
             case 'camera_video':
               final xv = await picker.pickVideo(source: ImageSource.camera);
               if (!mounted || xv == null) return;
               setState(() => _pendingAttachments.add(xv));
+              _scheduleChatDraftSave();
               break;
             default:
               break;
@@ -1780,10 +3246,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           }
           if (add.isNotEmpty) {
             setState(() => _pendingAttachments.addAll(add));
+            _scheduleChatDraftSave();
           }
         } catch (e) {
           if (mounted) _toast('Не удалось выбрать файл: $e');
         }
+        break;
+      case ComposerAttachmentAction.clipboard:
+        await _pasteContentFromClipboard();
         break;
       case ComposerAttachmentAction.videoCircle:
         unawaited(_openVideoCircleCapture());
@@ -1792,7 +3262,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         unawaited(_sendLocationShare());
         break;
       case ComposerAttachmentAction.poll:
-        _toast('Опрос: скоро');
+        unawaited(_sendChatPoll());
         break;
       case ComposerAttachmentAction.stickersGif:
         unawaited(_openStickersGifPanel());
@@ -1801,197 +3271,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         setState(() => _composerFormattingOpen = true);
         break;
     }
-  }
-}
-
-class _ChatComposer extends StatefulWidget {
-  const _ChatComposer({
-    required this.controller,
-    required this.focusNode,
-    required this.onSend,
-    required this.onAttachmentSelected,
-    required this.pendingAttachments,
-    required this.onRemovePending,
-    required this.attachmentsEnabled,
-    required this.sendBusy,
-    this.replyingTo,
-    this.onCancelReply,
-    this.editingPreviewPlain,
-    this.onCancelEdit,
-    this.showFormattingToolbar = false,
-    this.onCloseFormattingToolbar,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final VoidCallback onSend;
-  final void Function(ComposerAttachmentAction action) onAttachmentSelected;
-  final List<XFile> pendingAttachments;
-  final void Function(int index) onRemovePending;
-  final bool attachmentsEnabled;
-  final bool sendBusy;
-  final ReplyContext? replyingTo;
-  final VoidCallback? onCancelReply;
-  final String? editingPreviewPlain;
-  final VoidCallback? onCancelEdit;
-  final bool showFormattingToolbar;
-  final VoidCallback? onCloseFormattingToolbar;
-
-  @override
-  State<_ChatComposer> createState() => _ChatComposerState();
-}
-
-class _ChatComposerState extends State<_ChatComposer> {
-  final GlobalKey _composerColumnKey = GlobalKey();
-  OverlayEntry? _attachmentOverlayEntry;
-
-  @override
-  void dispose() {
-    _attachmentOverlayEntry?.remove();
-    super.dispose();
-  }
-
-  void _closeAttachmentMenu() {
-    _attachmentOverlayEntry?.remove();
-    _attachmentOverlayEntry = null;
-  }
-
-  void _openAttachmentMenu() {
-    if (!widget.attachmentsEnabled || widget.sendBusy) return;
-    _closeAttachmentMenu();
-    final box =
-        _composerColumnKey.currentContext?.findRenderObject() as RenderBox?;
-    final mq = MediaQuery.of(context);
-    final screenH = mq.size.height;
-    var bottomFrom = 100.0;
-    if (box != null && box.hasSize) {
-      final topY = box.localToGlobal(Offset.zero).dy;
-      bottomFrom = (screenH - topY).clamp(56.0, screenH);
-    }
-    _attachmentOverlayEntry = showComposerAttachmentOverlay(
-      context: context,
-      bottomFromScreenBottom: bottomFrom,
-      onDismissed: () {
-        _attachmentOverlayEntry = null;
-      },
-      onSelected: widget.onAttachmentSelected,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        child: Column(
-          key: _composerColumnKey,
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (widget.editingPreviewPlain != null && widget.onCancelEdit != null)
-              ComposerEditingBanner(
-                previewPlain: widget.editingPreviewPlain!,
-                onCancel: widget.onCancelEdit!,
-              )
-            else if (widget.replyingTo != null && widget.onCancelReply != null)
-              ComposerReplyBanner(
-                replyTo: widget.replyingTo!,
-                onCancel: widget.onCancelReply!,
-              ),
-            ComposerPendingAttachmentsStrip(
-              files: widget.pendingAttachments,
-              onRemoveAt: widget.onRemovePending,
-            ),
-            if (widget.showFormattingToolbar &&
-                widget.onCloseFormattingToolbar != null) ...[
-              ComposerFormattingToolbar(
-                controller: widget.controller,
-                focusNode: widget.focusNode,
-                onBack: widget.onCloseFormattingToolbar!,
-              ),
-              const SizedBox(height: 8),
-            ],
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Вложения',
-                  onPressed: widget.attachmentsEnabled && !widget.sendBusy
-                      ? _openAttachmentMenu
-                      : null,
-                  icon: Icon(
-                    Icons.attach_file_rounded,
-                    color: widget.attachmentsEnabled && !widget.sendBusy
-                        ? scheme.onSurface
-                        : scheme.onSurface.withValues(alpha: 0.35),
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      color: Colors.white.withValues(alpha: dark ? 0.08 : 0.22),
-                      border: Border.all(
-                        color: Colors.white.withValues(
-                          alpha: dark ? 0.12 : 0.35,
-                        ),
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: TextField(
-                      controller: widget.controller,
-                      focusNode: widget.focusNode,
-                      minLines: 1,
-                      maxLines: 6,
-                      keyboardType: TextInputType.multiline,
-                      strutStyle: const StrutStyle(
-                        forceStrutHeight: true,
-                        height: 1.25,
-                        fontSize: 16,
-                      ),
-                      decoration: const InputDecoration(
-                        hintText: 'Сообщение',
-                        border: InputBorder.none,
-                      ),
-                      textInputAction: TextInputAction.newline,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: scheme.primary.withValues(alpha: 0.80),
-                  ),
-                  child: widget.sendBusy
-                      ? Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: scheme.onPrimary,
-                            ),
-                          ),
-                        )
-                      : IconButton(
-                          onPressed: widget.onSend,
-                          icon: Icon(
-                            Icons.send_rounded,
-                            color: scheme.onPrimary,
-                          ),
-                        ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -2005,4 +3284,16 @@ class _PendingImageAlbumSend {
   final List<XFile> files;
   final String text;
   final ReplyContext? replyTo;
+}
+
+class _AnchorReactionTarget {
+  const _AnchorReactionTarget({
+    required this.emoji,
+    required this.messageId,
+    this.parentId,
+  });
+
+  final String emoji;
+  final String messageId;
+  final String? parentId;
 }

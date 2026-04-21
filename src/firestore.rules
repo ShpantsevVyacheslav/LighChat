@@ -9,8 +9,9 @@ service cloud.firestore {
 
     /** Роль из Firestore: поле role (строка) должно быть ровно «admin». */
     function isAdmin() {
-      let u = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && u.exists && u.data.role == 'admin';
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isMeetingHost(meetingId) {
@@ -38,10 +39,24 @@ service cloud.firestore {
       return data.participantIds is list && data.participantIds.size() == 1;
     }
 
+    /**
+     * Разрешаем `get` для ещё несуществующих детерминированных id чатов,
+     * чтобы клиент мог идемпотентно создавать `saved_*`/`dm_*` через get+create
+     * без permission-denied на шаге preflight-чтения.
+     */
+    function canReadMissingConversationById(conversationId) {
+      return request.method == 'get' && (
+        conversationId.matches('^saved_[0-9]+:.*$') ||
+        conversationId.matches('^dm_.*$')
+      );
+    }
+
     /** Запасной путь, пока CF ещё не создала members/{uid} (миллисекунды после создания чата). */
     function conversationMemberFallbackFromParent(conversationId) {
-      let d = get(/databases/$(database)/documents/conversations/$(conversationId));
-      return d.exists && uidIsConversationParticipantFromData(d.data);
+      return exists(/databases/$(database)/documents/conversations/$(conversationId))
+        && uidIsConversationParticipantFromData(
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data
+        );
     }
 
     /**
@@ -123,6 +138,11 @@ service cloud.firestore {
         allow read: if isSignedIn();
         allow write: if isSignedIn() && request.auth.uid == userId;
       }
+
+      /** Реестр устройств пользователя: текущие клиентские сессии, active/lastSeen/fcm. */
+      match /devices/{deviceId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     match /meetings/{meetingId} {
@@ -160,6 +180,15 @@ service cloud.firestore {
     match /userContacts/{userId} {
       allow get, create, update: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
+
+      /**
+       * Локальный индекс телефонной книги для автосопоставления (phone/email):
+       * `userContacts/{uid}/deviceLookup/{registrationIndexKey}`.
+       * Пишется только владельцем uid; читает только владелец.
+       */
+      match /deviceLookup/{lookupId} {
+        allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     match /userCalls/{userId} {
@@ -181,14 +210,19 @@ service cloud.firestore {
        * userChats подписка useConversationsByDocumentIds могла получать permission-denied, если поле parent
        * временно не сопоставимо с правилами, а members уже записан (см. onConversationCreated).
        */
-      allow read: if isSignedIn() && resource != null && (
-        isSavedMessagesConversationData(resource.data)
-          ? uidIsConversationParticipantFromData(resource.data)
-          : (
-              isAdmin() ||
-              exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
-              uidIsConversationParticipantFromData(resource.data)
-            )
+      allow read: if isSignedIn() && (
+        (
+          resource != null && (
+            isSavedMessagesConversationData(resource.data)
+              ? uidIsConversationParticipantFromData(resource.data)
+              : (
+                  isAdmin() ||
+                  exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
+                  uidIsConversationParticipantFromData(resource.data)
+                )
+          )
+        ) ||
+        (resource == null && canReadMissingConversationById(conversationId))
       );
       allow create: if isSignedIn()
         && uidIsConversationParticipantFromData(request.resource.data)

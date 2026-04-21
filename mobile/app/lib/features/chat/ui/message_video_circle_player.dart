@@ -25,6 +25,9 @@ class MessageVideoCirclePlayer extends StatefulWidget {
     this.readAt,
     required this.showTimestamps,
     required this.playingSlotId,
+    required this.attachmentIndex,
+    this.mediaNorm,
+    this.onRetryNorm,
   });
 
   final ChatAttachment attachment;
@@ -35,6 +38,9 @@ class MessageVideoCirclePlayer extends StatefulWidget {
   final DateTime? readAt;
   final bool showTimestamps;
   final ValueNotifier<String?> playingSlotId;
+  final int attachmentIndex;
+  final ChatMediaNorm? mediaNorm;
+  final Future<void> Function()? onRetryNorm;
 
   @override
   State<MessageVideoCirclePlayer> createState() =>
@@ -56,15 +62,42 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
   void initState() {
     super.initState();
     widget.playingSlotId.addListener(_onGlobalPlayingChanged);
-    if (!_useVlc) {
+    if (_normState == ChatMediaNormUiState.none) {
       unawaited(_initNetwork());
-    } else {
-      _failed = true;
     }
   }
 
-  bool get _useVlc =>
-      chatMediaNeedsVlcOnIos(widget.attachment.url, mimeType: widget.attachment.type);
+  @override
+  void didUpdateWidget(covariant MessageVideoCirclePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final urlChanged = oldWidget.attachment.url != widget.attachment.url;
+    final normChanged =
+        oldWidget.mediaNorm != widget.mediaNorm ||
+        oldWidget.attachmentIndex != widget.attachmentIndex;
+    if (urlChanged) {
+      final c = _controller;
+      if (c != null) {
+        c.removeListener(_onVideoTick);
+        c.dispose();
+      }
+      _controller = null;
+      _ready = false;
+      _failed = false;
+      _isPlaying = false;
+    }
+    if ((urlChanged || normChanged) &&
+        _normState == ChatMediaNormUiState.none &&
+        !_ready &&
+        !_failed) {
+      unawaited(_initNetwork());
+    }
+  }
+
+  ChatMediaNormUiState get _normState => chatMediaNormUiStateForAttachment(
+    attachment: widget.attachment,
+    attachmentIndex: widget.attachmentIndex,
+    mediaNorm: widget.mediaNorm,
+  );
 
   void _onGlobalPlayingChanged() {
     final v = widget.playingSlotId.value;
@@ -163,7 +196,9 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
       if (playing) {
         widget.playingSlotId.value = widget.playbackSlotId;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _controller == null || !_controller!.value.isPlaying) {
+          if (!mounted ||
+              _controller == null ||
+              !_controller!.value.isPlaying) {
             return;
           }
           _insertPlayOverlay();
@@ -349,61 +384,60 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
                   ),
                 ),
               ),
-            if (widget.showTimestamps && !_isPlaying)
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _formatDuration(_durationSec),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          if (widget.isMine) ...[
-                            const SizedBox(width: 4),
-                            MessageBubbleDeliveryIcons(
-                              deliveryStatus: widget.deliveryStatus,
-                              readAt: widget.readAt,
-                              iconColor: Colors.lightBlueAccent
-                                  .withValues(alpha: 0.95),
-                              size: 11,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            // Duration + delivery icons are rendered BELOW the circle
+            // (same pattern as message bubble footer).
           ],
         ),
       ),
     );
   }
 
-  Widget _wrappedInteractiveCircle(
-    BuildContext context,
-    double side,
-  ) {
+  Widget _circleFooterMeta() {
+    if (!widget.showTimestamps || _isPlaying) return const SizedBox.shrink();
+    final alignRight = widget.isMine;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Align(
+        alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatDuration(_durationSec),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (widget.isMine) ...[
+                  const SizedBox(width: 4),
+                  MessageBubbleDeliveryIcons(
+                    deliveryStatus: widget.deliveryStatus,
+                    readAt: widget.readAt,
+                    iconColor: Colors.lightBlueAccent.withValues(alpha: 0.95),
+                    size: 11,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _wrappedInteractiveCircle(BuildContext context, double side) {
     final scheme = Theme.of(context).colorScheme;
     return Listener(
       onPointerDown: (e) {
@@ -444,9 +478,7 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => unawaited(_controller?.pause()),
-              child: ColoredBox(
-                color: Colors.black.withValues(alpha: 0.42),
-              ),
+              child: ColoredBox(color: Colors.black.withValues(alpha: 0.42)),
             ),
           ),
           Center(
@@ -495,7 +527,18 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
 
   @override
   Widget build(BuildContext context) {
-    if (_failed || _useVlc) {
+    final normState = _normState;
+    if (normState != ChatMediaNormUiState.none) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: ChatMediaNormStatusWidget(
+          state: normState,
+          mediaKindLabel: 'видео',
+          onRetry: widget.onRetryNorm,
+        ),
+      );
+    }
+    if (_failed) {
       return SizedBox(
         width: _kCircleCollapsed,
         height: _kCircleCollapsed,
@@ -522,14 +565,48 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
     return VisibilityDetector(
       key: Key('vc-vis-${widget.playbackSlotId}'),
       onVisibilityChanged: _onVisibilityChanged,
-      child: Center(
-        child: _ready && _controller != null
-            ? _wrappedInteractiveCircle(context, _kCircleCollapsed)
-            : SizedBox(
-                width: _kCircleCollapsed,
-                height: _kCircleCollapsed,
-                child: const ColoredBox(color: Colors.black),
-              ),
+      child: Align(
+        alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: widget.isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            _ready && _controller != null
+                ? _wrappedInteractiveCircle(context, _kCircleCollapsed)
+                : _circleLoadingPlaceholder(),
+            _circleFooterMeta(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Пока `VideoPlayer` инициализируется — круг как у готового кружка (не чёрный квадрат).
+  Widget _circleLoadingPlaceholder() {
+    return SizedBox(
+      width: _kCircleCollapsed,
+      height: _kCircleCollapsed,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withValues(alpha: 0.35),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+            width: 3,
+          ),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: Colors.white54,
+            ),
+          ),
+        ),
       ),
     );
   }

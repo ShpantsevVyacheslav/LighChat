@@ -1,5 +1,5 @@
 import 'dart:async' show unawaited;
-import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -175,12 +175,54 @@ List<InlineSpan> messageHtmlToStyledSpans(
       quoteAccent: quoteAccent,
       quoteMaxWidth: quoteMaxWidth,
     );
-    return _nodesToSpans(frag.nodes, base, const _ComposeStyle(), opts);
+    final spans = _nodesToSpans(frag.nodes, base, const _ComposeStyle(), opts);
+    return _trimTrailingLineBreaks(spans);
   } catch (_) {
     return [
       TextSpan(text: messageHtmlToPlainText(input), style: base),
     ];
   }
+}
+
+List<InlineSpan> _trimTrailingLineBreaks(List<InlineSpan> spans) {
+  if (spans.isEmpty) return spans;
+
+  final out = List<InlineSpan>.from(spans);
+  while (out.isNotEmpty) {
+    final last = out.last;
+    if (last is! TextSpan) break;
+    if (last.children != null && last.children!.isNotEmpty) break;
+
+    final t = last.text ?? '';
+    if (t.isEmpty) {
+      out.removeLast();
+      continue;
+    }
+
+    // Remove trailing line breaks that create an "empty line" at the bottom
+    // of the message bubble.
+    final trimmed = t.replaceFirst(RegExp(r'[\n\r]+$'), '');
+    if (trimmed == t) break;
+
+    if (trimmed.isEmpty) {
+      out.removeLast();
+      continue;
+    }
+
+    out[out.length - 1] = TextSpan(
+      text: trimmed,
+      style: last.style,
+      recognizer: last.recognizer,
+      mouseCursor: last.mouseCursor,
+      onEnter: last.onEnter,
+      onExit: last.onExit,
+      semanticsLabel: last.semanticsLabel,
+      locale: last.locale,
+      spellOut: last.spellOut,
+    );
+    break;
+  }
+  return out;
 }
 
 List<InlineSpan> _nodesToSpans(
@@ -404,25 +446,8 @@ class _SpoilerInline extends StatefulWidget {
   State<_SpoilerInline> createState() => _SpoilerInlineState();
 }
 
-class _SpoilerInlineState extends State<_SpoilerInline>
-    with SingleTickerProviderStateMixin {
+class _SpoilerInlineState extends State<_SpoilerInline> {
   bool _revealed = false;
-  late AnimationController _shimmer;
-
-  @override
-  void initState() {
-    super.initState();
-    _shimmer = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 5),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _shimmer.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -433,46 +458,41 @@ class _SpoilerInlineState extends State<_SpoilerInline>
       onTap: () => setState(() => _revealed = true),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: AnimatedBuilder(
-          animation: _shimmer,
-          builder: (context, _) {
-            final t = _shimmer.value;
-            final shift = t * 2 * math.pi;
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.22),
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment(math.cos(shift), math.sin(shift)),
-                  end: Alignment(-math.cos(shift * 0.7), -math.sin(shift * 0.7)),
-                  colors: [
-                    const Color(0xFF6366F1).withValues(alpha: 0.55),
-                    const Color(0xFF22D3EE).withValues(alpha: 0.5),
-                    const Color(0xFFA78BFA).withValues(alpha: 0.55),
-                    const Color(0xFFF472B6).withValues(alpha: 0.45),
-                  ],
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: ColoredBox(
+          color: Colors.transparent,
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            alignment: Alignment.centerLeft,
+            children: [
+              ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 16),
                 child: Text(
                   widget.text,
                   style: widget.style.copyWith(
-                    color: Colors.white.withValues(alpha: 0.42),
-                    fontWeight: FontWeight.w700,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        blurRadius: 6,
-                      ),
-                    ],
+                    color: widget.style.color?.withValues(alpha: 0.92) ??
+                        Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ),
-            );
-          },
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.52),
+                          const Color(0xFFBFDBFE).withValues(alpha: 0.45),
+                          Colors.white.withValues(alpha: 0.48),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

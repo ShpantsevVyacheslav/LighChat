@@ -12,6 +12,25 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 /** Лимит входного файла (байт); сверх — пропуск с логом. */
 const MAX_INPUT_BYTES = 220 * 1024 * 1024;
 
+export type ChatMediaNormStatus = "pending" | "done" | "failed";
+
+export type ChatMediaNorm = {
+  status: ChatMediaNormStatus;
+  failedIndexes?: number[];
+  updatedAt: string;
+};
+
+type TranscodeTarget = {
+  index: number;
+  kind: "video" | "audio";
+  url: string;
+  inputType: string;
+};
+
+type TranscodeOptions = {
+  forcePendingWrite?: boolean;
+};
+
 export function needsTranscodeKind(contentType: string | undefined): "video" | "audio" | null {
   const ct = (contentType || "").toLowerCase();
   if (ct.startsWith("video/")) {
@@ -23,6 +42,20 @@ export function needsTranscodeKind(contentType: string | undefined): "video" | "
     return "audio";
   }
   return null;
+}
+
+function mediaNormPatch(
+  status: ChatMediaNormStatus,
+  failedIndexes: number[] = []
+): { mediaNorm: ChatMediaNorm } {
+  const patch: ChatMediaNorm = {
+    status,
+    updatedAt: new Date().toISOString(),
+  };
+  if (failedIndexes.length > 0) {
+    patch.failedIndexes = [...new Set(failedIndexes)].sort((a, b) => a - b);
+  }
+  return { mediaNorm: patch };
 }
 
 function runFfmpegVideo(inputPath: string, outputPath: string): Promise<void> {
@@ -144,10 +177,32 @@ async function uploadTranscodedLocalFile(
 export async function transcodeChatMessageAttachments(
   messageRef: admin.firestore.DocumentReference,
   messageData: admin.firestore.DocumentData,
-  conversationId: string
+  conversationId: string,
+  opts: TranscodeOptions = {}
 ): Promise<void> {
+  // Phase 7: E2EE v2 — зашифрованные медиа лежат в `chat-attachments-enc/...`,
+  // метаданные и ключи хранит клиент. Серверный transcode на таких сообщениях
+  // ничего не сможет сделать (нет plaintext), поэтому честно пропускаем.
+  const e2ee = messageData.e2ee;
+  if (e2ee && typeof e2ee === "object") {
+    const version = (e2ee as Record<string, unknown>).protocolVersion;
+    if (typeof version === "string" && version.startsWith("v2-")) {
+      logger.info("chat transcode skipped: e2ee v2 message", {
+        conversationId,
+        messageId: messageRef.id,
+      });
+      if (opts.forcePendingWrite) {
+        await messageRef.update(mediaNormPatch("done"));
+      }
+      return;
+    }
+  }
+
   const attachments = messageData.attachments;
   if (!Array.isArray(attachments) || attachments.length === 0) {
+    if (opts.forcePendingWrite) {
+      await messageRef.update(mediaNormPatch("done"));
+    }
     return;
   }
 
@@ -155,25 +210,61 @@ export async function transcodeChatMessageAttachments(
   const msgId = messageRef.id;
   const next = [...attachments];
   let anyChange = false;
+  const failedIndexes: number[] = [];
   /** После смены URL в Firestore — удалить исходные файлы (один экземпляр в Storage). */
   const originalPathsToDelete: string[] = [];
 
+  const targets: TranscodeTarget[] = [];
   for (let i = 0; i < next.length; i++) {
     const raw = next[i];
     if (!raw || typeof raw !== "object") continue;
     const att = raw as Record<string, unknown>;
-    const url = typeof att.url === "string" ? att.url : "";
-    const type = typeof att.type === "string" ? att.type : undefined;
+    const type = typeof att.type === "string" ? att.type : "";
     const kind = needsTranscodeKind(type);
+    const url = typeof att.url === "string" ? att.url : "";
     if (!kind || !url) continue;
+    targets.push({
+      index: i,
+      kind,
+      url,
+      inputType: type || "unknown",
+    });
+  }
+
+  if (targets.length === 0) {
+    if (opts.forcePendingWrite) {
+      await messageRef.update(mediaNormPatch("done"));
+    }
+    return;
+  }
+
+  await messageRef.update(mediaNormPatch("pending"));
+
+  for (const target of targets) {
+    const i = target.index;
+    const raw = next[i];
+    if (!raw || typeof raw !== "object") {
+      failedIndexes.push(i);
+      continue;
+    }
+    const att = raw as Record<string, unknown>;
+    const { url, kind, inputType } = target;
 
     const tmpIn = path.join(os.tmpdir(), `lc-in-${randomUUID()}`);
     const extOut = kind === "video" ? "mp4" : "m4a";
     const tmpOut = path.join(os.tmpdir(), `lc-out-${randomUUID()}.${extOut}`);
+    const startedAt = Date.now();
 
     try {
       const bytes = await downloadToFile(url, tmpIn);
-      logger.info("chat transcode start", { conversationId, msgId, index: i, kind, bytes });
+      logger.info("chat transcode start", {
+        conversationId,
+        messageId: msgId,
+        attachmentIndex: i,
+        kind,
+        inputType,
+        bytes,
+      });
 
       if (kind === "video") {
         await runFfmpegVideo(tmpIn, tmpOut);
@@ -197,13 +288,34 @@ export async function transcodeChatMessageAttachments(
       if (delPath) {
         originalPathsToDelete.push(delPath);
       }
-      logger.info("chat transcode done", { conversationId, msgId, index: i });
+      logger.info("chat transcode done", {
+        conversationId,
+        messageId: msgId,
+        attachmentIndex: i,
+        inputType,
+        outputType: outMime,
+        durationMs: Date.now() - startedAt,
+      });
     } catch (e) {
+      failedIndexes.push(i);
+      const errMessage = e instanceof Error ? e.message : String(e);
+      const lowered = errMessage.toLowerCase();
+      let errorCode = "unknown";
+      if (lowered.includes("content-length exceeds cap") || lowered.includes("file exceeds cap")) {
+        errorCode = "too_large";
+      } else if (lowered.includes("download failed")) {
+        errorCode = "download_failed";
+      } else if (lowered.includes("ffmpeg")) {
+        errorCode = "ffmpeg_failed";
+      }
       logger.error("chat transcode failed", {
         conversationId,
-        msgId,
-        index: i,
-        err: e instanceof Error ? e.message : String(e),
+        messageId: msgId,
+        attachmentIndex: i,
+        inputType,
+        durationMs: Date.now() - startedAt,
+        errorCode,
+        err: errMessage,
       });
     } finally {
       await fs.promises.rm(tmpIn, { force: true }).catch(() => undefined);
@@ -211,8 +323,16 @@ export async function transcodeChatMessageAttachments(
     }
   }
 
-  if (anyChange) {
-    await messageRef.update({ attachments: next });
+  if (anyChange || failedIndexes.length > 0) {
+    const patch: Record<string, unknown> = {
+      ...mediaNormPatch(failedIndexes.length > 0 ? "failed" : "done", failedIndexes),
+    };
+    if (anyChange) {
+      patch.attachments = next;
+    }
+    await messageRef.update(patch);
+  } else {
+    await messageRef.update(mediaNormPatch("done"));
   }
 
   for (const p of originalPathsToDelete) {

@@ -47,9 +47,11 @@
 
 - `mobile/app` - Flutter приложение (iOS/Android) — новый клиент для стора.
   - `lib/features/chat/ui/chat_list_screen.dart` - список чатов, папки, поиск, empty-state, запуск нового чата.
+  - `lib/features/chat/ui/chat_contacts_screen.dart` - отдельная страница контактов (`/contacts`), список контактов и синхронизация телефонной книги по phone/email.
   - `lib/features/chat/ui/new_chat_screen.dart`, `lib/features/chat/ui/new_group_chat_screen.dart` - новый личный чат (поиск с секциями «контакты / все пользователи») и создание группы; маршруты `/chats/new`, `/chats/new/group` в `lib/app_router.dart`.
   - `lib/features/chat/ui/conversation_threads_screen.dart`, `lib/features/chat/ui/thread_screen.dart` - список обсуждений (веток) и экран ветки; маршруты `/chats/:id/threads`, `/chats/:id/thread/:parentMessageId` в `lib/app_router.dart`; `chat_wallpaper_background.dart` — общий фон (обои/градиент) для основного чата и экрана ветки.
   - `lib/features/chat/data/new_chat_user_search.dart` - фильтр гостей (`guest_*@anonymous.com`), ru/latin-поиск и разбиение списка как на web (`splitUsersByContactsAndGlobalVisibility`).
+  - `lib/features/chat/data/device_contact_lookup_keys.dart` - генерация lookup-ключей `registrationIndex` из контактов устройства (`p_*`, `e_*`).
   - `lib/features/chat/ui/chat_bottom_nav.dart`, `lib/features/chat/ui/chat_account_menu_sheet.dart` - нижняя навигация и аккаунт-меню по аватару.
   - `lib/features/chat/ui/chat_settings_screen.dart` - экран «Настройки чатов» (пресеты/превью/загрузка своих фонов).
   - `lib/features/chat/data/chat_settings_repository.dart` - чтение/запись `users.chatSettings` и `users.customBackgrounds`, upload фонов в Storage.

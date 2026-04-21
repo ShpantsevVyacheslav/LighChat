@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,11 @@ import '../data/saved_messages_chat.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
+import 'e2ee_fingerprint_badge.dart';
+import 'chat_conversation_notifications_screen.dart';
+import 'conversation_media_links_files_screen.dart';
+import 'conversation_starred_screen.dart';
+import 'chat_shell_backdrop.dart';
 
 const _kRoleLabels = {'admin': 'Администратор', 'worker': 'Участник'};
 
@@ -25,6 +32,8 @@ class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
     required this.currentUserId,
     required this.selfProfile,
     required this.partnerProfile,
+    this.onJumpToMessageId,
+    this.fullScreen = false,
   });
 
   final String conversationId;
@@ -32,21 +41,28 @@ class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
   final String currentUserId;
   final UserProfile? selfProfile;
   final UserProfile? partnerProfile;
+  final void Function(String messageId)? onJumpToMessageId;
+  final bool fullScreen;
 
   @override
-  ConsumerState<ChatPartnerProfileSheet> createState() => _ChatPartnerProfileSheetState();
+  ConsumerState<ChatPartnerProfileSheet> createState() =>
+      _ChatPartnerProfileSheetState();
 }
 
-class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileSheet> {
+class _ChatPartnerProfileSheetState
+    extends ConsumerState<ChatPartnerProfileSheet> {
   bool _addContactBusy = false;
 
   bool get _isGroup => widget.conversation.isGroup;
 
-  bool get _isSaved => isSavedMessagesConversation(widget.conversation, widget.currentUserId);
+  bool get _isSaved =>
+      isSavedMessagesConversation(widget.conversation, widget.currentUserId);
 
   String? get _dmPartnerId {
     if (_isGroup || _isSaved) return null;
-    final others = widget.conversation.participantIds.where((id) => id != widget.currentUserId).toList();
+    final others = widget.conversation.participantIds
+        .where((id) => id != widget.currentUserId)
+        .toList();
     return others.isEmpty ? null : others.first;
   }
 
@@ -63,12 +79,18 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
 
   String? get _displayAvatarUrl {
     if (_isGroup) return widget.conversation.photoUrl;
-    if (_isSaved) return widget.selfProfile?.avatarThumb ?? widget.selfProfile?.avatar;
+    if (_isSaved) {
+      return widget.selfProfile?.avatarThumb ?? widget.selfProfile?.avatar;
+    }
     final pid = _dmPartnerId;
     return widget.partnerProfile?.avatarThumb ??
         widget.partnerProfile?.avatar ??
-        (pid == null ? null : widget.conversation.participantInfo?[pid]?.avatarThumb) ??
-        (pid == null ? null : widget.conversation.participantInfo?[pid]?.avatar);
+        (pid == null
+            ? null
+            : widget.conversation.participantInfo?[pid]?.avatarThumb) ??
+        (pid == null
+            ? null
+            : widget.conversation.participantInfo?[pid]?.avatar);
   }
 
   /// При username раньше терялась строка «последний вход».
@@ -82,14 +104,16 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
     final u = widget.partnerProfile?.username?.trim();
     if (u != null && u.isNotEmpty) {
       final second = statusForDm.trim().isEmpty ? null : statusForDm;
-      return ('~$u', second);
+      final at = u.startsWith('@') ? u : '@$u';
+      return (at, second);
     }
     return (statusForDm, null);
   }
 
   UserProfile? _contactTarget(String? partnerId) {
     if (partnerId == null) return null;
-    if (widget.partnerProfile != null && widget.partnerProfile!.id == partnerId) {
+    if (widget.partnerProfile != null &&
+        widget.partnerProfile!.id == partnerId) {
       return widget.partnerProfile;
     }
     final info = widget.conversation.participantInfo?[partnerId];
@@ -108,26 +132,38 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
     final role = p?.role;
     if (role != null && role.isNotEmpty && role != 'worker') return true;
     if (fresh == null) return false;
-    if (isProfileFieldVisibleToOthers(fresh, 'email') && (fresh.email != null && fresh.email!.trim().isNotEmpty)) {
+    if (isProfileFieldVisibleToOthers(fresh, 'email') &&
+        (fresh.email != null && fresh.email!.trim().isNotEmpty)) {
       return true;
     }
-    if (isProfileFieldVisibleToOthers(fresh, 'phone') && (fresh.phone != null && fresh.phone!.trim().isNotEmpty)) {
+    if (isProfileFieldVisibleToOthers(fresh, 'phone') &&
+        (fresh.phone != null && fresh.phone!.trim().isNotEmpty)) {
       return true;
     }
     if (isProfileFieldVisibleToOthers(fresh, 'dateOfBirth') &&
         (fresh.dateOfBirth != null && fresh.dateOfBirth!.trim().isNotEmpty)) {
       return true;
     }
-    if (isProfileFieldVisibleToOthers(fresh, 'bio') && (fresh.bio != null && fresh.bio!.trim().isNotEmpty)) {
+    if (isProfileFieldVisibleToOthers(fresh, 'bio') &&
+        (fresh.bio != null && fresh.bio!.trim().isNotEmpty)) {
       return true;
     }
     return false;
   }
 
-  bool _canShowAddToContacts(UserProfile? target, String? partnerId, List<String> contactIds) {
-    if (partnerId == null || partnerId == widget.currentUserId || _isSaved) return false;
+  bool _canShowAddToContacts(
+    UserProfile? target,
+    String? partnerId,
+    List<String> contactIds,
+  ) {
+    if (partnerId == null || partnerId == widget.currentUserId || _isSaved) {
+      return false;
+    }
     if (_isGroup) return false;
-    if (target == null || (target.deletedAt != null && target.deletedAt!.isNotEmpty)) return false;
+    if (target == null ||
+        (target.deletedAt != null && target.deletedAt!.isNotEmpty)) {
+      return false;
+    }
     final self = widget.selfProfile;
     if (self == null) return false;
     final isContact = contactIds.contains(partnerId);
@@ -137,7 +173,9 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
 
   bool _isGroupAdmin() {
     if (!_isGroup) return false;
-    if (widget.conversation.createdByUserId == widget.currentUserId) return true;
+    if (widget.conversation.createdByUserId == widget.currentUserId) {
+      return true;
+    }
     return widget.conversation.adminIds.contains(widget.currentUserId);
   }
 
@@ -165,18 +203,49 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
     if (mounted) _toast('Идентификатор чата скопирован');
   }
 
+  Future<void> _openStarredMessages() async {
+    final selectedMessageId = await Navigator.of(context).push<String>(
+      CupertinoPageRoute(
+        builder: (_) => ConversationStarredScreen(
+          conversationId: widget.conversationId,
+          currentUserId: widget.currentUserId,
+          conversation: widget.conversation,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (selectedMessageId == null || selectedMessageId.trim().isEmpty) return;
+    Navigator.of(context).pop();
+    widget.onJumpToMessageId?.call(selectedMessageId.trim());
+  }
+
+  Future<void> _openMediaLinksFiles() async {
+    await Navigator.of(context).push<void>(
+      CupertinoPageRoute(
+        builder: (_) => ConversationMediaLinksFilesScreen(
+          conversationId: widget.conversationId,
+          currentUserId: widget.currentUserId,
+          conversation: widget.conversation,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final partnerId = _dmPartnerId;
     final fresh = widget.partnerProfile;
     final statusDm = partnerPresenceLine(fresh);
     final (subtitleLine1, subtitleLine2) = _profileHeaderSubtitles(statusDm);
 
-    final contactsAsync = ref.watch(userContactsIndexProvider(widget.currentUserId));
+    final contactsAsync = ref.watch(
+      userContactsIndexProvider(widget.currentUserId),
+    );
     final contactIds = contactsAsync.value?.contactIds ?? const <String>[];
     final target = _contactTarget(partnerId);
-    final showAdd = partnerId != null && _canShowAddToContacts(target, partnerId, contactIds);
+    final showAdd =
+        partnerId != null &&
+        _canShowAddToContacts(target, partnerId, contactIds);
     final isContact = partnerId != null && contactIds.contains(partnerId);
     final hasDetailRows = _hasContactDetailRows(fresh, partnerId);
 
@@ -189,6 +258,14 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
       error: (_, _) => 0,
     );
     final mediaLabel = mediaCount == 0 ? 'Нет' : '$mediaCount';
+    final starredIdsAsync = ref.watch(
+      starredMessageIdsInConversationProvider((
+        userId: widget.currentUserId,
+        conversationId: widget.conversationId,
+      )),
+    );
+    final starredCount = starredIdsAsync.value?.length ?? 0;
+    final starredLabel = starredCount == 0 ? 'Нет' : '$starredCount';
 
     final threadsCount = msgsAsync.when(
       data: (m) =>
@@ -199,7 +276,9 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
     final threadsLabel = threadsCount == 0 ? 'Нет' : '$threadsCount';
 
     final showEncryptionRow = !_isGroup && !_isSaved;
-    final e2eeOn = widget.conversation.e2eeEnabled == true && (widget.conversation.e2eeKeyEpoch ?? 0) > 0;
+    final e2eeOn =
+        widget.conversation.e2eeEnabled == true &&
+        (widget.conversation.e2eeKeyEpoch ?? 0) > 0;
     final encryptionLabel = e2eeOn ? 'Вкл' : 'Выкл';
 
     final roleLabel = fresh?.role;
@@ -207,277 +286,422 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
         ? null
         : (_kRoleLabels[roleLabel] ?? roleLabel);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.92),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
+    const hiPrimary = Color(0xFFF2F4FA);
+    const hiMuted = Color(0xFFB4BDD1);
+    const hiFaint = Color(0xFF8B95AD);
+
+    final encryptionSubtitle = e2eeOn
+        ? 'Сквозное шифрование включено. Нажмите для подробностей.'
+        : 'Сквозное шифрование выключено. Нажмите, чтобы включить.';
+
+    List<Widget> buildScrollChildren() {
+      return [
+          if (!widget.fullScreen) ...[
+            Center(
+              child: Container(
                 width: 40,
                 height: 4,
+                margin: const EdgeInsets.only(bottom: 6),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  color: scheme.onSurface.withValues(alpha: 0.18),
+                  color: Colors.white.withValues(alpha: 0.22),
                 ),
               ),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Закрыть',
+            ),
+          ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                  color: hiPrimary.withValues(alpha: 0.94),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: widget.fullScreen ? 'Назад' : 'Закрыть',
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.share_rounded, size: 22),
+                  color: hiPrimary.withValues(alpha: 0.94),
+                  onPressed: _copyChatId,
+                  tooltip: 'Скопировать ID чата',
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Column(
+              children: [
+                const SizedBox(height: 4),
+                ChatAvatar(
+                  title: _displayTitle,
+                  radius: 54,
+                  avatarUrl: _displayAvatarUrl,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _displayTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: hiPrimary,
+                    height: 1.15,
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.share_rounded),
-                    color: scheme.primary,
-                    onPressed: _copyChatId,
-                    tooltip: 'Скопировать ID чата',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitleLine1,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: hiMuted,
+                  ),
+                ),
+                if (subtitleLine2 != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitleLine2,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      height: 1.25,
+                      color: hiMuted.withValues(alpha: 0.82),
+                    ),
                   ),
                 ],
-              ),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      ChatAvatar(title: _displayTitle, radius: 44, avatarUrl: _displayAvatarUrl),
-                      const SizedBox(height: 12),
-                      Text(
-                        _displayTitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitleLine1,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurface.withValues(alpha: 0.60),
-                        ),
-                      ),
-                      if (subtitleLine2 != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitleLine2,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            height: 1.25,
-                            color: scheme.onSurface.withValues(alpha: 0.55),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      if (hasDetailRows && fresh != null && partnerId != null) ...[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Material(
-                                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                                  child: ExpansionTile(
-                                    title: const Text(
-                                      'Контакты и данные',
-                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                                    ),
-                                    initiallyExpanded: false,
-                                    children: [
-                                      if (roleDisplay != null && fresh.role != null && fresh.role!.isNotEmpty && fresh.role != 'worker')
-                                        _detailTile(
-                                          context,
-                                          Icons.verified_user_rounded,
-                                          'Роль в системе',
-                                          roleDisplay,
-                                        ),
-                                      if (isProfileFieldVisibleToOthers(fresh, 'email') &&
-                                          fresh.email != null &&
-                                          fresh.email!.trim().isNotEmpty)
-                                        _detailTile(context, Icons.mail_rounded, 'Электронная почта', fresh.email!),
-                                      if (isProfileFieldVisibleToOthers(fresh, 'phone') &&
-                                          fresh.phone != null &&
-                                          fresh.phone!.trim().isNotEmpty)
-                                        _detailTile(
-                                          context,
-                                          Icons.smartphone_rounded,
-                                          'Телефон',
-                                          formatPhoneNumberForDisplay(fresh.phone!),
-                                        ),
-                                      if (isProfileFieldVisibleToOthers(fresh, 'dateOfBirth') &&
-                                          fresh.dateOfBirth != null &&
-                                          fresh.dateOfBirth!.trim().isNotEmpty)
-                                        _detailTile(context, Icons.cake_rounded, 'День рождения', fresh.dateOfBirth!),
-                                      if (isProfileFieldVisibleToOthers(fresh, 'bio') &&
-                                          fresh.bio != null &&
-                                          fresh.bio!.trim().isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'О себе',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: scheme.onSurface.withValues(alpha: 0.5),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(fresh.bio!, style: const TextStyle(fontSize: 14, height: 1.35)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                if (partnerId != null &&
+                    (isContact || showAdd) &&
+                    !_isGroup &&
+                    !_isSaved) ...[
+                  const SizedBox(height: 18),
+                  _ContactPill(
+                    isContact: isContact,
+                    busy: _addContactBusy,
+                    onPressed: isContact || _addContactBusy
+                        ? null
+                        : () => _onAddContact(partnerId),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                if (hasDetailRows && fresh != null && partnerId != null)
+                  _buildContactDataExpansion(
+                    context,
+                    fresh: fresh,
+                    roleDisplay: roleDisplay,
+                  ),
+                if (_isGroup) ...[
+                  _menuButton(
+                    context,
+                    icon: Icons.group_rounded,
+                    title: 'Участники',
+                    trailing:
+                        '${widget.conversation.participantIds.length}',
+                    onTap: () => _toast('Участники: скоро'),
+                  ),
+                  if (_isGroupAdmin())
+                    _menuButton(
+                      context,
+                      icon: Icons.edit_rounded,
+                      title: 'Редактировать группу',
+                      onTap: () => _toast('Редактирование группы: скоро'),
+                    ),
+                  _sectionDivider(),
+                ],
+                _menuButton(
+                  context,
+                  icon: Icons.perm_media_rounded,
+                  title: 'Медиа, ссылки и файлы',
+                  trailing: mediaLabel,
+                  onTap: _openMediaLinksFiles,
+                ),
+                _menuButton(
+                  context,
+                  icon: Icons.star_rounded,
+                  title: 'Избранное',
+                  trailing: starredLabel,
+                  onTap: _openStarredMessages,
+                ),
+                _menuButton(
+                  context,
+                  icon: Icons.forum_rounded,
+                  title: 'Обсуждения',
+                  trailing: threadsLabel,
+                  onTap: () {
+                    if (!widget.fullScreen) {
+                      Navigator.of(context).pop();
+                    }
+                    context.push(
+                      '/chats/${widget.conversationId}/threads',
+                    );
+                  },
+                ),
+                _sectionDivider(),
+                _menuButton(
+                  context,
+                  icon: Icons.notifications_rounded,
+                  title: 'Уведомления',
+                  onTap: () async {
+                    await Navigator.of(context).push<void>(
+                      CupertinoPageRoute(
+                        builder: (_) =>
+                            ChatConversationNotificationsScreen(
+                              currentUserId: widget.currentUserId,
+                              conversationId: widget.conversationId,
                             ),
-                            if (showAdd) ...[
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 96,
-                                child: _ActionCard(
-                                  icon: _addContactBusy ? Icons.hourglass_top_rounded : Icons.person_add_rounded,
-                                  label: isContact ? 'В контактах' : 'В контакты',
-                                  onTap: isContact || _addContactBusy ? () {} : () => _onAddContact(partnerId),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                      ] else if (showAdd) ...[
-                        _ActionCard(
-                          icon: _addContactBusy ? Icons.hourglass_top_rounded : Icons.person_add_rounded,
-                          label: isContact ? 'В контактах' : 'Добавить в контакты',
-                                                   onTap: isContact || _addContactBusy ? () {} : () => _onAddContact(partnerId),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                      if (_isGroup) ...[
-                        _menuButton(
-                          context,
-                          icon: Icons.group_rounded,
-                          title: 'Участники',
-                          trailing: '${widget.conversation.participantIds.length}',
-                          onTap: () => _toast('Участники: скоро'),
-                        ),
-                        if (_isGroupAdmin())
-                          _menuButton(
-                            context,
-                            icon: Icons.edit_rounded,
-                            title: 'Редактировать группу',
-                            onTap: () => _toast('Редактирование группы: скоро'),
-                          ),
-                        const SizedBox(height: 8),
-                      ],
-                      _menuButton(
-                        context,
-                        icon: Icons.perm_media_rounded,
-                        title: 'Медиа, ссылки и файлы',
-                        trailing: mediaLabel,
-                        onTap: () => _toast('Медиа: скоро'),
                       ),
-                      _menuButton(
-                        context,
-                        icon: Icons.star_rounded,
-                        title: 'Избранное',
-                        trailing: 'Нет',
-                        onTap: () => _toast('Избранное: скоро'),
-                      ),
-                      _menuButton(
-                        context,
-                        icon: Icons.forum_rounded,
-                        title: 'Обсуждения',
-                        trailing: threadsLabel,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          context.push('/chats/${widget.conversationId}/threads');
-                        },
-                      ),
-                      const SizedBox(height: 6),
-                      _menuButton(
-                        context,
-                        icon: Icons.notifications_rounded,
-                        title: 'Уведомления',
-                        onTap: () => _toast('Уведомления: скоро'),
-                      ),
-                      _menuButton(
-                        context,
-                        icon: Icons.palette_rounded,
-                        title: 'Тема чата',
-                        onTap: () => _toast('Тема чата: скоро'),
-                      ),
-                      const SizedBox(height: 6),
-                      _menuButton(
-                        context,
-                        icon: Icons.timer_rounded,
-                        title: 'Исчезающие сообщения',
-                        trailing: 'Выкл',
-                        onTap: () => _toast('Скоро'),
-                      ),
-                      _menuButton(
-                        context,
-                        icon: Icons.shield_rounded,
-                        title: 'Расширенная приватность чата',
-                        trailing: 'По умолчанию',
-                        onTap: () => _toast('Приватность: скоро'),
-                      ),
-                      if (showEncryptionRow)
-                        _menuButton(
-                          context,
-                          icon: Icons.lock_rounded,
-                          title: 'Шифрование',
-                          subtitle: e2eeOn
-                              ? 'Сообщения защищены сквозным шифрованием.'
-                              : 'Сквозное шифрование выключено.',
-                          trailing: encryptionLabel,
-                          onTap: () => _toast('Шифрование: скоро'),
-                        ),
-                      if (!_isSaved && !_isGroup && partnerId != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          'Нет общих групп',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: scheme.onSurface.withValues(alpha: 0.45),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        _menuButton(
-                          context,
-                          icon: Icons.add_circle_outline_rounded,
-                          title: 'Создать группу с ${fresh?.name ?? _displayTitle}',
-                          onTap: () => _toast('Скоро'),
-                        ),
-                      ],
-                      if (_isGroup) ...[
-                        const SizedBox(height: 12),
-                        TextButton.icon(
-                          onPressed: () => _toast('Покинуть группу: скоро'),
-                          icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Покинуть группу'),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                    ],
+                    );
+                  },
+                ),
+                _menuButton(
+                  context,
+                  icon: Icons.palette_rounded,
+                  title: 'Тема чата',
+                  onTap: () => _toast('Тема чата: скоро'),
+                ),
+                _menuButton(
+                  context,
+                  icon: Icons.timer_rounded,
+                  title: 'Исчезающие сообщения',
+                  trailing: 'Выкл',
+                  onTap: () => _toast('Скоро'),
+                ),
+                _menuButton(
+                  context,
+                  icon: Icons.shield_rounded,
+                  title: 'Расширенная приватность чата',
+                  trailing: 'По умолчанию',
+                  onTap: () => _toast('Приватность: скоро'),
+                ),
+                if (showEncryptionRow)
+                  _menuButton(
+                    context,
+                    icon: Icons.lock_rounded,
+                    title: 'Шифрование',
+                    subtitle: encryptionSubtitle,
+                    trailing: encryptionLabel,
+                    onTap: () => _toast('Шифрование: скоро'),
+                  ),
+                // Phase 8: отпечаток E2EE собеседника в DM. Рисуем, только
+                // если шифрование включено и это не группа/Saved.
+                if (showEncryptionRow && e2eeOn && partnerId != null) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 2, 18, 8),
+                    child: E2eeFingerprintBadge(
+                      firestore: FirebaseFirestore.instance,
+                      userId: partnerId,
+                      userLabel: fresh?.name ?? _displayTitle,
+                    ),
+                  ),
+                ],
+                if (!_isSaved && !_isGroup && partnerId != null) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    'НЕТ ОБЩИХ ГРУПП',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.9,
+                      color: hiFaint.withValues(alpha: 0.95),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _menuButton(
+                    context,
+                    icon: Icons.group_add_rounded,
+                    title:
+                        'Создать группу с ${fresh?.name ?? _displayTitle}',
+                    onTap: () => _toast('Скоро'),
+                  ),
+                ],
+                if (_isGroup) ...[
+                  const SizedBox(height: 14),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: hiPrimary.withValues(alpha: 0.88),
+                    ),
+                    onPressed: () => _toast('Покинуть группу: скоро'),
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Покинуть группу'),
+                  ),
+                ],
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+      ];
+    }
+
+    final scroll = CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: buildScrollChildren(),
+          ),
+        ),
+      ],
+    );
+
+    final backdrop = Stack(
+      fit: StackFit.expand,
+      children: [
+        const ChatShellBackdrop(),
+        Stack(
+          fit: StackFit.expand,
+          children: [
+            if (!widget.fullScreen)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.28),
                   ),
                 ),
               ),
+            Positioned.fill(
+              child: SafeArea(
+                child: widget.fullScreen
+                    ? scroll
+                    : Column(
+                        children: [
+                          Expanded(child: scroll),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: widget.fullScreen
+          ? backdrop
+          : Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                  child: backdrop,
+                ),
+              ),
+            ),
+    );
+  }
+
+  /// Раскрывающийся блок «Контакты и данные» — те же поля, что и раньше.
+  Widget _buildContactDataExpansion(
+    BuildContext context, {
+    required UserProfile fresh,
+    required String? roleDisplay,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            title: const Text(
+              'Контакты и данные',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Color(0xFFF2F4FA),
+              ),
+            ),
+            iconColor: const Color(0xFFB4BDD1),
+            collapsedIconColor: const Color(0xFFB4BDD1),
+            initiallyExpanded: false,
+            children: [
+              if (roleDisplay != null &&
+                  fresh.role != null &&
+                  fresh.role!.isNotEmpty &&
+                  fresh.role != 'worker')
+                _detailTile(
+                  context,
+                  Icons.verified_user_rounded,
+                  'Роль в системе',
+                  roleDisplay,
+                ),
+              if (isProfileFieldVisibleToOthers(fresh, 'email') &&
+                  fresh.email != null &&
+                  fresh.email!.trim().isNotEmpty)
+                _detailTile(
+                  context,
+                  Icons.mail_rounded,
+                  'Электронная почта',
+                  fresh.email!,
+                ),
+              if (isProfileFieldVisibleToOthers(fresh, 'phone') &&
+                  fresh.phone != null &&
+                  fresh.phone!.trim().isNotEmpty)
+                _detailTile(
+                  context,
+                  Icons.smartphone_rounded,
+                  'Телефон',
+                  formatPhoneNumberForDisplay(fresh.phone!),
+                ),
+              if (isProfileFieldVisibleToOthers(fresh, 'dateOfBirth') &&
+                  fresh.dateOfBirth != null &&
+                  fresh.dateOfBirth!.trim().isNotEmpty)
+                _detailTile(
+                  context,
+                  Icons.cake_rounded,
+                  'День рождения',
+                  fresh.dateOfBirth!,
+                ),
+              if (isProfileFieldVisibleToOthers(fresh, 'bio') &&
+                  fresh.bio != null &&
+                  fresh.bio!.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'О себе',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white.withValues(alpha: 0.48),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          fresh.bio!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            height: 1.35,
+                            color: Color(0xFFF2F4FA),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -485,14 +709,33 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
     );
   }
 
-  Widget _detailTile(BuildContext context, IconData icon, String label, String value) {
-    final scheme = Theme.of(context).colorScheme;
+  Widget _sectionDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Divider(
+        height: 1,
+        thickness: 1,
+        color: Colors.white.withValues(alpha: 0.10),
+      ),
+    );
+  }
+
+  Widget _detailTile(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 22, color: scheme.primary.withValues(alpha: 0.85)),
+          Icon(
+            icon,
+            size: 22,
+            color: Colors.white.withValues(alpha: 0.88),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -503,11 +746,18 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: scheme.onSurface.withValues(alpha: 0.5),
+                    color: Colors.white.withValues(alpha: 0.48),
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Color(0xFFF2F4FA),
+                  ),
+                ),
               ],
             ),
           ),
@@ -524,25 +774,22 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
     String? trailing,
     required VoidCallback onTap,
   }) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 2),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.white.withValues(alpha: dark ? 0.06 : 0.22),
-              border: Border.all(color: Colors.white.withValues(alpha: dark ? 0.10 : 0.32)),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
             child: Row(
               children: [
-                Icon(icon, color: scheme.onSurface.withValues(alpha: 0.80)),
+                Icon(
+                  icon,
+                  size: 22,
+                  color: Colors.white.withValues(alpha: 0.86),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -552,30 +799,45 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
                         title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: Color(0xFFF2F4FA),
+                        ),
                       ),
                       if (subtitle != null)
-                        Text(
-                          subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: scheme.onSurface.withValues(alpha: 0.55),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            subtitle,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.25,
+                              color: Colors.white.withValues(alpha: 0.52),
+                            ),
                           ),
                         ),
                     ],
                   ),
                 ),
-                if (trailing != null)
+                if (trailing != null) ...[
                   Text(
                     trailing,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: scheme.onSurface.withValues(alpha: 0.5),
+                      color: Colors.white.withValues(alpha: 0.45),
                     ),
                   ),
+                  const SizedBox(width: 4),
+                ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: Colors.white.withValues(alpha: 0.38),
+                ),
               ],
             ),
           ),
@@ -585,43 +847,44 @@ class _ChatPartnerProfileSheetState extends ConsumerState<ChatPartnerProfileShee
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.icon, required this.label, required this.onTap});
+class _ContactPill extends StatelessWidget {
+  const _ContactPill({
+    required this.isContact,
+    required this.busy,
+    this.onPressed,
+  });
 
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+  final bool isContact;
+  final bool busy;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.white.withValues(alpha: dark ? 0.06 : 0.22),
-            border: Border.all(color: Colors.white.withValues(alpha: dark ? 0.10 : 0.32)),
+    final enabled = onPressed != null;
+    final fg = Color(0xFFF2F4FA).withValues(alpha: enabled ? 0.95 : 0.42);
+    return Center(
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          busy
+              ? Icons.hourglass_top_rounded
+              : (isContact ? Icons.person_pin_rounded : Icons.person_add_rounded),
+          size: 19,
+          color: fg,
+        ),
+        label: Text(
+          isContact ? 'В контактах' : 'Добавить в контакты',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: fg,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: scheme.onSurface.withValues(alpha: 0.80)),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
-              ),
-            ],
-          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: fg,
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.38)),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: const StadiumBorder(),
         ),
       ),
     );

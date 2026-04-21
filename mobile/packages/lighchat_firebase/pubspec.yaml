@@ -24,6 +24,14 @@ dependencies:
 
   logger: any
 
+  # E2EE v2 — crypto primitives (Phase 3). `pointycastle` даёт чистый Dart
+  # набор алгоритмов (ECDH P-256, AES-GCM, HKDF-SHA-256), 100% совместимых с
+  # WebCrypto при аккуратной обвязке. Мы специально ушли от `cryptography`
+  # (pure-Dart Ecdh.p256 там бросает UnimplementedError).
+  # `flutter_secure_storage` хранит приватник в Keychain/Keystore.
+  pointycastle: ^4.0.0
+  flutter_secure_storage: ^9.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -65,3 +65,6 @@ firestore-debug.log
 
 # Локальный архив Flutter SDK — >100 MB, GitHub не примет
 tools/flutter.zip
+
+# Cursor IDE — локальные настройки окна/машины (skills/rules в репо можно держать отдельно)
+.cursor/settings.json

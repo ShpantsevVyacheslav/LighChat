@@ -12,10 +12,17 @@ class MessageVideoAttachment extends StatefulWidget {
   const MessageVideoAttachment({
     super.key,
     required this.attachment,
+    required this.attachmentIndex,
+    this.mediaNorm,
+    this.onRetryNorm,
     this.onOpenInGallery,
   });
 
   final ChatAttachment attachment;
+  final int attachmentIndex;
+  final ChatMediaNorm? mediaNorm;
+  final Future<void> Function()? onRetryNorm;
+
   /// Если задан, тап открывает общую галерею чата вместо отдельного экрана плеера.
   final VoidCallback? onOpenInGallery;
 
@@ -31,13 +38,37 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
   @override
   void initState() {
     super.initState();
-    if (!_useVlcForPreview) {
+    if (_normState == ChatMediaNormUiState.none) {
       unawaited(_loadThumb());
     }
   }
 
-  bool get _useVlcForPreview =>
-      chatMediaNeedsVlcOnIos(widget.attachment.url, mimeType: widget.attachment.type);
+  @override
+  void didUpdateWidget(covariant MessageVideoAttachment oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final urlChanged = oldWidget.attachment.url != widget.attachment.url;
+    final normChanged =
+        oldWidget.mediaNorm != widget.mediaNorm ||
+        oldWidget.attachmentIndex != widget.attachmentIndex;
+    if (urlChanged) {
+      _controller?.dispose();
+      _controller = null;
+      _thumbReady = false;
+      _failed = false;
+    }
+    if ((urlChanged || normChanged) &&
+        _normState == ChatMediaNormUiState.none &&
+        !_thumbReady &&
+        !_failed) {
+      unawaited(_loadThumb());
+    }
+  }
+
+  ChatMediaNormUiState get _normState => chatMediaNormUiStateForAttachment(
+    attachment: widget.attachment,
+    attachmentIndex: widget.attachmentIndex,
+    mediaNorm: widget.mediaNorm,
+  );
 
   Future<void> _loadThumb() async {
     final uri = Uri.tryParse(widget.attachment.url);
@@ -90,6 +121,7 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
     final h = widget.attachment.height;
     final safeAr = (w != null && h != null && w > 0 && h > 0) ? w / h : 16 / 9;
     final url = widget.attachment.url;
+    final normState = _normState;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(
@@ -100,7 +132,24 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (_thumbReady &&
+            if (normState != ChatMediaNormUiState.none)
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Center(
+                    child: ChatMediaNormStatusWidget(
+                      state: normState,
+                      mediaKindLabel: 'видео',
+                      onRetry: widget.onRetryNorm,
+                      compact: true,
+                    ),
+                  ),
+                ),
+              )
+            else if (_thumbReady &&
                 _controller != null &&
                 !_failed &&
                 _controller!.value.size.width > 0 &&
@@ -119,7 +168,7 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
                   color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
                 ),
                 child: Center(
-                  child: _useVlcForPreview || _failed
+                  child: _failed
                       ? Icon(
                           Icons.videocam_rounded,
                           size: 36,
@@ -135,26 +184,23 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () {
-                  final gallery = widget.onOpenInGallery;
-                  if (gallery != null) {
-                    gallery();
-                    return;
-                  }
-                  final vlc = chatMediaNeedsVlcOnIos(
-                    url,
-                    mimeType: widget.attachment.type,
-                  );
-                  unawaited(
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => vlc
-                            ? ChatVlcFullscreenViewer(url: url)
-                            : _ChatAvPlayerVideoScreen(url: url),
-                      ),
-                    ),
-                  );
-                },
+                onTap: normState != ChatMediaNormUiState.none
+                    ? null
+                    : () {
+                        final gallery = widget.onOpenInGallery;
+                        if (gallery != null) {
+                          gallery();
+                          return;
+                        }
+                        unawaited(
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  _ChatAvPlayerVideoScreen(url: url),
+                            ),
+                          ),
+                        );
+                      },
                 child: Container(
                   color: Colors.black.withValues(alpha: 0.20),
                   alignment: Alignment.center,
@@ -179,7 +225,8 @@ class _ChatAvPlayerVideoScreen extends StatefulWidget {
   final String url;
 
   @override
-  State<_ChatAvPlayerVideoScreen> createState() => _ChatAvPlayerVideoScreenState();
+  State<_ChatAvPlayerVideoScreen> createState() =>
+      _ChatAvPlayerVideoScreenState();
 }
 
 class _ChatAvPlayerVideoScreenState extends State<_ChatAvPlayerVideoScreen> {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 import '../data/live_location_duration_options.dart';
 
@@ -9,20 +10,35 @@ Future<String?> showShareLocationSettingsSheet(BuildContext context) {
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (ctx) {
+      final scheme = Theme.of(ctx).colorScheme;
+      final dark = scheme.brightness == Brightness.dark;
       return Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.viewInsetsOf(ctx).bottom + 12,
           left: 12,
           right: 12,
         ),
-        child: Material(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.black.withValues(alpha: 0.88),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: _ShareLocationSheetContent(
-              onCancel: () => Navigator.of(ctx).pop(),
-              onConfirm: (id) => Navigator.of(ctx).pop(id),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Material(
+              color: (dark ? const Color(0xFF0D1A24) : Colors.white).withValues(
+                alpha: dark ? 0.78 : 0.90,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(
+                  color: Colors.white.withValues(alpha: dark ? 0.16 : 0.42),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: _ShareLocationSheetContent(
+                  onCancel: () => Navigator.of(ctx).pop(),
+                  onConfirm: (id) => Navigator.of(ctx).pop(id),
+                ),
+              ),
             ),
           ),
         ),
@@ -45,19 +61,81 @@ class _ShareLocationSheetContent extends StatefulWidget {
       _ShareLocationSheetContentState();
 }
 
-class _ShareLocationSheetContentState extends State<_ShareLocationSheetContent> {
+class _ShareLocationSheetContentState
+    extends State<_ShareLocationSheetContent> {
   String _selectedId = 'once';
 
   @override
   Widget build(BuildContext context) {
-    final fg = Colors.white.withValues(alpha: 0.92);
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final fg = dark
+        ? Colors.white.withValues(alpha: 0.92)
+        : scheme.onSurface.withValues(alpha: 0.90);
+    final sub = dark
+        ? Colors.white.withValues(alpha: 0.72)
+        : scheme.onSurface.withValues(alpha: 0.62);
+
+    Widget durationItem(String id, String label) {
+      final selected = _selectedId == id;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(() => _selectedId = id),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: selected
+                    ? (dark
+                          ? scheme.primary.withValues(alpha: 0.20)
+                          : scheme.primary.withValues(alpha: 0.14))
+                    : (dark
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Colors.black.withValues(alpha: 0.03)),
+                border: Border.all(
+                  color: selected
+                      ? scheme.primary.withValues(alpha: 0.64)
+                      : Colors.white.withValues(alpha: dark ? 0.14 : 0.26),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: fg,
+                      ),
+                    ),
+                  ),
+                  if (selected)
+                    Icon(Icons.check_rounded, color: scheme.primary, size: 18),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Icon(Icons.location_on_rounded, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.location_on_rounded,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -75,42 +153,20 @@ class _ShareLocationSheetContentState extends State<_ShareLocationSheetContent> 
         Text(
           'Как делиться',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: fg.withValues(alpha: 0.75),
+            color: sub,
           ),
         ),
         const SizedBox(height: 8),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: DropdownButton<String>(
-                value: _selectedId,
-                isExpanded: true,
-                dropdownColor: const Color(0xFF1E1E2E),
-                icon: Icon(Icons.expand_more_rounded, color: fg.withValues(alpha: 0.7)),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
-                ),
-                items: [
-                  for (final o in kLiveLocationDurationOptions)
-                    DropdownMenuItem<String>(
-                      value: o.id,
-                      child: Text(o.label, maxLines: 2),
-                    ),
-                ],
-                onChanged: (v) {
-                  if (v != null) setState(() => _selectedId = v);
-                },
-              ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 300),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                for (final o in kLiveLocationDurationOptions)
+                  durationItem(o.id, o.label),
+              ],
             ),
           ),
         ),

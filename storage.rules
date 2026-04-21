@@ -38,6 +38,16 @@ service firebase.storage {
       allow write: if isConversationMember(conversationId);
     }
 
+    /**
+     * E2EE v2 — зашифрованные вложения (шифрованные чанки + inline/соседние метаданные).
+     * Доступ только участникам диалога; серверные триггеры (transcode) сюда не лезут,
+     * поэтому пути обязаны отличаться от plaintext `chat-attachments/`.
+     */
+    match /chat-attachments-enc/{conversationId}/{allPaths=**} {
+      allow read: if isConversationMember(conversationId);
+      allow write: if isConversationMember(conversationId);
+    }
+
     match /group-avatars/{conversationId}/{allPaths=**} {
       allow read: if signedIn();
       allow write: if isConversationMember(conversationId);

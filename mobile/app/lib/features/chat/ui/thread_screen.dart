@@ -1,17 +1,41 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/chat_media_gallery.dart';
+import '../data/e2ee_decryption_orchestrator.dart';
+import '../data/e2ee_runtime.dart';
 
 import '../data/chat_emoji_only.dart';
+import '../data/chat_location_share_factory.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/chat_poll_stub_text.dart';
+import '../data/reply_preview_builder.dart';
+import '../data/chat_attachment_upload.dart';
+import '../data/chat_message_search.dart';
+import '../data/composer_clipboard_paste.dart';
+import '../data/user_profile.dart';
 import 'chat_message_list.dart';
+import 'chat_scroll_anchor_button.dart';
+import 'chat_message_search_overlay.dart';
+import 'composer_attachment_menu.dart';
+import 'composer_sticker_gif_sheet.dart';
+import 'composer_sticker_suggestion_row.dart';
+import 'e2ee_mobile_block_banner.dart';
 import 'message_attachments.dart';
 import 'message_bubble_delivery_icons.dart';
 import 'message_chat_poll.dart';
@@ -20,7 +44,13 @@ import '../data/composer_html_editing.dart';
 import 'message_html_text.dart';
 import 'message_location_card.dart';
 import 'chat_media_viewer_screen.dart';
+import 'chat_poll_create_sheet.dart';
 import 'chat_wallpaper_background.dart';
+import 'chat_composer.dart';
+import 'location_send_preview_sheet.dart';
+import 'share_location_sheet.dart';
+import 'thread_header.dart';
+import 'video_circle_capture_page.dart';
 
 String _threadRepliesUpperRu(int n) {
   if (n % 100 >= 11 && n % 100 <= 14) return '$n ОТВЕТОВ';
@@ -36,34 +66,120 @@ String _threadRepliesUpperRu(int n) {
   }
 }
 
+String _threadRepliesLabelRu(int n) {
+  if (n % 100 >= 11 && n % 100 <= 14) return '$n ответов';
+  switch (n % 10) {
+    case 1:
+      return '$n ответ';
+    case 2:
+    case 3:
+    case 4:
+      return '$n ответа';
+    default:
+      return '$n ответов';
+  }
+}
+
+class _AnchorReactionTarget {
+  const _AnchorReactionTarget({required this.emoji, required this.messageId});
+
+  final String emoji;
+  final String messageId;
+}
+
 class ThreadScreen extends ConsumerStatefulWidget {
   const ThreadScreen({
     super.key,
     required this.conversationId,
     required this.parentMessageId,
     this.parentMessage,
+    this.focusMessageId,
   });
 
   final String conversationId;
   final String parentMessageId;
   final ChatMessage? parentMessage;
+  final String? focusMessageId;
 
   @override
   ConsumerState<ThreadScreen> createState() => _ThreadScreenState();
 }
 
 class _ThreadScreenState extends ConsumerState<ThreadScreen> {
+  /// Как в основном чате: новые ответы у нижнего края у композера.
+  static const bool _threadMessageListReversed = true;
+
   final _scrollController = ScrollController();
   final _composerController = TextEditingController();
   final _composerFocus = FocusNode();
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+  final Map<String, GlobalKey> _messageItemKeys = <String, GlobalKey>{};
+  final Set<String> _sessionReadIds = <String>{};
+  List<ChatMessage> _sortedAscCache = const <ChatMessage>[];
+  String? _jumpScrollBoostMessageId;
+  bool _threadAtBottom = true;
+  int _anchorUnreadStep = 0;
   bool _sendBusy = false;
+  String? _pendingFocusMessageId;
+  bool _inThreadSearch = false;
+  bool _composerFormattingOpen = false;
+  final List<XFile> _pendingAttachments = <XFile>[];
+  ReplyContext? _replyingTo;
+  String? _flashHighlightMessageId;
+  Timer? _flashHighlightTimer;
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pendingFocusMessageId = widget.focusMessageId?.trim();
+    if (_pendingFocusMessageId != null && _pendingFocusMessageId!.isEmpty) {
+      _pendingFocusMessageId = null;
+    }
+  }
 
   @override
   void dispose() {
+    _flashHighlightTimer?.cancel();
     _scrollController.dispose();
     _composerController.dispose();
     _composerFocus.dispose();
+    _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ThreadScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.conversationId != widget.conversationId ||
+        oldWidget.parentMessageId != widget.parentMessageId) {
+      _messageItemKeys.clear();
+      _sortedAscCache = const <ChatMessage>[];
+      _jumpScrollBoostMessageId = null;
+      _replyingTo = null;
+      _flashHighlightTimer?.cancel();
+      _flashHighlightMessageId = null;
+      _threadAtBottom = true;
+      _anchorUnreadStep = 0;
+      _sessionReadIds.clear();
+      _pendingFocusMessageId = widget.focusMessageId?.trim();
+      if (_pendingFocusMessageId != null && _pendingFocusMessageId!.isEmpty) {
+        _pendingFocusMessageId = null;
+      }
+      return;
+    }
+    if (oldWidget.focusMessageId != widget.focusMessageId) {
+      _pendingFocusMessageId = widget.focusMessageId?.trim();
+      if (_pendingFocusMessageId != null && _pendingFocusMessageId!.isEmpty) {
+        _pendingFocusMessageId = null;
+      }
+    }
   }
 
   String _timeHm(DateTime dt) {
@@ -73,25 +189,611 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     return '$hh:$mm';
   }
 
-  PreferredSizeWidget _threadAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.black.withValues(alpha: 0.22),
-      foregroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      surfaceTintColor: Colors.transparent,
-      title: const Text('Обсуждение'),
-      leading: IconButton(
-        icon: const Icon(Icons.close_rounded),
-        onPressed: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/chats/${widget.conversationId}');
-          }
-        },
-      ),
+  bool _isIncomingUnreadForViewer(ChatMessage m, String viewerId) {
+    if (m.senderId == viewerId) return false;
+    return m.readAt == null;
+  }
+
+  int _loadedIncomingUnreadCount(List<ChatMessage> sortedAsc, String viewerId) {
+    var count = 0;
+    for (final m in sortedAsc) {
+      if (_isIncomingUnreadForViewer(m, viewerId)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  String? _oldestIncomingUnreadId(
+    List<ChatMessage> sortedAsc,
+    String viewerId,
+  ) {
+    for (final m in sortedAsc) {
+      if (_isIncomingUnreadForViewer(m, viewerId)) {
+        return m.id;
+      }
+    }
+    return null;
+  }
+
+  List<String> _incomingUnreadIds(
+    List<ChatMessage> sortedAsc,
+    String viewerId,
+  ) {
+    final out = <String>[];
+    for (final m in sortedAsc) {
+      if (_isIncomingUnreadForViewer(m, viewerId)) {
+        out.add(m.id);
+      }
+    }
+    return out;
+  }
+
+  Future<void> _markVisibleMessageAsRead(
+    ChatMessage message,
+    String userId,
+  ) async {
+    if (!_isIncomingUnreadForViewer(message, userId)) return;
+    final id = message.id.trim();
+    if (id.isEmpty) return;
+    if (_sessionReadIds.contains(id)) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    _sessionReadIds.add(id);
+    try {
+      await repo.markMessagesAsRead(
+        conversationId: widget.conversationId,
+        userId: userId,
+        messageIds: <String>[id],
+        isThread: true,
+        threadParentMessageId: widget.parentMessageId,
+      );
+    } catch (_) {
+      _sessionReadIds.remove(id);
+    }
+  }
+
+  Future<void> _markManyUnreadAsRead({
+    required String userId,
+    required List<String> unreadIds,
+  }) async {
+    if (unreadIds.isEmpty) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    final toMark = unreadIds
+        .where((id) => !_sessionReadIds.contains(id))
+        .toList(growable: false);
+    if (toMark.isEmpty) return;
+    _sessionReadIds.addAll(toMark);
+    try {
+      await repo.markManyMessagesAsRead(
+        conversationId: widget.conversationId,
+        userId: userId,
+        messageIds: toMark,
+        isThread: true,
+        threadParentMessageId: widget.parentMessageId,
+      );
+    } catch (_) {
+      _sessionReadIds.removeAll(toMark);
+    }
+  }
+
+  _AnchorReactionTarget? _latestAnchorReaction({
+    required Conversation? conv,
+    required String currentUserId,
+  }) {
+    if (conv == null) return null;
+    final ts = (conv.lastReactionTimestamp ?? '').trim();
+    final emoji = (conv.lastReactionEmoji ?? '').trim();
+    final messageId = (conv.lastReactionMessageId ?? '').trim();
+    if (ts.isEmpty || emoji.isEmpty || messageId.isEmpty) return null;
+    if ((conv.lastReactionSenderId ?? '').trim() == currentUserId) return null;
+    final seenAt = (conv.lastReactionSeenAt?[currentUserId] ?? '').trim();
+    if (seenAt.isNotEmpty && ts.compareTo(seenAt) <= 0) return null;
+    final parentId = (conv.lastReactionParentId ?? '').trim();
+    if (parentId != widget.parentMessageId) return null;
+    return _AnchorReactionTarget(emoji: emoji, messageId: messageId);
+  }
+
+  Future<void> _handleReactionAnchorTap({
+    required _AnchorReactionTarget reaction,
+    required String userId,
+  }) async {
+    _scrollToMessageId(reaction.messageId);
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    await Future<void>.delayed(const Duration(milliseconds: 420));
+    try {
+      await repo.markReactionSeen(
+        conversationId: widget.conversationId,
+        userId: userId,
+      );
+    } catch (_) {}
+  }
+
+  void _consumePendingFocusIfReady(List<ChatMessage> sortedAsc) {
+    final focusId = _pendingFocusMessageId;
+    if (focusId == null || focusId.isEmpty) return;
+    final exists = sortedAsc.any((m) => m.id == focusId);
+    if (!exists) return;
+    _pendingFocusMessageId = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToMessageId(focusId);
+    });
+  }
+
+  void _syncMessageItemKeys(List<ChatMessage> msgs) {
+    final ids = msgs.map((m) => m.id).toSet();
+    _messageItemKeys.removeWhere((id, _) => !ids.contains(id));
+    for (final m in msgs) {
+      _messageItemKeys.putIfAbsent(m.id, GlobalKey.new);
+    }
+  }
+
+  Future<void> _animateToThreadBottom() async {
+    if (!_scrollController.hasClients) return;
+    final p = _scrollController.position;
+    final target = _threadMessageListReversed
+        ? p.minScrollExtent
+        : p.maxScrollExtent;
+    await _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
     );
+  }
+
+  void _scrollToMessageId(String messageId) {
+    if (messageId.isEmpty) return;
+    final idx = _sortedAscCache.indexWhere((m) => m.id == messageId);
+    if (idx < 0) return;
+    final sc = _scrollController;
+    final n = _sortedAscCache.length;
+    if (sc.hasClients && n > 1) {
+      final max = sc.position.maxScrollExtent;
+      if (max > 0) {
+        final frac = idx / (n - 1);
+        final raw = _threadMessageListReversed ? (max * (1 - frac)) : (max * frac);
+        sc.jumpTo(raw.clamp(0.0, max));
+      }
+    }
+    setState(() => _jumpScrollBoostMessageId = messageId);
+
+    _flashHighlightTimer?.cancel();
+    setState(() => _flashHighlightMessageId = messageId);
+    _flashHighlightTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => _flashHighlightMessageId = null);
+      }
+    });
+
+    var tries = 0;
+    void attempt() {
+      if (!mounted) return;
+      tries += 1;
+      final ctx = _messageItemKeys[messageId]?.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.12,
+          duration: const Duration(milliseconds: 360),
+          curve: Curves.easeOutCubic,
+        );
+        setState(() => _jumpScrollBoostMessageId = null);
+        return;
+      }
+      if (tries >= 24) {
+        setState(() => _jumpScrollBoostMessageId = null);
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+  }
+
+  void _onThreadAtBottomChanged(bool atBottom) {
+    if (!mounted) return;
+    if (_threadAtBottom == atBottom) return;
+    setState(() {
+      _threadAtBottom = atBottom;
+      if (atBottom) {
+        _anchorUnreadStep = 0;
+      }
+    });
+  }
+
+  void _openThreadSearch() {
+    if (_inThreadSearch) return;
+    setState(() => _inThreadSearch = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocus.requestFocus();
+    });
+  }
+
+  void _exitThreadSearch() {
+    if (!_inThreadSearch) return;
+    setState(() => _inThreadSearch = false);
+    _searchController.clear();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _closeThread(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/chats/${widget.conversationId}');
+    }
+  }
+
+  void _insertThreadComposerTextAtCursor(String rawText) {
+    final t = rawText.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    if (t.trim().isEmpty) return;
+    final escaped = ComposerHtmlEditing.escapeHtmlText(t);
+    final value = _composerController.value;
+    final text = value.text;
+    final sel = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: text.length);
+    final start = sel.start.clamp(0, text.length);
+    final end = sel.end.clamp(0, text.length);
+    final next = text.replaceRange(start, end, escaped);
+    _composerController.value = value.copyWith(
+      text: next,
+      selection: TextSelection.collapsed(offset: start + escaped.length),
+      composing: TextRange.empty,
+    );
+  }
+
+  Future<void> _pasteContentFromClipboard() async {
+    try {
+      final payload = await readComposerClipboardPayload();
+      if (!mounted) return;
+      if (payload.files.isNotEmpty) {
+        setState(() => _pendingAttachments.addAll(payload.files));
+      }
+      final pastedText = payload.text ?? '';
+      if (pastedText.trim().isNotEmpty) {
+        _insertThreadComposerTextAtCursor(pastedText);
+      }
+      if (payload.files.isEmpty && pastedText.trim().isEmpty) {
+        _toast('Нечего вставлять из буфера');
+      }
+    } catch (e) {
+      final fallback = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = fallback?.text ?? '';
+      if (!mounted) return;
+      if (text.trim().isNotEmpty) {
+        _insertThreadComposerTextAtCursor(text);
+      } else {
+        _toast('Не удалось вставить содержимое буфера: $e');
+      }
+    }
+  }
+
+  Future<void> _sendThreadStickerOrGifAttachment(
+    String uid,
+    ChatRepository repo,
+    ChatAttachment att,
+  ) async {
+    final replySnap = _replyingTo;
+    setState(() => _sendBusy = true);
+    try {
+      await repo.sendThreadTextMessage(
+        conversationId: widget.conversationId,
+        parentMessageId: widget.parentMessageId,
+        senderId: uid,
+        text: '',
+        replyTo: replySnap,
+        attachments: [att],
+      );
+      if (mounted) {
+        setState(() => _replyingTo = null);
+        unawaited(_animateToThreadBottom());
+      }
+    } catch (e) {
+      if (mounted) _toast('Не удалось отправить: $e');
+    } finally {
+      if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _openStickersGifPanel(String uid) async {
+    if (_sendBusy) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
+    final chatRepo = ref.read(chatRepositoryProvider);
+    if (stickerRepo == null || chatRepo == null) {
+      _toast('Сервис недоступен');
+      return;
+    }
+    await showComposerStickerGifSheet(
+      context: context,
+      userId: uid,
+      repo: stickerRepo,
+      directUploadConversationId: widget.conversationId,
+      onPickAttachment: (att) {
+        unawaited(_sendThreadStickerOrGifAttachment(uid, chatRepo, att));
+      },
+    );
+  }
+
+  Future<void> _deleteFileSilently(String path) async {
+    if (path.trim().isEmpty) return;
+    try {
+      await File(path).delete();
+    } catch (_) {}
+  }
+
+  Future<void> _openVideoCircleCaptureThread(String uid) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) {
+      _toast('Сервис чата недоступен');
+      return;
+    }
+    await pushVideoCircleCapturePage(
+      context,
+      onSend: (raw) => _sendVideoCircleFileThread(uid, repo, raw),
+    );
+  }
+
+  Future<void> _sendVideoCircleFileThread(
+    String uid,
+    ChatRepository repo,
+    XFile raw,
+  ) async {
+    final lower = raw.path.toLowerCase();
+    final ext = lower.endsWith('.mov') || lower.endsWith('.qt') ? 'mov' : 'mp4';
+    final mime = ext == 'mov' ? 'video/quicktime' : 'video/mp4';
+    final name = 'video-circle_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final file = XFile(raw.path, mimeType: mime);
+    final replySnap = _replyingTo;
+    setState(() => _sendBusy = true);
+    try {
+      final uploaded = await uploadChatAttachmentFromXFile(
+        storage: FirebaseStorage.instance,
+        conversationId: widget.conversationId,
+        file: file,
+        displayName: name,
+      );
+      await repo.sendThreadTextMessage(
+        conversationId: widget.conversationId,
+        parentMessageId: widget.parentMessageId,
+        senderId: uid,
+        text: '',
+        replyTo: replySnap,
+        attachments: [uploaded],
+      );
+      if (mounted) {
+        setState(() => _replyingTo = null);
+        unawaited(_animateToThreadBottom());
+      }
+    } catch (e) {
+      if (mounted) _toast('Не удалось отправить кружок: $e');
+    } finally {
+      unawaited(_deleteFileSilently(raw.path));
+      if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _sendLocationShareThread(String uid) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) {
+      _toast('Сервис чата недоступен');
+      return;
+    }
+    final convAsync = ref.read(
+      conversationsProvider((
+        key: conversationIdsCacheKey([widget.conversationId]),
+      )),
+    );
+    final convList = convAsync.asData?.value;
+    final conv = convList != null && convList.isNotEmpty
+        ? convList.first
+        : null;
+    if (conv == null) {
+      _toast('Чат ещё загружается');
+      return;
+    }
+    final participantIds = conv.data.participantIds;
+    if (participantIds.isEmpty) {
+      _toast('Нет участников чата');
+      return;
+    }
+
+    final durationId = await showShareLocationSettingsSheet(context);
+    if (!mounted || durationId == null) return;
+
+    setState(() => _sendBusy = true);
+    try {
+      final bool serviceEnabled;
+      try {
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      } on MissingPluginException catch (_) {
+        if (mounted) {
+          _toast(
+            'Геолокация не подключена в iOS-сборке. В каталоге mobile/app/ios выполните pod install и пересоберите приложение.',
+          );
+        }
+        return;
+      }
+      if (!serviceEnabled) {
+        if (mounted) _toast('Включите службу геолокации');
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted) _toast('Нет доступа к геолокации');
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+      setState(() => _sendBusy = false);
+
+      final confirmed = await showLocationSendPreviewSheet(
+        context,
+        lat: pos.latitude,
+        lng: pos.longitude,
+        accuracyM: pos.accuracy,
+      );
+      if (!mounted || !confirmed) return;
+
+      setState(() => _sendBusy = true);
+
+      final share = buildChatLocationShareFromPosition(
+        pos,
+        durationId: durationId,
+      );
+      final activate = shouldActivateUserLiveShare(durationId);
+      final userLiveExp = userLiveExpiresAtForSend(durationId);
+
+      await repo.sendThreadLocationShareMessage(
+        conversationId: widget.conversationId,
+        parentMessageId: widget.parentMessageId,
+        senderId: uid,
+        participantIds: participantIds,
+        locationShare: share,
+        activateUserLiveShare: activate,
+        userLiveExpiresAt: userLiveExp,
+      );
+
+      if (mounted) {
+        _composerFocus.unfocus();
+        unawaited(_animateToThreadBottom());
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось отправить геолокацию: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _sendChatPollThread(String uid) async {
+    if (_sendBusy) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) {
+      _toast('Сервис чата недоступен');
+      return;
+    }
+    final convAsync = ref.read(
+      conversationsProvider((
+        key: conversationIdsCacheKey([widget.conversationId]),
+      )),
+    );
+    final convList = convAsync.asData?.value;
+    final conv = convList != null && convList.isNotEmpty
+        ? convList.first
+        : null;
+    if (conv == null) {
+      _toast('Чат ещё загружается');
+      return;
+    }
+    final participantIds = conv.data.participantIds;
+    if (participantIds.isEmpty) {
+      _toast('Нет участников чата');
+      return;
+    }
+    final payload = await showChatPollCreateSheet(context);
+    if (!mounted || payload == null) return;
+    setState(() => _sendBusy = true);
+    try {
+      await repo
+          .sendThreadChatPollMessage(
+            conversationId: widget.conversationId,
+            parentMessageId: widget.parentMessageId,
+            senderId: uid,
+            participantIds: participantIds,
+            pollPayload: payload,
+          )
+          .timeout(const Duration(seconds: 20));
+      if (mounted) {
+        _composerFocus.unfocus();
+        unawaited(_animateToThreadBottom());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final raw = '$e';
+      final String message;
+      if (raw.contains('poll_send_timeout:')) {
+        message = 'Опрос не отправлен: таймаут';
+      } else if (raw.contains('poll_send_firebase:')) {
+        final details = raw.split('poll_send_firebase:').last;
+        message = 'Опрос не отправлен (Firestore): $details';
+      } else if (raw.contains('poll_send_error:')) {
+        final details = raw.split('poll_send_error:').last;
+        message = 'Опрос не отправлен: $details';
+      } else {
+        message = 'Не удалось отправить опрос: $e';
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _pickDeviceFiles() async {
+    if (_sendBusy) return;
+    final res = await FilePicker.pickFiles(allowMultiple: true);
+    if (!mounted || res == null) return;
+    final add = <XFile>[];
+    for (final p in res.files) {
+      final path = p.path;
+      if (path == null || path.trim().isEmpty) continue;
+      add.add(XFile(path, name: p.name));
+    }
+    if (add.isEmpty) return;
+    setState(() => _pendingAttachments.addAll(add));
+  }
+
+  Future<void> _pickPhotoVideo() async {
+    if (_sendBusy) return;
+    final picker = ImagePicker();
+    final files = await picker.pickMultipleMedia();
+    if (!mounted || files.isEmpty) return;
+    setState(() => _pendingAttachments.addAll(files));
+  }
+
+  void _handleComposerAttachment(ComposerAttachmentAction action, String uid) {
+    if (_sendBusy) return;
+    switch (action) {
+      case ComposerAttachmentAction.photoVideo:
+        unawaited(_pickPhotoVideo());
+        break;
+      case ComposerAttachmentAction.deviceFiles:
+        unawaited(_pickDeviceFiles());
+        break;
+      case ComposerAttachmentAction.stickersGif:
+        unawaited(_openStickersGifPanel(uid));
+        break;
+      case ComposerAttachmentAction.format:
+        setState(() => _composerFormattingOpen = true);
+        break;
+      case ComposerAttachmentAction.clipboard:
+        unawaited(_pasteContentFromClipboard());
+        break;
+      case ComposerAttachmentAction.videoCircle:
+        unawaited(_openVideoCircleCaptureThread(uid));
+        break;
+      case ComposerAttachmentAction.location:
+        unawaited(_sendLocationShareThread(uid));
+        break;
+      case ComposerAttachmentAction.poll:
+        unawaited(_sendChatPollThread(uid));
+        break;
+    }
   }
 
   String _threadSenderLabel(String senderId, User user, Conversation? conv) {
@@ -126,13 +828,64 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       await repo.softDeleteMessage(
         conversationId: widget.conversationId,
         messageId: m.id,
+        threadParentMessageId: m.id == widget.parentMessageId
+            ? null
+            : widget.parentMessageId,
       );
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось удалить: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Не удалось удалить: $e')));
+      }
+      return false;
+    }
+  }
+
+  Future<bool> _confirmDeleteMediaGalleryItemInThread(
+    ChatMediaGalleryItem item,
+  ) async {
+    final m = item.message;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return false;
+    final threadParent = m.id == widget.parentMessageId
+        ? null
+        : widget.parentMessageId;
+    if (m.attachments.length <= 1) {
+      return _confirmDeleteMessageInThread(m);
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Удалить файл?'),
+        content: const Text('Будет удалён только этот файл из сообщения.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return false;
+    try {
+      await repo.removeMessageAttachment(
+        conversationId: widget.conversationId,
+        messageId: m.id,
+        attachmentUrl: item.attachment.url,
+        threadParentMessageId: threadParent,
+      );
+      return true;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Не удалось удалить: $e')));
       }
       return false;
     }
@@ -157,53 +910,156 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     if (items.isEmpty) return;
     final ix = indexInChatMediaGallery(items, att.url);
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (ctx) => ChatMediaViewerScreen(
+      chatMediaViewerPageRoute<void>(
+        ChatMediaViewerScreen(
           items: items,
           initialIndex: ix,
           currentUserId: user.uid,
           senderLabel: (sid) => _threadSenderLabel(sid, user, conv),
           onReply: null,
-          onForward: (m) {
-            if (m.isDeleted) return;
+          onForward: (galleryItem) {
+            if (galleryItem.message.isDeleted) return;
+            final m = chatMessageForSingleAttachmentForward(
+              galleryItem.message,
+              galleryItem.attachment,
+            );
             context.push('/chats/forward', extra: <ChatMessage>[m]);
           },
-          onDeleteMessage: (m) => _confirmDeleteMessageInThread(m),
+          onDeleteItem: _confirmDeleteMediaGalleryItemInThread,
+          onShowInChat: (galleryItem) {
+            _scrollToMessageId(galleryItem.message.id);
+          },
         ),
       ),
     );
   }
 
-  Future<void> _submit(String uid) async {
+  Future<void> _submitWithAttachments(String uid, [Conversation? conv]) async {
+    if (_sendBusy) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
       _composerController.text,
     );
-    final plain =
-        prepared.isEmpty ? '' : messageHtmlToPlainText(prepared).trim();
-    if (plain.isEmpty || _sendBusy) return;
-    final repo = ref.read(chatRepositoryProvider);
-    if (repo == null) return;
+    final plain = prepared.isEmpty ? '' : messageHtmlToPlainText(prepared).trim();
+
+    final pending = List<XFile>.from(_pendingAttachments);
+    if (plain.isEmpty && pending.isEmpty) return;
+
+    final replySnap = _replyingTo;
     setState(() => _sendBusy = true);
+    _composerController.clear();
+    setState(() {
+      _pendingAttachments.clear();
+      _replyingTo = null;
+    });
+
     try {
+      final storage = FirebaseStorage.instance;
+      final uploaded = <ChatAttachment>[];
+      for (final f in pending) {
+        uploaded.add(
+          await uploadChatAttachmentFromXFile(
+            storage: storage,
+            conversationId: widget.conversationId,
+            file: f,
+          ),
+        );
+      }
+
+      // Phase 4: для текста в E2EE-обсуждении собираем encrypted envelope.
+      Map<String, Object?>? e2eeEnv;
+      String? e2eeMsgId;
+      final bool convIsE2ee = isConversationE2eeActive(conv);
+      if (convIsE2ee && plain.isNotEmpty && uploaded.isEmpty) {
+        final runtime = ref.read(mobileE2eeRuntimeProvider);
+        final epoch = conv?.e2eeKeyEpoch;
+        if (runtime != null && epoch != null) {
+          e2eeMsgId = FirebaseFirestore.instance
+              .collection('conversations')
+              .doc(widget.conversationId)
+              .collection('messages')
+              .doc(widget.parentMessageId)
+              .collection('thread')
+              .doc()
+              .id;
+          try {
+            e2eeEnv = await runtime.encryptOutgoing(
+              conversationId: widget.conversationId,
+              messageId: e2eeMsgId,
+              epoch: epoch,
+              plaintext: prepared,
+            );
+          } on MobileE2eeEncryptException catch (e) {
+            if (mounted) _toast('Шифрование недоступно: ${e.code}');
+            _composerController.text = prepared;
+            setState(() {
+              _pendingAttachments
+                ..clear()
+                ..addAll(pending);
+              _replyingTo = replySnap;
+              _sendBusy = false;
+            });
+            return;
+          }
+        }
+      }
       await repo.sendThreadTextMessage(
         conversationId: widget.conversationId,
         parentMessageId: widget.parentMessageId,
         senderId: uid,
         text: prepared,
+        replyTo: replySnap,
+        attachments: uploaded,
+        e2eeEnvelope: e2eeEnv,
+        messageIdOverride: e2eeMsgId,
       );
+
       if (mounted) {
-        _composerController.clear();
         _composerFocus.unfocus();
+        setState(() => _composerFormattingOpen = false);
+        unawaited(_animateToThreadBottom());
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось отправить: $e')),
-        );
-      }
+      if (!mounted) return;
+      _composerController.text = prepared;
+      setState(() {
+        _pendingAttachments
+          ..clear()
+          ..addAll(pending);
+        _replyingTo = replySnap;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось отправить: $e')),
+      );
     } finally {
       if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _retryMediaNormForThread(
+    ChatMessage message, {
+    required String parentMessageId,
+  }) async {
+    try {
+      final repo = ref.read(chatRepositoryProvider);
+      if (repo == null) return;
+      await repo.retryChatMediaTranscode(
+        conversationId: widget.conversationId,
+        messageId: message.id,
+        isThread: true,
+        parentMessageId: parentMessageId,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Повторная обработка запущена')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось запустить обработку: $e')),
+      );
     }
   }
 
@@ -239,8 +1095,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         : null;
 
     final userDocAsync = ref.watch(userChatSettingsDocProvider(user.uid));
-    final userDoc =
-        userDocAsync.asData?.value ?? const <String, dynamic>{};
+    final userDoc = userDocAsync.asData?.value ?? const <String, dynamic>{};
     final rawChatSettings = Map<String, dynamic>.from(
       userDoc['chatSettings'] as Map? ?? const <String, dynamic>{},
     );
@@ -254,28 +1109,23 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       )),
     );
 
-    final topUnderAppBar =
-        MediaQuery.paddingOf(context).top + kToolbarHeight;
+    final topUnderAppBar = MediaQuery.paddingOf(context).top + kToolbarHeight;
 
     return parentAsync.when(
       loading: () => Scaffold(
         extendBodyBehindAppBar: true,
-        appBar: _threadAppBar(context),
         body: ChatWallpaperBackground(
           wallpaper: wallpaper,
           child: Column(
             children: [
               SizedBox(height: topUnderAppBar),
-              const Expanded(
-                child: Center(child: CircularProgressIndicator()),
-              ),
+              const Expanded(child: Center(child: CircularProgressIndicator())),
             ],
           ),
         ),
       ),
       error: (e, _) => Scaffold(
         extendBodyBehindAppBar: true,
-        appBar: _threadAppBar(context),
         body: ChatWallpaperBackground(
           wallpaper: wallpaper,
           child: Column(
@@ -290,7 +1140,6 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         if (parent == null || parent.isDeleted) {
           return Scaffold(
             extendBodyBehindAppBar: true,
-            appBar: _threadAppBar(context),
             body: ChatWallpaperBackground(
               wallpaper: wallpaper,
               child: Column(
@@ -306,65 +1155,153 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         }
 
         final replyCount = parent.threadCount ?? 0;
+        final convTitle = (conv?.name ?? '').trim();
+        final headerTitle = convTitle.isNotEmpty ? convTitle : 'Обсуждение';
+        final headerSubtitle =
+            '${_threadRepliesUpperRu(replyCount)} · ${_timeHm(parent.createdAt)}';
 
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: _threadAppBar(context),
           body: ChatWallpaperBackground(
             wallpaper: wallpaper,
             child: Column(
               children: [
-                SizedBox(height: topUnderAppBar),
+                PreferredSize(
+                  preferredSize: const Size.fromHeight(56),
+                  child: SafeArea(
+                    bottom: false,
+                    child: ThreadHeader(
+                      title: headerTitle,
+                      subtitle: headerSubtitle,
+                      onClose: () => _closeThread(context),
+                      searchActive: _inThreadSearch,
+                      onSearchTap: _openThreadSearch,
+                      searchController: _searchController,
+                      searchFocusNode: _searchFocus,
+                      onSearchClose: _exitThreadSearch,
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: threadAsync.when(
                     data: (threadMsgs) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _ThreadRootPanel(
-                            message: parent,
-                            currentUserId: user.uid,
-                            conversationId: widget.conversationId,
-                            conversation: conv,
-                            replyCount: replyCount,
-                            timeHmText: _timeHm(parent.createdAt),
-                            outgoingBubbleColor: scheme.primary,
-                            incomingBubbleColor: Colors.white.withValues(
-                              alpha: scheme.brightness == Brightness.dark
-                                  ? 0.08
-                                  : 0.22,
+                      final sortedAsc = List<ChatMessage>.from(threadMsgs)
+                        ..sort((a, b) {
+                          final t = a.createdAt.compareTo(b.createdAt);
+                          if (t != 0) return t;
+                          return a.id.compareTo(b.id);
+                        });
+                      _sortedAscCache = sortedAsc;
+                      _syncMessageItemKeys(sortedAsc);
+                      _consumePendingFocusIfReady(sortedAsc);
+                      final loadedIncomingUnreadCount =
+                          _loadedIncomingUnreadCount(sortedAsc, user.uid);
+                      final loadedIncomingUnreadIds = _incomingUnreadIds(
+                        sortedAsc,
+                        user.uid,
+                      );
+                      final unreadSeparatorMessageId = _oldestIncomingUnreadId(
+                        sortedAsc,
+                        user.uid,
+                      );
+                      final serverUnreadCount =
+                          parent.unreadThreadCounts?[user.uid] ?? 0;
+                      final unreadBadgeCount = loadedIncomingUnreadCount > 0
+                          ? loadedIncomingUnreadCount
+                          : serverUnreadCount;
+                      final latestReaction = _latestAnchorReaction(
+                        conv: conv,
+                        currentUserId: user.uid,
+                      );
+                      final showScrollAnchor =
+                          latestReaction != null ||
+                          !_threadAtBottom ||
+                          unreadBadgeCount > 0;
+                      if (loadedIncomingUnreadCount == 0 &&
+                          _anchorUnreadStep != 0) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted || _anchorUnreadStep == 0) return;
+                          setState(() => _anchorUnreadStep = 0);
+                        });
+                      }
+
+                      void onAnchorTap() {
+                        if (latestReaction != null) {
+                          unawaited(
+                            _handleReactionAnchorTap(
+                              reaction: latestReaction,
+                              userId: user.uid,
                             ),
-                            onOpenMediaGallery: (att) {
-                              _openThreadMediaGallery(
-                                att,
-                                parent,
-                                parent: parent,
-                                threadMsgsDesc: threadMsgs,
-                                user: user,
-                                conv: conv,
-                              );
-                            },
+                          );
+                          return;
+                        }
+                        final canJumpToUnread =
+                            unreadBadgeCount > 0 &&
+                            _anchorUnreadStep == 0 &&
+                            unreadSeparatorMessageId != null;
+                        if (canJumpToUnread) {
+                          _scrollToMessageId(unreadSeparatorMessageId);
+                          setState(() => _anchorUnreadStep = 1);
+                          return;
+                        }
+                        if (_anchorUnreadStep != 0) {
+                          setState(() => _anchorUnreadStep = 0);
+                        }
+                        unawaited(_animateToThreadBottom());
+                        unawaited(
+                          _markManyUnreadAsRead(
+                            userId: user.uid,
+                            unreadIds: loadedIncomingUnreadIds,
                           ),
-                          Expanded(
-                            child: ChatMessageList(
-                              messagesDesc: threadMsgs,
+                        );
+                      }
+
+                      final profileMap = <String, UserProfile>{};
+                      final pi = conv?.participantInfo;
+                      if (pi != null) {
+                        for (final e in pi.entries) {
+                          final id = e.key.trim();
+                          final info = e.value;
+                          if (id.isEmpty) continue;
+                          profileMap[id] = UserProfile(
+                            id: id,
+                            name: info.name,
+                            avatar: info.avatar,
+                            avatarThumb: info.avatarThumb,
+                          );
+                        }
+                      }
+
+                      final searchResults = _inThreadSearch
+                          ? filterMessagesForInChatSearch(
+                              sortedAsc,
+                              _searchController.text,
+                            )
+                          : const <ChatMessage>[];
+
+                      return GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _ThreadRootPanel(
+                              message: parent,
                               currentUserId: user.uid,
                               conversationId: widget.conversationId,
                               conversation: conv,
-                              scrollController: _scrollController,
-                              showTimestamps: true,
-                              fontSize: 'medium',
-                              bubbleRadius: 'rounded',
+                              replyCount: replyCount,
+                              timeHmText: _timeHm(parent.createdAt),
                               outgoingBubbleColor: scheme.primary,
                               incomingBubbleColor: Colors.white.withValues(
                                 alpha: scheme.brightness == Brightness.dark
                                     ? 0.08
                                     : 0.22,
                               ),
-                              onOpenMediaGallery: (att, m) {
+                              onOpenMediaGallery: (att) {
                                 _openThreadMediaGallery(
                                   att,
-                                  m,
+                                  parent,
                                   parent: parent,
                                   threadMsgsDesc: threadMsgs,
                                   user: user,
@@ -372,12 +1309,210 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                 );
                               },
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: E2eeMessagesResolver(
+                                      conversationId: widget.conversationId,
+                                      messages: threadMsgs,
+                                      builder: (
+                                        context,
+                                        e2eeDecryptedMap,
+                                        e2eeFailedIds,
+                                      ) => ChatMessageList(
+                                      messagesDesc: threadMsgs,
+                                      currentUserId: user.uid,
+                                      conversationId: widget.conversationId,
+                                      e2eeDecryptedTextByMessageId:
+                                          e2eeDecryptedMap,
+                                      e2eeDecryptionFailedMessageIds:
+                                          e2eeFailedIds,
+                                      reversed: _threadMessageListReversed,
+                                      conversation: conv,
+                                      scrollController: _scrollController,
+                                      unreadSeparatorMessageId:
+                                          unreadSeparatorMessageId,
+                                      onAtBottomChanged: _onThreadAtBottomChanged,
+                                      onMessageVisible: (message, _) {
+                                        unawaited(
+                                          _markVisibleMessageAsRead(
+                                            message,
+                                            user.uid,
+                                          ),
+                                        );
+                                      },
+                                      messageItemKeys: _messageItemKeys,
+                                      jumpScrollBoostMessageId:
+                                          _jumpScrollBoostMessageId,
+                                      onJumpToMessageId: _scrollToMessageId,
+                                      showTimestamps: true,
+                                      fontSize: 'medium',
+                                      bubbleRadius: 'rounded',
+                                      outgoingBubbleColor: scheme.primary,
+                                      incomingBubbleColor: Colors.white.withValues(
+                                        alpha: scheme.brightness == Brightness.dark
+                                            ? 0.08
+                                            : 0.22,
+                                      ),
+                                      onOpenMediaGallery: (att, m) {
+                                        _openThreadMediaGallery(
+                                          att,
+                                          m,
+                                          parent: parent,
+                                          threadMsgsDesc: threadMsgs,
+                                          user: user,
+                                          conv: conv,
+                                        );
+                                      },
+                                      onRetryMediaNorm: (message) =>
+                                          _retryMediaNormForThread(
+                                            message,
+                                            parentMessageId: parent.id,
+                                          ),
+                                      profileMap: profileMap,
+                                      flashHighlightMessageId:
+                                          _flashHighlightMessageId,
+                                      onSwipeReply: (m) {
+                                        if (_sendBusy) return;
+                                        final c = conv;
+                                        String? dmOtherId;
+                                        if (c != null && !c.isGroup) {
+                                          final others = c.participantIds
+                                              .where((id) => id != user.uid)
+                                              .toList();
+                                          dmOtherId = others.isEmpty
+                                              ? null
+                                              : others.first;
+                                        }
+                                        final p = dmOtherId != null
+                                            ? profileMap[dmOtherId]
+                                            : null;
+                                        setState(() {
+                                          _replyingTo = buildReplyPreview(
+                                            message: m,
+                                            currentUserId: user.uid,
+                                            isGroup: c?.isGroup ?? false,
+                                            otherUserId: dmOtherId,
+                                            otherUserName: p?.name,
+                                          );
+                                        });
+                                        _composerFocus.requestFocus();
+                                      },
+                                      onSwipeBack: () {
+                                        if (context.canPop()) {
+                                          context.pop();
+                                        }
+                                      },
+                                    ),
+                                    ),
+                                  ),
+                                  if (_inThreadSearch)
+                                    Positioned.fill(
+                                      child: ChatMessageSearchOverlay(
+                                        results: searchResults,
+                                        conversation: conv,
+                                        profileMap: profileMap,
+                                        onSelectMessageId: (id) {
+                                          _exitThreadSearch();
+                                          _scrollToMessageId(id);
+                                        },
+                                        onTapScrim: _exitThreadSearch,
+                                      ),
+                                    ),
+                                  Positioned(
+                                    right: 12,
+                                    bottom: 12,
+                                    child: ChatScrollAnchorButton(
+                                      isVisible: showScrollAnchor,
+                                      unreadCount: unreadBadgeCount,
+                                      reactionEmoji: latestReaction?.emoji,
+                                      onReactionTap: latestReaction == null
+                                          ? null
+                                          : () {
+                                              unawaited(
+                                                _handleReactionAnchorTap(
+                                                  reaction: latestReaction,
+                                                  userId: user.uid,
+                                                ),
+                                              );
+                                            },
+                                      onTap: onAnchorTap,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ChatComposer(
+                              controller: _composerController,
+                              focusNode: _composerFocus,
+                              // Phase 4: текст в E2EE-threads уходит
+                              // зашифрованным; attachments по-прежнему
+                              // блокируются Phase 0 guard'ом репозитория
+                              // (Phase 7 уберёт этот барьер).
+                              onSend: () =>
+                                  _submitWithAttachments(user.uid, conv),
+                              onAttachmentSelected: (a) =>
+                                  _handleComposerAttachment(a, user.uid),
+                              pendingAttachments: _pendingAttachments,
+                              onRemovePending: (i) {
+                                setState(() => _pendingAttachments.removeAt(i));
+                              },
+                              onEditPending: (_) async {},
+                              attachmentsEnabled: !_sendBusy,
+                              sendBusy: _sendBusy,
+                              onMicTap: () => _toast('Скоро'),
+                              onStickersTap: () =>
+                                  unawaited(_openStickersGifPanel(user.uid)),
+                              stickerSuggestionBuilder: () {
+                                final repo = ref.read(
+                                  userStickerPacksRepositoryProvider,
+                                );
+                                final chatRepo = ref.read(
+                                  chatRepositoryProvider,
+                                );
+                                if (repo == null || chatRepo == null) {
+                                  return const SizedBox.shrink();
+                                }
+                                return ComposerStickerSuggestionRow(
+                                  userId: user.uid,
+                                  repo: repo,
+                                  onPickAttachment: (att) => unawaited(
+                                    _sendThreadStickerOrGifAttachment(
+                                      user.uid,
+                                      chatRepo,
+                                      att,
+                                    ),
+                                  ),
+                                );
+                              },
+                              onClipboardToolbarPaste: _pasteContentFromClipboard,
+                              showFormattingToolbar: _composerFormattingOpen,
+                              onCloseFormattingToolbar: () =>
+                                  setState(() => _composerFormattingOpen = false),
+                              replyingTo: _replyingTo,
+                              onCancelReply: () =>
+                                  setState(() => _replyingTo = null),
+                            ),
+                          ],
+                        ),
                       );
                     },
                     loading: () => Column(
                       children: [
+                        PreferredSize(
+                          preferredSize: const Size.fromHeight(56),
+                          child: SafeArea(
+                            bottom: false,
+                            child: ThreadHeader(
+                              title: headerTitle,
+                              subtitle: headerSubtitle,
+                              onClose: () => _closeThread(context),
+                              searchActive: false,
+                              onSearchTap: () {},
+                            ),
+                          ),
+                        ),
                         _ThreadRootPanel(
                           message: parent,
                           currentUserId: user.uid,
@@ -398,60 +1533,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                         ),
                       ],
                     ),
-                    error: (e, _) =>
-                        Center(child: Text('Ошибка ветки: $e')),
-                  ),
-                ),
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: scheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: scheme.outline.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: TextField(
-                              controller: _composerController,
-                              focusNode: _composerFocus,
-                              minLines: 1,
-                              maxLines: 5,
-                              textInputAction: TextInputAction.send,
-                              onSubmitted: (_) => _submit(user.uid),
-                              decoration: const InputDecoration(
-                                hintText: 'Сообщение',
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton.filled(
-                          onPressed:
-                              _sendBusy ? null : () => _submit(user.uid),
-                          icon: _sendBusy
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.send_rounded),
-                        ),
-                      ],
-                    ),
+                    error: (e, _) => Center(child: Text('Ошибка ветки: $e')),
                   ),
                 ),
               ],
@@ -509,7 +1591,8 @@ class _ThreadRootPanel extends StatelessWidget {
         hasPoll && hasText && isChatPollStubCaptionPlain(plain);
     final hasVisibleText = hasText && !pollStubCaption;
     final hasLocation = message.locationShare != null;
-    final isPureEmoji = hasText &&
+    final isPureEmoji =
+        hasText &&
         isOnlyEmojisMessage(html) &&
         !hasMedia &&
         !hasPoll &&
@@ -517,8 +1600,9 @@ class _ThreadRootPanel extends StatelessWidget {
         !hasLocation;
     final radius = 18.0;
     final textSize = 15.0;
-    final metaColor =
-        (isMine ? scheme.onPrimary : scheme.onSurface).withValues(alpha: 0.72);
+    final metaColor = (isMine ? scheme.onPrimary : scheme.onSurface).withValues(
+      alpha: 0.72,
+    );
     final baseStyle = TextStyle(
       fontSize: textSize,
       fontWeight: FontWeight.w600,
@@ -588,6 +1672,7 @@ class _ThreadRootPanel extends StatelessWidget {
             readAt: message.readAt,
             showTimestamps: false,
             onOpenGridGallery: onOpenMediaGallery,
+            mediaNorm: message.mediaNorm,
           ),
         );
       }
@@ -636,17 +1721,14 @@ class _ThreadRootPanel extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
-          children: [
-            ...children,
-            const SizedBox(height: 4),
-            metaRow,
-          ],
+          children: [...children, const SizedBox(height: 4), metaRow],
         );
       }
 
       return Column(
-        crossAxisAlignment:
-            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           ...children,
@@ -663,8 +1745,9 @@ class _ThreadRootPanel extends StatelessWidget {
       color: Colors.black.withValues(alpha: 0.28),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       child: Column(
-        crossAxisAlignment:
-            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Align(
             alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
@@ -678,11 +1761,11 @@ class _ThreadRootPanel extends StatelessWidget {
                   color: isMine
                       ? (outgoingBubbleColor ?? scheme.primary)
                       : (incomingBubbleColor ??
-                          Colors.white.withValues(
-                            alpha: scheme.brightness == Brightness.dark
-                                ? 0.08
-                                : 0.22,
-                          )),
+                            Colors.white.withValues(
+                              alpha: scheme.brightness == Brightness.dark
+                                  ? 0.08
+                                  : 0.22,
+                            )),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -695,20 +1778,64 @@ class _ThreadRootPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              _threadRepliesUpperRu(replyCount),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: scheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
+          _ThreadRepliesSeparator(
+            label: _threadRepliesLabelRu(replyCount),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ThreadRepliesSeparator extends StatelessWidget {
+  const _ThreadRepliesSeparator({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final lineColor = Colors.white.withValues(alpha: dark ? 0.12 : 0.12);
+    final tagBg = Colors.white.withValues(alpha: dark ? 0.06 : 0.80);
+    final tagBorder = Colors.white.withValues(alpha: dark ? 0.12 : 0.18);
+    final textColor = (dark ? Colors.white : scheme.onSurface).withValues(
+      alpha: dark ? 0.72 : 0.70,
+    );
+
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1,
+            color: lineColor,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: tagBg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: tagBorder),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: lineColor,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users, Lock } from "lucide-react";
+import { DevicesPanel } from "@/components/settings/DevicesPanel";
+import { E2eeRecoveryPanel } from "@/components/settings/E2eeRecoveryPanel";
 export default function PrivacySettingsPage() {
   const { user, isLoading } = useAuth();
   const { privacySettings, updatePrivacySettings } = useSettings();
@@ -79,6 +81,9 @@ export default function PrivacySettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <DevicesPanel />
+      <E2eeRecoveryPanel />
 
       <Card>
         <CardHeader>

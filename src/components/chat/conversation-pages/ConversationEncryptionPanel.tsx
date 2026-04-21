@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { E2eeFingerprintBadge } from '@/components/chat/E2eeFingerprintBadge';
 
 type ConversationEncryptionPanelProps = {
   conversation: Conversation;
@@ -111,6 +112,28 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
           />
         </div>
       </div>
+
+      {/* Phase 8: отпечаток E2EE собеседника в DM. Скрыто в группах и
+          Saved Messages; для self-chat тоже не имеет смысла. */}
+      {e2eeOn && !conversation.isGroup && firestore ? (() => {
+        const otherId = (conversation.participantIds ?? []).find(
+          (id) => id !== currentUserId
+        );
+        if (!otherId) return null;
+        return (
+          <div className="mt-6 border-t border-zinc-800 pt-4">
+            <E2eeFingerprintBadge
+              firestore={firestore}
+              userId={otherId}
+            />
+            <p className="mt-2 text-xs text-zinc-500">
+              Сверьте отпечатки по защищённому каналу, чтобы убедиться, что
+              устройства собеседника не подменены. Отпечатки одинаковые у
+              обоих участников.
+            </p>
+          </div>
+        );
+      })() : null}
 
       <AlertDialog open={disableOpen} onOpenChange={setDisableOpen}>
         <AlertDialogContent className="rounded-2xl border-border sm:rounded-2xl">

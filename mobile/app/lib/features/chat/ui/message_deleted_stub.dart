@@ -28,7 +28,6 @@ class MessageDeletedStub extends StatelessWidget {
               Text(
                 'Сообщение удалено',
                 style: TextStyle(
-                  fontStyle: FontStyle.italic,
                   fontWeight: FontWeight.w600,
                   color: chatWallpaperSafePrimaryTextColor(context),
                 ),

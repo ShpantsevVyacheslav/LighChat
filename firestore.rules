@@ -9,8 +9,9 @@ service cloud.firestore {
 
     /** Роль из Firestore: поле role (строка) должно быть ровно «admin». */
     function isAdmin() {
-      let u = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && u.exists && u.data.role == 'admin';
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isMeetingHost(meetingId) {
@@ -38,10 +39,24 @@ service cloud.firestore {
       return data.participantIds is list && data.participantIds.size() == 1;
     }
 
+    /**
+     * Разрешаем `get` для ещё несуществующих детерминированных id чатов,
+     * чтобы клиент мог идемпотентно создавать `saved_*`/`dm_*` через get+create
+     * без permission-denied на шаге preflight-чтения.
+     */
+    function canReadMissingConversationById(conversationId) {
+      return request.method == 'get' && (
+        conversationId.matches('^saved_[0-9]+:.*$') ||
+        conversationId.matches('^dm_.*$')
+      );
+    }
+
     /** Запасной путь, пока CF ещё не создала members/{uid} (миллисекунды после создания чата). */
     function conversationMemberFallbackFromParent(conversationId) {
-      let d = get(/databases/$(database)/documents/conversations/$(conversationId));
-      return d.exists && uidIsConversationParticipantFromData(d.data);
+      return exists(/databases/$(database)/documents/conversations/$(conversationId))
+        && uidIsConversationParticipantFromData(
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data
+        );
     }
 
     /**
@@ -118,10 +133,41 @@ service cloud.firestore {
         }
       }
 
-      /** Публичные ключи E2E (только обёртки для участников чатов). */
+      /** Публичные ключи E2E v1 (только обёртки для участников чатов). */
       match /e2ee/{docId} {
         allow read: if isSignedIn();
         allow write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /**
+       * v2: публичные ключи всех устройств пользователя. Read — любой
+       * авторизованный (нужно, чтобы слать wrap каждому устройству собеседника),
+       * write — только владелец `userId`. См. docs/arcitecture/07-e2ee-v2-protocol.md §5.1.
+       */
+      match /e2eeDevices/{deviceId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /**
+       * v2: password-backup обёрнутого приватника. Только владелец видит
+       * и пишет свои backup-doc'и. См. RFC §5.2.
+       */
+      match /e2eeBackups/{backupId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /**
+       * v2: эфемерная QR-pairing сессия, TTL 10 минут (чистится scheduled CF).
+       * Только владелец видит и пишет. См. RFC §5.3 и §6.7.
+       */
+      match /e2eePairingSessions/{sessionId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /** Реестр устройств пользователя: текущие клиентские сессии, active/lastSeen/fcm. */
+      match /devices/{deviceId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
 
       /** Избранные сообщения в чатах (только владелец). */
@@ -181,6 +227,15 @@ service cloud.firestore {
     match /userContacts/{userId} {
       allow get, create, update: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
+
+      /**
+       * Локальный индекс телефонной книги для автосопоставления (phone/email):
+       * `userContacts/{uid}/deviceLookup/{registrationIndexKey}`.
+       * Пишется только владельцем uid; читает только владелец.
+       */
+      match /deviceLookup/{lookupId} {
+        allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     match /userCalls/{userId} {
@@ -202,14 +257,19 @@ service cloud.firestore {
        * userChats подписка useConversationsByDocumentIds могла получать permission-denied, если поле parent
        * временно не сопоставимо с правилами, а members уже записан (см. onConversationCreated).
        */
-      allow read: if isSignedIn() && resource != null && (
-        isSavedMessagesConversationData(resource.data)
-          ? uidIsConversationParticipantFromData(resource.data)
-          : (
-              isAdmin() ||
-              exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
-              uidIsConversationParticipantFromData(resource.data)
-            )
+      allow read: if isSignedIn() && (
+        (
+          resource != null && (
+            isSavedMessagesConversationData(resource.data)
+              ? uidIsConversationParticipantFromData(resource.data)
+              : (
+                  isAdmin() ||
+                  exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
+                  uidIsConversationParticipantFromData(resource.data)
+                )
+          )
+        ) ||
+        (resource == null && canReadMissingConversationById(conversationId))
       );
       allow create: if isSignedIn()
         && uidIsConversationParticipantFromData(request.resource.data)
@@ -243,8 +303,18 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isConversationMember(conversationId);
-        allow create: if isConversationMember(conversationId)
-          && request.resource.data.senderId == request.auth.uid;
+        // Phase 8: разрешаем клиенту писать system-маркер E2EE
+        // (senderId = '__system__') при условии, что в документе есть
+        // `systemEvent` c допустимым `type`. Обычные сообщения по-прежнему
+        // должны иметь senderId == auth.uid.
+        allow create: if isConversationMember(conversationId) && (
+          request.resource.data.senderId == request.auth.uid
+          || (
+            request.resource.data.senderId == '__system__'
+            && request.resource.data.systemEvent is map
+            && request.resource.data.systemEvent.type is string
+          )
+        );
         allow update, delete: if isConversationMember(conversationId);
 
         match /{subPath=**} {

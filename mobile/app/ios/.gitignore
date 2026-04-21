@@ -1,3 +1,9 @@
+# Локальная папка сборки Xcode внутри ios/ (не путать с Flutter build в корне app/)
+build/
+
+# Текстовые логи Xcode при сборке из IDE
+Building workspace*.txt
+
 **/dgph
 *.mode1v3
 *.mode2v3

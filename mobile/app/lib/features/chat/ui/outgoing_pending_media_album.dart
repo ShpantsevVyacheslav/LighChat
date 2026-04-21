@@ -14,6 +14,7 @@ import '../data/chat_attachment_upload.dart';
 import '../data/chat_media_layout_tokens.dart';
 import 'message_html_text.dart';
 import 'message_reply_preview.dart';
+import 'video_first_frame.dart';
 
 /// Совпадает с эвристикой превью в `ComposerPendingAttachmentsStrip`.
 Widget _captionBody({
@@ -47,6 +48,17 @@ bool isOutgoingAlbumLocalImage(XFile f) {
       p.endsWith('.gif') ||
       p.endsWith('.webp') ||
       p.endsWith('.heic');
+}
+
+bool _isOutgoingAlbumLocalVideo(XFile f) {
+  final m = (f.mimeType ?? '').toLowerCase();
+  if (m.startsWith('video/')) return true;
+  final p = f.path.toLowerCase();
+  return p.endsWith('.mp4') ||
+      p.endsWith('.mov') ||
+      p.endsWith('.webm') ||
+      p.endsWith('.m4v') ||
+      p.endsWith('.3gp');
 }
 
 /// Исходящий альбом в ленте во время загрузки (паритет Telegram: превью + круговой прогресс).
@@ -293,19 +305,27 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
 
     Widget tile(int idx) {
       final showPlus = extraBeyond > 0 && idx == lastIdx;
+      final f = slice[idx];
+      final isVideo = _isOutgoingAlbumLocalVideo(f) && !isOutgoingAlbumLocalImage(f);
       return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         clipBehavior: Clip.antiAlias,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.file(
-              File(slice[idx].path),
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => ColoredBox(
-                color: Colors.grey.shade900,
-              ),
-            ),
+            isVideo
+                ? VideoFirstFrame(
+                    file: File(f.path),
+                    fit: BoxFit.cover,
+                    placeholder: ColoredBox(color: Colors.grey.shade900),
+                  )
+                : Image.file(
+                    File(f.path),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => ColoredBox(
+                      color: Colors.grey.shade900,
+                    ),
+                  ),
             if (showPlus)
               Container(
                 color: Colors.black.withValues(alpha: 0.35),
@@ -437,13 +457,19 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.file(
-              File(file.path),
-              fit: isLandscape ? BoxFit.cover : BoxFit.contain,
-              alignment: Alignment.center,
-              errorBuilder: (_, _, _) =>
-                  ColoredBox(color: Colors.grey.shade900),
-            ),
+            (_isOutgoingAlbumLocalVideo(file) && !isOutgoingAlbumLocalImage(file))
+                ? VideoFirstFrame(
+                    file: File(file.path),
+                    fit: isLandscape ? BoxFit.cover : BoxFit.contain,
+                    placeholder: ColoredBox(color: Colors.grey.shade900),
+                  )
+                : Image.file(
+                    File(file.path),
+                    fit: isLandscape ? BoxFit.cover : BoxFit.contain,
+                    alignment: Alignment.center,
+                    errorBuilder: (_, _, _) =>
+                        ColoredBox(color: Colors.grey.shade900),
+                  ),
             _progressOverlay(index),
           ],
         ),

@@ -74,12 +74,25 @@ export type Meeting = {
 export type MeetingPoll = {
   id: string;
   question: string;
+  /** Пояснение под вопросом (чат, паритет Telegram). */
+  description?: string | null;
   options: string[];
   creatorId: string;
   status: 'active' | 'ended' | 'cancelled' | 'draft';
   isAnonymous: boolean;
   createdAt: any;
-  votes: Record<string, number>;
+  /** uid → индекс варианта или массив индексов при множественном выборе. */
+  votes: Record<string, number | number[]>;
+  allowMultipleAnswers?: boolean;
+  allowAddingOptions?: boolean;
+  /** false — нельзя изменить голос (по умолчанию клиенты считают true). */
+  allowRevoting?: boolean;
+  shuffleOptions?: boolean;
+  quizMode?: boolean;
+  correctOptionIndex?: number | null;
+  quizExplanation?: string | null;
+  /** ISO — авто-завершение по времени. */
+  closesAt?: string | null;
 };
 
 export type MeetingJoinRequest = {
@@ -259,6 +272,14 @@ export type PlatformSettingsDoc = {
   storage: PlatformStoragePolicy;
   /** Если true — при создании нового личного чата клиент пытается включить E2E (если у обоих есть ключи). */
   e2eeDefaultForNewDirectChats?: boolean;
+  /**
+   * Переключатель протокола E2EE. См. RFC §8.2.
+   *  - `v1` — пишем только v1-сессии/сообщения (legacy).
+   *  - `v2` — все новые enable/rotate создают v2-сессии, сообщения пишутся v2.
+   *  - `auto` (default) — если в чате уже есть v2-сессия, пишем v2, иначе v1.
+   * Читатели поддерживают dual-read независимо от флага.
+   */
+  e2eeProtocolVersion?: 'v1' | 'v2' | 'auto';
 };
 
 export type ReplyContext = {
@@ -270,8 +291,13 @@ export type ReplyContext = {
   mediaType?: 'image' | 'video' | 'video-circle' | 'sticker' | 'file' | null;
 };
 
-/** Версия протокола E2E (MVP: P-256 ECDH + AES-GCM). См. `src/lib/e2ee/protocol.ts`. */
-export type E2eeProtocolVersion = 'v1-p256-aesgcm';
+/**
+ * Версия протокола E2E.
+ * - `v1-p256-aesgcm` — MVP: P-256 ECDH + AES-GCM, один публичный ключ на пользователя, wraps[uid].
+ * - `v2-p256-aesgcm-multi` — multi-device: публичный ключ на устройство, wraps[uid][deviceId],
+ *    HKDF wrap, AAD в AEAD, зашифрованные медиа-конверты. См. `docs/arcitecture/07-e2ee-v2-protocol.md`.
+ */
+export type E2eeProtocolVersion = 'v1-p256-aesgcm' | 'v2-p256-aesgcm-multi';
 
 /** Зашифрованное тело сообщения в Firestore (plaintext только на клиенте). */
 export type ChatMessageE2eePayload = {
@@ -279,6 +305,48 @@ export type ChatMessageE2eePayload = {
   epoch: number;
   iv: string;
   ciphertext: string;
+  /**
+   * v2: id устройства-источника. Отсутствует у v1-сообщений. Помогает UI показать «кто отправил с какого устройства»
+   * и используется как часть AAD в декодере.
+   */
+  senderDeviceId?: string;
+  /** v2: зашифрованные вложения, параллельный массив к `attachments`. Nullable — элемент может отсутствовать для sticker/gif. */
+  attachments?: Array<ChatMessageE2eeAttachmentEnvelopeV2 | null>;
+};
+
+/**
+ * v2 media envelope, лежит в `message.e2ee.attachments[i]`. См. RFC §5.5 и §6.4.
+ * Данные в Storage лежат как зашифрованные чанки по 4 МиБ; polling/пре-превью
+ * идёт через inline-зашифрованный `thumb`.
+ */
+export type ChatMessageE2eeAttachmentEnvelopeV2 = {
+  fileId: string;
+  kind: 'image' | 'video' | 'voice' | 'videoCircle' | 'file';
+  mime: string;
+  size: number;
+  wrap: E2eeKeyWrapEntry;
+  chunking: { chunkSizeBytes: 4194304; chunkCount: number };
+  iv: { prefixB64: string };
+  thumb?: {
+    path?: string;
+    ivB64: string;
+    ciphertextB64: string;
+    mime: string;
+  };
+  metadataEnc?: { ivB64: string; ciphertextB64: string };
+};
+
+export type ChatMediaNorm = {
+  status: 'pending' | 'done' | 'failed';
+  failedIndexes?: number[];
+  updatedAt: string;
+};
+
+export type ChatEmojiBurstEvent = {
+  eventId: string;
+  emoji: string;
+  by: string;
+  at: string;
 };
 
 /**
@@ -291,7 +359,7 @@ export type E2eeKeyWrapEntry = {
   ct: string;
 };
 
-/** Документ `conversations/{conversationId}/e2eeSessions/{epoch}` */
+/** Документ `conversations/{conversationId}/e2eeSessions/{epoch}` (v1/legacy). */
 export type E2eeSessionDoc = {
   epoch: number;
   protocolVersion: E2eeProtocolVersion;
@@ -300,10 +368,116 @@ export type E2eeSessionDoc = {
   wraps: Record<string, E2eeKeyWrapEntry>;
 };
 
-/** Публичный ключ устройства: `users/{uid}/e2ee/device` */
+/**
+ * v2-вариант документа эпохи. Главное отличие — `wraps` теперь вложенная мапа
+ * `userId → deviceId → wrapEntry`. Лежит в той же коллекции
+ * `conversations/{cid}/e2eeSessions/{epoch}`; версия распознаётся по полю
+ * `protocolVersion`. Коллекция едина, чтобы читатели v2 могли dual-read.
+ */
+export type E2eeSessionDocV2 = {
+  epoch: number;
+  protocolVersion: 'v2-p256-aesgcm-multi';
+  createdAt: string;
+  createdByUserId: string;
+  createdByDeviceId: string;
+  participantIds: string[];
+  wraps: Record<string, Record<string, E2eeKeyWrapEntry>>;
+  wrapContext: string;
+};
+
+/** Публичный ключ устройства (v1): `users/{uid}/e2ee/device`. */
 export type UserE2eePublicDoc = {
   publicKeySpki: string;
   updatedAt: string;
+};
+
+/**
+ * v2 публичный ключ per-device: `users/{uid}/e2eeDevices/{deviceId}`.
+ * Коллекция, а не единичный доc, чтобы пользователь мог иметь
+ * много устройств параллельно. См. RFC §5.1.
+ */
+export type E2eeDeviceDocV2 = {
+  deviceId: string;
+  publicKeySpki: string;
+  platform: 'web' | 'ios' | 'android';
+  label: string;
+  createdAt: string;
+  lastSeenAt: string;
+  revoked?: boolean;
+  revokedAt?: string;
+  revokedByDeviceId?: string;
+  keyBundleVersion: 1;
+};
+
+/**
+ * v2 password-backup приватника: `users/{uid}/e2eeBackups/{backupId}`.
+ * Содержит обёртку PKCS#8 приватника, зашифрованного ключом из Argon2id(password, salt).
+ * См. RFC §5.2.
+ */
+/**
+ * KDF-параметры password-backup. Поддерживается два алгоритма (дискриминированный
+ * union по `algorithm`):
+ *  - `'argon2id'` — целевой по RFC §5.2 (memory-hard, лучше для GPU-устойчивости).
+ *    Требует WASM-пакет на web и `argon2_ffi_base` на mobile.
+ *  - `'pbkdf2-sha256'` — fallback через native WebCrypto.subtle: позволяет
+ *    выкатить фичу без дополнительных web-deps. 600 000 итераций — OWASP-2023
+ *    рекомендация, разумный компромисс по CPU-времени на старте сессии.
+ *    Клиенты знают, как расшифровать оба формата (выбор по `algorithm`).
+ */
+export type E2eeBackupKdfParams =
+  | {
+      algorithm: 'argon2id';
+      memKiB: number;
+      iterations: number;
+      parallelism: number;
+      saltB64: string;
+    }
+  | {
+      algorithm: 'pbkdf2-sha256';
+      iterations: number;
+      saltB64: string;
+    };
+
+export type E2eeBackupDocV2 = {
+  backupId: string;
+  backupVersion: 1;
+  createdAt: string;
+  kdf: E2eeBackupKdfParams;
+  aead: {
+    algorithm: 'AES-GCM';
+    ivB64: string;
+    ciphertextB64: string;
+  };
+  allowedDeviceLabels?: string[];
+};
+
+/**
+ * v2 QR-pairing session: `users/{uid}/e2eePairingSessions/{sessionId}`.
+ * Один из scenarios `donor → new device` передачи приватника. TTL → 10 мин.
+ * См. RFC §5.3 и §6.7.
+ */
+export type E2eePairingSessionDocV2 = {
+  sessionId: string;
+  createdAt: string;
+  expiresAt: string;
+  state:
+    | 'awaiting_scan'
+    | 'awaiting_accept'
+    | 'completed'
+    | 'expired'
+    | 'rejected';
+  initiatorEphPubSpkiB64: string;
+  donorPayload?: {
+    donorEphPubSpkiB64: string;
+    ivB64: string;
+    ciphertextB64: string;
+    deviceDraft: {
+      deviceId: string;
+      platform: 'web' | 'ios' | 'android';
+      label: string;
+      publicKeySpki: string;
+    };
+  };
 };
 
 export type ReactionDetail = {
@@ -341,6 +515,10 @@ export type ChatMessage = {
   readAt: string | null;
   updatedAt?: string | null;
   attachments?: ChatAttachment[];
+  /** Статус серверной нормализации медиа (webm/mov → mp4/m4a). */
+  mediaNorm?: ChatMediaNorm;
+  /** Одноразовое событие синхронизации fullscreen emoji-эффекта. */
+  emojiBurst?: ChatEmojiBurstEvent;
   replyTo?: ReplyContext;
   deliveryStatus?: "sending" | "sent" | "failed";
   isDeleted?: boolean;
@@ -350,6 +528,8 @@ export type ChatMessage = {
   reactions?: Record<string, (string | ReactionDetail)[]>;
   lastReactionTimestamp?: string;
   threadCount?: number;
+  /** Участники, которые уже отвечали в этой ветке (для аватаров рядом с меткой ответов). */
+  threadParticipantIds?: string[];
   unreadThreadCounts?: Record<string, number>;
   lastThreadMessageText?: string;
   lastThreadMessageSenderId?: string;
@@ -357,6 +537,31 @@ export type ChatMessage = {
   locationShare?: ChatLocationShare;
   /** Документ: conversations/{conversationId}/polls/{chatPollId} (структура как MeetingPoll). */
   chatPollId?: string;
+  /** Phase 8: system-event маркер (E2EE включен/ротация/устройства и т.п.).
+   *  Рендерится вместо обычного bubble как разделитель в timeline. */
+  systemEvent?: ChatSystemEvent;
+};
+
+/** Phase 8 (§9.4 RFC E2EE v2): типизированные system-маркеры timeline'а. */
+export type ChatSystemEventType =
+  | 'e2ee.v2.enabled'
+  | 'e2ee.v2.epoch.rotated'
+  | 'e2ee.v2.device.added'
+  | 'e2ee.v2.device.revoked'
+  | 'e2ee.v2.fingerprint.changed';
+
+export type ChatSystemEvent = {
+  type: ChatSystemEventType;
+  /** Метаданные для рендера: имя актора, label устройства и пр. */
+  data?: {
+    actorUserId?: string;
+    actorName?: string;
+    deviceLabel?: string;
+    deviceId?: string;
+    epoch?: number;
+    previousFingerprint?: string;
+    nextFingerprint?: string;
+  };
 };
 
 export type MeetingMessage = {

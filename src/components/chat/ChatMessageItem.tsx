@@ -126,6 +126,7 @@ interface ChatMessageItemProps {
     /** Избранное (только основная лента; в ветке не передаётся). */
     isStarred?: boolean;
     onToggleStar?: (messageId: string, nextStarred: boolean) => void;
+    onRetryMediaNorm?: (message: ChatMessage) => void | Promise<void>;
 }
 
 const ChatMessageItemComponent = ({
@@ -145,6 +146,7 @@ const ChatMessageItemComponent = ({
     e2eeDecryptedByMessageId,
     isStarred = false,
     onToggleStar,
+    onRetryMediaNorm,
 }: ChatMessageItemProps) => {
     const isCurrentUser = message.senderId === currentUser.id;
     const isDeleted = !!message.isDeleted;
@@ -198,6 +200,27 @@ const ChatMessageItemComponent = ({
         return allUsers.some((u) => u.id === message.senderId);
     }, [isCurrentUser, allUsers, message.senderId]);
 
+    const threadReplyUsers = useMemo(() => {
+        const sourceIds = Array.isArray(message.threadParticipantIds)
+            ? message.threadParticipantIds
+            : [];
+        const ids = sourceIds.length
+            ? sourceIds
+            : message.lastThreadMessageSenderId
+              ? [message.lastThreadMessageSenderId]
+              : [];
+        const uniqueIds = Array.from(new Set(ids.filter((id) => typeof id === 'string' && id.trim().length > 0)));
+        return uniqueIds.map((id) => {
+            const liveUser = allUsers.find((u) => u.id === id);
+            const participant = conversation.participantInfo?.[id];
+            return {
+                id,
+                name: liveUser?.name || participant?.name || 'U',
+                avatarUrl: participantListAvatarUrl(liveUser, participant),
+            };
+        });
+    }, [allUsers, conversation.participantInfo, message.lastThreadMessageSenderId, message.threadParticipantIds]);
+
     const isSticker = useMemo(
         () => message.attachments?.some((att) => isAttachmentLikelyIosStickerCutout(att)) ?? false,
         [message.attachments],
@@ -247,6 +270,19 @@ const ChatMessageItemComponent = ({
         if (!list?.length) return false;
         return list.some(isGridGalleryAttachment);
     }, [message.attachments, message.isDeleted]);
+    const hasNeedsMediaNorm = useMemo(() => {
+        if (message.isDeleted) return false;
+        const list = message.attachments || [];
+        if (!list.length) return false;
+        return list.some((att) => {
+            const t = (att.type || '').toLowerCase();
+            const path = att.url.split('?')[0].toLowerCase();
+            return t.includes('webm') || path.endsWith('.webm');
+        });
+    }, [message.attachments, message.isDeleted]);
+    const mediaNormStatus = message.mediaNorm?.status ?? (hasNeedsMediaNorm ? 'pending' : null);
+    const mediaNormPending = mediaNormStatus === 'pending';
+    const mediaNormFailed = mediaNormStatus === 'failed';
 
     /** Геолокация вне стикера/видео; истёкшая live — см. [`MessageLocationCard`](./parts/MessageLocationCard.tsx). */
     const showShareableLocation = useMemo(
@@ -776,6 +812,30 @@ const ChatMessageItemComponent = ({
                                                             );
                                             return null;
                                         })}
+                                                    {hasNeedsMediaNorm && (mediaNormPending || mediaNormFailed) && (
+                                                        <div className="mx-2 my-1 rounded-xl border border-white/15 bg-black/25 px-3 py-2 text-xs">
+                                                            <div className="font-semibold text-white/90">
+                                                                {mediaNormPending ? 'Медиа обрабатывается…' : 'Не удалось обработать медиа'}
+                                                            </div>
+                                                            <div className="mt-0.5 text-white/65">
+                                                                {mediaNormPending
+                                                                    ? 'Файл станет доступен после серверной нормализации.'
+                                                                    : 'Нажмите, чтобы запустить обработку повторно.'}
+                                                            </div>
+                                                            {mediaNormFailed && onRetryMediaNorm && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        void onRetryMediaNorm(message);
+                                                                    }}
+                                                                    className="mt-2 rounded-md border border-white/20 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-white/10"
+                                                                >
+                                                                    Повторить
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     {(!isVideoCircle && !message.chatPollId) && (!isStickerLike || hasStickerCaption) && (
                                             <div className="relative group/text">
                                                             <MessageText
@@ -817,7 +877,30 @@ const ChatMessageItemComponent = ({
                     </div>
                     {!isDeleted && reactionsNode}
                     {!isDeleted && (message.threadCount ?? 0) > 0 && !isThreadMessage && (
-                        <button onClick={(e) => { e.stopPropagation(); onOpenThread?.(message); }} className={cn("flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm", isCurrentUser ? "bg-white/10 border-white/40 text-white self-end" : "bg-primary/5 border-primary/10 text-primary self-start")}><MessageSquare className="h-3 w-3" /><span>{(message.threadCount ?? 0)}</span></button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onOpenThread?.(message); }}
+                            className={cn(
+                                "flex items-center gap-2 mt-1 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm",
+                                isCurrentUser
+                                    ? "bg-white/10 border-white/40 text-white self-end"
+                                    : "bg-primary/5 border-primary/10 text-primary self-start"
+                            )}
+                        >
+                            <MessageSquare className="h-3 w-3" />
+                            {threadReplyUsers.length > 0 && (
+                                <span className="flex -space-x-1">
+                                    {threadReplyUsers.slice(0, 3).map((u) => (
+                                        <Avatar key={u.id} className="h-4 w-4 border border-white/50">
+                                            <AvatarImage src={u.avatarUrl || undefined} alt={u.name} className="object-cover" />
+                                            <AvatarFallback className="text-[8px] font-semibold">
+                                                {u.name.charAt(0).toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    ))}
+                                </span>
+                            )}
+                            <span>{(message.threadCount ?? 0)}</span>
+                        </button>
                     )}
                 </div>
             </div>

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../data/chat_poll_vote_utils.dart';
 import 'chat_glass_panel.dart';
 import 'chat_popup_menu_theme.dart';
 import 'message_bubble_delivery_icons.dart';
@@ -41,7 +42,6 @@ class MessageChatPoll extends StatelessWidget {
   final String conversationId;
   final String pollId;
   final Conversation? conversation;
-  /// Время и галочки внутри стеклянной карточки (нет отдельного текстового пузыря).
   final bool embedMessageStatus;
   final DateTime? messageCreatedAt;
   final bool isMine;
@@ -66,7 +66,7 @@ class MessageChatPoll extends StatelessWidget {
             'Опрос недоступен',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
           );
-        } else if (!snap.hasData || !snap.data!.exists) {
+        } else if (!snap.hasData) {
           inner = const Row(
             children: [
               SizedBox(
@@ -81,6 +81,8 @@ class MessageChatPoll extends StatelessWidget {
               Text('Загрузка опроса…'),
             ],
           );
+        } else if (!snap.data!.exists) {
+          inner = const Text('Опрос не найден');
         } else {
           final poll = MeetingPoll.fromDoc(snap.data!);
           if (poll == null) {
@@ -158,44 +160,151 @@ class _MessageChatPollBody extends StatefulWidget {
 class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
   bool _busy = false;
   bool _expandedVoters = false;
+  final List<int> _pendingMulti = [];
+  final TextEditingController _newOptionCtrl = TextEditingController();
+  Timer? _closesTimer;
 
-  Future<void> _vote(int optionIdx) async {
+  @override
+  void initState() {
+    super.initState();
+    _scheduleClosesTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _MessageChatPollBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.poll.id != widget.poll.id ||
+        oldWidget.poll.closesAt != widget.poll.closesAt ||
+        oldWidget.poll.status != widget.poll.status) {
+      _scheduleClosesTimer();
+    }
+    if (oldWidget.poll.id != widget.poll.id) {
+      _pendingMulti.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _closesTimer?.cancel();
+    _newOptionCtrl.dispose();
+    super.dispose();
+  }
+
+  void _scheduleClosesTimer() {
+    _closesTimer?.cancel();
+    final poll = widget.poll;
+    if (poll.status != 'active' || poll.closesAt == null) return;
+    final end = poll.closesAt!;
+    void tick() {
+      if (!mounted) return;
+      if (DateTime.now().isAfter(end)) {
+        unawaited(_tryAutoEnd());
+        _closesTimer?.cancel();
+      }
+    }
+
+    tick();
+    _closesTimer = Timer.periodic(const Duration(seconds: 2), (_) => tick());
+  }
+
+  Future<void> _tryAutoEnd() async {
+    if (widget.poll.status != 'active') return;
+    try {
+      await widget.pollRef.update(<String, Object?>{'status': 'ended'});
+    } catch (_) {}
+  }
+
+  Future<void> _commitVote(List<int> indices) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || widget.poll.status != 'active' || _busy) return;
-    final votes = Map<String, int>.from(widget.poll.votes);
-    if (votes[user.uid] != null) return;
+    if (indices.isEmpty) return;
+    final sorted = indices.toSet().toList()..sort();
+    final votes = Map<String, List<int>>.from(
+      widget.poll.votes.map((k, v) => MapEntry(k, List<int>.from(v))),
+    );
+    votes[user.uid] = sorted;
     setState(() => _busy = true);
     try {
-      votes[user.uid] = optionIdx;
+      final fireVotes = <String, Object?>{};
+      for (final e in votes.entries) {
+        fireVotes[e.key] = e.value.length == 1 ? e.value.first : e.value;
+      }
       final participants = widget.conversation?.participantIds.length ?? 0;
-      final shouldEnd =
-          participants > 0 && votes.length >= participants;
+      final shouldEnd = participants > 0 && votes.length >= participants;
       await widget.pollRef.update(<String, Object?>{
-        'votes': votes,
+        'votes': fireVotes,
         if (shouldEnd) 'status': 'ended',
       });
+      _pendingMulti.clear();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка при голосовании')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Ошибка при голосовании')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
+  Future<void> _voteSingle(int optionIdx) async {
+    await _commitVote([optionIdx]);
+  }
+
+  void _togglePending(int idx) {
+    setState(() {
+      if (_pendingMulti.contains(idx)) {
+        _pendingMulti.remove(idx);
+      } else {
+        _pendingMulti.add(idx);
+        _pendingMulti.sort();
+      }
+    });
+  }
+
+  Future<void> _submitMulti() async {
+    await _commitVote(_pendingMulti);
+  }
+
   Future<void> _revoteSelf() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || _busy) return;
+    if (user == null || _busy || !widget.poll.allowRevoting) return;
     setState(() => _busy = true);
     try {
-      final v = Map<String, int>.from(widget.poll.votes)..remove(user.uid);
-      await widget.pollRef.update({'votes': v});
+      final v = widget.poll.votes.map(
+        (k, val) => MapEntry(k, List<int>.from(val)),
+      );
+      v.remove(user.uid);
+      final fireVotes = <String, Object?>{};
+      for (final e in v.entries) {
+        fireVotes[e.key] = e.value.length == 1 ? e.value.first : e.value;
+      }
+      await widget.pollRef.update(<String, Object?>{'votes': fireVotes});
+      _pendingMulti.clear();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Ошибка')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _addSuggestedOption() async {
+    final t = _newOptionCtrl.text.trim();
+    if (t.isEmpty || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.pollRef.update(<String, Object?>{
+        'options': [...widget.poll.options, t],
+      });
+      _newOptionCtrl.clear();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка')),
+          const SnackBar(content: Text('Не удалось добавить вариант')),
         );
       }
     } finally {
@@ -220,15 +329,15 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
         case 'restart':
           await widget.pollRef.update({
             'status': 'active',
-            'votes': <String, int>{},
+            'votes': <String, Object?>{},
           });
           break;
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Ошибка')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -243,11 +352,20 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
     final poll = widget.poll;
     final votes = poll.votes;
     final total = votes.length;
-    final hasVoted = uid.isNotEmpty && votes.containsKey(uid);
+    final hasVoted = userHasVoted(votes, uid);
     final isEnded = poll.status == 'ended';
     final isDraft = poll.status == 'draft';
     final isCancelled = poll.status == 'cancelled';
-    final canMod = uid.isNotEmpty && _canModerateChatPoll(widget.conversation, uid, poll);
+    final canMod =
+        uid.isNotEmpty && _canModerateChatPoll(widget.conversation, uid, poll);
+    final allowMulti = poll.allowMultipleAnswers;
+    final showRevote = hasVoted && !isEnded && !isDraft && poll.allowRevoting;
+    final displayIdxs = chatPollDisplayIndices(
+      pollId: poll.id,
+      userId: uid,
+      optionCount: poll.options.length,
+      shuffle: poll.shuffleOptions,
+    );
 
     if (isDraft && poll.creatorId != uid && !canMod) {
       return const SizedBox.shrink();
@@ -264,113 +382,199 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
       statusLabel = 'Активен';
     }
 
+    final quizReveal =
+        poll.quizMode && hasVoted && poll.correctOptionIndex != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    poll.question,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
+                  if (poll.description != null &&
+                      poll.description!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      poll.question,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                      poll.description!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                         height: 1.25,
+                        color: scheme.onSurface.withValues(alpha: 0.72),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        _badge(context, statusLabel, isMuted: isEnded || isCancelled),
-                        if (!poll.isAnonymous)
-                          _badge(context, 'Публично', isPrimary: true),
-                      ],
-                    ),
                   ],
-                ),
-              ),
-              if (canMod)
-                chatDarkPopupMenuScope(
-                  context,
-                  PopupMenuButton<String>(
-                    surfaceTintColor: Colors.transparent,
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: scheme.onSurface.withValues(alpha: 0.55),
-                    ),
-                    onSelected: (v) => unawaited(_moderate(v)),
-                    itemBuilder: (context) {
-                      final t = chatPopupMenuItemTextStyle();
-                      return [
-                        if (isEnded)
-                          PopupMenuItem(
-                            value: 'restart',
-                            child: Text('Перезапустить', style: t),
-                          ),
-                        if (!isEnded && !isDraft)
-                          PopupMenuItem(
-                            value: 'end',
-                            child: Text('Завершить', style: t),
-                          ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Удалить', style: t),
-                        ),
-                      ];
-                    },
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      _badge(
+                        context,
+                        statusLabel,
+                        isMuted: isEnded || isCancelled,
+                      ),
+                      if (!poll.isAnonymous)
+                        _badge(context, 'Публично', isPrimary: true),
+                      if (allowMulti) _badge(context, 'Несколько ответов'),
+                      if (poll.quizMode)
+                        _badge(context, 'Викторина', isQuiz: true),
+                    ],
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (var i = 0; i < poll.options.length; i++)
-            _optionTile(
-              context,
-              label: poll.options[i],
-              idx: i,
-              votes: votes,
-              total: total,
-              uid: uid,
-              isEnded: isEnded || isDraft || isCancelled,
-              hasVoted: hasVoted,
-              enabled: !_busy,
-              onTap: () => _vote(i),
-            ),
-          if (hasVoted && !isEnded && !isDraft) ...[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.center,
-              child: TextButton(
-                onPressed: _busy ? null : () => unawaited(_revoteSelf()),
-                child: const Text('Переголосовать'),
+                ],
               ),
             ),
+            if (canMod)
+              chatDarkPopupMenuScope(
+                context,
+                PopupMenuButton<String>(
+                  surfaceTintColor: Colors.transparent,
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                  onSelected: (v) => unawaited(_moderate(v)),
+                  itemBuilder: (context) {
+                    final t = chatPopupMenuItemTextStyle();
+                    return [
+                      if (isEnded)
+                        PopupMenuItem(
+                          value: 'restart',
+                          child: Text('Перезапустить', style: t),
+                        ),
+                      if (!isEnded && !isDraft)
+                        PopupMenuItem(
+                          value: 'end',
+                          child: Text('Завершить', style: t),
+                        ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Удалить', style: t),
+                      ),
+                    ];
+                  },
+                ),
+              ),
           ],
+        ),
+        const SizedBox(height: 10),
+        for (final idx in displayIdxs)
+          _optionTile(
+            context,
+            label: poll.options[idx],
+            idx: idx,
+            votes: votes,
+            total: total,
+            uid: uid,
+            isEnded: isEnded || isDraft || isCancelled,
+            hasVoted: hasVoted,
+            allowMulti: allowMulti,
+            pendingOn: _pendingMulti.contains(idx),
+            enabled: !_busy,
+            quizReveal: quizReveal,
+            correctIdx: poll.correctOptionIndex,
+            onTap: () {
+              if (allowMulti && !hasVoted) {
+                _togglePending(idx);
+              } else if (!hasVoted) {
+                unawaited(_voteSingle(idx));
+              }
+            },
+          ),
+        if (allowMulti &&
+            !hasVoted &&
+            !isEnded &&
+            !isDraft &&
+            !isCancelled) ...[
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: _busy || _pendingMulti.isEmpty
+                ? null
+                : () => unawaited(_submitMulti()),
+            child: const Text('Отправить голос'),
+          ),
+        ],
+        if (quizReveal &&
+            poll.quizExplanation != null &&
+            poll.quizExplanation!.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            '$total голосов',
+            poll.quizExplanation!,
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-              color: scheme.onSurface.withValues(alpha: 0.55),
+              fontSize: 11,
+              color: scheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
-          if (!poll.isAnonymous && total > 0) ...[
-            const SizedBox(height: 4),
-            TextButton(
-              onPressed: () => setState(() => _expandedVoters = !_expandedVoters),
-              child: Text(_expandedVoters ? 'Скрыть' : 'Кто голосовал'),
-            ),
-            if (_expandedVoters) _votersList(context, poll),
-          ],
         ],
+        if (poll.allowAddingOptions &&
+            !isEnded &&
+            !isDraft &&
+            !isCancelled) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _newOptionCtrl,
+                  style: const TextStyle(fontSize: 13),
+                  decoration: const InputDecoration(
+                    hintText: 'Предложить вариант',
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) => unawaited(_addSuggestedOption()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonal(
+                onPressed: _busy
+                    ? null
+                    : () => unawaited(_addSuggestedOption()),
+                child: const Text('Добавить'),
+              ),
+            ],
+          ),
+        ],
+        if (showRevote) ...[
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.center,
+            child: TextButton(
+              onPressed: _busy ? null : () => unawaited(_revoteSelf()),
+              child: const Text('Переголосовать'),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Text(
+          '$total голосов',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
+            color: scheme.onSurface.withValues(alpha: 0.55),
+          ),
+        ),
+        if (!poll.isAnonymous && total > 0) ...[
+          const SizedBox(height: 4),
+          TextButton(
+            onPressed: () => setState(() => _expandedVoters = !_expandedVoters),
+            child: Text(_expandedVoters ? 'Скрыть' : 'Кто голосовал'),
+          ),
+          if (_expandedVoters) _votersList(context, poll),
+        ],
+      ],
     );
   }
 
@@ -379,13 +583,16 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
     String text, {
     bool isMuted = false,
     bool isPrimary = false,
+    bool isQuiz = false,
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: isMuted
+        color: isQuiz
+            ? const Color(0x3322C55E)
+            : isMuted
             ? scheme.surfaceContainerHighest.withValues(alpha: 0.5)
             : isPrimary
             ? scheme.primary.withValues(alpha: 0.15)
@@ -397,7 +604,9 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
           fontSize: 9,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.4,
-          color: isMuted
+          color: isQuiz
+              ? const Color(0xFF22C55E)
+              : isMuted
               ? scheme.onSurface.withValues(alpha: 0.55)
               : scheme.primary,
         ),
@@ -409,37 +618,66 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
     BuildContext context, {
     required String label,
     required int idx,
-    required Map<String, int> votes,
+    required Map<String, List<int>> votes,
     required int total,
     required String uid,
     required bool isEnded,
     required bool hasVoted,
+    required bool allowMulti,
+    required bool pendingOn,
     required bool enabled,
+    required bool quizReveal,
+    required int? correctIdx,
     required VoidCallback onTap,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final count = votes.values.where((v) => v == idx).length;
+    final count = countVotesForOption(votes, idx);
     final pct = total > 0 ? (100 * count / total).round() : 0;
-    final mine = votes[uid] == idx;
+    final mine = userSelectedOption(votes, uid, idx);
     final tappable = enabled && !isEnded && !hasVoted;
+    final quizCorrect = quizReveal && correctIdx == idx;
+    final quizWrong = quizReveal && mine && correctIdx != idx;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: mine
+        color: mine || pendingOn
             ? scheme.primary.withValues(alpha: 0.24)
             : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: tappable ? onTap : null,
           borderRadius: BorderRadius.circular(12),
-          child: Padding(
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: quizCorrect
+                    ? const Color(0xFF22C55E)
+                    : quizWrong
+                    ? scheme.error.withValues(alpha: 0.65)
+                    : Colors.transparent,
+                width: quizCorrect || quizWrong ? 2 : 0,
+              ),
+            ),
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
+                    if (allowMulti && !hasVoted) ...[
+                      SizedBox(
+                        width: 22,
+                        child: Icon(
+                          pendingOn
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                          size: 20,
+                          color: scheme.onSurface.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
                     Expanded(
                       child: Text(
                         label,
@@ -484,7 +722,13 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
     for (final e in poll.votes.entries) {
       final row = info?[e.key];
       final name = row?.name;
-      lines.add('${name != null && name.isNotEmpty ? name : e.key} → ${poll.options[e.value]}');
+      final parts = e.value
+          .map((i) {
+            if (i >= 0 && i < poll.options.length) return poll.options[i];
+            return '#$i';
+          })
+          .join(', ');
+      lines.add('${name != null && name.isNotEmpty ? name : e.key} → $parts');
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -17,14 +17,12 @@ class ForwardMessagePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Card(
       elevation: 0,
-      color: scheme.primary.withValues(alpha: 0.06),
+      color: Colors.white.withValues(alpha: 0.07),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.primary.withValues(alpha: 0.14)),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -35,9 +33,15 @@ class ForwardMessagePreview extends StatelessWidget {
               if (i > 0)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Divider(height: 1, color: scheme.primary.withValues(alpha: 0.12)),
+                  child: Divider(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
                 ),
-              _ForwardPreviewEntry(message: messages[i], profilesById: profilesById),
+              _ForwardPreviewEntry(
+                message: messages[i],
+                profilesById: profilesById,
+              ),
             ],
           ],
         ),
@@ -57,7 +61,6 @@ class _ForwardPreviewEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final senderName = profilesById[message.senderId]?.name ?? 'Неизвестный';
     final raw = message.text ?? '';
     final previewText = raw.trim().isEmpty
@@ -69,7 +72,11 @@ class _ForwardPreviewEntry extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.format_quote_rounded, size: 14, color: scheme.primary.withValues(alpha: 0.45)),
+            Icon(
+              Icons.format_quote_rounded,
+              size: 14,
+              color: Colors.white.withValues(alpha: 0.40),
+            ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -77,7 +84,7 @@ class _ForwardPreviewEntry extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: scheme.onSurface,
+                  color: Colors.white.withValues(alpha: 0.94),
                 ),
               ),
             ),
@@ -91,7 +98,7 @@ class _ForwardPreviewEntry extends StatelessWidget {
               fontSize: 14,
               fontStyle: FontStyle.italic,
               height: 1.25,
-              color: scheme.onSurface.withValues(alpha: 0.72),
+              color: Colors.white.withValues(alpha: 0.75),
             ),
           ),
         ),

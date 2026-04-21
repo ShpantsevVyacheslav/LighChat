@@ -20,6 +20,7 @@ export { backfillConversationMembers } from './triggers/http/backfillConversatio
 export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationIndex';
 export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
+export { retryChatMediaTranscode } from './triggers/http/retryChatMediaTranscode';
 
 // Firestore Triggers
 export { onconversationcreated } from './triggers/firestore/onConversationCreated';
@@ -37,3 +38,5 @@ export { onmeetingparticipantcreated } from './triggers/firestore/onMeetingParti
 
 // Scheduler Triggers
 export { checkUserPresence } from './triggers/scheduler/checkUserPresence';
+// Phase 6: TTL-cleanup эфемерных QR-pairing сессий E2EE v2.
+export { cleanupE2eePairingSessions } from './triggers/scheduler/cleanupE2eePairingSessions';

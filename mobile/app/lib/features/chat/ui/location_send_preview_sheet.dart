@@ -1,9 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import '../data/google_maps_urls.dart';
+import 'chat_cached_network_image.dart';
+
+/// OSM тайлы в мобильном HTTP-клиенте требуют явный User-Agent.
+const _kLocationPreviewHttpHeaders = <String, String>{
+  'User-Agent': 'LighChatMobile/1.0 (location preview; contact: app)',
+};
 
 /// Превью карты с меткой перед фактической отправкой геолокации в чат.
 Future<bool> showLocationSendPreviewSheet(
@@ -63,55 +66,6 @@ class _LocationPreviewBody extends StatefulWidget {
 }
 
 class _LocationPreviewBodyState extends State<_LocationPreviewBody> {
-  late final WebViewController _web;
-  var _loading = true;
-  Timer? _loadingTimeout;
-
-  @override
-  void initState() {
-    super.initState();
-    final html = buildOpenStreetMapLeafletHtml(widget.lat, widget.lng, zoom: 16);
-    _loadingTimeout = Timer(const Duration(seconds: 12), _hideLoader);
-    _web = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF1a1a1a))
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (_) => _hideLoader(),
-          onWebResourceError: (_) => _hideLoader(),
-          onHttpError: (_) => _hideLoader(),
-          onProgress: (p) {
-            if (p >= 90) _hideLoader();
-          },
-        ),
-      );
-    unawaited(_load(html));
-  }
-
-  void _hideLoader() {
-    _loadingTimeout?.cancel();
-    _loadingTimeout = null;
-    if (!_loading || !mounted) return;
-    setState(() => _loading = false);
-  }
-
-  Future<void> _load(String html) async {
-    try {
-      await _web.setUserAgent('LighChatMobile/1.0');
-    } catch (_) {}
-    try {
-      await _web.loadHtmlString(html, baseUrl: 'https://unpkg.com/');
-    } catch (_) {
-      if (mounted) _hideLoader();
-    }
-  }
-
-  @override
-  void dispose() {
-    _loadingTimeout?.cancel();
-    super.dispose();
-  }
-
   String _accuracyLine() {
     final a = widget.accuracyM;
     if (a == null || a.isNaN) {
@@ -156,21 +110,34 @@ class _LocationPreviewBodyState extends State<_LocationPreviewBody> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                WebViewWidget(controller: _web),
-                if (_loading)
-                  const ColoredBox(
-                    color: Color(0xFF1a1a1a),
-                    child: Center(
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white54,
+                ChatCachedNetworkImage(
+                  url: buildChatLocationStaticPreviewUrl(
+                    widget.lat,
+                    widget.lng,
+                  ),
+                  httpHeaders: _kLocationPreviewHttpHeaders,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  errorOverride: const _PreviewMapFallback(),
+                ),
+                IgnorePointer(
+                  child: Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withValues(alpha: 0.28),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.location_on_rounded,
+                          color: Colors.white,
+                          size: 26,
                         ),
                       ),
                     ),
                   ),
+                ),
               ],
             ),
           ),
@@ -204,6 +171,30 @@ class _LocationPreviewBodyState extends State<_LocationPreviewBody> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _PreviewMapFallback extends StatelessWidget {
+  const _PreviewMapFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A1D24), Color(0xFF13151A)],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.map_outlined,
+          size: 38,
+          color: Colors.white.withValues(alpha: 0.7),
+        ),
+      ),
     );
   }
 }

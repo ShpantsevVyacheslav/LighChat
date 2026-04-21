@@ -2,8 +2,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { getAuth } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirestore, useMemoFirebase, useStorage, useCollection } from '@/firebase';
-import { collection, query, doc, updateDoc, increment, orderBy, setDoc, getDocs, where, limit, documentId, writeBatch, onSnapshot, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, increment, orderBy, setDoc, getDocs, where, limit, documentId, writeBatch, onSnapshot, deleteDoc, serverTimestamp, deleteField, arrayUnion } from 'firebase/firestore';
 import { E2EE_LAST_MESSAGE_PREVIEW } from '@/lib/e2ee';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
@@ -18,14 +20,15 @@ import type {
     ChatLocationSendMeta,
 } from '@/lib/types';
 import type { ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
+import { chatPollFirestoreFields } from '@/lib/chat-poll-create';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { ChatMessageItem } from './ChatMessageItem';
+import { ChatSystemEventDivider } from './ChatSystemEventDivider';
 import { ChatMessageInput } from './ChatMessageInput';
 import { ChatWallpaperLayer } from './ChatWallpaperLayer';
 import { SelectionHeader } from './SelectionHeader';
 import { ChatAnchor } from './ChatAnchor';
-import { X, MessageSquare, Loader2, ChevronDown } from 'lucide-react';
+import { X, MessageSquare, Loader2, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO, isToday, isYesterday, format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -38,6 +41,10 @@ import { ChatFloatingDateLabel } from '@/components/chat/ChatFloatingDateLabel';
 import { firstCalendarDayInViewport } from '@/components/chat/visible-range-date';
 import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
 import { getVirtuosoChatIncreaseViewport, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
+import {
+    isFirestorePermissionDeniedError,
+    logFirestorePermissionDenied,
+} from '@/lib/firestore-permission-debug';
 import { VideoCircleTailProvider } from '@/components/chat/video-circle-tail-context';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/hooks/use-settings';
@@ -85,6 +92,13 @@ interface ThreadWindowProps {
     parentE2eeDecryptedByMessageId?: Record<string, string>;
     /** Фон ветки: совпадает с основным чатом (например персональный фон беседы). */
     chatWallpaper?: string | null;
+    /** На desktop — показывать как правую колонку (Mattermost-like), на mobile оставить overlay. */
+    asSidebarOnDesktop?: boolean;
+    /** Текущая ширина sidebar в desktop-режиме (для resize). */
+    desktopWidthPx?: number;
+    /** Развернуть/свернуть sidebar до максимально допустимой ширины. */
+    isExpandedDesktop?: boolean;
+    onToggleExpandDesktop?: () => void;
 }
 
 type FlatThreadItem = 
@@ -109,6 +123,10 @@ export function ThreadWindow({
     suppressFloatingAnchor = false,
     parentE2eeDecryptedByMessageId = {},
     chatWallpaper: chatWallpaperProp = null,
+    asSidebarOnDesktop = false,
+    desktopWidthPx,
+    isExpandedDesktop = false,
+    onToggleExpandDesktop,
 }: ThreadWindowProps) {
     const firestore = useFirestore();
     const storage = useStorage();
@@ -271,7 +289,7 @@ export function ThreadWindow({
             const updates: Record<string, string> = {};
             for (const m of allMessages) {
                 if (!m.e2ee?.ciphertext) continue;
-                const plain = await e2eeConv.decryptMessagePayload(m.e2ee);
+                const plain = await e2eeConv.decryptMessagePayload(m.e2ee, m.id);
                 updates[m.id] = plain;
             }
             if (!cancelled) {
@@ -630,7 +648,7 @@ export function ThreadWindow({
                 e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
             const replyForWrite =
                 useE2eeForText && replyContext
-                    ? { ...replyContext, text: undefined }
+                    ? (({ text: _omitted, ...rest }) => rest)(replyContext)
                     : replyContext;
 
             const messageData: Record<string, unknown> = {
@@ -644,12 +662,40 @@ export function ThreadWindow({
             if (useE2eeForText) {
                 const e2eePayload = await e2eeConv.encryptOutgoingHtml(text!);
                 messageData.e2ee = e2eePayload;
-                messageData.text = deleteField();
             } else if (text) {
                 messageData.text = text;
             }
 
-            await setDoc(newDocRef, messageData as Parameters<typeof setDoc>[1]);
+            try {
+                await setDoc(newDocRef, messageData as Parameters<typeof setDoc>[1]);
+            } catch (writeError) {
+                if (isFirestorePermissionDeniedError(writeError)) {
+                    try {
+                        await getAuth(firestore.app).currentUser?.getIdToken(true);
+                        await setDoc(newDocRef, messageData as Parameters<typeof setDoc>[1]);
+                    } catch (retryError) {
+                        logFirestorePermissionDenied({
+                            source: 'ThreadWindow.handleSendMessage',
+                            operation: 'create',
+                            path: `conversations/${conversation.id}/messages/${parentMessage.id}/thread/${messageId}`,
+                            firestore,
+                            failedStep: 'setDoc',
+                            extra: {
+                                conversationId: conversation.id,
+                                parentMessageId: parentMessage.id,
+                                senderId: currentUser.id,
+                                useE2eeForText,
+                                hasReply: !!replyForWrite,
+                                attachmentCount: uploadedAttachments.length,
+                            },
+                            error: retryError,
+                        });
+                        throw retryError;
+                    }
+                } else {
+                    throw writeError;
+                }
+            }
 
             const parentMessageRef = doc(firestore, `conversations/${conversation.id}/messages`, parentMessage.id);
             const convRef = doc(firestore, 'conversations', conversation.id);
@@ -674,6 +720,7 @@ export function ThreadWindow({
 
             updateDoc(parentMessageRef, {
                 threadCount: increment(1),
+                threadParticipantIds: arrayUnion(currentUser.id),
                 lastThreadMessageText: threadLastText,
                 lastThreadMessageSenderId: currentUser.id,
                 lastThreadMessageTimestamp: now,
@@ -762,6 +809,7 @@ export function ThreadWindow({
                 const threadLastText = '📍 Геолокация';
                 await updateDoc(parentMessageRef, {
                     threadCount: increment(1),
+                    threadParticipantIds: arrayUnion(currentUser.id),
                     lastThreadMessageText: threadLastText,
                     lastThreadMessageSenderId: currentUser.id,
                     lastThreadMessageTimestamp: now,
@@ -829,14 +877,8 @@ export function ThreadWindow({
             if (replyContext) setReplyingTo(null);
             try {
                 await setDoc(pollRef, {
-                    id: pollId,
-                    question: input.question,
-                    options: input.options,
-                    creatorId: currentUser.id,
-                    status: 'active',
-                    isAnonymous: input.isAnonymous,
+                    ...chatPollFirestoreFields(input, pollId, currentUser.id),
                     createdAt: serverTimestamp(),
-                    votes: {},
                 });
                 await setDoc(newDocRef, {
                     id: messageId,
@@ -857,6 +899,7 @@ export function ThreadWindow({
                 const threadLastText = '📊 Опрос';
                 await updateDoc(parentMessageRef, {
                     threadCount: increment(1),
+                    threadParticipantIds: arrayUnion(currentUser.id),
                     lastThreadMessageText: threadLastText,
                     lastThreadMessageSenderId: currentUser.id,
                     lastThreadMessageTimestamp: now,
@@ -931,6 +974,32 @@ export function ThreadWindow({
         onReactTo(mid, emoji, parentMessage.id);
     };
 
+    const handleRetryMediaNorm = useCallback(
+        async (message: ChatMessage) => {
+            if (!firestore) return;
+            try {
+                const fn = httpsCallable(
+                    getFunctions(firestore.app, 'us-central1'),
+                    'retryChatMediaTranscode'
+                );
+                await fn({
+                    conversationId: conversation.id,
+                    messageId: message.id,
+                    isThread: true,
+                    parentMessageId: parentMessage.id,
+                });
+                toast({ title: 'Повторная обработка запущена' });
+            } catch (error) {
+                const msg =
+                    error instanceof Error
+                        ? error.message
+                        : 'Не удалось запустить обработку';
+                toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+            }
+        },
+        [conversation.id, firestore, parentMessage.id, toast]
+    );
+
     const formatDateLabel = (dateStr: string) => {
         const date = parseISO(dateStr);
         if (isToday(date)) return 'Сегодня';
@@ -938,26 +1007,63 @@ export function ThreadWindow({
         return format(date, 'd MMMM', { locale: ru });
     };
 
+    const parentPreviewLabel = useMemo(() => {
+        const raw =
+            (threadE2eeMergedMap[parentMessage.id] ?? parentMessage.text ?? '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        if (raw) return raw;
+        if ((parentMessage.chatPollId ?? '').trim()) return 'Опрос';
+        if (parentMessage.locationShare) return 'Локация';
+        if ((parentMessage.attachments?.length ?? 0) > 0) return 'Вложение';
+        return 'Сообщение';
+    }, [
+        parentMessage.attachments,
+        parentMessage.chatPollId,
+        parentMessage.id,
+        parentMessage.locationShare,
+        parentMessage.text,
+        threadE2eeMergedMap,
+    ]);
+
     return (
         <div 
-            className="absolute inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-right duration-300 touch-pan-y"
+            className={cn(
+                'absolute inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-right duration-300 touch-pan-y',
+                asSidebarOnDesktop &&
+                    'lg:relative lg:inset-auto lg:z-20 lg:h-full lg:shrink-0 lg:bg-background/52 lg:backdrop-blur-2xl lg:shadow-[-10px_0_34px_rgba(0,0,0,0.42)] lg:animate-none'
+            )}
+            style={
+                asSidebarOnDesktop && desktopWidthPx
+                    ? ({ width: `${desktopWidthPx}px` } as React.CSSProperties)
+                    : undefined
+            }
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
-            <ChatWallpaperLayer wallpaper={effectiveThreadWallpaper} />
+            <div className={cn(asSidebarOnDesktop && 'lg:hidden')}>
+                <ChatWallpaperLayer wallpaper={effectiveThreadWallpaper} />
+            </div>
 
             <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
             <div
                 className={cn(
-                    'flex shrink-0 items-center justify-between gap-2 px-4 pb-2 pt-[max(0.35rem,env(safe-area-inset-top))]',
-                    CHAT_HEADER_SAFE_AREA_STRIP
+                    'flex shrink-0 items-center justify-between gap-2 px-3 pb-2 pt-[max(0.35rem,env(safe-area-inset-top))]',
+                    CHAT_HEADER_SAFE_AREA_STRIP,
+                    asSidebarOnDesktop &&
+                        'lg:border-b lg:border-white/10 lg:bg-transparent lg:backdrop-blur-none'
                 )}
             >
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
                     {!selection.active ? (
                         <div className="flex min-w-0 items-center gap-3">
                             <MessageSquare className="h-5 w-5 shrink-0 text-primary" />
-                            <h3 className="truncate text-sm font-bold">Обсуждение</h3>
+                            <div className="min-w-0">
+                                <h3 className="truncate text-base font-bold lg:text-lg lg:leading-tight">Обсуждение</h3>
+                                <p className="hidden lg:block truncate text-xs text-muted-foreground">{parentPreviewLabel}</p>
+                            </div>
                         </div>
                     ) : (
                         <SelectionHeader
@@ -976,9 +1082,29 @@ export function ThreadWindow({
                         />
                     )}
                     {!selection.active && (
-                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full" onClick={onClose}>
-                            <X className="h-5 w-5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            {asSidebarOnDesktop && (
+                                <>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="hidden lg:inline-flex h-8 w-8 rounded-md"
+                                        aria-label={isExpandedDesktop ? 'Свернуть панель обсуждения' : 'Развернуть панель обсуждения'}
+                                        title={isExpandedDesktop ? 'Свернуть' : 'Развернуть'}
+                                        onClick={onToggleExpandDesktop}
+                                    >
+                                        {isExpandedDesktop ? (
+                                          <Minimize2 className="h-4 w-4" />
+                                        ) : (
+                                          <Maximize2 className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                </>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full lg:h-8 lg:w-8 lg:rounded-md" onClick={onClose}>
+                                <X className="h-5 w-5 lg:h-4 lg:w-4" />
+                            </Button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -1033,8 +1159,15 @@ export function ThreadWindow({
                     }}
                     itemContent={(index, item) => {
                         if (item.type === 'parent') {
+                            const repliesLabel =
+                                allMessages.length === 1
+                                    ? '1 ответ'
+                                    : [2, 3, 4].includes(allMessages.length % 10) &&
+                                      ![12, 13, 14].includes(allMessages.length % 100)
+                                      ? `${allMessages.length} ответа`
+                                      : `${allMessages.length} ответов`;
                             return (
-                                <div className="p-2 rounded-2xl bg-muted/50 mb-4 mx-4 mt-2">
+                                <div className="mx-3 mb-4 mt-2">
                                     <ChatMessageItem 
                                         message={parentMessage}
                                         currentUser={currentUser}
@@ -1065,12 +1198,15 @@ export function ThreadWindow({
                                         onMentionProfileOpen={onMentionProfileOpen}
                                         onGroupSenderWritePrivate={onGroupSenderWritePrivate}
                                         e2eeDecryptedByMessageId={parentE2eeDecryptedByMessageId}
+                                        onRetryMediaNorm={handleRetryMediaNorm}
                                     />
-                                    <div className="flex items-center gap-2 px-4 py-2 mt-2">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
-                                            {allMessages.length} {allMessages.length === 1 ? 'ответ' : [2,3,4].includes(allMessages.length % 10) ? 'ответа' : 'ответов'}
-                                        </span>
-                                        <Separator className="flex-1 opacity-20" />
+                                    <div className="mt-2 px-2 py-1">
+                                        <div className="relative flex items-center justify-center">
+                                            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/22" />
+                                            <span className="relative z-10 shrink-0 rounded-full border border-white/12 bg-background/65 px-3 py-0.5 text-[12px] font-semibold uppercase tracking-wide text-white/82 backdrop-blur-sm">
+                                                {repliesLabel}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -1088,6 +1224,9 @@ export function ThreadWindow({
                             );
                         }
                         const msg = item.message;
+                        if (msg.systemEvent && msg.senderId === '__system__') {
+                          return <ChatSystemEventDivider event={msg.systemEvent} />;
+                        }
                         const isLastInChat = index === flatItems.length - 1;
                         return (
                             <MessageReadOnViewport
@@ -1138,6 +1277,7 @@ export function ThreadWindow({
                                         onGroupSenderWritePrivate={onGroupSenderWritePrivate}
                                         onSaveStickerGif={onSaveStickerGif}
                                         e2eeDecryptedByMessageId={threadE2eeMergedMap}
+                                        onRetryMediaNorm={handleRetryMediaNorm}
                                     />
                                 </div>
                             </MessageReadOnViewport>

@@ -23,7 +23,7 @@ const widthOneThird =
   'w-full max-w-[calc((100%-1.5rem)/3)] sm:max-w-[calc((100%-2rem)/3)]';
 
 const stageShell =
-  'mx-auto flex h-full w-full min-h-0 max-w-[min(96vw,1600px)] flex-col items-center justify-center px-2 py-4 sm:px-3';
+  'mx-auto flex h-full w-full min-h-0 max-w-[min(96vw,1600px)] flex-col items-center justify-center px-2 py-4 sm:px-3 [&>*]:shrink-0';
 
 function wrapVideoTile(tile: React.ReactNode, key: React.Key, className?: string) {
   return (

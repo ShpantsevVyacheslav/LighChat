@@ -22,6 +22,7 @@ ReplyContext buildReplyPreview({
   String? mediaPreviewUrl;
   String? mediaType;
   final hasPoll = (message.chatPollId ?? '').trim().isNotEmpty;
+  final hasLocation = message.locationShare != null;
 
   final raw = message.text ?? '';
   if (raw.trim().isNotEmpty) {
@@ -31,7 +32,8 @@ ReplyContext buildReplyPreview({
   final atts = message.attachments;
   if (atts.isNotEmpty) {
     final att = atts.first;
-    final isSticker = att.name.startsWith('sticker_') || att.type == 'image/svg+xml';
+    final isSticker =
+        att.name.startsWith('sticker_') || att.type == 'image/svg+xml';
     final isGif = att.name.startsWith('gif_');
     final isVideoCircle = att.name.startsWith('video-circle_');
     final t = (att.type ?? '').toLowerCase();
@@ -76,9 +78,30 @@ ReplyContext buildReplyPreview({
     }
   }
 
+  if (hasLocation) {
+    mediaType ??= 'location';
+    if (text.isEmpty) {
+      text = 'Локация';
+    }
+  }
+
   if (text.isEmpty && hasPoll) {
     text = 'Опрос';
+  }
+  if (hasPoll) {
     mediaType ??= 'poll';
+  }
+
+  final plain = text.trim().toLowerCase();
+  final hasLink =
+      raw.contains('<a ') ||
+      RegExp(r'(https?:\/\/|www\.)', caseSensitive: false).hasMatch(raw) ||
+      RegExp(r'(https?:\/\/|www\.)', caseSensitive: false).hasMatch(plain);
+  if (hasLink && mediaType == null) {
+    mediaType = 'link';
+    if (text.isEmpty) {
+      text = 'Ссылка';
+    }
   }
 
   if (text.isEmpty) text = 'Сообщение';

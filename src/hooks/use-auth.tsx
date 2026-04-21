@@ -58,6 +58,7 @@ import {
   isRegistrationUsernameTakenInIndex,
 } from '@/lib/registration-field-availability';
 import { isRegistrationProfileComplete } from '@/lib/registration-profile-complete';
+import { writeDeviceSession } from '@/lib/device-session';
 
 export interface RegisterData {
   name: string;
@@ -193,6 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const lastActivityRef = useRef<number>(Date.now());
 
   const logout = useCallback(async () => {
+    const logoutUid = auth.currentUser?.uid ?? appUser?.id ?? null;
     if (appUser && firestore && auth.currentUser) {
         const userDocRef = doc(firestore, 'users', appUser.id);
         try {
@@ -203,6 +205,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (e) {
             console.warn("Presence update failed during logout", e);
         }
+    }
+    if (logoutUid && firestore) {
+      try {
+        await writeDeviceSession({
+          firestore,
+          uid: logoutUid,
+          active: false,
+        });
+      } catch (e) {
+        console.warn('Device session update failed during logout', e);
+      }
     }
     
     try {
@@ -598,6 +611,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('scroll', handleActivity);
       window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [firebaseUser, firestore]);
+
+  // Device session registry: keeps per-device activity to mitigate multi-device auth desync.
+  useEffect(() => {
+    if (!firebaseUser || !firestore) return;
+    const uid = firebaseUser.uid;
+
+    let disposed = false;
+    const safeWrite = async (active: boolean, markLogin = false) => {
+      if (disposed) return;
+      try {
+        await writeDeviceSession({
+          firestore,
+          uid,
+          active,
+          markLogin,
+        });
+      } catch (e) {
+        console.warn('Device session write failed', e);
+      }
+    };
+
+    void safeWrite(true, true);
+
+    const heartbeat = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void safeWrite(true, false);
+      }
+    }, 60000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void safeWrite(true, false);
+      } else {
+        void safeWrite(false, false);
+      }
+    };
+    const onPageHide = () => void safeWrite(false, false);
+    window.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+
+    return () => {
+      window.clearInterval(heartbeat);
+      window.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+      void safeWrite(false, false);
+      disposed = true;
     };
   }, [firebaseUser, firestore]);
 

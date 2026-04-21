@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'video_first_frame.dart';
+
 bool _looksLikeImage(String path, String? mime) {
   final m = (mime ?? '').toLowerCase();
   if (m.startsWith('image/')) return true;
@@ -32,10 +34,12 @@ class ComposerPendingAttachmentsStrip extends StatelessWidget {
     super.key,
     required this.files,
     required this.onRemoveAt,
+    this.onEditAt,
   });
 
   final List<XFile> files;
   final void Function(int index) onRemoveAt;
+  final void Function(int index)? onEditAt;
 
   static const double thumb = 56;
 
@@ -54,11 +58,13 @@ class ComposerPendingAttachmentsStrip extends StatelessWidget {
             final f = files[i];
             final isImage = _looksLikeImage(f.path, f.mimeType);
             final isVideo = !isImage && _looksLikeVideo(f.path, f.mimeType);
+            final canEdit = (isImage || isVideo) && onEditAt != null;
             return _Thumb(
               file: f,
               showAsImage: isImage,
               isVideo: isVideo,
               onRemove: () => onRemoveAt(i),
+              onEdit: canEdit ? () => onEditAt!(i) : null,
             );
           },
         ),
@@ -73,12 +79,14 @@ class _Thumb extends StatelessWidget {
     required this.showAsImage,
     required this.isVideo,
     required this.onRemove,
+    this.onEdit,
   });
 
   final XFile file;
   final bool showAsImage;
   final bool isVideo;
   final VoidCallback onRemove;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +106,13 @@ class _Thumb extends StatelessWidget {
                     errorBuilder: (context, error, stackTrace) =>
                         _fallback(scheme),
                   )
-                : _fallback(scheme),
+                : (isVideo
+                    ? VideoFirstFrame(
+                        file: File(file.path),
+                        fit: BoxFit.cover,
+                        placeholder: _fallback(scheme),
+                      )
+                    : _fallback(scheme)),
           ),
         ),
         Positioned(
@@ -117,6 +131,27 @@ class _Thumb extends StatelessWidget {
             ),
           ),
         ),
+        if (onEdit != null)
+          Positioned(
+            bottom: -4,
+            right: -4,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.65),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onEdit,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.edit_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

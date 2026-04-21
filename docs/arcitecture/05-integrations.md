@@ -12,9 +12,9 @@
 
 ### Cloud Functions surface (ключевые вызовы)
 
-- Callable HTTP: `createNewUser`, `updateUserAdmin`, `backfillConversationMembers`, `backfillRegistrationIndex`, `requestMeetingAccess`, `respondToMeetingRequest`, `checkGroupInvitesAllowed`.
+- Callable HTTP: `createNewUser`, `updateUserAdmin`, `backfillConversationMembers`, `backfillRegistrationIndex`, `requestMeetingAccess`, `respondToMeetingRequest`, `checkGroupInvitesAllowed`, `retryChatMediaTranscode`.
 - Firestore triggers: `onconversationcreated`, `onconversationupdated`, `onconversationdeleted`, `onmessagecreated`, `onthreadmessagecreated`, `onchatmessagemediatranscode`, `onchatthreadmessagemediatranscode`, `oncallcreated`, `onmeetingparticipantcreated`, `onuserwritesyncregistrationindex`.
-- **Медиа в чате (нормализация):** после создания документа сообщения (основной ленты или треда) функции `onchatmessagemediatranscode` / `onchatthreadmessagemediatranscode` скачивают вложения по публичному URL, при необходимости перекодируют **FFmpeg** (видео → **MP4 H.264 + AAC**, прочее аудио → **M4A AAC**), загружают в Storage по пути `chat-attachments/{conversationId}/norm/{messageId}/…_lcnorm.{mp4|m4a}`, **обновляют** `attachments` на новый URL и **удаляют исходный объект** в `chat-attachments/{conversationId}/…` (если путь распознан из старого URL), чтобы не хранить два файла. Уже `video/mp4` и `audio/mp4` / `audio/mpeg` не перекодируются — оригинал не трогается. Лимит входного размера ~220 МБ; требуются **2 GiB RAM**, до **540 s** таймаут.
+- **Медиа в чате (нормализация):** после создания документа сообщения (основной ленты или треда) функции `onchatmessagemediatranscode` / `onchatthreadmessagemediatranscode` скачивают вложения по публичному URL, при необходимости перекодируют **FFmpeg** (видео → **MP4 H.264 + AAC**, прочее аудио → **M4A AAC**), загружают в Storage по пути `chat-attachments/{conversationId}/norm/{messageId}/…_lcnorm.{mp4|m4a}`, **обновляют** `attachments` на новый URL и **удаляют исходный объект** в `chat-attachments/{conversationId}/…` (если путь распознан из старого URL), чтобы не хранить два файла. Уже `video/mp4` и `audio/mp4` / `audio/mpeg` не перекодируются — оригинал не трогается. В документ сообщения пишется `mediaNorm` (`pending|done|failed`, `failedIndexes`, `updatedAt`) для UI-статуса и ручного retry. Для ручного перезапуска используется callable `retryChatMediaTranscode` (main/thread). Лимит входного размера ~220 МБ; требуются **2 GiB RAM**, до **540 s** таймаут.
 - Auth trigger: `onUserCreated`.
 - Scheduler: `checkUserPresence`.
 
@@ -58,6 +58,7 @@
 
 - Flutter клиент находится в `mobile/app`.
 - Для Firebase в Flutter используются плагины `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`, `firebase_messaging`.
+- Синхронизация контактов устройства: `flutter_contacts` + платформенные permissions (`NSContactsUsageDescription` в iOS `Info.plist`, `READ_CONTACTS` в Android `AndroidManifest.xml`); lookup строится через `registrationIndex` ключи `p_*`/`e_*`.
 - `mobile/app/lib/firebase_options.dart` синхронизирован с веб-конфигом `src/firebase/config.ts` (тот же проект Firebase). После добавления отдельных приложений iOS/Android/macOS в консоли Firebase обновите `appId` через FlutterFire CLI (`flutterfire configure`), иначе нативная инициализация может отказать.
 - Auth parity: чеклист соответствия web↔mobile — `docs/mobile/auth-parity.md`. Требования к полям/валидациям — `docs/mobile/auth-requirements.md`.
 - Push: Android — FCM из коробки; iOS — связка FCM + APNS (настраивается в Apple Developer + Firebase console).

@@ -30,6 +30,23 @@ class ChatSettingsRepository {
         );
   }
 
+  Stream<Map<String, dynamic>> watchChatConversationPrefs({
+    required String userId,
+    required String conversationId,
+  }) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('chatConversationPrefs')
+        .doc(conversationId)
+        .snapshots()
+        .map(
+          (snap) => Map<String, dynamic>.from(
+            snap.data() ?? const <String, dynamic>{},
+          ),
+        );
+  }
+
   Future<void> patchChatSettings(String uid, Map<String, Object?> patch) async {
     await _firestore.collection('users').doc(uid).set(<String, Object?>{
       'chatSettings': patch,
@@ -40,6 +57,29 @@ class ChatSettingsRepository {
     await _firestore.collection('users').doc(uid).set(<String, Object?>{
       'chatSettings': value,
     }, SetOptions(merge: true));
+  }
+
+  Future<void> patchUserDoc(String uid, Map<String, Object?> patch) async {
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set(patch, SetOptions(merge: true));
+  }
+
+  Future<void> patchChatConversationPrefs({
+    required String userId,
+    required String conversationId,
+    required Map<String, Object?> patch,
+  }) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('chatConversationPrefs')
+        .doc(conversationId)
+        .set(<String, Object?>{
+          'conversationId': conversationId,
+          ...patch,
+        }, SetOptions(merge: true));
   }
 
   Future<String> uploadWallpaper(String uid, Uint8List bytes) async {

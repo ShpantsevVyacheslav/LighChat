@@ -8,16 +8,20 @@ class ChatAccountMenuSheet extends StatelessWidget {
     required this.name,
     required this.username,
     required this.avatarUrl,
+    required this.themeLabel,
     required this.onProfileTap,
     required this.onChatSettingsTap,
+    required this.onThemeTap,
     required this.onSignOutTap,
   });
 
   final String name;
   final String username;
   final String? avatarUrl;
+  final String themeLabel;
   final VoidCallback onProfileTap;
   final VoidCallback onChatSettingsTap;
+  final VoidCallback onThemeTap;
   final VoidCallback onSignOutTap;
 
   @override
@@ -177,8 +181,8 @@ class ChatAccountMenuSheet extends StatelessWidget {
               item(
                 icon: Icons.palette_outlined,
                 title: 'Тема',
-                trailing: 'Авто',
-                onTap: soon,
+                trailing: themeLabel,
+                onTap: onThemeTap,
               ),
               item(
                 icon: Icons.logout_rounded,

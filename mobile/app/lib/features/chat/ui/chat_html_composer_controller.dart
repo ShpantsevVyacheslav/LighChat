@@ -99,9 +99,7 @@ class ChatHtmlComposerController extends TextEditingController {
       stack.add(top.copyWith(underline: true));
       return;
     }
-    if (t.startsWith('<s') ||
-        t.startsWith('<strike') ||
-        t.startsWith('<del')) {
+    if (t.startsWith('<s') || t.startsWith('<strike') || t.startsWith('<del')) {
       stack.add(top.copyWith(strike: true));
       return;
     }
@@ -153,10 +151,14 @@ class ChatHtmlComposerController extends TextEditingController {
 
     void addInvisible(String s) {
       for (final unit in s.runes) {
-        children.add(TextSpan(
-          text: String.fromCharCode(unit),
-          style: _invisibleTagStyle.merge(base),
-        ));
+        children.add(
+          TextSpan(
+            text: String.fromCharCode(unit),
+            // Важно: merge в сторону base -> invisible, иначе base (16px/цвет)
+            // перетирает "невидимый" стиль и HTML-теги становятся видимыми в поле ввода.
+            style: base.merge(_invisibleTagStyle),
+          ),
+        );
       }
     }
 
@@ -164,10 +166,9 @@ class ChatHtmlComposerController extends TextEditingController {
       if (m.start > pos) {
         final chunk = html.substring(pos, m.start);
         if (chunk.isNotEmpty) {
-          children.add(TextSpan(
-            text: chunk,
-            style: stack.last.toVisible(base),
-          ));
+          children.add(
+            TextSpan(text: chunk, style: stack.last.toVisible(base)),
+          );
         }
       }
       final tag = m.group(0)!;
@@ -185,10 +186,7 @@ class ChatHtmlComposerController extends TextEditingController {
     if (pos < html.length) {
       final chunk = html.substring(pos);
       if (chunk.isNotEmpty) {
-        children.add(TextSpan(
-          text: chunk,
-          style: stack.last.toVisible(base),
-        ));
+        children.add(TextSpan(text: chunk, style: stack.last.toVisible(base)));
       }
     }
     return children;
@@ -201,21 +199,21 @@ class ChatHtmlComposerController extends TextEditingController {
     required bool withComposing,
   }) {
     final value = this.value;
+    final t = value.text;
+    // Не подменять разметку на «сырой» текст при IME: иначе снова видны `<strong>` и т.п.
+    // Для обычного текста без тегов composing по-прежнему отдаём plain span (подчёркивание IME).
     if (withComposing &&
         value.composing.isValid &&
-        !value.composing.isCollapsed) {
-      return TextSpan(style: style, text: value.text);
+        !value.composing.isCollapsed &&
+        !t.contains('<')) {
+      return TextSpan(style: style, text: t);
     }
-    final t = value.text;
     if (t.isEmpty) {
       return TextSpan(text: '', style: style);
     }
     if (!t.contains('<')) {
       return TextSpan(text: t, style: style);
     }
-    return TextSpan(
-      style: style,
-      children: _buildHtmlSpans(t, style),
-    );
+    return TextSpan(style: style, children: _buildHtmlSpans(t, style));
   }
 }

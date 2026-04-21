@@ -3,6 +3,8 @@
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useFirestore, useStorage } from '@/firebase';
+import { getAuth } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { E2EE_LAST_MESSAGE_PREVIEW, tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
@@ -22,6 +24,7 @@ import type {
   PlatformSettingsDoc,
 } from '@/lib/types';
 import type { ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
+import { chatPollFirestoreFields } from '@/lib/chat-poll-create';
 import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -45,6 +48,7 @@ import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { SelectionHeader } from '@/components/chat/SelectionHeader';
 import { ChatParticipantProfile } from '@/components/chat/ChatParticipantProfile';
+import type { ChatProfileSubMenu } from '@/components/chat/ChatParticipantProfile';
 import { ChatMessageItem } from './ChatMessageItem';
 import { ChatMessageInput, type ChatMessageInputHandle } from './ChatMessageInput';
 import { initiateCall } from './AudioCallOverlay';
@@ -65,6 +69,7 @@ import { useRouter } from 'next/navigation';
 import { useSettings } from '@/hooks/use-settings';
 import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
 import { ChatDateSeparatorRow } from '@/components/chat/ChatDateSeparatorRow';
+import { ChatSystemEventDivider } from '@/components/chat/ChatSystemEventDivider';
 import { buildChatListRows, type ChatListRow } from '@/components/chat/build-chat-message-groups';
 import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
 import { getVirtuosoChatIncreaseViewport, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
@@ -80,6 +85,10 @@ import {
   ChatViewportScrollerRefContext,
   MessageReadOnViewport,
 } from '@/components/chat/message-read-on-viewport';
+import {
+  isFirestorePermissionDeniedError,
+  logFirestorePermissionDenied,
+} from '@/lib/firestore-permission-debug';
 import {
   incrementChatPerfCounter,
   markChatPerf,
@@ -163,6 +172,7 @@ export function ChatWindow({
   const [selection, setSelection] = useState({ active: false, ids: new Set<string>() });
   const [mediaViewerState, setMediaViewerState] = useState({ isOpen: false, startIndex: 0 });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileInitialSubMenu, setProfileInitialSubMenu] = useState<ChatProfileSubMenu | null>(null);
   /** Просмотр карточки участника группы (клик по @ в сообщении). */
   const [profileFocusUserId, setProfileFocusUserId] = useState<string | null>(null);
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -173,6 +183,8 @@ export function ChatWindow({
   const [isFullyReady, setIsFullyReady] = useState(false);
   const [hasScrolledToUnread, setHasScrolledToUnread] = useState(false);
   const [selectedThreadMessage, setSelectedThreadMessage] = useState<ChatMessage | null>(null);
+  const [threadPanelWidth, setThreadPanelWidth] = useState(520);
+  const [threadPanelExpanded, setThreadPanelExpanded] = useState(false);
   /** После открытия треда по реакции — id ответа в треде для прокрутки и подсветки. */
   const [threadReactionScrollToId, setThreadReactionScrollToId] = useState<string | null>(null);
   const [stickerSaveOpen, setStickerSaveOpen] = useState(false);
@@ -211,6 +223,7 @@ export function ChatWindow({
   const atBottomRef = useRef(true);
   const [videoCircleTailReservePx, setVideoCircleTailReservePxState] = useState(0);
   const prevTailReserveRef = useRef(0);
+  const threadPanelResizingRef = useRef(false);
 
   const setVideoCircleTailReservePx = useCallback((px: number) => {
     setVideoCircleTailReservePxState(Math.max(0, Math.round(px)));
@@ -219,6 +232,34 @@ export function ChatWindow({
   useEffect(() => {
     hasScrolledToUnreadRef.current = hasScrolledToUnread;
   }, [hasScrolledToUnread]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedWidth = Number(
+      window.localStorage.getItem('chat_thread_panel_width') ?? ''
+    );
+    if (Number.isFinite(storedWidth) && storedWidth >= 420 && storedWidth <= 1280) {
+      setThreadPanelWidth(storedWidth);
+    }
+    const storedExpanded = window.localStorage.getItem('chat_thread_panel_expanded');
+    if (storedExpanded === '1') setThreadPanelExpanded(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      'chat_thread_panel_width',
+      String(Math.round(threadPanelWidth))
+    );
+  }, [threadPanelWidth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      'chat_thread_panel_expanded',
+      threadPanelExpanded ? '1' : '0'
+    );
+  }, [threadPanelExpanded]);
 
   const threadRootHandledRef = useRef<string | null>(null);
   useEffect(() => {
@@ -389,7 +430,9 @@ export function ChatWindow({
       const updates: Record<string, string> = {};
       for (const m of allMessages) {
         if (!m.e2ee?.ciphertext) continue;
-        const plain = await e2eeConv.decryptMessagePayload(m.e2ee);
+        // v2-сообщения включают messageId в AAD; передаём, даже для v1 —
+        // v1-путь игнорирует.
+        const plain = await e2eeConv.decryptMessagePayload(m.e2ee, m.id);
         updates[m.id] = plain;
       }
       if (!cancelled) {
@@ -673,8 +716,54 @@ export function ChatWindow({
 
   const handleProfileSheetOpenChange = useCallback((open: boolean) => {
     setIsProfileOpen(open);
+    if (!open) setProfileInitialSubMenu(null);
     if (!open) setProfileFocusUserId(null);
   }, []);
+
+  const handleOpenThreadsFromHeader = useCallback(() => {
+    setProfileFocusUserId(null);
+    setProfileInitialSubMenu('threads');
+    setIsProfileOpen(true);
+  }, []);
+
+  const startThreadPanelResize = useCallback(
+    (startX: number) => {
+      if (typeof window === 'undefined') return;
+      threadPanelResizingRef.current = true;
+      const startWidth = threadPanelWidth;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      const minWidth = 420;
+      const maxWidth = Math.min(Math.floor(window.innerWidth * 0.78), 1180);
+
+      const onMove = (clientX: number) => {
+        if (!threadPanelResizingRef.current) return;
+        // Ручка на левой границе панели: тянем влево => панель шире.
+        const delta = startX - clientX;
+        setThreadPanelExpanded(false);
+        setThreadPanelWidth(Math.max(minWidth, Math.min(maxWidth, startWidth + delta)));
+      };
+
+      const onEnd = () => {
+        threadPanelResizingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onEnd);
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onEnd);
+      };
+
+      const onMouseMove = (e: MouseEvent) => onMove(e.clientX);
+      const onTouchMove = (e: TouchEvent) => onMove(e.touches[0].clientX);
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onEnd);
+      document.addEventListener('touchmove', onTouchMove, { passive: true });
+      document.addEventListener('touchend', onEnd);
+    },
+    [threadPanelWidth]
+  );
 
   const handleMentionProfileOpen = useCallback(
     (userId: string) => {
@@ -753,6 +842,30 @@ export function ChatWindow({
       setStickerSaveOpen(true);
     },
     []
+  );
+
+  const handleRetryMediaNorm = useCallback(
+    async (message: ChatMessage) => {
+      if (!firestore) return;
+      try {
+        const fn = httpsCallable(
+          getFunctions(firestore.app, 'us-central1'),
+          'retryChatMediaTranscode'
+        );
+        await fn({
+          conversationId: conversation.id,
+          messageId: message.id,
+        });
+        toast({ title: 'Повторная обработка запущена' });
+      } catch (error) {
+        const msg =
+          error instanceof Error
+            ? error.message
+            : 'Не удалось запустить обработку';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      }
+    },
+    [conversation.id, firestore, toast]
   );
 
   const handleStickerSaveConfirmPack = useCallback(
@@ -861,7 +974,7 @@ export function ChatWindow({
         e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
       const replyForWrite =
         useE2eeForText && replyContext
-          ? { ...replyContext, text: undefined }
+          ? (({ text: _omitted, ...rest }) => rest)(replyContext)
           : replyContext;
 
       const basePayload: Record<string, unknown> = {
@@ -876,12 +989,39 @@ export function ChatWindow({
       if (useE2eeForText) {
         const e2eePayload = await e2eeConv.encryptOutgoingHtml(text!);
         basePayload.e2ee = e2eePayload;
-        basePayload.text = deleteField();
       } else if (text) {
         basePayload.text = text;
       }
 
-      await setDoc(newDocRef, basePayload as Parameters<typeof setDoc>[1]);
+      try {
+        await setDoc(newDocRef, basePayload as Parameters<typeof setDoc>[1]);
+      } catch (writeError) {
+        if (isFirestorePermissionDeniedError(writeError)) {
+          try {
+            await getAuth(firestore.app).currentUser?.getIdToken(true);
+            await setDoc(newDocRef, basePayload as Parameters<typeof setDoc>[1]);
+          } catch (retryError) {
+            logFirestorePermissionDenied({
+              source: 'ChatWindow.handleSendMessage',
+              operation: 'create',
+              path: `conversations/${conversation.id}/messages/${messageId}`,
+              firestore,
+              failedStep: 'setDoc',
+              extra: {
+                conversationId: conversation.id,
+                senderId: currentUser.id,
+                useE2eeForText,
+                hasReply: !!replyForWrite,
+                attachmentCount: uploadedAttachments.length,
+              },
+              error: retryError,
+            });
+            throw retryError;
+          }
+        } else {
+          throw writeError;
+        }
+      }
 
       const conversationRef = doc(firestore, 'conversations', conversation.id);
       const unreadUpdates = getUnreadIncrementUpdate(conversation.participantIds, currentUser.id, 1);
@@ -919,6 +1059,7 @@ export function ChatWindow({
             : {}),
       });
     } catch (error) {
+      console.error('Chat send failed:', error);
       setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
       const msg = error instanceof Error ? error.message : '';
       if (msg === 'E2EE_NO_CHAT_KEY' || msg === 'E2EE_UNWRAP_FAILED') {
@@ -1050,14 +1191,8 @@ export function ChatWindow({
       if (replyContext) setReplyingTo(null);
       try {
         await setDoc(pollRef, {
-          id: pollId,
-          question: input.question,
-          options: input.options,
-          creatorId: currentUser.id,
-          status: 'active',
-          isAnonymous: input.isAnonymous,
+          ...chatPollFirestoreFields(input, pollId, currentUser.id),
           createdAt: serverTimestamp(),
-          votes: {},
         });
         await setDoc(newDocRef, {
           id: messageId,
@@ -1489,8 +1624,9 @@ export function ChatWindow({
     <div className="h-full flex flex-col overflow-hidden relative bg-transparent touch-pan-y" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <ChatWallpaperLayer wallpaper={effectiveWallpaper} />
 
+        <div className="relative z-10 flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <div
-          className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col"
+          className="relative flex min-h-0 min-w-0 flex-1 flex-col"
           onDragOver={(e) => {
             if (selection.active || isPartnerDeleted) return;
             e.preventDefault();
@@ -1569,7 +1705,7 @@ export function ChatWindow({
                               className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
                               aria-label="Обсуждения"
                               title="Обсуждения"
-                              onClick={() => router.push(`/dashboard/chat/${conversation.id}/threads`)}
+                              onClick={handleOpenThreadsFromHeader}
                             >
                               <MessageCircle className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.threads)} strokeWidth={2} />
                             </Button>
@@ -1702,6 +1838,15 @@ export function ChatWindow({
                               );
                             }
                             if (item.type === 'unread-separator') return (<div className="flex items-center gap-4 px-6 py-4 animate-in fade-in duration-500"><div className="h-px bg-primary/30 flex-1" /><span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full border border-primary/20">Непрочитанные сообщения</span><div className="h-px bg-primary/30 flex-1" /></div>);
+                            // Phase 8: system-маркер E2EE рисуется отдельным divider'ом
+                            // вместо обычного bubble. Senders = '__system__'.
+                            if (item.message.systemEvent && item.message.senderId === '__system__') {
+                              return (
+                                <ChatSystemEventDivider
+                                  event={item.message.systemEvent}
+                                />
+                              );
+                            }
                             const isLastInChat = index === flatItems.length - 1;
                             return (
                               <MessageReadOnViewport
@@ -1715,7 +1860,7 @@ export function ChatWindow({
                                 sessionReadIds={sessionReadIds}
                               >
                                 <div className="py-1 px-4">
-                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} />
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
                                 </div>
                               </MessageReadOnViewport>
                             );
@@ -1756,6 +1901,61 @@ export function ChatWindow({
           </div>
         )}
         </div>
+        {selectedThreadMessage && (
+          <>
+            <div
+              className="hidden w-1.5 shrink-0 cursor-col-resize items-center justify-center bg-transparent lg:flex"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                startThreadPanelResize(e.clientX);
+              }}
+              onTouchStart={(e) => startThreadPanelResize(e.touches[0].clientX)}
+            >
+              <div className="h-8 w-0.5 rounded-full bg-transparent" />
+            </div>
+            <ThreadWindow
+              parentMessage={selectedThreadMessage}
+              conversation={conversation}
+              currentUser={currentUser}
+              allUsers={allUsers}
+              suppressFloatingAnchor={isProfileOpen}
+              onClose={() => {
+                setSelectedThreadMessage(null);
+                setThreadReactionScrollToId(null);
+              }}
+              onOpenImageViewer={handleOpenMediaViewer}
+              onOpenVideoViewer={handleOpenMediaViewer}
+              onNavigateToMessage={navigateToMessage}
+              onUpdateMessage={handleUpdateMessage}
+              onDeleteMessage={(id) => handleDeleteMessage(id, selectedThreadMessage.id)}
+              onReplyTo={setReplyingTo}
+              onForwardMessage={(m) => {
+                sessionStorage.setItem('forwardMessages', JSON.stringify([m]));
+                router.push('/dashboard/chat/forward');
+              }}
+              onReactTo={handleReactTo}
+              isPartnerDeleted={isPartnerDeleted}
+              highlightThreadMessageId={threadReactionScrollToId}
+              onHighlightThreadMessageConsumed={clearThreadReactionScrollTarget}
+              onMentionProfileOpen={handleMentionProfileOpen}
+              onGroupSenderWritePrivate={handleGroupSenderWritePrivate}
+              onSaveStickerGif={handleSaveStickerFromMessage}
+              parentE2eeDecryptedByMessageId={e2eePlaintextByMessageId}
+              chatWallpaper={effectiveWallpaper}
+              asSidebarOnDesktop
+              desktopWidthPx={
+                typeof window !== 'undefined' && window.innerWidth >= 1024
+                  ? threadPanelExpanded
+                    ? Math.min(Math.floor(window.innerWidth * 0.78), 1180)
+                    : threadPanelWidth
+                  : undefined
+              }
+              isExpandedDesktop={threadPanelExpanded}
+              onToggleExpandDesktop={() => setThreadPanelExpanded((v) => !v)}
+            />
+          </>
+        )}
+        </div>
         <ChatParticipantProfile
           open={isProfileOpen}
           onOpenChange={handleProfileSheetOpenChange}
@@ -1766,39 +1966,9 @@ export function ChatWindow({
           currentUser={currentUser}
           messages={messagesForList}
           onSelectConversation={onSelectConversation}
+          initialSubMenu={profileInitialSubMenu}
+          onInitialSubMenuConsumed={() => setProfileInitialSubMenu(null)}
         />
-        {selectedThreadMessage && (
-          <ThreadWindow
-            parentMessage={selectedThreadMessage}
-            conversation={conversation}
-            currentUser={currentUser}
-            allUsers={allUsers}
-            suppressFloatingAnchor={isProfileOpen}
-            onClose={() => {
-              setSelectedThreadMessage(null);
-              setThreadReactionScrollToId(null);
-            }}
-            onOpenImageViewer={handleOpenMediaViewer}
-            onOpenVideoViewer={handleOpenMediaViewer}
-            onNavigateToMessage={navigateToMessage}
-            onUpdateMessage={handleUpdateMessage}
-            onDeleteMessage={(id) => handleDeleteMessage(id, selectedThreadMessage.id)}
-            onReplyTo={setReplyingTo}
-            onForwardMessage={(m) => {
-              sessionStorage.setItem('forwardMessages', JSON.stringify([m]));
-              router.push('/dashboard/chat/forward');
-            }}
-            onReactTo={handleReactTo}
-            isPartnerDeleted={isPartnerDeleted}
-            highlightThreadMessageId={threadReactionScrollToId}
-            onHighlightThreadMessageConsumed={clearThreadReactionScrollTarget}
-            onMentionProfileOpen={handleMentionProfileOpen}
-            onGroupSenderWritePrivate={handleGroupSenderWritePrivate}
-            onSaveStickerGif={handleSaveStickerFromMessage}
-            parentE2eeDecryptedByMessageId={e2eePlaintextByMessageId}
-            chatWallpaper={effectiveWallpaper}
-          />
-        )}
         <StickerPackPickerDialog
           open={stickerSaveOpen}
           onOpenChange={(o) => {

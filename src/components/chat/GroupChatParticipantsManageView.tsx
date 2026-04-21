@@ -13,6 +13,10 @@ import {
   effectiveGroupAdminIds,
 } from '@/lib/group-chat-member-updates';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import {
+  createE2eeSessionDoc,
+  fetchUserE2eePublicKeySpki,
+} from '@/lib/e2ee/session-firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -108,6 +112,33 @@ export function GroupChatParticipantsManageView({
     void runWithBusy(memberId, async () => {
       if (!firestore) return;
       const payload = buildGroupMemberRemovalUpdate(conversation, memberId);
+      // Phase 0 safety fix: при исключении участника из E2EE-группы мы
+      // должны не только увеличить `e2eeKeyEpoch` (это делает билдер), но и
+      // создать новый session-doc с обёртками свежего ключа ТОЛЬКО для
+      // оставшихся участников. Без этого: эпоху подняли, но нового ключа
+      // нет → отправка сообщений падает на `fetchE2eeSession`. Либо, что
+      // хуже, если кто-то переиспользует старый ключ — исключённый
+      // участник сохраняет возможность читать будущие сообщения.
+      //
+      // Порядок важен: сначала публикуем session-doc, потом update. Если
+      // update упадёт — останется «сиротский» session для нового эпоха, но
+      // эпоха не взведена, и чат продолжает работать на старом ключе.
+      if (conversation.e2eeEnabled) {
+        const nextEpoch = (conversation.e2eeKeyEpoch ?? 0) + 1;
+        const remaining = (payload.participantIds as string[]) ?? [];
+        const uid = currentUser.id;
+        if (!remaining.includes(uid)) {
+          throw new Error('E2EE: creator is unexpectedly missing from remaining participants');
+        }
+        await createE2eeSessionDoc(
+          firestore,
+          conversation.id,
+          nextEpoch,
+          remaining,
+          uid,
+          (otherUid) => fetchUserE2eePublicKeySpki(firestore, otherUid)
+        );
+      }
       await updateDoc(doc(firestore, 'conversations', conversation.id), payload);
       toast({ title: 'Участник исключён' });
     });
