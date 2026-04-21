@@ -1,0 +1,145 @@
+{
+  "$schema": "./e2ee-v2-test-vectors.schema.json",
+  "version": "1.0.0",
+  "generatedAt": "2026-04-21T00:00:00.000Z",
+  "notes": [
+    "Общие тестовые векторы для E2EE v2 — TS (web) и Dart (mobile) обязаны проходить их идентично.",
+    "Все бинарные значения — в base64 (RFC 4648, без padding опционален — декодер должен переваривать оба).",
+    "Ключи подписаны как KAT — не использовать в проде. Все приватники сгенерированы локально для этого файла.",
+    "ephPriv/ephPub пары нужны для детерминистичных тест-кейсов wrap'а — в проде всегда ephemeral random."
+  ],
+  "categories": {
+    "hkdfWrapV2": {
+      "description": "HKDF-SHA-256 деривация wrap-ключа по §6.1.",
+      "cases": [
+        {
+          "name": "basic",
+          "input": {
+            "sharedSecretHex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+            "saltUtf8": "7:device-A",
+            "infoUtf8": "lighchat/v2/wrap",
+            "outputLen": 32
+          },
+          "expectedWrapKeyHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B"
+        }
+      ]
+    },
+    "messageEncryptV2": {
+      "description": "AES-256-GCM шифрование текстового сообщения с AAD по §6.2.",
+      "cases": [
+        {
+          "name": "single-line-utf8",
+          "input": {
+            "chatKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+            "ivHex": "bada55c0ffee1234567890ab",
+            "plaintextUtf8": "Привет, мир!",
+            "aadComponents": {
+              "context": "msg/v2",
+              "conversationId": "conv-fixture-1",
+              "messageId": "msg-fixture-1",
+              "epoch": 3
+            }
+          },
+          "expectedCiphertextHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B",
+          "expectedTagHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B"
+        },
+        {
+          "name": "html-with-entities",
+          "input": {
+            "chatKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+            "ivHex": "0f0e0d0c0b0a09080706050403020100",
+            "plaintextUtf8": "<p>Test &lt;b&gt;bold&lt;/b&gt; &amp; emoji 👋</p>",
+            "aadComponents": {
+              "context": "msg/v2",
+              "conversationId": "conv-fixture-1",
+              "messageId": "msg-fixture-2",
+              "epoch": 3
+            }
+          },
+          "expectedCiphertextHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B",
+          "expectedTagHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B"
+        }
+      ]
+    },
+    "mediaChunkV2": {
+      "description": "Один chunk медиа-файла (AES-GCM, 4 МиБ). Здесь — уменьшенный до 64 B для теста.",
+      "cases": [
+        {
+          "name": "chunk-0-small",
+          "input": {
+            "fileKeyHex": "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100",
+            "noncePrefixHex": "cafebabecafebabe",
+            "chunkIndex": 0,
+            "plaintextHex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+            "aadComponents": {
+              "fileId": "file-fixture-1",
+              "kind": "image"
+            }
+          },
+          "expectedCiphertextHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B",
+          "expectedTagHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B"
+        }
+      ]
+    },
+    "argon2idBackupV1": {
+      "description": "KDF для password-backup, §6.8.",
+      "cases": [
+        {
+          "name": "reference",
+          "input": {
+            "passwordUtf8": "correct horse battery staple",
+            "saltHex": "000102030405060708090a0b0c0d0e0f",
+            "memoryKiB": 65536,
+            "iterations": 3,
+            "parallelism": 1,
+            "keyLength": 32
+          },
+          "expectedKeyHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_1B"
+        }
+      ]
+    },
+    "wrapV2": {
+      "description": "Полный wrap chat-key для recipient device, §6.1.",
+      "fixtures": {
+        "ephemeralSenderPkcs8B64": "PLACEHOLDER_FIXTURE_FILL_DURING_PHASE_2",
+        "ephemeralSenderSpkiB64": "PLACEHOLDER_FIXTURE_FILL_DURING_PHASE_2",
+        "recipientDevicePkcs8B64": "PLACEHOLDER_FIXTURE_FILL_DURING_PHASE_2",
+        "recipientDeviceSpkiB64": "PLACEHOLDER_FIXTURE_FILL_DURING_PHASE_2"
+      },
+      "cases": [
+        {
+          "name": "single-recipient",
+          "input": {
+            "chatKeyHex": "deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb",
+            "ivHex": "000000000000000000000001",
+            "epochId": "conv-fixture-1:3",
+            "deviceId": "dev-recipient-A"
+          },
+          "expected": {
+            "ctHex": "PLACEHOLDER_FILL_IN_IMPLEMENTATION_PHASE_2",
+            "roundtripChatKeyHex": "deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb"
+          }
+        }
+      ]
+    },
+    "v1Compat": {
+      "description": "v2 readers должны корректно расшифровывать v1 payload'ы (регрессия).",
+      "cases": [
+        {
+          "name": "v1-hello",
+          "input": {
+            "protocolVersion": "v1-p256-aesgcm",
+            "chatKeyHex": "00000000000000000000000000000000000000000000000000000000000000ff",
+            "ivB64": "AAAAAAAAAAAAAAAA",
+            "ciphertextB64": "PLACEHOLDER_GENERATE_FROM_V1_CODEPATH"
+          },
+          "expectedPlaintextUtf8": "hello v1"
+        }
+      ]
+    }
+  },
+  "todo": [
+    "Phase 1b — заполнить все PLACEHOLDER_* генератором из src/lib/e2ee/v2/test-vectors-gen.ts (TS) с последующей перекрестной проверкой в mobile/test/e2ee/.",
+    "Добавить большие файлы (64 МиБ) за флагом heavy-test, чтобы не раздувать этот JSON."
+  ]
+}
