@@ -7,6 +7,8 @@ import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../data/user_profile.dart';
+import '../data/chat_list_offline_cache.dart';
+import '../data/dm_display_title.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/chat_message_draft_storage.dart';
 import '../data/bottom_nav_icon_settings.dart';
@@ -240,7 +242,25 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   Map<String, StoredChatMessageDraft> _draftByConv =
       <String, StoredChatMessageDraft>{};
 
+  String? _lastOfflinePersistFingerprint;
+
   late final VoidCallback _draftRevListener = _onChatDraftRevision;
+
+  void _persistOfflineSnapshot() {
+    final idx = widget.userChatIndex;
+    if (idx == null) return;
+    final fp =
+        '${idx.conversationIds.join('\u001e')}|${widget.conversations.map((c) => '${c.id}:${c.data.lastMessageTimestamp}').join('\u001f')}';
+    if (fp == _lastOfflinePersistFingerprint) return;
+    _lastOfflinePersistFingerprint = fp;
+    unawaited(
+      persistChatListOfflineSnapshot(
+        userId: widget.currentUserId,
+        index: idx,
+        conversations: widget.conversations,
+      ),
+    );
+  }
 
   void _onChatDraftRevision() {
     unawaited(_reloadChatDrafts());
@@ -257,6 +277,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     super.initState();
     chatDraftListRevision.addListener(_draftRevListener);
     unawaited(_reloadChatDrafts());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _persistOfflineSnapshot());
   }
 
   @override
@@ -264,6 +285,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentUserId != widget.currentUserId) {
       unawaited(_reloadChatDrafts());
+    }
+    if (oldWidget.conversations != widget.conversations ||
+        oldWidget.userChatIndex != widget.userChatIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _persistOfflineSnapshot());
     }
   }
 
@@ -1423,10 +1448,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                         .participantInfo?[widget.currentUserId]
                                         ?.avatar;
                               } else if (c.data.isGroup) {
-                                title =
-                                    (c.data.name?.trim().isNotEmpty ?? false)
-                                    ? c.data.name!.trim()
-                                    : c.id;
+                                title = groupConversationDisplayTitle(c);
                                 avatarUrl = c.data.photoUrl;
                               } else {
                                 final other = c.data.participantIds.firstWhere(
@@ -1443,12 +1465,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                         .participantInfo?[other]
                                         ?.avatarThumb ??
                                     c.data.participantInfo?[other]?.avatar;
-                                title =
-                                    p?.name ??
-                                    (c.data.name?.trim().isNotEmpty ?? false
-                                        ? c.data.name!.trim()
-                                        : other);
-                                if (title.trim().isEmpty) title = c.id;
+                                title = dmConversationDisplayTitle(
+                                  currentUserId: widget.currentUserId,
+                                  conversation: c,
+                                  otherUserId: other,
+                                  profiles: profiles,
+                                );
                               }
                               final rawLast = (c.data.lastMessageText ?? '')
                                   .trim();
@@ -1468,10 +1490,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                               final draftLine = draft == null
                                   ? null
                                   : chatMainDraftPreviewLine(draft);
+                              final isEmptyConversation =
+                                  lastAt == null && rawLast.isEmpty;
                               final subtitle =
                                   (draftLine != null && draftLine.isNotEmpty)
                                   ? 'Черновик · $draftLine'
-                                  : (isClearedForCurrentUser
+                                  : (isEmptyConversation
+                                        ? 'Пока нет сообщений'
+                                        : isClearedForCurrentUser
                                         ? 'История очищена'
                                         : rawLast);
                               final unreadCount =
@@ -2279,9 +2305,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       String key;
 
       if (c.data.isGroup) {
-        title = (c.data.name?.trim().isNotEmpty ?? false)
-            ? c.data.name!.trim()
-            : c.id;
+        title = groupConversationDisplayTitle(c);
         subtitle = null;
         avatarUrl = c.data.photoUrl;
         key = 'conv:${c.id}';
@@ -2294,12 +2318,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
           orElse: () => '',
         );
         final profile = profiles[other];
-        title =
-            profile?.name ??
-            c.data.participantInfo?[other]?.name ??
-            c.data.name?.trim() ??
-            other;
-        if (title.trim().isEmpty) title = c.id;
+        title = dmConversationDisplayTitle(
+          currentUserId: widget.currentUserId,
+          conversation: c,
+          otherUserId: other,
+          profiles: profiles,
+        );
         subtitle = _usernameLabel(profile?.username);
         avatarUrl =
             profile?.avatarThumb ??

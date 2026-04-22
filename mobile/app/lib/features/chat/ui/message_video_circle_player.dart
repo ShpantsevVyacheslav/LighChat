@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show File;
 import 'dart:math' as math;
 import 'dart:ui' show PointerDeviceKind;
 
@@ -9,6 +10,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 
 import 'chat_vlc_network_media.dart';
 import 'message_bubble_delivery_icons.dart';
+import 'video_cached_thumb_image.dart';
 
 const double _kCircleCollapsed = 192;
 const double _kMinVisibleRatio = 0.12;
@@ -114,10 +116,20 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
     }
     VideoPlayerController? c;
     try {
-      c = VideoPlayerController.networkUrl(
-        uri,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
+      // E2EE v2: расшифрованные файлы лежат локально как `file://...`.
+      // `VideoPlayerController.networkUrl` не умеет открывать их через
+      // platform media stack — нужен `VideoPlayerController.file`.
+      if (uri.scheme == 'file') {
+        c = VideoPlayerController.file(
+          File(uri.toFilePath()),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+      } else {
+        c = VideoPlayerController.networkUrl(
+          uri,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+      }
       await c.initialize();
       if (!mounted) {
         await c.dispose();
@@ -298,13 +310,23 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
           fit: StackFit.expand,
           clipBehavior: Clip.hardEdge,
           children: [
+            Positioned.fill(
+              child: VideoCachedThumbImage(
+                videoUrl: widget.attachment.url,
+                fit: BoxFit.cover,
+              ),
+            ),
             FittedBox(
               fit: BoxFit.cover,
               clipBehavior: Clip.hardEdge,
               child: SizedBox(
                 width: c.value.size.width,
                 height: c.value.size.height,
-                child: VideoPlayer(c),
+                child: IgnorePointer(
+                  // Avoid the platform video view swallowing scroll gestures.
+                  ignoring: true,
+                  child: VideoPlayer(c),
+                ),
               ),
             ),
             if (_ready && (_isPlaying || _controlsVisible))
@@ -597,14 +619,32 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
             width: 3,
           ),
         ),
-        child: const Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.2,
-              color: Colors.white54,
-            ),
+        child: ClipOval(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              VideoCachedThumbImage(
+                videoUrl: widget.attachment.url,
+                fit: BoxFit.cover,
+              ),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withValues(alpha: 0.35),
+                  ),
+                  child: const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: Colors.white54,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

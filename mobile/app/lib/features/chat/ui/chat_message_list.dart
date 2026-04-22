@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -12,6 +13,7 @@ import '../data/chat_poll_stub_text.dart';
 import '../data/chat_emoji_only.dart';
 import '../data/video_circle_utils.dart';
 import '../data/chat_media_layout_tokens.dart';
+import '../data/link_preview_url_extractor.dart';
 import '../data/user_profile.dart';
 import 'chat_date_capsule.dart';
 import 'chat_system_event_divider.dart';
@@ -21,6 +23,8 @@ import 'message_chat_poll.dart';
 import 'message_deleted_stub.dart';
 import 'message_location_card.dart';
 import 'message_html_text.dart';
+import 'message_link_preview_card.dart';
+import 'group_member_profile_sheet.dart';
 import 'message_reactions_row.dart';
 import 'message_reply_preview.dart';
 import 'message_swipe_to_reply.dart';
@@ -998,6 +1002,9 @@ class _ChatMessageBubble extends StatelessWidget {
     final singlePureEmoji = isPureEmoji
         ? _singleEmojiFromOnlyEmojiMessage(displayPlain)
         : null;
+    final linkPreviewUrl = (!hasMedia && !hasPoll && !hasLocation && hasVisibleText)
+        ? extractFirstHttpUrl(displayPlain)
+        : null;
     final reactions =
         message.reactions ?? const <String, List<ReactionEntry>>{};
     ReactionUserView resolveReactionUser(String userId, {String? timestamp}) {
@@ -1123,6 +1130,24 @@ class _ChatMessageBubble extends StatelessWidget {
             linkColor: linkColorForHtml,
             quoteAccent: scheme.primary,
             quoteMaxWidth: quoteMaxWidth ?? quoteMaxFallback,
+            onMentionTap: (userId) async {
+              final uid = userId.trim();
+              if (uid.isEmpty) return;
+              if (conversation == null || conversation!.isGroup != true) return;
+              if (!context.mounted) return;
+              await Navigator.of(context).push<void>(
+                CupertinoPageRoute<void>(
+                  builder: (_) => GroupMemberProfileSheet(
+                    conversationId: conversationId,
+                    conversation: conversation!,
+                    currentUserId: currentUserId,
+                    memberId: uid,
+                    selfProfile: profileMap?[currentUserId],
+                    memberProfile: profileMap?[uid],
+                  ),
+                ),
+              );
+            },
           );
 
       Widget? textBlock;
@@ -1140,7 +1165,13 @@ class _ChatMessageBubble extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [textWidget],
+            children: [
+              textWidget,
+              if (linkPreviewUrl != null) ...[
+                const SizedBox(height: 10),
+                MessageLinkPreviewCard(url: linkPreviewUrl, isMine: isMine),
+              ],
+            ],
           ),
         );
       }

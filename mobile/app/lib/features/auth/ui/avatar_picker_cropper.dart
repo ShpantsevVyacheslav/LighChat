@@ -287,7 +287,9 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
               ),
             ),
             child: _value == null
-                ? _avatarPreview(Theme.of(context), iconSize: 64)
+                ? ClipOval(
+                    child: _avatarPreview(Theme.of(context), iconSize: 64),
+                  )
                 : ClipOval(child: _avatarPreview(Theme.of(context))),
           ),
         ),

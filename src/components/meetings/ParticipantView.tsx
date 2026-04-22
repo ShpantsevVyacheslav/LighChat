@@ -6,9 +6,10 @@ import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
-  VideoOff, MicOff, Maximize, Hand, CircleDot, MonitorPlay
+  VideoOff, MicOff, Maximize, Hand, CircleDot, MonitorPlay, SignalLow, SignalZero
 } from 'lucide-react';
 import type { BackgroundConfig } from '@/hooks/use-meeting-webrtc';
+import type { PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
 
 interface ParticipantState {
   id: string;
@@ -25,6 +26,12 @@ interface ParticipantState {
   lastSeen?: any;
   backgroundConfig?: BackgroundConfig;
   facingMode?: 'user' | 'environment';
+  /**
+   * Качество соединения до удалённого peer: 'poor' или 'bad' → рендерим значок
+   * слабого сигнала. См. `src/lib/webrtc/peer-stats.ts`. Для локального тайла
+   * это поле не проставляется.
+   */
+  connectionQuality?: PeerConnectionQuality;
 }
 
 /** grid — плитки в сетке (ячейка задаётся родителем, обычно 16:9); stage — крупное видео докладчика; strip задаётся через isCompact */
@@ -316,6 +323,18 @@ const ParticipantViewComponent = ({
             )}
         </div>
         {participant.isAudioMuted && <MicOff className="h-2.5 w-2.5 text-red-500" />}
+        {!isLocal && participant.connectionQuality === 'poor' && (
+          <SignalLow
+            className="h-3 w-3 text-amber-400"
+            aria-label="Нестабильное соединение"
+          />
+        )}
+        {!isLocal && participant.connectionQuality === 'bad' && (
+          <SignalZero
+            className="h-3 w-3 text-red-500"
+            aria-label="Плохое соединение"
+          />
+        )}
       </div>
 
       {!isCompact && (
@@ -351,6 +370,7 @@ export const ParticipantView = React.memo(ParticipantViewComponent, (prev, next)
         p1.facingMode === p2.facingMode &&
         p1.avatar === p2.avatar &&
         p1.avatarThumb === p2.avatarThumb &&
+        p1.connectionQuality === p2.connectionQuality &&
         prev.isLocal === next.isLocal &&
         prev.isCompact === next.isCompact &&
         prev.layout === next.layout &&

@@ -279,7 +279,7 @@ export type PlatformSettingsDoc = {
    *  - `auto` (default) — если в чате уже есть v2-сессия, пишем v2, иначе v1.
    * Читатели поддерживают dual-read независимо от флага.
    */
-  e2eeProtocolVersion?: 'v1' | 'v2' | 'auto';
+  e2eeProtocolVersion?: 'v2' | 'auto' | 'off';
 };
 
 export type ReplyContext = {
@@ -292,12 +292,16 @@ export type ReplyContext = {
 };
 
 /**
- * Версия протокола E2E.
- * - `v1-p256-aesgcm` — MVP: P-256 ECDH + AES-GCM, один публичный ключ на пользователя, wraps[uid].
- * - `v2-p256-aesgcm-multi` — multi-device: публичный ключ на устройство, wraps[uid][deviceId],
- *    HKDF wrap, AAD в AEAD, зашифрованные медиа-конверты. См. `docs/arcitecture/07-e2ee-v2-protocol.md`.
+ * Версия протокола E2E. После Phase 10 cleanup единственная поддерживаемая —
+ * `v2-p256-aesgcm-multi` (multi-device: публичный ключ на устройство,
+ * wraps[uid][deviceId], HKDF wrap, AAD в AEAD, зашифрованные медиа-конверты;
+ * см. `docs/arcitecture/07-e2ee-v2-protocol.md`).
+ *
+ * Тип оставлен параметризованным строкой, потому что сервер может прислать
+ * envelope с неизвестной нам версией (например, будущая v3). UI в таком
+ * случае показывает плейсхолдер «обновите приложение».
  */
-export type E2eeProtocolVersion = 'v1-p256-aesgcm' | 'v2-p256-aesgcm-multi';
+export type E2eeProtocolVersion = 'v2-p256-aesgcm-multi' | (string & {});
 
 /** Зашифрованное тело сообщения в Firestore (plaintext только на клиенте). */
 export type ChatMessageE2eePayload = {
@@ -306,8 +310,8 @@ export type ChatMessageE2eePayload = {
   iv: string;
   ciphertext: string;
   /**
-   * v2: id устройства-источника. Отсутствует у v1-сообщений. Помогает UI показать «кто отправил с какого устройства»
-   * и используется как часть AAD в декодере.
+   * v2: id устройства-источника. Используется как часть AAD в декодере и
+   * позволяет UI показать «кто отправил с какого устройства».
    */
   senderDeviceId?: string;
   /** v2: зашифрованные вложения, параллельный массив к `attachments`. Nullable — элемент может отсутствовать для sticker/gif. */
@@ -359,20 +363,11 @@ export type E2eeKeyWrapEntry = {
   ct: string;
 };
 
-/** Документ `conversations/{conversationId}/e2eeSessions/{epoch}` (v1/legacy). */
-export type E2eeSessionDoc = {
-  epoch: number;
-  protocolVersion: E2eeProtocolVersion;
-  createdAt: string;
-  createdByUserId: string;
-  wraps: Record<string, E2eeKeyWrapEntry>;
-};
-
 /**
- * v2-вариант документа эпохи. Главное отличие — `wraps` теперь вложенная мапа
- * `userId → deviceId → wrapEntry`. Лежит в той же коллекции
- * `conversations/{cid}/e2eeSessions/{epoch}`; версия распознаётся по полю
- * `protocolVersion`. Коллекция едина, чтобы читатели v2 могли dual-read.
+ * Документ эпохи `conversations/{cid}/e2eeSessions/{epoch}`. После Phase 10
+ * cleanup v1 удалён — используется только v2 формат. Сессии с
+ * `protocolVersion` != `'v2-p256-aesgcm-multi'` считаются unsupported:
+ * клиенты триггерят self-heal (ротация эпохи в v2).
  */
 export type E2eeSessionDocV2 = {
   epoch: number;
@@ -383,12 +378,6 @@ export type E2eeSessionDocV2 = {
   participantIds: string[];
   wraps: Record<string, Record<string, E2eeKeyWrapEntry>>;
   wrapContext: string;
-};
-
-/** Публичный ключ устройства (v1): `users/{uid}/e2ee/device`. */
-export type UserE2eePublicDoc = {
-  publicKeySpki: string;
-  updatedAt: string;
 };
 
 /**
@@ -545,6 +534,7 @@ export type ChatMessage = {
 /** Phase 8 (§9.4 RFC E2EE v2): типизированные system-маркеры timeline'а. */
 export type ChatSystemEventType =
   | 'e2ee.v2.enabled'
+  | 'e2ee.v2.disabled'
   | 'e2ee.v2.epoch.rotated'
   | 'e2ee.v2.device.added'
   | 'e2ee.v2.device.revoked'

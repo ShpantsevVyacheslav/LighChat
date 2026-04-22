@@ -13,6 +13,8 @@ import '../data/chat_media_gallery.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_media_viewer_screen.dart';
+import 'video_cached_thumb_image.dart';
+import 'video_circle_gallery.dart';
 
 enum _MediaTab { media, circles, files, links }
 
@@ -50,6 +52,7 @@ class ConversationMediaLinksFilesScreen extends ConsumerStatefulWidget {
 class _ConversationMediaLinksFilesScreenState
     extends ConsumerState<ConversationMediaLinksFilesScreen> {
   _MediaTab _tab = _MediaTab.media;
+  String? _activeCircleUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +234,7 @@ class _ConversationMediaLinksFilesScreenState
 
     return switch (_tab) {
       _MediaTab.media => _mediaGrid(mediaItems),
-      _MediaTab.circles => _attachmentsList(circles, emptyText: 'Нет кружков'),
+      _MediaTab.circles => _circlesGrid(circles),
       _MediaTab.files => _attachmentsList(files, emptyText: 'Нет файлов'),
       _MediaTab.links => _linksList(links),
     };
@@ -261,7 +264,10 @@ class _ConversationMediaLinksFilesScreenState
             child: Stack(
               fit: StackFit.expand,
               children: [
-                ChatCachedNetworkImage(url: att.url, fit: BoxFit.cover),
+                if (isVideo)
+                  VideoCachedThumbImage(videoUrl: att.url, fit: BoxFit.cover)
+                else
+                  ChatCachedNetworkImage(url: att.url, fit: BoxFit.cover),
                 if (isVideo)
                   Align(
                     alignment: Alignment.center,
@@ -364,6 +370,20 @@ class _ConversationMediaLinksFilesScreenState
           ),
         );
       },
+    );
+  }
+
+  Widget _circlesGrid(List<_AttachmentEntry> items) {
+    if (items.isEmpty) return _emptyBody('Нет кружков');
+    final mapped = items
+        .map(
+          (e) => (message: e.message, attachment: e.attachment),
+        )
+        .toList(growable: false);
+    return VideoCircleGallery(
+      items: mapped,
+      activeUrl: _activeCircleUrl,
+      onActiveUrlChanged: (url) => setState(() => _activeCircleUrl = url),
     );
   }
 

@@ -6,6 +6,11 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 
+const double _kHeaderTitleSize = 16;
+const double _kCardTitleSize = 18;
+const double _kBodyTextSize = 14;
+const double _kMutedTextSize = 13;
+
 class ChatNotificationsScreen extends ConsumerWidget {
   const ChatNotificationsScreen({super.key});
 
@@ -201,7 +206,7 @@ class _NotificationsView extends StatelessWidget {
               Text(
                 'Уведомления',
                 style: TextStyle(
-                  fontSize: 52 * 0.44,
+                  fontSize: _kHeaderTitleSize,
                   fontWeight: FontWeight.w700,
                   color: titleColor,
                 ),
@@ -218,7 +223,28 @@ class _NotificationsView extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Управление звуками и показом уведомлений.',
-                  style: TextStyle(fontSize: 18, color: subtitleColor),
+                  style: TextStyle(fontSize: _kBodyTextSize, color: subtitleColor),
+                ),
+                const SizedBox(height: 12),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: dark ? 0.35 : 0.55,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      'Push на устройство: после входа приложение запросит разрешение; '
+                      'при отказе включите уведомления для LighChat в настройках системы.',
+                      style: TextStyle(
+                        fontSize: _kMutedTextSize,
+                        color: subtitleColor,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 22),
                 _SettingsCard(
@@ -261,13 +287,12 @@ class _NotificationsView extends StatelessWidget {
                       disabled: settings.muteAll,
                     ),
                     if (settings.quietHoursEnabled && !settings.muteAll) ...[
-                      _cardDivider(),
                       const SizedBox(height: 10),
                       Row(
                         children: [
                           Expanded(
                             child: _TimeButton(
-                              label: 'С',
+                              label: null,
                               value: settings.quietHoursStart,
                               onTap: onPickQuietHoursStart,
                             ),
@@ -277,7 +302,7 @@ class _NotificationsView extends StatelessWidget {
                             child: Text(
                               '—',
                               style: TextStyle(
-                                fontSize: 22,
+                                fontSize: _kCardTitleSize,
                                 color: (dark ? Colors.white : scheme.onSurface)
                                     .withValues(alpha: dark ? 0.72 : 0.64),
                               ),
@@ -285,7 +310,7 @@ class _NotificationsView extends StatelessWidget {
                           ),
                           Expanded(
                             child: _TimeButton(
-                              label: 'До',
+                              label: null,
                               value: settings.quietHoursEnd,
                               onTap: onPickQuietHoursEnd,
                             ),
@@ -321,7 +346,7 @@ class _NotificationsView extends StatelessWidget {
                     label: Text(
                       'Сбросить настройки',
                       style: TextStyle(
-                        fontSize: 20 * 0.72,
+                        fontSize: _kBodyTextSize,
                         fontWeight: FontWeight.w500,
                         color: (dark ? Colors.white : scheme.onSurface)
                             .withValues(alpha: dark ? 0.7 : 0.7),
@@ -383,7 +408,7 @@ class _SettingsCard extends StatelessWidget {
             child: Text(
               title,
               style: TextStyle(
-                fontSize: 20 * 0.95,
+                fontSize: _kCardTitleSize,
                 fontWeight: FontWeight.w700,
                 color: fg.withValues(alpha: dark ? 0.95 : 0.94),
               ),
@@ -395,7 +420,7 @@ class _SettingsCard extends StatelessWidget {
               child: Text(
                 subtitle!,
                 style: TextStyle(
-                  fontSize: 17 * 0.95,
+                  fontSize: _kMutedTextSize,
                   color: fg.withValues(alpha: dark ? 0.52 : 0.60),
                 ),
               ),
@@ -441,7 +466,7 @@ class _SwitchRow extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 22 * 0.95,
+                    fontSize: _kBodyTextSize,
                     fontWeight: FontWeight.w500,
                     color: disabled
                         ? fg.withValues(alpha: dark ? 0.42 : 0.42)
@@ -453,7 +478,7 @@ class _SwitchRow extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: TextStyle(
-                      fontSize: 17 * 0.92,
+                      fontSize: _kMutedTextSize,
                       color: disabled
                           ? fg.withValues(alpha: dark ? 0.32 : 0.38)
                           : fg.withValues(alpha: dark ? 0.56 : 0.62),
@@ -487,7 +512,7 @@ class _TimeButton extends StatelessWidget {
     required this.onTap,
   });
 
-  final String label;
+  final String? label;
   final String value;
   final VoidCallback onTap;
 
@@ -496,20 +521,23 @@ class _TimeButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
+    final showLabel = (label ?? '').trim().isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 2),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 17 * 0.94,
-              color: fg.withValues(alpha: dark ? 0.78 : 0.7),
+        if (showLabel) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text(
+              label!,
+              style: TextStyle(
+                fontSize: _kMutedTextSize,
+                color: fg.withValues(alpha: dark ? 0.78 : 0.7),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 4),
+          const SizedBox(height: 4),
+        ],
         SizedBox(
           height: 66,
           child: OutlinedButton(
@@ -531,7 +559,7 @@ class _TimeButton extends StatelessWidget {
                   child: Text(
                     value,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: _kBodyTextSize,
                       color: fg.withValues(alpha: dark ? 0.9 : 0.86),
                     ),
                   ),

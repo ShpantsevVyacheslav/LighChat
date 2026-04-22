@@ -38,6 +38,27 @@ class AuthRepository {
     );
   }
 
+  /// Sign in with Apple (Firebase `OAuthProvider('apple.com')`).
+  /// Requires Apple capability on iOS; Firebase Console → Authentication → Apple enabled.
+  Future<void> signInWithApple() async {
+    final provider = OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+    const maxAttempts = 3;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await _auth.signInWithProvider(provider);
+        return;
+      } on FirebaseAuthException catch (e) {
+        final raw = e.code;
+        final code = raw.startsWith('auth/') ? raw : 'auth/$raw';
+        final isNetwork = code == 'auth/network-request-failed';
+        if (!isNetwork || attempt == maxAttempts) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
+      }
+    }
+  }
+
   Future<void> signInWithGoogle() async {
     // Matches web parity (Google Auth provider) without pulling the iOS GoogleSignIn pod,
     // which currently conflicts with Firebase iOS SDK's GTMSessionFetcher version.
@@ -61,6 +82,11 @@ class AuthRepository {
 
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  /// После callable `signInWithTelegram` (WebView-мост или другой клиент).
+  Future<void> signInWithCustomToken(String customToken) async {
+    await _auth.signInWithCustomToken(customToken.trim());
   }
 }
 

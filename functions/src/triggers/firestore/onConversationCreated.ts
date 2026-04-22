@@ -104,6 +104,7 @@ export const onconversationcreated = onDocumentCreated(
             tag: `group-add-${conversationId}`,
             icon: "/pwa/icon-192.png",
             silent: decision.silent,
+            conversationId,
           });
           sendItems.push({ tokens, data });
         }

@@ -120,25 +120,53 @@ export async function encryptAndUploadMediaFileV2(
     chatKeyRaw
   );
 
-  const chunkStoragePaths: string[] = [];
-  for (const chunk of chunks) {
-    const path = chunkStoragePath(input.conversationId, input.messageId, fileId, chunk.index);
-    const ref = storageRef(input.storage, path);
-    // Важно: contentType задаём чистый application/octet-stream, чтобы ни
-    // transcoder, ни браузерная раскладка MIME не пыталась угадать что внутри.
-    await uploadBytes(ref, chunk.data, {
-      contentType: 'application/octet-stream',
-      customMetadata: {
-        e2eeV2ChunkIndex: String(chunk.index),
-        e2eeV2FileId: fileId,
-        e2eeV2ChunkCount: String(envelope.chunking.chunkCount),
-      },
-    });
-    chunkStoragePaths.push(path);
+  // Параллелим upload чанков. Раньше цикл был строго последовательным, что
+  // давало линейный rtt * chunkCount и делало отправку 30+ МБ «вечной».
+  // Ограничиваем concurrency небольшим окном, чтобы не упереться в лимиты
+  // Firebase Storage / пропускную способность сети.
+  const chunkStoragePaths: string[] = new Array(chunks.length);
+  const concurrency = Math.min(chunks.length, E2EE_MEDIA_V2_UPLOAD_CONCURRENCY);
+  let cursor = 0;
+  const workers: Promise<void>[] = [];
+  for (let w = 0; w < concurrency; w++) {
+    workers.push(
+      (async () => {
+        while (true) {
+          const i = cursor++;
+          if (i >= chunks.length) return;
+          const chunk = chunks[i];
+          const path = chunkStoragePath(
+            input.conversationId,
+            input.messageId,
+            fileId,
+            chunk.index
+          );
+          const ref = storageRef(input.storage, path);
+          // Важно: contentType задаём чистый application/octet-stream, чтобы ни
+          // transcoder, ни браузерная раскладка MIME не пыталась угадать что внутри.
+          await uploadBytes(ref, chunk.data, {
+            contentType: 'application/octet-stream',
+            customMetadata: {
+              e2eeV2ChunkIndex: String(chunk.index),
+              e2eeV2FileId: fileId,
+              e2eeV2ChunkCount: String(envelope.chunking.chunkCount),
+            },
+          });
+          chunkStoragePaths[i] = path;
+        }
+      })()
+    );
   }
+  await Promise.all(workers);
 
   return { envelope, chunkStoragePaths };
 }
+
+/**
+ * Максимальная степень параллелизма при upload'е чанков.
+ * 4 — компромисс между скоростью и нагрузкой на Storage/квоту мобильной сети.
+ */
+export const E2EE_MEDIA_V2_UPLOAD_CONCURRENCY = 4;
 
 export type DownloadDecryptInput = {
   storage: FirebaseStorage;

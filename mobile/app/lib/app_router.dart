@@ -15,6 +15,7 @@ import 'features/chat/ui/chat_call_detail_screen.dart';
 import 'features/chat/ui/chat_calls_screen.dart';
 import 'features/chat/ui/chat_list_screen.dart';
 import 'features/chat/ui/chat_meetings_screen.dart';
+import 'features/meetings/ui/meeting_entry_screen.dart';
 import 'features/chat/ui/chat_notifications_screen.dart';
 import 'features/chat/ui/chat_privacy_screen.dart';
 import 'features/chat/ui/chat_settings_screen.dart';
@@ -22,6 +23,7 @@ import 'features/chat/ui/chat_screen.dart';
 import 'features/chat/ui/conversation_threads_screen.dart';
 import 'features/settings/ui/devices_screen.dart';
 import 'features/settings/ui/e2ee_recovery_screen.dart';
+import 'features/settings/ui/e2ee_qr_pairing_screen.dart';
 import 'features/chat/ui/new_chat_screen.dart';
 import 'features/chat/ui/new_group_chat_screen.dart';
 import 'features/chat/ui/thread_screen.dart';
@@ -34,7 +36,7 @@ GoRouter createRouter() {
       final uri = state.uri;
       final isSignedIn = FirebaseAuth.instance.currentUser != null;
 
-      // Firebase Auth (Google) iOS callback comes as:
+      // Firebase Auth (Google / Apple) iOS callback comes as:
       //   app-<...>://firebaseauth/link?deep_link_id=...
       // GoRouter receives it as a location; we must redirect it to an internal route.
       if (uri.host == 'firebaseauth' && uri.path == '/link') {
@@ -62,19 +64,42 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: '/chats',
-        builder: (context, state) => const ChatListScreen(),
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const ChatListScreen(),
+        ),
       ),
       GoRoute(
         path: '/contacts',
-        builder: (context, state) => const ChatContactsScreen(),
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const ChatContactsScreen(),
+        ),
       ),
       GoRoute(
         path: '/calls',
-        builder: (context, state) => const ChatCallsScreen(),
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const ChatCallsScreen(),
+        ),
       ),
       GoRoute(
         path: '/meetings',
-        builder: (context, state) => const ChatMeetingsScreen(),
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const ChatMeetingsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/meetings/:meetingId',
+        pageBuilder: (context, state) {
+          final meetingId = state.pathParameters['meetingId'] ?? '';
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            name: state.name,
+            child: MeetingEntryScreen(meetingId: meetingId),
+          );
+        },
       ),
       GoRoute(
         path: '/calls/:callId',
@@ -123,6 +148,11 @@ GoRouter createRouter() {
       GoRoute(
         path: '/settings/e2ee-recovery',
         builder: (context, state) => const E2eeRecoveryScreen(),
+      ),
+      // Phase 9 gap #1: полноценный QR-pairing экран (initiator + donor).
+      GoRoute(
+        path: '/settings/e2ee-qr-pairing',
+        builder: (context, state) => const E2eeQrPairingScreen(),
       ),
       GoRoute(
         path: '/chats/forward',
@@ -202,4 +232,11 @@ GoRouter createRouter() {
       ),
     ),
   );
+}
+
+/// Устанавливается из [MyApp] для deep link из push (без [BuildContext]).
+GoRouter? appGoRouterRef;
+
+void attachAppGoRouter(GoRouter router) {
+  appGoRouterRef = router;
 }

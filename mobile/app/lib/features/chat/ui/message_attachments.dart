@@ -176,9 +176,24 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final onlyOneVideo =
+            videoLike.length == 1 && images.isEmpty && voices.isEmpty;
+        final v0 = onlyOneVideo ? videoLike.first.attachment : null;
+        final vw = v0?.width;
+        final vh = v0?.height;
+        final isLandscape = vw != null &&
+            vh != null &&
+            vw > 0 &&
+            vh > 0 &&
+            vw >= vh * 1.02;
+        final videoScale = onlyOneVideo && isLandscape ? 1.125 : 1.5;
         final width = _attachmentsColumnWidth(
           available: constraints.maxWidth,
-          gridMaxWidth: gridMaxWidth,
+          // Видео в ленте хотим крупнее: поднимаем "cap" колонки, но только
+          // когда показываем именно видео (без сетки картинок).
+          gridMaxWidth: (videoLike.isNotEmpty && images.isEmpty)
+              ? (gridMaxWidth * videoScale)
+              : gridMaxWidth,
           images: images,
         );
         return Align(

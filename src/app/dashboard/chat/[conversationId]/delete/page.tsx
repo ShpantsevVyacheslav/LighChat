@@ -7,6 +7,7 @@ import { arrayRemove, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { useUser as useFirebaseUser } from '@/firebase';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ export default function DeleteConversationPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user: authUser } = useAuth();
+  const { user: firebaseAuthUser } = useFirebaseUser();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const conversationId = typeof params.conversationId === 'string' ? params.conversationId : '';
@@ -37,9 +39,10 @@ export default function DeleteConversationPage() {
     setIsDeleting(true);
     try {
       await deleteDoc(conversationRef);
-      if (firestore && authUser?.id && conversationId) {
+      const uid = authUser?.id || firebaseAuthUser?.uid;
+      if (firestore && uid && conversationId) {
         try {
-          await updateDoc(doc(firestore, 'userChats', authUser.id), {
+          await updateDoc(doc(firestore, 'userChats', uid), {
             conversationIds: arrayRemove(conversationId),
           });
         } catch (indexErr) {
@@ -52,7 +55,35 @@ export default function DeleteConversationPage() {
       });
       router.push('/dashboard/chat');
     } catch (error: any) {
-      console.error("Failed to delete chat:", error);
+      // Fallback: если Firestore-правило запретило удалять parent-документ
+      // (пользователь уже не в `participantIds` — вышел/убрали из группы,
+      // устаревший индекс userChats), по крайней мере скрываем чат из своего
+      // списка, чтобы UI не зависал на «удалить не удалось». Сам документ
+      // `conversations/{id}` остаётся нетронутым — это безопасно для
+      // остальных участников. См. firestore.rules §conversations.delete.
+      const isPermissionDenied = error?.code === 'permission-denied';
+      const uid = authUser?.id || firebaseAuthUser?.uid;
+      if (isPermissionDenied && firestore && uid && conversationId) {
+        try {
+          await updateDoc(doc(firestore, 'userChats', uid), {
+            conversationIds: arrayRemove(conversationId),
+          });
+          toast({
+            title: 'Чат скрыт',
+            description:
+              'Вы больше не участник этого чата, поэтому он удалён только из вашего списка.',
+          });
+          router.push('/dashboard/chat');
+          return;
+        } catch (hideErr) {
+          console.error('[DeleteConversation] hide-from-userChats fallback failed:', hideErr);
+        }
+      }
+      console.error(
+        'Failed to delete chat:',
+        error,
+        { conversationId, uid: authUser?.id, participantIds: conversation?.participantIds }
+      );
       toast({
         variant: 'destructive',
         title: 'Ошибка при удалении',

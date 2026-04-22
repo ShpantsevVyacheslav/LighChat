@@ -6,7 +6,7 @@ import { useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { ROLES } from '@/lib/constants';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
-import { tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee';
+import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
 import { useSettings } from '@/hooks/use-settings';
 import { doc, getDoc } from 'firebase/firestore';
 import type { PlatformSettingsDoc } from '@/lib/types';
@@ -69,7 +69,7 @@ export function NewChatDialog({
         } catch {
           /* ignore */
         }
-        await tryAutoEnableE2eeNewDirectChat(firestore, id, currentUser.id, {
+        await autoEnableE2eeForNewDirectChat(firestore, id, currentUser.id, {
           userWants: privacySettings.e2eeForNewDirectChats === true,
           platformWants,
         });

@@ -7,6 +7,11 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../../auth/ui/auth_glass.dart';
 import '../../shared/ui/app_back_button.dart';
 
+const double _kHeaderTitleSize = 16;
+const double _kCardTitleSize = 18;
+const double _kBodyTextSize = 14;
+const double _kMutedTextSize = 13;
+
 class ChatPrivacyScreen extends ConsumerWidget {
   const ChatPrivacyScreen({super.key});
 
@@ -143,9 +148,6 @@ class _PrivacyView extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-    final subtitleColor = dark
-        ? Colors.white.withValues(alpha: 0.70)
-        : scheme.onSurface.withValues(alpha: 0.68);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,28 +163,19 @@ class _PrivacyView extends StatelessWidget {
                 Text(
                   'Конфиденциальность',
                   style: TextStyle(
-                    fontSize: 38,
-                    height: 1.06,
-                    fontWeight: FontWeight.w800,
+                    fontSize: _kHeaderTitleSize,
+                    height: 1.1,
+                    fontWeight: FontWeight.w700,
                     color: dark ? Colors.white : scheme.onSurface,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Видимость в чатах и то, что другие видят в вашем профиле.',
-                  style: TextStyle(fontSize: 18, color: subtitleColor),
                 ),
                 const SizedBox(height: 20),
                 _SettingsCard(
                   title: 'Сквозное шифрование',
-                  subtitle:
-                      'Новые личные чаты: при создании приложение попробует включить E2E, если у вас и у собеседника опубликованы ключи (нужен хотя бы один вход на устройстве). Администраторы и сервер не читают зашифрованные сообщения.',
                   leadingIcon: Icons.lock_outline_rounded,
                   children: [
                     _SwitchRow(
-                      title: 'Пытаться включать E2E в новых личных чатах',
-                      subtitle:
-                          'Работает вместе с платформенной настройкой (если её включил админ). Если ключей нет — чат останется обычным.',
+                      title: 'Включить шифрование (E2E) для всех чатов',
                       value: settings.e2eeForNewDirectChats,
                       onChanged: onE2eeChanged,
                     ),
@@ -207,7 +200,6 @@ class _PrivacyView extends StatelessWidget {
                 const SizedBox(height: 14),
                 _SettingsCard(
                   title: 'Видимость',
-                  subtitle: 'Кто может видеть вашу активность.',
                   children: [
                     _SwitchRow(
                       title: 'Статус онлайн',
@@ -234,13 +226,11 @@ class _PrivacyView extends StatelessWidget {
                 _SettingsCard(
                   title: 'Приглашения в группы',
                   subtitle:
-                      'Кто может добавлять вас в групповой чат. Администраторы приложения не ограничены этим правилом.',
+                      'Кто может добавлять вас в групповой чат.',
                   leadingIcon: Icons.group_add_outlined,
                   children: [
                     _SwitchRow(
                       title: 'Все пользователи',
-                      subtitle:
-                          'Любой участник может включить вас в новую группу или добавить в существующую.',
                       value: settings.groupInvitePolicy == 'everyone',
                       onChanged: (on) {
                         if (on) onGroupPolicyChange('everyone');
@@ -248,8 +238,6 @@ class _PrivacyView extends StatelessWidget {
                     ),
                     _SwitchRow(
                       title: 'Только контакты',
-                      subtitle:
-                          'В группу вас сможет добавить только тот, кого вы сами сохранили в «Контактах».',
                       value: settings.groupInvitePolicy == 'contacts',
                       onChanged: (on) {
                         if (on) onGroupPolicyChange('contacts');
@@ -257,8 +245,6 @@ class _PrivacyView extends StatelessWidget {
                     ),
                     _SwitchRow(
                       title: 'Никто',
-                      subtitle:
-                          'Обычные пользователи не смогут добавить вас в группу.',
                       value: settings.groupInvitePolicy == 'none',
                       onChanged: (on) {
                         if (on) onGroupPolicyChange('none');
@@ -382,8 +368,8 @@ class _SettingsCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
+                    fontSize: _kCardTitleSize,
+                    fontWeight: FontWeight.w700,
                     color: dark ? Colors.white : scheme.onSurface,
                   ),
                 ),
@@ -395,7 +381,7 @@ class _SettingsCard extends StatelessWidget {
             Text(
               subtitle!,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: _kMutedTextSize,
                 color: dark
                     ? Colors.white.withValues(alpha: 0.70)
                     : scheme.onSurface.withValues(alpha: 0.68),
@@ -454,7 +440,7 @@ class _SwitchRow extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: _kBodyTextSize,
                     fontWeight: FontWeight.w600,
                     color: dark
                         ? Colors.white.withValues(alpha: 0.95)
@@ -466,7 +452,7 @@ class _SwitchRow extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: _kMutedTextSize,
                       color: dark
                           ? Colors.white.withValues(alpha: 0.68)
                           : scheme.onSurface.withValues(alpha: 0.64),
@@ -477,7 +463,16 @@ class _SwitchRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Switch(value: value, onChanged: onChanged),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: const Color(0xFF2F86FF),
+            inactiveThumbColor: (dark ? Colors.white : scheme.surface)
+                .withValues(alpha: dark ? 0.9 : 1),
+            inactiveTrackColor: (dark ? Colors.white : scheme.onSurface)
+                .withValues(alpha: dark ? 0.2 : 0.2),
+          ),
         ],
       ),
     );
@@ -519,7 +514,7 @@ class _NavRow extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: _kBodyTextSize,
                       fontWeight: FontWeight.w600,
                       color: dark
                           ? Colors.white.withValues(alpha: 0.95)
@@ -531,7 +526,7 @@ class _NavRow extends StatelessWidget {
                     Text(
                       subtitle!,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: _kMutedTextSize,
                         color: dark
                             ? Colors.white.withValues(alpha: 0.68)
                             : scheme.onSurface.withValues(alpha: 0.64),

@@ -57,8 +57,8 @@ getFirestoreRegistrationProfileStatusWithDeadline(
 /// Проверка «регистрация завершена» по `users/{uid}` с учётом кэша Firestore (паритет с web `use-auth`).
 ///
 /// 1) Обычный [DocumentReference.get] (кэш → сервер).
-/// 2) Если неполно и вход через Google — повтор с [Source.server], как web `getDocFromServer`.
-/// 3) Email из документа, иначе из Firebase Auth (часто актуально сразу после Google Sign-In).
+/// 2) Если неполно и вход через Google или Apple — повтор с [Source.server], как web `getDocFromServer`.
+/// 3) Email из документа, иначе из Firebase Auth (часто актуально сразу после OAuth Sign-In).
 /// Жёсткий предел ожидания проверки профиля (нативный Firestore иногда не завершает [get],
 /// и тогда даже [Future.timeout] на Dart-стороне не срабатывает как ожидается).
 Future<bool> isFirestoreRegistrationProfileCompleteWithDeadline(
@@ -84,9 +84,11 @@ Future<RegistrationProfileStatus> getFirestoreRegistrationProfileStatus(
   final docRef = FirebaseFirestore.instance
       .collection('users')
       .doc(firebaseUser.uid);
-  final isGoogle = firebaseUser.providerData.any(
-    (p) => p.providerId == 'google.com',
-  );
+  final isTelegramUid = RegExp(r'^tg_\d+$').hasMatch(firebaseUser.uid);
+  final isOauthSocial = firebaseUser.providerData.any(
+        (p) => p.providerId == 'google.com' || p.providerId == 'apple.com',
+      ) ||
+      isTelegramUid;
 
   String asTrimmedString(Object? raw) {
     if (raw == null) return '';
@@ -145,13 +147,13 @@ Future<RegistrationProfileStatus> getFirestoreRegistrationProfileStatus(
     return future.timeout(kFirestoreRegistrationGetTimeout);
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> timedGetWithGoogleAuthRefresh([
+  Future<DocumentSnapshot<Map<String, dynamic>>> timedGetWithOauthAuthRefresh([
     GetOptions? options,
   ]) async {
     try {
       return await timedGet(options);
     } on FirebaseException catch (e, st) {
-      if (!isGoogle || e.code != 'permission-denied') rethrow;
+      if (!isOauthSocial || e.code != 'permission-denied') rethrow;
       log(
         'users/${firebaseUser.uid} get() permission-denied, refreshing token and retrying',
         name: 'registration_profile_gate',
@@ -171,7 +173,7 @@ Future<RegistrationProfileStatus> getFirestoreRegistrationProfileStatus(
   var hasDeterministicIncomplete = false;
 
   try {
-    final snap = await timedGetWithGoogleAuthRefresh();
+    final snap = await timedGetWithOauthAuthRefresh();
     final status = evaluate(snap.data());
     if (status == RegistrationProfileStatus.complete) return status;
     if (status == RegistrationProfileStatus.incomplete) {
@@ -200,9 +202,9 @@ Future<RegistrationProfileStatus> getFirestoreRegistrationProfileStatus(
     );
   }
 
-  if (isGoogle) {
+  if (isOauthSocial) {
     try {
-      final snap = await timedGetWithGoogleAuthRefresh(
+      final snap = await timedGetWithOauthAuthRefresh(
         const GetOptions(source: Source.server),
       );
       final status = evaluate(snap.data());

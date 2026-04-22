@@ -19,6 +19,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../data/composer_clipboard_paste.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_runtime.dart';
+import '../data/e2ee_attachment_send_helper.dart';
 import '../data/composer_html_editing.dart';
 import '../data/sanitize_message_html.dart';
 import '../data/chat_attachment_upload.dart';
@@ -29,6 +30,7 @@ import '../data/pinned_messages_helper.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/reply_preview_builder.dart';
 import '../data/saved_messages_chat.dart';
+import '../data/group_mention_candidates.dart';
 import '../data/user_profile.dart';
 import '../data/chat_message_draft_storage.dart';
 import 'chat_html_composer_controller.dart';
@@ -1173,10 +1175,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   messages: msgs,
                                                   builder: (
                                                     context,
+                                                    hydratedMsgs,
                                                     e2eeDecryptedMap,
                                                     e2eeFailedIds,
                                                   ) => ChatMessageList(
-                                                  messagesDesc: msgs,
+                                                  messagesDesc: hydratedMsgs,
                                                   currentUserId: user.uid,
                                                   conversationId:
                                                       conversationId,
@@ -1305,6 +1308,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                             isMine: true,
                                                             outgoingBubbleColor:
                                                                 bubbleColor,
+                                                            e2eeContext:
+                                                                _outgoingImageAlbum!
+                                                                    .e2eeContext,
                                                             onFinished: () {
                                                               if (!mounted) {
                                                                 return;
@@ -1540,6 +1546,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         : null,
                                     onSend: () =>
                                         _submitComposer(user.uid, conv?.data),
+                                    groupMentionCandidates:
+                                        conv?.data != null &&
+                                                conv!.data.isGroup
+                                            ? buildGroupMentionCandidates(
+                                                conversation: conv.data,
+                                                currentUserId: user.uid,
+                                                profileMap: profileMap,
+                                              )
+                                            : null,
                                     pendingAttachments: _pendingAttachments,
                                     onRemovePending: (i) {
                                       setState(
@@ -1643,6 +1658,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         unawaited(_handleComposerAttachment(a)),
                                     onMicTap: () =>
                                         unawaited(_sendVoiceMessage(user.uid)),
+                                    onVoiceHoldRecorded: (rec) async {
+                                      await _sendVoiceMessageFromRecord(
+                                        user.uid,
+                                        rec,
+                                      );
+                                    },
                                     onStickersTap: () =>
                                         unawaited(_openStickersGifPanel()),
                                     stickerSuggestionBuilder: () {
@@ -2738,11 +2759,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final replySnap = _replyingTo;
       final textSave = prepared;
       if (pending.every(isOutgoingAlbumLocalImage)) {
+        // E2EE v2 Phase 9: для E2EE-active чата заранее резервируем messageId и
+        // готовим контекст для альбома (runtime + epoch + messageId) — всё для
+        // того, чтобы AAD включал тот же messageId, под которым будет записано
+        // сообщение в Firestore.
+        OutgoingAlbumE2eeContext? albumE2eeContext;
+        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
+          final reservedId = FirebaseFirestore.instance
+              .collection('conversations')
+              .doc(widget.conversationId)
+              .collection('messages')
+              .doc()
+              .id;
+          albumE2eeContext = OutgoingAlbumE2eeContext(
+            runtime: e2eeRuntime,
+            epoch: e2eeEpoch,
+            messageId: reservedId,
+          );
+        }
         setState(() {
           _outgoingImageAlbum = _PendingImageAlbumSend(
             files: pending,
             text: textSave,
             replyTo: replySnap,
+            e2eeContext: albumE2eeContext,
           );
           _pendingAttachments.clear();
           _controller.clear();
@@ -2764,8 +2804,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       setState(() => _pendingAttachments.clear());
       try {
         final storage = FirebaseStorage.instance;
+        // E2EE v2 Phase 9: при активном E2EE encryptable файлы шифруются в
+        // `chat-attachments-enc/...` и кладутся в `e2ee.attachments[]`;
+        // стикеры/GIFs по-прежнему идут plaintext в `attachments[]`.
+        final effectiveMessageId = FirebaseFirestore.instance
+            .collection('conversations')
+            .doc(widget.conversationId)
+            .collection('messages')
+            .doc()
+            .id;
+        E2eeAttachmentPrepareResult prep;
+        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
+          try {
+            prep = await prepareE2eeAttachmentsForSend(
+              runtime: e2eeRuntime,
+              storage: storage,
+              conversationId: widget.conversationId,
+              messageId: effectiveMessageId,
+              epoch: e2eeEpoch,
+              files: pending,
+            );
+          } on MobileE2eeEncryptException catch (e) {
+            if (mounted) _toast('Не удалось зашифровать вложение: ${e.code}');
+            if (mounted) {
+              _controller.text = rawComposer;
+              setState(() {
+                _pendingAttachments
+                  ..clear()
+                  ..addAll(pending);
+                _replyingTo = replySnap;
+              });
+            }
+            return;
+          }
+        } else {
+          prep = E2eeAttachmentPrepareResult(
+            plaintextFiles: pending,
+            encryptedEnvelopes: const <Map<String, Object?>>[],
+          );
+        }
+
         final uploaded = <ChatAttachment>[];
-        for (final f in pending) {
+        for (final f in prep.plaintextFiles) {
           uploaded.add(
             await uploadChatAttachmentFromXFile(
               storage: storage,
@@ -2774,12 +2854,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           );
         }
+
+        Map<String, Object?>? outgoingEnvelope;
+        String? msgIdOverride;
+        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
+          // Шифруем ВСЕГДА, даже если текста нет — так iv/ciphertext непустые
+          // и `ChatMessageE2eePayload.fromJson` корректно распознает envelope.
+          Map<String, Object?> textEnvelope;
+          try {
+            textEnvelope = await e2eeRuntime.encryptOutgoing(
+              conversationId: widget.conversationId,
+              messageId: effectiveMessageId,
+              epoch: e2eeEpoch,
+              plaintext: textSave,
+            );
+          } on MobileE2eeEncryptException catch (e) {
+            if (mounted) _toast('Шифрование недоступно: ${e.code}');
+            return;
+          }
+          outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
+            textEnvelope: textEnvelope,
+            mediaEnvelopes: prep.encryptedEnvelopes,
+            epoch: e2eeEpoch,
+          );
+          msgIdOverride = effectiveMessageId;
+        }
+
         await repo.sendTextMessage(
           conversationId: widget.conversationId,
           senderId: uid,
-          text: textSave,
+          text: outgoingEnvelope != null ? '' : textSave,
           replyTo: replySnap,
           attachments: uploaded,
+          e2eeEnvelope: outgoingEnvelope,
+          messageIdOverride: msgIdOverride,
         );
         if (mounted) {
           unawaited(clearChatMessageDraft(uid, widget.conversationId));
@@ -2974,6 +3082,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  /// E2EE v2 Phase 9: читает текущий conversation snapshot из
+  /// `conversationsProvider` и, если чат E2EE-active, возвращает тройку
+  /// (runtime, epoch, reservedMessageId) для media-only отправки. Возвращает
+  /// null, если E2EE не активирован или данные недоступны.
+  ({MobileE2eeRuntime runtime, int epoch, String messageId})?
+  _resolveMediaOnlyE2eeContext() {
+    final convAsync = ref.read(
+      conversationsProvider((
+        key: conversationIdsCacheKey([widget.conversationId]),
+      )),
+    );
+    final convList = convAsync.asData?.value;
+    final conv = convList != null && convList.isNotEmpty
+        ? convList.first.data
+        : null;
+    if (!isConversationE2eeActive(conv)) return null;
+    final runtime = ref.read(mobileE2eeRuntimeProvider);
+    final epoch = conv?.e2eeKeyEpoch;
+    if (runtime == null || epoch == null) return null;
+    final reservedId = FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(widget.conversationId)
+        .collection('messages')
+        .doc()
+        .id;
+    return (runtime: runtime, epoch: epoch, messageId: reservedId);
+  }
+
   Future<void> _sendVideoCircleFile(
     String uid,
     ChatRepository repo,
@@ -2987,19 +3123,56 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final replySnap = _replyingTo;
     setState(() => _sendBusy = true);
     try {
-      final uploaded = await uploadChatAttachmentFromXFile(
-        storage: FirebaseStorage.instance,
-        conversationId: widget.conversationId,
-        file: file,
-        displayName: name,
-      );
-      await repo.sendTextMessage(
-        conversationId: widget.conversationId,
-        senderId: uid,
-        text: '',
-        replyTo: replySnap,
-        attachments: [uploaded],
-      );
+      // E2EE v2 Phase 9: кружок шифруется, если чат E2EE-active.
+      final e2ee = _resolveMediaOnlyE2eeContext();
+      if (e2ee != null) {
+        final bytes = await file.readAsBytes();
+        final envelope = await e2ee.runtime.encryptMediaForSend(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          data: bytes,
+          mime: mime,
+          kindHint: MediaKindV2.videoCircle,
+        );
+        // Пустой text-envelope (plaintext='') нужен, чтобы валидный iv/ct
+        // попали в `message.e2ee`: без них приёмник не распознает сообщение
+        // как E2EE и «Зашифрованное сообщение» preview не сработает.
+        final emptyTextEnvelope = await e2ee.runtime.encryptOutgoing(
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          plaintext: '',
+        );
+        final mergedE2ee = mergeE2eeEnvelopeWithMedia(
+          textEnvelope: emptyTextEnvelope,
+          mediaEnvelopes: [envelope.toWireJson()],
+          epoch: e2ee.epoch,
+        );
+        await repo.sendTextMessage(
+          conversationId: widget.conversationId,
+          senderId: uid,
+          text: '',
+          replyTo: replySnap,
+          e2eeEnvelope: mergedE2ee,
+          messageIdOverride: e2ee.messageId,
+        );
+      } else {
+        final uploaded = await uploadChatAttachmentFromXFile(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          file: file,
+          displayName: name,
+        );
+        await repo.sendTextMessage(
+          conversationId: widget.conversationId,
+          senderId: uid,
+          text: '',
+          replyTo: replySnap,
+          attachments: [uploaded],
+        );
+      }
       if (mounted) {
         unawaited(clearChatMessageDraft(uid, widget.conversationId));
         setState(() => _replyingTo = null);
@@ -3015,23 +3188,65 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (repo == null || _sendBusy) return;
     final rec = await showVoiceMessageRecordSheet(context);
     if (!mounted || rec == null) return;
+    await _sendVoiceMessageFromRecord(uid, rec);
+  }
+
+  Future<void> _sendVoiceMessageFromRecord(
+    String uid,
+    VoiceMessageRecordResult rec,
+  ) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null || _sendBusy) return;
     setState(() => _sendBusy = true);
     try {
       final audioName = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
       final file = XFile(rec.filePath, mimeType: 'audio/m4a');
-      final uploaded = await uploadChatAttachmentFromXFile(
-        storage: FirebaseStorage.instance,
-        conversationId: widget.conversationId,
-        file: file,
-        displayName: audioName,
-      );
-      await repo.sendTextMessage(
-        conversationId: widget.conversationId,
-        senderId: uid,
-        text: '',
-        replyTo: _replyingTo,
-        attachments: [uploaded],
-      );
+      // E2EE v2 Phase 9: голосовые также шифруются в E2EE-active чате.
+      final e2ee = _resolveMediaOnlyE2eeContext();
+      if (e2ee != null) {
+        final bytes = await file.readAsBytes();
+        final envelope = await e2ee.runtime.encryptMediaForSend(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          data: bytes,
+          mime: 'audio/m4a',
+        );
+        final emptyTextEnvelope = await e2ee.runtime.encryptOutgoing(
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          plaintext: '',
+        );
+        final mergedE2ee = mergeE2eeEnvelopeWithMedia(
+          textEnvelope: emptyTextEnvelope,
+          mediaEnvelopes: [envelope.toWireJson()],
+          epoch: e2ee.epoch,
+        );
+        await repo.sendTextMessage(
+          conversationId: widget.conversationId,
+          senderId: uid,
+          text: '',
+          replyTo: _replyingTo,
+          e2eeEnvelope: mergedE2ee,
+          messageIdOverride: e2ee.messageId,
+        );
+      } else {
+        final uploaded = await uploadChatAttachmentFromXFile(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          file: file,
+          displayName: audioName,
+        );
+        await repo.sendTextMessage(
+          conversationId: widget.conversationId,
+          senderId: uid,
+          text: '',
+          replyTo: _replyingTo,
+          attachments: [uploaded],
+        );
+      }
       if (mounted) {
         unawaited(clearChatMessageDraft(uid, widget.conversationId));
         setState(() {
@@ -3087,12 +3302,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final replySnap = _replyingTo;
     setState(() => _sendBusy = true);
     try {
+      // E2EE v2 Phase 9: стикеры/GIFs шифровать нельзя (animated/format), но
+      // в E2EE-active чате repo требует envelope — отправляем «пустой» text
+      // envelope (plaintext='') чтобы push-notification трактовал сообщение
+      // как «Зашифрованное сообщение» и не раскрывал вложения через summary.
+      final e2ee = _resolveMediaOnlyE2eeContext();
+      Map<String, Object?>? outgoingEnvelope;
+      String? msgIdOverride;
+      if (e2ee != null) {
+        final textEnvelope = await e2ee.runtime.encryptOutgoing(
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          plaintext: '',
+        );
+        outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
+          textEnvelope: textEnvelope,
+          mediaEnvelopes: const <Map<String, Object?>>[],
+          epoch: e2ee.epoch,
+        );
+        msgIdOverride = e2ee.messageId;
+      }
       await repo.sendTextMessage(
         conversationId: widget.conversationId,
         senderId: uid,
         text: '',
         replyTo: replySnap,
         attachments: [att],
+        e2eeEnvelope: outgoingEnvelope,
+        messageIdOverride: msgIdOverride,
       );
       if (mounted) {
         unawaited(clearChatMessageDraft(uid, widget.conversationId));
@@ -3279,11 +3517,16 @@ class _PendingImageAlbumSend {
     required this.files,
     required this.text,
     this.replyTo,
+    this.e2eeContext,
   });
 
   final List<XFile> files;
   final String text;
   final ReplyContext? replyTo;
+  // E2EE v2 Phase 9: если чат работает с E2EE, сюда кладётся runtime+epoch+
+  // предзаказанный messageId. OutgoingPendingMediaAlbum использует этот контекст
+  // для шифрования файлов и текста.
+  final OutgoingAlbumE2eeContext? e2eeContext;
 }
 
 class _AnchorReactionTarget {

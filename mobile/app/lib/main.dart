@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +11,8 @@ import 'app_bootstrap.dart';
 import 'app_providers.dart';
 import 'app_router.dart';
 import 'app_theme.dart';
+import 'features/push/push_messaging_background.dart';
+import 'features/push/push_messaging_scope.dart';
 import 'features/chat/data/app_theme_preference.dart';
 import 'features/chat/data/chat_auto_theme_mode.dart';
 import 'features/auth/device_session_firestore_sync.dart';
@@ -27,6 +32,9 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 300;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 250 << 20;
   await bootstrap();
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -38,10 +46,16 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
-  late final _router = createRouter();
+  late final GoRouter _router = createRouter();
   ThemeMode _themeMode = ThemeMode.dark;
   Color _seedColor = kDefaultAppThemeSeed;
   String _themeFingerprint = '';
+
+  @override
+  void initState() {
+    super.initState();
+    attachAppGoRouter(_router);
+  }
 
   Future<void> _applyTheme({
     required String fingerprint,
@@ -97,7 +111,9 @@ class _MyAppState extends ConsumerState<MyApp> {
       routerConfig: _router,
       builder: (context, child) => DeviceSessionFirestoreSync(
         child: LiveLocationFirestoreSync(
-          child: child ?? const SizedBox.shrink(),
+          child: PushMessagingScope(
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,6 +11,8 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:logger/logger.dart';
 
 import 'package:lighchat_models/lighchat_models.dart';
+
+import 'firebase_callable_http.dart';
 
 /// Элемент ответа callable `checkGroupInvitesAllowed` (web `CheckGroupInvitesResult`).
 class GroupInviteDenied {
@@ -1916,6 +1919,36 @@ class ChatRepository {
       );
     }
 
+    // iOS: обходим `cloud_functions` плагин — SDK FirebaseFunctions 12.9.0
+    // в `FunctionsContext.context(options:)` использует три параллельных
+    // `async let`, на которых Swift-рантайм воспроизводимо крашит Release-
+    // сборку в `_swift_task_dealloc_specific (.cold.2)` при сборе токенов
+    // для первого callable (SIGABRT, «freed pointer was not the last
+    // allocation»). Прямой HTTPS-POST использует нативный ObjC-колбэк для
+    // ID-token и не трогает Swift Concurrency. Android/Web — штатно через SDK.
+    if (Platform.isIOS) {
+      try {
+        final raw = await callFirebaseCallableHttp(
+          name: 'checkGroupInvitesAllowed',
+          region: 'us-central1',
+          data: <String, dynamic>{'targetUserIds': ids},
+          timeout: const Duration(seconds: 40),
+          logger: _logger,
+        );
+        return _parseGroupInvitesResult(raw);
+      } on FirebaseCallableHttpException catch (e, st) {
+        if (e.code == 'network' || e.code == 'timeout') {
+          _logger.w(
+            'checkGroupInvitesAllowed (iOS http): connectivity/timeout',
+            error: e,
+            stackTrace: st,
+          );
+          throw StateError(_groupInviteConnectivityMessage);
+        }
+        rethrow;
+      }
+    }
+
     final functions = FirebaseFunctions.instanceFor(
       app: app,
       region: 'us-central1',
@@ -1926,27 +1959,7 @@ class ChatRepository {
     );
     try {
       final res = await callable.call(<String, dynamic>{'targetUserIds': ids});
-      final raw = res.data;
-      if (raw is! Map) {
-        _logger.w('checkGroupInvitesAllowed: unexpected response $raw');
-        return const GroupInvitesCheckResult(ok: true, denied: []);
-      }
-      final m = raw.map((k, v) => MapEntry(k.toString(), v));
-      final ok = m['ok'] == true;
-      final deniedRaw = m['denied'];
-      final denied = <GroupInviteDenied>[];
-      if (deniedRaw is List) {
-        for (final e in deniedRaw) {
-          if (e is! Map) continue;
-          final dm = e.map((k, v) => MapEntry(k.toString(), v));
-          final uid = dm['uid'];
-          final reason = dm['reason'];
-          if (uid is String && uid.isNotEmpty && reason is String) {
-            denied.add(GroupInviteDenied(uid: uid, reason: reason));
-          }
-        }
-      }
-      return GroupInvitesCheckResult(ok: ok, denied: denied);
+      return _parseGroupInvitesResult(res.data);
     } catch (e, st) {
       if (_isCloudFunctionConnectivityFailure(e)) {
         _logger.w(
@@ -1958,6 +1971,30 @@ class ChatRepository {
       }
       rethrow;
     }
+  }
+
+  /// Разбор ответа `checkGroupInvitesAllowed` (одинаков для SDK и HTTP-пути).
+  GroupInvitesCheckResult _parseGroupInvitesResult(Object? raw) {
+    if (raw is! Map) {
+      _logger.w('checkGroupInvitesAllowed: unexpected response $raw');
+      return const GroupInvitesCheckResult(ok: true, denied: []);
+    }
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final ok = m['ok'] == true;
+    final deniedRaw = m['denied'];
+    final denied = <GroupInviteDenied>[];
+    if (deniedRaw is List) {
+      for (final e in deniedRaw) {
+        if (e is! Map) continue;
+        final dm = e.map((k, v) => MapEntry(k.toString(), v));
+        final uid = dm['uid'];
+        final reason = dm['reason'];
+        if (uid is String && uid.isNotEmpty && reason is String) {
+          denied.add(GroupInviteDenied(uid: uid, reason: reason));
+        }
+      }
+    }
+    return GroupInvitesCheckResult(ok: ok, denied: denied);
   }
 
   Future<void> retryChatMediaTranscode({

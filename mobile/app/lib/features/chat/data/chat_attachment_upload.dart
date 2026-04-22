@@ -1,11 +1,14 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
+
+import 'video_send_compress_720p.dart';
 
 String _safeStorageSegment(String name) {
   return name.replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[/\\]'), '_');
@@ -132,12 +135,37 @@ Future<ChatAttachment> uploadChatAttachmentFromXFile({
   required XFile file,
   String? displayName,
 }) async {
-  final bytes = await file.readAsBytes();
   final fromPath = file.name.isNotEmpty ? file.name : file.path.split('/').last;
   final name = (displayName != null && displayName.trim().isNotEmpty)
       ? displayName.trim()
       : fromPath;
   final mime = file.mimeType ?? _guessMimeFromName(name);
+
+  XFile effective = file;
+  bool createdTemp = false;
+  if ((mime ?? '').toLowerCase().startsWith('video/')) {
+    final res = await maybeCompressVideoForSend720p(file);
+    effective = res.file;
+    createdTemp = res.didCompress;
+  }
+
+  Uint8List bytes;
+  try {
+    bytes = await effective.readAsBytes();
+  } finally {
+    if (createdTemp) {
+      final p = effective.path.trim();
+      if (p.isNotEmpty) {
+        try {
+          final f = File(p);
+          if (await f.exists()) await f.delete();
+        } catch (e) {
+          debugPrint('uploadChatAttachmentFromXFile: temp delete failed: $e');
+        }
+      }
+    }
+  }
+
   return uploadChatAttachmentBytesWithProgress(
     storage: storage,
     conversationId: conversationId,

@@ -1,9 +1,9 @@
 /// Auto-enable E2EE for новых личных чатов (Phase 4).
 ///
-/// Паритет `src/lib/e2ee/enable-conversation.ts::tryAutoEnableE2eeNewDirectChat`
-/// на Dart, с учётом наших v2-сессий. Делает ровно то же: при желании
-/// пользователя (или платформенном дефолте) создаёт эпоху 1 + session-doc
-/// + обновляет conversation-doc.
+/// Паритет `src/lib/e2ee/v2/enable-conversation-v2.ts::tryAutoEnableE2eeV2NewDirectChat`
+/// на Dart. Делает ровно то же: при желании пользователя (или платформенном
+/// дефолте) создаёт эпоху 1 + v2 session-doc + обновляет conversation-doc.
+/// После Phase 10 cleanup v1 полностью удалён — единственный путь.
 ///
 /// Не читает сам платформенные/пользовательские настройки — решает вызывающий
 /// код (UI-слой), чтобы не дублировать политику в двух местах и сохранить

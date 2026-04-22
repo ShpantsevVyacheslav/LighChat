@@ -12,6 +12,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "icons:pwa": "bash scripts/generate-pwa-icons.sh",
+    "icons:mobile:from-pwa": "node scripts/sync-mobile-launcher-from-pwa.mjs",
     "brand:mark": "node scripts/transparent-lighchat-mark.mjs && npm run icons:pwa",
     "brand:square-mark": "node scripts/transparent-lighchat-mark.mjs --square-only && npm run icons:pwa",
     "deploy:firestore": "firebase deploy --only firestore:rules",
@@ -59,7 +60,9 @@
       {
         "from": ".next-desktop/standalone/node_modules",
         "to": ".next-desktop/standalone/node_modules",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
@@ -101,11 +104,13 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^10.14.1",
     "firebase-admin": "^12.1.1",
+    "hash-wasm": "^4.12.0",
     "heic2any": "^0.0.4",
     "lucide-react": "^0.475.0",
     "next": "^14.2.5",
     "next-themes": "^0.3.0",
     "open-graph-scraper": "^6.8.2",
+    "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-day-picker": "^9.11.3",
     "react-dom": "^18.3.1",

@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useFirestore } from '@/firebase';
 import type { Conversation } from '@/lib/types';
-import { enableE2eeOnConversation } from '@/lib/e2ee/enable-conversation';
+import { enableE2eeOnConversationV2 } from '@/lib/e2ee';
 import { disableE2eeOnConversation } from '@/lib/e2ee/disable-conversation-e2ee';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -38,7 +38,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
     if (!firestore) return;
     setBusy(true);
     try {
-      await enableE2eeOnConversation(firestore, conversation, currentUserId);
+      await enableE2eeOnConversationV2(firestore, conversation, currentUserId);
       toast({ title: 'Сквозное шифрование включено', description: 'Новые текстовые сообщения будут зашифрованы на устройствах.' });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -47,7 +47,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
         variant: 'destructive',
         title: 'Не удалось включить шифрование',
         description:
-          message.includes('E2EE_NO_PUBLIC_KEY') || message.includes('нет ключа')
+          message.includes('E2EE_NO_DEVICE') || message.includes('E2EE_NO_PUBLIC_KEY') || message.includes('нет ключа')
             ? 'У собеседника должен быть опубликован ключ (нужен хотя бы один вход в приложение).'
             : message.slice(0, 200),
       });
@@ -61,7 +61,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
     setDisableOpen(false);
     setBusy(true);
     try {
-      await disableE2eeOnConversation(firestore, conversation.id);
+      await disableE2eeOnConversation(firestore, conversation.id, currentUserId);
       toast({
         title: 'Сквозное шифрование выключено',
         description: 'Новые сообщения не шифруются. Старые зашифрованные по-прежнему читаются в этом чате.',

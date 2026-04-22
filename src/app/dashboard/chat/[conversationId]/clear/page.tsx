@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUser as useFirebaseUser } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,7 @@ export default function ClearConversationPage() {
   const params = useParams();
   const firestore = useFirestore();
   const { user: currentUser } = useAuth();
+  const { user: firebaseAuthUser } = useFirebaseUser();
   const { toast } = useToast();
   const [isClearing, setIsClearing] = useState(false);
 
@@ -33,16 +34,25 @@ export default function ClearConversationPage() {
   const { data: conversation, isLoading } = useDoc<Conversation>(conversationRef);
 
   const handleConfirmClear = async () => {
-    if (!conversationRef || !currentUser) return;
+    if (!conversationRef) return;
+    const uid = currentUser?.id || firebaseAuthUser?.uid;
+    if (!uid) {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка',
+        description: 'Нет активной сессии. Обновите страницу и войдите снова.',
+      });
+      return;
+    }
 
     setIsClearing(true);
     try {
       const now = new Date().toISOString();
       await updateDoc(conversationRef, {
-        [`clearedAt.${currentUser.id}`]: now,
+        [`clearedAt.${uid}`]: now,
         // Reset unread counters for this user since history is being hidden/cleared
-        [`unreadCounts.${currentUser.id}`]: 0,
-        [`unreadThreadCounts.${currentUser.id}`]: 0
+        [`unreadCounts.${uid}`]: 0,
+        [`unreadThreadCounts.${uid}`]: 0
       });
       
       toast({

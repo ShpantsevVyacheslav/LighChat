@@ -17,6 +17,7 @@ import {
   signInWithRedirect,
   getRedirectResult,
   GoogleAuthProvider,
+  OAuthProvider,
   signOut,
   updatePassword as firebaseUpdatePassword,
   updateEmail,
@@ -25,7 +26,9 @@ import {
   type UserCredential,
   type User as FirebaseUser,
   type ActionCodeSettings,
+  signInWithCustomToken,
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   doc,
   collection,
@@ -46,6 +49,7 @@ import {
   useStorage,
   useAuth as useFirebaseAuth,
   useUser as useFirebaseUser,
+  useFirebaseApp,
   updateDocumentNonBlocking,
 } from '@/firebase';
 import { uploadUserAvatarPair } from '@/lib/upload-user-avatar-pair';
@@ -74,7 +78,7 @@ export interface RegisterData {
   avatarThumbFile?: File;
 }
 
-/** Дозаполнение профиля после входа через Google (без пароля). */
+/** Дозаполнение профиля после входа через Google или Apple (без пароля). */
 export interface CompleteGoogleProfileData {
   name: string;
   username: string;
@@ -110,18 +114,47 @@ function isFirebaseVerifyNewEmailBeforeChangeError(error: unknown): boolean {
   );
 }
 
-const GOOGLE_FIRESTORE_AUTH_RETRIES = 8;
+const OAUTH_FIRESTORE_AUTH_RETRIES = 8;
+
+/** Провайдеры с тем же сценарием: popup → Firestore, дозаполнение профиля без пароля. */
+const OAUTH_SOCIAL_PROVIDER_IDS = ['google.com', 'apple.com'] as const;
+
+function hasOauthSocialProvider(user: FirebaseUser): boolean {
+  return user.providerData.some((p) =>
+    (OAUTH_SOCIAL_PROVIDER_IDS as readonly string[]).includes(p.providerId)
+  );
+}
+
+/** Аккаунты с UID `tg_<telegramId>` создаются только callable `signInWithTelegram`. */
+function isTelegramFirebaseUid(uid: string): boolean {
+  return /^tg_\d+$/.test(uid);
+}
+
+/** Форма дозаполнения без пароля: Google, Apple или вход через Telegram (custom token). */
+function hasPasswordlessProfileCompletion(user: FirebaseUser): boolean {
+  return hasOauthSocialProvider(user) || isTelegramFirebaseUid(user.uid);
+}
+
+async function isTelegramProfileUser(u: FirebaseUser): Promise<boolean> {
+  if (isTelegramFirebaseUid(u.uid)) return true;
+  try {
+    const t = await u.getIdTokenResult();
+    return t.claims.telegram === true;
+  } catch {
+    return false;
+  }
+}
 
 /**
- * После `signInWithPopup` persistent Firestore иногда ходит в бэкенд без свежего JWT —
+ * После `signInWithPopup` (Google / Apple) persistent Firestore иногда ходит в бэкенд без свежего JWT —
  * `permission-denied`. Повторы с reload + getIdToken(true) и чередование server/client read.
  */
-async function firestoreAfterGoogleSignIn<T>(
+async function firestoreAfterOAuthSignIn<T>(
   credUser: FirebaseUser,
   op: (attemptIndex: number) => Promise<T>
 ): Promise<T> {
   let lastErr: unknown;
-  for (let i = 0; i < GOOGLE_FIRESTORE_AUTH_RETRIES; i++) {
+  for (let i = 0; i < OAUTH_FIRESTORE_AUTH_RETRIES; i++) {
     try {
       await credUser.reload().catch(() => undefined);
       await credUser.getIdToken(true);
@@ -129,7 +162,7 @@ async function firestoreAfterGoogleSignIn<T>(
     } catch (e) {
       lastErr = e;
       const c = (e as { code?: string }).code;
-      if (c !== 'permission-denied' || i === GOOGLE_FIRESTORE_AUTH_RETRIES - 1) throw e;
+      if (c !== 'permission-denied' || i === OAUTH_FIRESTORE_AUTH_RETRIES - 1) throw e;
       await new Promise((r) => setTimeout(r, 50 + i * 100));
     }
   }
@@ -138,13 +171,16 @@ async function firestoreAfterGoogleSignIn<T>(
 
 interface AuthContextType {
   user: User | null;
-  /** Аккаунт с провайдером Google — форма дозаполнения без пароля. */
+  /** Аккаунт с Google, Apple или Telegram — форма дозаполнения без пароля. */
   googleProfileCompletionFlow: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: RegisterData) => Promise<RegisterResult>;
   completeGoogleProfile: (data: CompleteGoogleProfileData) => Promise<RegisterResult>;
   checkUsernameAvailable: (username: string) => Promise<boolean>;
   signInWithGoogle: () => Promise<boolean>;
+  signInWithApple: () => Promise<boolean>;
+  /** Payload от Telegram Login Widget (поля + hash), см. Cloud Function `signInWithTelegram`. */
+  signInWithTelegramPayload: (auth: Record<string, unknown>) => Promise<boolean>;
   logout: () => void;
   updateUser: (newUserData: Partial<User & { password?: string }>) => Promise<UpdateUserResult>;
   createNewAuthUser: (email: string, password: string) => Promise<UserCredential>;
@@ -165,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user: firebaseUser, isUserLoading: isAuthLoading } = useFirebaseUser();
+  const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
   const storage = useStorage();
   const auth = useFirebaseAuth();
@@ -183,7 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const googleProfileCompletionFlow =
     !!firebaseUser &&
     !firebaseUser.isAnonymous &&
-    firebaseUser.providerData.some((p) => p.providerId === 'google.com');
+    hasPasswordlessProfileCompletion(firebaseUser);
 
   useEffect(() => {
     appUserRef.current = appUser;
@@ -218,6 +255,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
     
+    // E2EE: перед тем как unload auth-состояние, сносим кэш расшифрованного
+    // содержимого (текст + media), чтобы следующий пользователь на этом же
+    // устройстве/браузере не получил доступ к plaintext предыдущего.
+    try {
+      const { clearAllE2eeCache } = await import('@/lib/e2ee');
+      await clearAllE2eeCache();
+    } catch (e) {
+      console.warn('clearAllE2eeCache failed on logout', e);
+    }
+
     try {
         await signOut(auth);
         router.push('/');
@@ -227,17 +274,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [auth, router, appUser, firestore]);
 
-  /** После signInWithRedirect: создать профиль в Firestore при первом входе, проверить блокировки. */
-  const finalizeGoogleCredential = useCallback(
+  /**
+   * После signInWithRedirect / popup (Google или Apple): создать профиль в Firestore при первом входе, проверить блокировки.
+   * Консоль: Firebase → Authentication → Sign-in method → Apple (Services ID, Key .p8, Team ID) и capability в Apple Developer.
+   */
+  const finalizeOAuthCredential = useCallback(
     async (result: UserCredential): Promise<boolean> => {
       if (!firestore) {
-        console.error('Google sign-in: Firestore недоступен.');
+        console.error('OAuth sign-in: Firestore недоступен.');
         setError('Сервис данных недоступен. Обновите страницу и попробуйте снова.');
         return false;
       }
 
       const userDocRef = doc(firestore, 'users', result.user.uid);
-      const userDoc = await firestoreAfterGoogleSignIn(result.user, (attempt) =>
+      const userDoc = await firestoreAfterOAuthSignIn(result.user, (attempt) =>
         attempt % 2 === 0 ? getDocFromServer(userDocRef) : getDoc(userDocRef)
       );
 
@@ -251,7 +301,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        await firestoreAfterGoogleSignIn(result.user, () =>
+        await firestoreAfterOAuthSignIn(result.user, () =>
           setDoc(userDocRef, {
             id: result.user.uid,
             name: result.user.displayName || 'Пользователь',
@@ -271,7 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           })
         );
       } catch (writeErr) {
-        console.error('Google sign-in: не удалось создать документ users/', writeErr);
+        console.error('OAuth sign-in: не удалось создать документ users/', writeErr);
         /* Сессия Auth уже есть — слушатель профиля подставит заглушку; не блокируем вход. */
       }
       return true;
@@ -280,8 +330,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   /**
-   * После signInWithRedirect: обработать результат один раз.
-   * Не прерывать finalizeGoogleCredential флагом cancelled — в React Strict Mode эффект
+   * После signInWithRedirect (Google / Apple): обработать результат один раз.
+   * Не прерывать finalizeOAuthCredential флагом cancelled — в React Strict Mode эффект
    * размонтируется после первого await, иначе профиль в Firestore не создаётся / сессия «ломается».
    */
   useEffect(() => {
@@ -291,7 +341,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const result = await getRedirectResult(auth);
         if (!result?.user) return;
-        const ok = await finalizeGoogleCredential(result);
+        const ok = await finalizeOAuthCredential(result);
         if (ok && pathname === '/' && firestore) {
           const uref = doc(firestore, 'users', result.user.uid);
           const snap = await getDoc(uref);
@@ -305,7 +355,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (e: unknown) {
         if (cancelled) return;
         const err = e as { code?: string };
-        console.error('Google redirect sign-in error:', e);
+        console.error('OAuth redirect sign-in error:', e);
         const msg = (
           {
             'auth/account-exists-with-different-credential':
@@ -316,13 +366,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         )[err.code ?? ''];
         if (msg) setError(msg);
         else if (err.code !== 'auth/popup-closed-by-user')
-          setError('Ошибка при входе через Google.');
+          setError('Ошибка при входе через Google или Apple.');
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [auth, firestore, pathname, router, finalizeGoogleCredential]);
+  }, [auth, firestore, pathname, router, finalizeOAuthCredential]);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -410,13 +460,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               };
 
               /**
-               * Safari/WebKit: первый снимок из кэша после входа через Google может быть старым
+               * Safari/WebKit: первый снимок из кэша после входа через Google/Apple может быть старым
                * (пустой username) — на мгновение открывается анкета. Подтверждаем сервером перед применением.
                */
               if (
                 snapshotFromCache &&
                 !isRegistrationProfileComplete(merged) &&
-                firebaseUser.providerData.some((p) => p.providerId === 'google.com')
+                hasPasswordlessProfileCompletion(firebaseUser)
               ) {
                 void (async () => {
                   try {
@@ -437,7 +487,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     commitMerged();
                   } catch (e) {
                     console.warn(
-                      '[auth] getDocFromServer after incomplete cached Google profile',
+                      '[auth] getDocFromServer after incomplete cached passwordless profile',
                       e,
                     );
                     commitMerged();
@@ -874,26 +924,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) {
-        const message = 'Сессия недействительна. Войдите через Google снова.';
+        const message =
+          'Сессия недействительна. Войдите через Google, Apple или Telegram снова.';
         setError(message);
         return { ok: false, message };
       }
-      const hasGoogle = firebaseUser.providerData.some(
-        (p) => p.providerId === 'google.com',
-      );
-      if (!hasGoogle) {
+      const isTelegram = await isTelegramProfileUser(firebaseUser);
+      if (!hasOauthSocialProvider(firebaseUser) && !isTelegram) {
         const message =
-          'Завершение этого шага доступно только для аккаунта с входом через Google.';
+          'Завершение этого шага доступно только для аккаунта с входом через Google, Apple или Telegram.';
         setError(message);
         return { ok: false, message };
       }
 
       const emailNorm = data.email.trim().toLowerCase();
       const authEmail = (firebaseUser.email ?? '').trim().toLowerCase();
-      if (emailNorm !== authEmail) {
+      if (authEmail.length > 0 && emailNorm !== authEmail) {
         return {
           ok: false,
-          message: 'Email нельзя изменить для аккаунта Google. Используйте адрес из аккаунта Google.',
+          message:
+            'Email нельзя изменить для этого способа входа. Используйте адрес из аккаунта Google или Apple.',
           conflictField: 'email',
         };
       }
@@ -992,6 +1042,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           updatedAt: new Date().toISOString(),
           ...thumbOnAvatarUpload,
         } as Record<string, unknown>);
+
+        if (
+          isTelegram &&
+          (firebaseUser.email ?? '').trim().length === 0 &&
+          emailNorm.length > 0 &&
+          typeof window !== 'undefined'
+        ) {
+          try {
+            await updateEmail(firebaseUser, emailNorm);
+          } catch (e: unknown) {
+            if (isFirebaseVerifyNewEmailBeforeChangeError(e)) {
+              try {
+                await verifyBeforeUpdateEmail(firebaseUser, emailNorm, {
+                  url: `${window.location.origin}/dashboard/profile`,
+                  handleCodeInApp: false,
+                });
+              } catch (e2) {
+                console.warn(
+                  'completeGoogleProfile: verifyBeforeUpdateEmail (Telegram)',
+                  e2,
+                );
+              }
+            } else {
+              console.warn('completeGoogleProfile: updateEmail (Telegram)', e);
+            }
+          }
+          try {
+            await firebaseUser.reload();
+            await firebaseUser.getIdToken(true);
+          } catch {
+            /* no-op */
+          }
+        }
+
         const googleFresh = await getDoc(userDocRef);
         if (googleFresh.exists()) {
           const gData = googleFresh.data();
@@ -1021,7 +1105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       /** Popup: сразу UserCredential — без гонок getRedirectResult. COOP: same-origin-allow-popups в next.config. */
       const result = await signInWithPopup(auth, provider);
-      return await finalizeGoogleCredential(result);
+      return await finalizeOAuthCredential(result);
     } catch (e: unknown) {
       const err = e as { code?: string };
       console.error('Google sign-in error:', e);
@@ -1066,7 +1150,108 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       return false;
     }
-  }, [auth, finalizeGoogleCredential]);
+  }, [auth, finalizeOAuthCredential]);
+
+  const signInWithApple = useCallback(async (): Promise<boolean> => {
+    setError(null);
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      return await finalizeOAuthCredential(result);
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      console.error('Apple sign-in error:', e);
+
+      if (err.code === 'auth/popup-blocked') {
+        try {
+          await signInWithRedirect(auth, provider);
+          return false;
+        } catch (re) {
+          console.error('Apple redirect fallback error:', re);
+          setError(
+            'Браузер заблокировал окно входа. Разрешите всплывающие окна для этого сайта или попробуйте другой браузер.'
+          );
+          return false;
+        }
+      }
+
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        return false;
+      }
+
+      const msg = (
+        {
+          'auth/account-exists-with-different-credential':
+            'Аккаунт с этим email уже использует другой метод входа.',
+          'auth/network-request-failed': 'Ошибка сети. Проверьте подключение.',
+          'auth/too-many-requests': 'Слишком много попыток. Подождите.',
+          'auth/unauthorized-domain':
+            'Домен не в списке Authorized domains (Firebase Console → Authentication → Settings).',
+          'auth/operation-not-allowed':
+            'Вход через Apple выключен или не настроен: Authentication → Sign-in method → Apple (и Apple Developer Services ID / Key).',
+          'permission-denied':
+            'Нет доступа к профилю в базе. Обновите страницу и войдите снова. Если не помогло — проверьте деплой firestore.rules.',
+        } as Record<string, string>
+      )[err.code ?? ''];
+      setError(
+        msg ||
+          (String((e as { message?: string })?.message ?? '').includes('Missing or insufficient permissions')
+            ? 'Нет доступа к данным (Firestore). Обновите страницу и повторите вход.'
+            : 'Ошибка при входе через Apple.')
+      );
+      return false;
+    }
+  }, [auth, finalizeOAuthCredential]);
+
+  const signInWithTelegramPayload = useCallback(
+    async (authPayload: Record<string, unknown>): Promise<boolean> => {
+      setError(null);
+      if (!auth || !firebaseApp) {
+        setError('Сервис входа недоступен. Обновите страницу.');
+        return false;
+      }
+      try {
+        const functions = getFunctions(firebaseApp, 'us-central1');
+        const fn = httpsCallable<
+          { auth: Record<string, unknown> },
+          { customToken: string }
+        >(functions, 'signInWithTelegram');
+        const res = await fn({ auth: authPayload });
+        const customToken = res.data?.customToken;
+        if (!customToken || typeof customToken !== 'string') {
+          setError('Сервер не вернул токен. Попробуйте войти через Telegram снова.');
+          return false;
+        }
+        const cred = await signInWithCustomToken(auth, customToken);
+        return await finalizeOAuthCredential(cred);
+      } catch (e: unknown) {
+        console.error('Telegram sign-in error:', e);
+        const err = e as { code?: string; message?: string };
+        const code = err.code ?? '';
+        const msg = (
+          {
+            'functions/permission-denied':
+              'Не удалось войти через Telegram: неверные данные или истёкшее время авторизации.',
+            'functions/failed-precondition':
+              'Вход через Telegram не настроен на сервере (секрет TELEGRAM_BOT_TOKEN).',
+            'functions/invalid-argument': 'Некорректные данные входа Telegram.',
+            'auth/network-request-failed': 'Ошибка сети. Проверьте подключение.',
+          } as Record<string, string>
+        )[code];
+        setError(
+          msg ||
+            (typeof err.message === 'string' && err.message.length > 0
+              ? err.message
+              : 'Ошибка при входе через Telegram.')
+        );
+        return false;
+      }
+    },
+    [auth, firebaseApp, finalizeOAuthCredential],
+  );
 
   const createNewAuthUser = useCallback(
     async (email: string, password: string): Promise<UserCredential> => {
@@ -1236,6 +1421,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     completeGoogleProfile,
     checkUsernameAvailable,
     signInWithGoogle,
+    signInWithApple,
+    signInWithTelegramPayload,
     logout,
     updateUser,
     createNewAuthUser,

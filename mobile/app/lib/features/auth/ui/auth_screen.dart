@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import '../registration_profile_gate.dart';
 import 'auth_brand_header.dart';
 import 'login_form.dart';
 import 'register_form.dart';
+import 'telegram_sign_in_webview_screen.dart';
 import '../../shared/ui/app_back_button.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -44,6 +46,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         content: Text('Не удалось открыть политику конфиденциальности'),
       ),
     );
+  }
+
+  Future<void> _continueOAuthAndRoute(
+    AuthRepository repo,
+    Future<void> Function() signIn,
+  ) async {
+    final ok = await _run(signIn, goChatsOnSuccess: false);
+    if (!ok || !mounted) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      context.go('/auth');
+      return;
+    }
+    final status = await getFirestoreRegistrationProfileStatusWithDeadline(user);
+    if (!mounted) return;
+    final next = googleRouteFromProfileStatus(status);
+    if (next == null) {
+      context.go('/chats');
+      return;
+    }
+    context.go(next);
   }
 
   Future<bool> _run(
@@ -240,39 +263,109 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               onPressed:
                                   (!firebaseReady || repo == null || _busy)
                                   ? null
-                                  : () async {
-                                      final ok = await _run(
+                                  : () => _continueOAuthAndRoute(
+                                        repo,
                                         () => repo.signInWithGoogle(),
-                                        goChatsOnSuccess: false,
-                                      );
-                                      if (!ok) return;
-                                      if (!context.mounted) return;
-                                      final user =
-                                          FirebaseAuth.instance.currentUser;
-                                      if (user == null) {
-                                        context.go('/auth');
-                                        return;
-                                      }
-                                      final status =
-                                          await getFirestoreRegistrationProfileStatusWithDeadline(
-                                            user,
-                                          );
-                                      if (!context.mounted) return;
-                                      final next = googleRouteFromProfileStatus(
-                                        status,
-                                      );
-                                      if (next == null) {
-                                        context.go('/chats');
-                                        return;
-                                      }
-                                      context.go(next);
-                                    },
+                                      ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const _GoogleBrandIcon(),
                                   const SizedBox(width: 12),
                                   const Text('Продолжить с Google'),
+                                ],
+                              ),
+                            ),
+                            if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                              const SizedBox(height: 10),
+                              OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(56),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  side: BorderSide(
+                                    color: dark
+                                        ? Colors.white.withValues(alpha: 0.18)
+                                        : Colors.black.withValues(alpha: 0.12),
+                                  ),
+                                  backgroundColor: dark
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.black.withValues(alpha: 0.88),
+                                  foregroundColor: dark
+                                      ? Colors.white
+                                      : Colors.white,
+                                ),
+                                onPressed:
+                                    (!firebaseReady || repo == null || _busy)
+                                    ? null
+                                    : () => _continueOAuthAndRoute(
+                                          repo,
+                                          () => repo.signInWithApple(),
+                                        ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.apple, size: 24),
+                                    SizedBox(width: 10),
+                                    Text('Продолжить с Apple'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(56),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                side: BorderSide(
+                                  color: dark
+                                      ? Colors.white.withValues(alpha: 0.18)
+                                      : Colors.black.withValues(alpha: 0.12),
+                                ),
+                                backgroundColor: dark
+                                    ? const Color(0xFF229ED9).withValues(alpha: 0.22)
+                                    : const Color(0xFF229ED9).withValues(alpha: 0.14),
+                                foregroundColor: dark
+                                    ? Colors.white
+                                    : scheme.onSurface,
+                              ),
+                              onPressed: (!firebaseReady || _busy)
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push<void>(
+                                        MaterialPageRoute<void>(
+                                          fullscreenDialog: true,
+                                          builder: (_) =>
+                                              const TelegramSignInWebViewScreen(),
+                                        ),
+                                      );
+                                    },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 26,
+                                    height: 26,
+                                    alignment: Alignment.center,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF229ED9),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Text(
+                                      'T',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Text('Продолжить с Telegram'),
                                 ],
                               ),
                             ),

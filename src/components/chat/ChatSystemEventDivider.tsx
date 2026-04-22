@@ -9,7 +9,7 @@
  * forward-compatible type, не падал.
  */
 
-import { Lock, Shield, Smartphone, Fingerprint, RefreshCw } from 'lucide-react';
+import { Lock, LockOpen, Shield, Smartphone, Fingerprint, RefreshCw } from 'lucide-react';
 import type { ChatSystemEvent } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,8 @@ function pickIcon(type: ChatSystemEvent['type']) {
   switch (type) {
     case 'e2ee.v2.enabled':
       return Lock;
+    case 'e2ee.v2.disabled':
+      return LockOpen;
     case 'e2ee.v2.epoch.rotated':
       return RefreshCw;
     case 'e2ee.v2.device.added':
@@ -36,6 +38,8 @@ function renderText(event: ChatSystemEvent): string {
   switch (event.type) {
     case 'e2ee.v2.enabled':
       return 'Сквозное шифрование включено';
+    case 'e2ee.v2.disabled':
+      return 'Сквозное шифрование отключено';
     case 'e2ee.v2.epoch.rotated':
       return 'Ключ шифрования обновлён';
     case 'e2ee.v2.device.added':

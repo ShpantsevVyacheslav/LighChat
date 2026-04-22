@@ -18,6 +18,44 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/meetings/$(meetingId)).data.hostId == request.auth.uid;
     }
 
+    /**
+     * Host или пользователь, попавший в `adminIds` митинга.
+     * Требует существования meetings/{meetingId}; подколлекции вызывают функцию только в контексте
+     * существующего митинга (иначе parent-get кидает denied, что и нужно).
+     */
+    function isMeetingAdmin(meetingId) {
+      let m = get(/databases/$(database)/documents/meetings/$(meetingId)).data;
+      return isSignedIn()
+        && (m.hostId == request.auth.uid
+            || (m.adminIds is list && (request.auth.uid in m.adminIds)));
+    }
+
+    /**
+     * Участник комнаты: существует собственный participants/{uid} — ставится после входа
+     * (в т.ч. гостем после одобрения). Используется для разрешения signals/messages/polls
+     * и чтения списка других участников.
+     */
+    function isMeetingMember(meetingId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/meetings/$(meetingId)/participants/$(request.auth.uid));
+    }
+
+    /**
+     * Гость, чей `requests/{uid}` одобрен хостом. Нужен, чтобы гость мог создать свой
+     * `participants/{uid}` сразу после апрува (до того, как он стал member).
+     */
+    function isMeetingGuestApproved(meetingId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/meetings/$(meetingId)/requests/$(request.auth.uid))
+        && get(/databases/$(database)/documents/meetings/$(meetingId)/requests/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    /** Открытый (не приватный) митинг: вход без апрува. */
+    function isMeetingPublic(meetingId) {
+      return exists(/databases/$(database)/documents/meetings/$(meetingId))
+        && get(/databases/$(database)/documents/meetings/$(meetingId)).data.isPrivate == false;
+    }
+
     /** Сам пользователь не может менять блокировку, роль, soft-delete и квоту — только админ. */
     function userSensitiveKeysChanged() {
       return request.resource.data.diff(resource.data).affectedKeys()
@@ -133,16 +171,12 @@ service cloud.firestore {
         }
       }
 
-      /** Публичные ключи E2E v1 (только обёртки для участников чатов). */
-      match /e2ee/{docId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() && request.auth.uid == userId;
-      }
-
       /**
        * v2: публичные ключи всех устройств пользователя. Read — любой
        * авторизованный (нужно, чтобы слать wrap каждому устройству собеседника),
        * write — только владелец `userId`. См. docs/arcitecture/07-e2ee-v2-protocol.md §5.1.
+       *
+       * Legacy `users/{uid}/e2ee/{docId}` (v1) удалён в Phase 10 cleanup.
        */
       match /e2eeDevices/{deviceId} {
         allow read: if isSignedIn();
@@ -192,31 +226,79 @@ service cloud.firestore {
       }
     }
 
+    /**
+     * Митинги (video-конференции):
+     *   - `meetings/{id}` — публичный для чтения любому залогиненному (включая анонимного
+     *     гостя, открывшего /meetings/{id}; иначе JoinMeeting получает permission-denied
+     *     ещё до подачи заявки). Создание/изменение/удаление — только host/admin.
+     *   - `signals/*`, `messages/*`, `polls/*` — приватно для участников (есть participants/{uid}).
+     *   - `participants/{uid}` — запись только своего документа, и только если митинг открытый,
+     *     гость одобрен, либо пользователь — host/admin. Чтение списка — только участникам.
+     *   - `requests/{uid}` — self-create/heartbeat, host-update (approve/deny через callable).
+     */
     match /meetings/{meetingId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.id == meetingId;
+      allow update: if isSignedIn() && (
+        resource.data.hostId == request.auth.uid
+        || (resource.data.adminIds is list && (request.auth.uid in resource.data.adminIds))
+      );
+      allow delete: if isSignedIn() && resource.data.hostId == request.auth.uid;
 
       match /signals/{signalId} {
-        allow read, write: if isSignedIn();
+        allow read: if isMeetingMember(meetingId)
+          && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+        allow create: if isMeetingMember(meetingId)
+          && request.resource.data.from == request.auth.uid;
+        allow delete: if isMeetingMember(meetingId)
+          && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
       }
 
       match /participants/{participantId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+        allow read: if isMeetingMember(meetingId)
+          || isMeetingAdmin(meetingId)
+          || request.auth.uid == participantId;
+        allow create: if isSignedIn() && request.auth.uid == participantId && (
+          isMeetingPublic(meetingId)
+          || isMeetingGuestApproved(meetingId)
+          || isMeetingAdmin(meetingId)
+        );
+        allow update: if isSignedIn() && (
+          request.auth.uid == participantId
+          || isMeetingAdmin(meetingId)
+        );
+        allow delete: if isSignedIn() && (
+          request.auth.uid == participantId
+          || isMeetingAdmin(meetingId)
+        );
       }
 
       match /requests/{userId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if isSignedIn() && (request.auth.uid == userId || isMeetingHost(meetingId));
+        allow read: if isSignedIn() && (
+          request.auth.uid == userId
+          || isMeetingAdmin(meetingId)
+        );
+        allow create, update, delete: if isSignedIn() && (
+          request.auth.uid == userId
+          || isMeetingAdmin(meetingId)
+        );
       }
 
       match /messages/{messageId} {
-        allow read, write: if isSignedIn();
+        allow read: if isMeetingMember(meetingId);
+        allow create: if isMeetingMember(meetingId)
+          && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if isMeetingMember(meetingId) && (
+          resource.data.senderId == request.auth.uid
+          || isMeetingAdmin(meetingId)
+        );
       }
 
       match /polls/{pollId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn();
+        allow read: if isMeetingMember(meetingId);
+        allow write: if isMeetingMember(meetingId);
       }
     }
 

@@ -29,7 +29,7 @@ import {
   dismissPhoneBookOffer,
 } from '@/lib/contacts-client-actions';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
-import { tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee';
+import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
 import { useSettings } from '@/hooks/use-settings';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
@@ -268,7 +268,7 @@ export function ContactsClient() {
       } catch {
         /* ignore */
       }
-      await tryAutoEnableE2eeNewDirectChat(firestore, id, currentUser.id, {
+      await autoEnableE2eeForNewDirectChat(firestore, id, currentUser.id, {
         userWants: privacySettings.e2eeForNewDirectChats === true,
         platformWants,
       });

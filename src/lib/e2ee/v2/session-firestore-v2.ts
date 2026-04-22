@@ -16,10 +16,8 @@ import type {
   E2eeDeviceDocV2,
   E2eeKeyWrapEntry,
   E2eeSessionDocV2,
-  UserE2eePublicDoc,
 } from '@/lib/types';
 import { fromBase64 } from '@/lib/e2ee/b64';
-import { E2EE_DEVICE_DOC_ID } from '@/lib/e2ee/protocol';
 import {
   listActiveE2eeDevicesV2,
   publishE2eeDeviceV2,
@@ -41,11 +39,12 @@ export type ParticipantDeviceBundle = {
 };
 
 /**
- * Собирает список активных устройств для каждого участника. Если у участника
- * есть только v1-ключ (`users/{uid}/e2ee/device`), он автоматически
- * «подтягивается» как одиночное v2-устройство с deviceId = `legacy-v1`.
- * Это критично для миграции: отправка из v2-клиента возможна даже если
- * получатель ещё не залогинился на v2-клиенте.
+ * Собирает список активных устройств для каждого участника.
+ *
+ * После Phase 10 cleanup legacy-v1 fallback удалён — если у участника нет
+ * ни одного `e2eeDevices/*`, функция бросает `E2EE_NO_DEVICE:{uid}`. UI
+ * должен попросить собеседника залогиниться хотя бы раз, чтобы опубликовать
+ * v2-ключ.
  */
 export async function collectParticipantDevicesV2(
   firestore: Firestore,
@@ -57,28 +56,6 @@ export async function collectParticipantDevicesV2(
     if (devices.length > 0) {
       out.push({ userId: uid, devices });
       continue;
-    }
-    // Legacy fallback: смотрим v1-слот. Если есть — подставляем как единственное устройство.
-    const v1Snap = await getDoc(doc(firestore, 'users', uid, 'e2ee', E2EE_DEVICE_DOC_ID));
-    if (v1Snap.exists()) {
-      const d = v1Snap.data() as UserE2eePublicDoc;
-      if (d.publicKeySpki) {
-        out.push({
-          userId: uid,
-          devices: [
-            {
-              deviceId: 'legacy-v1',
-              publicKeySpki: d.publicKeySpki,
-              platform: 'web',
-              label: 'Legacy v1',
-              createdAt: d.updatedAt ?? new Date(0).toISOString(),
-              lastSeenAt: d.updatedAt ?? new Date(0).toISOString(),
-              keyBundleVersion: 1,
-            },
-          ],
-        });
-        continue;
-      }
     }
     throw new Error(`E2EE_NO_DEVICE:${uid}`);
   }
@@ -132,16 +109,19 @@ export async function createE2eeSessionDocV2(
 }
 
 /**
- * Загружает session-doc и определяет его формат (v1 или v2). Возвращает
- * `null`, если эпохи нет.
+ * Загружает session-doc. Возвращает `null`, если документа нет или если
+ * `protocolVersion` не поддерживается (legacy v1 или неизвестная версия).
+ *
+ * Для нераспознанных версий возвращаем `{ version: 'unsupported', raw }`,
+ * чтобы вызывающий мог запустить self-heal (перекатить эпоху в v2).
  */
 export async function fetchE2eeSessionAny(
   firestore: Firestore,
   conversationId: string,
   epoch: number
 ): Promise<
-  | { version: 'v1'; data: import('@/lib/types').E2eeSessionDoc }
   | { version: 'v2'; data: E2eeSessionDocV2 }
+  | { version: 'unsupported'; raw: Record<string, unknown> }
   | null
 > {
   const snap = await getDoc(
@@ -152,7 +132,7 @@ export async function fetchE2eeSessionAny(
   if (raw.protocolVersion === E2EE_V2_PROTOCOL) {
     return { version: 'v2', data: raw as E2eeSessionDocV2 };
   }
-  return { version: 'v1', data: raw as import('@/lib/types').E2eeSessionDoc };
+  return { version: 'unsupported', raw };
 }
 
 /**
@@ -172,21 +152,6 @@ export async function unwrapChatKeyForMeV2(
   }
   const entry = perUser[identity.deviceId];
   if (!entry) {
-    // Возможно, ротация произошла до того, как это устройство опубликовало ключ.
-    // Попробуем fallback: если единственный ключ в мапе — для legacy-v1 и мой
-    // pub совпадает — используем его. Это важно для миграции.
-    const keys = Object.keys(perUser);
-    if (keys.length === 1 && keys[0] === 'legacy-v1') {
-      // Legacy unwrap тоже использует мой приватник, но с epochId/deviceId 'legacy-v1'.
-      const legacy = perUser['legacy-v1'];
-      const legacyRaw = await unwrapChatKeyForDeviceV2(
-        legacy,
-        identity.privateKey,
-        `${conversationId}:${session.epoch}`,
-        'legacy-v1'
-      ).catch(() => null);
-      if (legacyRaw) return importAesGcmChatKeyV2(legacyRaw);
-    }
     throw new Error('E2EE_NO_WRAP_FOR_DEVICE');
   }
   const raw = await unwrapChatKeyForDeviceV2(
@@ -216,16 +181,6 @@ export async function unwrapChatKeyRawForMeV2(
   }
   const entry = perUser[identity.deviceId];
   if (!entry) {
-    const keys = Object.keys(perUser);
-    if (keys.length === 1 && keys[0] === 'legacy-v1') {
-      const legacy = perUser['legacy-v1'];
-      return unwrapChatKeyForDeviceV2(
-        legacy,
-        identity.privateKey,
-        `${conversationId}:${session.epoch}`,
-        'legacy-v1'
-      );
-    }
     throw new Error('E2EE_NO_WRAP_FOR_DEVICE');
   }
   return unwrapChatKeyForDeviceV2(

@@ -7,7 +7,7 @@ String formatLastSeenStatusRu(DateTime lastSeen, [DateTime? now]) {
   final sec = diffMs ~/ 1000;
   final min = diffMs ~/ 60000;
 
-  if (sec < 60) return '${_prefix}менее минуты назад';
+  if (sec < 60) return '$_prefixменее минуты назад';
   if (min < 60) return '$_prefix${_ruMinutesPhrase(min)}';
 
   final calDays = _differenceInCalendarDays(n, lastSeen);
@@ -17,7 +17,7 @@ String formatLastSeenStatusRu(DateTime lastSeen, [DateTime? now]) {
     return '$_prefix${_ruHoursPhrase(hrs)}';
   }
 
-  if (calDays == 1) return '${_prefix}вчера';
+  if (calDays == 1) return '$_prefixвчера';
 
   if (calDays >= 2 && calDays <= 30) {
     return '$_prefix${_ruDaysPhrase(calDays)}';

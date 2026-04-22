@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { Meeting, User, MeetingSignal } from '@/lib/types';
 import { getWebRtcIceConfig } from '@/lib/webrtc-ice-servers';
+import { watchPeerStats, type PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
 
 if (typeof window !== 'undefined' && !window.process) {
     (window as any).process = { env: {} };
@@ -38,6 +39,12 @@ export interface ParticipantState {
   facingMode?: 'user' | 'environment';
   forceMuteAudio?: boolean;
   forceMuteVideo?: boolean;
+  /**
+   * Качество соединения до удалённого peer по последней выборке getStats.
+   * Локальный признак (в Firestore не пишется): используется в UI для индикатора
+   * «слабый сигнал». См. `src/lib/webrtc/peer-stats.ts`.
+   */
+  connectionQuality?: PeerConnectionQuality;
 }
 
 export interface UseMeetingWebRTCResult {
@@ -80,6 +87,19 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
   const { toast } = useToast();
   const router = useRouter();
 
+  /**
+   * Трекер попыток reconnect по пиру:
+   *   count — сколько полных пересозданий peer было за последние RECONNECT_WINDOW_MS;
+   *   lastTriedAt — timestamp последней попытки (сбрасывает count после окна);
+   *   disconnectTimerId — таймер отложенного restartIce (см. обработчик iceConnectionState).
+   * Ограничение попыток защищает от бесконечной петли при фундаментальном отсутствии связи.
+   */
+  const peerReconnect = useRef<Record<string, {
+    count: number;
+    lastTriedAt: number;
+    disconnectTimerId: ReturnType<typeof setTimeout> | null;
+  }>>({});
+
   const selfieSegmentationRef = useRef<any>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -96,6 +116,11 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     return () => { 
         isMountedRef.current = false;
         if (requestAnimationRef.current) cancelAnimationFrame(requestAnimationRef.current);
+        // Снимаем все отложенные ICE-disconnect таймеры (см. attachResilience).
+        Object.values(peerReconnect.current).forEach((entry) => {
+            if (entry?.disconnectTimerId) clearTimeout(entry.disconnectTimerId);
+        });
+        peerReconnect.current = {};
     };
   }, []);
 
@@ -232,7 +257,15 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
                     });
                 }
             }
-        } catch (e) {}
+        } catch (e: any) {
+            // NotAllowedError — пользователь отменил диалог выбора экрана: не шумим в тосте.
+            // Прочие ошибки (NotSupported, AbortError, permission в policy) — логируем и
+            // информируем пользователя, иначе UI молчит и выглядит как баг.
+            if (e?.name !== 'NotAllowedError') {
+                console.warn('[WebRTC] getDisplayMedia failed:', e);
+                toast({ variant: 'destructive', title: 'Не удалось запустить демонстрацию экрана' });
+            }
+        }
     } else {
         if (screenStreamRef.current) {
             screenStreamRef.current.getTracks().forEach(t => t.stop());
@@ -253,7 +286,107 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
             });
         }
     }
-  }, [isScreenSharing, safeReplaceTrack, firestore, meeting.id, currentUser.id]);
+  }, [isScreenSharing, safeReplaceTrack, firestore, meeting.id, currentUser.id, toast]);
+
+  /**
+   * Устойчивость соединения: ICE restart и полный пересоздание peer при провалах.
+   *
+   * Стратегия:
+   *   - `disconnected` — мягкий путь: ждём `DISCONNECT_DEBOUNCE_MS`; если состояние не
+   *     восстановилось само, инициатор (`currentUser.id < remoteId`) вызывает
+   *     `pc.restartIce()` + `p.negotiate()`, что перегоняет offer с новым ICE-сбором.
+   *   - `failed` — жёсткий путь: destroy текущего peer, короткий бэкофф, затем `setupPeer`
+   *     заново (с сохранением роли инициатора).
+   *   - Защита от петли: не более `MAX_RECONNECTS` пересозданий за `RECONNECT_WINDOW_MS`
+   *     на один пир; превышение — оставляем peer закрытым, участник увидит плейсхолдер.
+   *   - Ответственным за restart является только initiator-сторона, чтобы не сгенерировать
+   *     два одновременных offer с обоих концов.
+   *
+   * Хук вешается на `p._pc` в `setupPeer`. Таймеры снимаются в `p.on('close')` и при
+   * глобальном unmount.
+   */
+  const DISCONNECT_DEBOUNCE_MS = 4000;
+  const RECONNECT_WINDOW_MS = 60000;
+  const MAX_RECONNECTS = 3;
+  const FAILED_BACKOFF_MS = 1000;
+
+  const recreatePeer = useCallback((remoteId: string) => {
+    if (!isMountedRef.current) return;
+    const now = Date.now();
+    const entry = peerReconnect.current[remoteId] || { count: 0, lastTriedAt: 0, disconnectTimerId: null };
+    if (now - entry.lastTriedAt > RECONNECT_WINDOW_MS) entry.count = 0;
+    if (entry.count >= MAX_RECONNECTS) {
+      console.warn(`[WebRTC] [${remoteId}] Reconnect limit reached, giving up`);
+      return;
+    }
+    entry.count += 1;
+    entry.lastTriedAt = now;
+    peerReconnect.current[remoteId] = entry;
+
+    const initiator = currentUser.id < remoteId;
+    const old = peers.current[remoteId];
+    delete peers.current[remoteId];
+    creatingPeers.current.delete(remoteId);
+    try { if (old && !old.destroyed) old.destroy(); } catch {}
+
+    setTimeout(() => {
+      if (!isMountedRef.current) return;
+      setupPeerRef.current?.(remoteId, initiator);
+    }, FAILED_BACKOFF_MS);
+  }, [currentUser.id]);
+
+  const attachResilience = useCallback((p: any, remoteId: string) => {
+    const pc: RTCPeerConnection | undefined = p?._pc;
+    if (!pc) return;
+
+    const initiator = currentUser.id < remoteId;
+
+    pc.addEventListener('iceconnectionstatechange', () => {
+      if (!isMountedRef.current || p.destroyed) return;
+      const state = pc.iceConnectionState;
+      const entry = peerReconnect.current[remoteId] || { count: 0, lastTriedAt: 0, disconnectTimerId: null };
+
+      if (state === 'connected' || state === 'completed') {
+        if (entry.disconnectTimerId) { clearTimeout(entry.disconnectTimerId); entry.disconnectTimerId = null; }
+        peerReconnect.current[remoteId] = entry;
+        return;
+      }
+
+      if (state === 'disconnected') {
+        if (entry.disconnectTimerId) clearTimeout(entry.disconnectTimerId);
+        entry.disconnectTimerId = setTimeout(() => {
+          if (!isMountedRef.current || p.destroyed) return;
+          const curState = pc.iceConnectionState;
+          if (curState === 'connected' || curState === 'completed') return;
+          if (initiator) {
+            try {
+              pc.restartIce();
+              p.negotiate?.();
+              console.info(`[WebRTC] [${remoteId}] ICE restart requested`);
+            } catch (e) {
+              console.warn(`[WebRTC] [${remoteId}] restartIce failed, recreating`, e);
+              recreatePeer(remoteId);
+            }
+          }
+        }, DISCONNECT_DEBOUNCE_MS);
+        peerReconnect.current[remoteId] = entry;
+        return;
+      }
+
+      if (state === 'failed') {
+        if (entry.disconnectTimerId) { clearTimeout(entry.disconnectTimerId); entry.disconnectTimerId = null; }
+        peerReconnect.current[remoteId] = entry;
+        console.warn(`[WebRTC] [${remoteId}] ICE failed, recreating peer`);
+        recreatePeer(remoteId);
+      }
+    });
+  }, [currentUser.id, recreatePeer]);
+
+  /**
+   * Нужен forward-ref, т.к. `recreatePeer` вызывает `setupPeer`, а `setupPeer` ниже.
+   * Альтернатива — реорганизовать файл; минимальное изменение через ref безопаснее.
+   */
+  const setupPeerRef = useRef<((remoteId: string, initiator: boolean) => Promise<any>) | null>(null);
 
   const setupPeer = useCallback(async (remoteId: string, initiator: boolean) => {
     if (!isMountedRef.current || peers.current[remoteId] || creatingPeers.current.has(remoteId) || !localStreamRef.current) return null;
@@ -287,16 +420,31 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
             creatingPeers.current.delete(remoteId); 
         });
 
+        // Метрики качества соединения; отписка — при close.
+        const unsubStats = p._pc
+          ? watchPeerStats(p._pc as RTCPeerConnection, (sample) => {
+              if (!isMountedRef.current) return;
+              setParticipants(prev => prev[remoteId]
+                ? ({ ...prev, [remoteId]: { ...prev[remoteId], connectionQuality: sample.quality } })
+                : prev);
+            })
+          : () => {};
+
         p.on('close', () => { 
             if (!isMountedRef.current) return;
+            try { unsubStats(); } catch {}
             setParticipants(prev => {
                 const next = { ...prev };
                 delete next[remoteId];
                 return next;
             });
+            const entry = peerReconnect.current[remoteId];
+            if (entry?.disconnectTimerId) { clearTimeout(entry.disconnectTimerId); entry.disconnectTimerId = null; }
             delete peers.current[remoteId]; 
             creatingPeers.current.delete(remoteId); 
         });
+
+        attachResilience(p, remoteId);
 
         peers.current[remoteId] = p;
         creatingPeers.current.delete(remoteId);
@@ -306,7 +454,11 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
         creatingPeers.current.delete(remoteId);
         return null;
     }
-  }, [firestore, meeting.id, currentUser.id]);
+  }, [firestore, meeting.id, currentUser.id, attachResilience]);
+
+  useEffect(() => {
+    setupPeerRef.current = setupPeer;
+  }, [setupPeer]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

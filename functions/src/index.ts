@@ -15,6 +15,7 @@ export { onUserCreated } from './triggers/auth/onUserCreated';
 
 // HTTP Triggers (onCall)
 export { createNewUser } from './triggers/http/createNewUser';
+export { signInWithTelegram } from './triggers/http/signInWithTelegram';
 export { updateUserAdmin } from './triggers/http/updateUserAdmin';
 export { backfillConversationMembers } from './triggers/http/backfillConversationMembers';
 export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationIndex';

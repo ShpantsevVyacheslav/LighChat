@@ -424,7 +424,13 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
         groupPhotoJpeg: _groupPhotoJpeg,
       );
       if (!mounted) return;
-      context.push('/chats/$convId');
+      // Важно: после создания группы "назад" (и iOS swipe-back) должно вести
+      // в список диалогов, а не на форму создания группы.
+      context.go('/chats');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.push('/chats/$convId');
+      });
     } on StateError catch (e) {
       setState(() => _error = e.message);
     } catch (e) {

@@ -49,6 +49,26 @@ const PBKDF2_DEFAULT_ITERATIONS = 600_000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 
+/**
+ * Дефолтные параметры Argon2id (Phase 9 gap #6). Цифры из OWASP-2024:
+ *  - 64 MiB памяти (разумно даже для mid-range устройств),
+ *  - 3 итерации,
+ *  - параллелизм 1 (браузерный WASM однопоточный).
+ * Этого достаточно, чтобы GPU-атака была дорогой, а UI не фризился >~1 сек на
+ * мобилке с Safari.
+ */
+const ARGON2_DEFAULT_MEM_KIB = 64 * 1024;
+const ARGON2_DEFAULT_ITERATIONS = 3;
+const ARGON2_DEFAULT_PARALLELISM = 1;
+
+/**
+ * Какой KDF использовать для *новых* backups. `'auto'` — пробуем argon2id
+ * через `hash-wasm`, при недоступности падаем на PBKDF2. Существующие backups
+ * читаются по полю `kdf.algorithm` в их собственном документе, поэтому смена
+ * этого дефолта **не ломает** ранее созданные PBKDF2-бэкапы.
+ */
+export type BackupKdfPreference = 'auto' | 'argon2id' | 'pbkdf2-sha256';
+
 export type CreateBackupOptions = {
   firestore: Firestore;
   userId: string;
@@ -64,6 +84,11 @@ export type CreateBackupOptions = {
   allowedDeviceLabels?: string[];
   /** Переопределение KDF-параметров (например, для теста). */
   kdf?: E2eeBackupKdfParams;
+  /**
+   * Предпочтение KDF-алгоритма, если `kdf` не задан явно. По умолчанию
+   * `'auto'` — argon2id через `hash-wasm`, при недоступности — PBKDF2.
+   */
+  kdfPreference?: BackupKdfPreference;
 };
 
 export type RestoreBackupOptions = {
@@ -116,13 +141,57 @@ async function deriveKdfKey(password: string, params: E2eeBackupKdfParams): Prom
     );
     return new Uint8Array(bits);
   }
-  // Argon2id ещё не подключён: чтобы не превратиться в silent-fallback, кидаем
-  // явную ошибку. UI должен отловить и предложить пересоздать backup с PBKDF2.
-  throw new Error('E2EE_BACKUP_ARGON2_NOT_AVAILABLE');
+  // Argon2id через `hash-wasm`. Импортируем лениво — только когда KDF реально
+  // задан как argon2id в документе (т.е. существующие PBKDF2-бэкапы не тащат
+  // WASM-модуль в бандл).
+  const { argon2id } = await import('hash-wasm');
+  const salt = fromBase64(params.saltB64);
+  const hex = await argon2id({
+    password,
+    salt,
+    parallelism: params.parallelism,
+    iterations: params.iterations,
+    memorySize: params.memKiB,
+    hashLength: 32,
+    outputType: 'hex',
+  });
+  // Конвертируем hex → bytes.
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return out;
+}
+
+/**
+ * Проверяет, доступен ли Argon2id (WASM). Динамический import, чтобы не падать
+ * в окружениях без WASM (старые браузеры, SSR).
+ */
+async function isArgon2idAvailable(): Promise<boolean> {
+  try {
+    const { argon2id } = await import('hash-wasm');
+    return typeof argon2id === 'function';
+  } catch {
+    return false;
+  }
 }
 
 /** Генерирует дефолтные параметры KDF для нового бэкапа. */
-function defaultKdfParams(): E2eeBackupKdfParams {
+async function defaultKdfParams(
+  preference: BackupKdfPreference
+): Promise<E2eeBackupKdfParams> {
+  const wantsArgon =
+    preference === 'argon2id' ||
+    (preference === 'auto' && (await isArgon2idAvailable()));
+  if (wantsArgon) {
+    return {
+      algorithm: 'argon2id',
+      memKiB: ARGON2_DEFAULT_MEM_KIB,
+      iterations: ARGON2_DEFAULT_ITERATIONS,
+      parallelism: ARGON2_DEFAULT_PARALLELISM,
+      saltB64: toBase64(randomBytes(SALT_BYTES)),
+    };
+  }
   return {
     algorithm: 'pbkdf2-sha256',
     iterations: PBKDF2_DEFAULT_ITERATIONS,
@@ -135,7 +204,7 @@ export async function createPasswordBackupV2(opts: CreateBackupOptions): Promise
   if (opts.password.length < E2EE_BACKUP_MIN_PASSWORD_LENGTH) {
     throw new Error('E2EE_BACKUP_PASSWORD_TOO_SHORT');
   }
-  const kdf = opts.kdf ?? defaultKdfParams();
+  const kdf = opts.kdf ?? (await defaultKdfParams(opts.kdfPreference ?? 'auto'));
   const keyBytes = await deriveKdfKey(opts.password, kdf);
   const aesKey = await crypto.subtle.importKey(
     'raw',

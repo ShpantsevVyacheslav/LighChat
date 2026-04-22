@@ -103,6 +103,7 @@ export const onconversationupdated = onDocumentUpdated("conversations/{conversat
           tag: `group-add-${conversationId}`,
           icon: "/pwa/icon-192.png",
           silent: decision.silent,
+          conversationId,
         });
         sendItems.push({ tokens, data });
       }

@@ -1,0 +1,102 @@
+"use client";
+
+import * as React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AUTH_DIALOG_OVERLAY_CLASS,
+  AUTH_GLASS_CARD_SHELL_CLASS,
+} from "@/components/auth/auth-glass-classes";
+import { cn } from "@/lib/utils";
+
+declare global {
+  interface Window {
+    onTelegramAuth?: (user: Record<string, unknown>) => void;
+  }
+}
+
+export type TelegramLoginDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Имя бота без @ (BotFather), из `NEXT_PUBLIC_TELEGRAM_BOT_NAME`. */
+  botName: string | undefined;
+  onAuthUser: (user: Record<string, unknown>) => void | Promise<void>;
+};
+
+/**
+ * Диалог с официальным [Telegram Login Widget](https://core.telegram.org/widgets/login).
+ * После успеха вызывает `onAuthUser` с объектом полей + `hash` для callable `signInWithTelegram`.
+ */
+export function TelegramLoginDialog({
+  open,
+  onOpenChange,
+  botName,
+  onAuthUser,
+}: TelegramLoginDialogProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const onAuthUserRef = React.useRef(onAuthUser);
+  onAuthUserRef.current = onAuthUser;
+
+  React.useEffect(() => {
+    if (!open || !botName?.trim()) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.innerHTML = "";
+    window.onTelegramAuth = (user: unknown) => {
+      if (user && typeof user === "object") {
+        void onAuthUserRef.current(user as Record<string, unknown>);
+      }
+    };
+
+    const s = document.createElement("script");
+    s.src = "https://telegram.org/js/telegram-widget.js?22";
+    s.async = true;
+    s.setAttribute("data-telegram-login", botName.trim());
+    s.setAttribute("data-size", "large");
+    s.setAttribute("data-onauth", "onTelegramAuth(user)");
+    s.setAttribute("data-request-access", "write");
+    container.appendChild(s);
+
+    return () => {
+      delete window.onTelegramAuth;
+      container.innerHTML = "";
+    };
+  }, [open, botName]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          AUTH_DIALOG_OVERLAY_CLASS,
+          "max-w-sm border-white/40 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-white/15 dark:bg-[#0b1220]/92",
+          AUTH_GLASS_CARD_SHELL_CLASS,
+        )}
+      >
+        <DialogHeader>
+          <DialogTitle>Вход через Telegram</DialogTitle>
+          <DialogDescription>
+            Нажмите кнопку ниже и подтвердите вход в Telegram. Домен сайта должен быть указан у бота
+            (BotFather → /setdomain).
+          </DialogDescription>
+        </DialogHeader>
+        {!botName?.trim() ? (
+          <p className="text-center text-sm text-destructive">
+            Не задана переменная окружения{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">NEXT_PUBLIC_TELEGRAM_BOT_NAME</code>.
+          </p>
+        ) : (
+          <div
+            ref={containerRef}
+            className="flex min-h-[52px] flex-col items-center justify-center py-2"
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

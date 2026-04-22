@@ -187,32 +187,3 @@ Future<void> revokeMobileDevice({
   });
 }
 
-/// Fallback-чтение legacy v1 ключа из `users/{uid}/e2ee/device`. Нужно нам
-/// только когда собеседник ещё не опубликовал ни одного v2-устройства.
-/// Возвращает `null`, если v1 ключа тоже нет.
-Future<E2eeDeviceDoc?> readLegacyV1Device({
-  required FirebaseFirestore firestore,
-  required String userId,
-}) async {
-  final snap = await firestore
-      .collection('users')
-      .doc(userId)
-      .collection('e2ee')
-      .doc('device')
-      .get();
-  if (!snap.exists) return null;
-  final data = snap.data();
-  if (data == null) return null;
-  final pub = data['publicKeySpki'];
-  if (pub is! String || pub.isEmpty) return null;
-  final updatedAt =
-      (data['updatedAt'] as String?) ?? DateTime(1970).toUtc().toIso8601String();
-  return E2eeDeviceDoc(
-    deviceId: 'legacy-v1',
-    publicKeySpkiB64: pub,
-    platform: (data['platform'] as String?) ?? 'web',
-    label: 'Legacy v1',
-    createdAt: updatedAt,
-    lastSeenAt: updatedAt,
-  );
-}

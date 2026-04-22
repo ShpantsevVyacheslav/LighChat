@@ -64,11 +64,19 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
   /// recorded-clip preview matches the mirrored live preview.
   bool _fileIsMirrored = false;
 
+  /// Камера, с которой была сделана запись (для корректного превью после стопа).
+  bool _recordedWithFrontCamera = true;
+
   int _cameraIndex = 0;
   bool _flashOn = false;
   bool _flashSupported = false;
 
-  DateTime? _recordStartedAt;
+  /// Накопленная длительность записи до текущего активного сегмента (паузы обнуляют сегмент).
+  Duration _recordingPausedTotal = Duration.zero;
+
+  /// Пока не null — идёт «активная» запись (не на паузе плагина).
+  DateTime? _recordingSegmentStartedAt;
+
   Duration _recordElapsed = Duration.zero;
   Timer? _recordTicker;
 
@@ -104,12 +112,29 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     super.dispose();
   }
 
+  Duration _computeRecordingElapsed() {
+    var t = _recordingPausedTotal;
+    final seg = _recordingSegmentStartedAt;
+    if (seg != null) {
+      t += DateTime.now().difference(seg);
+    }
+    return t;
+  }
+
+  void _flushRecordingElapsedToPausedTotal() {
+    final seg = _recordingSegmentStartedAt;
+    if (seg != null) {
+      _recordingPausedTotal += DateTime.now().difference(seg);
+      _recordingSegmentStartedAt = null;
+    }
+    _recordElapsed = _recordingPausedTotal;
+  }
+
   void _startRecordTicker() {
     _recordTicker?.cancel();
     _recordTicker = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      final s = _recordStartedAt;
-      if (!mounted || s == null) return;
-      setState(() => _recordElapsed = DateTime.now().difference(s));
+      if (!mounted || _state != _CircleCaptureState.recordingHold) return;
+      setState(() => _recordElapsed = _computeRecordingElapsed());
     });
   }
 
@@ -170,7 +195,8 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       }
 
       _cam = cc;
-      _recordStartedAt = DateTime.now();
+      _recordingPausedTotal = Duration.zero;
+      _recordingSegmentStartedAt = DateTime.now();
       _recordElapsed = Duration.zero;
       _startRecordTicker();
 
@@ -254,7 +280,9 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     setState(() => _state = _CircleCaptureState.preparing);
 
     try {
+      _flushRecordingElapsedToPausedTotal();
       final wasFront = _isFrontCamera;
+      _recordedWithFrontCamera = wasFront;
       final file = await cc.stopVideoRecording();
       _stopRecordTicker();
       await _disposeCamera();
@@ -322,6 +350,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     }
     _recorded = null;
     _fileIsMirrored = false;
+    _recordedWithFrontCamera = true;
     await _disposePreview();
     await _openCameraAndStart(useIndex: _cameraIndex);
   }
@@ -352,6 +381,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     if (cc == null || !cc.value.isInitialized || !cc.value.isRecordingVideo) {
       return;
     }
+    if (cc.value.isRecordingPaused) return;
 
     final next = (_cameraIndex + 1) % _cameras.length;
     try {
@@ -379,13 +409,45 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
   Future<void> _toggleFlash() async {
     if (!_isRecordingState || _isBusy || !_flashSupported) return;
     final cc = _cam;
-    if (cc == null) return;
+    if (cc == null || cc.value.isRecordingPaused) return;
     final next = !_flashOn;
     try {
       await cc.setFlashMode(next ? FlashMode.torch : FlashMode.off);
       if (mounted) setState(() => _flashOn = next);
     } catch (_) {
       if (mounted) setState(() => _flashSupported = false);
+    }
+  }
+
+  Future<void> _toggleRecordingPause() async {
+    if (!_isRecordingState || _isBusy || _isClosing) return;
+    final cc = _cam;
+    if (cc == null || !cc.value.isInitialized || !cc.value.isRecordingVideo) {
+      return;
+    }
+    final paused = cc.value.isRecordingPaused;
+    try {
+      if (paused) {
+        await cc.resumeVideoRecording();
+        _recordingSegmentStartedAt = DateTime.now();
+        if (mounted) setState(() {});
+      } else {
+        _flushRecordingElapsedToPausedTotal();
+        await cc.pauseVideoRecording();
+        if (mounted) setState(() {});
+      }
+    } on CameraException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Пауза записи недоступна: ${e.description} (${e.code})'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Пауза записи: $e')),
+      );
     }
   }
 
@@ -547,7 +609,8 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       // live recording preview (which is always mirrored). This keeps
       // the experience consistent even if [mirrorVideoCircleIfNeeded]
       // fell back to the original file on this device.
-      final mirrorRecorded = !_fileIsMirrored;
+      // Только селфи зеркалим в превью файла; задняя камера — как в записи.
+      final mirrorRecorded = _recordedWithFrontCamera && !_fileIsMirrored;
       return _buildCircleFrame(
         side: side,
         borderColor: const Color(0xFF22C55E).withValues(alpha: 0.42),
@@ -569,16 +632,24 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     }
 
     final cc = _cam;
-    // The circle preview is always mirrored while recording — matches
-    // a selfie/webcam UX independently of which camera is active.
     return _buildCircleFrame(
       side: side,
       borderColor: scheme.primary.withValues(alpha: 0.38),
       child: cc != null && cc.value.isInitialized
-          ? Transform.flip(
-              flipX: true,
-              child: VideoCircleCameraPreview(controller: cc),
-            )
+          ? _isFrontCamera
+                ? Transform.flip(
+                    flipX: true,
+                    child: VideoCircleCameraPreview(
+                      controller: cc,
+                      previewFit: BoxFit.cover,
+                    ),
+                  )
+                : VideoCircleCameraPreview(
+                    controller: cc,
+                    // Единый crop с фронтом — иначе при смене камеры `cover`↔`contain`
+                    // даёт скачок «зума» на первом кадре после setDescription.
+                    previewFit: BoxFit.cover,
+                  )
           : const ColoredBox(color: Colors.black),
     );
   }
@@ -694,6 +765,14 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
               icon: _flashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
               enabled: !_isBusy && _flashSupported,
               onTap: _toggleFlash,
+            ),
+            const SizedBox(height: 10),
+            _ControlCircleButton(
+              icon: (_cam?.value.isRecordingPaused ?? false)
+                  ? Icons.play_arrow_rounded
+                  : Icons.pause_rounded,
+              enabled: !_isBusy && _isRecordingState,
+              onTap: () => unawaited(_toggleRecordingPause()),
             ),
           ],
         ),

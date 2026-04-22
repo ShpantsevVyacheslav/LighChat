@@ -98,34 +98,51 @@ Future<EncryptUploadResultV2> encryptAndUploadMediaFileV2({
     thumbnailMime: input.thumbnailMime,
   );
 
-  final paths = <String>[];
-  for (final chunk in encrypted.chunks) {
-    final path = chunkStoragePathV2(
-      conversationId: input.conversationId,
-      messageId: input.messageId,
-      fileId: fileId,
-      index: chunk.index,
-    );
-    final ref = input.storage.ref(path);
-    await ref.putData(
-      chunk.data,
-      SettableMetadata(
-        contentType: 'application/octet-stream',
-        customMetadata: {
-          'e2eeV2ChunkIndex': chunk.index.toString(),
-          'e2eeV2FileId': fileId,
-          'e2eeV2ChunkCount': encrypted.envelope.chunkCount.toString(),
-        },
-      ),
-    );
-    paths.add(path);
+  // Параллельный upload чанков с ограниченным окном. Последовательный `for`
+  // давал линейный rtt*chunkCount — отправка больших медиа была «вечной».
+  // Симметрично с web (`src/lib/e2ee/v2/media-upload-v2.ts`).
+  final paths = List<String>.filled(encrypted.chunks.length, '');
+  final concurrency = encrypted.chunks.length < e2eeMediaV2UploadConcurrency
+      ? encrypted.chunks.length
+      : e2eeMediaV2UploadConcurrency;
+  var cursor = 0;
+  Future<void> worker() async {
+    while (true) {
+      final i = cursor++;
+      if (i >= encrypted.chunks.length) return;
+      final chunk = encrypted.chunks[i];
+      final path = chunkStoragePathV2(
+        conversationId: input.conversationId,
+        messageId: input.messageId,
+        fileId: fileId,
+        index: chunk.index,
+      );
+      final ref = input.storage.ref(path);
+      await ref.putData(
+        chunk.data,
+        SettableMetadata(
+          contentType: 'application/octet-stream',
+          customMetadata: {
+            'e2eeV2ChunkIndex': chunk.index.toString(),
+            'e2eeV2FileId': fileId,
+            'e2eeV2ChunkCount': encrypted.envelope.chunkCount.toString(),
+          },
+        ),
+      );
+      paths[i] = path;
+    }
   }
+
+  await Future.wait(List<Future<void>>.generate(concurrency, (_) => worker()));
 
   return EncryptUploadResultV2(
     envelope: encrypted.envelope,
     chunkStoragePaths: paths,
   );
 }
+
+/// Компромисс между скоростью upload'а и нагрузкой на мобильную сеть/Storage.
+const int e2eeMediaV2UploadConcurrency = 4;
 
 class DownloadDecryptInputV2 {
   const DownloadDecryptInputV2({

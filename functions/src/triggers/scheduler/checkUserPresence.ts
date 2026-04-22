@@ -9,25 +9,30 @@ const db = admin.firestore();
  * Scheduled function that checks for users marked as 'online' but who haven't
  * updated their 'lastSeen' timestamp recently.
  * Also cleans up stale meeting participants and join requests.
- * 
+ *
  * Frequency: Every 1 minute
- * Threshold: 60 seconds
+ * Thresholds:
+ *   - users.online: 60 seconds (как и раньше — общий presence веб/мобильных клиентов);
+ *   - meeting participants: 90 seconds — heartbeat раз в 20 сек (см. use-meeting-webrtc.ts),
+ *     буфер ×4.5 защищает от ложного исключения при кратких GC-паузах и моб. сетевых провалах;
+ *   - meeting requests: 90 seconds — heartbeat такой же.
  */
 export const checkUserPresence = onSchedule({
   schedule: "every 1 minutes",
   timeZone: "Europe/Moscow",
 }, async () => {
   const now = new Date();
-  // Threshold: If lastSeen is older than 1 minute, consider them offline.
-  const threshold = new Date(now.getTime() - 60 * 1000);
-  const thresholdIso = threshold.toISOString();
+  // User-presence threshold — 60 сек.
+  const userPresenceThreshold = new Date(now.getTime() - 60 * 1000).toISOString();
+  // Meeting participants/requests — 90 сек (см. JSDoc выше).
+  const meetingThreshold = new Date(now.getTime() - 90 * 1000).toISOString();
 
   try {
     // 1. GLOBAL PRESENCE CLEANUP
     logger.log("[checkUserPresence] Step 1: Cleaning up global user presence...");
     const onlineUsersSnapshot = await db.collection("users")
       .where("online", "==", true)
-      .where("lastSeen", "<", thresholdIso)
+      .where("lastSeen", "<", userPresenceThreshold)
       .get();
 
     if (!onlineUsersSnapshot.empty) {
@@ -43,7 +48,7 @@ export const checkUserPresence = onSchedule({
     logger.log("[checkUserPresence] Step 2: Cleaning up stale meeting participants...");
     // Uses collectionGroup index: participants (lastSeen ASC, id ASC)
     const staleParticipantsSnapshot = await db.collectionGroup('participants')
-      .where('lastSeen', '<', thresholdIso)
+      .where('lastSeen', '<', meetingThreshold)
       .orderBy('lastSeen', 'asc')
       .orderBy('id', 'asc')
       .get();
@@ -69,7 +74,7 @@ export const checkUserPresence = onSchedule({
     // Uses collectionGroup index: requests (status ASC, lastSeen ASC)
     const staleRequestsSnapshot = await db.collectionGroup('requests')
       .where('status', '==', 'pending')
-      .where('lastSeen', '<', thresholdIso)
+      .where('lastSeen', '<', meetingThreshold)
       .get();
 
     if (!staleRequestsSnapshot.empty) {

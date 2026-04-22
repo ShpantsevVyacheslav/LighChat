@@ -112,6 +112,7 @@ export const onmessagecreated = onDocumentCreated(
           tag: conversationId,
           icon: senderIcon,
           silent: decision.silent,
+          conversationId,
         });
 
         sendItems.push({ tokens, data });

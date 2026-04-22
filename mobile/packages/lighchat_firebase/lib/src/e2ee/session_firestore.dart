@@ -1,18 +1,9 @@
 /// Read / write `conversations/{cid}/e2eeSessions/{epoch}` для мобайла.
 ///
-/// Зеркало `src/lib/e2ee/v2/session-firestore-v2.ts`, только без web-only
-/// зависимостей (нет IndexedDB, нет WebCrypto — вся криптография идёт через
-/// `webcrypto_compat.dart`).
-///
-/// Что поддерживается:
-///  - чтение session-doc и определение protocol version (v1 → unsupported,
-///    v2 → основная ветка, любое другое → unsupported);
-///  - unwrap chat-key для текущего устройства через
-///    `unwrapChatKeyForDeviceV2`;
-///  - создание новой v2 эпохи (wraps для всех активных устройств каждого
-///    участника; legacy-v1 fallback если у кого-то нет v2 устройств);
-///  - `ensureDevicePublished` — идемпотентно публикует наш публичник перед
-///    ротацией эпохи.
+/// Зеркало `src/lib/e2ee/v2/session-firestore-v2.ts`. После Phase 10
+/// cleanup legacy-v1 формат не поддерживается — любой не-v2
+/// `protocolVersion` считаем unsupported и триггерим self-heal (ротация
+/// эпохи в v2). Web и мобайл в этом поведении идентичны.
 library;
 
 import 'dart:convert';
@@ -140,13 +131,13 @@ Future<FetchedSession?> fetchE2eeSessionAny({
     return FetchedSession._(v2: E2eeSessionDocV2Mobile.fromMap(data));
   }
   return FetchedSession._(
-    legacyVersion: proto is String ? proto : 'v1-p256-aesgcm',
+    legacyVersion: proto is String ? proto : 'unknown',
   );
 }
 
 /// Разворачивает chat-key для текущего устройства. Если обёртки под
-/// `identity.deviceId` нет, пробуем `legacy-v1` fallback (бывает, когда веб
-/// создал эпоху, а мобайл впервые публикует свой публичник).
+/// `identity.deviceId` нет — бросаем `E2EE_NO_WRAP_FOR_DEVICE`, UI
+/// должен запустить self-heal (`healSessionForCurrentDevices`).
 Future<Uint8List> unwrapChatKeyForMobile({
   required E2eeSessionDocV2Mobile session,
   required String userId,
@@ -159,23 +150,18 @@ Future<Uint8List> unwrapChatKeyForMobile({
   }
   final epochId = '$conversationId:${session.epoch}';
   final myWrap = perUser[identity.deviceId];
-  if (myWrap != null) {
-    return unwrapChatKeyForDeviceV2(
-      wrap: myWrap,
-      recipientPrivateKey: identity.keyPair.privateKey,
-      epochId: epochId,
-      deviceId: identity.deviceId,
+  if (myWrap == null) {
+    throw const E2eeSessionException(
+      'E2EE_NO_WRAP_FOR_DEVICE',
+      'Нет обёртки chat-key под текущее устройство. '
+          'Запросите ротацию эпохи из веб-клиента или подтвердите устройство через QR.',
     );
   }
-  // Fallback для миграции: если веб положил wraps только под `legacy-v1`
-  // (пользователь ещё не публиковал v2-ключ до ротации) — попробуем
-  // распечатать его нашим же приватником. Это сработает, только если v1
-  // ключ совпадает с нашим — чего на мобайле не бывает. Оставляем ветку
-  // сознательно и возвращаем понятную ошибку.
-  throw const E2eeSessionException(
-    'E2EE_NO_WRAP_FOR_DEVICE',
-    'Нет обёртки chat-key под текущее устройство. '
-        'Запросите ротацию эпохи из веб-клиента или подтвердите устройство через QR.',
+  return unwrapChatKeyForDeviceV2(
+    wrap: myWrap,
+    recipientPrivateKey: identity.keyPair.privateKey,
+    epochId: epochId,
+    deviceId: identity.deviceId,
   );
 }
 
@@ -193,8 +179,9 @@ Future<void> ensureMobileDevicePublished({
   );
 }
 
-/// Собирает список активных устройств каждого участника. При отсутствии v2
-/// ключей — подтягивает legacy-v1.
+/// Собирает список активных устройств каждого участника. Если у кого-то нет
+/// v2-устройств, бросаем `E2EE_NO_DEVICE:{uid}` — UI должен попросить
+/// собеседника залогиниться хотя бы раз, чтобы опубликовать ключ.
 Future<Map<String, List<E2eeDeviceDoc>>> collectParticipantDevices({
   required FirebaseFirestore firestore,
   required List<String> participantIds,
@@ -205,16 +192,10 @@ Future<Map<String, List<E2eeDeviceDoc>>> collectParticipantDevices({
       firestore: firestore,
       userId: uid,
     );
-    if (devices.isNotEmpty) {
-      out[uid] = devices;
-      continue;
+    if (devices.isEmpty) {
+      throw E2eeSessionException('E2EE_NO_DEVICE', uid);
     }
-    final legacy = await readLegacyV1Device(firestore: firestore, userId: uid);
-    if (legacy != null) {
-      out[uid] = <E2eeDeviceDoc>[legacy];
-      continue;
-    }
-    throw E2eeSessionException('E2EE_NO_DEVICE', uid);
+    out[uid] = devices;
   }
   return out;
 }

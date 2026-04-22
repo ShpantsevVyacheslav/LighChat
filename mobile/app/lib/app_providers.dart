@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -11,6 +13,7 @@ import 'features/chat/data/chat_settings_repository.dart';
 import 'features/chat/data/user_contacts_repository.dart';
 import 'features/chat/data/user_profiles_repository.dart';
 import 'features/chat/data/user_sticker_packs_repository.dart';
+import 'features/chat/data/chat_list_offline_cache.dart';
 
 class StarredChatMessageEntry {
   const StarredChatMessageEntry({
@@ -30,7 +33,7 @@ class StarredChatMessageEntry {
 
 final firebaseReadyProvider = Provider<bool>((ref) => isFirebaseReady());
 
-/// Завершена ли регистрация по `users/{uid}` (сервер для Google при «пустом» кэше). После `completeGoogleProfile` — [Ref.invalidate].
+/// Завершена ли регистрация по `users/{uid}` (сервер для Google/Apple при «пустом» кэше). После `completeGoogleProfile` — [Ref.invalidate].
 final registrationProfileCompleteProvider = FutureProvider.family<bool, String>((
   ref,
   uid,
@@ -71,10 +74,24 @@ final chatRepositoryProvider = Provider<ChatRepository?>((ref) {
 final userChatIndexProvider = StreamProvider.family<UserChatIndex?, String>((
   ref,
   userId,
-) {
+) async* {
+  final uid = userId.trim();
+  if (uid.isEmpty) {
+    yield null;
+    return;
+  }
+  final offline = await loadChatListOfflineSnapshot(uid);
+  if (offline?.index != null) {
+    yield offline!.index;
+  }
   final repo = ref.watch(chatRepositoryProvider);
-  if (repo == null) return Stream.value(null);
-  return repo.watchUserChatIndex(userId: userId);
+  if (repo == null) {
+    yield offline?.index;
+    return;
+  }
+  await for (final v in repo.watchUserChatIndex(userId: uid)) {
+    yield v;
+  }
 });
 
 /// Stable key for Riverpod family (avoid `List` identity churn on every rebuild).
@@ -90,14 +107,36 @@ final conversationsProvider =
     StreamProvider.family<List<ConversationWithId>, ConversationIdsKey>((
       ref,
       args,
-    ) {
-      final repo = ref.watch(chatRepositoryProvider);
-      if (repo == null) return Stream.value(const <ConversationWithId>[]);
+    ) async* {
       final rawKey = args.key;
       final ids = rawKey == '__empty__'
           ? const <String>[]
           : rawKey.split('\u001e');
-      return repo.watchConversationsByIds(ids);
+      final uid = ref.watch(authUserProvider).asData?.value?.uid.trim();
+      if (uid != null && uid.isNotEmpty && ids.isNotEmpty) {
+        final offline = await loadChatListOfflineSnapshot(uid);
+        if (offline != null && offline.conversations.isNotEmpty) {
+          final byId = {
+            for (final c in offline.conversations) c.id: c,
+          };
+          final ordered = <ConversationWithId>[];
+          for (final id in ids) {
+            final c = byId[id];
+            if (c != null) ordered.add(c);
+          }
+          if (ordered.isNotEmpty) {
+            yield ordered;
+          }
+        }
+      }
+      final repo = ref.watch(chatRepositoryProvider);
+      if (repo == null) {
+        yield const <ConversationWithId>[];
+        return;
+      }
+      await for (final v in repo.watchConversationsByIds(ids)) {
+        yield v;
+      }
     });
 
 final messagesProvider =

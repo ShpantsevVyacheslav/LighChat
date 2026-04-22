@@ -23,47 +23,83 @@ Future<XFile> mirrorVideoCircleIfNeeded({
 
   try {
     final dir = await getTemporaryDirectory();
-    final outPath =
-        '${dir.path}/video_circle_mirrored_${DateTime.now().microsecondsSinceEpoch}.mp4';
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final outPath = '${dir.path}/video_circle_mirrored_$stamp.mp4';
+    final outPathNoAudio = '${dir.path}/video_circle_mirrored_${stamp}_na.mp4';
 
-    // `hflip` mirrors horizontally. We re-encode video for compatibility.
-    // Audio is kept if present; if it fails on some devices, we fall back.
-    final cmd = [
-      '-y',
-      '-i',
-      _q(inPath),
-      '-vf',
-      _q('hflip'),
-      '-c:v',
-      'libx264',
-      '-pix_fmt',
-      'yuv420p',
-      '-preset',
-      'veryfast',
-      '-crf',
-      '23',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '128k',
-      '-movflags',
-      '+faststart',
-      _q(outPath),
-    ].join(' ');
+    final inLen = await File(inPath).length();
 
-    final session = await FFmpegKit.execute(cmd);
-    final code = await session.getReturnCode();
-    if (!ReturnCode.isSuccess(code)) {
-      return input;
+    Future<XFile?> runMirror({
+      required String out,
+      required String audioMode,
+    }) async {
+      // `hflip` mirrors horizontally. Re-encode for compatibility.
+      // Primary: AAC; fallback file tries `-an` if audio encode fails on device.
+      final audioArgs = audioMode == 'aac'
+          ? <String>['-c:a', 'aac', '-b:a', '128k']
+          : <String>['-an'];
+      final cmd = <String>[
+        '-y',
+        '-i',
+        _q(inPath),
+        '-vf',
+        _q('hflip'),
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-preset',
+        'ultrafast',
+        '-crf',
+        '23',
+        ...audioArgs,
+        '-movflags',
+        '+faststart',
+        _q(out),
+      ].join(' ');
+
+      final session = await FFmpegKit.execute(cmd);
+      final code = await session.getReturnCode();
+      final ok = ReturnCode.isSuccess(code);
+      final log = await session.getOutput();
+      if (!ok) {
+        if (kDebugMode) {
+          debugPrint(
+            'mirrorVideoCircleIfNeeded: ffmpeg failed '
+            '(audio=$audioMode) code=$code inSize=$inLen\n$log',
+          );
+        }
+        try {
+          final f = File(out);
+          if (await f.exists()) await f.delete();
+        } catch (_) {}
+        return null;
+      }
+      final f = File(out);
+      if (!await f.exists() || await f.length() < 32) {
+        if (kDebugMode) {
+          debugPrint(
+            'mirrorVideoCircleIfNeeded: output missing or tiny '
+            '(audio=$audioMode) inSize=$inLen\n$log',
+          );
+        }
+        return null;
+      }
+      return XFile(out, mimeType: 'video/mp4');
     }
-    if (!await File(outPath).exists()) return input;
 
-    return XFile(outPath, mimeType: 'video/mp4');
-  } catch (e) {
-    debugPrint('videoCircle mirror postprocess failed: $e');
+    final withAudio = await runMirror(out: outPath, audioMode: 'aac');
+    if (withAudio != null) return withAudio;
+
+    if (kDebugMode) {
+      debugPrint('mirrorVideoCircleIfNeeded: retry without audio');
+    }
+    final noAudio = await runMirror(out: outPathNoAudio, audioMode: 'none');
+    return noAudio ?? input;
+  } catch (e, st) {
+    debugPrint('videoCircle mirror postprocess failed: $e\n$st');
     return input;
   }
 }
 
 String _q(String path) => '"${path.replaceAll('"', '\\"')}"';
-

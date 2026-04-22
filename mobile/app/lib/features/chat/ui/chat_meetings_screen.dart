@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import 'package:lighchat_mobile/features/meetings/data/meeting_models.dart';
+import 'package:lighchat_mobile/features/meetings/data/meeting_providers.dart';
 
 import '../data/bottom_nav_icon_settings.dart';
 import 'chat_bottom_nav.dart';
@@ -32,6 +34,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   _MeetingDuration _duration = _MeetingDuration.none;
   bool _isPrivate = true;
   bool _waitingRoom = false;
+  bool _creating = false;
 
   @override
   void initState() {
@@ -110,7 +113,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
               const ChatShellBackdrop(),
               Column(
                 children: [
-                  Expanded(child: _buildBody(context)),
+                  Expanded(child: _buildBody(context, user.uid)),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       color: (dark ? Colors.black : scheme.surfaceContainerLow)
@@ -150,7 +153,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBody(BuildContext context, String uid) {
     return SafeArea(
       top: true,
       bottom: false,
@@ -194,8 +197,55 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
             const SizedBox(height: 24),
             _historyHeader(context),
             const SizedBox(height: 10),
-            _historyEmptyCard(context),
+            _historySection(context, uid),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _historySection(BuildContext context, String uid) {
+    final meetingsAsync = ref.watch(myHostedMeetingsProvider(uid));
+    return meetingsAsync.when(
+      loading: () => _historyLoadingCard(context),
+      error: (e, _) => _historyErrorCard(context, e),
+      data: (list) {
+        if (list.isEmpty) return _historyEmptyCard(context);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final m in list) ...[
+              _MeetingHistoryRow(
+                meeting: m,
+                onTap: () => context.push('/meetings/${m.id}'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _historyLoadingCard(BuildContext context) {
+    return _glass(
+      context,
+      child: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+
+  Widget _historyErrorCard(BuildContext context, Object err) {
+    final scheme = Theme.of(context).colorScheme;
+    return _glass(
+      context,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'Не удалось загрузить историю встреч: $err',
+          style: TextStyle(color: scheme.error, fontSize: 13),
         ),
       ),
     );
@@ -599,14 +649,16 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _createButton(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final enabled = _title.text.trim().isNotEmpty;
+    final enabled = _title.text.trim().isNotEmpty && !_creating;
     return SizedBox(
       height: 52,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: enabled ? _onCreateMeeting : _hintTitleRequired,
+          onTap: _creating
+              ? null
+              : (enabled ? _onCreateMeeting : _hintTitleRequired),
           child: Ink(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -623,18 +675,29 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.add_rounded, color: Colors.white, size: 22),
-                SizedBox(width: 6),
-                Text(
-                  'Создать встречу',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+              children: _creating
+                  ? const [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    ]
+                  : const [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                      SizedBox(width: 6),
+                      Text(
+                        'Создать встречу',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
             ),
           ),
         ),
@@ -648,19 +711,39 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
     );
   }
 
-  void _onCreateMeeting() {
-    // Плейсхолдер: реальная интеграция с Firestore-сущностью Meeting + WebRTC
-    // будет подключена через отдельный MeetingsRepository (вне рамок
-    // текущей задачи по дизайну).
-    final parts = <String>['«${_title.text.trim()}»'];
-    parts.add(_isPrivate ? 'закрытая' : 'открытая');
-    if (_duration != _MeetingDuration.none) parts.add(_duration.label);
-    if (_waitingRoom) parts.add('с залом ожидания');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Создание встречи ${parts.join(' · ')} пока недоступно'),
-      ),
-    );
+  Future<void> _onCreateMeeting() async {
+    if (_creating) return;
+    final user = ref.read(authUserProvider).asData?.value;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нужна авторизация для создания встречи')),
+      );
+      return;
+    }
+    final name = _title.text.trim();
+    if (name.isEmpty) {
+      _hintTitleRequired();
+      return;
+    }
+    setState(() => _creating = true);
+    try {
+      final repo = ref.read(meetingRepositoryProvider);
+      final meetingId = await repo.createMeeting(
+        hostId: user.uid,
+        name: name,
+        isPrivate: _isPrivate || _waitingRoom,
+        duration: _duration.asDuration(),
+      );
+      if (!mounted) return;
+      context.push('/meetings/$meetingId');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось создать встречу: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
   }
 
   Widget _historyHeader(BuildContext context) {
@@ -754,6 +837,110 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   }
 }
 
+/// Карточка в истории встреч. Web показывает похожие карточки на
+/// `/dashboard/meetings`, но здесь используем компактный list-вариант.
+class _MeetingHistoryRow extends StatelessWidget {
+  const _MeetingHistoryRow({
+    required this.meeting,
+    required this.onTap,
+  });
+
+  final MeetingDoc meeting;
+  final VoidCallback onTap;
+
+  String _subtitle() {
+    final d = meeting.createdAt.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final date = '${two(d.day)}.${two(d.month)}.${d.year}';
+    final time = '${two(d.hour)}:${two(d.minute)}';
+    final parts = <String>[
+      date,
+      time,
+      if (meeting.status == 'active') 'идёт'
+      else if (meeting.status == 'ended') 'завершена',
+      if (meeting.isPrivate) 'закрытая',
+    ];
+    return parts.join(' · ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final fg = dark ? Colors.white : scheme.onSurface;
+    final active = meeting.status == 'active';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: fg.withValues(alpha: dark ? 0.04 : 0.04),
+            border: Border.all(color: fg.withValues(alpha: dark ? 0.08 : 0.08)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(11),
+                  color: (active ? const Color(0xFF10B981) : const Color(0xFF3B82F6))
+                      .withValues(alpha: 0.20),
+                ),
+                child: Icon(
+                  active
+                      ? Icons.sensors_rounded
+                      : Icons.videocam_rounded,
+                  size: 22,
+                  color: active
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFF60A5FA),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      meeting.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: fg.withValues(alpha: 0.96),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _subtitle(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: fg.withValues(alpha: 0.58),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: fg.withValues(alpha: 0.4),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 enum _MeetingDuration { none, m15, m30, m60, m90 }
 
 extension _MeetingDurationLabel on _MeetingDuration {
@@ -769,6 +956,21 @@ extension _MeetingDurationLabel on _MeetingDuration {
         return '1 час';
       case _MeetingDuration.m90:
         return '1,5 часа';
+    }
+  }
+
+  Duration? asDuration() {
+    switch (this) {
+      case _MeetingDuration.none:
+        return null;
+      case _MeetingDuration.m15:
+        return const Duration(minutes: 15);
+      case _MeetingDuration.m30:
+        return const Duration(minutes: 30);
+      case _MeetingDuration.m60:
+        return const Duration(hours: 1);
+      case _MeetingDuration.m90:
+        return const Duration(minutes: 90);
     }
   }
 }

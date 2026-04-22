@@ -185,5 +185,79 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     LighChatIosPipBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+    LighChatVirtualBackgroundBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
+  }
+}
+
+/// Бридж для виртуального фона mobile-митинга.
+///
+/// Сейчас хранит состояние и пишет в лог; реальный пиксельный pipeline
+/// (AVCaptureSession hook -> ML Kit Selfie-Segmentation / Vision ->
+///  Metal compositor -> flutter_webrtc RTCVideoSource) подключается отдельным
+/// native-PR (см. docs/mobile/meetings-virtual-background.md).
+///
+/// Канал: `lighchat/virtual_background`, методы — `setMode`, `dispose`.
+private final class LighChatVirtualBackgroundBridge: NSObject {
+  static let shared = LighChatVirtualBackgroundBridge()
+
+  private var currentMode: String = "none"
+  private var currentImagePath: String?
+
+  private override init() {
+    super.init()
+  }
+
+  func register(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "lighchat/virtual_background",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      switch call.method {
+      case "setMode":
+        guard let args = call.arguments as? [String: Any],
+          let mode = args["mode"] as? String
+        else {
+          result(
+            FlutterError(
+              code: "invalid_arguments",
+              message: "setMode expects {mode, imageAssetPath?}",
+              details: nil
+            )
+          )
+          return
+        }
+        if !["none", "blur", "image"].contains(mode) {
+          result(
+            FlutterError(
+              code: "invalid_mode",
+              message: "unknown virtual background mode: \(mode)",
+              details: nil
+            )
+          )
+          return
+        }
+        self.currentMode = mode
+        self.currentImagePath = args["imageAssetPath"] as? String
+        NSLog(
+          "[LighChatVirtualBg] setMode mode=%@ imagePath=%@ (native pipeline TBD)",
+          mode,
+          self.currentImagePath ?? "nil"
+        )
+        result(nil)
+      case "dispose":
+        self.currentMode = "none"
+        self.currentImagePath = nil
+        NSLog("[LighChatVirtualBg] dispose")
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }

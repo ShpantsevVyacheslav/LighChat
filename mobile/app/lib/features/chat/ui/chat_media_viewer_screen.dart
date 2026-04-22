@@ -40,43 +40,85 @@ String formatChatMediaViewerDateRu(DateTime utcOrLocal) {
   return '${d.day} ${m.toUpperCase()} ${d.year}, $hh:$mm';
 }
 
-/// Маршрут без [MaterialPageRoute.fullscreenDialog]: при закрытии экран уезжает **вверх**, а не «падает» сверху вниз.
+/// Маршрут без [MaterialPageRoute.fullscreenDialog]: при закрытии экран уезжает
+/// в направлении жеста закрытия (свайп вниз — вниз, свайп вверх — вверх, иначе
+/// вверх по умолчанию, как было).
 Route<T> chatMediaViewerPageRoute<T extends Object?>(Widget page) {
+  // `-1` = вверх (по умолчанию, сохраняет старое поведение для закрытий
+  // не через жест — например, кнопка назад, программный `pop()`).
+  // `+1` = вниз (выставляется при свайп-вниз в `_ChatMediaViewerScreenState`).
+  final dir = ValueNotifier<double>(-1);
   return PageRouteBuilder<T>(
     opaque: false,
     barrierColor: Colors.transparent,
     barrierDismissible: false,
     transitionDuration: const Duration(milliseconds: 280),
     reverseTransitionDuration: const Duration(milliseconds: 240),
-    pageBuilder: (context, animation, secondaryAnimation) => page,
+    pageBuilder: (context, animation, secondaryAnimation) {
+      return _ChatMediaViewerCloseDirectionScope(
+        notifier: dir,
+        child: page,
+      );
+    },
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return _ChatMediaViewerSlideTransition(
         animation: animation,
+        closeDirection: dir,
         child: child,
       );
     },
   );
 }
 
+/// InheritedWidget, отдающий экрану-владельцу доступ к ValueNotifier направления
+/// закрытия, которое читает `_ChatMediaViewerSlideTransition` на reverse.
+class _ChatMediaViewerCloseDirectionScope extends InheritedWidget {
+  const _ChatMediaViewerCloseDirectionScope({
+    required this.notifier,
+    required super.child,
+  });
+
+  final ValueNotifier<double> notifier;
+
+  static ValueNotifier<double>? maybeOf(BuildContext context) {
+    final w = context
+        .getInheritedWidgetOfExactType<_ChatMediaViewerCloseDirectionScope>();
+    return w?.notifier;
+  }
+
+  @override
+  bool updateShouldNotify(_ChatMediaViewerCloseDirectionScope old) =>
+      old.notifier != notifier;
+}
+
 class _ChatMediaViewerSlideTransition extends StatelessWidget {
   const _ChatMediaViewerSlideTransition({
     required this.animation,
+    required this.closeDirection,
     required this.child,
   });
 
   final Animation<double> animation;
+  final ValueNotifier<double> closeDirection;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.sizeOf(context).height;
     return AnimatedBuilder(
-      animation: animation,
+      animation: Listenable.merge(<Listenable>[animation, closeDirection]),
       builder: (context, _) {
         final t = animation.value.clamp(0.0, 1.0);
-        final dy = animation.status == AnimationStatus.reverse
-            ? -h * (1.0 - t)
-            : h * (1.0 - t);
+        // Для forward (открытие) — всегда появляемся снизу вверх (как было).
+        // Для reverse (закрытие) — направление зависит от жеста закрытия:
+        // `-1` вверх (дефолт), `+1` вниз (после свайп-вниз).
+        final double dy;
+        if (animation.status == AnimationStatus.reverse) {
+          final sign = closeDirection.value >= 0 ? 1.0 : -1.0;
+          dy = sign * h * (1.0 - t);
+        } else {
+          dy = h * (1.0 - t);
+        }
         return Transform.translate(offset: Offset(0, dy), child: child);
       },
     );
@@ -127,6 +169,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   double _dismissDragY = 0;
   /// Скрывает нижние FAB (ответить / переслать / …), пока активная страница — видео и оно играет.
   bool _galleryVideoPlaying = false;
+  /// Скрывает верхнюю шапку (как и контролы плеера), когда видео играет и контролы спрятаны.
+  bool _galleryVideoControlsVisible = true;
 
   @override
   void initState() {
@@ -307,7 +351,19 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
               ? (d) {
                   final v = d.primaryVelocity ?? 0;
                   if (_dismissDragY.abs() > 120 || v.abs() > 600) {
+                    // Задать направление закрытия под жест пользователя,
+                    // чтобы reverse-анимация продолжилась в ту же сторону,
+                    // а не «отпрыгивала» вверх при свайпе вниз.
+                    final downward = _dismissDragY > 0 || v > 0;
+                    final dir =
+                        _ChatMediaViewerCloseDirectionScope.maybeOf(context);
+                    if (dir != null) {
+                      dir.value = downward ? 1.0 : -1.0;
+                    }
                     Navigator.of(context).pop();
+                    // Don't reset `_dismissDragY` here — it causes a visible
+                    // "snap back" right before the route dismisses.
+                    return;
                   }
                   setState(() => _dismissDragY = 0);
                 }
@@ -331,6 +387,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                           _index = i;
                           _zoomed = false;
                           _galleryVideoPlaying = false;
+                          _galleryVideoControlsVisible = true;
                         });
                         for (final e in _imageTransforms.entries) {
                           if (e.key != i) {
@@ -357,6 +414,12 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                 setState(() => _galleryVideoPlaying = playing);
                               }
                             },
+                            onControlsVisibleChanged: (pageIdx, visible) {
+                              if (!mounted || pageIdx != _index) return;
+                              if (_galleryVideoControlsVisible != visible) {
+                                setState(() => _galleryVideoControlsVisible = visible);
+                              }
+                            },
                           );
                         }
                         final tc = _transformFor(i);
@@ -373,7 +436,11 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                       },
                     ),
                   ),
-                  if (!_zoomed)
+                  if (!_zoomed &&
+                      !(cur != null &&
+                          isChatGridGalleryVideo(cur.attachment) &&
+                          _galleryVideoPlaying &&
+                          !_galleryVideoControlsVisible))
                     Positioned(
                       top: 0,
                       left: 0,
@@ -746,6 +813,7 @@ class _GalleryVideoPage extends StatefulWidget {
     this.onTapPrev,
     this.onTapNext,
     this.onPlaybackStateChanged,
+    this.onControlsVisibleChanged,
   });
 
   final int pageIndex;
@@ -755,6 +823,7 @@ class _GalleryVideoPage extends StatefulWidget {
   final VoidCallback? onTapPrev;
   final VoidCallback? onTapNext;
   final void Function(int pageIndex, bool isPlaying)? onPlaybackStateChanged;
+  final void Function(int pageIndex, bool visible)? onControlsVisibleChanged;
 
   @override
   State<_GalleryVideoPage> createState() => _GalleryVideoPageState();
@@ -777,6 +846,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
   double? _cacheProgress;
   bool _downloadCancelled = false;
   bool _lastNotifiedPlaying = false;
+  bool _lastNotifiedControlsVisible = true;
 
   /// Экземпляр, которому нативный PiP шлёт `pipFinished` (последний, открывший PiP).
   static _GalleryVideoPageState? _pipResumeTarget;
@@ -804,28 +874,26 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
       } else {
-        if (mounted) {
-          setState(() => _cacheProgress = 0);
-        }
-        await ChatGalleryVideoLocalCache.downloadToCache(
-          url: url,
-          onProgress: (p) {
+        // Важно: не блокировать воспроизведение полной скачкой в кэш.
+        // Играем сразу по сети, а кэширование (если нужно) идёт параллельно.
+        if (mounted) setState(() => _cacheProgress = 0);
+        unawaited(
+          ChatGalleryVideoLocalCache.downloadToCache(
+            url: url,
+            onProgress: (p) {
+              if (!mounted || _downloadCancelled) return;
+              setState(() => _cacheProgress = p ?? _cacheProgress);
+            },
+            isCancelled: () => _downloadCancelled || !mounted,
+          ).whenComplete(() {
             if (!mounted || _downloadCancelled) return;
-            setState(() => _cacheProgress = p ?? _cacheProgress);
-          },
-          isCancelled: () => _downloadCancelled || !mounted,
+            setState(() => _cacheProgress = null);
+          }),
         );
-        if (_downloadCancelled || !mounted) return;
-        final file = await ChatGalleryVideoLocalCache.fileForUrl(url);
-        if (!await file.exists() || file.lengthSync() <= 0) {
-          if (mounted) setState(() => _failed = true);
-          return;
-        }
-        c = VideoPlayerController.file(
-          file,
+        c = VideoPlayerController.networkUrl(
+          uri,
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
-        if (mounted) setState(() => _cacheProgress = null);
       }
       await c.initialize();
       await c.setLooping(false);
@@ -844,6 +912,8 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
         _av = c;
         _failed = false;
       });
+      // Стартуем сразу после инициализации — видео дальше будет буферизоваться в фоне.
+      unawaited(c.play());
       _showControlsTemporarily(force: true);
     } catch (_) {
       await c?.dispose();
@@ -1206,6 +1276,8 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
 
   Widget _wrapWithEdgeNav(Widget child) {
     if (!widget.showEdgeNavigation) return child;
+    // При показанных контролах приоритет за кнопками плеера, а не навигацией по краям.
+    if (_controlsVisible) return child;
     return LayoutBuilder(
       builder: (context, constraints) {
         final stripe = constraints.maxWidth * 0.22;
@@ -1326,6 +1398,14 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
                   final idx = widget.pageIndex;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     cb?.call(idx, playing);
+                  });
+                }
+                if (_controlsVisible != _lastNotifiedControlsVisible) {
+                  _lastNotifiedControlsVisible = _controlsVisible;
+                  final cb = widget.onControlsVisibleChanged;
+                  final idx = widget.pageIndex;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    cb?.call(idx, _controlsVisible);
                   });
                 }
                 final duration = _safeDuration(value);

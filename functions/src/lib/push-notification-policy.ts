@@ -139,6 +139,8 @@ export function buildDataPayload(parts: {
   tag: string;
   icon?: string;
   silent: boolean;
+  /** Явный id чата для mobile deep link (FCM data — только строки). */
+  conversationId?: string;
 }): Record<string, string> {
   const data: Record<string, string> = {
     title: parts.title,
@@ -148,6 +150,9 @@ export function buildDataPayload(parts: {
     silent: parts.silent ? "1" : "0",
   };
   if (parts.icon) data.icon = parts.icon;
+  if (parts.conversationId && parts.conversationId.length > 0) {
+    data.conversationId = parts.conversationId;
+  }
   return data;
 }
 

@@ -58,4 +58,5 @@ cp -f public/pwa/icon-maskable-512.png public/icons/icon-maskable-512x512.png
 cp -f public/pwa/icon-192.png public/icons/icon-maskable-192x192.png
 mkdir -p src/app
 cp -f public/pwa/favicon-512.png src/app/icon.png
-echo "OK: PWA из $(basename "$SRC_PWA"), favicon из $(basename "$SRC_TRANS") → favicon-*.png, src/app/icon.png"
+node scripts/sync-mobile-launcher-from-pwa.mjs
+echo "OK: PWA из $(basename "$SRC_PWA"), favicon из $(basename "$SRC_TRANS") → favicon-*.png, src/app/icon.png; лаунчер Flutter из public/pwa/icon-512.png"

@@ -48,6 +48,14 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   static const double _barHeight = 64;
   static const double _pillYMargin = 5;
   static const double _dragThresholdPx = 10;
+  // Telegram-like "elastic" overshoot while dragging.
+  static const double _kPillEdgeOvershoot = 12;
+  static const double _kPillVerticalOvershoot = 6;
+  // Пилюля слегка «приподнимается» над рамкой во время перетаскивания,
+  // чтобы визуально выходить за её края сверху и снизу.
+  static const double _kPillLiftY = 3.0;
+  // Радиус «стеклянного ореола» вокруг пилюли при движении.
+  static const double _kPillHaloPad = 10.0;
 
   AnimationController? _pillAnim;
   CurvedAnimation? _pillCurved;
@@ -137,6 +145,12 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     return cx.clamp(hw, barW - hw);
   }
 
+  double _clampCenterWithOvershoot(double cx, double barW) {
+    final hw = _pillWidth(barW) / 2;
+    if (!_gestureDragging) return cx.clamp(hw, barW - hw);
+    return cx.clamp(hw - _kPillEdgeOvershoot, barW - hw + _kPillEdgeOvershoot);
+  }
+
   bool _pillMotionActive() {
     final anim = _pillAnim;
     return _gestureDragging || (anim != null && anim.isAnimating);
@@ -151,7 +165,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   }
 
   /// Размытие сильнее только при перетаскивании / анимации смены вкладки.
-  double _pillBlurSigma() => _pillMotionActive() ? 20.0 : 5.5;
+  double _pillBlurSigma() => _pillMotionActive() ? 22.0 : 5.5;
 
   void _syncPillToActiveTab(double barW, {bool animate = true}) {
     if (barW <= 0 || !mounted) return;
@@ -180,7 +194,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     if (oldWidget.activeTab != widget.activeTab &&
         !_gestureDragging &&
         _lastBarWidth > 0) {
-      _syncPillToActiveTab(_lastBarWidth, animate: true);
+      _syncPillToActiveTab(_lastBarWidth, animate: false);
     }
   }
 
@@ -198,7 +212,8 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     }
     if (_gestureDragging) {
       setState(() {
-        _pillCenterX = _clampCenter(_pillCenterX + e.delta.dx, _lastBarWidth);
+        _pillCenterX =
+            _clampCenterWithOvershoot(_pillCenterX + e.delta.dx, _lastBarWidth);
       });
     }
   }
@@ -226,7 +241,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     _pointerDownX = null;
     _dragTravel = 0;
     if (_gestureDragging && _lastBarWidth > 0) {
-      _syncPillToActiveTab(_lastBarWidth, animate: true);
+      _syncPillToActiveTab(_lastBarWidth, animate: false);
     }
     setState(() => _gestureDragging = false);
   }
@@ -301,13 +316,40 @@ class _ChatBottomNavState extends State<ChatBottomNav>
             final blurSigma = w > 0 ? _pillBlurSigma() : 5.5;
             final pw = baseW * scale;
             final ph = baseH * scale;
+            final pillLeftRaw = w > 0 ? (_pillCenterX - pw / 2) : 0.0;
             final pillLeft = w > 0
-                ? (_pillCenterX - pw / 2).clamp(0.0, w - pw)
+                ? (motion
+                    ? pillLeftRaw.clamp(
+                        -_kPillEdgeOvershoot,
+                        w - pw + _kPillEdgeOvershoot,
+                      )
+                    : pillLeftRaw.clamp(0.0, w - pw))
                 : 0.0;
-            final pillTopRaw = _pillYMargin - (ph - baseH) / 2;
-            final topClamped = w > 0 && ph <= _barHeight
-                ? pillTopRaw.clamp(0.0, _barHeight - ph)
+            // Во время движения пилюля приподнимается и может выступать
+            // за верхнюю/нижнюю грань рамки (Stack с clipBehavior: Clip.none).
+            final liftY = motion ? _kPillLiftY : 0.0;
+            final pillTopRaw = _pillYMargin - (ph - baseH) / 2 - liftY;
+            final topClamped = w > 0
+                ? (motion
+                    ? pillTopRaw.clamp(
+                        -_kPillVerticalOvershoot,
+                        _barHeight - ph + _kPillVerticalOvershoot,
+                      )
+                    : pillTopRaw.clamp(0.0, (_barHeight - ph).clamp(0.0, _barHeight)))
                 : _pillYMargin;
+            final overshootIntensity = w > 0
+                ? ((pillLeftRaw < 0
+                            ? (-pillLeftRaw)
+                            : (pillLeftRaw > w - pw
+                                ? (pillLeftRaw - (w - pw))
+                                : 0.0)) /
+                        _kPillEdgeOvershoot)
+                    .clamp(0.0, 1.0)
+                : 0.0;
+            // Рамка ПОД пилюлей слегка сужается во время перетаскивания
+            // (более выражено, чем раньше, и усиливается при «упоре» в край).
+            final frameInset =
+                motion ? (4.0 + overshootIntensity * 10.0) : 0.0;
 
             return Listener(
               behavior: HitTestBehavior.translucent,
@@ -315,170 +357,229 @@ class _ChatBottomNavState extends State<ChatBottomNav>
               onPointerMove: _onPointerMove,
               onPointerUp: _onPointerUp,
               onPointerCancel: _onPointerCancel,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: barTint,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: barBorder, width: 1),
-                  ),
-                  child: SizedBox(
-                    height: _barHeight,
-                    width: w,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        // Пилюля‑«стекло» рисуется ПОД иконками, чтобы активная
-                        // иконка оставалась чёткой, а blur применялся только
-                        // к содержимому, находящемуся за баром (Telegram‑эффект).
-                        if (w > 0 && _pillLayoutReady)
-                          Positioned(
-                            left: pillLeft,
-                            top: topClamped,
-                            width: pw,
-                            height: ph,
-                            child: IgnorePointer(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(22),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                    sigmaX: blurSigma,
-                                    sigmaY: blurSigma,
+              child: SizedBox(
+                height: _barHeight,
+                width: w,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // 1) Рамка‑фон. Во время перетаскивания плавно
+                    //    сужается по бокам (видимый «поджим» под пилюлей).
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      left: frameInset,
+                      right: frameInset,
+                      top: 0,
+                      bottom: 0,
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: barTint,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: barBorder, width: 1),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 2) Стеклянный ореол вокруг пилюли во время движения —
+                    //    ярко выраженный blur у граней формы перетаскивания.
+                    if (w > 0 && motion && _pillLayoutReady)
+                      Positioned(
+                        left: pillLeft - _kPillHaloPad,
+                        top: topClamped - _kPillHaloPad,
+                        width: pw + _kPillHaloPad * 2,
+                        height: ph + _kPillHaloPad * 2,
+                        child: IgnorePointer(
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(22 + _kPillHaloPad),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 24 + overshootIntensity * 14,
+                                sigmaY: 24 + overshootIntensity * 14,
+                              ),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    22 + _kPillHaloPad,
                                   ),
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(22),
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: motion
-                                            ? <Color>[
-                                                Colors.white.withValues(
-                                                  alpha: dark ? 0.11 : 0.09,
-                                                ),
-                                                const Color(
-                                                  0xFF4DB8FF,
-                                                ).withValues(
-                                                  alpha: dark ? 0.10 : 0.07,
-                                                ),
-                                                Colors.white.withValues(
-                                                  alpha: dark ? 0.05 : 0.04,
-                                                ),
-                                              ]
-                                            : <Color>[
-                                                Colors.white.withValues(
-                                                  alpha: dark ? 0.045 : 0.035,
-                                                ),
-                                                const Color(
-                                                  0xFF4DB8FF,
-                                                ).withValues(
-                                                  alpha: dark ? 0.035 : 0.028,
-                                                ),
-                                                Colors.white.withValues(
-                                                  alpha: dark ? 0.02 : 0.016,
-                                                ),
-                                              ],
+                                  gradient: RadialGradient(
+                                    colors: <Color>[
+                                      Colors.white.withValues(
+                                        alpha: dark ? 0.10 : 0.08,
                                       ),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: motion
-                                              ? (dark ? 0.38 : 0.42)
-                                              : (dark ? 0.22 : 0.26),
-                                        ),
-                                        width: 1,
-                                      ),
-                                      boxShadow: motion
-                                          ? <BoxShadow>[
-                                              BoxShadow(
-                                                color: Colors.white.withValues(
-                                                  alpha: dark ? 0.12 : 0.18,
-                                                ),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, -2),
-                                              ),
-                                            ]
-                                          : const <BoxShadow>[],
-                                    ),
+                                      Colors.white.withValues(alpha: 0),
+                                    ],
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        // Иконки — ПОВЕРХ стеклянной пилюли, остаются чёткими.
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _LiquidNavSlot(
-                                active:
-                                    widget.activeTab == ChatBottomNavTab.chats,
-                                href: '/dashboard/chat',
-                                fallbackIcon:
-                                    Icons.chat_bubble_outline_rounded,
-                                iconNames: widget.bottomNavIconNames,
-                                globalStyle:
-                                    widget.bottomNavIconGlobalStyle,
-                                localStyle: widget
-                                    .bottomNavIconStyles['/dashboard/chat'],
-                                onTap: widget.onChatsTap,
-                              ),
+                        ),
+                      ),
+                    // 3) Внешнее свечение (BoxShadow) — рисуется вне ClipRRect,
+                    //    поэтому видно за границами самой пилюли.
+                    if (w > 0 && motion && _pillLayoutReady)
+                      Positioned(
+                        left: pillLeft,
+                        top: topClamped,
+                        width: pw,
+                        height: ph,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: Colors.white.withValues(
+                                    alpha: dark ? 0.20 : 0.26,
+                                  ),
+                                  blurRadius: 22,
+                                  spreadRadius: 1,
+                                ),
+                                BoxShadow(
+                                  color: const Color(0xFF4DB8FF).withValues(
+                                    alpha: dark ? 0.18 : 0.14,
+                                  ),
+                                  blurRadius: 28,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                             ),
-                            Expanded(
-                              child: _LiquidNavSlot(
-                                active: widget.activeTab ==
-                                    ChatBottomNavTab.contacts,
-                                href: '/dashboard/contacts',
-                                fallbackIcon: Icons.group_outlined,
-                                iconNames: widget.bottomNavIconNames,
-                                globalStyle:
-                                    widget.bottomNavIconGlobalStyle,
-                                localStyle: widget.bottomNavIconStyles[
-                                    '/dashboard/contacts'],
-                                onTap: widget.onContactsTap,
+                          ),
+                        ),
+                      ),
+                    // 4) Сама пилюля‑«стекло». Может выступать за края рамки
+                    //    (Stack.clipBehavior == Clip.none).
+                    if (w > 0 && _pillLayoutReady)
+                      Positioned(
+                        left: pillLeft,
+                        top: topClamped,
+                        width: pw,
+                        height: ph,
+                        child: IgnorePointer(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(22),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: blurSigma,
+                                sigmaY: blurSigma,
                               ),
-                            ),
-                            Expanded(
-                              child: _LiquidNavSlot(
-                                active:
-                                    widget.activeTab == ChatBottomNavTab.calls,
-                                href: '/dashboard/calls',
-                                fallbackIcon: Icons.call_outlined,
-                                iconNames: widget.bottomNavIconNames,
-                                globalStyle:
-                                    widget.bottomNavIconGlobalStyle,
-                                localStyle: widget
-                                    .bottomNavIconStyles['/dashboard/calls'],
-                                onTap: widget.onCallsTap,
-                              ),
-                            ),
-                            Expanded(
-                              child: _LiquidNavSlot(
-                                active: widget.activeTab ==
-                                    ChatBottomNavTab.meetings,
-                                href: '/dashboard/meetings',
-                                fallbackIcon: Icons.videocam_outlined,
-                                iconNames: widget.bottomNavIconNames,
-                                globalStyle:
-                                    widget.bottomNavIconGlobalStyle,
-                                localStyle: widget.bottomNavIconStyles[
-                                    '/dashboard/meetings'],
-                                onTap: widget.onMeetingsTap,
-                              ),
-                            ),
-                            Expanded(
-                              child: Center(
-                                child: _ProfileAvatarButton(
-                                  onTap: widget.onProfileTap,
-                                  avatarUrl: widget.avatarUrl,
-                                  title: widget.userTitle ?? 'U',
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(22),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: motion
+                                        ? <Color>[
+                                            Colors.white.withValues(
+                                              alpha: dark ? 0.13 : 0.11,
+                                            ),
+                                            const Color(0xFF4DB8FF).withValues(
+                                              alpha: dark ? 0.11 : 0.08,
+                                            ),
+                                            Colors.white.withValues(
+                                              alpha: dark ? 0.06 : 0.05,
+                                            ),
+                                          ]
+                                        : <Color>[
+                                            Colors.white.withValues(
+                                              alpha: dark ? 0.045 : 0.035,
+                                            ),
+                                            const Color(0xFF4DB8FF).withValues(
+                                              alpha: dark ? 0.035 : 0.028,
+                                            ),
+                                            Colors.white.withValues(
+                                              alpha: dark ? 0.02 : 0.016,
+                                            ),
+                                          ],
+                                  ),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(
+                                      alpha: motion
+                                          ? (dark ? 0.42 : 0.46)
+                                          : (dark ? 0.22 : 0.26),
+                                    ),
+                                    width: 1,
+                                  ),
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ],
+                      ),
+                    // 5) Иконки — ПОВЕРХ стеклянной пилюли, всегда чёткие.
+                    Positioned.fill(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _LiquidNavSlot(
+                              active:
+                                  widget.activeTab == ChatBottomNavTab.chats,
+                              href: '/dashboard/chat',
+                              fallbackIcon:
+                                  Icons.chat_bubble_outline_rounded,
+                              iconNames: widget.bottomNavIconNames,
+                              globalStyle: widget.bottomNavIconGlobalStyle,
+                              localStyle: widget
+                                  .bottomNavIconStyles['/dashboard/chat'],
+                              onTap: widget.onChatsTap,
+                            ),
+                          ),
+                          Expanded(
+                            child: _LiquidNavSlot(
+                              active: widget.activeTab ==
+                                  ChatBottomNavTab.contacts,
+                              href: '/dashboard/contacts',
+                              fallbackIcon: Icons.group_outlined,
+                              iconNames: widget.bottomNavIconNames,
+                              globalStyle: widget.bottomNavIconGlobalStyle,
+                              localStyle: widget.bottomNavIconStyles[
+                                  '/dashboard/contacts'],
+                              onTap: widget.onContactsTap,
+                            ),
+                          ),
+                          Expanded(
+                            child: _LiquidNavSlot(
+                              active:
+                                  widget.activeTab == ChatBottomNavTab.calls,
+                              href: '/dashboard/calls',
+                              fallbackIcon: Icons.call_outlined,
+                              iconNames: widget.bottomNavIconNames,
+                              globalStyle: widget.bottomNavIconGlobalStyle,
+                              localStyle: widget
+                                  .bottomNavIconStyles['/dashboard/calls'],
+                              onTap: widget.onCallsTap,
+                            ),
+                          ),
+                          Expanded(
+                            child: _LiquidNavSlot(
+                              active: widget.activeTab ==
+                                  ChatBottomNavTab.meetings,
+                              href: '/dashboard/meetings',
+                              fallbackIcon: Icons.videocam_outlined,
+                              iconNames: widget.bottomNavIconNames,
+                              globalStyle: widget.bottomNavIconGlobalStyle,
+                              localStyle: widget.bottomNavIconStyles[
+                                  '/dashboard/meetings'],
+                              onTap: widget.onMeetingsTap,
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: _ProfileAvatarButton(
+                                onTap: widget.onProfileTap,
+                                avatarUrl: widget.avatarUrl,
+                                title: widget.userTitle ?? 'U',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             );

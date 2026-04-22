@@ -16,10 +16,12 @@
 /// созданный на web, читается на мобайле и наоборот.
 library;
 
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -302,28 +304,13 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                     _Card(
                       title: 'Передача ключа по QR',
                       description:
-                          'Протокол готов (ECDH + 6-значный код сверки). '
-                          'Полноценный сканер камеры и рендер QR будут включены в '
-                          'следующем апдейте. До тех пор используйте password-backup.',
+                          'На новом устройстве показываем QR, на старом сканируем камерой. '
+                          'Сверяете 6-значный код — приватный ключ переносится безопасно.',
                       children: [
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            Clipboard.setData(
-                              const ClipboardData(
-                                text: 'Phase 6: mobile QR UI coming in follow-up',
-                              ),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'QR-сканер будет добавлен отдельным апдейтом. '
-                                  'Сейчас используйте backup паролем.',
-                                ),
-                              ),
-                            );
-                          },
+                        FilledButton.icon(
+                          onPressed: () => context.push('/settings/e2ee-qr-pairing'),
                           icon: const Icon(Icons.qr_code_scanner_rounded),
-                          label: const Text('Скоро: QR-pairing'),
+                          label: const Text('Открыть QR-pairing'),
                         ),
                       ],
                     ),

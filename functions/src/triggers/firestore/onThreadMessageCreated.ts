@@ -96,6 +96,7 @@ export const onthreadmessagecreated = onDocumentCreated(
           tag: `thread-${parentMessageId}`,
           icon: senderIcon,
           silent: decision.silent,
+          conversationId,
         });
 
         sendItems.push({ tokens, data });

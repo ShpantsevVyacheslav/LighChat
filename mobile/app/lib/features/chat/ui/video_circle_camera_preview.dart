@@ -6,9 +6,15 @@ import 'package:flutter/services.dart';
 /// Превью для кружка: паритет с [CameraPreview], но без `recordingOrientation!`
 /// (иначе редкие кадры во время записи дают падение) и с запасным поворотом на Android.
 class VideoCircleCameraPreview extends StatelessWidget {
-  const VideoCircleCameraPreview({super.key, required this.controller});
+  const VideoCircleCameraPreview({
+    super.key,
+    required this.controller,
+    this.previewFit = BoxFit.cover,
+  });
 
   final CameraController controller;
+  /// Масштаб превью в круге (запись кружка: обычно [BoxFit.cover] для обеих камер).
+  final BoxFit previewFit;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +43,7 @@ class VideoCircleCameraPreview extends StatelessWidget {
         final contentW = ar >= 1.0 ? ar : 1.0;
         final contentH = ar >= 1.0 ? 1.0 : 1.0 / ar;
         return FittedBox(
-          fit: BoxFit.cover,
+          fit: previewFit,
           clipBehavior: Clip.hardEdge,
           child: SizedBox(
             width: contentW * 1000,

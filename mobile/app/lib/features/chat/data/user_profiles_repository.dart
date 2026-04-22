@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'user_profile.dart';
+import 'user_profiles_disk_cache.dart';
 
 class UserProfilesRepository {
   UserProfilesRepository({FirebaseFirestore? firestore})
@@ -20,6 +21,16 @@ class UserProfilesRepository {
 
     void publish() => controller.add(Map.unmodifiable(byId));
 
+    unawaited((() async {
+      final cached = await loadCachedProfiles(ids);
+      if (controller.isClosed) return;
+      if (cached.isEmpty) return;
+      for (final e in cached.entries) {
+        byId.putIfAbsent(e.key, () => e.value);
+      }
+      publish();
+    })());
+
     for (final id in ids) {
       final ref = _firestore.collection('users').doc(id);
       subs.add(ref.snapshots().listen(
@@ -30,6 +41,7 @@ class UserProfilesRepository {
             byId.remove(id);
           } else {
             byId[id] = profile;
+            unawaited(persistProfile(profile));
           }
           publish();
         },

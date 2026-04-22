@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import '../data/bottom_nav_icon_settings.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
+import 'add_contact_by_phone_sheet.dart';
 import 'chat_avatar.dart';
 import 'chat_bottom_nav.dart';
 
@@ -475,11 +477,20 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                               userContactsRepositoryProvider,
                                             );
                                             if (repo == null) return;
-                                            _syncDeviceContacts(
-                                              context: context,
-                                              ownerId: ownerId,
-                                              viewer: me,
-                                              repo: repo,
+                                            unawaited(
+                                              AddContactByPhoneSheet.show(
+                                                context,
+                                                ownerId: ownerId,
+                                                viewer: me,
+                                                contactsRepo: repo,
+                                                onSyncDeviceContacts: () =>
+                                                    _syncDeviceContacts(
+                                                      context: context,
+                                                      ownerId: ownerId,
+                                                      viewer: me,
+                                                      repo: repo,
+                                                    ),
+                                              ),
                                             );
                                           },
                                   ),

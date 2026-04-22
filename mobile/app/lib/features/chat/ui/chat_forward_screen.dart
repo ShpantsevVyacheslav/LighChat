@@ -7,6 +7,9 @@ import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../data/e2ee_auto_enable_helper.dart';
 import '../data/forward_recipients.dart';
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
@@ -524,6 +527,15 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
               avatar: other.avatar,
               avatarThumb: other.avatarThumb,
             ),
+          );
+          // Phase 9 gap #4: auto-enable E2EE если пользователь/платформа
+          // требует шифровать новые DM. Для уже существующего DM не пересоздаёт
+          // эпоху (см. `tryAutoEnableE2eeNewDirectChatMobile` идемпотентность).
+          // Best-effort: ошибка не ломает форвард.
+          await tryAutoEnableE2eeForMobileDm(
+            firestore: FirebaseFirestore.instance,
+            conversationId: convId,
+            currentUserId: uid,
           );
           targetIds.add(convId);
         } else {

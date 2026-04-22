@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -18,9 +20,11 @@ import '../data/user_profile.dart';
 import 'chat_avatar.dart';
 import 'e2ee_fingerprint_badge.dart';
 import 'chat_conversation_notifications_screen.dart';
+import 'conversation_encryption_screen.dart';
 import 'conversation_media_links_files_screen.dart';
 import 'conversation_starred_screen.dart';
 import 'chat_shell_backdrop.dart';
+import 'user_avatar_fullscreen_viewer.dart';
 
 const _kRoleLabels = {'admin': 'Администратор', 'worker': 'Участник'};
 
@@ -91,6 +95,49 @@ class _ChatPartnerProfileSheetState
         (pid == null
             ? null
             : widget.conversation.participantInfo?[pid]?.avatar);
+  }
+
+  /// Для полноэкранного просмотра: сначала полный `avatar`, иначе превью (как на вебе).
+  String? _fullscreenAvatarUrl() {
+    if (_isGroup) {
+      final u = (widget.conversation.photoUrl ?? '').trim();
+      return u.isEmpty ? null : u;
+    }
+    if (_isSaved) {
+      final self = widget.selfProfile;
+      final full = (self?.avatar ?? '').trim();
+      if (full.isNotEmpty) return full;
+      final t = (self?.avatarThumb ?? '').trim();
+      return t.isEmpty ? null : t;
+    }
+    final pid = _dmPartnerId;
+    if (pid == null) return null;
+    final p = widget.partnerProfile;
+    final full = (p?.avatar ?? '').trim();
+    if (full.isNotEmpty) return full;
+    final fromConv = (widget.conversation.participantInfo?[pid]?.avatar ?? '')
+        .trim();
+    if (fromConv.isNotEmpty) return fromConv;
+    final thumbP = (p?.avatarThumb ?? '').trim();
+    if (thumbP.isNotEmpty) return thumbP;
+    final fromConvT =
+        (widget.conversation.participantInfo?[pid]?.avatarThumb ?? '').trim();
+    if (fromConvT.isNotEmpty) return fromConvT;
+    return null;
+  }
+
+  void _openAvatarFullscreen() {
+    final url = _fullscreenAvatarUrl()?.trim();
+    if (url == null || url.isEmpty) {
+      return;
+    }
+    unawaited(
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => UserAvatarFullscreenViewer(imageUrl: url),
+        ),
+      ),
+    );
   }
 
   /// При username раньше терялась строка «последний вход».
@@ -193,6 +240,20 @@ class _ChatPartnerProfileSheetState
       if (mounted) _toast('Добавлено в контакты');
     } catch (e) {
       if (mounted) _toast('Не удалось добавить в контакты');
+    } finally {
+      if (mounted) setState(() => _addContactBusy = false);
+    }
+  }
+
+  Future<void> _onRemoveContact(String partnerId) async {
+    final repo = ref.read(userContactsRepositoryProvider);
+    if (repo == null) return;
+    setState(() => _addContactBusy = true);
+    try {
+      await repo.removeContactId(widget.currentUserId, partnerId);
+      if (mounted) _toast('Удалено из контактов');
+    } catch (e) {
+      if (mounted) _toast('Не удалось удалить из контактов');
     } finally {
       if (mounted) setState(() => _addContactBusy = false);
     }
@@ -334,10 +395,19 @@ class _ChatPartnerProfileSheetState
             child: Column(
               children: [
                 const SizedBox(height: 4),
-                ChatAvatar(
-                  title: _displayTitle,
-                  radius: 54,
-                  avatarUrl: _displayAvatarUrl,
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: (_fullscreenAvatarUrl() ?? '').trim().isNotEmpty
+                        ? _openAvatarFullscreen
+                        : null,
+                    customBorder: const CircleBorder(),
+                    child: ChatAvatar(
+                      title: _displayTitle,
+                      radius: 54,
+                      avatarUrl: _displayAvatarUrl,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -383,9 +453,11 @@ class _ChatPartnerProfileSheetState
                   _ContactPill(
                     isContact: isContact,
                     busy: _addContactBusy,
-                    onPressed: isContact || _addContactBusy
+                    onPressed: _addContactBusy
                         ? null
-                        : () => _onAddContact(partnerId),
+                        : () => isContact
+                            ? _onRemoveContact(partnerId)
+                            : _onAddContact(partnerId),
                   ),
                 ],
                 const SizedBox(height: 18),
@@ -485,7 +557,17 @@ class _ChatPartnerProfileSheetState
                     title: 'Шифрование',
                     subtitle: encryptionSubtitle,
                     trailing: encryptionLabel,
-                    onTap: () => _toast('Шифрование: скоро'),
+                    onTap: () async {
+                      await Navigator.of(context).push<void>(
+                        CupertinoPageRoute<void>(
+                          builder: (_) => ConversationEncryptionScreen(
+                            conversationId: widget.conversationId,
+                            currentUserId: widget.currentUserId,
+                            conversation: widget.conversation,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 // Phase 8: отпечаток E2EE собеседника в DM. Рисуем, только
                 // если шифрование включено и это не группа/Saved.
@@ -868,12 +950,14 @@ class _ContactPill extends StatelessWidget {
         icon: Icon(
           busy
               ? Icons.hourglass_top_rounded
-              : (isContact ? Icons.person_pin_rounded : Icons.person_add_rounded),
+              : (isContact
+                    ? Icons.person_remove_outlined
+                    : Icons.person_add_rounded),
           size: 19,
           color: fg,
         ),
         label: Text(
-          isContact ? 'В контактах' : 'Добавить в контакты',
+          isContact ? 'Удалить из контактов' : 'Добавить в контакты',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 14,

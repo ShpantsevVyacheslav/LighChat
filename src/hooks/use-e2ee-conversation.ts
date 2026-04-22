@@ -4,15 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Firestore } from 'firebase/firestore';
 import type { ChatMessageE2eePayload, Conversation } from '@/lib/types';
 import {
-  E2EE_PROTOCOL_VERSION,
-  decryptUtf8WithAesGcm,
-  encryptUtf8WithAesGcm,
-  fetchE2eeSession,
-  getOrCreateDeviceIdentity,
-  publishE2eePublicKey,
-  unwrapConversationChatKey,
-} from '@/lib/e2ee';
-import {
   E2EE_V2_PROTOCOL,
   decryptUtf8WithAesGcmV2,
   encryptUtf8WithAesGcmV2,
@@ -21,23 +12,25 @@ import {
   publishE2eeDeviceV2,
   unwrapChatKeyForMeV2,
   unwrapChatKeyRawForMeV2,
+  healSessionForCurrentDevicesV2,
+  getCachedPlaintext,
+  putCachedPlaintext,
 } from '@/lib/e2ee';
 
 /**
- * E2EE hook с dual-read (v1 + v2) поддержкой.
+ * E2EE hook — v2-only (post Phase 10 cleanup, см. Gap #5 в `04-runtime-flows.md`).
  *
- * - Identity: параллельно публикуется v1 ключ (`users/{uid}/e2ee/device`)
- *   и v2 device doc (`users/{uid}/e2eeDevices/{deviceId}`). v1 нужен, чтобы
- *   «старые» участники без v2-клиента могли обернуть ключ на тебя при
- *   включении legacy-сессии; v2 — для multi-device сценариев.
- * - Encrypt: по умолчанию использует v1 (совместимо с текущим ChatWindow).
- *   Новое `encryptOutgoingHtmlV2({ messageId })` даёт v2-write-path для
- *   вызывающих, которые могут детерминированно предварительно зарезервировать
- *   document id. ChatWindow интегрирует это за feature-flag'ом (Phase 9).
- * - Decrypt: `decryptMessagePayload` сам определяет версию по
- *   `payload.protocolVersion`. Это и есть основной эффект Phase 2 — web-клиент
- *   корректно читает v2-сообщения, приходящие с mobile (Phase 4) или с других
- *   web-устройств того же юзера.
+ * - Identity: публикуется per-device v2 ключ `users/{uid}/e2eeDevices/{deviceId}`.
+ * - Encrypt: `encryptOutgoingHtmlV2({ messageId })` — вызывающий
+ *   должен предварительно зарезервировать `doc(...).id`. Self-heal включён
+ *   внутрь `getAesKeyWithHealing` — если chat-key под текущий device отсутствует,
+ *   эпоха ротируется.
+ * - Decrypt: по `payload.protocolVersion === E2EE_V2_PROTOCOL`. Сообщения
+ *   иной версии (если где-то остались в истории) возвращают пустую строку
+ *   и UI показывает плейсхолдер «Зашифрованное сообщение».
+ *
+ * Legacy v1 полностью удалён — тестовых данных с v1 в проде нет. См.
+ * git-log `removed: src/lib/e2ee/{enable-conversation,session-firestore,device-identity}.ts`.
  */
 export function useE2eeConversation(
   firestore: Firestore | null,
@@ -45,7 +38,7 @@ export function useE2eeConversation(
   currentUserId: string | undefined | null
 ) {
   const uid = currentUserId ?? null;
-  /** Кэш расшифрованного ChatKey по строковому ключу `cid:epoch:version`. */
+  /** Кэш расшифрованного ChatKey по строковому ключу `cid:epoch`. */
   const keyByEpochRef = useRef<Map<string, CryptoKey>>(new Map());
   /** Phase 7: сырые байты v2-chatKey для HKDF при media-wrap. */
   const rawKeyByEpochRef = useRef<Map<string, ArrayBuffer>>(new Map());
@@ -64,11 +57,6 @@ export function useE2eeConversation(
     let cancelled = false;
     (async () => {
       try {
-        // v1: публикуем single-slot ключ — нужен для совместимости.
-        const { privateKey: _p, publicKeySpkiB64 } = await getOrCreateDeviceIdentity();
-        await publishE2eePublicKey(firestore, uid, publicKeySpkiB64);
-        // v2: публикуем per-device ключ. Это не мешает v1 и даёт другим
-        // v2-клиентам возможность оборачивать ключи под нас.
         const identityV2 = await getOrCreateDeviceIdentityV2();
         await publishE2eeDeviceV2(firestore, uid, identityV2);
         if (!cancelled) setIdentityReady(true);
@@ -83,53 +71,59 @@ export function useE2eeConversation(
   }, [firestore, uid]);
 
   /**
-   * Получает chat-key для конкретной эпохи. Определяет версию session-doc'а
-   * и использует соответствующий unwrap. Кэширует по `(epoch, version)`.
+   * Self-heal on mount. Раз в сессию чата (и при смене conversation/эпохи)
+   * запускаем heal: если мой devices-set / чужой devices-set рассинхронизирован
+   * с session-doc, тихо ротируем эпоху.
+   *
+   * Зависимости сериализованы (`conversation?.id`, сериализация participantIds)
+   * чтобы реагировать на смысловые изменения, а не на референс каждого рендера.
+   */
+  const convId = conversation?.id ?? null;
+  const participantsKey = (conversation?.participantIds ?? []).join('|');
+  useEffect(() => {
+    if (!firestore || !uid || !identityReady) return;
+    if (!convId || !e2eeEnabled || !conversation) return;
+    let cancelled = false;
+    const snapshot = conversation;
+    (async () => {
+      try {
+        const result = await healSessionForCurrentDevicesV2(
+          firestore,
+          snapshot,
+          uid
+        );
+        if (!cancelled && result.healed) {
+          keyByEpochRef.current.clear();
+          rawKeyByEpochRef.current.clear();
+        }
+      } catch (e) {
+        console.warn('[e2ee] heal session skipped', e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firestore, uid, identityReady, convId, e2eeEnabled, e2eeEpoch, participantsKey]);
+
+  /**
+   * Получает v2 chat-key для конкретной эпохи. Кэширует по `(cid, epoch)`.
+   * Возвращает `null`, если session-doc нет или он не v2.
    */
   const getAesKeyForEpoch = useCallback(
-    async (targetEpoch: number): Promise<{ key: CryptoKey; version: 'v1' | 'v2' } | null> => {
+    async (targetEpoch: number): Promise<CryptoKey | null> => {
       if (!firestore || !conversation?.id || !uid || targetEpoch < 1) return null;
-      const cacheKeyV1 = `${conversation.id}:${targetEpoch}:v1`;
-      const cacheKeyV2 = `${conversation.id}:${targetEpoch}:v2`;
-      const hitV2 = keyByEpochRef.current.get(cacheKeyV2);
-      if (hitV2) return { key: hitV2, version: 'v2' };
-      const hitV1 = keyByEpochRef.current.get(cacheKeyV1);
-      if (hitV1) return { key: hitV1, version: 'v1' };
+      const cacheKey = `${conversation.id}:${targetEpoch}`;
+      const hit = keyByEpochRef.current.get(cacheKey);
+      if (hit) return hit;
 
       const any = await fetchE2eeSessionAny(firestore, conversation.id, targetEpoch);
-      if (!any) {
-        // Fallback: старая коллекция может возвращать v1-документ с
-        // `fetchE2eeSession` (без protocolVersion — тогда fetchE2eeSessionAny
-        // уже сработал бы). Но на случай редчайших edge-кейсов:
-        const legacy = await fetchE2eeSession(firestore, conversation.id, targetEpoch);
-        if (!legacy) return null;
-        const { privateKey } = await getOrCreateDeviceIdentity();
-        try {
-          const aes = await unwrapConversationChatKey(legacy, uid, privateKey);
-          keyByEpochRef.current.set(cacheKeyV1, aes);
-          return { key: aes, version: 'v1' };
-        } catch (e) {
-          console.warn('[e2ee] v1 unwrap failed', e);
-          throw new Error('E2EE_UNWRAP_FAILED');
-        }
-      }
-      if (any.version === 'v1') {
-        const { privateKey } = await getOrCreateDeviceIdentity();
-        try {
-          const aes = await unwrapConversationChatKey(any.data, uid, privateKey);
-          keyByEpochRef.current.set(cacheKeyV1, aes);
-          return { key: aes, version: 'v1' };
-        } catch (e) {
-          console.warn('[e2ee] v1 unwrap failed', e);
-          throw new Error('E2EE_UNWRAP_FAILED');
-        }
-      }
-      // v2
+      if (!any || any.version !== 'v2') return null;
       const identity = await getOrCreateDeviceIdentityV2();
       try {
         const aes = await unwrapChatKeyForMeV2(any.data, uid, identity, conversation.id);
-        keyByEpochRef.current.set(cacheKeyV2, aes);
-        return { key: aes, version: 'v2' };
+        keyByEpochRef.current.set(cacheKey, aes);
+        return aes;
       } catch (e) {
         console.warn('[e2ee] v2 unwrap failed', e);
         throw new Error('E2EE_UNWRAP_FAILED');
@@ -139,22 +133,41 @@ export function useE2eeConversation(
   );
 
   /**
-   * Legacy encrypt (v1): не требует messageId. Используется существующим
-   * ChatWindow/ThreadWindow. Поведение не меняется.
+   * Пробует получить ключ для эпохи, при ошибке unwrap делает один heal-круг:
+   * триггерит ротацию эпохи и перечитывает актуальный `e2eeKeyEpoch` с
+   * Firestore, после чего повторяет getAesKeyForEpoch.
+   *
+   * Защищает от гонки "send до того, как mount-heal успел ротировать":
+   * пользователь зашёл в чат и сразу отправил — heal из useEffect ещё не
+   * завершился, ключ unwrap не получается. Эта функция закроет и этот кейс.
    */
-  const encryptOutgoingHtml = useCallback(
-    async (html: string): Promise<ChatMessageE2eePayload> => {
-      const pair = await getAesKeyForEpoch(e2eeEpoch);
-      if (!pair) throw new Error('E2EE_NO_CHAT_KEY');
-      const { iv, ciphertext } = await encryptUtf8WithAesGcm(pair.key, html);
-      return {
-        protocolVersion: E2EE_PROTOCOL_VERSION,
-        epoch: e2eeEpoch,
-        iv,
-        ciphertext,
-      };
+  const getAesKeyWithHealing = useCallback(
+    async (): Promise<{ key: CryptoKey; epoch: number } | null> => {
+      if (!firestore || !conversation || !uid) return null;
+      try {
+        const key = await getAesKeyForEpoch(e2eeEpoch);
+        if (key) return { key, epoch: e2eeEpoch };
+      } catch {
+        /* проваливаемся в heal-ветку ниже */
+      }
+      try {
+        const result = await healSessionForCurrentDevicesV2(
+          firestore,
+          conversation,
+          uid
+        );
+        const targetEpoch = result.healed ? result.newEpoch : e2eeEpoch;
+        keyByEpochRef.current.clear();
+        rawKeyByEpochRef.current.clear();
+        const key = await getAesKeyForEpoch(targetEpoch);
+        if (!key) return null;
+        return { key, epoch: targetEpoch };
+      } catch (e) {
+        console.warn('[e2ee] getAesKeyWithHealing failed', e);
+        return null;
+      }
     },
-    [getAesKeyForEpoch, e2eeEpoch]
+    [firestore, conversation, uid, e2eeEpoch, getAesKeyForEpoch]
   );
 
   /**
@@ -167,59 +180,67 @@ export function useE2eeConversation(
       opts: { messageId: string }
     ): Promise<ChatMessageE2eePayload> => {
       if (!conversation?.id) throw new Error('E2EE_NO_CONVERSATION');
-      const pair = await getAesKeyForEpoch(e2eeEpoch);
+      const pair = await getAesKeyWithHealing();
       if (!pair) throw new Error('E2EE_NO_CHAT_KEY');
-      if (pair.version !== 'v2') {
-        throw new Error('E2EE_EPOCH_NOT_V2');
-      }
       const identity = await getOrCreateDeviceIdentityV2();
       const { ivB64, ciphertextB64 } = await encryptUtf8WithAesGcmV2(pair.key, html, {
         conversationId: conversation.id,
         messageId: opts.messageId,
-        epoch: e2eeEpoch,
+        epoch: pair.epoch,
       });
       return {
         protocolVersion: E2EE_V2_PROTOCOL,
-        epoch: e2eeEpoch,
+        epoch: pair.epoch,
         iv: ivB64,
         ciphertext: ciphertextB64,
         senderDeviceId: identity.deviceId,
       };
     },
-    [getAesKeyForEpoch, e2eeEpoch, conversation?.id]
+    [getAesKeyWithHealing, conversation?.id]
   );
 
   /**
-   * Расшифровывает payload любой версии. При ошибке возвращает пустую строку —
-   * UI показывает плейсхолдер «Зашифрованное сообщение».
+   * Расшифровывает v2-payload. При ошибке (старая v1-запись в истории,
+   * отсутствие ключа, повреждённые байты) возвращает пустую строку —
+   * UI покажет плейсхолдер.
    */
   const decryptMessagePayload = useCallback(
     async (
       payload: ChatMessageE2eePayload,
       messageId?: string
     ): Promise<string> => {
-      let pair: { key: CryptoKey; version: 'v1' | 'v2' } | null = null;
+      if (payload.protocolVersion !== E2EE_V2_PROTOCOL) return '';
+      if (!conversation?.id || !messageId) return '';
+      // Persistent cache hit: skip keystore + AES-GCM полностью.
       try {
-        pair = await getAesKeyForEpoch(payload.epoch);
+        const cached = await getCachedPlaintext(conversation.id, messageId);
+        if (typeof cached === 'string') return cached;
+      } catch {
+        // ignore, fallthrough to live decrypt
+      }
+      let key: CryptoKey | null = null;
+      try {
+        key = await getAesKeyForEpoch(payload.epoch);
       } catch {
         return '';
       }
-      if (!pair) return '';
+      if (!key) return '';
       try {
-        if (payload.protocolVersion === E2EE_V2_PROTOCOL) {
-          if (!conversation?.id || !messageId) return '';
-          return await decryptUtf8WithAesGcmV2(
-            pair.key,
-            payload.iv,
-            payload.ciphertext,
-            {
-              conversationId: conversation.id,
-              messageId,
-              epoch: payload.epoch,
-            }
-          );
-        }
-        return await decryptUtf8WithAesGcm(pair.key, payload.iv, payload.ciphertext);
+        const plaintext = await decryptUtf8WithAesGcmV2(
+          key,
+          payload.iv,
+          payload.ciphertext,
+          {
+            conversationId: conversation.id,
+            messageId,
+            epoch: payload.epoch,
+          }
+        );
+        // Сохраняем plaintext в persistent cache. Пустая строка — валидный
+        // результат для media-only E2EE сообщений, тоже кешируем, чтобы
+        // повторно не гнать через AES.
+        void putCachedPlaintext(conversation.id, messageId, plaintext);
+        return plaintext;
       } catch {
         return '';
       }
@@ -229,7 +250,7 @@ export function useE2eeConversation(
 
   /**
    * Phase 7: доступ к сырым байтам ChatKey_epoch для HKDF media-wrap.
-   * Возвращает `null`, если эпоха ещё v1 (media шифруется только на v2 сессиях).
+   * Возвращает `null`, если session-doc нет или не v2.
    */
   const getChatKeyRawV2ForEpoch = useCallback(
     async (targetEpoch: number): Promise<ArrayBuffer | null> => {
@@ -251,7 +272,6 @@ export function useE2eeConversation(
     e2eeEnabled,
     e2eeEpoch,
     e2eeIdentityReady: identityReady,
-    encryptOutgoingHtml,
     encryptOutgoingHtmlV2,
     decryptMessagePayload,
     getChatKeyRawV2ForEpoch,

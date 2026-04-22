@@ -34,11 +34,13 @@ class MessageHtmlRenderOpts {
     this.linkColor,
     this.quoteAccent,
     this.quoteMaxWidth = 280,
+    this.onMentionTap,
   });
 
   final Color? linkColor;
   final Color? quoteAccent;
   final double quoteMaxWidth;
+  final Future<void> Function(String userId)? onMentionTap;
 
   static const defaults = MessageHtmlRenderOpts();
 }
@@ -53,6 +55,7 @@ class _ComposeStyle {
     this.quote = false,
     this.linkHref,
     this.mention = false,
+    this.mentionUserId,
   });
 
   final bool bold;
@@ -63,6 +66,7 @@ class _ComposeStyle {
   final bool quote;
   final String? linkHref;
   final bool mention;
+  final String? mentionUserId;
 
   _ComposeStyle copyWith({
     bool? bold,
@@ -74,6 +78,8 @@ class _ComposeStyle {
     String? linkHref,
     bool clearLink = false,
     bool? mention,
+    String? mentionUserId,
+    bool clearMentionUserId = false,
   }) {
     return _ComposeStyle(
       bold: bold ?? this.bold,
@@ -84,6 +90,7 @@ class _ComposeStyle {
       quote: quote ?? this.quote,
       linkHref: clearLink ? null : (linkHref ?? this.linkHref),
       mention: mention ?? this.mention,
+      mentionUserId: clearMentionUserId ? null : (mentionUserId ?? this.mentionUserId),
     );
   }
 
@@ -157,16 +164,55 @@ Future<void> _openExternalUrl(String href) async {
   await launchUrl(u, mode: LaunchMode.externalApplication);
 }
 
+List<InlineSpan> _plainTextToLinkSpans(String text, TextStyle base) {
+  final out = <InlineSpan>[];
+  final re = RegExp(r'(https?:\/\/[^\s<>"]+)', caseSensitive: false);
+  var i = 0;
+  for (final m in re.allMatches(text)) {
+    if (m.start > i) {
+      out.add(TextSpan(text: text.substring(i, m.start), style: base));
+    }
+    final url = (m.group(0) ?? '').trim();
+    if (url.isEmpty) {
+      i = m.end;
+      continue;
+    }
+    final lc = const Color(0xFF7DD3FC);
+    final rec = TapGestureRecognizer()
+      ..onTap = () {
+        unawaited(_openExternalUrl(url));
+      };
+    out.add(
+      TextSpan(
+        text: url,
+        style: base.copyWith(
+          color: lc,
+          decoration: TextDecoration.underline,
+          decorationColor: lc.withValues(alpha: 0.9),
+        ),
+        recognizer: rec,
+      ),
+    );
+    i = m.end;
+  }
+  if (i < text.length) {
+    out.add(TextSpan(text: text.substring(i), style: base));
+  }
+  return out;
+}
+
 List<InlineSpan> messageHtmlToStyledSpans(
   String input, {
   required TextStyle base,
   Color? linkColor,
   Color? quoteAccent,
   double quoteMaxWidth = 280,
+  Future<void> Function(String userId)? onMentionTap,
 }) {
   if (input.trim().isEmpty) return const [];
   if (!input.contains('<')) {
-    return [TextSpan(text: input, style: base)];
+    // Plain text: auto-linkify http(s) URLs.
+    return _plainTextToLinkSpans(input, base);
   }
   try {
     final frag = html_parser.parseFragment(input);
@@ -174,6 +220,7 @@ List<InlineSpan> messageHtmlToStyledSpans(
       linkColor: linkColor,
       quoteAccent: quoteAccent,
       quoteMaxWidth: quoteMaxWidth,
+      onMentionTap: onMentionTap,
     );
     final spans = _nodesToSpans(frag.nodes, base, const _ComposeStyle(), opts);
     return _trimTrailingLineBreaks(spans);
@@ -250,6 +297,15 @@ List<InlineSpan> _nodesToSpans(
           ..onTap = () {
             unawaited(_openExternalUrl(href));
           };
+      } else {
+        final mid = st.mentionUserId;
+        final onMentionTap = opts.onMentionTap;
+        if (mid != null && mid.isNotEmpty && onMentionTap != null) {
+          rec = TapGestureRecognizer()
+            ..onTap = () {
+              unawaited(onMentionTap(mid));
+            };
+        }
       }
       out.add(TextSpan(text: display, style: style, recognizer: rec));
     } else if (n is dom.Element) {
@@ -398,7 +454,13 @@ List<InlineSpan> _elementToSpans(
   }
 
   if (tag == 'span' && el.attributes.containsKey('data-chat-mention')) {
-    return _nodesToSpans(el.nodes, base, st.copyWith(mention: true), opts);
+    final uid = (el.attributes['data-chat-mention'] ?? '').trim();
+    return _nodesToSpans(
+      el.nodes,
+      base,
+      st.copyWith(mention: true, mentionUserId: uid, clearMentionUserId: false),
+      opts,
+    );
   }
 
   if (tag == 'li') {

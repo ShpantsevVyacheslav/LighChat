@@ -12,9 +12,26 @@ import 'package:lighchat_models/lighchat_models.dart';
 import '../data/chat_attachment_mosaic_layout.dart';
 import '../data/chat_attachment_upload.dart';
 import '../data/chat_media_layout_tokens.dart';
+import '../data/e2ee_attachment_send_helper.dart';
+import '../data/e2ee_runtime.dart';
 import 'message_html_text.dart';
 import 'message_reply_preview.dart';
 import 'video_first_frame.dart';
+
+/// E2EE v2 Phase 9: контекст шифрования для альбома. Если задан — widget
+/// шифрует каждое вложение через `prepareE2eeAttachmentsForSend` и кладёт
+/// envelope'ы в `e2ee.attachments[]`. Если `null` — plaintext-путь как раньше.
+class OutgoingAlbumE2eeContext {
+  const OutgoingAlbumE2eeContext({
+    required this.runtime,
+    required this.epoch,
+    required this.messageId,
+  });
+
+  final MobileE2eeRuntime runtime;
+  final int epoch;
+  final String messageId;
+}
 
 /// Совпадает с эвристикой превью в `ComposerPendingAttachmentsStrip`.
 Widget _captionBody({
@@ -75,6 +92,7 @@ class OutgoingPendingMediaAlbum extends StatefulWidget {
     this.outgoingBubbleColor,
     required this.onFinished,
     required this.onFailed,
+    this.e2eeContext,
   });
 
   final List<XFile> files;
@@ -87,6 +105,7 @@ class OutgoingPendingMediaAlbum extends StatefulWidget {
   final Color? outgoingBubbleColor;
   final VoidCallback onFinished;
   final void Function(Object error) onFailed;
+  final OutgoingAlbumE2eeContext? e2eeContext;
 
   @override
   State<OutgoingPendingMediaAlbum> createState() =>
@@ -124,6 +143,10 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
     try {
       final storage = FirebaseStorage.instance;
       final attachments = List<ChatAttachment?>.filled(n, null);
+      // E2EE v2 Phase 9: параллельный массив envelope'ов для encryptable файлов.
+      // Слот остаётся null, если файл ушёл plaintext (стикеры/GIFs/не-E2EE чат).
+      final e2eeEnvelopes = List<Map<String, Object?>?>.filled(n, null);
+      final e2eeCtx = widget.e2eeContext;
       await Future.wait(
         List.generate(n, (i) async {
           if (_skipped[i]) return;
@@ -134,6 +157,32 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
               setState(() => _aspects[i] = asp);
             }
             if (!mounted) return;
+
+            final mime = _effectiveMime(widget.files[i]);
+            final shouldEncrypt =
+                e2eeCtx != null && isEncryptableMimeV2(mime);
+
+            if (shouldEncrypt) {
+              // Прогресс у encryptMediaForSend не трекается гранулярно —
+              // отображаем бесконечный-стиль (0 → 1 по факту завершения).
+              try {
+                final envelope = await e2eeCtx.runtime.encryptMediaForSend(
+                  storage: storage,
+                  conversationId: widget.conversationId,
+                  messageId: e2eeCtx.messageId,
+                  epoch: e2eeCtx.epoch,
+                  data: bytes,
+                  mime: mime,
+                );
+                if (!mounted) return;
+                e2eeEnvelopes[i] = envelope.toWireJson();
+                setState(() => _progress[i] = 1.0);
+              } on MobileE2eeEncryptException {
+                rethrow;
+              }
+              return;
+            }
+
             final name = widget.files[i].name.isNotEmpty
                 ? widget.files[i].name
                 : widget.files[i].path.split('/').last;
@@ -163,26 +212,61 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
       );
       if (!mounted) return;
       final uploaded = <ChatAttachment>[];
+      final envelopesOut = <Map<String, Object?>>[];
       for (var i = 0; i < n; i++) {
-        if (!_skipped[i] && attachments[i] != null) {
-          uploaded.add(attachments[i]!);
-        }
+        if (_skipped[i]) continue;
+        if (attachments[i] != null) uploaded.add(attachments[i]!);
+        if (e2eeEnvelopes[i] != null) envelopesOut.add(e2eeEnvelopes[i]!);
       }
-      if (uploaded.isEmpty) {
+      if (uploaded.isEmpty && envelopesOut.isEmpty) {
         if (mounted) widget.onFinished();
         return;
       }
+
+      Map<String, Object?>? outgoingEnvelope;
+      if (e2eeCtx != null) {
+        // Всегда шифруем caption (в т.ч. пустую строку), чтобы iv/ciphertext
+        // были непустыми и приёмник распознал `message.e2ee` как v2.
+        final textEnvelope = await e2eeCtx.runtime.encryptOutgoing(
+          conversationId: widget.conversationId,
+          messageId: e2eeCtx.messageId,
+          epoch: e2eeCtx.epoch,
+          plaintext: widget.captionText,
+        );
+        outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
+          textEnvelope: textEnvelope,
+          mediaEnvelopes: envelopesOut,
+          epoch: e2eeCtx.epoch,
+        );
+      }
+
       await widget.repo.sendTextMessage(
         conversationId: widget.conversationId,
         senderId: widget.senderId,
-        text: widget.captionText,
+        text: outgoingEnvelope != null ? '' : widget.captionText,
         replyTo: widget.replyTo,
         attachments: uploaded,
+        e2eeEnvelope: outgoingEnvelope,
+        messageIdOverride: e2eeCtx?.messageId,
       );
       if (mounted) widget.onFinished();
     } catch (e) {
       if (mounted) widget.onFailed(e);
     }
+  }
+
+  String _effectiveMime(XFile f) {
+    final m = (f.mimeType ?? '').trim();
+    if (m.isNotEmpty) return m.toLowerCase();
+    final p = f.path.toLowerCase();
+    if (p.endsWith('.jpg') || p.endsWith('.jpeg')) return 'image/jpeg';
+    if (p.endsWith('.png')) return 'image/png';
+    if (p.endsWith('.webp')) return 'image/webp';
+    if (p.endsWith('.heic') || p.endsWith('.heif')) return 'image/heic';
+    if (p.endsWith('.gif')) return 'image/gif';
+    if (p.endsWith('.mp4')) return 'video/mp4';
+    if (p.endsWith('.mov') || p.endsWith('.qt')) return 'video/quicktime';
+    return 'application/octet-stream';
   }
 
   Future<double?> _decodeAspect(Uint8List bytes) async {

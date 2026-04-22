@@ -13,8 +13,9 @@
 ///  - все IO-операции (`Firestore`, `secure_storage`) делаются через
 ///    `lighchat_firebase` API — прямых импортов `cloud_firestore` из UI нет.
 ///
-/// Поддерживается только v2 на send-пути. На read-пути v1 молча возвращает
-/// `null` (UI покажет плейсхолдер «…отправлено до активации устройства»).
+/// Поддерживается только v2. Сообщения с другим `protocolVersion` (после
+/// Phase 10 cleanup таких быть не должно, кроме ручных артефактов) помечаются
+/// `E2EE_UNSUPPORTED_PROTO` — UI покажет плейсхолдер.
 library;
 
 import 'dart:async';
@@ -118,11 +119,16 @@ class MobileE2eeRuntime {
     required ChatMessageE2eePayload payload,
   }) async {
     if (!payload.isV2) {
-      // v1 на мобайле не поддерживается — приватника v1 у нас нет.
-      return MobileDecryptionResult.failed('E2EE_LEGACY_V1_NOT_SUPPORTED');
+      // Любой не-v2 формат после Phase 10 cleanup считаем неподдерживаемым:
+      // читать такие envelope нечем (v1-приватника в secure-storage уже нет).
+      return MobileDecryptionResult.failed('E2EE_UNSUPPORTED_PROTO');
     }
     try {
-      final key = await _getOrFetchChatKey(
+      // Decrypt-path: heal здесь бессмыслен (ключ, которым шифровался
+      // payload, лежит именно в session payload.epoch). Если эту эпоху
+      // мы прочесть не можем — сообщение для нас потеряно, UI покажет
+      // placeholder.
+      final key = await _tryGetChatKey(
         conversationId: conversationId,
         epoch: payload.epoch,
       );
@@ -162,26 +168,29 @@ class MobileE2eeRuntime {
     required String plaintext,
   }) async {
     final identity = await ensureIdentity();
-    final key = await _getOrFetchChatKey(
+    final resolved = await _getOrFetchChatKey(
       conversationId: conversationId,
       epoch: epoch,
     );
-    if (key == null) {
+    if (resolved == null) {
       throw const MobileE2eeEncryptException('E2EE_NO_CHAT_KEY');
     }
+    // После self-heal эпоха может сместиться — пишем в payload/AAD именно
+    // `resolved.epoch`, иначе приёмник попробует расшифровать под ошибочной
+    // эпохой.
     final aad = V2MessageAadContext(
       conversationId: conversationId,
       messageId: messageId,
-      epoch: epoch,
+      epoch: resolved.epoch,
     );
     final ct = await encryptMessageV2(
-      chatKey: key,
+      chatKey: resolved.key,
       plaintextUtf8: plaintext,
       aad: aad,
     );
     return <String, Object?>{
       'protocolVersion': v2Protocol,
-      'epoch': epoch,
+      'epoch': resolved.epoch,
       'iv': ct.ivB64,
       'ciphertext': ct.ciphertextB64,
       'senderDeviceId': identity.deviceId,
@@ -210,11 +219,11 @@ class MobileE2eeRuntime {
         'Stickers / GIF должны отправляться plaintext-путём.',
       );
     }
-    final key = await _getOrFetchChatKey(
+    final resolved = await _getOrFetchChatKey(
       conversationId: conversationId,
       epoch: epoch,
     );
-    if (key == null) {
+    if (resolved == null) {
       throw const MobileE2eeEncryptException('E2EE_NO_CHAT_KEY');
     }
     final res = await encryptAndUploadMediaFileV2(
@@ -229,7 +238,7 @@ class MobileE2eeRuntime {
         thumbnailMime: thumbnailMime,
         metadataJson: metadataJson,
       ),
-      chatKeyRaw: key,
+      chatKeyRaw: resolved.key,
     );
     return res.envelope;
   }
@@ -243,7 +252,9 @@ class MobileE2eeRuntime {
     required int epoch,
     required MediaEnvelopeV2 envelope,
   }) async {
-    final key = await _getOrFetchChatKey(
+    // media-decrypt — аналогично текстовому decrypt'у: key лежит в session
+    // под payload.epoch, heal не восстановит старый ключ. Не используем heal.
+    final key = await _tryGetChatKey(
       conversationId: conversationId,
       epoch: epoch,
     );
@@ -261,9 +272,82 @@ class MobileE2eeRuntime {
     );
   }
 
-  /// Переиспользуется в двух местах: read-path и send-path. Кеш устроен так,
-  /// что повторные обращения к одной эпохе не делают повторных Firestore-чтений.
-  Future<Uint8List?> _getOrFetchChatKey({
+  /// Переиспользуется в двух местах: read-path и send-path.
+  ///
+  /// Новый контракт (post-launch fix): возвращает `ResolvedChatKey` с фактически
+  /// использованной эпохой — может отличаться от `epoch`, если пришлось
+  /// делать self-heal (rotate). Вызывающий ДОЛЖЕН использовать эпоху из
+  /// результата при сборке payload / AAD, иначе `decryptMessageV2` не
+  /// сойдётся на приёме.
+  ///
+  /// При невозможности unwrap для запрошенной эпохи — делает один круг
+  /// `healSessionForCurrentDevices` и повторяет. Это закрывает три post-launch
+  /// регрессии:
+  ///   - новое устройство ещё не в wraps (нас добавили в e2eeDevices, эпоху
+  ///     никто не ротировал) — rotate → получаем ключ;
+  ///   - session с неподдерживаемым `protocolVersion` (legacy/unknown) —
+  ///     rotate в v2;
+  ///   - collaborator открыл новое устройство → сообщение для него не дойдёт,
+  ///     но rotate добавит его в новую эпоху.
+  Future<_ResolvedChatKey?> _getOrFetchChatKey({
+    required String conversationId,
+    required int epoch,
+  }) async {
+    final direct = await _tryGetChatKey(
+      conversationId: conversationId,
+      epoch: epoch,
+    );
+    if (direct != null) {
+      return _ResolvedChatKey(key: direct, epoch: epoch);
+    }
+
+    try {
+      final convSnap = await firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .get();
+      if (!convSnap.exists) return null;
+      final data = convSnap.data();
+      if (data == null) return null;
+      final participantIdsRaw = data['participantIds'];
+      final participantIds = (participantIdsRaw is List
+              ? participantIdsRaw
+              : const <Object?>[])
+          .whereType<String>()
+          .where((s) => s.trim().isNotEmpty)
+          .toList(growable: false);
+      final rawEpoch = data['e2eeKeyEpoch'];
+      final latestEpoch = rawEpoch is int
+          ? rawEpoch
+          : (rawEpoch is num ? rawEpoch.toInt() : epoch);
+      final identity = await ensureIdentity();
+
+      final healResult = await healSessionForCurrentDevices(
+        firestore: firestore,
+        conversationId: conversationId,
+        currentEpoch: latestEpoch,
+        participantIds: participantIds,
+        currentUserId: userId,
+        identity: identity,
+      );
+      final targetEpoch =
+          healResult.healed ? healResult.newEpoch : latestEpoch;
+      _chatKeyCache.remove('$conversationId:$epoch');
+      final healed = await _tryGetChatKey(
+        conversationId: conversationId,
+        epoch: targetEpoch,
+      );
+      if (healed == null) return null;
+      return _ResolvedChatKey(key: healed, epoch: targetEpoch);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[E2EE] heal attempt failed for $conversationId: $e');
+      }
+      return null;
+    }
+  }
+
+  Future<Uint8List?> _tryGetChatKey({
     required String conversationId,
     required int epoch,
   }) async {
@@ -294,6 +378,14 @@ class MobileE2eeRuntime {
       return null;
     }
   }
+}
+
+/// Итог разрешения chat-key: ключ и эпоха, под которой он получен. Эпоха
+/// может отличаться от запрошенной, если произошёл self-heal с ротацией.
+class _ResolvedChatKey {
+  const _ResolvedChatKey({required this.key, required this.epoch});
+  final Uint8List key;
+  final int epoch;
 }
 
 class _CachedChatKey {

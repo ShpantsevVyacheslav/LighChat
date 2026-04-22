@@ -6,8 +6,11 @@ import { useFirestore, useStorage } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
-import { E2EE_LAST_MESSAGE_PREVIEW, tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee';
+import { E2EE_LAST_MESSAGE_PREVIEW, autoEnableE2eeForNewDirectChat, isEncryptableMimeV2 } from '@/lib/e2ee';
+import { inferKindHintFromFileName } from '@/lib/e2ee/infer-kind-hint';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
+import { useE2eeMediaAttachments } from '@/hooks/use-e2ee-media-attachments';
+import { useE2eeHydratedMessages } from '@/hooks/use-e2ee-hydrated-messages';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
 import type {
@@ -159,6 +162,12 @@ export function ChatWindow({
       ? prefs.chatWallpaper
       : chatSettings.chatWallpaper;
   const e2eeConv = useE2eeConversation(firestore, conversation, currentUser.id);
+  const e2eeMediaApi = useE2eeMediaAttachments({
+    storage,
+    conversationId: conversation.id,
+    getChatKeyRawV2ForEpoch: e2eeConv.getChatKeyRawV2ForEpoch,
+    epoch: e2eeConv.e2eeEpoch,
+  });
   const [e2eePlaintextByMessageId, setE2eePlaintextByMessageId] = useState<Record<string, string>>({});
   // E2E enable UI removed from main chat header (kept via auto-enable paths).
 
@@ -454,10 +463,15 @@ export function ChatWindow({
     };
   }, [allMessages, e2eeConv.decryptMessagePayload]);
 
-  const messagesForList = useMemo(() => {
+  const messagesForListRaw = useMemo(() => {
     const clearedAt = conversation.clearedAt?.[currentUser.id];
     return clearedAt ? allMessages.filter(m => new Date(m.createdAt) > new Date(clearedAt)) : allMessages;
   }, [allMessages, conversation.clearedAt, currentUser.id]);
+
+  // E2EE v2 Phase 9: расшифрованные blob-URL'ы для message.e2ee.attachments[]
+  // подмешиваются в .attachments перед рендером. Хук ленивый, кэширует
+  // результаты внутри useE2eeMediaAttachments.
+  const messagesForList = useE2eeHydratedMessages(messagesForListRaw, e2eeMediaApi);
 
   const handleToggleStar = useCallback(
     (messageId: string, nextStarred: boolean) => {
@@ -809,7 +823,7 @@ export function ChatWindow({
         } catch {
           /* ignore */
         }
-        await tryAutoEnableE2eeNewDirectChat(firestore, id, currentUser.id, {
+        await autoEnableE2eeForNewDirectChat(firestore, id, currentUser.id, {
           userWants: privacySettings.e2eeForNewDirectChats === true,
           platformWants,
         });
@@ -957,23 +971,68 @@ export function ChatWindow({
     if (replyContext) setReplyingTo(null);
 
     try {
+      // E2EE v2 Phase 9: при активном шифровании файлы с encryptable MIME идут
+      // через useE2eeMediaAttachments.encryptAndUploadForSend (envelopes в
+      // message.e2ee.attachments[]); стикеры/GIFs остаются plaintext.
+      // Если шифрование выключено — весь набор грузится plaintext как раньше.
+      const encryptAttachments = e2eeConv.e2eeEnabled;
+      const plaintextFilesToUpload: File[] = encryptAttachments
+        ? files.filter((f) => !isEncryptableMimeV2(f.type))
+        : files;
+      const filesToEncrypt: File[] = encryptAttachments
+        ? files.filter((f) => isEncryptableMimeV2(f.type))
+        : [];
+
       const uploadedAttachments: ChatAttachment[] = [...prebuilt];
-      if (files.length > 0) {
+      if (plaintextFilesToUpload.length > 0) {
           const { uploadFile: internalUpload } = await import('./ChatMessageInput');
-          for (const file of files) {
+          for (const file of plaintextFilesToUpload) {
               const path = `chat-attachments/${conversation.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
               const uploaded = await internalUpload(file, path, storage);
               uploadedAttachments.push(uploaded);
           }
       }
-      
+
+      // Envelopes для зашифрованных вложений. Пишем в message.e2ee.attachments[].
+      // Плейнтекст-массив attachments[] сохраняется только для стикеров/GIF
+      // и превью-путей (ConversationMediaPanel и т.п.).
+      let e2eeAttachmentEnvelopes:
+        | NonNullable<import('@/lib/types').ChatMessageE2eePayload['attachments']>
+        | null = null;
+      if (filesToEncrypt.length > 0) {
+        try {
+          const res = await e2eeMediaApi.encryptAndUploadForSend(
+            messageId,
+            // kindHint: имя файла в чате детерминированно кодирует kind —
+            // `video-circle_*.webm` → MediaKindV2.videoCircle, `voice_*.m4a`
+            // → voice и т.п. Без этой подсказки mapMimeToKind выдавал бы
+            // общий 'video'/'voice', и получатель не мог отличить кружок
+            // от обычного видео (рендерился как прямоугольник).
+            filesToEncrypt.map((file) => ({
+              file,
+              kindHint: inferKindHintFromFileName(file.name),
+            }))
+          );
+          e2eeAttachmentEnvelopes = res.envelopes;
+        } catch (encErr) {
+          toast({ variant: 'destructive', title: 'Не удалось зашифровать вложение' });
+          throw encErr;
+        }
+      }
+
       const plainBody = text
         ? text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
         : '';
       const useE2eeForText =
         e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
+      const hasEncryptedAttachments =
+        !!e2eeAttachmentEnvelopes && e2eeAttachmentEnvelopes.length > 0;
+      // Если хоть что-то шифруем (текст или медиа) — всё сообщение помечаем
+      // как E2EE. Медиа-only получает envelope с пустым plaintext-телом,
+      // чтобы push-notification трактовал его как «Зашифрованное сообщение».
+      const useE2eeEnvelope = useE2eeForText || hasEncryptedAttachments;
       const replyForWrite =
-        useE2eeForText && replyContext
+        useE2eeEnvelope && replyContext
           ? (({ text: _omitted, ...rest }) => rest)(replyContext)
           : replyContext;
 
@@ -986,8 +1045,12 @@ export function ChatWindow({
         ...(replyForWrite && { replyTo: replyForWrite }),
       };
 
-      if (useE2eeForText) {
-        const e2eePayload = await e2eeConv.encryptOutgoingHtml(text!);
+      if (useE2eeEnvelope) {
+        const htmlForEncrypt = useE2eeForText ? text! : '';
+        const e2eePayload = await e2eeConv.encryptOutgoingHtmlV2(htmlForEncrypt, { messageId });
+        if (hasEncryptedAttachments) {
+          e2eePayload.attachments = e2eeAttachmentEnvelopes!;
+        }
         basePayload.e2ee = e2eePayload;
       } else if (text) {
         basePayload.text = text;
@@ -1229,9 +1292,16 @@ export function ChatWindow({
     const msgRef = doc(firestore, `conversations/${conversation.id}/messages`, id);
     const now = new Date().toISOString();
     const existing = allMessages.find((m) => m.id === id);
+    const hadE2eeEnvelope = !!(existing?.e2ee && (existing.e2ee.ciphertext || (existing.e2ee.attachments && existing.e2ee.attachments.length > 0)));
     try {
-        if (e2eeConv.e2eeEnabled && existing?.e2ee?.ciphertext) {
-          const e2eePayload = await e2eeConv.encryptOutgoingHtml(text);
+        if (e2eeConv.e2eeEnabled && hadE2eeEnvelope) {
+          // E2EE edit: перешифруем только текст, existing e2ee.attachments
+          // сохраняем as-is (перезаливать файлы при редактировании нельзя —
+          // ciphertext привязан к messageId, а HKDF-wrap — к epoch).
+          const e2eePayload = await e2eeConv.encryptOutgoingHtmlV2(text, { messageId: id });
+          if (existing?.e2ee?.attachments && existing.e2ee.attachments.length > 0) {
+            e2eePayload.attachments = existing.e2ee.attachments;
+          }
           await updateDoc(msgRef, {
             e2ee: e2eePayload,
             text: deleteField(),

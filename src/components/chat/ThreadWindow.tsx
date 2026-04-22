@@ -8,6 +8,10 @@ import { useFirestore, useMemoFirebase, useStorage, useCollection } from '@/fire
 import { collection, query, doc, updateDoc, increment, orderBy, setDoc, getDocs, where, limit, documentId, writeBatch, onSnapshot, deleteDoc, serverTimestamp, deleteField, arrayUnion } from 'firebase/firestore';
 import { E2EE_LAST_MESSAGE_PREVIEW } from '@/lib/e2ee';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
+import { useE2eeMediaAttachments } from '@/hooks/use-e2ee-media-attachments';
+import { useE2eeHydratedMessages } from '@/hooks/use-e2ee-hydrated-messages';
+import { isEncryptableMimeV2 } from '@/lib/e2ee';
+import { inferKindHintFromFileName } from '@/lib/e2ee/infer-kind-hint';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import type {
     User,
@@ -135,6 +139,12 @@ export function ThreadWindow({
     const { chatSettings } = useSettings();
     const effectiveThreadWallpaper = chatWallpaperProp != null && chatWallpaperProp !== '' ? chatWallpaperProp : chatSettings.chatWallpaper;
     const e2eeConv = useE2eeConversation(firestore, conversation, currentUser.id);
+    const e2eeMediaApi = useE2eeMediaAttachments({
+        storage,
+        conversationId: conversation.id,
+        getChatKeyRawV2ForEpoch: e2eeConv.getChatKeyRawV2ForEpoch,
+        epoch: e2eeConv.e2eeEpoch,
+    });
     const [threadE2eePlaintextByMessageId, setThreadE2eePlaintextByMessageId] = useState<Record<string, string>>({});
     
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -267,7 +277,7 @@ export function ThreadWindow({
         setDisplayLimit(prev => prev + HISTORY_PAGE_SIZE);
     }, [hasMore, isLoadingOlder]);
 
-    const allMessages = useMemo(() => {
+    const allMessagesRaw = useMemo(() => {
         const remoteMessageIds = new Set(messages.map(rm => rm.id));
         const uniqueOptimistic = optimisticMessages.filter(om => !remoteMessageIds.has(om.id));
         const combined = [...messages, ...uniqueOptimistic];
@@ -277,6 +287,10 @@ export function ThreadWindow({
             ? combined.filter(m => new Date(m.createdAt) > new Date(clearedAt))
             : combined;
     }, [messages, optimisticMessages, conversation.clearedAt, currentUser.id]);
+
+    // E2EE v2 Phase 9: подмешиваем расшифрованные blob-URL в message.attachments
+    // перед тем как сообщения попадут в flatItems/ChatMessageItem.
+    const allMessages = useE2eeHydratedMessages(allMessagesRaw, e2eeMediaApi);
 
     useEffect(() => {
         const hasCiphertext = allMessages.some((m) => m.e2ee?.ciphertext);
@@ -577,9 +591,13 @@ export function ThreadWindow({
             );
             const now = new Date().toISOString();
             const existing = allMessages.find((m) => m.id === id);
+            const hadE2eeEnvelope = !!(existing?.e2ee && (existing.e2ee.ciphertext || (existing.e2ee.attachments && existing.e2ee.attachments.length > 0)));
             try {
-                if (e2eeConv.e2eeEnabled && existing?.e2ee?.ciphertext) {
-                    const e2eePayload = await e2eeConv.encryptOutgoingHtml(text);
+                if (e2eeConv.e2eeEnabled && hadE2eeEnvelope) {
+                    const e2eePayload = await e2eeConv.encryptOutgoingHtmlV2(text, { messageId: id });
+                    if (existing?.e2ee?.attachments && existing.e2ee.attachments.length > 0) {
+                        e2eePayload.attachments = existing.e2ee.attachments;
+                    }
                     await updateDoc(msgRef, {
                         e2ee: e2eePayload,
                         text: deleteField(),
@@ -593,7 +611,7 @@ export function ThreadWindow({
                 toast({ variant: 'destructive', title: 'Ошибка обновления' });
             }
         },
-        [firestore, conversation.id, parentMessage.id, allMessages, e2eeConv.e2eeEnabled, e2eeConv.encryptOutgoingHtml, toast]
+        [firestore, conversation.id, parentMessage.id, allMessages, e2eeConv.e2eeEnabled, e2eeConv.encryptOutgoingHtmlV2, toast]
     );
 
     const handleSendMessage = async (
@@ -631,13 +649,42 @@ export function ThreadWindow({
         setOptimisticMessages(prev => [...prev, optimisticMessage]);
 
         try {
+            // E2EE v2 Phase 9: плейнтекст (стикеры/GIF) идёт привычным путём,
+            // encryptable-файлы шифруются через useE2eeMediaAttachments.
+            const encryptAttachments = e2eeConv.e2eeEnabled;
+            const plaintextFilesToUpload: File[] = encryptAttachments
+                ? files.filter((f) => !isEncryptableMimeV2(f.type))
+                : files;
+            const filesToEncrypt: File[] = encryptAttachments
+                ? files.filter((f) => isEncryptableMimeV2(f.type))
+                : [];
+
             const uploadedAttachments: ChatAttachment[] = [...prebuilt];
-            if (files.length > 0) {
+            if (plaintextFilesToUpload.length > 0) {
                 const { uploadFile: internalUpload } = await import('./ChatMessageInput');
-                for (const file of files) {
+                for (const file of plaintextFilesToUpload) {
                     const path = `chat-attachments/${conversation.id}/threads/${parentMessage.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
                     const uploaded = await internalUpload(file, path, storage);
                     uploadedAttachments.push(uploaded);
+                }
+            }
+
+            let e2eeAttachmentEnvelopes:
+                | NonNullable<import('@/lib/types').ChatMessageE2eePayload['attachments']>
+                | null = null;
+            if (filesToEncrypt.length > 0) {
+                try {
+                    const res = await e2eeMediaApi.encryptAndUploadForSend(
+                        messageId,
+                        filesToEncrypt.map((file) => ({
+                            file,
+                            kindHint: inferKindHintFromFileName(file.name),
+                        }))
+                    );
+                    e2eeAttachmentEnvelopes = res.envelopes;
+                } catch (encErr) {
+                    toast({ variant: 'destructive', title: 'Не удалось зашифровать вложение' });
+                    throw encErr;
                 }
             }
 
@@ -646,8 +693,11 @@ export function ThreadWindow({
                 : '';
             const useE2eeForText =
                 e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
+            const hasEncryptedAttachments =
+                !!e2eeAttachmentEnvelopes && e2eeAttachmentEnvelopes.length > 0;
+            const useE2eeEnvelope = useE2eeForText || hasEncryptedAttachments;
             const replyForWrite =
-                useE2eeForText && replyContext
+                useE2eeEnvelope && replyContext
                     ? (({ text: _omitted, ...rest }) => rest)(replyContext)
                     : replyContext;
 
@@ -659,8 +709,12 @@ export function ThreadWindow({
                 attachments: uploadedAttachments,
                 ...(replyForWrite && { replyTo: replyForWrite }),
             };
-            if (useE2eeForText) {
-                const e2eePayload = await e2eeConv.encryptOutgoingHtml(text!);
+            if (useE2eeEnvelope) {
+                const htmlForEncrypt = useE2eeForText ? text! : '';
+                const e2eePayload = await e2eeConv.encryptOutgoingHtmlV2(htmlForEncrypt, { messageId });
+                if (hasEncryptedAttachments) {
+                    e2eePayload.attachments = e2eeAttachmentEnvelopes!;
+                }
                 messageData.e2ee = e2eePayload;
             } else if (text) {
                 messageData.text = text;

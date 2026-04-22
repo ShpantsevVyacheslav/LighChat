@@ -14,9 +14,11 @@ import {
 } from '@/lib/group-chat-member-updates';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import {
-  createE2eeSessionDoc,
-  fetchUserE2eePublicKeySpki,
-} from '@/lib/e2ee/session-firestore';
+  collectParticipantDevicesV2,
+  createE2eeSessionDocV2,
+  getOrCreateDeviceIdentityV2,
+  publishE2eeDeviceV2,
+} from '@/lib/e2ee';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -112,13 +114,12 @@ export function GroupChatParticipantsManageView({
     void runWithBusy(memberId, async () => {
       if (!firestore) return;
       const payload = buildGroupMemberRemovalUpdate(conversation, memberId);
-      // Phase 0 safety fix: при исключении участника из E2EE-группы мы
-      // должны не только увеличить `e2eeKeyEpoch` (это делает билдер), но и
-      // создать новый session-doc с обёртками свежего ключа ТОЛЬКО для
-      // оставшихся участников. Без этого: эпоху подняли, но нового ключа
-      // нет → отправка сообщений падает на `fetchE2eeSession`. Либо, что
-      // хуже, если кто-то переиспользует старый ключ — исключённый
-      // участник сохраняет возможность читать будущие сообщения.
+      // Phase 0 safety fix (v2 variant): при исключении участника из
+      // E2EE-группы создаём новый v2 session-doc с обёртками свежего ключа
+      // ТОЛЬКО для оставшихся участников. Без этого: эпоху подняли,
+      // но нового ключа нет → отправка падает на unwrap; либо, что хуже,
+      // исключённый участник может расшифровывать будущие сообщения под
+      // старым ключом.
       //
       // Порядок важен: сначала публикуем session-doc, потом update. Если
       // update упадёт — останется «сиротский» session для нового эпоха, но
@@ -130,13 +131,16 @@ export function GroupChatParticipantsManageView({
         if (!remaining.includes(uid)) {
           throw new Error('E2EE: creator is unexpectedly missing from remaining participants');
         }
-        await createE2eeSessionDoc(
+        const identity = await getOrCreateDeviceIdentityV2();
+        await publishE2eeDeviceV2(firestore, uid, identity);
+        const bundles = await collectParticipantDevicesV2(firestore, remaining);
+        await createE2eeSessionDocV2(
           firestore,
           conversation.id,
           nextEpoch,
-          remaining,
+          identity,
           uid,
-          (otherUid) => fetchUserE2eePublicKeySpki(firestore, otherUid)
+          bundles
         );
       }
       await updateDoc(doc(firestore, 'conversations', conversation.id), payload);

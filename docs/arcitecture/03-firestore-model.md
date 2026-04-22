@@ -4,10 +4,13 @@
 
 ## Коллекции верхнего уровня
 
-- `users/{userId}` - профиль, роль, presence, настройки.
+- `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `notificationSettings` (глобальная политика push).
+  - `chatConversationPrefs/{conversationId}` - персональные настройки чата для аккаунта (`notificationsMuted`, `notificationShowPreview`, обои и т.д.).
   - `notifications/{notificationId}`
   - `stickerPacks/{packId}/items/{itemId}`
-  - `e2ee/{docId}` - публичные ключи E2E (запись только владельцем; чтение — любой вошедший, для обёртки ключей чата).
+  - `e2eeDevices/{deviceId}` - публичные ключи устройств E2EE v2 (запись только владельцем; чтение — любой вошедший, для обёртки chat-key под каждое устройство собеседника). Legacy `e2ee/{docId}` v1 удалён в Phase 10 cleanup.
+  - `e2eeBackups/{backupId}` - password-backup обёрнутого приватника v2 (read/write только владелец). См. RFC §5.2.
+  - `e2eePairingSessions/{sessionId}` - эфемерные QR-pairing сессии v2 (TTL 10 мин, чистятся scheduled CF [`cleanupE2eePairingSessions`](../functions/src/triggers/scheduler/cleanupE2eePairingSessions.ts)). См. RFC §5.3, §6.7.
   - `devices/{deviceId}` - реестр клиентских устройств/сессий пользователя (`app`, `platform`, `isActive`, `lastSeenAt`, `lastLoginAt`), read/write только владельцем uid.
 - `registrationIndex/{docId}` - индекс уникальности (email/phone/username), только server-write.
 - `publicStickerPacks/{packId}` - общие стикерпаки (read: авторизованные; write: admin).
@@ -17,7 +20,7 @@
   - `typing/{typingUserId}`
   - `messages/{messageId}` (+ вложенные thread-path документы; для медиа-нормализации используется поле `mediaNorm` со статусом `pending|done|failed` и `failedIndexes`; для синхронизации emoji-эффектов используется `emojiBurst: {eventId, emoji, by, at}`)
   - `polls/{pollId}`
-  - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата: обёртки `wraps` на участника (ciphertext; сервер не знает plaintext).
+  - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата в формате E2EE v2: вложенная мапа `wraps[userId][deviceId]` (ciphertext; сервер не знает plaintext). Единственная поддерживаемая версия — `protocolVersion: 'v2-p256-aesgcm-multi'`; документы с другими версиями клиенты молча ротируют через self-heal.
 - `userChats/{userId}` - денормализованный индекс чатов пользователя.
 - `userContacts/{userId}` - список контактов пользователя.
   - `deviceLookup/{registrationIndexKey}` - ключи телефонной книги устройства (phone/email) для авто-сопоставления с `registrationIndex` и автодобавления новых зарегистрированных контактов.
@@ -31,7 +34,7 @@
   - `messages/{messageId}`
   - `polls/{pollId}`
 - `userMeetings/{userId}` - денормализованный индекс встреч.
-- `platformSettings/{docId}` - платформенные настройки (admin-write). Доп. поле `e2eeDefaultForNewDirectChats` — попытка авто-E2E при создании нового личного чата (клиент).
+- `platformSettings/{docId}` - платформенные настройки (admin-write). Ключевые поля E2EE: `e2eeDefaultForNewDirectChats` (попытка авто-E2E при создании нового личного чата, клиент) и `e2eeProtocolVersion` ∈ `{'v2','auto','off'}` (rollout-флаг; после Phase 10 cleanup поддержки v1 нет).
 - `supportTickets/{ticketId}` - admin-read.
 
 ## Ключевые связи

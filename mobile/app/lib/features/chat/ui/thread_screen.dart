@@ -28,6 +28,7 @@ import '../data/reply_preview_builder.dart';
 import '../data/chat_attachment_upload.dart';
 import '../data/chat_message_search.dart';
 import '../data/composer_clipboard_paste.dart';
+import '../data/group_mention_candidates.dart';
 import '../data/user_profile.dart';
 import 'chat_message_list.dart';
 import 'chat_scroll_anchor_button.dart';
@@ -1318,10 +1319,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                       messages: threadMsgs,
                                       builder: (
                                         context,
+                                        hydratedThreadMsgs,
                                         e2eeDecryptedMap,
                                         e2eeFailedIds,
                                       ) => ChatMessageList(
-                                      messagesDesc: threadMsgs,
+                                      messagesDesc: hydratedThreadMsgs,
                                       currentUserId: user.uid,
                                       conversationId: widget.conversationId,
                                       e2eeDecryptedTextByMessageId:
@@ -1452,6 +1454,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                               // (Phase 7 уберёт этот барьер).
                               onSend: () =>
                                   _submitWithAttachments(user.uid, conv),
+                              groupMentionCandidates: conv != null && conv.isGroup
+                                  ? buildGroupMentionCandidates(
+                                      conversation: conv,
+                                      currentUserId: user.uid,
+                                      profileMap: null,
+                                    )
+                                  : null,
                               onAttachmentSelected: (a) =>
                                   _handleComposerAttachment(a, user.uid),
                               pendingAttachments: _pendingAttachments,

@@ -9,6 +9,42 @@ export type ServerIcePayload = {
   reason?: string;
 };
 
+/**
+ * Транспорты в ICE-наборе: stun/stuns (без реле) и turn/turns (с реле).
+ * Нужен health-endpoint'у для диагностики и NAT-troubleshooting.
+ */
+export type IceTransportStats = {
+  stun: number;
+  stuns: number;
+  turn: number;
+  turns: number;
+  hasStun: boolean;
+  hasTurn: boolean;
+  hasTurns: boolean;
+};
+
+export function analyzeIceServers(iceServers: RTCIceServer[]): IceTransportStats {
+  const stats: IceTransportStats = {
+    stun: 0, stuns: 0, turn: 0, turns: 0,
+    hasStun: false, hasTurn: false, hasTurns: false,
+  };
+  for (const srv of iceServers) {
+    const urls = typeof srv.urls === 'string' ? [srv.urls] : (srv.urls || []);
+    for (const u of urls) {
+      if (typeof u !== 'string') continue;
+      const lower = u.toLowerCase();
+      if (lower.startsWith('turns:')) stats.turns += 1;
+      else if (lower.startsWith('turn:')) stats.turn += 1;
+      else if (lower.startsWith('stuns:')) stats.stuns += 1;
+      else if (lower.startsWith('stun:')) stats.stun += 1;
+    }
+  }
+  stats.hasStun = stats.stun + stats.stuns > 0;
+  stats.hasTurn = stats.turn > 0;
+  stats.hasTurns = stats.turns > 0;
+  return stats;
+}
+
 type MeteredIceServer = {
   urls?: string | string[];
   username?: string;
@@ -148,6 +184,11 @@ export async function buildServerIcePayload(): Promise<ServerIcePayload> {
     if (iceServers.length === 0) {
       console.warn('[webrtc/ice] Metered returned empty credentials payload');
       return fallbackPayload('metered_empty_payload');
+    }
+
+    const transport = analyzeIceServers(iceServers);
+    if (!transport.hasTurn && !transport.hasTurns) {
+      console.warn('[webrtc/ice] Metered payload has no TURN transports — симметричный NAT не переборет.');
     }
 
     return {

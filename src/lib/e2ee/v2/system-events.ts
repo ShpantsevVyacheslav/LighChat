@@ -57,6 +57,17 @@ export const chatSystemEvents = {
   e2eeEnabled(epoch: number, actorUserId?: string): ChatSystemEvent {
     return { type: 'e2ee.v2.enabled', data: { epoch, actorUserId } };
   },
+  /**
+   * Маркер отключения сквозного шифрования. Публикуется после успешной записи
+   * `e2eeEnabled=false` в `conversations/{cid}`. Старые e2ee-сообщения всё
+   * ещё расшифровываются клиентом по своей `epoch`; новые уходят в plain.
+   */
+  e2eeDisabled(previousEpoch: number, actorUserId?: string): ChatSystemEvent {
+    return {
+      type: 'e2ee.v2.disabled',
+      data: { epoch: previousEpoch, actorUserId },
+    };
+  },
   epochRotated(epoch: number, actorUserId?: string): ChatSystemEvent {
     return { type: 'e2ee.v2.epoch.rotated', data: { epoch, actorUserId } };
   },

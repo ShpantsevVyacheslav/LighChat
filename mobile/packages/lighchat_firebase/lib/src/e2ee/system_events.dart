@@ -21,6 +21,7 @@ const String kChatSystemSenderId = '__system__';
 /// Коды типов — строковые литералы, 1:1 с web (`ChatSystemEventType`).
 class ChatSystemEventTypes {
   static const String e2eeV2Enabled = 'e2ee.v2.enabled';
+  static const String e2eeV2Disabled = 'e2ee.v2.disabled';
   static const String e2eeV2EpochRotated = 'e2ee.v2.epoch.rotated';
   static const String e2eeV2DeviceAdded = 'e2ee.v2.device.added';
   static const String e2eeV2DeviceRevoked = 'e2ee.v2.device.revoked';
@@ -63,6 +64,25 @@ class ChatSystemEventFactories {
       type: ChatSystemEventTypes.e2eeV2Enabled,
       data: {
         'epoch': epoch,
+        'actorUserId': ?actorUserId,
+      },
+    );
+  }
+
+  /// Divider «Сквозное шифрование отключено». Вызывать **после** успешного
+  /// обновления `e2eeEnabled=false` в документе беседы.
+  static Future<String> e2eeDisabled({
+    required FirebaseFirestore firestore,
+    required String conversationId,
+    required int previousEpoch,
+    String? actorUserId,
+  }) {
+    return postChatSystemEventV2(
+      firestore: firestore,
+      conversationId: conversationId,
+      type: ChatSystemEventTypes.e2eeV2Disabled,
+      data: {
+        'epoch': previousEpoch,
         'actorUserId': ?actorUserId,
       },
     );

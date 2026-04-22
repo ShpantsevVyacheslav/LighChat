@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/mention_token_codec.dart';
+
 /// Стили сегментов композера (паритет разметки сообщений).
 class _CompStyle {
   const _CompStyle({
@@ -69,10 +71,12 @@ class ChatHtmlComposerController extends TextEditingController {
   ChatHtmlComposerController({super.text});
 
   static final TextStyle _invisibleTagStyle = TextStyle(
-    fontSize: 0.05,
-    height: 1.25,
+    // Должно быть реально "0-size", иначе теги (особенно `<span ...>` для @)
+    // могут съедать место и ломать раскладку/курсор.
+    fontSize: 0,
+    height: 0,
     color: const Color(0x00FFFFFF),
-    letterSpacing: -1,
+    letterSpacing: 0,
   );
 
   static bool _classHasSpoiler(String tagLower) {
@@ -99,7 +103,11 @@ class ChatHtmlComposerController extends TextEditingController {
       stack.add(top.copyWith(underline: true));
       return;
     }
-    if (t.startsWith('<s') || t.startsWith('<strike') || t.startsWith('<del')) {
+    // Важно: не путать `<s>` с `<span ...>` (оба начинаются на "<s").
+    if (t.startsWith('<s>') ||
+        t.startsWith('<s ') ||
+        t.startsWith('<strike') ||
+        t.startsWith('<del')) {
       stack.add(top.copyWith(strike: true));
       return;
     }
@@ -192,6 +200,65 @@ class ChatHtmlComposerController extends TextEditingController {
     return children;
   }
 
+  List<InlineSpan> _buildMentionTokenSpans(String text, TextStyle? style) {
+    final base = style ?? const TextStyle();
+    final children = <InlineSpan>[];
+    final start = MentionTokenCodec.tokenStart;
+    final end = MentionTokenCodec.tokenEnd;
+    var pos = 0;
+    while (pos < text.length) {
+      final s = text.indexOf(start, pos);
+      if (s < 0) {
+        final tail = text.substring(pos);
+        if (tail.isNotEmpty) {
+          children.add(TextSpan(text: tail, style: base));
+        }
+        break;
+      }
+      if (s > pos) {
+        final chunk = text.substring(pos, s);
+        if (chunk.isNotEmpty) {
+          children.add(TextSpan(text: chunk, style: base));
+        }
+      }
+      final e = text.indexOf(end, s + start.length);
+      if (e < 0) {
+        children.add(TextSpan(text: text.substring(s), style: base));
+        break;
+      }
+      final token = text.substring(s, e + end.length);
+      final decoded = MentionTokenCodec.tryDecodeToken(token);
+      if (decoded == null) {
+        children.add(TextSpan(text: token, style: base));
+      } else {
+        final label = decoded.label.trim().isEmpty ? 'Участник' : decoded.label.trim();
+        final mentionStyle = base.copyWith(
+          color: const Color(0xFF38BDF8),
+          fontWeight: FontWeight.w700,
+        );
+        // Preserve offsets: token stays in underlying text with the same length,
+        // but is rendered as a single visible `@label`. This keeps the caret
+        // AFTER the mention (instead of "sticking" at its start).
+        var first = true;
+        for (final unit in token.runes) {
+          if (first) {
+            first = false;
+            children.add(TextSpan(text: '@$label', style: mentionStyle));
+            continue;
+          }
+          children.add(
+            TextSpan(
+              text: String.fromCharCode(unit),
+              style: base.merge(_invisibleTagStyle),
+            ),
+          );
+        }
+      }
+      pos = e + end.length;
+    }
+    return children;
+  }
+
   @override
   TextSpan buildTextSpan({
     required BuildContext context,
@@ -211,8 +278,11 @@ class ChatHtmlComposerController extends TextEditingController {
     if (t.isEmpty) {
       return TextSpan(text: '', style: style);
     }
-    if (!t.contains('<')) {
+    if (!t.contains('<') && !MentionTokenCodec.containsToken(t)) {
       return TextSpan(text: t, style: style);
+    }
+    if (!t.contains('<') && MentionTokenCodec.containsToken(t)) {
+      return TextSpan(style: style, children: _buildMentionTokenSpans(t, style));
     }
     return TextSpan(style: style, children: _buildHtmlSpans(t, style));
   }

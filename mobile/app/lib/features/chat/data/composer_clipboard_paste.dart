@@ -195,6 +195,18 @@ Future<ComposerClipboardPastePayload> readComposerClipboardPayload() async {
   for (final item in reader.items) {
     var mediaAddedFromItem = false;
 
+    // Сначала пробуем получить текст: если в буфере просто текст/URL,
+    // iOS часто кладёт ещё `plainTextFile`, который мы не должны превращать
+    // во "вложение clipboard_...".
+    if ((pastedText ?? '').trim().isEmpty) {
+      try {
+        final text = await item.readClipboardValue(Formats.plainText);
+        if (text != null && text.trim().isNotEmpty) {
+          pastedText = text;
+        }
+      } catch (_) {}
+    }
+
     try {
       final fileUri = await item.readClipboardValue(Formats.fileUri);
       if (fileUri != null && fileUri.scheme == 'file') {
@@ -222,6 +234,10 @@ Future<ComposerClipboardPastePayload> readComposerClipboardPayload() async {
             .toList(),
       );
       for (final selectedFormat in fileFormats) {
+        // Никогда не превращаем "text-as-file" в вложение.
+        if (selectedFormat == Formats.plainTextFile) {
+          continue;
+        }
         try {
           final bytes = await item.readClipboardFileBytes(selectedFormat);
           if (bytes != null && bytes.isNotEmpty) {
@@ -239,15 +255,6 @@ Future<ComposerClipboardPastePayload> readComposerClipboardPayload() async {
           }
         } catch (_) {}
       }
-    }
-
-    if ((pastedText ?? '').trim().isEmpty) {
-      try {
-        final text = await item.readClipboardValue(Formats.plainText);
-        if (text != null && text.trim().isNotEmpty) {
-          pastedText = text;
-        }
-      } catch (_) {}
     }
   }
 

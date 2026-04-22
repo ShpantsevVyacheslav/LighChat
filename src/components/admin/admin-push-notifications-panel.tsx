@@ -81,7 +81,8 @@ export function AdminPushNotificationsPanel() {
         </CardTitle>
         <CardDescription>
           FCM: сохранение в коллекцию уведомлений пользователя и рассылка на зарегистрированные устройства (токены в{' '}
-          <code className="text-xs">fcmTokens</code>).
+          <code className="text-xs">fcmTokens</code>). Рассылка с этой панели доставляется принудительно и не учитывает
+          личные настройки получателя (тишина, тихие часы, превью).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 max-w-xl">

@@ -18,6 +18,7 @@
 
 import * as React from 'react';
 import { KeyRound, Lock, QrCode, RefreshCcw } from 'lucide-react';
+import { E2eeQrPairingDialog } from '@/components/settings/E2eeQrPairingDialog';
 import { useFirestore } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -61,6 +62,9 @@ export function E2eeRecoveryPanel() {
   const [busy, setBusy] = React.useState(false);
   const [password, setPassword] = React.useState('');
   const [confirm, setConfirm] = React.useState('');
+  // Phase 9 gap #1: отдельный флаг для QR-pairing диалога. Изолирован от
+  // password-backup state, чтобы один модуль UI не мешал другому.
+  const [qrOpen, setQrOpen] = React.useState(false);
 
   const loadBackupFlag = React.useCallback(async () => {
     if (!firestore || !user?.id) return;
@@ -230,11 +234,15 @@ export function E2eeRecoveryPanel() {
               <QrCode className="h-4 w-4" /> Передача ключа по QR
             </div>
             <p className="text-sm text-muted-foreground">
-              Протокол ECDH + 6-значный код сверки реализован на обеих
-              платформах. Полноценный UI с генератором/сканером QR будет
-              добавлен отдельным апдейтом. До тех пор используйте backup
-              паролем.
+              На новом устройстве показываем QR, на старом сканируем камерой
+              (mobile) или вставляем QR-строку (web). Сверяете 6-значный код —
+              приватный ключ переносится безопасно.
             </p>
+            <div>
+              <Button onClick={() => setQrOpen(true)} variant="default">
+                Открыть QR-pairing
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -289,6 +297,7 @@ export function E2eeRecoveryPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <E2eeQrPairingDialog open={qrOpen} onOpenChange={setQrOpen} />
     </>
   );
 }

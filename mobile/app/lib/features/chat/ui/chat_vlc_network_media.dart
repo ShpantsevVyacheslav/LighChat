@@ -9,6 +9,12 @@ import 'package:lighchat_models/lighchat_models.dart';
 bool chatMediaRequiresServerNormalizationOnIos(String url, {String? mimeType}) {
   if (kIsWeb) return false;
   if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+  // E2EE v2: расшифрованные локальные файлы (file:///...) не проходят через
+  // серверный транскодинг — сервер не видит plaintext-байты. Поэтому любое
+  // "ожидание нормализации" для них бесполезно и блокирует UI. Возвращаем
+  // false, чтобы media-проигрыватели сразу пытались открыть локальный файл
+  // (webm/ogg-форматы, если попадутся, — задача UI-плеера, а не placeholder).
+  if (url.startsWith('file:')) return false;
   final path = url.split('?').first.toLowerCase();
   if (path.endsWith('.webm')) return true;
   final t = (mimeType ?? '').toLowerCase();

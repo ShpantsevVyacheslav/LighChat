@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 
 import '../ui/message_html_text.dart';
 import 'sanitize_message_html.dart';
+import 'mention_token_codec.dart';
 
 /// Редактирование HTML в композере (паритет TipTap / `FormattingToolbar.tsx`).
 class ComposerHtmlEditing {
@@ -56,17 +57,51 @@ class ComposerHtmlEditing {
   static String prepareChatMessageHtmlForSend(String raw) {
     final trimmedRight = raw.trimRight();
     if (trimmedRight.trim().isEmpty) return '';
-    final plainCheck = messageHtmlToPlainText(trimmedRight).trim();
+    final tokenExpanded = _expandMentionTokensToHtml(trimmedRight);
+    final plainCheck = messageHtmlToPlainText(tokenExpanded).trim();
     if (plainCheck.isEmpty && !trimmedRight.contains('<')) {
       return '';
     }
     final String body;
-    if (_looksLikeHtml(trimmedRight)) {
-      body = ensureOuterWrapper(trimmedRight.trim());
+    if (_looksLikeHtml(tokenExpanded)) {
+      body = ensureOuterWrapper(tokenExpanded.trim());
     } else {
-      body = plainTextToParagraphHtml(trimmedRight.trim());
+      body = plainTextToParagraphHtml(tokenExpanded.trim());
     }
     return sanitizeMessageHtml(body);
+  }
+
+  static String _expandMentionTokensToHtml(String raw) {
+    if (!MentionTokenCodec.containsToken(raw)) return raw;
+    final start = MentionTokenCodec.tokenStart;
+    final end = MentionTokenCodec.tokenEnd;
+    final out = StringBuffer();
+    var i = 0;
+    while (i < raw.length) {
+      final s = raw.indexOf(start, i);
+      if (s < 0) {
+        out.write(raw.substring(i));
+        break;
+      }
+      out.write(raw.substring(i, s));
+      final e = raw.indexOf(end, s + start.length);
+      if (e < 0) {
+        // broken token → keep as-is
+        out.write(raw.substring(s));
+        break;
+      }
+      final token = raw.substring(s, e + end.length);
+      final decoded = MentionTokenCodec.tryDecodeToken(token);
+      if (decoded == null) {
+        out.write(token);
+      } else {
+        final idEsc = escapeHtmlAttribute(decoded.userId);
+        final safeLabel = escapeHtmlText(decoded.label);
+        out.write('<span data-chat-mention="$idEsc">@$safeLabel</span>');
+      }
+      i = e + end.length;
+    }
+    return out.toString();
   }
 
   static TextEditingValue toggleInline(
@@ -137,6 +172,30 @@ class ComposerHtmlEditing {
     return TextEditingValue(
       text: nt,
       selection: TextSelection.collapsed(offset: s + frag.length),
+    );
+  }
+
+  static TextEditingValue insertGroupMention({
+    required TextEditingValue value,
+    required int atStartOffset,
+    required String userId,
+    required String label,
+  }) {
+    final text = value.text;
+    final sel = value.selection;
+    final caret = sel.baseOffset.clamp(0, text.length);
+    final start = atStartOffset.clamp(0, caret);
+    final labelTrim = label.trim();
+    final token = MentionTokenCodec.buildToken(
+      userId: userId,
+      label: labelTrim.isEmpty ? 'Участник' : labelTrim,
+    );
+    final frag = '$token ';
+    final nt = text.substring(0, start) + frag + text.substring(caret);
+    final off = start + frag.length;
+    return TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: off),
     );
   }
 

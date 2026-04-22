@@ -48,6 +48,7 @@ import {
   AUTH_GLASS_INPUT_ERROR_CLASS,
   AUTH_LABEL_CLASS,
 } from "@/components/auth/auth-glass-classes";
+import { TelegramLoginDialog } from "@/components/auth/telegram-login-dialog";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff, Loader2, AlertCircle, UserPlus } from "lucide-react";
 
@@ -56,10 +57,23 @@ const BRAND_LOGO_SRC = "/brand/lighchat-mark.png";
 /** 1:1 с файлом знака — избегаем лишнего letterbox у Next/Image на мобильных. */
 const BRAND_LOGO_SIZE = 575;
 
+const TELEGRAM_BOT_NAME =
+  typeof process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME === "string"
+    ? process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME.trim()
+    : "";
+
 const loginSchema = z.object({
   email: z.string().email({ message: "Неверный формат email." }),
   password: z.string().min(1, { message: "Пароль не может быть пустым." }),
 });
+
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </svg>
+  );
+}
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -104,6 +118,8 @@ export default function AuthPage() {
     register,
     completeGoogleProfile,
     signInWithGoogle,
+    signInWithApple,
+    signInWithTelegramPayload,
     error,
     clearError,
     isAuthenticated,
@@ -129,6 +145,7 @@ export default function AuthPage() {
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const [cropOpen, setCropOpen] = React.useState(false);
   const [cropSrc, setCropSrc] = React.useState<string | null>(null);
+  const [telegramDialogOpen, setTelegramDialogOpen] = React.useState(false);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
   const pendingAvatarFullRef = React.useRef<File | null>(null);
 
@@ -267,6 +284,28 @@ export default function AuthPage() {
     }
   };
 
+  const onAppleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      await signInWithApple();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onTelegramAuthUser = React.useCallback(
+    async (user: Record<string, unknown>) => {
+      setIsSubmitting(true);
+      try {
+        const ok = await signInWithTelegramPayload(user);
+        if (ok) setTelegramDialogOpen(false);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [signInWithTelegramPayload],
+  );
+
   const profileIncomplete =
     Boolean(isAuthenticated && user && !isRegistrationProfileComplete(user));
 
@@ -365,7 +404,7 @@ export default function AuthPage() {
           <CardContent className="relative p-4 pt-5 sm:p-5 sm:pt-6">
             {profileIncomplete ? (
               <p className="rounded-[14px] border border-white/35 bg-white/25 px-3 py-3 text-center text-sm leading-snug text-slate-700 backdrop-blur-md dark:border-white/12 dark:bg-white/[0.06] dark:text-white/85">
-                Вы вошли через Google. Заполните оставшиеся поля в открывшейся форме — без них доступ к приложению недоступен.
+                Вы вошли через Google, Apple или Telegram. Заполните оставшиеся поля в открывшейся форме — без них доступ к приложению недоступен.
               </p>
             ) : null}
             <Form {...loginForm}>
@@ -450,7 +489,7 @@ export default function AuthPage() {
               или
             </p>
 
-            <div className={cn("grid grid-cols-4 gap-2", profileIncomplete && "hidden")}>
+            <div className={cn("grid grid-cols-5 gap-1.5 sm:gap-2", profileIncomplete && "hidden")}>
               <Button
                 type="button"
                 variant="outline"
@@ -464,6 +503,16 @@ export default function AuthPage() {
               <Button
                 type="button"
                 variant="outline"
+                onClick={onAppleSignIn}
+                disabled={isSubmitting || profileIncomplete}
+                className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] text-slate-900 dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
+                title="Apple"
+              >
+                <AppleIcon className="h-[18px] w-[18px]" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
                 disabled
                 className="h-10 rounded-[12px] border-white/40 bg-white/20 opacity-50 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]"
                 title="VK (скоро)"
@@ -473,9 +522,18 @@ export default function AuthPage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled
-                className="h-10 rounded-[12px] border-white/40 bg-white/20 opacity-50 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]"
-                title="Telegram (скоро)"
+                onClick={() => setTelegramDialogOpen(true)}
+                disabled={
+                  isSubmitting ||
+                  profileIncomplete ||
+                  TELEGRAM_BOT_NAME.length === 0
+                }
+                className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10"
+                title={
+                  TELEGRAM_BOT_NAME
+                    ? "Telegram"
+                    : "Задайте NEXT_PUBLIC_TELEGRAM_BOT_NAME"
+                }
               >
                 <TelegramIcon className="h-[18px] w-[18px]" />
               </Button>
@@ -510,6 +568,13 @@ export default function AuthPage() {
           <p className="text-[8px] text-slate-500/90 dark:text-white/35">© {new Date().getFullYear()} LighChat</p>
         </div>
       </div>
+
+      <TelegramLoginDialog
+        open={telegramDialogOpen}
+        onOpenChange={setTelegramDialogOpen}
+        botName={TELEGRAM_BOT_NAME || undefined}
+        onAuthUser={onTelegramAuthUser}
+      />
 
       {/* Registration Dialog — тот же стеклянный стиль, что у карточки входа */}
       <Dialog
@@ -551,7 +616,7 @@ export default function AuthPage() {
             <DialogDescription className="text-center text-xs leading-relaxed text-slate-600 dark:text-white/55">
               {registerMode === "google" ? (
                 <>
-                  Укажите телефон и логин и при необходимости поправьте имя. Пароль не нужен — вход через Google.
+                  Укажите телефон и логин и при необходимости поправьте имя. Пароль не нужен — вход через Google, Apple или Telegram.
                   {" "}
                   <AuthBrandWordmarkTitle as="span" size="inline" className="inline font-bold" />
                 </>

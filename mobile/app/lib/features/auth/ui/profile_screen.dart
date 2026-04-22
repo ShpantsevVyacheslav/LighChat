@@ -11,6 +11,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../chat/ui/chat_cached_network_image.dart';
+import '../../chat/ui/user_avatar_fullscreen_viewer.dart';
 import 'auth_styles.dart';
 import 'auth_validators.dart';
 import 'auth_glass.dart';
@@ -48,7 +49,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _showPasswordSection = false;
   String? _error;
   AvatarResult? _avatar;
-  String? _initialAvatarUrl;
+  /// Круглое превью в списках (как `avatarThumb` на вебе).
+  String? _initialAvatarThumbUrl;
+  /// Полноразмерное фото для полноэкранного просмотра (`avatar`).
+  String? _initialAvatarFullUrl;
   _ProfileSnapshot? _initial;
 
   final _name = TextEditingController();
@@ -155,9 +159,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           : _email.text;
       _dob.text = _formatDateForDisplay(_str(data['dateOfBirth']));
       _bio.text = _str(data['bio']);
-      _initialAvatarUrl = _str(data['avatarThumb']).isNotEmpty
-          ? _str(data['avatarThumb'])
-          : (_str(data['avatar']).isNotEmpty ? _str(data['avatar']) : null);
+      final full = _str(data['avatar']);
+      final thumb = _str(data['avatarThumb']);
+      _initialAvatarFullUrl = full.isNotEmpty ? full : null;
+      _initialAvatarThumbUrl = thumb.isNotEmpty ? thumb : null;
     }
 
     _initial = _ProfileSnapshot(
@@ -272,12 +277,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
       ref.invalidate(authUserProvider);
       ref.invalidate(registrationProfileStatusProvider(u.uid));
+      final fresh = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(u.uid)
+          .get()
+          .timeout(const Duration(seconds: 12));
+      final d = fresh.data();
+      final fullAfter = d != null ? _str(d['avatar']) : '';
+      final thumbAfter = d != null ? _str(d['avatarThumb']) : '';
+      if (!mounted) return;
       setState(() {
         _editing = false;
         _showPasswordSection = false;
         _newPassword.clear();
         _confirmPassword.clear();
         _avatar = null;
+        _initialAvatarFullUrl = fullAfter.isNotEmpty ? fullAfter : null;
+        _initialAvatarThumbUrl = thumbAfter.isNotEmpty ? thumbAfter : null;
       });
       ScaffoldMessenger.of(
         context,
@@ -294,9 +310,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  String? get _avatarUrlForSmallCircle {
+    final t = _initialAvatarThumbUrl;
+    if (t != null && t.isNotEmpty) return t;
+    final f = _initialAvatarFullUrl;
+    if (f != null && f.isNotEmpty) return f;
+    return null;
+  }
+
   void _openAvatarFullscreen() {
-    final bytes = _avatar?.previewBytes;
-    final url = _initialAvatarUrl;
+    final pending = _avatar;
+    final fullUrl = _initialAvatarFullUrl?.trim();
+    final thumbUrl = _initialAvatarThumbUrl?.trim();
+
+    Uint8List? bytes;
+    String? url;
+    if (pending != null) {
+      bytes = pending.fullJpeg.isNotEmpty ? pending.fullJpeg : pending.previewBytes;
+    } else {
+      url = (fullUrl != null && fullUrl.isNotEmpty)
+          ? fullUrl
+          : (thumbUrl != null && thumbUrl.isNotEmpty ? thumbUrl : null);
+    }
+
     if (bytes == null && (url == null || url.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Нет фото профиля для просмотра.')),
@@ -306,9 +342,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     unawaited(
       Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (ctx) => _ProfileAvatarViewerPage(
-            imageUrl: bytes == null ? url : null,
+          builder: (ctx) => UserAvatarFullscreenViewer(
             imageBytes: bytes,
+            imageUrl: bytes != null ? null : url,
           ),
         ),
       ),
@@ -325,7 +361,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           enabled: enabled,
           compact: true,
           value: _avatar,
-          initialImageUrl: _initialAvatarUrl,
+          initialImageUrl: _avatarUrlForSmallCircle,
           onChanged: (v) => setState(() => _avatar = v),
         ),
       );
@@ -345,9 +381,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     width: side,
                     height: side,
                   )
-                : (_initialAvatarUrl != null && _initialAvatarUrl!.isNotEmpty)
+                : (_avatarUrlForSmallCircle != null &&
+                      _avatarUrlForSmallCircle!.isNotEmpty)
                 ? ChatCachedNetworkImage(
-                    url: _initialAvatarUrl!,
+                    url: _avatarUrlForSmallCircle!,
                     fit: BoxFit.cover,
                     width: side,
                     height: side,
@@ -377,10 +414,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (context, snapshot) {
         return Scaffold(
           backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: true,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            centerTitle: true,
+            centerTitle: false,
             leading: IconButton(
               icon: const Icon(Icons.chevron_left_rounded, size: 30),
               color: const Color(0xFFEAF2FF),
@@ -397,7 +435,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF4DA2FF),
+                color: Colors.white,
               ),
             ),
             actions: [
@@ -411,331 +449,279 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
           body: AuthBackground(
-            child: SafeArea(
-              child: snapshot.connectionState != ConnectionState.done
-                  ? const Center(child: CircularProgressIndicator())
-                  : Stack(
-                      children: [
-                        Positioned.fill(
-                          child: SingleChildScrollView(
-                            padding: EdgeInsets.fromLTRB(
-                              16,
-                              8,
-                              16,
-                              _editing ? 148 : 32,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Center(
-                                  child: _buildCenteredAvatar(
-                                    Theme.of(context),
-                                    enabled,
-                                  ),
+            child: snapshot.connectionState != ConnectionState.done
+                ? const SafeArea(child: Center(child: CircularProgressIndicator()))
+                : Stack(
+                    children: [
+                      Positioned.fill(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            16,
+                            MediaQuery.paddingOf(context).top +
+                                kToolbarHeight +
+                                8,
+                            16,
+                            _editing ? 148 : 32,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Center(
+                                child: _buildCenteredAvatar(
+                                  Theme.of(context),
+                                  enabled,
                                 ),
-                                const SizedBox(height: 28),
-                                _FieldLabel(text: 'ФИО', color: fieldLabelColor),
-                                const SizedBox(height: 10),
-                                _ProfileInput(
-                                  controller: _name,
-                                  enabled: !_busy,
-                                  readOnly: !_editing,
-                                  hintText: 'Имя',
-                                ),
-                                const SizedBox(height: 22),
-                                _FieldLabel(
-                                  text: 'Логин',
-                                  color: fieldLabelColor,
-                                ),
-                                const SizedBox(height: 10),
-                                _ProfileInput(
-                                  controller: _username,
-                                  enabled: !_busy,
-                                  readOnly: !_editing,
-                                  hintText: 'username',
-                                ),
-                                const SizedBox(height: 22),
-                                _FieldLabel(
-                                  text: 'Email',
-                                  color: fieldLabelColor,
-                                ),
-                                const SizedBox(height: 10),
-                                _ProfileInput(
-                                  controller: _email,
-                                  enabled: !_busy,
-                                  readOnly: !_editing,
-                                  keyboardType: TextInputType.emailAddress,
-                                  hintText: 'name@example.com',
-                                ),
-                                const SizedBox(height: 22),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _FieldLabel(
-                                            text: 'Телефон',
-                                            color: fieldLabelColor,
-                                          ),
-                                          const SizedBox(height: 10),
-                                          _ProfileInput(
-                                            controller: _phone,
-                                            enabled: !_busy,
-                                            readOnly: !_editing,
-                                            keyboardType: TextInputType.phone,
-                                            inputFormatters: [
-                                              PhoneRuMaskFormatter(),
-                                            ],
-                                            hintText: '+7900 000-00-00',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _FieldLabel(
-                                            text: 'Дата рождения',
-                                            color: fieldLabelColor,
-                                          ),
-                                          const SizedBox(height: 10),
-                                          _ProfileInput(
-                                            controller: _dob,
-                                            enabled: !_busy,
-                                            readOnly: !_editing,
-                                            hintText: 'DD.MM.YYYY',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 22),
-                                _FieldLabel(
-                                  text: 'О себе',
-                                  color: fieldLabelColor,
-                                ),
-                                const SizedBox(height: 10),
-                                _ProfileInput(
-                                  controller: _bio,
-                                  enabled: !_busy,
-                                  readOnly: !_editing,
-                                  hintText: 'Кратко о себе',
-                                  maxLines: 4,
-                                ),
-                                if (_editing) ...[
-                                  const SizedBox(height: 22),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: TextButton(
-                                      onPressed: enabled
-                                          ? () => setState(
-                                                () => _showPasswordSection =
-                                                    !_showPasswordSection,
-                                              )
-                                          : null,
-                                      child: Text(
-                                        _showPasswordSection
-                                            ? 'Скрыть смену пароля'
-                                            : 'Изменить пароль',
-                                        style: const TextStyle(
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF4DA2FF),
+                              ),
+                              const SizedBox(height: 28),
+                              _FieldLabel(text: 'ФИО', color: fieldLabelColor),
+                              const SizedBox(height: 10),
+                              _ProfileInput(
+                                controller: _name,
+                                enabled: !_busy,
+                                readOnly: !_editing,
+                                hintText: 'Имя',
+                              ),
+                              const SizedBox(height: 22),
+                              _FieldLabel(
+                                text: 'Логин',
+                                color: fieldLabelColor,
+                              ),
+                              const SizedBox(height: 10),
+                              _ProfileInput(
+                                controller: _username,
+                                enabled: !_busy,
+                                readOnly: !_editing,
+                                hintText: 'username',
+                              ),
+                              const SizedBox(height: 22),
+                              _FieldLabel(
+                                text: 'Email',
+                                color: fieldLabelColor,
+                              ),
+                              const SizedBox(height: 10),
+                              _ProfileInput(
+                                controller: _email,
+                                enabled: !_busy,
+                                readOnly: !_editing,
+                                keyboardType: TextInputType.emailAddress,
+                                hintText: 'name@example.com',
+                              ),
+                              const SizedBox(height: 22),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _FieldLabel(
+                                          text: 'Телефон',
+                                          color: fieldLabelColor,
                                         ),
+                                        const SizedBox(height: 10),
+                                        _ProfileInput(
+                                          controller: _phone,
+                                          enabled: !_busy,
+                                          readOnly: !_editing,
+                                          keyboardType: TextInputType.phone,
+                                          inputFormatters: [
+                                            PhoneRuMaskFormatter(),
+                                          ],
+                                          hintText: '+7900 000-00-00',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _FieldLabel(
+                                          text: 'Дата рождения',
+                                          color: fieldLabelColor,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        _ProfileInput(
+                                          controller: _dob,
+                                          enabled: !_busy,
+                                          readOnly: !_editing,
+                                          hintText: 'DD.MM.YYYY',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 22),
+                              _FieldLabel(
+                                text: 'О себе',
+                                color: fieldLabelColor,
+                              ),
+                              const SizedBox(height: 10),
+                              _ProfileInput(
+                                controller: _bio,
+                                enabled: !_busy,
+                                readOnly: !_editing,
+                                hintText: 'Кратко о себе',
+                                maxLines: 4,
+                              ),
+                              if (_editing) ...[
+                                const SizedBox(height: 22),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton(
+                                    onPressed: enabled
+                                        ? () => setState(
+                                              () => _showPasswordSection =
+                                                  !_showPasswordSection,
+                                            )
+                                        : null,
+                                    child: Text(
+                                      _showPasswordSection
+                                          ? 'Скрыть смену пароля'
+                                          : 'Изменить пароль',
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF4DA2FF),
                                       ),
                                     ),
                                   ),
-                                  if (_showPasswordSection) ...[
-                                    const SizedBox(height: 8),
-                                    _FieldLabel(
-                                      text: 'Новый пароль',
-                                      color: fieldLabelColor,
+                                ),
+                                if (_showPasswordSection) ...[
+                                  const SizedBox(height: 8),
+                                  _FieldLabel(
+                                    text: 'Новый пароль',
+                                    color: fieldLabelColor,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _PasswordField(
+                                    controller: _newPassword,
+                                    enabled: enabled,
+                                    obscure: _obscureNew,
+                                    onToggleObscure: () => setState(
+                                      () => _obscureNew = !_obscureNew,
                                     ),
-                                    const SizedBox(height: 8),
-                                    _PasswordField(
-                                      controller: _newPassword,
-                                      enabled: enabled,
-                                      obscure: _obscureNew,
-                                      onToggleObscure: () => setState(
-                                        () => _obscureNew = !_obscureNew,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _FieldLabel(
-                                      text: 'Повторите пароль',
-                                      color: fieldLabelColor,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    _PasswordField(
-                                      controller: _confirmPassword,
-                                      enabled: enabled,
-                                      obscure: _obscureConfirm,
-                                      onToggleObscure: () => setState(
-                                        () => _obscureConfirm = !_obscureConfirm,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                                if (_error != null) ...[
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    _error!,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: scheme.error,
-                                      fontWeight: FontWeight.w500,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _FieldLabel(
+                                    text: 'Повторите пароль',
+                                    color: fieldLabelColor,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _PasswordField(
+                                    controller: _confirmPassword,
+                                    enabled: enabled,
+                                    obscure: _obscureConfirm,
+                                    onToggleObscure: () => setState(
+                                      () => _obscureConfirm = !_obscureConfirm,
                                     ),
                                   ),
                                 ],
                               ],
-                            ),
+                              if (_error != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  _error!,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: scheme.error,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        if (_editing)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: SafeArea(
-                              top: false,
-                              child: Container(
-                                color: const Color(0xCC090B10),
-                                padding: const EdgeInsets.fromLTRB(
-                                  18,
-                                  10,
-                                  18,
-                                  12,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 66,
-                                        child: OutlinedButton(
-                                          onPressed: enabled
-                                              ? _resetToInitial
-                                              : null,
-                                          style: OutlinedButton.styleFrom(
-                                            side: BorderSide(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.16,
-                                              ),
-                                            ),
-                                            backgroundColor: Colors.white
-                                                .withValues(alpha: 0.04),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(22),
+                      ),
+                      if (_editing)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: SafeArea(
+                            top: false,
+                            child: Container(
+                              color: const Color(0xCC090B10),
+                              padding: const EdgeInsets.fromLTRB(
+                                18,
+                                10,
+                                18,
+                                12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 66,
+                                      child: OutlinedButton(
+                                        onPressed:
+                                            enabled ? _resetToInitial : null,
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.16,
                                             ),
                                           ),
-                                          child: Text(
-                                            'Отмена',
-                                            style: TextStyle(
-                                              fontSize: 22 * 0.72,
-                                              fontWeight: FontWeight.w700,
-                                              color: titleColor,
-                                            ),
+                                          backgroundColor: Colors.white
+                                              .withValues(alpha: 0.04),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(22),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Отмена',
+                                          style: TextStyle(
+                                            fontSize: 22 * 0.72,
+                                            fontWeight: FontWeight.w700,
+                                            color: titleColor,
                                           ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 66,
-                                        child: FilledButton(
-                                          style: authPrimaryButtonStyle(
-                                            context,
-                                          ),
-                                          onPressed: enabled ? _save : null,
-                                          child: _busy
-                                              ? const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              : Text(
-                                                  'Сохранить',
-                                                  style: TextStyle(
-                                                    fontSize: 22 * 0.72,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 66,
+                                      child: FilledButton(
+                                        style: authPrimaryButtonStyle(
+                                          context,
+                                        ),
+                                        onPressed: enabled ? _save : null,
+                                        child: _busy
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
                                                 ),
-                                        ),
+                                              )
+                                            : Text(
+                                                'Сохранить',
+                                                style: TextStyle(
+                                                  fontSize: 22 * 0.72,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                      ],
-                    ),
-            ),
+                        ),
+                    ],
+                  ),
           ),
         );
       },
-    );
-  }
-}
-
-class _ProfileAvatarViewerPage extends StatelessWidget {
-  const _ProfileAvatarViewerPage({
-    this.imageUrl,
-    this.imageBytes,
-  });
-
-  final String? imageUrl;
-  final Uint8List? imageBytes;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: InteractiveViewer(
-                minScale: 0.8,
-                maxScale: 4,
-                child: Center(
-                  child: imageBytes != null
-                      ? Image.memory(
-                          imageBytes!,
-                          fit: BoxFit.contain,
-                        )
-                      : (imageUrl != null && imageUrl!.isNotEmpty)
-                      ? ChatCachedNetworkImage(
-                          url: imageUrl!,
-                          fit: BoxFit.contain,
-                          showProgressIndicator: true,
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 4,
-              left: 4,
-              child: IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

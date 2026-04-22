@@ -1,17 +1,4 @@
-export {
-  E2EE_PROTOCOL_VERSION,
-  E2EE_DEVICE_DOC_ID,
-  E2EE_LAST_MESSAGE_PREVIEW,
-} from '@/lib/e2ee/protocol';
-export { getOrCreateDeviceIdentity } from '@/lib/e2ee/device-identity';
-export {
-  publishE2eePublicKey,
-  fetchUserE2eePublicKeySpki,
-  fetchE2eeSession,
-  createE2eeSessionDoc,
-  unwrapConversationChatKey,
-} from '@/lib/e2ee/session-firestore';
-export { encryptUtf8WithAesGcm, decryptUtf8WithAesGcm } from '@/lib/e2ee/webcrypto';
+export { E2EE_LAST_MESSAGE_PREVIEW } from '@/lib/e2ee/protocol';
 
 import type { ChatMessage } from '@/lib/types';
 
@@ -19,7 +6,6 @@ export function isChatMessageE2ee(msg: Pick<ChatMessage, 'e2ee'>): boolean {
   return !!(msg.e2ee?.ciphertext && msg.e2ee?.iv && msg.e2ee.epoch != null);
 }
 
-export { enableE2eeOnConversation, tryAutoEnableE2eeNewDirectChat } from '@/lib/e2ee/enable-conversation';
 export { disableE2eeOnConversation } from '@/lib/e2ee/disable-conversation-e2ee';
 
 // v2 multi-device (Phase 2+). Импорт через полный путь
@@ -54,11 +40,6 @@ export {
   decryptUtf8WithAesGcmV2,
   type V2MessageAadContext,
 } from '@/lib/e2ee/v2/webcrypto-v2';
-export {
-  selectWriteProtocol,
-  type E2eeProtocolFlag,
-  type E2eeWriteProtocol,
-} from '@/lib/e2ee/v2/protocol-select';
 export {
   revokeDeviceAndRekeyV2,
   renameE2eeDeviceV2,
@@ -130,9 +111,26 @@ export {
   type E2eeTelemetryPayload,
   type E2eeTelemetrySink,
 } from '@/lib/e2ee/v2/telemetry';
-// Phase 9: rollout helper (auto-enable routing по platformSettings-флагу).
+// Phase 9 rollout helper (auto-enable routing по platformSettings-флагу).
 export {
   autoEnableE2eeForNewDirectChat,
   readE2eeProtocolFlag,
   type AutoEnableRolloutOptions,
 } from '@/lib/e2ee/v2/rollout';
+// Phase 9 post-launch: self-heal session при добавлении/смене устройств.
+export {
+  diagnoseSessionCoverageV2,
+  healSessionForCurrentDevicesV2,
+  forceRotateEpochV2,
+  type HealReason,
+  type HealResult,
+} from '@/lib/e2ee/v2/heal-session';
+// Persistent-кэш расшифрованного содержимого (text + media) — IndexedDB.
+export {
+  getCachedPlaintext,
+  putCachedPlaintext,
+  getCachedMedia,
+  putCachedMedia,
+  clearAllE2eeCache,
+  clearConversationE2eeCache,
+} from '@/lib/e2ee/plaintext-cache';

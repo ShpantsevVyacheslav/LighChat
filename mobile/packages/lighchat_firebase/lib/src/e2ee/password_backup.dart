@@ -5,12 +5,14 @@
 /// зная пароль, может расшифровать резерв.
 ///
 /// KDF:
-///  - Целевой Argon2id по RFC §5.2 требует native-dep (`argon2_ffi_base`),
-///    который сейчас не установлен. Чтобы не блокировать рассыл фичи и не
-///    расходиться по форматам с web, используем **PBKDF2-SHA256 / 600 000
-///    итераций** через `pointycastle`. Совместимо с web fallback'ом.
-///  - Поддержка `argon2id` будет добавлена отдельно — код уже ветвится по
-///    `kdf.algorithm`, и оба формата сосуществуют в Firestore.
+///  - **Argon2id** реализован через `pointycastle` (`Argon2BytesGenerator`) —
+///    пакет уже есть в deps, отдельная FFI-зависимость не нужна. Параметры по
+///    умолчанию совпадают с web: 64 MiB / 3 итерации / parallelism=1.
+///  - **PBKDF2-SHA256 / 600 000 итераций** оставлен как fallback на случай,
+///    если Argon2 по какой-то причине не сработает (крайне редкий кейс), и
+///    для чтения ранее созданных PBKDF2-backup'ов. Выбор делается по
+///    `kdf.algorithm` в документе, так что старые и новые форматы
+///    сосуществуют.
 ///
 /// AAD: `lighchat/v2/backup|{userId}|{backupId}` — привязывает шифртекст к
 /// владельцу и конкретному backupId, чтобы нельзя было скопировать backup-doc
@@ -34,6 +36,17 @@ const int e2eeBackupMinPasswordLength = 10;
 const int _pbkdf2DefaultIterations = 600000;
 const int _saltBytes = 16;
 const int _ivBytes = 12;
+
+// Phase 9 gap #6: Argon2id defaults — идентичны web-ветке
+// (`src/lib/e2ee/v2/password-backup.ts`). Менять только синхронно.
+const int _argon2DefaultMemKiB = 64 * 1024;
+const int _argon2DefaultIterations = 3;
+const int _argon2DefaultParallelism = 1;
+
+/// Предпочтение KDF для *новых* backups. Существующие документы читаются по
+/// `kdf.algorithm` в самом документе — смена значения не ломает ранее
+/// созданные бэкапы.
+enum MobileBackupKdfPreference { auto, argon2id, pbkdf2 }
 
 /// Результат попытки восстановить backup. PKCS#8 — это ровно тот же формат,
 /// что хранит в себе `device_identity.dart`, так что после восстановления
@@ -115,7 +128,25 @@ Future<Uint8List> _deriveKdfKey(String password, BackupKdfParams kdf) async {
       ..init(Pbkdf2Parameters(salt, kdf.iterations, 32));
     return derivator.process(Uint8List.fromList(utf8.encode(password)));
   }
-  throw StateError('E2EE_BACKUP_ARGON2_NOT_AVAILABLE');
+  if (kdf.algorithm == 'argon2id') {
+    final salt = Uint8List.fromList(base64.decode(kdf.saltB64));
+    final passwordBytes = Uint8List.fromList(utf8.encode(password));
+    // PointyCastle: Argon2BytesGenerator с Argon2_id type.
+    final params = Argon2Parameters(
+      Argon2Parameters.ARGON2_id,
+      salt,
+      desiredKeyLength: 32,
+      version: Argon2Parameters.ARGON2_VERSION_13,
+      iterations: kdf.iterations,
+      memory: kdf.memKiB ?? _argon2DefaultMemKiB,
+      lanes: kdf.parallelism ?? _argon2DefaultParallelism,
+    );
+    final generator = Argon2BytesGenerator()..init(params);
+    final out = Uint8List(32);
+    generator.deriveKey(passwordBytes, 0, out, 0);
+    return out;
+  }
+  throw StateError('E2EE_BACKUP_KDF_UNKNOWN');
 }
 
 Uint8List _buildAad(String userId, String backupId) {
@@ -124,7 +155,17 @@ Uint8List _buildAad(String userId, String backupId) {
   );
 }
 
-BackupKdfParams _defaultKdfParams() {
+BackupKdfParams _defaultKdfParams(MobileBackupKdfPreference preference) {
+  final wantsArgon = preference == MobileBackupKdfPreference.argon2id ||
+      preference == MobileBackupKdfPreference.auto;
+  if (wantsArgon) {
+    return BackupKdfParams.argon2id(
+      saltB64: base64.encode(randomBytes(_saltBytes)),
+      iterations: _argon2DefaultIterations,
+      memKiB: _argon2DefaultMemKiB,
+      parallelism: _argon2DefaultParallelism,
+    );
+  }
   return BackupKdfParams.pbkdf2Sha256(
     saltB64: base64.encode(randomBytes(_saltBytes)),
     iterations: _pbkdf2DefaultIterations,
@@ -142,11 +183,12 @@ Future<String> createMobilePasswordBackup({
   required Uint8List privateKeyPkcs8,
   List<String>? allowedDeviceLabels,
   BackupKdfParams? kdf,
+  MobileBackupKdfPreference kdfPreference = MobileBackupKdfPreference.auto,
 }) async {
   if (password.length < e2eeBackupMinPasswordLength) {
     throw StateError('E2EE_BACKUP_PASSWORD_TOO_SHORT');
   }
-  final kdfParams = kdf ?? _defaultKdfParams();
+  final kdfParams = kdf ?? _defaultKdfParams(kdfPreference);
   final keyBytes = await _deriveKdfKey(password, kdfParams);
   final iv = randomBytes(_ivBytes);
   final aad = _buildAad(userId, backupId);

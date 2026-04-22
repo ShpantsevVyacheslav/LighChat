@@ -48,3 +48,5 @@ export 'src/e2ee/media_storage.dart';
 export 'src/e2ee/system_events.dart';
 // Phase 9 lightweight telemetry.
 export 'src/e2ee/telemetry.dart';
+// Post-launch fix: self-heal session при рассинхроне device-set ↔ wraps.
+export 'src/e2ee/heal_session.dart';

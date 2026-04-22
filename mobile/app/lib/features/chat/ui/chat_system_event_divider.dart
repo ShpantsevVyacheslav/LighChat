@@ -72,6 +72,8 @@ class ChatSystemEventDivider extends StatelessWidget {
     switch (type) {
       case ChatSystemEventType.e2eeV2Enabled:
         return Icons.lock_outline;
+      case ChatSystemEventType.e2eeV2Disabled:
+        return Icons.lock_open_outlined;
       case ChatSystemEventType.e2eeV2EpochRotated:
         return Icons.refresh;
       case ChatSystemEventType.e2eeV2DeviceAdded:
@@ -96,6 +98,8 @@ class ChatSystemEventDivider extends StatelessWidget {
     switch (event.type) {
       case ChatSystemEventType.e2eeV2Enabled:
         return 'Сквозное шифрование включено';
+      case ChatSystemEventType.e2eeV2Disabled:
+        return 'Сквозное шифрование отключено';
       case ChatSystemEventType.e2eeV2EpochRotated:
         return 'Ключ шифрования обновлён';
       case ChatSystemEventType.e2eeV2DeviceAdded:

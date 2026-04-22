@@ -697,9 +697,10 @@ class ChatMessageE2eePayload {
     required this.ivB64,
     required this.ciphertextB64,
     this.senderDeviceId,
+    this.attachmentsJson,
   });
 
-  /// Например `'v1-p256-aesgcm'` или `'v2-p256-aesgcm-multi'`.
+  /// После Phase 10 cleanup единственная поддерживаемая версия — `v2-p256-aesgcm-multi`.
   /// Не делаем enum: сервер может прислать неизвестную новую версию, её UI
   /// должен корректно отрисовать как «обновите приложение».
   final String protocolVersion;
@@ -710,8 +711,13 @@ class ChatMessageE2eePayload {
   /// `e2ee.senderDeviceId` — опционально; нужно AAD в v2 (читать из web).
   final String? senderDeviceId;
 
+  /// E2EE v2 Phase 9 (multimedia): сырой JSON-массив envelope'ов из
+  /// `message.e2ee.attachments[]`. Парсится в `MediaEnvelopeV2` уровнем выше
+  /// (runtime), чтобы модели не зависели от `lighchat_firebase`. Может быть
+  /// пустым/null для text-only сообщений.
+  final List<Map<String, Object?>>? attachmentsJson;
+
   bool get isV2 => protocolVersion == 'v2-p256-aesgcm-multi';
-  bool get isV1 => protocolVersion == 'v1-p256-aesgcm';
 
   static ChatMessageE2eePayload? fromJson(Object? raw) {
     if (raw is! Map) return null;
@@ -727,6 +733,13 @@ class ChatMessageE2eePayload {
         ? epochRaw
         : (epochRaw is num ? epochRaw.toInt() : 0);
     final senderDev = m['senderDeviceId'];
+    final attachmentsRaw = m['attachments'];
+    final attachmentsJson = attachmentsRaw is List
+        ? attachmentsRaw
+            .whereType<Map>()
+            .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+            .toList(growable: false)
+        : null;
     return ChatMessageE2eePayload(
       protocolVersion: proto,
       epoch: epoch,
@@ -734,6 +747,10 @@ class ChatMessageE2eePayload {
       ciphertextB64: ct,
       senderDeviceId:
           senderDev is String && senderDev.isNotEmpty ? senderDev : null,
+      attachmentsJson:
+          (attachmentsJson != null && attachmentsJson.isNotEmpty)
+              ? attachmentsJson
+              : null,
     );
   }
 
@@ -974,6 +991,7 @@ class ChatMessage {
 /// Зеркало `ChatSystemEvent` в `src/lib/types.ts`.
 enum ChatSystemEventType {
   e2eeV2Enabled('e2ee.v2.enabled'),
+  e2eeV2Disabled('e2ee.v2.disabled'),
   e2eeV2EpochRotated('e2ee.v2.epoch.rotated'),
   e2eeV2DeviceAdded('e2ee.v2.device.added'),
   e2eeV2DeviceRevoked('e2ee.v2.device.revoked'),

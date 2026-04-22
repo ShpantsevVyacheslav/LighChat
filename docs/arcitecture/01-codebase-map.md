@@ -61,5 +61,5 @@
   - `lib/features/chat/ui/composer_formatting_toolbar.dart`, `lib/features/chat/data/composer_html_editing.dart`, `lib/features/chat/data/sanitize_message_html.dart` - форматирование сообщений (HTML как на веб TipTap).
   - `lib/features/auth/ui/profile_screen.dart` - страница «Мой профиль» (редактирование базовых полей пользователя).
 - `mobile/packages/lighchat_models` - доменные модели/DTO и мапперы (контракты Firestore на стороне Flutter).
-- `mobile/packages/lighchat_firebase` - слой доступа к Firebase (Auth/Firestore/FCM/Functions) для Flutter-клиента; `ChatRepository.createGroupChat` + callable `checkGroupInvitesAllowed` (паритет с web).
+- `mobile/packages/lighchat_firebase` - слой доступа к Firebase (Auth/Firestore/FCM/Functions) для Flutter-клиента; `ChatRepository.createGroupChat` + callable `checkGroupInvitesAllowed` (паритет с web). На iOS вызов `checkGroupInvitesAllowed` идёт в обход плагина `cloud_functions` через `firebase_callable_http.dart` (прямой HTTPS-POST), т.к. SDK `FirebaseFunctions 12.9.0` крашит Release-сборку в `_swift_task_dealloc_specific (.cold.2)` на параллельных `async let` внутри `FunctionsContext`.
 - `mobile/packages/lighchat_ui` - дизайн-система Flutter (темы/типографика/общие виджеты).

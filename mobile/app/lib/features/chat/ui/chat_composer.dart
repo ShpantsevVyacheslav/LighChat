@@ -12,6 +12,11 @@ import 'composer_pending_attachments_strip.dart';
 import 'composer_clipboard_selection_controls.dart';
 import 'composer_reply_banner.dart';
 import 'message_html_text.dart';
+import '../data/group_mention_candidates.dart';
+import '../data/mention_editor_query.dart';
+import 'group_mention_suggestions.dart';
+import 'hold_to_record_mic_button.dart';
+import 'voice_message_record_sheet.dart';
 
 /// Shared chat composer used by both `ChatScreen` and `ThreadScreen`.
 ///
@@ -40,6 +45,8 @@ class ChatComposer extends StatefulWidget {
     this.onClipboardToolbarPaste,
     this.stickerSuggestionBuilder,
     this.e2eeDisabledBanner,
+    this.groupMentionCandidates,
+    this.onVoiceHoldRecorded,
   });
 
   final TextEditingController controller;
@@ -80,6 +87,12 @@ class ChatComposer extends StatefulWidget {
   /// могли использовать разные тексты и чтобы тесты могли подменять виджет.
   final Widget? e2eeDisabledBanner;
 
+  /// Участники группы для подсказок @. Если null/пусто — упоминания отключены.
+  final List<GroupMentionCandidate>? groupMentionCandidates;
+
+  /// Telegram-like hold-to-record: результат записи (без bottom sheet).
+  final Future<void> Function(VoiceMessageRecordResult result)? onVoiceHoldRecorded;
+
   @override
   State<ChatComposer> createState() => _ChatComposerState();
 }
@@ -88,6 +101,9 @@ class _ChatComposerState extends State<ChatComposer> {
   final GlobalKey _composerColumnKey = GlobalKey();
   OverlayEntry? _attachmentOverlayEntry;
   bool _hasTypedText = false;
+  String? _mentionQuery;
+  int? _mentionAtStartOffset;
+  List<GroupMentionCandidate> _mentionFiltered = const [];
 
   bool _computeHasTypedText() {
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
@@ -99,14 +115,124 @@ class _ChatComposerState extends State<ChatComposer> {
 
   void _onComposerTextChanged() {
     final next = _computeHasTypedText();
-    if (next == _hasTypedText) return;
-    if (mounted) setState(() => _hasTypedText = next);
+    final mentionChanged = _recomputeMentionState();
+    if (next == _hasTypedText && !mentionChanged) return;
+    if (mounted) {
+      setState(() {
+        _hasTypedText = next;
+      });
+    }
+  }
+
+  bool _recomputeMentionState() {
+    final candidates = widget.groupMentionCandidates;
+    if (candidates == null || candidates.isEmpty) {
+      final had = _mentionQuery != null;
+      _mentionQuery = null;
+      _mentionAtStartOffset = null;
+      _mentionFiltered = const [];
+      return had;
+    }
+    final v = widget.controller.value;
+    final sel = v.selection;
+    if (!sel.isValid || !sel.isCollapsed) {
+      final had = _mentionQuery != null;
+      _mentionQuery = null;
+      _mentionAtStartOffset = null;
+      _mentionFiltered = const [];
+      return had;
+    }
+    final caret = sel.baseOffset.clamp(0, v.text.length);
+    final rawBefore = v.text.substring(0, caret);
+
+    // Basic "not inside tag" check: if last '<' after last '>', assume user is typing a tag.
+    final lastLt = rawBefore.lastIndexOf('<');
+    final lastGt = rawBefore.lastIndexOf('>');
+    if (lastLt > lastGt) {
+      final had = _mentionQuery != null;
+      _mentionQuery = null;
+      _mentionAtStartOffset = null;
+      _mentionFiltered = const [];
+      return had;
+    }
+
+    // Find last '@' that starts a token (start or whitespace before).
+    var at = rawBefore.lastIndexOf('@');
+    while (at >= 0) {
+      final prev = at == 0 ? '' : rawBefore[at - 1];
+      final okPrev = at == 0 || RegExp(r'\s').hasMatch(prev);
+      if (okPrev) break;
+      at = rawBefore.lastIndexOf('@', at - 1);
+    }
+    if (at < 0) {
+      final had = _mentionQuery != null;
+      _mentionQuery = null;
+      _mentionAtStartOffset = null;
+      _mentionFiltered = const [];
+      return had;
+    }
+
+    final afterAtRaw = rawBefore.substring(at + 1);
+    if (afterAtRaw.contains(RegExp(r'[\s\n\r]'))) {
+      final had = _mentionQuery != null;
+      _mentionQuery = null;
+      _mentionAtStartOffset = null;
+      _mentionFiltered = const [];
+      return had;
+    }
+
+    final boundaryNames = buildMentionBoundaryNameList([
+      for (final c in candidates) c.name,
+      for (final c in candidates) c.username,
+    ]);
+    final query = resolveMentionQueryFromAfterAt(afterAtRaw, boundaryNames);
+    if (query == null) {
+      final had = _mentionQuery != null;
+      _mentionQuery = null;
+      _mentionAtStartOffset = null;
+      _mentionFiltered = const [];
+      return had;
+    }
+
+    final q = query.trim().toLowerCase();
+    List<GroupMentionCandidate> filtered;
+    if (q.isEmpty) {
+      filtered = candidates;
+    } else {
+      filtered = candidates.where((c) {
+        final n = c.name.toLowerCase();
+        final u = c.username.toLowerCase();
+        return n.contains(q) || u.contains(q);
+      }).toList(growable: false);
+    }
+    _mentionQuery = query;
+    _mentionAtStartOffset = at;
+    _mentionFiltered = filtered;
+    return true;
+  }
+
+  void _pickMention(GroupMentionCandidate c) {
+    final at = _mentionAtStartOffset;
+    if (at == null) return;
+    widget.controller.value = ComposerHtmlEditing.insertGroupMention(
+      value: widget.controller.value,
+      atStartOffset: at,
+      userId: c.id,
+      label: c.username.trim().isNotEmpty ? c.username.trim() : c.name.trim(),
+    );
+    widget.focusNode.requestFocus();
+    setState(() {
+      _mentionQuery = null;
+      _mentionAtStartOffset = null;
+      _mentionFiltered = const [];
+    });
   }
 
   @override
   void initState() {
     super.initState();
     _hasTypedText = _computeHasTypedText();
+    _recomputeMentionState();
     widget.controller.addListener(_onComposerTextChanged);
   }
 
@@ -121,6 +247,7 @@ class _ChatComposerState extends State<ChatComposer> {
     if (next != _hasTypedText) {
       _hasTypedText = next;
     }
+    _recomputeMentionState();
   }
 
   @override
@@ -192,7 +319,7 @@ class _ChatComposerState extends State<ChatComposer> {
         border: InputBorder.none,
         isDense: true,
         // Keep text & hint vertically centered within the 44px container.
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10),
         isCollapsed: true,
         suffixIcon: keyboardOpen
             ? IconButton(
@@ -214,7 +341,7 @@ class _ChatComposerState extends State<ChatComposer> {
             : null,
         suffixIconConstraints: const BoxConstraints(
           minWidth: 40,
-          minHeight: 44,
+          minHeight: 40,
         ),
       ),
       textInputAction: TextInputAction.newline,
@@ -279,6 +406,16 @@ class _ChatComposerState extends State<ChatComposer> {
                 !widget.showFormattingToolbar &&
                 widget.e2eeDisabledBanner == null)
               widget.stickerSuggestionBuilder!(),
+            if (_mentionQuery != null &&
+                widget.e2eeDisabledBanner == null &&
+                widget.pendingAttachments.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GroupMentionSuggestions(
+                  items: _mentionFiltered,
+                  onPick: _pickMention,
+                ),
+              ),
             if (widget.e2eeDisabledBanner != null)
               // Phase 0: если чат зашифрован — полностью заменяем input‑строку
               // баннером. Никаких кнопок микрофона/стикеров, чтобы не провоцировать
@@ -289,7 +426,7 @@ class _ChatComposerState extends State<ChatComposer> {
               children: [
                 Container(
                   width: 44,
-                  height: 44,
+                  height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white.withValues(alpha: dark ? 0.09 : 0.16),
@@ -323,15 +460,15 @@ class _ChatComposerState extends State<ChatComposer> {
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 44),
+                      constraints: const BoxConstraints(minHeight: 40),
                       child: _buildComposerTextField(keyboardOpen),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: showSendButton
@@ -363,16 +500,33 @@ class _ChatComposerState extends State<ChatComposer> {
                             ),
                           ),
                         )
-                      : IconButton(
-                          onPressed: showSendButton ? widget.onSend : widget.onMicTap,
-                          iconSize: showSendButton ? 20 : 22,
-                          icon: Icon(
-                            showSendButton ? Icons.send_rounded : Icons.mic_rounded,
-                            color: showSendButton
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.92),
-                          ),
-                        ),
+                      : (showSendButton
+                          ? IconButton(
+                              onPressed: widget.onSend,
+                              iconSize: 20,
+                              icon: const Icon(
+                                Icons.send_rounded,
+                                color: Colors.white,
+                              ),
+                            )
+                          : HoldToRecordMicButton(
+                              enabled: !widget.sendBusy &&
+                                  widget.onVoiceHoldRecorded != null,
+                              onTap: widget.onMicTap,
+                              onRecorded: (r) async {
+                                final cb = widget.onVoiceHoldRecorded;
+                                if (cb == null) return;
+                                await cb(r);
+                              },
+                              child: IconButton(
+                                onPressed: widget.onMicTap,
+                                iconSize: 22,
+                                icon: Icon(
+                                  Icons.mic_rounded,
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                ),
+                              ),
+                            )),
                 ),
               ],
             ),
