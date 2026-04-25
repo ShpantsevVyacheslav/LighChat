@@ -470,6 +470,48 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     }
   }, [activeCall?.status, activeCall?.id, currentUser.id, storageUrls]);
 
+  // Auto-timeout unanswered outgoing calls after 60s: mark as missed.
+  useEffect(() => {
+    if (!firestore || !activeCall) return;
+    if (activeCall.status !== 'calling' || activeCall.callerId !== currentUser.id) return;
+
+    const createdAtMs = Date.parse(activeCall.createdAt);
+    if (!Number.isFinite(createdAtMs)) return;
+
+    const markMissedIfNeeded = async () => {
+      if (!activeCallRef.current || activeCallRef.current.id !== activeCall.id) return true;
+      if (activeCallRef.current.status !== 'calling') return true;
+      if (Date.now() - createdAtMs < 60_000) return false;
+      try {
+        await updateDoc(doc(firestore, 'calls', activeCall.id), {
+          status: 'missed',
+          endedAt: new Date().toISOString(),
+        });
+      } catch {
+        // ignore retry noise; snapshot subscription will eventually close call.
+      }
+      return true;
+    };
+
+    let intervalId: number | null = null;
+    void markMissedIfNeeded().then((done) => {
+      if (!done) {
+        intervalId = window.setInterval(() => {
+          void markMissedIfNeeded().then((finished) => {
+            if (finished && intervalId != null) {
+              window.clearInterval(intervalId);
+              intervalId = null;
+            }
+          });
+        }, 1000);
+      }
+    });
+
+    return () => {
+      if (intervalId != null) window.clearInterval(intervalId);
+    };
+  }, [firestore, activeCall?.id, activeCall?.status, activeCall?.callerId, activeCall?.createdAt, currentUser.id]);
+
   const peerUserDocRef = useMemoFirebase(() => {
     if (!firestore || !activeCall) return null;
     const peerId =
@@ -536,12 +578,18 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
 
   // --- 7. ACTIONS ---
   const handleEndCall = () => {
-    if (activeCall) updateDoc(doc(firestore!, 'calls', activeCall.id), { status: 'ended', endedAt: new Date().toISOString() });
+    if (activeCall) {
+      const nextStatus = activeCall.status === 'ongoing' ? 'ended' : activeCall.callerId === currentUser.id ? 'missed' : 'cancelled';
+      updateDoc(doc(firestore!, 'calls', activeCall.id), { status: nextStatus, endedAt: new Date().toISOString() });
+    }
     handleCleanup();
   };
 
   const handleReject = () => {
-    if (activeCall) updateDoc(doc(firestore!, 'calls', activeCall.id), { status: 'rejected', endedAt: new Date().toISOString() });
+    if (activeCall) {
+      const nextStatus = activeCall.callerId === currentUser.id ? 'missed' : 'cancelled';
+      updateDoc(doc(firestore!, 'calls', activeCall.id), { status: nextStatus, endedAt: new Date().toISOString() });
+    }
     handleCleanup();
   };
 

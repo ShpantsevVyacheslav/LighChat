@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/chat_calls_providers.dart';
+import '../data/chat_call_status.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_shell_backdrop.dart';
 import 'chat_video_call_screen.dart';
@@ -87,7 +88,7 @@ class _ChatIncomingCallEntryScreenState
             onAction: () => context.go('/calls'),
           );
         }
-        if (call.status == 'rejected' || call.status == 'ended') {
+        if (isTerminalCallStatus(call.status)) {
           return _IncomingStateBody(
             title: 'Звонок завершён',
             subtitle: 'Этот вызов уже недоступен.',

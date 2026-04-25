@@ -68,6 +68,8 @@ Future<MessageMenuResult?> showMessageContextMenu(
   bool showStarAction = false,
   bool isStarred = false,
   String chatFontSize = 'medium',
+  Color? outgoingBubbleColor,
+  Color? incomingBubbleColor,
 }) {
   final initiatorPureEmojiSize = pureEmojiMessageFontSize(chatFontSize);
   return showGeneralDialog<MessageMenuResult>(
@@ -86,15 +88,18 @@ Future<MessageMenuResult?> showMessageContextMenu(
         showStarAction: showStarAction,
         isStarred: isStarred,
         initiatorPureEmojiSize: initiatorPureEmojiSize,
+        outgoingBubbleColor: outgoingBubbleColor,
+        incomingBubbleColor: incomingBubbleColor,
       );
     },
     transitionBuilder: (ctx, anim, secAnim, child) {
       return FadeTransition(
         opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
         child: ScaleTransition(
-          scale: Tween<double>(begin: 0.96, end: 1).animate(
-            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-          ),
+          scale: Tween<double>(
+            begin: 0.96,
+            end: 1,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
           child: child,
         ),
       );
@@ -112,6 +117,8 @@ class _MessageContextMenuPage extends StatelessWidget {
     required this.showStarAction,
     required this.isStarred,
     required this.initiatorPureEmojiSize,
+    this.outgoingBubbleColor,
+    this.incomingBubbleColor,
   });
 
   final ChatMessage message;
@@ -122,6 +129,8 @@ class _MessageContextMenuPage extends StatelessWidget {
   final bool showStarAction;
   final bool isStarred;
   final double initiatorPureEmojiSize;
+  final Color? outgoingBubbleColor;
+  final Color? incomingBubbleColor;
 
   void _pop(BuildContext context, MessageMenuResult r) {
     Navigator.of(context).pop(r);
@@ -164,6 +173,8 @@ class _MessageContextMenuPage extends StatelessWidget {
                         message: message,
                         isCurrentUser: isCurrentUser,
                         menuPureEmojiFontSize: initiatorPureEmojiSize,
+                        outgoingBubbleColor: outgoingBubbleColor,
+                        incomingBubbleColor: incomingBubbleColor,
                       ),
                       const SizedBox(height: 10),
                       ClipRRect(
@@ -175,7 +186,9 @@ class _MessageContextMenuPage extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.10),
                               borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12),
+                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.35),
@@ -194,69 +207,129 @@ class _MessageContextMenuPage extends StatelessWidget {
                                 _ReactionStrip(
                                   onPick: (emoji) => _pop(
                                     context,
-                                    MessageMenuResult(MessageMenuActionType.react, emoji: emoji),
+                                    MessageMenuResult(
+                                      MessageMenuActionType.react,
+                                      emoji: emoji,
+                                    ),
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.fromLTRB(4, 2, 4, 8),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    4,
+                                    2,
+                                    4,
+                                    8,
+                                  ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       _MenuTile(
                                         icon: Icons.reply_rounded,
                                         label: 'Ответить',
-                                        onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.reply)),
+                                        onTap: () => _pop(
+                                          context,
+                                          const MessageMenuResult(
+                                            MessageMenuActionType.reply,
+                                          ),
+                                        ),
                                       ),
                                       _MenuTile(
                                         icon: Icons.chat_bubble_outline_rounded,
                                         label: 'Обсудить',
-                                        onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.thread)),
+                                        onTap: () => _pop(
+                                          context,
+                                          const MessageMenuResult(
+                                            MessageMenuActionType.thread,
+                                          ),
+                                        ),
                                       ),
                                       if (hasText)
                                         _MenuTile(
                                           icon: Icons.copy_rounded,
                                           label: 'Копировать',
-                                          onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.copy)),
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.copy,
+                                            ),
+                                          ),
                                         ),
                                       if (canEdit)
                                         _MenuTile(
                                           icon: Icons.edit_rounded,
                                           label: 'Изменить',
-                                          onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.edit)),
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.edit,
+                                            ),
+                                          ),
                                         ),
                                       _MenuTile(
                                         icon: Icons.push_pin_outlined,
                                         label: 'Закрепить',
-                                        onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.pin)),
+                                        onTap: () => _pop(
+                                          context,
+                                          const MessageMenuResult(
+                                            MessageMenuActionType.pin,
+                                          ),
+                                        ),
                                       ),
                                       if (showStarAction)
                                         _MenuTile(
-                                          icon: isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
-                                          label: isStarred ? 'Убрать из избранного' : 'Добавить в избранное',
-                                          onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.star)),
+                                          icon: isStarred
+                                              ? Icons.star_rounded
+                                              : Icons.star_outline_rounded,
+                                          label: isStarred
+                                              ? 'Убрать из избранного'
+                                              : 'Добавить в избранное',
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.star,
+                                            ),
+                                          ),
                                         ),
                                       _MenuTile(
                                         icon: Icons.forward_rounded,
                                         label: 'Переслать',
-                                        onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.forward)),
+                                        onTap: () => _pop(
+                                          context,
+                                          const MessageMenuResult(
+                                            MessageMenuActionType.forward,
+                                          ),
+                                        ),
                                       ),
                                       _MenuTile(
                                         icon: Icons.check_box_outlined,
                                         label: 'Выбрать',
-                                        onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.select)),
+                                        onTap: () => _pop(
+                                          context,
+                                          const MessageMenuResult(
+                                            MessageMenuActionType.select,
+                                          ),
+                                        ),
                                       ),
                                       if (isCurrentUser && canDelete) ...[
                                         Divider(
                                           height: 16,
                                           thickness: 1,
-                                          color: Colors.white.withValues(alpha: 0.10),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.10,
+                                          ),
                                         ),
                                         _MenuTile(
                                           icon: Icons.delete_outline_rounded,
                                           label: 'Удалить',
                                           danger: true,
-                                          onTap: () => _pop(context, const MessageMenuResult(MessageMenuActionType.delete)),
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.delete,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -285,11 +358,15 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
     required this.message,
     required this.isCurrentUser,
     required this.menuPureEmojiFontSize,
+    this.outgoingBubbleColor,
+    this.incomingBubbleColor,
   });
 
   final ChatMessage message;
   final bool isCurrentUser;
   final double menuPureEmojiFontSize;
+  final Color? outgoingBubbleColor;
+  final Color? incomingBubbleColor;
 
   @override
   Widget build(BuildContext context) {
@@ -327,6 +404,8 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
         scheme: scheme,
         isCurrentUser: isCurrentUser,
         summary: 'Опрос',
+        outgoingBubbleColor: outgoingBubbleColor,
+        incomingBubbleColor: incomingBubbleColor,
       );
     }
     if (message.locationShare != null && message.attachments.isEmpty) {
@@ -334,6 +413,8 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
         scheme: scheme,
         isCurrentUser: isCurrentUser,
         summary: 'Геолокация',
+        outgoingBubbleColor: outgoingBubbleColor,
+        incomingBubbleColor: incomingBubbleColor,
       );
     }
 
@@ -385,6 +466,8 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
                   scheme: scheme,
                   isCurrentUser: isCurrentUser,
                   summary: plain.trim(),
+                  outgoingBubbleColor: outgoingBubbleColor,
+                  incomingBubbleColor: incomingBubbleColor,
                 ),
               ],
             ],
@@ -399,6 +482,8 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
         isCurrentUser: isCurrentUser,
         summary: plain.trim(),
         maxLines: 5,
+        outgoingBubbleColor: outgoingBubbleColor,
+        incomingBubbleColor: incomingBubbleColor,
       );
     }
 
@@ -406,6 +491,8 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
       scheme: scheme,
       isCurrentUser: isCurrentUser,
       summary: 'Сообщение',
+      outgoingBubbleColor: outgoingBubbleColor,
+      incomingBubbleColor: incomingBubbleColor,
     );
   }
 }
@@ -416,24 +503,31 @@ class _ContextMenuTextSummaryBubble extends StatelessWidget {
     required this.isCurrentUser,
     required this.summary,
     this.maxLines = 5,
+    this.outgoingBubbleColor,
+    this.incomingBubbleColor,
   });
 
   final ColorScheme scheme;
   final bool isCurrentUser;
   final String summary;
   final int maxLines;
+  final Color? outgoingBubbleColor;
+  final Color? incomingBubbleColor;
 
   @override
   Widget build(BuildContext context) {
+    final incomingDefault = scheme.brightness == Brightness.dark
+        ? const Color(0xFF2A2D34).withValues(alpha: 0.92)
+        : Colors.white;
     final bubbleBg = isCurrentUser
-        ? scheme.primary.withValues(
-            alpha: scheme.brightness == Brightness.dark ? 0.50 : 0.32,
-          )
-        : Colors.white.withValues(
-            alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.24,
-          );
-    final fg = isCurrentUser ? scheme.onPrimary : scheme.onSurface;
-    final borderColor = (isCurrentUser ? scheme.primary : Colors.white).withValues(alpha: 0.28);
+        ? (outgoingBubbleColor ?? const Color(0xFF2A79FF))
+        : (incomingBubbleColor ?? incomingDefault);
+    final fg = bubbleBg.computeLuminance() > 0.64
+        ? Colors.black.withValues(alpha: 0.86)
+        : Colors.white.withValues(alpha: 0.95);
+    final borderColor = isCurrentUser
+        ? bubbleBg.withValues(alpha: 0.86)
+        : Colors.white.withValues(alpha: 0.24);
 
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -482,7 +576,10 @@ class _MenuReplyQuote extends StatelessWidget {
         color: Colors.white.withValues(alpha: 0.08),
         border: Border(
           bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-          left: BorderSide(color: scheme.primary.withValues(alpha: 0.55), width: 3),
+          left: BorderSide(
+            color: scheme.primary.withValues(alpha: 0.55),
+            width: 3,
+          ),
         ),
       ),
       child: Column(
@@ -599,9 +696,7 @@ class _MenuHeader extends StatelessWidget {
 }
 
 class _ReactionStrip extends StatelessWidget {
-  const _ReactionStrip({
-    required this.onPick,
-  });
+  const _ReactionStrip({required this.onPick});
 
   final void Function(String emoji) onPick;
 
@@ -661,7 +756,9 @@ class _MenuTile extends StatelessWidget {
     final fg = danger
         ? const Color(0xFFF87171)
         : Colors.white.withValues(alpha: 0.92);
-    final iconFg = danger ? const Color(0xFFF87171) : Colors.white.withValues(alpha: 0.62);
+    final iconFg = danger
+        ? const Color(0xFFF87171)
+        : Colors.white.withValues(alpha: 0.62);
 
     return Material(
       color: Colors.transparent,

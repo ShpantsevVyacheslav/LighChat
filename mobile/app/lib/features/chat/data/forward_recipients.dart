@@ -1,6 +1,8 @@
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'contact_display_name.dart';
 import 'saved_messages_chat.dart';
+import 'user_contacts_repository.dart';
 import 'user_profile.dart';
 
 const String kContactSelectionPrefix = 'contact:';
@@ -64,6 +66,8 @@ List<ForwardRecipientRow> buildForwardRecipientRows({
   required List<ConversationWithId> convs,
   required Set<String> allowedPeerIds,
   required Map<String, UserProfile> profiles,
+  Map<String, ContactLocalProfile> contactProfiles =
+      const <String, ContactLocalProfile>{},
 }) {
   final dmByPeer = <String, ConversationWithId>{};
   final groups = <ConversationWithId>[];
@@ -121,7 +125,12 @@ List<ForwardRecipientRow> buildForwardRecipientRows({
     final otherId = entry.key;
     final prof = profiles[otherId];
     final pin = data.participantInfo?[otherId];
-    final name = prof?.name ?? pin?.name ?? 'Неизвестный';
+    final fallbackName = prof?.name ?? pin?.name ?? 'Неизвестный';
+    final name = resolveContactDisplayName(
+      contactProfiles: contactProfiles,
+      contactUserId: otherId,
+      fallbackName: fallbackName,
+    );
     final avatar =
         prof?.avatarThumb ?? prof?.avatar ?? pin?.avatarThumb ?? pin?.avatar;
     final username = (prof?.username ?? '').trim().isEmpty
@@ -146,10 +155,15 @@ List<ForwardRecipientRow> buildForwardRecipientRows({
     if (dmPeers.contains(cid)) continue;
     final u = profiles[cid];
     if (u == null) continue;
+    final displayName = resolveContactDisplayName(
+      contactProfiles: contactProfiles,
+      contactUserId: cid,
+      fallbackName: u.name,
+    );
     rows.add(
       ForwardRecipientRow(
         selectionKey: contactSelectionKey(cid),
-        displayName: u.name,
+        displayName: displayName,
         avatarUrl: u.avatarThumb ?? u.avatar,
         subtitle: _subtitleWithUsernameOnly(u.username),
         username: (u.username ?? '').trim().isEmpty ? null : u.username,

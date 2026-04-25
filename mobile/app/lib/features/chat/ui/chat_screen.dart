@@ -21,7 +21,6 @@ import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_runtime.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/composer_html_editing.dart';
-import '../data/sanitize_message_html.dart';
 import '../data/chat_attachment_upload.dart';
 import '../data/chat_location_share_factory.dart';
 import '../data/partner_presence_line.dart';
@@ -464,6 +463,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   bool _isIncomingUnreadForViewer(ChatMessage m, String viewerId) {
+    // System timeline markers (E2EE state changes etc.) are informational and
+    // must not appear as unread messages.
+    if (m.senderId == '__system__' || m.systemEvent != null) return false;
     if (m.senderId == viewerId) return false;
     return m.readAt == null;
   }
@@ -1462,6 +1464,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                 profile,
                                                                 fontSize:
                                                                     fontSize,
+                                                                outgoingBubbleColor:
+                                                                    bubbleColor,
+                                                                incomingBubbleColor:
+                                                                    incomingBubbleColor,
                                                                 starredMessageIds:
                                                                     starredIdsAsync
                                                                         .value ??
@@ -1964,7 +1970,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                           String,
                                                           Object?
                                                         >{
-                                                          'status': 'rejected',
+                                                          'status': 'cancelled',
                                                           'endedAt': DateTime.now()
                                                               .toUtc()
                                                               .toIso8601String(),
@@ -2501,10 +2507,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (preview.length > 140) {
       preview = '${preview.substring(0, 140)}…';
     }
+    // В инпут кладём plain-текст, чтобы пользователь не видел системные HTML-теги
+    // (`<p>`, `</p>`, `<br>`) при обычном редактировании/удалении символов.
     final raw = (m.text ?? '').trim();
-    final forEdit = raw.isEmpty
-        ? ''
-        : (raw.contains('<') ? sanitizeMessageHtml(raw) : raw);
+    final forEdit = raw.isEmpty ? '' : messageHtmlToPlainText(raw);
     setState(() {
       _editingMessageId = m.id;
       _editingPreviewPlain = preview;
@@ -2578,6 +2584,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     String? otherId,
     UserProfile? profile, {
     required String fontSize,
+    required Color? outgoingBubbleColor,
+    required Color? incomingBubbleColor,
     required Set<String> starredMessageIds,
   }) async {
     final isMine = m.senderId == user.uid;
@@ -2601,6 +2609,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       showStarAction: !m.isDeleted,
       isStarred: starredMessageIds.contains(m.id),
       chatFontSize: fontSize,
+      outgoingBubbleColor: outgoingBubbleColor,
+      incomingBubbleColor: incomingBubbleColor,
     );
     if (!mounted ||
         result == null ||

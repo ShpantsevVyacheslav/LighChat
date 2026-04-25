@@ -15,6 +15,10 @@ import { doc } from 'firebase/firestore';
 import { cn, formatDuration } from '@/lib/utils';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
+import {
+  callOutcomeLabel,
+  resolveCallOutcomeForViewer,
+} from '@/lib/call-status';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +39,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { initiateCall } from '@/components/chat/AudioCallOverlay';
 import { useToast } from '@/hooks/use-toast';
 /**
- * История звонков (завершённые и отклонённые). Доступ с нижней навигации «Звонки».
+ * История звонков (завершённые/отменённые/пропущенные). Доступ с нижней навигации «Звонки».
  */
 export function CallsHistoryPage() {
   const { user: currentUser } = useAuth();
@@ -79,7 +83,13 @@ export function CallsHistoryPage() {
   const calls = useMemo(() => {
     if (!rawCalls) return [];
     return [...rawCalls]
-      .filter((call) => call.status === 'ended' || call.status === 'rejected')
+      .filter(
+        (call) =>
+          call.status === 'ended' ||
+          call.status === 'cancelled' ||
+          call.status === 'missed' ||
+          call.status === 'rejected'
+      )
       .sort((a, b) => parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime());
   }, [rawCalls]);
 
@@ -174,8 +184,9 @@ export function CallsHistoryPage() {
               const displayName =
                 foundUser?.name || (isOutgoing ? call.receiverName : call.callerName) || 'Неизвестный';
               const avatar = userAvatarListUrl(foundUser);
-              const isRejected = call.status === 'rejected';
-              const isMissed = !isOutgoing && isRejected;
+              const outcome = resolveCallOutcomeForViewer(call, authUid ?? '');
+              const isMissed = outcome === 'missed';
+              const isCancelled = outcome === 'cancelled';
 
               return (
                     <div
@@ -195,19 +206,38 @@ export function CallsHistoryPage() {
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                             {isOutgoing ? (
                               <ArrowUpRight
-                                className={cn('h-3 w-3', isRejected ? 'text-destructive' : 'text-blue-500')}
+                                className={cn(
+                                  'h-3 w-3',
+                                  isMissed
+                                    ? 'text-destructive'
+                                    : isCancelled
+                                    ? 'text-muted-foreground'
+                                    : 'text-blue-500'
+                                )}
                               />
                             ) : (
                               <ArrowDownLeft
-                                className={cn('h-3 w-3', isMissed ? 'text-destructive' : 'text-green-500')}
+                                className={cn(
+                                  'h-3 w-3',
+                                  isMissed
+                                    ? 'text-destructive'
+                                    : isCancelled
+                                    ? 'text-muted-foreground'
+                                    : 'text-green-500'
+                                )}
                               />
                             )}
                             <span>{formatCallDate(call.createdAt)}</span>
                             <Separator orientation="vertical" className="mx-1 h-2" />
                             {call.isVideo ? <Video className="h-2.5 w-2.5" /> : <Phone className="h-2.5 w-2.5" />}
-                            {isRejected && (
-                              <span className="ml-1 font-medium text-destructive">
-                                {isOutgoing ? 'Отклонен' : 'Пропущен'}
+                            {(isMissed || isCancelled) && (
+                              <span
+                                className={cn(
+                                  'ml-1 font-medium',
+                                  isMissed ? 'text-destructive' : 'text-muted-foreground'
+                                )}
+                              >
+                                {callOutcomeLabel(outcome)}
                               </span>
                             )}
                           </div>
@@ -250,8 +280,13 @@ export function CallsHistoryPage() {
             <DialogTitle>Сведения о звонке</DialogTitle>
             <DialogDescription>Детальная статистика вызова</DialogDescription>
           </DialogHeader>
-          {selectedCall && authUid && callDetailsPeer && (
-            <div className="space-y-6 py-4">
+          {selectedCall && authUid && callDetailsPeer &&
+            (() => {
+              const outcome = resolveCallOutcomeForViewer(selectedCall, authUid);
+              const isMissed = outcome === 'missed';
+              const isCancelled = outcome === 'cancelled';
+              return (
+                <div className="space-y-6 py-4">
               <div className="flex flex-col items-center gap-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage
@@ -275,14 +310,10 @@ export function CallsHistoryPage() {
                     <span
                       className={cn(
                         'inline-flex rounded-full px-2 py-0.5 text-xs text-white',
-                        selectedCall.status === 'rejected' ? 'bg-destructive' : 'bg-green-500'
+                        isMissed ? 'bg-destructive' : isCancelled ? 'bg-muted-foreground' : 'bg-green-500'
                       )}
                     >
-                      {selectedCall.status === 'rejected'
-                        ? selectedCall.callerId === authUid
-                          ? 'Отклонен'
-                          : 'Пропущен'
-                        : 'Завершен'}
+                      {callOutcomeLabel(outcome)}
                     </span>
                   </div>
                 </div>
@@ -334,8 +365,10 @@ export function CallsHistoryPage() {
                   <Video className="mr-2 h-4 w-4" /> Видео
                 </Button>
               </div>
-            </div>
-          )}
+                </div>
+              );
+            })()}
+          
         </DialogContent>
       </Dialog>
     </div>

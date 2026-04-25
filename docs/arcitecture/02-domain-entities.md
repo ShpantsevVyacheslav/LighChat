@@ -21,7 +21,7 @@
 
 ## Звонки и встречи
 
-- `Call` - 1:1 звонок (caller/receiver, статус, offer/answer, timestamps).
+- `Call` - 1:1 звонок (caller/receiver, offer/answer, timestamps). Статусы: `calling` (дозвон), `ongoing` (активный), `ended` (завершён после активной фазы), `cancelled` (отменён/отклонён до соединения), `missed` (непринятый; авто-таймаут 60с или отмена инициатором во время дозвона), `rejected` (legacy-значение для старых документов).
 - `Meeting` - встреча (host/adminIds/status/privacy).
 - `MeetingSignal` - signaling payload для WebRTC во встрече.
 - `MeetingMessage` - чат-сообщение встречи.

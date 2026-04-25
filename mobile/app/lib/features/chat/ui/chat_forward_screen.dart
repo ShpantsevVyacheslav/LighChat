@@ -13,9 +13,8 @@ import '../data/e2ee_auto_enable_helper.dart';
 import '../data/forward_recipients.dart';
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
-import 'forward_message_preview.dart';
 
-/// Как web [ChatForwardSheet]: предпросмотр, только контакты + группы, без «Избранного».
+/// Экран пересылки: только контакты + группы, без «Избранного».
 class ChatForwardScreen extends ConsumerStatefulWidget {
   const ChatForwardScreen({super.key, required this.messages});
 
@@ -117,6 +116,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                             convs: convs,
                             allowedPeerIds: allowedPeers,
                             profiles: profiles,
+                            contactProfiles: contacts.contactProfiles,
                           );
                           final q = _search.text.trim().toLowerCase();
                           var filtered = rows;
@@ -139,80 +139,50 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 _topBar(),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 12),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                   ),
                                   child: _glassPanel(
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        12,
-                                        10,
-                                        12,
-                                        10,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Сообщений: ${widget.messages.length}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.white.withValues(
-                                                alpha: 0.90,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                              maxHeight: 180,
-                                            ),
-                                            child: SingleChildScrollView(
-                                              child: ForwardMessagePreview(
-                                                messages: widget.messages,
-                                                profilesById: profiles,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  child: _glassPanel(
-                                    child: TextField(
-                                      controller: _search,
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.96,
-                                        ),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      decoration: InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.search_rounded,
+                                    child: SizedBox(
+                                      height: 52,
+                                      child: TextField(
+                                        controller: _search,
+                                        textAlignVertical:
+                                            TextAlignVertical.center,
+                                        minLines: 1,
+                                        maxLines: 1,
+                                        style: TextStyle(
                                           color: Colors.white.withValues(
-                                            alpha: 0.78,
+                                            alpha: 0.96,
                                           ),
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.2,
                                         ),
-                                        hintText: 'Поиск контактов и чатов…',
-                                        hintStyle: TextStyle(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.55,
+                                        decoration: InputDecoration(
+                                          prefixIcon: Icon(
+                                            Icons.search_rounded,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.78,
+                                            ),
                                           ),
+                                          hintText: 'Поиск контактов…',
+                                          hintStyle: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.55,
+                                            ),
+                                            height: 1.2,
+                                          ),
+                                          isDense: false,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                vertical: 14,
+                                              ),
+                                          border: InputBorder.none,
                                         ),
-                                        border: InputBorder.none,
+                                        onChanged: (_) => setState(() {}),
                                       ),
-                                      onChanged: (_) => setState(() {}),
                                     ),
                                   ),
                                 ),
@@ -282,45 +252,85 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                     ),
                                     child: SizedBox(
                                       width: double.infinity,
-                                      child: FilledButton.icon(
-                                        onPressed:
-                                            _busy || _selectedKeys.isEmpty
-                                            ? null
-                                            : () => _send(
-                                                uid,
-                                                profiles,
-                                                rows
-                                                    .map((r) => r.selectionKey)
-                                                    .toSet(),
-                                              ),
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: Colors.white
-                                              .withValues(alpha: 0.20),
-                                          disabledBackgroundColor: Colors.white
-                                              .withValues(alpha: 0.08),
-                                          foregroundColor: Colors.white
-                                              .withValues(alpha: 0.94),
-                                          disabledForegroundColor: Colors.white
-                                              .withValues(alpha: 0.45),
-                                        ),
-                                        icon: _busy
-                                            ? SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Colors.white
-                                                          .withValues(
-                                                            alpha: 0.95,
-                                                          ),
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors:
+                                                _busy || _selectedKeys.isEmpty
+                                                ? [
+                                                    Colors.white.withValues(
+                                                      alpha: 0.18,
                                                     ),
-                                              )
-                                            : const Icon(Icons.send_rounded),
-                                        label: Text(
-                                          _selectedKeys.isEmpty
-                                              ? 'Выберите получателей'
-                                              : 'Отправить в ${_selectedKeys.length} чат(ов)',
+                                                    Colors.white.withValues(
+                                                      alpha: 0.18,
+                                                    ),
+                                                  ]
+                                                : const [
+                                                    Color(0xFF2E86FF),
+                                                    Color(0xFF5F90FF),
+                                                    Color(0xFF9A18FF),
+                                                  ],
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                        ),
+                                        child: SizedBox(
+                                          height: 46,
+                                          child: TextButton(
+                                            onPressed:
+                                                _busy || _selectedKeys.isEmpty
+                                                ? null
+                                                : () => _send(
+                                                    uid,
+                                                    profiles,
+                                                    rows
+                                                        .map(
+                                                          (r) => r.selectionKey,
+                                                        )
+                                                        .toSet(),
+                                                  ),
+                                            style: TextButton.styleFrom(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(18),
+                                              ),
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: _busy
+                                                ? const SizedBox(
+                                                    width: 18,
+                                                    height: 18,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: Colors.white,
+                                                        ),
+                                                  )
+                                                : Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(
+                                                        Icons.send_rounded,
+                                                        size: 18,
+                                                      ),
+                                                      const SizedBox(width: 7),
+                                                      Text(
+                                                        _selectedKeys.isEmpty
+                                                            ? 'Выберите получателей'
+                                                            : 'Отправить',
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                          ),
                                         ),
                                       ),
                                     ),

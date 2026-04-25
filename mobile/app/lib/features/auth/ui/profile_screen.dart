@@ -12,7 +12,6 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../chat/ui/chat_cached_network_image.dart';
 import '../../chat/ui/user_avatar_fullscreen_viewer.dart';
-import 'auth_styles.dart';
 import 'auth_validators.dart';
 import 'auth_glass.dart';
 import 'avatar_picker_cropper.dart';
@@ -49,8 +48,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _showPasswordSection = false;
   String? _error;
   AvatarResult? _avatar;
+
   /// Круглое превью в списках (как `avatarThumb` на вебе).
   String? _initialAvatarThumbUrl;
+
   /// Полноразмерное фото для полноэкранного просмотра (`avatar`).
   String? _initialAvatarFullUrl;
   _ProfileSnapshot? _initial;
@@ -243,7 +244,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _error = null;
     });
     try {
-      final changePwd = _showPasswordSection &&
+      final changePwd =
+          _showPasswordSection &&
           _newPassword.text.isNotEmpty &&
           _confirmPassword.text.isNotEmpty;
       if (changePwd) {
@@ -326,7 +328,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     Uint8List? bytes;
     String? url;
     if (pending != null) {
-      bytes = pending.fullJpeg.isNotEmpty ? pending.fullJpeg : pending.previewBytes;
+      bytes = pending.fullJpeg.isNotEmpty
+          ? pending.fullJpeg
+          : pending.previewBytes;
     } else {
       url = (fullUrl != null && fullUrl.isNotEmpty)
           ? fullUrl
@@ -388,7 +392,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     fit: BoxFit.cover,
                     width: side,
                     height: side,
-                    showProgressIndicator: true,
+                    showProgressIndicator: false,
                   )
                 : Icon(
                     Icons.person_outline_rounded,
@@ -419,16 +423,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             centerTitle: false,
-            leading: IconButton(
-              icon: const Icon(Icons.chevron_left_rounded, size: 30),
-              color: const Color(0xFFEAF2FF),
-              onPressed: () {
-                if (context.canPop()) {
-                  Navigator.of(context).pop();
-                } else {
-                  context.go('/account');
-                }
-              },
+            leadingWidth: 68,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Material(
+                color: Colors.white.withValues(alpha: 0.08),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    if (context.canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/account');
+                    }
+                  },
+                  child: const SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      size: 30,
+                      color: Color(0xFFEAF2FF),
+                    ),
+                  ),
+                ),
+              ),
             ),
             title: const Text(
               'Профиль',
@@ -450,274 +470,267 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           body: AuthBackground(
             child: snapshot.connectionState != ConnectionState.done
-                ? const SafeArea(child: Center(child: CircularProgressIndicator()))
-                : Stack(
-                    children: [
-                      Positioned.fill(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(
-                            16,
-                            MediaQuery.paddingOf(context).top +
-                                kToolbarHeight +
-                                8,
-                            16,
-                            _editing ? 148 : 32,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Center(
-                                child: _buildCenteredAvatar(
-                                  Theme.of(context),
-                                  enabled,
-                                ),
-                              ),
-                              const SizedBox(height: 28),
-                              _FieldLabel(text: 'ФИО', color: fieldLabelColor),
-                              const SizedBox(height: 10),
-                              _ProfileInput(
-                                controller: _name,
-                                enabled: !_busy,
-                                readOnly: !_editing,
-                                hintText: 'Имя',
-                              ),
-                              const SizedBox(height: 22),
-                              _FieldLabel(
-                                text: 'Логин',
-                                color: fieldLabelColor,
-                              ),
-                              const SizedBox(height: 10),
-                              _ProfileInput(
-                                controller: _username,
-                                enabled: !_busy,
-                                readOnly: !_editing,
-                                hintText: 'username',
-                              ),
-                              const SizedBox(height: 22),
-                              _FieldLabel(
-                                text: 'Email',
-                                color: fieldLabelColor,
-                              ),
-                              const SizedBox(height: 10),
-                              _ProfileInput(
-                                controller: _email,
-                                enabled: !_busy,
-                                readOnly: !_editing,
-                                keyboardType: TextInputType.emailAddress,
-                                hintText: 'name@example.com',
-                              ),
-                              const SizedBox(height: 22),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        _FieldLabel(
-                                          text: 'Телефон',
-                                          color: fieldLabelColor,
-                                        ),
-                                        const SizedBox(height: 10),
-                                        _ProfileInput(
-                                          controller: _phone,
-                                          enabled: !_busy,
-                                          readOnly: !_editing,
-                                          keyboardType: TextInputType.phone,
-                                          inputFormatters: [
-                                            PhoneRuMaskFormatter(),
-                                          ],
-                                          hintText: '+7900 000-00-00',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        _FieldLabel(
-                                          text: 'Дата рождения',
-                                          color: fieldLabelColor,
-                                        ),
-                                        const SizedBox(height: 10),
-                                        _ProfileInput(
-                                          controller: _dob,
-                                          enabled: !_busy,
-                                          readOnly: !_editing,
-                                          hintText: 'DD.MM.YYYY',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 22),
-                              _FieldLabel(
-                                text: 'О себе',
-                                color: fieldLabelColor,
-                              ),
-                              const SizedBox(height: 10),
-                              _ProfileInput(
-                                controller: _bio,
-                                enabled: !_busy,
-                                readOnly: !_editing,
-                                hintText: 'Кратко о себе',
-                                maxLines: 4,
-                              ),
-                              if (_editing) ...[
-                                const SizedBox(height: 22),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: TextButton(
-                                    onPressed: enabled
-                                        ? () => setState(
-                                              () => _showPasswordSection =
-                                                  !_showPasswordSection,
-                                            )
-                                        : null,
-                                    child: Text(
-                                      _showPasswordSection
-                                          ? 'Скрыть смену пароля'
-                                          : 'Изменить пароль',
-                                      style: const TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF4DA2FF),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (_showPasswordSection) ...[
-                                  const SizedBox(height: 8),
-                                  _FieldLabel(
-                                    text: 'Новый пароль',
-                                    color: fieldLabelColor,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _PasswordField(
-                                    controller: _newPassword,
-                                    enabled: enabled,
-                                    obscure: _obscureNew,
-                                    onToggleObscure: () => setState(
-                                      () => _obscureNew = !_obscureNew,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _FieldLabel(
-                                    text: 'Повторите пароль',
-                                    color: fieldLabelColor,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _PasswordField(
-                                    controller: _confirmPassword,
-                                    enabled: enabled,
-                                    obscure: _obscureConfirm,
-                                    onToggleObscure: () => setState(
-                                      () => _obscureConfirm = !_obscureConfirm,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                              if (_error != null) ...[
-                                const SizedBox(height: 12),
-                                Text(
-                                  _error!,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: scheme.error,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
+                ? const SafeArea(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                      16,
+                      28 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: _buildCenteredAvatar(
+                            Theme.of(context),
+                            enabled,
                           ),
                         ),
-                      ),
-                      if (_editing)
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: SafeArea(
-                            top: false,
-                            child: Container(
-                              color: const Color(0xCC090B10),
-                              padding: const EdgeInsets.fromLTRB(
-                                18,
-                                10,
-                                18,
-                                12,
-                              ),
-                              child: Row(
+                        const SizedBox(height: 28),
+                        _FieldLabel(text: 'ФИО', color: fieldLabelColor),
+                        const SizedBox(height: 10),
+                        _ProfileInput(
+                          controller: _name,
+                          enabled: !_busy,
+                          readOnly: !_editing,
+                          hintText: 'Имя',
+                        ),
+                        const SizedBox(height: 22),
+                        _FieldLabel(text: 'Логин', color: fieldLabelColor),
+                        const SizedBox(height: 10),
+                        _ProfileInput(
+                          controller: _username,
+                          enabled: !_busy,
+                          readOnly: !_editing,
+                          hintText: 'username',
+                        ),
+                        const SizedBox(height: 22),
+                        _FieldLabel(text: 'Email', color: fieldLabelColor),
+                        const SizedBox(height: 10),
+                        _ProfileInput(
+                          controller: _email,
+                          enabled: !_busy,
+                          readOnly: !_editing,
+                          keyboardType: TextInputType.emailAddress,
+                          hintText: 'name@example.com',
+                        ),
+                        const SizedBox(height: 22),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 66,
-                                      child: OutlinedButton(
-                                        onPressed:
-                                            enabled ? _resetToInitial : null,
-                                        style: OutlinedButton.styleFrom(
-                                          side: BorderSide(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.16,
-                                            ),
-                                          ),
-                                          backgroundColor: Colors.white
-                                              .withValues(alpha: 0.04),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(22),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Отмена',
-                                          style: TextStyle(
-                                            fontSize: 22 * 0.72,
-                                            fontWeight: FontWeight.w700,
-                                            color: titleColor,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                  _FieldLabel(
+                                    text: 'Телефон',
+                                    color: fieldLabelColor,
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 66,
-                                      child: FilledButton(
-                                        style: authPrimaryButtonStyle(
-                                          context,
-                                        ),
-                                        onPressed: enabled ? _save : null,
-                                        child: _busy
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white,
-                                                ),
-                                              )
-                                            : Text(
-                                                'Сохранить',
-                                                style: TextStyle(
-                                                  fontSize: 22 * 0.72,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
+                                  const SizedBox(height: 10),
+                                  _ProfileInput(
+                                    controller: _phone,
+                                    enabled: !_busy,
+                                    readOnly: !_editing,
+                                    keyboardType: TextInputType.phone,
+                                    inputFormatters: [PhoneRuMaskFormatter()],
+                                    hintText: '+7900 000-00-00',
                                   ),
                                 ],
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _FieldLabel(
+                                    text: 'Дата рождения',
+                                    color: fieldLabelColor,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _ProfileInput(
+                                    controller: _dob,
+                                    enabled: !_busy,
+                                    readOnly: !_editing,
+                                    hintText: 'DD.MM.YYYY',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                    ],
+                        const SizedBox(height: 22),
+                        _FieldLabel(text: 'О себе', color: fieldLabelColor),
+                        const SizedBox(height: 10),
+                        _ProfileInput(
+                          controller: _bio,
+                          enabled: !_busy,
+                          readOnly: !_editing,
+                          hintText: 'Кратко о себе',
+                          maxLines: 4,
+                        ),
+                        if (_editing) ...[
+                          const SizedBox(height: 22),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              onPressed: enabled
+                                  ? () => setState(
+                                      () => _showPasswordSection =
+                                          !_showPasswordSection,
+                                    )
+                                  : null,
+                              child: Text(
+                                _showPasswordSection
+                                    ? 'Скрыть смену пароля'
+                                    : 'Изменить пароль',
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF4DA2FF),
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (_showPasswordSection) ...[
+                            const SizedBox(height: 8),
+                            _FieldLabel(
+                              text: 'Новый пароль',
+                              color: fieldLabelColor,
+                            ),
+                            const SizedBox(height: 8),
+                            _PasswordField(
+                              controller: _newPassword,
+                              enabled: enabled,
+                              obscure: _obscureNew,
+                              onToggleObscure: () =>
+                                  setState(() => _obscureNew = !_obscureNew),
+                            ),
+                            const SizedBox(height: 16),
+                            _FieldLabel(
+                              text: 'Повторите пароль',
+                              color: fieldLabelColor,
+                            ),
+                            const SizedBox(height: 8),
+                            _PasswordField(
+                              controller: _confirmPassword,
+                              enabled: enabled,
+                              obscure: _obscureConfirm,
+                              onToggleObscure: () => setState(
+                                () => _obscureConfirm = !_obscureConfirm,
+                              ),
+                            ),
+                          ],
+                        ],
+                        if (_error != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            _error!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: scheme.error,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                        if (_editing) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 54,
+                                  child: OutlinedButton(
+                                    onPressed: enabled ? _resetToInitial : null,
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.16,
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.white.withValues(
+                                        alpha: 0.04,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Отмена',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: titleColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 54,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: enabled
+                                          ? const LinearGradient(
+                                              begin: Alignment.centerLeft,
+                                              end: Alignment.centerRight,
+                                              colors: [
+                                                Color(0xFF2E86FF),
+                                                Color(0xFF5F90FF),
+                                                Color(0xFF9A18FF),
+                                              ],
+                                            )
+                                          : LinearGradient(
+                                              colors: [
+                                                Colors.white.withValues(
+                                                  alpha: 0.18,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0.18,
+                                                ),
+                                              ],
+                                            ),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: TextButton(
+                                      onPressed: enabled ? _save : null,
+                                      style: TextButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                        ),
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: _busy
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Сохранить',
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
           ),
         );
@@ -773,7 +786,10 @@ class _PasswordField extends StatelessWidget {
             width: 1.2,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 16,
+        ),
         suffixIcon: IconButton(
           tooltip: obscure ? 'Показать пароль' : 'Скрыть',
           onPressed: enabled ? onToggleObscure : null,

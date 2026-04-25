@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import 'chat_call_record.dart';
+import 'chat_call_status.dart';
 
 /// Снимок истории звонков для UI.
 class ChatCallsHistorySnapshot {
@@ -49,7 +50,10 @@ class ChatCallsRepository {
             .toList(growable: false);
         if (unique.isEmpty) {
           listener.add(
-            const ChatCallsHistorySnapshot(calls: <ChatCallRecord>[], loading: false),
+            const ChatCallsHistorySnapshot(
+              calls: <ChatCallRecord>[],
+              loading: false,
+            ),
           );
           return;
         }
@@ -68,12 +72,11 @@ class ChatCallsRepository {
           for (final m in perBatch.values) {
             merged.addAll(m);
           }
-          final list = merged.values
-              .where(
-                (c) => c.status == 'ended' || c.status == 'rejected',
-              )
-              .toList(growable: false)
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          final list =
+              merged.values
+                  .where((c) => isTerminalCallStatus(c.status))
+                  .toList(growable: false)
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           listener.add(
             ChatCallsHistorySnapshot(calls: list, loading: !allReady),
           );
@@ -104,7 +107,9 @@ class ChatCallsRepository {
                   publish();
                 },
                 onError: (Object e, StackTrace st) {
-                  debugPrint('[ChatCallsRepository] calls batch listen: $e $st');
+                  debugPrint(
+                    '[ChatCallsRepository] calls batch listen: $e $st',
+                  );
                   listener.add(
                     ChatCallsHistorySnapshot(
                       calls: const <ChatCallRecord>[],
@@ -119,32 +124,38 @@ class ChatCallsRepository {
       }
 
       listener.add(
-        const ChatCallsHistorySnapshot(calls: <ChatCallRecord>[], loading: true),
+        const ChatCallsHistorySnapshot(
+          calls: <ChatCallRecord>[],
+          loading: true,
+        ),
       );
 
-      userSub = _firestore.doc('userCalls/$uid').snapshots().listen(
-        (snap) {
-          final raw = snap.data()?['callIds'];
-          final ids = raw is List
-              ? raw
-                    .map((e) => e is String ? e : e?.toString())
-                    .whereType<String>()
-                    .where((e) => e.trim().isNotEmpty)
-                    .toList(growable: false)
-              : const <String>[];
-          unawaited(attachCallIds(ids));
-        },
-        onError: (Object e, StackTrace st) {
-          debugPrint('[ChatCallsRepository] userCalls listen: $e $st');
-          listener.add(
-            ChatCallsHistorySnapshot(
-              calls: const <ChatCallRecord>[],
-              loading: false,
-              error: e.toString(),
-            ),
+      userSub = _firestore
+          .doc('userCalls/$uid')
+          .snapshots()
+          .listen(
+            (snap) {
+              final raw = snap.data()?['callIds'];
+              final ids = raw is List
+                  ? raw
+                        .map((e) => e is String ? e : e?.toString())
+                        .whereType<String>()
+                        .where((e) => e.trim().isNotEmpty)
+                        .toList(growable: false)
+                  : const <String>[];
+              unawaited(attachCallIds(ids));
+            },
+            onError: (Object e, StackTrace st) {
+              debugPrint('[ChatCallsRepository] userCalls listen: $e $st');
+              listener.add(
+                ChatCallsHistorySnapshot(
+                  calls: const <ChatCallRecord>[],
+                  loading: false,
+                  error: e.toString(),
+                ),
+              );
+            },
           );
-        },
-      );
 
       listener.onCancel = () async {
         await userSub?.cancel();

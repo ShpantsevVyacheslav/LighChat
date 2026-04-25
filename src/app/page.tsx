@@ -87,14 +87,6 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-function VkIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.427.132-.427s-.02-1.304.587-1.496c.598-.188 1.368 1.259 2.183 1.815.616.42 1.084.328 1.084.328l2.175-.03s1.14-.07.599-.964c-.044-.073-.314-.661-1.618-1.869-1.366-1.265-1.183-1.06.462-3.246.999-1.33 1.398-2.142 1.273-2.49-.12-.332-.856-.244-.856-.244l-2.45.015s-.182-.025-.316.056c-.131.079-.215.263-.215.263s-.386 1.028-.9 1.902c-1.085 1.844-1.52 1.943-1.696 1.828-.413-.267-.31-1.075-.31-1.649 0-1.793.272-2.54-.53-2.733-.266-.064-.462-.106-1.143-.113-.873-.009-1.612.003-2.03.208-.278.136-.493.44-.362.457.161.022.527.099.72.363.25.341.24 1.11.24 1.11s.144 2.11-.335 2.372c-.327.18-.777-.187-1.74-1.865-.493-.86-.866-1.81-.866-1.81s-.072-.176-.2-.27c-.155-.115-.372-.151-.372-.151l-2.328.015s-.35.01-.478.162c-.114.135-.009.414-.009.414s1.815 4.244 3.87 6.382c1.883 1.96 4.024 1.832 4.024 1.832h.97z"/>
-    </svg>
-  );
-}
-
 function TelegramIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -107,10 +99,15 @@ function YandexIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" role="img" aria-label="Yandex">
       <circle cx="12" cy="12" r="12" fill="#FC3F1D" />
-      <path
+      <text
+        x="12"
+        y="13"
+        textAnchor="middle"
+        fontSize="14"
+        fontWeight="700"
+        fontFamily="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif"
         fill="#FFFFFF"
-        d="M9.375 6h4.043C15.975 6 17.5 7.27 17.5 9.319c0 1.585-.863 2.709-2.343 3.182L18.125 18h-2.432l-2.823-5.238h-1.18V18h-2.315V6zm2.315 4.95h1.355c1.302 0 2.05-.526 2.05-1.543 0-1.033-.748-1.527-2.05-1.527H11.69v3.07z"
-      />
+      >Я</text>
     </svg>
   );
 }
@@ -517,7 +514,7 @@ export default function AuthPage() {
               или
             </p>
 
-            <div className={cn("grid grid-cols-5 gap-1.5 sm:gap-2", profileIncomplete && "hidden")}>
+            <div className={cn("grid grid-cols-4 gap-1.5 sm:gap-2", profileIncomplete && "hidden")}>
               <Button
                 type="button"
                 variant="outline"
@@ -541,15 +538,6 @@ export default function AuthPage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled
-                className="h-10 rounded-[12px] border-white/40 bg-white/20 opacity-50 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]"
-                title="VK (скоро)"
-              >
-                <VkIcon className="h-[18px] w-[18px]" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
                 onClick={() => setTelegramDialogOpen(true)}
                 disabled={
                   isSubmitting ||
@@ -561,7 +549,7 @@ export default function AuthPage() {
                     ? "Telegram"
                     : "Задайте NEXT_PUBLIC_TELEGRAM_BOT_NAME"
                 }
-                className="h-10 rounded-[12px] border-[#2f82b4]/80 bg-[#14476b]/90 text-white backdrop-blur-md transition-all hover:bg-[#1b5b88] active:scale-[0.97] dark:border-[#2f82b4]/80 dark:bg-[#14476b]/90 dark:hover:bg-[#1b5b88]"
+                className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
               >
                 <TelegramIcon className="h-[18px] w-[18px]" />
               </Button>
@@ -570,7 +558,7 @@ export default function AuthPage() {
                 variant="outline"
                 onClick={() => void signInWithYandex()}
                 disabled={isSubmitting || profileIncomplete}
-                className="h-10 rounded-[12px] border-[#9f3d2f]/80 bg-[#4f2018]/90 text-white backdrop-blur-md transition-all hover:bg-[#63281f] active:scale-[0.97] dark:border-[#9f3d2f]/80 dark:bg-[#4f2018]/90 dark:hover:bg-[#63281f]"
+                className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
                 title="Яндекс"
               >
                 <YandexIcon className="h-[18px] w-[18px]" />

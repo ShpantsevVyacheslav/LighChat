@@ -198,6 +198,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   }
 
   bool _isIncomingUnreadForViewer(ChatMessage m, String viewerId) {
+    // System timeline markers (E2EE state changes etc.) are informational and
+    // must not appear as unread messages.
+    if (m.senderId == '__system__' || m.systemEvent != null) return false;
     if (m.senderId == viewerId) return false;
     return m.readAt == null;
   }

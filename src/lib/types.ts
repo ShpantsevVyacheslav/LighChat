@@ -129,7 +129,22 @@ export type UserMeetingsIndex = {
   meetingIds: string[];
 };
 
-export type CallStatus = "calling" | "ongoing" | "ended" | "rejected";
+/**
+ * Call status lifecycle:
+ * - `calling`: caller is ringing receiver.
+ * - `ongoing`: call is accepted and active.
+ * - `ended`: call finished after becoming `ongoing`.
+ * - `cancelled`: ring phase was cancelled/declined before connect.
+ * - `missed`: unanswered call timed out (60s) or caller aborted unanswered call.
+ * - `rejected`: legacy value kept for backward compatibility with old documents.
+ */
+export type CallStatus =
+  | "calling"
+  | "ongoing"
+  | "ended"
+  | "cancelled"
+  | "missed"
+  | "rejected";
 
 export type Call = {
   id: string;

@@ -305,6 +305,11 @@ class _ChatComposerState extends State<ChatComposer> {
       maxLines: 6,
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
+      strutStyle: const StrutStyle(
+        forceStrutHeight: true,
+        height: 1.25,
+        leading: 0,
+      ),
       style: const TextStyle(
         fontSize: 15.5,
         height: 1.25,
@@ -320,10 +325,10 @@ class _ChatComposerState extends State<ChatComposer> {
           height: 1.25,
         ),
         border: InputBorder.none,
-        isDense: true,
-        // Keep text & hint vertically centered within the 44px container.
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-        isCollapsed: true,
+        // Центрируем текст и placeholder внутри строки ввода по вертикали.
+        isDense: false,
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        isCollapsed: false,
         suffixIcon: keyboardOpen
             ? IconButton(
                 tooltip: 'Стикеры',
@@ -522,27 +527,42 @@ class _ChatComposerState extends State<ChatComposer> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : HoldToRecordMicButton(
-                                  enabled:
+                              : () {
+                                  final canInlineVoice =
                                       !widget.sendBusy &&
-                                      widget.onVoiceHoldRecorded != null,
-                                  onTap: widget.onMicTap,
-                                  onRecorded: (r) async {
-                                    final cb = widget.onVoiceHoldRecorded;
-                                    if (cb == null) return;
-                                    await cb(r);
-                                  },
-                                  child: IconButton(
-                                    onPressed: widget.onMicTap,
-                                    iconSize: 22,
-                                    icon: Icon(
-                                      Icons.mic_rounded,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.92,
+                                      widget.onVoiceHoldRecorded != null;
+                                  if (!canInlineVoice) {
+                                    return IconButton(
+                                      onPressed: widget.onMicTap,
+                                      iconSize: 22,
+                                      icon: Icon(
+                                        Icons.mic_rounded,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.92,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return HoldToRecordMicButton(
+                                    enabled: true,
+                                    tapToRecord: true,
+                                    onTap: () {},
+                                    onRecorded: (r) async {
+                                      final cb = widget.onVoiceHoldRecorded;
+                                      if (cb == null) return;
+                                      await cb(r);
+                                    },
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.mic_rounded,
+                                        size: 22,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.92,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                )),
+                                  );
+                                }()),
                   ),
                 ],
               ),

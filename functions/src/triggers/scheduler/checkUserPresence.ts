@@ -13,6 +13,7 @@ const db = admin.firestore();
  * Frequency: Every 1 minute
  * Thresholds:
  *   - users.online: 60 seconds (как и раньше — общий presence веб/мобильных клиентов);
+ *   - calls.status=calling: 60 seconds — авто-завершение непринятых звонков в `missed`;
  *   - meeting participants: 90 seconds — heartbeat раз в 20 сек (см. use-meeting-webrtc.ts),
  *     буфер ×4.5 защищает от ложного исключения при кратких GC-паузах и моб. сетевых провалах;
  *   - meeting requests: 90 seconds — heartbeat такой же.
@@ -22,8 +23,11 @@ export const checkUserPresence = onSchedule({
   timeZone: "Europe/Moscow",
 }, async () => {
   const now = new Date();
+  const nowIso = now.toISOString();
   // User-presence threshold — 60 сек.
   const userPresenceThreshold = new Date(now.getTime() - 60 * 1000).toISOString();
+  // Calls ringing timeout — 60 сек.
+  const callThreshold = new Date(now.getTime() - 60 * 1000).toISOString();
   // Meeting participants/requests — 90 сек (см. JSDoc выше).
   const meetingThreshold = new Date(now.getTime() - 90 * 1000).toISOString();
 
@@ -90,6 +94,25 @@ export const checkUserPresence = onSchedule({
         await batch.commit();
         logger.log(`[checkUserPresence] Removed ${count} stale requests from lobby.`);
       }
+    }
+
+    // 4. STALE RINGING CALLS CLEANUP
+    logger.log("[checkUserPresence] Step 4: Marking unanswered calls as missed...");
+    const staleCallingSnapshot = await db.collection("calls")
+      .where("status", "==", "calling")
+      .where("createdAt", "<", callThreshold)
+      .get();
+
+    if (!staleCallingSnapshot.empty) {
+      const batch = db.batch();
+      staleCallingSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: "missed",
+          endedAt: nowIso,
+        });
+      });
+      await batch.commit();
+      logger.log(`[checkUserPresence] Marked ${staleCallingSnapshot.size} unanswered calls as missed.`);
     }
     
     logger.log("[checkUserPresence] Cleanup completed successfully.");

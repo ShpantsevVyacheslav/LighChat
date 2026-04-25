@@ -95,11 +95,6 @@ class ChatAccountScreen extends ConsumerWidget {
                         );
                       }
                     },
-                    onSoon: () {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(const SnackBar(content: Text('Скоро')));
-                    },
                     onSignOutTap: () async {
                       final repo = ref.read(authRepositoryProvider);
                       try {
@@ -144,7 +139,6 @@ class _AccountView extends StatelessWidget {
     required this.onNotificationsTap,
     required this.onPrivacyTap,
     required this.onThemeTap,
-    required this.onSoon,
     required this.onSignOutTap,
   });
 
@@ -158,7 +152,6 @@ class _AccountView extends StatelessWidget {
   final VoidCallback onNotificationsTap;
   final VoidCallback onPrivacyTap;
   final VoidCallback onThemeTap;
-  final VoidCallback onSoon;
   final VoidCallback onSignOutTap;
 
   @override
@@ -254,11 +247,6 @@ class _AccountView extends StatelessWidget {
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Настройки чатов',
                         onTap: onChatSettingsTap,
-                      ),
-                      _MenuItem(
-                        icon: Icons.history_rounded,
-                        title: 'Администрирование',
-                        onTap: onSoon,
                       ),
                       _MenuItem(
                         icon: Icons.notifications_none_rounded,

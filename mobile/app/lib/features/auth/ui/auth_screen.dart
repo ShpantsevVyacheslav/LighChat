@@ -256,14 +256,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   child: _SocialAuthIconTile(
                                     dark: dark,
                                     tooltip: 'Google',
-                                    onPressed: (!firebaseReady ||
+                                    onPressed:
+                                        (!firebaseReady ||
                                             repo == null ||
                                             _busy)
                                         ? null
                                         : () => _continueOAuthAndRoute(
-                                              repo,
-                                              () => repo.signInWithGoogle(),
-                                            ),
+                                            repo,
+                                            () => repo.signInWithGoogle(),
+                                          ),
                                     child: const _GoogleBrandIcon(),
                                   ),
                                 ),
@@ -275,25 +276,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       dark: dark,
                                       tooltip: 'Apple',
                                       background: dark
-                                          ? Colors.white.withValues(
-                                              alpha: 0.08,
-                                            )
+                                          ? Colors.white.withValues(alpha: 0.08)
                                           : Colors.black.withValues(
                                               alpha: 0.88,
                                             ),
                                       iconColor: Colors.white,
-                                      onPressed: (!firebaseReady ||
+                                      onPressed:
+                                          (!firebaseReady ||
                                               repo == null ||
                                               _busy)
                                           ? null
                                           : () => _continueOAuthAndRoute(
-                                                repo,
-                                                () => repo.signInWithApple(),
-                                              ),
-                                      child: const Icon(
-                                        Icons.apple,
-                                        size: 24,
-                                      ),
+                                              repo,
+                                              () => repo.signInWithApple(),
+                                            ),
+                                      child: const Icon(Icons.apple, size: 24),
                                     ),
                                   ),
                                 ],
@@ -303,10 +300,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     dark: dark,
                                     tooltip: 'Telegram',
                                     background: dark
-                                        ? const Color(0xFF229ED9)
-                                            .withValues(alpha: 0.22)
-                                        : const Color(0xFF229ED9)
-                                            .withValues(alpha: 0.14),
+                                        ? const Color(
+                                            0xFF229ED9,
+                                          ).withValues(alpha: 0.22)
+                                        : const Color(
+                                            0xFF229ED9,
+                                          ).withValues(alpha: 0.14),
                                     onPressed: (!firebaseReady || _busy)
                                         ? null
                                         : () {
@@ -327,10 +326,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     dark: dark,
                                     tooltip: 'Яндекс',
                                     background: dark
-                                        ? const Color(0xFFFC3F1D)
-                                            .withValues(alpha: 0.22)
-                                        : const Color(0xFFFC3F1D)
-                                            .withValues(alpha: 0.12),
+                                        ? const Color(
+                                            0xFFFC3F1D,
+                                          ).withValues(alpha: 0.22)
+                                        : const Color(
+                                            0xFFFC3F1D,
+                                          ).withValues(alpha: 0.12),
                                     onPressed: (!firebaseReady || _busy)
                                         ? null
                                         : () {
@@ -429,7 +430,8 @@ class _SocialAuthIconTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = background ??
+    final bg =
+        background ??
         (dark
             ? Colors.white.withValues(alpha: 0.06)
             : Colors.white.withValues(alpha: 0.76));
@@ -459,10 +461,7 @@ class _SocialAuthIconTile extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onPressed,
-          child: SizedBox(
-            height: 44,
-            child: Center(child: icon),
-          ),
+          child: SizedBox(height: 44, child: Center(child: icon)),
         ),
       ),
     );
@@ -489,20 +488,26 @@ class _YandexBrandIcon extends StatelessWidget {
 
   static const String _yandexSvg = '''
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-  <path fill="currentColor" d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10zm10.09 4.5V7.27h-.74c-1.47 0-2.24.69-2.24 1.83 0 1.31.58 1.9 1.78 2.74l.99.7-2.87 3.96h-1.72l2.56-3.53c-1.46-1.05-2.28-1.91-2.28-3.56 0-1.94 1.32-3.18 3.78-3.18h2.18v10.27h-1.44z"/>
+  <circle cx="12" cy="12" r="12" fill="#FC3F1D"/>
+  <text
+    x="12"
+    y="13"
+    fill="#FFFFFF"
+    font-size="14"
+    font-weight="700"
+    text-anchor="middle"
+    font-family="Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif"
+  >Я</text>
 </svg>
 ''';
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        IconTheme.of(context).color ?? Theme.of(context).colorScheme.onSurface;
     return SvgPicture.string(
       _yandexSvg,
       width: 24,
       height: 24,
       fit: BoxFit.contain,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
   }
 }

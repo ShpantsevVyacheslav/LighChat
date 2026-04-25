@@ -221,11 +221,7 @@ class _NotificationsView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 2),
-                Text(
-                  'Управление звуками и показом уведомлений.',
-                  style: TextStyle(fontSize: _kBodyTextSize, color: subtitleColor),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainerHighest.withValues(
@@ -256,7 +252,7 @@ class _NotificationsView extends StatelessWidget {
                       value: settings.muteAll,
                       onChanged: onMuteAllChanged,
                     ),
-                    _cardDivider(),
+                    const SizedBox(height: 4),
                     _SwitchRow(
                       title: 'Звук',
                       subtitle: 'Воспроизводить звук при новом сообщении.',
@@ -264,7 +260,7 @@ class _NotificationsView extends StatelessWidget {
                       onChanged: onSoundChanged,
                       disabled: settings.muteAll,
                     ),
-                    _cardDivider(),
+                    const SizedBox(height: 4),
                     _SwitchRow(
                       title: 'Предпросмотр',
                       subtitle: 'Показывать текст сообщения в уведомлении.',
@@ -323,7 +319,7 @@ class _NotificationsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 SizedBox(
-                  height: 66,
+                  height: 54,
                   child: OutlinedButton.icon(
                     onPressed: onReset,
                     style: OutlinedButton.styleFrom(
@@ -335,18 +331,18 @@ class _NotificationsView extends StatelessWidget {
                             .withValues(alpha: dark ? 0.16 : 0.12),
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(18),
                       ),
                     ),
                     icon: const Icon(
                       Icons.sync_rounded,
-                      size: 28 * 0.75,
+                      size: 18,
                       color: Color(0xCCFFFFFF),
                     ),
                     label: Text(
                       'Сбросить настройки',
                       style: TextStyle(
-                        fontSize: _kBodyTextSize,
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                         color: (dark ? Colors.white : scheme.onSurface)
                             .withValues(alpha: dark ? 0.7 : 0.7),
@@ -361,20 +357,6 @@ class _NotificationsView extends StatelessWidget {
       ],
     );
   }
-
-  Widget _cardDivider() => Builder(
-    builder: (context) {
-      final scheme = Theme.of(context).colorScheme;
-      final dark = scheme.brightness == Brightness.dark;
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 12),
-        height: 1,
-        color: (dark ? Colors.white : scheme.onSurface).withValues(
-          alpha: dark ? 0.12 : 0.12,
-        ),
-      );
-    },
-  );
 }
 
 class _SettingsCard extends StatelessWidget {
@@ -426,7 +408,6 @@ class _SettingsCard extends StatelessWidget {
               ),
             ),
           ],
-          Container(height: 1, color: fg.withValues(alpha: dark ? 0.14 : 0.10)),
           ...children,
         ],
       ),

@@ -212,8 +212,10 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     }
     if (_gestureDragging) {
       setState(() {
-        _pillCenterX =
-            _clampCenterWithOvershoot(_pillCenterX + e.delta.dx, _lastBarWidth);
+        _pillCenterX = _clampCenterWithOvershoot(
+          _pillCenterX + e.delta.dx,
+          _lastBarWidth,
+        );
       });
     }
   }
@@ -226,7 +228,10 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     if (_gestureDragging) {
       final sw = _slotWidth(_lastBarWidth);
       final idx = (_pillCenterX / sw).round().clamp(0, _slotCount - 1);
-      final target = _clampCenter(_centerForSlotIndex(idx, _lastBarWidth), _lastBarWidth);
+      final target = _clampCenter(
+        _centerForSlotIndex(idx, _lastBarWidth),
+        _lastBarWidth,
+      );
       setState(() {
         _pillCenterX = target;
         _gestureDragging = false;
@@ -319,11 +324,11 @@ class _ChatBottomNavState extends State<ChatBottomNav>
             final pillLeftRaw = w > 0 ? (_pillCenterX - pw / 2) : 0.0;
             final pillLeft = w > 0
                 ? (motion
-                    ? pillLeftRaw.clamp(
-                        -_kPillEdgeOvershoot,
-                        w - pw + _kPillEdgeOvershoot,
-                      )
-                    : pillLeftRaw.clamp(0.0, w - pw))
+                      ? pillLeftRaw.clamp(
+                          -_kPillEdgeOvershoot,
+                          w - pw + _kPillEdgeOvershoot,
+                        )
+                      : pillLeftRaw.clamp(0.0, w - pw))
                 : 0.0;
             // Во время движения пилюля приподнимается и может выступать
             // за верхнюю/нижнюю грань рамки (Stack с clipBehavior: Clip.none).
@@ -331,25 +336,27 @@ class _ChatBottomNavState extends State<ChatBottomNav>
             final pillTopRaw = _pillYMargin - (ph - baseH) / 2 - liftY;
             final topClamped = w > 0
                 ? (motion
-                    ? pillTopRaw.clamp(
-                        -_kPillVerticalOvershoot,
-                        _barHeight - ph + _kPillVerticalOvershoot,
-                      )
-                    : pillTopRaw.clamp(0.0, (_barHeight - ph).clamp(0.0, _barHeight)))
+                      ? pillTopRaw.clamp(
+                          -_kPillVerticalOvershoot,
+                          _barHeight - ph + _kPillVerticalOvershoot,
+                        )
+                      : pillTopRaw.clamp(
+                          0.0,
+                          (_barHeight - ph).clamp(0.0, _barHeight),
+                        ))
                 : _pillYMargin;
             final overshootIntensity = w > 0
                 ? ((pillLeftRaw < 0
-                            ? (-pillLeftRaw)
-                            : (pillLeftRaw > w - pw
-                                ? (pillLeftRaw - (w - pw))
-                                : 0.0)) /
-                        _kPillEdgeOvershoot)
-                    .clamp(0.0, 1.0)
+                              ? (-pillLeftRaw)
+                              : (pillLeftRaw > w - pw
+                                    ? (pillLeftRaw - (w - pw))
+                                    : 0.0)) /
+                          _kPillEdgeOvershoot)
+                      .clamp(0.0, 1.0)
                 : 0.0;
             // Рамка ПОД пилюлей слегка сужается во время перетаскивания
             // (более выражено, чем раньше, и усиливается при «упоре» в край).
-            final frameInset =
-                motion ? (4.0 + overshootIntensity * 10.0) : 0.0;
+            final frameInset = motion ? (4.0 + overshootIntensity * 10.0) : 0.0;
 
             return Listener(
               behavior: HitTestBehavior.translucent,
@@ -392,8 +399,9 @@ class _ChatBottomNavState extends State<ChatBottomNav>
                         height: ph + _kPillHaloPad * 2,
                         child: IgnorePointer(
                           child: ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(22 + _kPillHaloPad),
+                            borderRadius: BorderRadius.circular(
+                              22 + _kPillHaloPad,
+                            ),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(
                                 sigmaX: 24 + overshootIntensity * 14,
@@ -439,9 +447,9 @@ class _ChatBottomNavState extends State<ChatBottomNav>
                                   spreadRadius: 1,
                                 ),
                                 BoxShadow(
-                                  color: const Color(0xFF4DB8FF).withValues(
-                                    alpha: dark ? 0.18 : 0.14,
-                                  ),
+                                  color: const Color(
+                                    0xFF4DB8FF,
+                                  ).withValues(alpha: dark ? 0.18 : 0.14),
                                   blurRadius: 28,
                                   spreadRadius: 2,
                                 ),
@@ -519,25 +527,26 @@ class _ChatBottomNavState extends State<ChatBottomNav>
                               active:
                                   widget.activeTab == ChatBottomNavTab.chats,
                               href: '/dashboard/chat',
-                              fallbackIcon:
-                                  Icons.chat_bubble_outline_rounded,
+                              appearance: widget.bottomNavAppearance,
+                              fallbackIcon: Icons.chat_bubble_outline_rounded,
                               iconNames: widget.bottomNavIconNames,
                               globalStyle: widget.bottomNavIconGlobalStyle,
-                              localStyle: widget
-                                  .bottomNavIconStyles['/dashboard/chat'],
+                              localStyle:
+                                  widget.bottomNavIconStyles['/dashboard/chat'],
                               onTap: widget.onChatsTap,
                             ),
                           ),
                           Expanded(
                             child: _LiquidNavSlot(
-                              active: widget.activeTab ==
-                                  ChatBottomNavTab.contacts,
+                              active:
+                                  widget.activeTab == ChatBottomNavTab.contacts,
                               href: '/dashboard/contacts',
+                              appearance: widget.bottomNavAppearance,
                               fallbackIcon: Icons.group_outlined,
                               iconNames: widget.bottomNavIconNames,
                               globalStyle: widget.bottomNavIconGlobalStyle,
-                              localStyle: widget.bottomNavIconStyles[
-                                  '/dashboard/contacts'],
+                              localStyle: widget
+                                  .bottomNavIconStyles['/dashboard/contacts'],
                               onTap: widget.onContactsTap,
                             ),
                           ),
@@ -546,6 +555,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
                               active:
                                   widget.activeTab == ChatBottomNavTab.calls,
                               href: '/dashboard/calls',
+                              appearance: widget.bottomNavAppearance,
                               fallbackIcon: Icons.call_outlined,
                               iconNames: widget.bottomNavIconNames,
                               globalStyle: widget.bottomNavIconGlobalStyle,
@@ -556,14 +566,15 @@ class _ChatBottomNavState extends State<ChatBottomNav>
                           ),
                           Expanded(
                             child: _LiquidNavSlot(
-                              active: widget.activeTab ==
-                                  ChatBottomNavTab.meetings,
+                              active:
+                                  widget.activeTab == ChatBottomNavTab.meetings,
                               href: '/dashboard/meetings',
+                              appearance: widget.bottomNavAppearance,
                               fallbackIcon: Icons.videocam_outlined,
                               iconNames: widget.bottomNavIconNames,
                               globalStyle: widget.bottomNavIconGlobalStyle,
-                              localStyle: widget.bottomNavIconStyles[
-                                  '/dashboard/meetings'],
+                              localStyle: widget
+                                  .bottomNavIconStyles['/dashboard/meetings'],
                               onTap: widget.onMeetingsTap,
                             ),
                           ),
@@ -595,6 +606,7 @@ class _LiquidNavSlot extends StatelessWidget {
   const _LiquidNavSlot({
     required this.active,
     required this.href,
+    required this.appearance,
     required this.fallbackIcon,
     required this.iconNames,
     required this.globalStyle,
@@ -604,6 +616,7 @@ class _LiquidNavSlot extends StatelessWidget {
 
   final bool active;
   final String href;
+  final String appearance;
   final IconData fallbackIcon;
   final Map<String, String> iconNames;
   final BottomNavIconVisualStyle globalStyle;
@@ -617,18 +630,27 @@ class _LiquidNavSlot extends StatelessWidget {
     final resolvedName = resolveBottomNavIconName(href, iconNames);
     final iconData = iconDataForBottomNavName(resolvedName, fallbackIcon);
     final customIconColor = parseColorFromHex(visual.iconColor);
+    final customTileColor = parseColorFromHex(visual.tileBackground);
     final iconSize = (visual.size ?? 24.0).clamp(18.0, 30.0);
     final strokeWidth = (visual.strokeWidth ?? (active ? 2.35 : 2.0)).clamp(
       1.0,
       3.0,
     );
     final iconWeight = 200 + ((strokeWidth - 1.0) / 2.0 * 500.0);
-    final defaultColor = active
-        ? Colors.white
-        : (dark
-              ? Colors.white.withValues(alpha: 0.52)
-              : Colors.black.withValues(alpha: 0.45));
+    final defaultColor = appearance == 'minimal'
+        ? (active
+              ? Colors.white
+              : (dark
+                    ? Colors.white.withValues(alpha: 0.52)
+                    : Colors.black.withValues(alpha: 0.45)))
+        : Colors.white;
     final iconColor = customIconColor ?? defaultColor;
+    final useCustomTile = customTileColor != null;
+    final useColorfulTile = appearance != 'minimal' && !useCustomTile;
+    final tileGradient = useColorfulTile
+        ? defaultBottomNavTileGradient(href)
+        : null;
+    final tileColor = useCustomTile ? customTileColor : Colors.transparent;
 
     return Material(
       color: Colors.transparent,
@@ -637,11 +659,26 @@ class _LiquidNavSlot extends StatelessWidget {
         customBorder: const CircleBorder(),
         child: SizedBox.expand(
           child: Center(
-            child: Icon(
-              iconData,
-              color: iconColor,
-              size: iconSize,
-              weight: iconWeight,
+            child: Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: tileGradient == null ? tileColor : null,
+                gradient: tileGradient,
+                border: Border.all(
+                  color: appearance == 'minimal' && !useCustomTile
+                      ? Colors.white.withValues(alpha: dark ? 0.08 : 0.1)
+                      : Colors.white.withValues(alpha: dark ? 0.16 : 0.12),
+                ),
+              ),
+              child: Icon(
+                iconData,
+                color: iconColor,
+                size: iconSize,
+                weight: iconWeight,
+              ),
             ),
           ),
         ),

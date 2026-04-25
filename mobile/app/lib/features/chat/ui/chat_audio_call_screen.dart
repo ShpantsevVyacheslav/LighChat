@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../data/chat_call_tones.dart';
+import '../data/chat_call_status.dart';
 import 'chat_avatar.dart';
 
 class ChatAudioCallScreen extends StatefulWidget {
@@ -55,6 +56,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
   final Set<String> _seenCandidateDocIds = <String>{};
   bool _closedByUser = false;
   final ChatCallToneController _callTones = ChatCallToneController();
+  Timer? _outgoingCallTimeoutTimer;
 
   @override
   void initState() {
@@ -190,6 +192,59 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
         });
   }
 
+  DateTime? _parseFirestoreDate(dynamic raw) {
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is String) return DateTime.tryParse(raw);
+    return null;
+  }
+
+  void _cancelOutgoingCallTimeout() {
+    _outgoingCallTimeoutTimer?.cancel();
+    _outgoingCallTimeoutTimer = null;
+  }
+
+  Future<void> _markOutgoingCallMissedIfNeeded() async {
+    final callId = _callId;
+    if (callId == null) return;
+    try {
+      final ref = _firestore.collection('calls').doc(callId);
+      final snap = await ref.get();
+      if (!snap.exists) return;
+      final data = snap.data() ?? const <String, dynamic>{};
+      if ((data['status'] as String?) != 'calling') return;
+      if ((data['callerId'] as String?) != widget.currentUserId) return;
+      await ref.update(<String, Object?>{
+        'status': 'missed',
+        'endedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+    } catch (_) {}
+  }
+
+  void _scheduleOutgoingCallTimeout(Map<String, dynamic> data) {
+    if (_incoming) {
+      _cancelOutgoingCallTimeout();
+      return;
+    }
+    final status = (data['status'] as String?) ?? '';
+    if (status != 'calling') {
+      _cancelOutgoingCallTimeout();
+      return;
+    }
+    final createdAt = _parseFirestoreDate(data['createdAt']);
+    if (createdAt == null) return;
+    final elapsed = DateTime.now().toUtc().difference(createdAt.toUtc());
+    final remain = const Duration(seconds: 60) - elapsed;
+    if (remain <= Duration.zero) {
+      _cancelOutgoingCallTimeout();
+      unawaited(_markOutgoingCallMissedIfNeeded());
+      return;
+    }
+    _outgoingCallTimeoutTimer?.cancel();
+    _outgoingCallTimeoutTimer = Timer(remain, () {
+      unawaited(_markOutgoingCallMissedIfNeeded());
+    });
+  }
+
   void _watchCallDoc() {
     final callId = _callId;
     if (callId == null) return;
@@ -202,10 +257,20 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       }
       final data = snap.data() ?? const <String, dynamic>{};
       final status = (data['status'] as String?) ?? 'calling';
+      _scheduleOutgoingCallTimeout(data);
 
-      if (status == 'ended' || status == 'rejected') {
-        final txt = status == 'rejected'
-            ? 'Звонок отклонён'
+      if (isTerminalCallStatus(status)) {
+        _cancelOutgoingCallTimeout();
+        final viewerIsReceiver =
+            (data['receiverId'] as String?) == widget.currentUserId;
+        final resolvedStatus = resolveCallTerminalStatusForViewer(
+          rawStatus: status,
+          viewerIsReceiver: viewerIsReceiver,
+        );
+        final txt = resolvedStatus == 'missed'
+            ? 'Пропущенный звонок'
+            : resolvedStatus == 'cancelled'
+            ? 'Звонок отменен'
             : 'Звонок завершён';
         await _close(txt);
         return;
@@ -285,6 +350,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
         'status': 'ongoing',
         'startedAt': DateTime.now().toUtc().toIso8601String(),
       });
+      _cancelOutgoingCallTimeout();
       _startTimerIfNeeded();
       _setStatus('ongoing');
     } catch (e) {
@@ -344,7 +410,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
     final callId = _callId;
     if (callId != null) {
       await _firestore.collection('calls').doc(callId).update(<String, Object?>{
-        'status': 'rejected',
+        'status': 'cancelled',
         'endedAt': DateTime.now().toUtc().toIso8601String(),
       });
     }
@@ -354,8 +420,11 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
   Future<void> _endCall() async {
     final callId = _callId;
     if (callId != null) {
+      final nextStatus = _status == 'ongoing'
+          ? 'ended'
+          : (_incoming ? 'cancelled' : 'missed');
       await _firestore.collection('calls').doc(callId).update(<String, Object?>{
-        'status': 'ended',
+        'status': nextStatus,
         'endedAt': DateTime.now().toUtc().toIso8601String(),
       });
     }
@@ -397,6 +466,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
   Future<void> _disposeRtc() async {
     _timer?.cancel();
     _timer = null;
+    _cancelOutgoingCallTimeout();
     await _callSub?.cancel();
     await _candidatesSub?.cancel();
     try {

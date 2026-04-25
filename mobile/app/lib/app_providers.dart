@@ -116,9 +116,7 @@ final conversationsProvider =
       if (uid != null && uid.isNotEmpty && ids.isNotEmpty) {
         final offline = await loadChatListOfflineSnapshot(uid);
         if (offline != null && offline.conversations.isNotEmpty) {
-          final byId = {
-            for (final c in offline.conversations) c.id: c,
-          };
+          final byId = {for (final c in offline.conversations) c.id: c};
           final ordered = <ConversationWithId>[];
           for (final id in ids) {
             final c = byId[id];
@@ -286,25 +284,32 @@ final starredMessagesInConversationProvider =
         return DateTime.fromMillisecondsSinceEpoch(0);
       }
 
-      return q.snapshots().map((snap) {
-        return snap.docs
-            .map((d) {
-              final data = d.data();
-              final messageId = data['messageId'];
-              final createdAtRaw = data['createdAt'];
-              final previewText = data['previewText'];
-              return StarredChatMessageEntry(
-                docId: d.id,
-                conversationId: convId,
-                messageId: messageId is String ? messageId.trim() : '',
-                createdAt: parseCreatedAt(createdAtRaw),
-                previewText:
-                    previewText is String && previewText.trim().isNotEmpty
-                    ? previewText.trim()
-                    : null,
-              );
-            })
-            .where((x) => x.messageId.isNotEmpty)
-            .toList(growable: false);
-      });
+      Stream<List<StarredChatMessageEntry>> stream() async* {
+        // Не блокируем экран «Избранное» вечным loading:
+        // сначала отдаём пустой список, затем живые данные Firestore.
+        yield const <StarredChatMessageEntry>[];
+        await for (final snap in q.snapshots()) {
+          yield snap.docs
+              .map((d) {
+                final data = d.data();
+                final messageId = data['messageId'];
+                final createdAtRaw = data['createdAt'];
+                final previewText = data['previewText'];
+                return StarredChatMessageEntry(
+                  docId: d.id,
+                  conversationId: convId,
+                  messageId: messageId is String ? messageId.trim() : '',
+                  createdAt: parseCreatedAt(createdAtRaw),
+                  previewText:
+                      previewText is String && previewText.trim().isNotEmpty
+                      ? previewText.trim()
+                      : null,
+                );
+              })
+              .where((x) => x.messageId.isNotEmpty)
+              .toList(growable: false);
+        }
+      }
+
+      return stream();
     });

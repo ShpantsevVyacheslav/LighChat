@@ -27,7 +27,7 @@
   - `contactProfiles.{contactUserId}` - локальное имя контакта (firstName/lastName/displayName/updatedAt), используется только владельцем списка в списках чатов/поиске/карточках контакта.
   - `deviceSyncConsentAt`, `phoneBookOfferDismissedAt` - флаги согласия/онбординга для импорта телефонной книги.
   - `deviceLookup/{registrationIndexKey}` - ключи телефонной книги устройства (phone/email) для авто-сопоставления с `registrationIndex` и автодобавления новых зарегистрированных контактов.
-- `calls/{callId}` - документ звонка.
+- `calls/{callId}` - документ звонка (`status`: `calling|ongoing|ended|cancelled|missed`, legacy: `rejected`).
   - `candidates/{candidateId}` - ICE candidates.
 - `userCalls/{userId}` - денормализованный индекс звонков.
 - `meetings/{meetingId}` - документ встречи.
@@ -57,6 +57,7 @@
 - Push по новым сообщениям: при наличии `e2ee` на документе сообщения текст в FCM не передаётся (только нейтральная подпись).
 - Создание/обновление/удаление `conversations` синхронизирует `members` и `userChats`.
 - Создание `calls` синхронизирует `userCalls` и отправляет call-push: FCM (`users.fcmTokens`) + APNs VoIP (`users.voipTokens`, iOS).
+- Scheduler `checkUserPresence` дополнительно переводит `calls.status=calling` старше 60 секунд в `missed` и проставляет `endedAt`.
 - Создание участника встречи синхронизирует `userMeetings`.
 - Изменения `users` синхронизируют `registrationIndex`.
 - Изменения `users` (phone/email) дополнительно проверяют совпадения в `userContacts/*/deviceLookup/*` (collectionGroup `deviceLookup`) и автоматически добавляют зарегистрировавшегося пользователя в `userContacts/{ownerId}.contactIds` у владельцев совпавших ключей.

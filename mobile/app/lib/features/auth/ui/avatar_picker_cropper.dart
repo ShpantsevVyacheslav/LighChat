@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -70,10 +71,16 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
     }
     final url = _initialImageUrl;
     if (url != null && url.isNotEmpty) {
-      return Image.network(
-        url,
+      return CachedNetworkImage(
+        imageUrl: url,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Icon(
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        placeholder: (context, _) => ColoredBox(
+          color: (dark ? Colors.white : scheme.surfaceContainerHighest)
+              .withValues(alpha: dark ? 0.08 : 0.45),
+        ),
+        errorWidget: (context, _, error) => Icon(
           Icons.person_outline_rounded,
           size: iconSize ?? 56,
           color: (dark ? Colors.white : scheme.onSurface).withValues(

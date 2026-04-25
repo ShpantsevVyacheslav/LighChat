@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
-import '../../shared/ui/app_back_button.dart';
 
 const double _kHeaderTitleSize = 16;
 const double _kCardTitleSize = 18;
@@ -148,28 +147,63 @@ class _PrivacyView extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
+    final titleColor = dark
+        ? Colors.white.withValues(alpha: 0.95)
+        : scheme.onSurface.withValues(alpha: 0.94);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 2),
-        const Row(children: [AppBackButton(fallbackLocation: '/account')]),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Material(
+                color: (dark ? Colors.white : scheme.surface).withValues(
+                  alpha: dark ? 0.08 : 0.74,
+                ),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/account');
+                    }
+                  },
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      size: 30,
+                      color: titleColor,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Конфиденциальность',
+                style: TextStyle(
+                  fontSize: _kHeaderTitleSize,
+                  height: 1.1,
+                  fontWeight: FontWeight.w700,
+                  color: titleColor,
+                ),
+              ),
+            ],
+          ),
+        ),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 2, 16, 20),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Конфиденциальность',
-                  style: TextStyle(
-                    fontSize: _kHeaderTitleSize,
-                    height: 1.1,
-                    fontWeight: FontWeight.w700,
-                    color: dark ? Colors.white : scheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 6),
                 _SettingsCard(
                   title: 'Сквозное шифрование',
                   leadingIcon: Icons.lock_outline_rounded,
@@ -225,8 +259,7 @@ class _PrivacyView extends StatelessWidget {
                 const SizedBox(height: 14),
                 _SettingsCard(
                   title: 'Приглашения в группы',
-                  subtitle:
-                      'Кто может добавлять вас в групповой чат.',
+                  subtitle: 'Кто может добавлять вас в групповой чат.',
                   leadingIcon: Icons.group_add_outlined,
                   children: [
                     _SwitchRow(
@@ -305,11 +338,36 @@ class _PrivacyView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
-                Align(
-                  child: TextButton.icon(
+                SizedBox(
+                  height: 54,
+                  child: OutlinedButton.icon(
                     onPressed: onReset,
-                    icon: const Icon(Icons.rotate_left_rounded),
-                    label: const Text('Сбросить настройки'),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor:
+                          (dark ? Colors.white : scheme.surfaceContainerHighest)
+                              .withValues(alpha: dark ? 0.04 : 0.86),
+                      side: BorderSide(
+                        color: (dark ? Colors.white : scheme.onSurface)
+                            .withValues(alpha: dark ? 0.16 : 0.12),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.sync_rounded,
+                      size: 18,
+                      color: Color(0xCCFFFFFF),
+                    ),
+                    label: Text(
+                      'Сбросить настройки',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: (dark ? Colors.white : scheme.onSurface)
+                            .withValues(alpha: dark ? 0.7 : 0.7),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -485,11 +543,7 @@ class _SwitchRow extends StatelessWidget {
 /// совместимая высота и отступы. Вызывается в карточке "Сквозное шифрование"
 /// как entry-point для экрана "Мои устройства" (Phase 5).
 class _NavRow extends StatelessWidget {
-  const _NavRow({
-    required this.title,
-    required this.onTap,
-    this.subtitle,
-  });
+  const _NavRow({required this.title, required this.onTap, this.subtitle});
 
   final String title;
   final String? subtitle;

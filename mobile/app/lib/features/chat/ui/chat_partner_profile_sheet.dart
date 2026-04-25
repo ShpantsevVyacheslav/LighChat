@@ -389,15 +389,27 @@ class _ChatPartnerProfileSheetState
       'ID: $partnerId',
     ];
     try {
+      Rect? shareRect;
+      final ro = context.findRenderObject();
+      if (ro is RenderBox && ro.hasSize) {
+        final origin = ro.localToGlobal(Offset.zero);
+        shareRect = origin & ro.size;
+      }
       await SharePlus.instance.share(
         ShareParams(
           text: lines.join('\n'),
           subject: 'Контакт LighChat: $displayTitle',
+          sharePositionOrigin: shareRect,
         ),
       );
+      if (!mounted) return;
+      _toast('Контакт отправлен');
     } catch (e) {
       if (!mounted) return;
-      _toast('Не удалось поделиться контактом');
+      final fallback = lines.join('\n');
+      await Clipboard.setData(ClipboardData(text: fallback));
+      if (!mounted) return;
+      _toast('Не удалось открыть шаринг. Текст контакта скопирован.');
     }
   }
 
@@ -716,7 +728,6 @@ class _ChatPartnerProfileSheetState
                             ? Icons.notifications_off_rounded
                             : Icons.notifications_rounded,
                         label: 'Звук',
-                        active: !muted,
                         busy: _muteToggleBusy,
                         onTap: _muteToggleBusy
                             ? null
@@ -728,18 +739,17 @@ class _ChatPartnerProfileSheetState
                 ),
               ],
               if (partnerId != null &&
-                  (isContact || showAdd) &&
+                  showAdd &&
+                  !isContact &&
                   !_isGroup &&
                   !_isSaved) ...[
                 const SizedBox(height: 18),
                 _ContactPill(
-                  isContact: isContact,
+                  isContact: false,
                   busy: _addContactBusy,
                   onPressed: _addContactBusy
                       ? null
-                      : () => isContact
-                            ? _onRemoveContact(partnerId)
-                            : _onAddContact(partnerId),
+                      : () => _onAddContact(partnerId),
                 ),
               ],
               const SizedBox(height: 18),
@@ -891,6 +901,16 @@ class _ChatPartnerProfileSheetState
                   label: const Text('Покинуть группу'),
                 ),
               ],
+              if (partnerId != null && isContact && !_isGroup && !_isSaved) ...[
+                const SizedBox(height: 18),
+                _ContactPill(
+                  isContact: true,
+                  busy: _addContactBusy,
+                  onPressed: _addContactBusy
+                      ? null
+                      : () => _onRemoveContact(partnerId),
+                ),
+              ],
               const SizedBox(height: 20),
             ],
           ),
@@ -939,8 +959,13 @@ class _ChatPartnerProfileSheetState
       ],
     );
 
+    final scheme = Theme.of(context).colorScheme;
+    final baseBg = scheme.brightness == Brightness.dark
+        ? const Color(0xFF04070C)
+        : const Color(0xFFF3F6FC);
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: baseBg,
       body: widget.fullScreen
           ? backdrop
           : Align(
@@ -1215,7 +1240,14 @@ class _ContactPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    final fg = Color(0xFFF2F4FA).withValues(alpha: enabled ? 0.95 : 0.42);
+    final destructive = isContact;
+    final fgBase = destructive
+        ? const Color(0xFFFF6B6B)
+        : const Color(0xFFF2F4FA);
+    final fg = fgBase.withValues(alpha: enabled ? 0.95 : 0.42);
+    final borderColor = destructive
+        ? const Color(0xFFFF6B6B).withValues(alpha: enabled ? 0.70 : 0.30)
+        : Colors.white.withValues(alpha: 0.38);
     return Center(
       child: OutlinedButton.icon(
         onPressed: onPressed,
@@ -1238,7 +1270,7 @@ class _ContactPill extends StatelessWidget {
         ),
         style: OutlinedButton.styleFrom(
           foregroundColor: fg,
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.38)),
+          side: BorderSide(color: borderColor),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: const StadiumBorder(),
         ),
@@ -1251,14 +1283,12 @@ class _ProfileQuickAction {
   const _ProfileQuickAction({
     required this.icon,
     required this.label,
-    this.active = false,
     this.busy = false,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final bool active;
   final bool busy;
   final VoidCallback? onTap;
 }
@@ -1290,12 +1320,8 @@ class _ProfileQuickActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = action.onTap != null;
-    final fg = action.active
-        ? const Color(0xFF69C6FF)
-        : const Color(0xFFF2F4FA).withValues(alpha: enabled ? 0.92 : 0.45);
-    final bg = action.active
-        ? const Color(0xFF69C6FF).withValues(alpha: 0.16)
-        : Colors.white.withValues(alpha: 0.08);
+    final fg = const Color(0xFFF2F4FA).withValues(alpha: enabled ? 0.92 : 0.45);
+    final bg = Colors.white.withValues(alpha: 0.08);
 
     return Material(
       color: bg,
@@ -1304,7 +1330,7 @@ class _ProfileQuickActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: action.onTap,
         child: SizedBox(
-          height: 72,
+          height: 62,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1316,18 +1342,6 @@ class _ProfileQuickActionButton extends StatelessWidget {
                 )
               else
                 Icon(action.icon, size: 22, color: fg),
-              const SizedBox(height: 6),
-              Text(
-                action.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: fg,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  height: 1.0,
-                ),
-              ),
             ],
           ),
         ),

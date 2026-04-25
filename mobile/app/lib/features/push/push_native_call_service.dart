@@ -283,8 +283,17 @@ class PushNativeCallService {
       if (!snap.exists) return;
       final data = snap.data() ?? const <String, dynamic>{};
       final status = (data['status'] as String?) ?? '';
-      if (status == 'ended' || status == 'rejected') return;
-      final nextStatus = status == 'calling' ? 'rejected' : 'ended';
+      if (status == 'ended' ||
+          status == 'missed' ||
+          status == 'cancelled' ||
+          status == 'rejected') {
+        return;
+      }
+      final callerId = (data['callerId'] as String?) ?? '';
+      final actedByCaller = callerId.isNotEmpty && callerId == _activeUid;
+      final nextStatus = status == 'calling'
+          ? (actedByCaller ? 'missed' : 'cancelled')
+          : 'ended';
       await ref.update(<String, Object?>{
         'status': nextStatus,
         'endedAt': DateTime.now().toUtc().toIso8601String(),

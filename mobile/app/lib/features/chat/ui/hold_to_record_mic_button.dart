@@ -12,14 +12,15 @@ import 'voice_message_record_sheet.dart';
 ///
 /// Flow:
 ///   * **Long press** — starts recording; a thin indicator bar is shown at the
-///     bottom of the screen with elapsed time and the hint "← Влево — отмена".
+///     bottom of the screen in place of the composer row.
 ///   * **Slide left** past [_kCancelDx] while holding — arms cancel; releasing
 ///     discards the recording.
+///   * **Slide up** while holding — pauses recording; slide down restores.
 ///   * **Release** (without slide‑left) — stops recording and opens an **inline
 ///     preview** over the composer: trash / play / waveform / duration / send
 ///     (see [VoiceMessagePreviewBar]). The user confirms the send or discards.
-///   * **Plain tap** — delegated to [onTap] (opens the classic modal sheet),
-///     preserving the existing tap‑to‑record flow.
+///   * **Plain tap** (when [tapToRecord] is enabled) — starts the same visual
+///     flow as hold‑to‑record, with pause/stop/cancel controls.
 ///
 /// The preview is rendered via an `OverlayEntry` so no changes are needed in
 /// the composer / chat screen widget tree.
@@ -30,6 +31,7 @@ class HoldToRecordMicButton extends StatefulWidget {
     required this.enabled,
     required this.onTap,
     required this.onRecorded,
+    this.tapToRecord = false,
   });
 
   final Widget child;
@@ -40,6 +42,7 @@ class HoldToRecordMicButton extends StatefulWidget {
   /// owns the file lifecycle — this widget does **not** delete [VoiceMessageRecordResult.filePath]
   /// on success.
   final Future<void> Function(VoiceMessageRecordResult result) onRecorded;
+  final bool tapToRecord;
 
   @override
   State<HoldToRecordMicButton> createState() => _HoldToRecordMicButtonState();
@@ -51,11 +54,15 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   // Recording‑in‑progress indicator.
   OverlayEntry? _recOverlay;
   Timer? _ticker;
-  DateTime? _startedAt;
+  DateTime? _activeRunStartedAt;
+  Duration _elapsedBeforePause = Duration.zero;
   Duration _elapsed = Duration.zero;
   bool _recording = false;
+  bool _paused = false;
   bool _busy = false;
+  bool _tapMode = false;
   double _dragDx = 0;
+  double _dragDy = 0;
 
   // Post‑release preview overlay.
   OverlayEntry? _previewOverlay;
@@ -63,6 +70,8 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
 
   // Slide‑left threshold for cancel (Telegram parity).
   static const double _kCancelDx = -80;
+  static const double _kPauseUpDy = -52;
+  static const double _kResumeDownDy = -28;
 
   @override
   void dispose() {
@@ -75,6 +84,14 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
 
   bool get _cancelArmed => _dragDx <= _kCancelDx;
 
+  Duration _currentElapsed() {
+    if (_recording && !_paused && _activeRunStartedAt != null) {
+      return _elapsedBeforePause +
+          DateTime.now().difference(_activeRunStartedAt!);
+    }
+    return _elapsedBeforePause;
+  }
+
   Future<String> _newTempPath() async {
     final dir = await getTemporaryDirectory();
     return '${dir.path}/audio_${DateTime.now().microsecondsSinceEpoch}.m4a';
@@ -83,9 +100,8 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   void _startTicker() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      final s = _startedAt;
-      if (!mounted || s == null) return;
-      setState(() => _elapsed = DateTime.now().difference(s));
+      if (!mounted) return;
+      setState(() => _elapsed = _currentElapsed());
       _recOverlay?.markNeedsBuild();
     });
   }
@@ -109,42 +125,61 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     _recOverlay = OverlayEntry(
       builder: (context) {
         final bottom = MediaQuery.paddingOf(context).bottom;
+        final insetsBottom = MediaQuery.viewInsetsOf(context).bottom;
         final armed = _cancelArmed;
         return Positioned(
           left: 12,
           right: 12,
-          // Sit just above the composer (≈ composer height + safe area).
-          bottom: bottom + 62,
-          child: IgnorePointer(
-            child: AnimatedOpacity(
-              opacity: _recording ? 1 : 0,
-              duration: const Duration(milliseconds: 120),
-              child: Material(
-                color: Colors.black.withValues(alpha: 0.86),
-                borderRadius: BorderRadius.circular(24),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      // Pulsing red dot + timer (screenshot‑1 parity).
-                      _PulsingRecordDot(active: !armed),
-                      const SizedBox(width: 10),
-                      Text(
-                        _fmt(_elapsed),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          letterSpacing: 0.2,
-                          fontFeatures: <FontFeature>[
-                            FontFeature.tabularFigures(),
-                          ],
-                        ),
+          // Replace composer input row visually (same y-position).
+          bottom: insetsBottom + bottom + 8,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: _recording ? 1 : 0),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    _PulsingRecordDot(active: !armed && !_paused),
+                    const SizedBox(width: 10),
+                    Text(
+                      _fmt(_elapsed),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        letterSpacing: 0.2,
+                        fontFeatures: <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
                       ),
-                      const Spacer(),
+                    ),
+                    const Spacer(),
+                    if (_tapMode) ...[
+                      _RecMiniBtn(
+                        icon: _paused
+                            ? Icons.play_arrow_rounded
+                            : Icons.pause_rounded,
+                        onTap: _paused ? _resume : _pause,
+                      ),
+                      const SizedBox(width: 6),
+                      _RecMiniBtn(icon: Icons.stop_rounded, onTap: _finish),
+                      const SizedBox(width: 6),
+                      _RecMiniBtn(icon: Icons.close_rounded, onTap: _cancel),
+                    ] else ...[
+                      _RecMiniBtn(
+                        icon: _paused
+                            ? Icons.play_arrow_rounded
+                            : Icons.pause_rounded,
+                        onTap: _paused ? _resume : _pause,
+                      ),
+                      const SizedBox(width: 8),
                       Icon(
                         Icons.chevron_left_rounded,
                         size: 18,
@@ -154,7 +189,9 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        armed ? 'Отпустите — отмена' : 'Влево — отмена',
+                        armed
+                            ? 'Отпустите — отмена'
+                            : 'Влево — отмена · Вверх — пауза',
                         style: TextStyle(
                           color: Colors.white.withValues(
                             alpha: armed ? 0.95 : 0.72,
@@ -164,10 +201,22 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
               ),
             ),
+            builder: (context, t, child) {
+              return Opacity(
+                opacity: t,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - t) * 12),
+                  child: Transform.scale(
+                    scale: 0.985 + (t * 0.015),
+                    child: child,
+                  ),
+                ),
+              );
+            },
           ),
         );
       },
@@ -177,11 +226,15 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
 
   // ───────────────────────────── Record lifecycle ──────────────────────────
 
-  Future<void> _start() async {
+  Future<void> _start({required bool tapMode}) async {
     if (!widget.enabled || _busy || _recording) return;
     setState(() {
       _busy = true;
+      _tapMode = tapMode;
+      _paused = false;
       _dragDx = 0;
+      _dragDy = 0;
+      _elapsedBeforePause = Duration.zero;
       _elapsed = Duration.zero;
     });
     try {
@@ -197,7 +250,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         path: path,
       );
       if (!mounted) return;
-      _startedAt = DateTime.now();
+      _activeRunStartedAt = DateTime.now();
       _recording = true;
       _showRecordingOverlay();
       _startTicker();
@@ -220,9 +273,14 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     _stopTicker();
     _recOverlay?.remove();
     _recOverlay = null;
-    _startedAt = null;
+    _activeRunStartedAt = null;
+    _elapsedBeforePause = Duration.zero;
+    _elapsed = Duration.zero;
     _recording = false;
+    _paused = false;
+    _tapMode = false;
     _dragDx = 0;
+    _dragDy = 0;
     if (mounted) setState(() {});
   }
 
@@ -231,17 +289,19 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     if (!_recording || _busy) return;
     setState(() => _busy = true);
     try {
-      final started = _startedAt;
-      final elapsed = started == null
-          ? Duration.zero
-          : DateTime.now().difference(started);
+      final elapsed = _currentElapsed();
       final path = await _recorder.stop();
       _stopTicker();
       _recOverlay?.remove();
       _recOverlay = null;
       _recording = false;
-      _startedAt = null;
+      _activeRunStartedAt = null;
+      _elapsedBeforePause = Duration.zero;
+      _elapsed = Duration.zero;
+      _paused = false;
+      _tapMode = false;
       _dragDx = 0;
+      _dragDy = 0;
       if (!mounted) return;
       setState(() {});
 
@@ -253,9 +313,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         return;
       }
       // Too short — discard silently (parity with the bottom sheet).
-      if (path == null ||
-          path.trim().isEmpty ||
-          elapsed.inMilliseconds < 350) {
+      if (path == null || path.trim().isEmpty || elapsed.inMilliseconds < 350) {
         if (path != null && path.trim().isNotEmpty) {
           await _deleteSilently(path);
         }
@@ -281,41 +339,29 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         final bottomPad = MediaQuery.paddingOf(ctx).bottom;
         final viewInsets = MediaQuery.viewInsetsOf(ctx).bottom;
         return Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Material(
-            color: Theme.of(ctx).colorScheme.surface,
-            elevation: 8,
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: viewInsets > 0 ? 0 : bottomPad > 0 ? 0 : 4,
-                ),
-                child: VoiceMessagePreviewBar(
-                  filePath: result.filePath,
-                  duration: result.duration,
-                  busy: _previewBusy,
-                  onCancel: () async {
-                    if (_previewBusy) return;
-                    _dismissPreview();
-                    await _deleteSilently(result.filePath);
-                  },
-                  onSend: () async {
-                    if (_previewBusy) return;
-                    _previewBusy = true;
-                    _previewOverlay?.markNeedsBuild();
-                    try {
-                      await widget.onRecorded(result);
-                    } finally {
-                      _previewBusy = false;
-                      _dismissPreview();
-                    }
-                  },
-                ),
-              ),
-            ),
+          left: 12,
+          right: 12,
+          bottom: viewInsets + bottomPad + 8,
+          child: VoiceMessagePreviewBar(
+            filePath: result.filePath,
+            duration: result.duration,
+            busy: _previewBusy,
+            onCancel: () async {
+              if (_previewBusy) return;
+              _dismissPreview();
+              await _deleteSilently(result.filePath);
+            },
+            onSend: () async {
+              if (_previewBusy) return;
+              _previewBusy = true;
+              _previewOverlay?.markNeedsBuild();
+              try {
+                await widget.onRecorded(result);
+              } finally {
+                _previewBusy = false;
+                _dismissPreview();
+              }
+            },
           ),
         );
       },
@@ -342,15 +388,25 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.enabled && !_recording && _previewOverlay == null
-          ? widget.onTap
+          ? (widget.tapToRecord
+                ? () => unawaited(_start(tapMode: true))
+                : widget.onTap)
           : null,
-      onLongPressStart: (_) => unawaited(_start()),
+      onLongPressStart: (_) => unawaited(_start(tapMode: false)),
       onLongPressMoveUpdate: (d) {
         if (!_recording) return;
+        if (_tapMode) return;
         _dragDx = d.offsetFromOrigin.dx;
+        _dragDy = d.offsetFromOrigin.dy;
+        if (_dragDy <= _kPauseUpDy && !_paused) {
+          unawaited(_pause());
+        } else if (_dragDy >= _kResumeDownDy && _paused) {
+          unawaited(_resume());
+        }
         _recOverlay?.markNeedsBuild();
       },
       onLongPressEnd: (_) {
+        if (_tapMode) return;
         if (_cancelArmed) {
           unawaited(_cancel());
         } else {
@@ -358,6 +414,60 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         }
       },
       child: widget.child,
+    );
+  }
+
+  Future<void> _pause() async {
+    if (!_recording || _paused) return;
+    try {
+      await _recorder.pause();
+      if (_activeRunStartedAt != null) {
+        _elapsedBeforePause += DateTime.now().difference(_activeRunStartedAt!);
+      }
+      _activeRunStartedAt = null;
+      _paused = true;
+      _elapsed = _elapsedBeforePause;
+      if (mounted) setState(() {});
+      _recOverlay?.markNeedsBuild();
+    } catch (_) {}
+  }
+
+  Future<void> _resume() async {
+    if (!_recording || !_paused) return;
+    try {
+      await _recorder.resume();
+      _activeRunStartedAt = DateTime.now();
+      _paused = false;
+      if (mounted) setState(() {});
+      _recOverlay?.markNeedsBuild();
+    } catch (_) {}
+  }
+}
+
+class _RecMiniBtn extends StatelessWidget {
+  const _RecMiniBtn({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.12),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => unawaited(onTap()),
+        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: Icon(
+            icon,
+            size: 18,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
+        ),
+      ),
     );
   }
 }

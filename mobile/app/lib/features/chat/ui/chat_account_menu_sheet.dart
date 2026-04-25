@@ -164,11 +164,6 @@ class ChatAccountMenuSheet extends StatelessWidget {
                 onTap: onChatSettingsTap,
               ),
               item(
-                icon: Icons.verified_user_outlined,
-                title: 'Администрирование',
-                onTap: soon,
-              ),
-              item(
                 icon: Icons.notifications_none_rounded,
                 title: 'Уведомления',
                 onTap: soon,

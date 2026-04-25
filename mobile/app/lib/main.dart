@@ -13,6 +13,7 @@ import 'app_router.dart';
 import 'app_theme.dart';
 import 'features/meetings/data/meeting_deep_links.dart';
 import 'features/push/push_messaging_background.dart';
+import 'features/push/in_app_incoming_call_scope.dart';
 import 'features/push/push_messaging_scope.dart';
 import 'features/push/push_native_call_service.dart';
 import 'features/chat/data/app_theme_preference.dart';
@@ -131,7 +132,9 @@ class _MyAppState extends ConsumerState<MyApp> {
       routerConfig: _router,
       builder: (context, child) => DeviceSessionFirestoreSync(
         child: LiveLocationFirestoreSync(
-          child: PushMessagingScope(child: child ?? const SizedBox.shrink()),
+          child: InAppIncomingCallScope(
+            child: PushMessagingScope(child: child ?? const SizedBox.shrink()),
+          ),
         ),
       ),
     );

@@ -842,8 +842,8 @@ class _BubbleMetaLine extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final base = isMine ? onPrimary : onSurface;
-    final metaColor = base.withValues(alpha: 0.65);
-    final editedColor = base.withValues(alpha: 0.5);
+    final metaColor = base.withValues(alpha: 0.82);
+    final editedColor = base.withValues(alpha: 0.7);
     final statusColor = (message.deliveryStatus ?? 'sent') == 'failed'
         ? Colors.redAccent.withValues(alpha: 0.95)
         : metaColor;
@@ -884,6 +884,38 @@ class _BubbleMetaLine extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _MessageSelectionCheckbox extends StatelessWidget {
+  const _MessageSelectionCheckbox({
+    required this.selected,
+    required this.activeColor,
+  });
+
+  final bool selected;
+  final Color activeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = selected
+        ? activeColor.withValues(alpha: 0.94)
+        : Colors.white.withValues(alpha: 0.6);
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected
+            ? activeColor.withValues(alpha: 0.96)
+            : Colors.transparent,
+        border: Border.all(color: border, width: selected ? 1.5 : 1.3),
+      ),
+      alignment: Alignment.center,
+      child: selected
+          ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+          : null,
     );
   }
 }
@@ -968,6 +1000,16 @@ class _ChatMessageBubble extends StatelessWidget {
     final incomingDefault = scheme.brightness == Brightness.dark
         ? const Color(0xFF2A2D34).withValues(alpha: 0.92)
         : Colors.white;
+    final outgoingBg = outgoingBubbleColor ?? const Color(0xFF2A79FF);
+    final incomingBg = incomingBubbleColor ?? incomingDefault;
+    Color metaBaseForBubble(Color bubble) {
+      final lum = bubble.computeLuminance();
+      if (lum > 0.64) return Colors.black.withValues(alpha: 0.84);
+      return Colors.white.withValues(alpha: 0.94);
+    }
+
+    final outgoingMetaBase = metaBaseForBubble(outgoingBg);
+    final incomingMetaBase = metaBaseForBubble(incomingBg);
     if (message.isDeleted) {
       return MessageDeletedStub(alignRight: isMine);
     }
@@ -1208,9 +1250,7 @@ class _ChatMessageBubble extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(compact ? 14 : radius),
-          color: isMine
-              ? (outgoingBubbleColor ?? const Color(0xFF2A79FF))
-              : (incomingBubbleColor ?? incomingDefault),
+          color: isMine ? outgoingBg : incomingBg,
           border: Border.all(
             color: isMine
                 ? const Color(0xFF4D92FF).withValues(alpha: 0.32)
@@ -1254,8 +1294,8 @@ class _ChatMessageBubble extends StatelessWidget {
             isMine: isMine,
             showTimestamps: showTimestamps,
             editedTimeSize: editedTimeSize,
-            onPrimary: scheme.onPrimary,
-            onSurface: scheme.onSurface,
+            onPrimary: outgoingMetaBase,
+            onSurface: incomingMetaBase,
             timeHmText: timeStr,
           ),
         ),
@@ -1348,8 +1388,8 @@ class _ChatMessageBubble extends StatelessWidget {
                     style: TextStyle(
                       fontSize: editedTimeSize,
                       fontWeight: FontWeight.w800,
-                      color: (isMine ? scheme.onPrimary : scheme.onSurface)
-                          .withValues(alpha: 0.62),
+                      color: (isMine ? outgoingMetaBase : incomingMetaBase)
+                          .withValues(alpha: 0.72),
                     ),
                   ),
                   if (isMine) ...[
@@ -1357,7 +1397,7 @@ class _ChatMessageBubble extends StatelessWidget {
                     MessageBubbleDeliveryIcons(
                       deliveryStatus: message.deliveryStatus,
                       readAt: message.readAt,
-                      iconColor: scheme.onPrimary.withValues(alpha: 0.62),
+                      iconColor: outgoingMetaBase.withValues(alpha: 0.72),
                       size: 11,
                     ),
                   ],
@@ -1415,8 +1455,8 @@ class _ChatMessageBubble extends StatelessWidget {
                     style: TextStyle(
                       fontSize: editedTimeSize,
                       fontWeight: FontWeight.w800,
-                      color: (isMine ? scheme.onPrimary : scheme.onSurface)
-                          .withValues(alpha: 0.62),
+                      color: (isMine ? outgoingMetaBase : incomingMetaBase)
+                          .withValues(alpha: 0.72),
                     ),
                   ),
                   if (isMine) ...[
@@ -1424,7 +1464,7 @@ class _ChatMessageBubble extends StatelessWidget {
                     MessageBubbleDeliveryIcons(
                       deliveryStatus: message.deliveryStatus,
                       readAt: message.readAt,
-                      iconColor: scheme.onPrimary.withValues(alpha: 0.62),
+                      iconColor: outgoingMetaBase.withValues(alpha: 0.72),
                       size: 11,
                     ),
                   ],
@@ -1514,6 +1554,13 @@ class _ChatMessageBubble extends StatelessWidget {
             Row(
               mainAxisAlignment: rowMain,
               children: [
+                if (selectionMode) ...[
+                  _MessageSelectionCheckbox(
+                    selected: selected,
+                    activeColor: scheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Flexible(
                   child: Align(
                     alignment: innerAlign,
@@ -1541,23 +1588,7 @@ class _ChatMessageBubble extends StatelessWidget {
                                 !message.isDeleted
                             ? () => onMessageLongPress!(message)
                             : null,
-                        child: DecoratedBox(
-                          decoration: selected
-                              ? BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    radius + 2,
-                                  ),
-                                  border: Border.all(
-                                    color: scheme.primary,
-                                    width: 2,
-                                  ),
-                                )
-                              : const BoxDecoration(),
-                          child: Padding(
-                            padding: EdgeInsets.all(selected ? 2 : 0),
-                            child: wrappedBody,
-                          ),
-                        ),
+                        child: wrappedBody,
                       ),
                     ),
                   ),

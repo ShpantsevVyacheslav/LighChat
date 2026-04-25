@@ -337,9 +337,18 @@ export function ThreadWindow({
         [parentE2eeDecryptedByMessageId, threadE2eePlaintextByMessageId]
     );
 
+    const isIncomingUnreadForViewer = useCallback(
+        (m: Pick<ChatMessage, 'senderId' | 'readAt' | 'systemEvent'>) => {
+            if (m.senderId === '__system__' || m.systemEvent != null) return false;
+            if (m.senderId === currentUser.id) return false;
+            return !m.readAt;
+        },
+        [currentUser.id]
+    );
+
     const unreadCount = useMemo(() => {
-        return allMessages.filter(m => m.senderId !== currentUser.id && !m.readAt).length;
-    }, [allMessages, currentUser.id]);
+        return allMessages.filter((m) => isIncomingUnreadForViewer(m)).length;
+    }, [allMessages, isIncomingUnreadForViewer]);
 
     const prevUnreadCount = useRef(unreadCount);
     useEffect(() => {
@@ -359,12 +368,12 @@ export function ThreadWindow({
         }
 
         if (!unreadSeparatorId && !hasClearedSeparatorRef.current) {
-            const oldestUnread = allMessages.find(m => m.senderId !== currentUser.id && !m.readAt);
+            const oldestUnread = allMessages.find((m) => isIncomingUnreadForViewer(m));
             if (oldestUnread) {
                 setUnreadSeparatorId(oldestUnread.id);
             }
         }
-    }, [isFullyReady, unreadCount, unreadSeparatorId, allMessages, currentUser.id]);
+    }, [isFullyReady, unreadCount, unreadSeparatorId, allMessages, isIncomingUnreadForViewer]);
 
     const flatItems = useMemo(() => {
         const items: FlatThreadItem[] = [{ type: 'parent' }];
