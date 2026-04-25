@@ -17,8 +17,9 @@ export async function ensureUserDocExistsAdmin(opts: {
   displayName: string;
   email?: string | undefined;
   avatarUrl?: string | undefined;
+  dateOfBirth?: string | null | undefined;
 }): Promise<void> {
-  const { uid, displayName, email, avatarUrl } = opts;
+  const { uid, displayName, email, avatarUrl, dateOfBirth } = opts;
   if (!uid) return;
 
   const ref = adminDb.doc(`users/${uid}`);
@@ -43,7 +44,7 @@ export async function ensureUserDocExistsAdmin(opts: {
         avatar,
         role: "worker",
         bio: "",
-        dateOfBirth: null,
+        dateOfBirth: dateOfBirth ?? null,
         createdAt: now,
         deletedAt: null,
         online: true,
@@ -76,6 +77,12 @@ export async function ensureUserDocExistsAdmin(opts: {
     const nextAvatar = String(avatarUrl ?? "").trim();
     if (nextAvatar && (isDicebearPlaceholderAvatar(avatarNow) || !avatarNow)) {
       patch.avatar = nextAvatar.slice(0, 2048);
+    }
+
+    const dobNow = (data as any).dateOfBirth;
+    const nextDob = dateOfBirth ?? null;
+    if ((dobNow == null || String(dobNow).trim() === "") && nextDob) {
+      patch.dateOfBirth = nextDob;
     }
 
     if (Object.keys(patch).length > 0) {

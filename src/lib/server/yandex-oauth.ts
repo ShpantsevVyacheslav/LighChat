@@ -190,3 +190,19 @@ export function yandexPrimaryPhone(info: YandexLoginInfo): string | undefined {
   if (!num) return undefined;
   return num.slice(0, 32);
 }
+
+const BIRTHDAY_ISO = /^\d{4}-\d{2}-\d{2}$/u;
+
+/**
+ * Дата рождения из Яндекса: `YYYY-MM-DD`.
+ * Неизвестные части даты заполняются нулями (например `0000-12-23`), либо `null`.
+ */
+export function yandexPrimaryDateOfBirth(
+  info: YandexLoginInfo,
+): string | undefined {
+  const raw = typeof info.birthday === "string" ? info.birthday.trim() : "";
+  if (!raw || !BIRTHDAY_ISO.test(raw)) return undefined;
+  // Drop fully-unknown or impossible values (keep partial like 0000-12-23).
+  if (raw === "0000-00-00") return undefined;
+  return raw;
+}

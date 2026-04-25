@@ -1,5 +1,6 @@
 import {
   type YandexLoginInfo,
+  yandexPrimaryDateOfBirth,
   yandexDisplayName,
   yandexNumericUserId,
   yandexPhotoUrl,
@@ -130,6 +131,7 @@ export async function issueFirebaseCustomTokenForYandexProfile(
     displayName,
     email,
     avatarUrl: photoURL,
+    dateOfBirth: yandexPrimaryDateOfBirth(info) ?? null,
   });
 
   const yandexPhone = yandexPrimaryPhone(info);
