@@ -5,18 +5,10 @@
 
 import * as admin from "firebase-admin";
 import { registrationUsernameKey } from "./registrationIndexKeys";
-
-const USERNAME_ALLOWED = /^[a-zA-Z0-9_]+$/u;
-
-function normalizeUsernameCandidate(raw: string): string {
-  const base = String(raw ?? "")
-    .trim()
-    .replace(/^@/, "")
-    .toLowerCase()
-    .replace(/[^a-zA-Z0-9_]+/gu, "_")
-    .replace(/^_+|_+$/gu, "");
-  return base.slice(0, 30);
-}
+import {
+  isNormalizedUsernameTokenAllowed,
+  normalizeUsernameCandidate,
+} from "./username-candidate";
 
 async function isUsernameTakenInRegistrationIndex(opts: {
   db: admin.firestore.Firestore;
@@ -52,13 +44,13 @@ export async function generateUniqueUsernameAdmin(opts: {
   for (const rawBase of candidates) {
     const base = normalizeUsernameCandidate(rawBase);
     if (base.length < 3) continue;
-    if (!USERNAME_ALLOWED.test(base)) continue;
+    if (!isNormalizedUsernameTokenAllowed(base)) continue;
 
     for (let i = 0; i < 20; i++) {
       const candidate = i === 0 ? base : `${base}_${i + 1}`;
       const normalized = normalizeUsernameCandidate(candidate);
       if (normalized.length < 3) continue;
-      if (!USERNAME_ALLOWED.test(normalized)) continue;
+      if (!isNormalizedUsernameTokenAllowed(normalized)) continue;
 
       const taken = await isUsernameTakenInRegistrationIndex({
         db: opts.db,

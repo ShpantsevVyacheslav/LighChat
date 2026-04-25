@@ -4,6 +4,7 @@ export 'src/chat_repository.dart';
 export 'src/firebase_ready.dart';
 export 'src/registration/registration_models.dart';
 export 'src/registration/registration_profile_complete.dart';
+export 'src/registration/username_candidate.dart';
 export 'src/registration/registration_service.dart';
 
 // E2EE v2 — mobile layer.

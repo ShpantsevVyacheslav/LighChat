@@ -1,7 +1,7 @@
-import 'phone_ru_format.dart';
+import 'package:lighchat_firebase/lighchat_firebase.dart'
+    show isNormalizedUsernameTokenAllowed, normalizeUsernameCandidate;
 
-String normalizeUsername(String raw) =>
-    raw.trim().replaceFirst(RegExp(r'^@'), '').toLowerCase();
+import 'phone_ru_format.dart';
 
 String normalizePhoneDigits(String raw) => raw.replaceAll(RegExp(r'\D'), '');
 
@@ -14,13 +14,13 @@ String? validateName(String value) {
 
 String? validateUsername(String value) {
   final raw = value.trim();
-  final normalized = normalizeUsername(raw);
+  final normalized = normalizeUsernameCandidate(raw);
   if (normalized.length < 3) {
     return 'Логин должен содержать не менее 3 символов.';
   }
   if (normalized.length > 30) return 'Логин не должен превышать 30 символов.';
-  if (!RegExp(r'^@?[a-zA-Z0-9_]+$').hasMatch(raw)) {
-    return 'Только латиница, цифры и _.';
+  if (!isNormalizedUsernameTokenAllowed(normalized)) {
+    return 'Только латиница, цифры, _ и . (точка не в начале/конце, без ..).';
   }
   return null;
 }

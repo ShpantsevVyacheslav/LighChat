@@ -5,13 +5,15 @@
 
 import type { User } from "@/lib/types";
 
+import {
+  isNormalizedUsernameTokenAllowed,
+  normalizeUsernameCandidate,
+} from "@/lib/username-candidate";
+
 const EMAIL_LIKE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 function normalizedUsername(raw: string): string {
-  return String(raw ?? "")
-    .trim()
-    .replace(/^@/, "")
-    .toLowerCase();
+  return normalizeUsernameCandidate(raw);
 }
 
 /**
@@ -24,8 +26,7 @@ export function isRegistrationProfileComplete(
   const name = String(u.name ?? "").trim();
   if (name.length < 2) return false;
   const username = normalizedUsername(String(u.username ?? ""));
-  if (username.length < 3 || username.length > 30) return false;
-  if (!/^[a-zA-Z0-9_]+$/u.test(username)) return false;
+  if (!isNormalizedUsernameTokenAllowed(username)) return false;
   const email = String(u.email ?? "").trim();
   if (!email || !EMAIL_LIKE.test(email)) return false;
   return true;

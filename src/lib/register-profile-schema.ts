@@ -4,12 +4,18 @@
 
 import * as z from "zod";
 
+import { isNormalizedUsernameTokenAllowed } from "@/lib/username-candidate";
+
 const usernameSchema = z
   .string()
   .trim()
   .min(3, { message: "Логин должен содержать не менее 3 символов." })
   .max(30, { message: "Логин не должен превышать 30 символов." })
-  .regex(/^@?[a-zA-Z0-9_]+$/, { message: "Только латиница, цифры и _" });
+  .regex(/^@?[a-zA-Z0-9_.]+$/, { message: "Только латиница, цифры, _ и ." })
+  .refine(
+    (s) => isNormalizedUsernameTokenAllowed(s.replace(/^@/, "")),
+    { message: "Некорректный логин (точка не в начале/конце, без ..)." },
+  );
 
 const phoneSchema = z
   .string()

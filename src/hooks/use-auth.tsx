@@ -67,17 +67,10 @@ import { isRegistrationProfileComplete } from '@/lib/registration-profile-comple
 import { writeDeviceSession } from '@/lib/device-session';
 import { applyPhoneMask, normalizePhoneDigits } from '@/lib/phone-utils';
 
-const USERNAME_ALLOWED = /^[a-zA-Z0-9_]+$/u;
-
-function normalizeUsernameCandidate(raw: string): string {
-  const base = String(raw ?? '')
-    .trim()
-    .replace(/^@/, '')
-    .toLowerCase()
-    .replace(/[^a-zA-Z0-9_]+/gu, '_')
-    .replace(/^_+|_+$/gu, '');
-  return base.slice(0, 30);
-}
+import {
+  isNormalizedUsernameTokenAllowed,
+  normalizeUsernameCandidate,
+} from '@/lib/username-candidate';
 
 async function generateUniqueUsernameForUid(opts: {
   firestore: Firestore;
@@ -87,7 +80,7 @@ async function generateUniqueUsernameForUid(opts: {
   const seedFromUid = String(opts.uid).replace(/[^a-zA-Z0-9]/gu, '').slice(-8);
   const fromName = normalizeUsernameCandidate(opts.displayName);
   const base =
-    fromName.length >= 3 && USERNAME_ALLOWED.test(fromName)
+    fromName.length >= 3 && isNormalizedUsernameTokenAllowed(fromName)
       ? fromName
       : `user_${seedFromUid || 'new'}`;
 
@@ -95,7 +88,7 @@ async function generateUniqueUsernameForUid(opts: {
     const candidate = i === 0 ? base : `${base}_${i + 1}`;
     const normalized = normalizeUsernameCandidate(candidate);
     if (normalized.length < 3) continue;
-    if (!USERNAME_ALLOWED.test(normalized)) continue;
+    if (!isNormalizedUsernameTokenAllowed(normalized)) continue;
     const taken = await isRegistrationUsernameTakenInIndex(
       opts.firestore,
       normalized,

@@ -38,6 +38,10 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { compressImage } from "@/lib/image-compression";
+import {
+  isNormalizedUsernameTokenAllowed,
+  normalizeUsernameCandidate,
+} from "@/lib/username-candidate";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RegisterAvatarCropOverlay } from "@/components/auth/register-avatar-crop-overlay";
@@ -164,18 +168,12 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
             }
         }
 
-        const normU = (data.username ?? "").trim().replace(/^@/, "").toLowerCase();
+        const normU = normalizeUsernameCandidate(data.username ?? "");
         if (normU.length > 0) {
-          if (normU.length < 3) {
+          if (!isNormalizedUsernameTokenAllowed(normU)) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Логин должен содержать не менее 3 символов.",
-              path: ["username"],
-            });
-          } else if (!/^[a-zA-Z0-9_]+$/.test(normU)) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Только латиница, цифры и _",
+              message: "Логин: латиница, цифры, _ и .; 3–30 символов; точка не в начале/конце, без ..",
               path: ["username"],
             });
           }
@@ -512,7 +510,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                 <Input placeholder="username" {...field} className="rounded-xl" autoComplete="username" />
               </FormControl>
               <FormDescription className="text-xs">
-                Латиница, цифры и символ подчёркивания; не менее 3 символов, если указан.
+                Латиница, цифры, символ подчёркивания и точка; не менее 3 символов, если указан.
               </FormDescription>
               <FormMessage />
             </FormItem>
