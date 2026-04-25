@@ -10,6 +10,7 @@ import { adminAuth } from "@/firebase/admin";
 import { mergeProviderPhoneAndAvatarIntoUserDocAdmin } from "@/lib/server/merge-provider-profile-firestore-admin";
 import { adminDb } from "@/firebase/admin";
 import { generateUniqueUsernameAdmin } from "@/lib/server/generate-unique-username-admin";
+import { ensureUserDocExistsAdmin } from "@/lib/server/ensure-user-doc-admin";
 
 function firebaseAuthErrorCode(e: unknown): string {
   if (typeof e !== "object" || e === null) return "";
@@ -122,6 +123,14 @@ export async function issueFirebaseCustomTokenForYandexProfile(
       : undefined;
 
   await getOrCreateYandexAuthUser(uid, displayName, email, photoURL);
+
+  // Ensure `users/{uid}` exists before any provider merge to avoid "not ready yet; skip merge".
+  await ensureUserDocExistsAdmin({
+    uid,
+    displayName,
+    email,
+    avatarUrl: photoURL,
+  });
 
   const yandexPhone = yandexPrimaryPhone(info);
   await mergeProviderPhoneAndAvatarIntoUserDocAdmin({
