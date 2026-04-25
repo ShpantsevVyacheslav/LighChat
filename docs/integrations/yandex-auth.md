@@ -6,7 +6,7 @@
 2. Сервер Next.js ставит HttpOnly-cookie с `state`, редирект на **oauth.yandex.ru**.
 3. После согласия Яндекс ведёт на **`GET /api/auth/yandex/callback?code=…&state=…`**.
 4. Сервер обменивает `code` на `access_token`, читает профиль **login.yandex.ru/info**, создаёт/обновляет пользователя Firebase с UID **`ya_<числовой_id_Яндекса>`**, выпускает **custom token** с claim `yandex: true`.
-5. Редирект на **`/auth/yandex#customToken=…`** → клиент вызывает `signInWithCustomToken` → сразу в приложение. Сервер дополнительно пытается записать в `users/{uid}` **username** (первый кандидат — `login` Яндекса, дальше автосуффиксы по `registrationIndex`), **телефон** (`default_phone.number`, scope `login:phone`) и **аватар** из Яндекса, если в профиле они ещё пустые/заглушка; телефон **не пишется**, если в `registrationIndex` уже есть другой владелец этого номера. Клиентский [`finalizeOAuthCredential`](../src/hooks/use-auth.tsx) дозаполняет email и подтягивает `photoURL` из Firebase Auth. Телефон по-прежнему можно задать вручную в профиле (нужен для сценариев контактов по телефону).
+5. Редирект на **`/auth/yandex#customToken=…`** → клиент вызывает `signInWithCustomToken` → сразу в приложение. Сервер дополнительно пытается записать в `users/{uid}` **username** (первый кандидат — `login` Яндекса, дальше автосуффиксы по `registrationIndex`), **телефон** (`default_phone.number`, OAuth scope в кабинете чаще **`login:default_phone`**, в доке также встречается `login:phone`) и **аватар** из Яндекса, если в профиле они ещё пустые/заглушка; телефон **не пишется**, если в `registrationIndex` уже есть другой владелец этого номера. Клиентский [`finalizeOAuthCredential`](../src/hooks/use-auth.tsx) дозаполняет email и подтягивает `photoURL` из Firebase Auth. Телефон по-прежнему можно задать вручную в профиле (нужен для сценариев контактов по телефону).
 
 ## Переменные окружения
 
@@ -15,7 +15,7 @@
 | **`YANDEX_CLIENT_SECRET`** | только сервер (хостинг / `.env.local`, не в git) | Секрет приложения из кабинета Яндекса |
 | **`YANDEX_CLIENT_ID`** | сервер (опционально, если не хотите дублировать) | Client ID; если не задан, для обмена кода берётся `NEXT_PUBLIC_YANDEX_CLIENT_ID` |
 | **`NEXT_PUBLIC_YANDEX_CLIENT_ID`** | опционально | Дубликат Client ID для удобства; на главной кнопка «Яндекс» **всегда активна**, сервер читает `YANDEX_CLIENT_ID` или этот ключ |
-| **`YANDEX_SCOPE`** | сервер (опционально) | Список scope для `oauth.yandex.ru/authorize`. Если не задано — используется безопасный дефолт `login:email login:info login:avatar`. Для `login:phone` / `login:birthday` часто нужно отдельно включить доступ в кабинете Яндекса, иначе будет `invalid_scope`. |
+| **`YANDEX_SCOPE`** | сервер (опционально) | Список scope для `oauth.yandex.ru/authorize`. Если не задано — дефолт совпадает с типовым набором в кабинете: `login:email login:info login:avatar login:birthday login:default_phone`. Строка **должна** совпадать с тем, что реально подключено у приложения; иначе Яндекс вернёт `invalid_scope`. Узкий набор можно задать вручную (например, без ДР или телефона). |
 
 Локально: задайте **`YANDEX_CLIENT_ID`** и **`YANDEX_CLIENT_SECRET`** (и при желании продублируйте ID в `NEXT_PUBLIC_YANDEX_CLIENT_ID`).
 

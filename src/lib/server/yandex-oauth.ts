@@ -8,10 +8,12 @@ const YANDEX_TOKEN = "https://oauth.yandex.com/token";
 const YANDEX_LOGIN_INFO = "https://login.yandex.ru/info?format=json";
 
 /**
- * Безопасные дефолтные права (обычно доступны сразу в кабинете Яндекс ID).
- * `login:phone` / `login:birthday` часто требуют отдельного включения/согласования и могут давать `invalid_scope`.
+ * Дефолтные права под типовой набор в кабинете Яндекс ID (как в UI: email, ФИО/логин, аватар, ДР, телефон).
+ * Для телефона в консоли часто указан scope `login:default_phone` (не путать с устаревшим `login:phone`).
+ * Если в приложении включён другой набор — задайте `YANDEX_SCOPE` и/или синхронизируйте права в кабинете, иначе `invalid_scope`.
  */
-export const YANDEX_DEFAULT_SCOPES = "login:email login:info login:avatar";
+export const YANDEX_DEFAULT_SCOPES =
+  "login:email login:info login:avatar login:birthday login:default_phone";
 
 export function buildYandexAuthorizeUrl(opts: {
   clientId: string;
@@ -76,8 +78,13 @@ export type YandexLoginInfo = {
   real_name?: string;
   default_email?: string;
   emails?: string[];
-  /** @see https://yandex.ru/dev/id/doc/ru/user-information — при scope `login:phone`. */
+  /**
+   * Телефон при scope `login:default_phone` (кабинет Яндекс ID) или `login:phone` в доке.
+   * @see https://yandex.ru/dev/id/doc/ru/user-information
+   */
   default_phone?: { id?: number; number?: string } | string;
+  /** Дата рождения при scope `login:birthday` (формат зависит от ответа API). */
+  birthday?: string;
   default_avatar_id?: string;
   is_avatar_empty?: boolean;
 };
@@ -86,6 +93,7 @@ function redactYandexLoginInfoForLogs(info: YandexLoginInfo): Record<string, unk
   const out: Record<string, unknown> = { ...info };
   if (typeof out.default_email === "string") out.default_email = "<redacted>";
   if (Array.isArray(out.emails)) out.emails = ["<redacted>"];
+  if (typeof out.birthday === "string") out.birthday = "<redacted>";
   const dp = out.default_phone as unknown;
   if (typeof dp === "string") out.default_phone = "<redacted>";
   else if (dp && typeof dp === "object") out.default_phone = { id: (dp as any).id, number: "<redacted>" };
