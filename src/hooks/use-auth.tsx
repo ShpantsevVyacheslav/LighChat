@@ -20,8 +20,6 @@ import {
   OAuthProvider,
   signOut,
   updatePassword as firebaseUpdatePassword,
-  updateEmail,
-  verifyBeforeUpdateEmail,
   fetchSignInMethodsForEmail,
   type UserCredential,
   type User as FirebaseUser,
@@ -66,6 +64,7 @@ import { isAnonymousPlaceholderEmail } from '@/lib/registration-index-keys';
 import { isRegistrationProfileComplete } from '@/lib/registration-profile-complete';
 import { writeDeviceSession } from '@/lib/device-session';
 import { applyPhoneMask, normalizePhoneDigits } from '@/lib/phone-utils';
+import { requestVerifiedEmailChange } from '@/lib/auth-email-change';
 
 import {
   isNormalizedUsernameTokenAllowed,
@@ -196,19 +195,6 @@ export type RegisterResult =
 export type UpdateUserResult =
   | { ok: true; emailVerificationSent?: boolean }
   | { ok: false; message: string };
-
-/**
- * В консоли Firebase для смены email может быть включено «сначала подтвердить новый адрес»;
- * тогда прямой `updateEmail` отклоняется с auth/operation-not-allowed.
- */
-function isFirebaseVerifyNewEmailBeforeChangeError(error: unknown): boolean {
-  const code = (error as { code?: string })?.code;
-  const message = String((error as { message?: string })?.message ?? '').toLowerCase();
-  return (
-    code === 'auth/operation-not-allowed' &&
-    (message.includes('verify') || message.includes('подтверд'))
-  );
-}
 
 const OAUTH_FIRESTORE_AUTH_RETRIES = 8;
 
@@ -1282,26 +1268,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           typeof window !== 'undefined'
         ) {
           try {
-            await updateEmail(firebaseUser, emailNorm);
-          } catch (e: unknown) {
-            if (isFirebaseVerifyNewEmailBeforeChangeError(e)) {
-              try {
-                await verifyBeforeUpdateEmail(firebaseUser, emailNorm, {
-                  url: `${window.location.origin}/dashboard/profile`,
-                  handleCodeInApp: false,
-                });
-              } catch (e2) {
-                console.warn(
-                  'completeGoogleProfile: verifyBeforeUpdateEmail (Telegram/Yandex)',
-                  e2,
-                );
-              }
-            } else {
-              console.warn(
-                'completeGoogleProfile: updateEmail (Telegram/Yandex)',
-                e,
-              );
-            }
+            await requestVerifiedEmailChange({
+              firebaseUser,
+              newEmail: emailNorm,
+              actionCodeSettings: {
+                url: `${window.location.origin}/dashboard/profile`,
+                handleCodeInApp: false,
+              },
+            });
+          } catch (e) {
+            console.warn('completeGoogleProfile: requestVerifiedEmailChange', e);
           }
           try {
             await firebaseUser.reload();
@@ -1539,42 +1515,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     ? 'Этот email уже используется.'
                     : code === 'auth/invalid-email'
                       ? 'Некорректный формат email.'
-                      : 'Не удалось сменить email в Firebase Auth.',
+                      : code === 'auth/unauthorized-domain'
+                        ? 'Домен не в Authorized domains (Firebase Console → Authentication → Settings).'
+                        : 'Не удалось отправить письмо подтверждения email.',
             };
           };
 
           try {
-            await updateEmail(firebaseUser, emailTrim);
-          } catch (e: unknown) {
-            console.error('updateEmail:', e);
-            if (isFirebaseVerifyNewEmailBeforeChangeError(e)) {
-              if (typeof window === 'undefined') {
-                const msg = 'Смена email доступна только в браузере.';
-                setError(msg);
-                return { ok: false, message: msg };
-              }
-              const actionCodeSettings: ActionCodeSettings = {
-                url: `${window.location.origin}/dashboard/profile`,
-                handleCodeInApp: false,
-              };
-              try {
-                await verifyBeforeUpdateEmail(
-                  firebaseUser,
-                  emailTrim,
-                  actionCodeSettings
-                );
-                emailVerificationSent = true;
-              } catch (e2: unknown) {
-                console.error('verifyBeforeUpdateEmail:', e2);
-                const { msg } = mapEmailChangeError(e2);
-                setError(msg);
-                return { ok: false, message: msg };
-              }
-            } else {
-              const { msg } = mapEmailChangeError(e);
+            if (typeof window === 'undefined') {
+              const msg = 'Смена email доступна только в браузере.';
               setError(msg);
               return { ok: false, message: msg };
             }
+            const actionCodeSettings: ActionCodeSettings = {
+              url: `${window.location.origin}/dashboard/profile`,
+              handleCodeInApp: false,
+            };
+            const res = await requestVerifiedEmailChange({
+              firebaseUser,
+              newEmail: emailTrim,
+              actionCodeSettings,
+            });
+            if (!res.ok) {
+              const { msg } = mapEmailChangeError({ code: res.code });
+              setError(msg);
+              return { ok: false, message: msg };
+            }
+            emailVerificationSent = true;
+          } catch (e: unknown) {
+            console.error('requestVerifiedEmailChange:', e);
+            const { msg } = mapEmailChangeError(e);
+            setError(msg);
+            return { ok: false, message: msg };
           }
         }
 
