@@ -20,6 +20,8 @@ const fontSpaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
   display: 'swap',
   weight: ['400', '500', '700'],
+  /** Не все страницы используют шрифт сразу — убирает предупреждение preload в консоли. */
+  preload: false,
 });
 
 const fontMontserrat = Montserrat({
@@ -27,6 +29,7 @@ const fontMontserrat = Montserrat({
   variable: '--font-montserrat',
   display: 'swap',
   weight: ['600', '700'],
+  preload: false,
 });
 
 export const metadata: Metadata = {

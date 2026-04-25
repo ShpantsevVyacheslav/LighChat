@@ -18,6 +18,10 @@ interface GroupMentionSuggestionsProps {
  * Выбор по mouseDown + preventDefault, чтобы фокус не уходил с редактора до вставки.
  */
 export function GroupMentionSuggestions({ participants, onPick, className }: GroupMentionSuggestionsProps) {
+  const visibleRows = Math.max(1, Math.min(participants.length || 1, 5));
+  const rowHeightPx = 46;
+  const listMaxHeightPx = visibleRows * rowHeightPx + 8;
+
   return (
     <div
       className={cn(
@@ -30,7 +34,10 @@ export function GroupMentionSuggestions({ participants, onPick, className }: Gro
       role="listbox"
       aria-label="Упоминание участника"
     >
-      <div className="max-h-[min(15rem,42vh)] overflow-y-auto overscroll-contain p-1 [scrollbar-width:thin]">
+      <div
+        className="overflow-y-auto overscroll-contain p-1 [scrollbar-width:thin]"
+        style={{ maxHeight: `min(${listMaxHeightPx}px, 42vh)` }}
+      >
         {participants.length === 0 ? (
           <p className="px-3 py-2.5 text-sm text-muted-foreground">Нет совпадений</p>
         ) : (

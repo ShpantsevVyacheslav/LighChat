@@ -10,6 +10,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import '../../app_router.dart';
 import 'push_foreground_suppression.dart';
 import 'push_local_notifications_facade.dart';
+import 'push_native_call_service.dart';
 import 'push_notification_payload.dart';
 
 /// Регистрация FCM-токена в `users.fcmTokens` (как web `use-notifications`).
@@ -24,13 +25,20 @@ class PushMessagingService {
 
   Future<void> _saveFcmToken(String uid, String token) async {
     await FirebaseFirestore.instance.collection('users').doc(uid).set(
-      <String, Object?>{'fcmTokens': FieldValue.arrayUnion(<String>[token])},
+      <String, Object?>{
+        'fcmTokens': FieldValue.arrayUnion(<String>[token]),
+      },
       SetOptions(merge: true),
     );
   }
 
   void _navigateFromData(Map<String, dynamic> data) {
     final flat = data.map((k, v) => MapEntry(k, v?.toString() ?? ''));
+    final callId = callIdFromPushData(flat);
+    if (callId != null && callId.isNotEmpty) {
+      appGoRouterRef?.go('/calls/incoming/$callId');
+      return;
+    }
     final cid = conversationIdFromPushData(flat);
     if (cid != null && cid.isNotEmpty) {
       appGoRouterRef?.go('/chats/$cid');
@@ -50,12 +58,20 @@ class PushMessagingService {
 
   Future<void> _maybeShowForeground(RemoteMessage message, String uid) async {
     final flat = message.data.map((k, v) => MapEntry(k, v?.toString() ?? ''));
+    final handledByNativeCallUi = await PushNativeCallService.instance
+        .showIncomingFromData(flat);
+    if (handledByNativeCallUi) {
+      return;
+    }
     final convId = conversationIdFromPushData(flat);
     try {
-      final userSnap =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final userData =
-          Map<String, dynamic>.from(userSnap.data() ?? const <String, dynamic>{});
+      final userSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final userData = Map<String, dynamic>.from(
+        userSnap.data() ?? const <String, dynamic>{},
+      );
       Map<String, dynamic>? chatPrefs;
       if (convId != null && convId.isNotEmpty) {
         final prefSnap = await FirebaseFirestore.instance
@@ -91,6 +107,9 @@ class PushMessagingService {
     _onOpenSub = null;
     _tokenRefreshSub = null;
     _activeUid = uid;
+    PushNativeCallService.instance.setActiveUserUid(uid);
+    await PushNativeCallService.instance.ensureInitialized();
+    PushNativeCallService.instance.flushDeferredNavigation();
 
     await PushLocalNotificationsFacade.initializeMain(
       onNotificationTap: _applyPayloadNavigation,
@@ -155,5 +174,7 @@ class PushMessagingService {
     _onOpenSub = null;
     await _tokenRefreshSub?.cancel();
     _tokenRefreshSub = null;
+    PushNativeCallService.instance.setActiveUserUid(null);
+    await PushNativeCallService.instance.stop();
   }
 }

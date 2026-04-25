@@ -25,8 +25,7 @@ class ChatMeetingsScreen extends ConsumerStatefulWidget {
   const ChatMeetingsScreen({super.key});
 
   @override
-  ConsumerState<ChatMeetingsScreen> createState() =>
-      _ChatMeetingsScreenState();
+  ConsumerState<ChatMeetingsScreen> createState() => _ChatMeetingsScreenState();
 }
 
 class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
@@ -53,6 +52,12 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   void _onTitleChanged() {
     if (!mounted) return;
     setState(() {});
+  }
+
+  String? _asNonEmptyString(Object? value) {
+    if (value is! String) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   @override
@@ -98,9 +103,14 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
           chatSettings['bottomNavIconStyles'],
         );
 
-        final rawName = (user.displayName ?? '').trim();
-        final selfName = rawName.isNotEmpty ? rawName : 'Профиль';
-        final selfAvatar = user.photoURL;
+        final selfName =
+            _asNonEmptyString(userDoc['name']) ??
+            _asNonEmptyString(user.displayName) ??
+            'Профиль';
+        final selfAvatar =
+            _asNonEmptyString(userDoc['avatarThumb']) ??
+            _asNonEmptyString(userDoc['avatar']) ??
+            _asNonEmptyString(user.photoURL);
 
         final scheme = Theme.of(context).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
@@ -146,9 +156,8 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
           ),
         );
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text('Auth: $e'))),
     );
   }
@@ -205,8 +214,9 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   }
 
   Widget _historySection(BuildContext context, String uid) {
-    final meetingsAsync = ref.watch(myHostedMeetingsProvider(uid));
+    final meetingsAsync = ref.watch(meetingHistoryProvider(uid));
     return meetingsAsync.when(
+      skipLoadingOnReload: true,
       loading: () => _historyLoadingCard(context),
       error: (e, _) => _historyErrorCard(context, e),
       data: (list) {
@@ -403,10 +413,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
       filled: true,
       fillColor: fill,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: border),
@@ -417,18 +424,12 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(
-          color: scheme.primary.withValues(alpha: 0.65),
-        ),
+        borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.65)),
       ),
     );
   }
 
-  Widget _durationDropdown(
-    BuildContext context,
-    Color fill,
-    Color border,
-  ) {
+  Widget _durationDropdown(BuildContext context, Color fill, Color border) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
@@ -461,12 +462,14 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          items: _MeetingDuration.values.map((d) {
-            return DropdownMenuItem<_MeetingDuration>(
-              value: d,
-              child: Text(d.label),
-            );
-          }).toList(growable: false),
+          items: _MeetingDuration.values
+              .map((d) {
+                return DropdownMenuItem<_MeetingDuration>(
+                  value: d,
+                  child: Text(d.label),
+                );
+              })
+              .toList(growable: false),
           onChanged: (v) {
             if (v == null) return;
             setState(() => _duration = v);
@@ -476,11 +479,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
     );
   }
 
-  Widget _accessToggle(
-    BuildContext context,
-    Color fill,
-    Color border,
-  ) {
+  Widget _accessToggle(BuildContext context, Color fill, Color border) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
@@ -545,10 +544,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
-                side: BorderSide(
-                  color: fg.withValues(alpha: 0.35),
-                  width: 1.4,
-                ),
+                side: BorderSide(color: fg.withValues(alpha: 0.35), width: 1.4),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -706,9 +702,9 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   }
 
   void _hintTitleRequired() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Укажите название встречи')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Укажите название встречи')));
   }
 
   Future<void> _onCreateMeeting() async {
@@ -738,9 +734,9 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
       context.push('/meetings/$meetingId');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось создать встречу: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Не удалось создать встречу: $e')));
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -840,10 +836,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 /// Карточка в истории встреч. Web показывает похожие карточки на
 /// `/dashboard/meetings`, но здесь используем компактный list-вариант.
 class _MeetingHistoryRow extends StatelessWidget {
-  const _MeetingHistoryRow({
-    required this.meeting,
-    required this.onTap,
-  });
+  const _MeetingHistoryRow({required this.meeting, required this.onTap});
 
   final MeetingDoc meeting;
   final VoidCallback onTap;
@@ -856,8 +849,10 @@ class _MeetingHistoryRow extends StatelessWidget {
     final parts = <String>[
       date,
       time,
-      if (meeting.status == 'active') 'идёт'
-      else if (meeting.status == 'ended') 'завершена',
+      if (meeting.status == 'active')
+        'идёт'
+      else if (meeting.status == 'ended')
+        'завершена',
       if (meeting.isPrivate) 'закрытая',
     ];
     return parts.join(' · ');
@@ -889,13 +884,14 @@ class _MeetingHistoryRow extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(11),
-                  color: (active ? const Color(0xFF10B981) : const Color(0xFF3B82F6))
-                      .withValues(alpha: 0.20),
+                  color:
+                      (active
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF3B82F6))
+                          .withValues(alpha: 0.20),
                 ),
                 child: Icon(
-                  active
-                      ? Icons.sensors_rounded
-                      : Icons.videocam_rounded,
+                  active ? Icons.sensors_rounded : Icons.videocam_rounded,
                   size: 22,
                   color: active
                       ? const Color(0xFF10B981)

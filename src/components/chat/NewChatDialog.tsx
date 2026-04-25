@@ -28,6 +28,7 @@ import { userAvatarListUrl } from '@/lib/user-avatar-display';
 export function NewChatDialog({
   users,
   contactIds = [],
+  contactDisplayNames = {},
   currentUser,
   onSelectConversation,
   onGroupCreateClick,
@@ -36,6 +37,8 @@ export function NewChatDialog({
   users: User[];
   /** id из userContacts — показываются первыми в поиске нового чата. */
   contactIds?: string[];
+  /** Локальные имена контактов текущего пользователя (id -> displayName). */
+  contactDisplayNames?: Record<string, string>;
   currentUser: User;
   onSelectConversation: (conversationId: string) => void;
   onGroupCreateClick: () => void;
@@ -50,10 +53,17 @@ export function NewChatDialog({
 
   const { fromContacts, fromGlobal } = useMemo(() => {
     const matched = (users || []).filter(
-      (u) => userMatchesChatSearchQuery(u, searchTerm) && canStartDirectChat(currentUser, u)
+      (u) =>
+        userMatchesChatSearchQuery(u, searchTerm, contactDisplayNames[u.id]) &&
+        canStartDirectChat(currentUser, u)
     );
-    return splitUsersByContactsAndGlobalVisibility(matched, currentUser, contactIds);
-  }, [users, searchTerm, currentUser, contactIds]);
+    return splitUsersByContactsAndGlobalVisibility(
+      matched,
+      currentUser,
+      contactIds,
+      contactDisplayNames
+    );
+  }, [users, searchTerm, currentUser, contactIds, contactDisplayNames]);
 
   const handleSelectUser = async (user: User) => {
     if (!firestore || isCreating) return;
@@ -133,6 +143,7 @@ export function NewChatDialog({
                     Контакты
                   </p>
                   {fromContacts.map((user) => {
+                    const displayName = (contactDisplayNames[user.id] ?? '').trim() || user.name;
                     const login = atUsernameLabel(user.username);
                     return (
                     <div
@@ -144,11 +155,13 @@ export function NewChatDialog({
                       )}
                     >
                       <Avatar>
-                        <AvatarImage src={userAvatarListUrl(user)} alt={user.name} />
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={userAvatarListUrl(user)} alt={displayName} />
+                        <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <p className="font-semibold transition-colors group-hover:text-primary truncate">{user.name}</p>
+                        <p className="font-semibold transition-colors group-hover:text-primary truncate">
+                          {displayName}
+                        </p>
                         {login ? (
                           <p className="text-xs text-muted-foreground truncate">{login}</p>
                         ) : null}
@@ -174,6 +187,7 @@ export function NewChatDialog({
                     Все пользователи
                   </p>
                   {fromGlobal.map((user) => {
+                    const displayName = (contactDisplayNames[user.id] ?? '').trim() || user.name;
                     const login = atUsernameLabel(user.username);
                     return (
                     <div
@@ -185,11 +199,13 @@ export function NewChatDialog({
                       )}
                     >
                       <Avatar>
-                        <AvatarImage src={userAvatarListUrl(user)} alt={user.name} />
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={userAvatarListUrl(user)} alt={displayName} />
+                        <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <p className="font-semibold transition-colors group-hover:text-primary truncate">{user.name}</p>
+                        <p className="font-semibold transition-colors group-hover:text-primary truncate">
+                          {displayName}
+                        </p>
                         {login ? (
                           <p className="text-xs text-muted-foreground truncate">{login}</p>
                         ) : null}

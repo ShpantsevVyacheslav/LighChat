@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,6 +15,7 @@ import 'auth_brand_header.dart';
 import 'login_form.dart';
 import 'register_form.dart';
 import 'telegram_sign_in_webview_screen.dart';
+import 'yandex_sign_in_webview_screen.dart';
 import '../../shared/ui/app_back_button.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -59,7 +62,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       context.go('/auth');
       return;
     }
-    final status = await getFirestoreRegistrationProfileStatusWithDeadline(user);
+    final status = await getFirestoreRegistrationProfileStatusWithDeadline(
+      user,
+    );
     if (!mounted) return;
     final next = googleRouteFromProfileStatus(status);
     if (next == null) {
@@ -172,10 +177,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                             Text(
                                               'Переходим в чаты...',
                                               style: TextStyle(
-                                                color: (dark
-                                                        ? Colors.white
-                                                        : scheme.onSurface)
-                                                    .withValues(alpha: 0.62),
+                                                color:
+                                                    (dark
+                                                            ? Colors.white
+                                                            : scheme.onSurface)
+                                                        .withValues(
+                                                          alpha: 0.62,
+                                                        ),
                                               ),
                                             ),
                                           ],
@@ -242,132 +250,102 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(56),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                side: BorderSide(
-                                  color: dark
-                                      ? Colors.white.withValues(alpha: 0.18)
-                                      : Colors.black.withValues(alpha: 0.12),
-                                ),
-                                backgroundColor: dark
-                                    ? Colors.white.withValues(alpha: 0.05)
-                                    : Colors.white.withValues(alpha: 0.76),
-                                foregroundColor: dark
-                                    ? Colors.white
-                                    : scheme.onSurface,
-                              ),
-                              onPressed:
-                                  (!firebaseReady || repo == null || _busy)
-                                  ? null
-                                  : () => _continueOAuthAndRoute(
-                                        repo,
-                                        () => repo.signInWithGoogle(),
-                                      ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const _GoogleBrandIcon(),
-                                  const SizedBox(width: 12),
-                                  const Text('Продолжить с Google'),
-                                ],
-                              ),
-                            ),
-                            if (defaultTargetPlatform == TargetPlatform.iOS) ...[
-                              const SizedBox(height: 10),
-                              OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(56),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(22),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SocialAuthIconTile(
+                                    dark: dark,
+                                    tooltip: 'Google',
+                                    onPressed: (!firebaseReady ||
+                                            repo == null ||
+                                            _busy)
+                                        ? null
+                                        : () => _continueOAuthAndRoute(
+                                              repo,
+                                              () => repo.signInWithGoogle(),
+                                            ),
+                                    child: const _GoogleBrandIcon(),
                                   ),
-                                  side: BorderSide(
-                                    color: dark
-                                        ? Colors.white.withValues(alpha: 0.18)
-                                        : Colors.black.withValues(alpha: 0.12),
-                                  ),
-                                  backgroundColor: dark
-                                      ? Colors.white.withValues(alpha: 0.08)
-                                      : Colors.black.withValues(alpha: 0.88),
-                                  foregroundColor: dark
-                                      ? Colors.white
-                                      : Colors.white,
                                 ),
-                                onPressed:
-                                    (!firebaseReady || repo == null || _busy)
-                                    ? null
-                                    : () => _continueOAuthAndRoute(
-                                          repo,
-                                          () => repo.signInWithApple(),
-                                        ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.apple, size: 24),
-                                    SizedBox(width: 10),
-                                    Text('Продолжить с Apple'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 10),
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(56),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                side: BorderSide(
-                                  color: dark
-                                      ? Colors.white.withValues(alpha: 0.18)
-                                      : Colors.black.withValues(alpha: 0.12),
-                                ),
-                                backgroundColor: dark
-                                    ? const Color(0xFF229ED9).withValues(alpha: 0.22)
-                                    : const Color(0xFF229ED9).withValues(alpha: 0.14),
-                                foregroundColor: dark
-                                    ? Colors.white
-                                    : scheme.onSurface,
-                              ),
-                              onPressed: (!firebaseReady || _busy)
-                                  ? null
-                                  : () {
-                                      Navigator.of(context).push<void>(
-                                        MaterialPageRoute<void>(
-                                          fullscreenDialog: true,
-                                          builder: (_) =>
-                                              const TelegramSignInWebViewScreen(),
-                                        ),
-                                      );
-                                    },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 26,
-                                    height: 26,
-                                    alignment: Alignment.center,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF229ED9),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Text(
-                                      'T',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        height: 1,
+                                if (defaultTargetPlatform ==
+                                    TargetPlatform.iOS) ...[
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _SocialAuthIconTile(
+                                      dark: dark,
+                                      tooltip: 'Apple',
+                                      background: dark
+                                          ? Colors.white.withValues(
+                                              alpha: 0.08,
+                                            )
+                                          : Colors.black.withValues(
+                                              alpha: 0.88,
+                                            ),
+                                      iconColor: Colors.white,
+                                      onPressed: (!firebaseReady ||
+                                              repo == null ||
+                                              _busy)
+                                          ? null
+                                          : () => _continueOAuthAndRoute(
+                                                repo,
+                                                () => repo.signInWithApple(),
+                                              ),
+                                      child: const Icon(
+                                        Icons.apple,
+                                        size: 24,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  const Text('Продолжить с Telegram'),
                                 ],
-                              ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _SocialAuthIconTile(
+                                    dark: dark,
+                                    tooltip: 'Telegram',
+                                    background: dark
+                                        ? const Color(0xFF229ED9)
+                                            .withValues(alpha: 0.22)
+                                        : const Color(0xFF229ED9)
+                                            .withValues(alpha: 0.14),
+                                    onPressed: (!firebaseReady || _busy)
+                                        ? null
+                                        : () {
+                                            Navigator.of(context).push<void>(
+                                              MaterialPageRoute<void>(
+                                                fullscreenDialog: true,
+                                                builder: (_) =>
+                                                    const TelegramSignInWebViewScreen(),
+                                              ),
+                                            );
+                                          },
+                                    child: const _TelegramBrandIcon(),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _SocialAuthIconTile(
+                                    dark: dark,
+                                    tooltip: 'Яндекс',
+                                    background: dark
+                                        ? const Color(0xFFFC3F1D)
+                                            .withValues(alpha: 0.22)
+                                        : const Color(0xFFFC3F1D)
+                                            .withValues(alpha: 0.12),
+                                    onPressed: (!firebaseReady || _busy)
+                                        ? null
+                                        : () {
+                                            Navigator.of(context).push<void>(
+                                              MaterialPageRoute<void>(
+                                                fullscreenDialog: true,
+                                                builder: (_) =>
+                                                    const YandexSignInWebViewScreen(),
+                                              ),
+                                            );
+                                          },
+                                    child: const _YandexBrandIcon(),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 8),
                             OutlinedButton(
@@ -431,6 +409,66 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 }
 
+/// Плитка-иконка в ряду соцвходов (как сетка на вебе).
+class _SocialAuthIconTile extends StatelessWidget {
+  const _SocialAuthIconTile({
+    required this.dark,
+    required this.tooltip,
+    required this.onPressed,
+    required this.child,
+    this.background,
+    this.iconColor,
+  });
+
+  final bool dark;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Color? background;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = background ??
+        (dark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.white.withValues(alpha: 0.76));
+    Widget icon = child;
+    if (iconColor != null) {
+      icon = IconTheme(
+        data: IconThemeData(color: iconColor),
+        child: DefaultTextStyle(
+          style: TextStyle(color: iconColor),
+          child: child,
+        ),
+      );
+    }
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: bg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: dark
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.black.withValues(alpha: 0.12),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onPressed,
+          child: SizedBox(
+            height: 44,
+            child: Center(child: icon),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GoogleBrandIcon extends StatelessWidget {
   const _GoogleBrandIcon();
 
@@ -442,6 +480,52 @@ class _GoogleBrandIcon extends StatelessWidget {
       height: 20,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
+    );
+  }
+}
+
+class _YandexBrandIcon extends StatelessWidget {
+  const _YandexBrandIcon();
+
+  static const String _yandexSvg = '''
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path fill="currentColor" d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10zm10.09 4.5V7.27h-.74c-1.47 0-2.24.69-2.24 1.83 0 1.31.58 1.9 1.78 2.74l.99.7-2.87 3.96h-1.72l2.56-3.53c-1.46-1.05-2.28-1.91-2.28-3.56 0-1.94 1.32-3.18 3.78-3.18h2.18v10.27h-1.44z"/>
+</svg>
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        IconTheme.of(context).color ?? Theme.of(context).colorScheme.onSurface;
+    return SvgPicture.string(
+      _yandexSvg,
+      width: 24,
+      height: 24,
+      fit: BoxFit.contain,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+}
+
+class _TelegramBrandIcon extends StatelessWidget {
+  const _TelegramBrandIcon();
+
+  static const String _webTelegramSvg = '''
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+</svg>
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        IconTheme.of(context).color ?? Theme.of(context).colorScheme.onSurface;
+    return SvgPicture.string(
+      _webTelegramSvg,
+      width: 24,
+      height: 24,
+      fit: BoxFit.contain,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
   }
 }
@@ -503,8 +587,6 @@ class _RegisterFullScreenPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -516,7 +598,7 @@ class _RegisterFullScreenPage extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),
                 child: Padding(
-                  padding: EdgeInsets.only(
+                  padding: const EdgeInsets.only(
                     left: 16,
                     right: 16,
                     top: 8,
@@ -529,34 +611,13 @@ class _RegisterFullScreenPage extends StatelessWidget {
                         children: [
                           const AppBackButton(fallbackLocation: '/auth'),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Создать аккаунт',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 46,
-                            height: 46,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: dark
-                                  ? Colors.white.withValues(alpha: 0.05)
-                                  : Colors.white.withValues(alpha: 0.75),
-                              border: Border.all(
-                                color: (dark ? Colors.white : Colors.black)
-                                    .withValues(alpha: 0.18),
-                              ),
-                            ),
-                            child: IconButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: Icon(
-                                Icons.close_rounded,
-                                color: (dark ? Colors.white : scheme.onSurface)
-                                    .withValues(alpha: 0.70),
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ),

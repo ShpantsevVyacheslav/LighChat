@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
@@ -11,7 +13,8 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../registration_profile_gate.dart';
 import '../telegram_bridge_url.dart';
 
-/// WebView с [`/auth/telegram?mobile=1`](https://lighchat.app/auth/telegram?mobile=1): виджет Telegram →
+/// WebView с `/auth/telegram?mobile=1` на прод-домене (см. [telegramAuthBridgePageUrl]).
+/// Виджет Telegram →
 /// callable → `TelegramAuth.postMessage(customToken)` → [FirebaseAuth.signInWithCustomToken].
 class TelegramSignInWebViewScreen extends ConsumerStatefulWidget {
   const TelegramSignInWebViewScreen({super.key});
@@ -26,11 +29,49 @@ class _TelegramSignInWebViewScreenState
   late final WebViewController _controller;
   var _busy = true;
   String? _error;
+  String _currentUrl = '';
+
+  bool _isTelegramExternalUrl(String url) {
+    return url.startsWith('tg://') ||
+        url.startsWith('https://t.me/') ||
+        url.startsWith('https://telegram.me/') ||
+        url.startsWith('https://telegram.org/') ||
+        url.startsWith('intent://');
+  }
+
+  String? _customTokenFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      // Hash: #customToken=...
+      if (uri.fragment.startsWith('customToken=')) {
+        final v = uri.fragment.substring('customToken='.length);
+        final decoded = Uri.decodeComponent(v);
+        return decoded.trim().isNotEmpty ? decoded.trim() : null;
+      }
+      // Query: ?customToken=...
+      final q = uri.queryParameters['customToken'];
+      if (q != null && q.trim().isNotEmpty) return q.trim();
+    } catch (_) {
+      // ignore
+    }
+    return null;
+  }
+
+  Future<bool> _launchExternal(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (!await canLaunchUrl(uri)) return false;
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     final url = Uri.parse(telegramAuthBridgePageUrl());
+    _currentUrl = url.toString();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel(
@@ -41,6 +82,34 @@ class _TelegramSignInWebViewScreenState
       )
       ..setNavigationDelegate(
         NavigationDelegate(
+          onNavigationRequest: (request) async {
+            final next = request.url;
+            final token = _customTokenFromUrl(next);
+            if (token != null) {
+              unawaited(_onCustomToken(token));
+              return NavigationDecision.prevent;
+            }
+            if (_isTelegramExternalUrl(next)) {
+              final ok = await _launchExternal(next);
+              if (!ok && mounted) {
+                setState(() => _error = 'Не удалось открыть Telegram. Установите приложение Telegram.');
+              }
+              return NavigationDecision.prevent;
+            }
+            if (mounted) {
+              setState(() => _currentUrl = next);
+            } else {
+              _currentUrl = next;
+            }
+            return NavigationDecision.navigate;
+          },
+          onPageStarted: (url) {
+            if (mounted) {
+              setState(() => _currentUrl = url);
+            } else {
+              _currentUrl = url;
+            }
+          },
           onPageFinished: (_) {
             if (mounted) setState(() => _busy = false);
           },
@@ -59,7 +128,31 @@ class _TelegramSignInWebViewScreenState
   }
 
   Future<void> _onCustomToken(String token) async {
-    final t = token.trim();
+    final raw = token.trim();
+    if (raw.isEmpty) return;
+    var t = raw;
+    if (raw.startsWith('{')) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          final type = decoded['type'];
+          if (type == 'error') {
+            final msg = decoded['message'];
+            if (mounted) {
+              setState(() => _error =
+                  msg is String && msg.trim().isNotEmpty ? msg.trim() : 'Ошибка входа через Telegram.');
+            }
+            return;
+          }
+          final tok = decoded['token'];
+          if (tok is String && tok.trim().isNotEmpty) {
+            t = tok.trim();
+          }
+        }
+      } catch (_) {
+        // keep raw token
+      }
+    }
     if (t.isEmpty) return;
     final repo = ref.read(authRepositoryProvider);
     if (repo == null) {
@@ -75,22 +168,27 @@ class _TelegramSignInWebViewScreenState
     try {
       await repo.signInWithCustomToken(t);
       if (!mounted) return;
+      final router = GoRouter.of(context);
       Navigator.of(context).pop();
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (mounted) context.go('/auth');
+        router.go('/auth');
         return;
       }
       final status = await getFirestoreRegistrationProfileStatusWithDeadline(
         user,
       );
-      if (!mounted) return;
-      final next = googleRouteFromProfileStatus(status);
-      if (next == null) {
-        context.go('/chats');
+      final isTelegramUid = RegExp(r'^tg_\d+$').hasMatch(user.uid);
+      final isYandexUid = RegExp(r'^ya_\d+$').hasMatch(user.uid);
+      // Telegram / Yandex users may not have phone/email on first sign-in; don't block them
+      // on the "Google complete profile" screen (it has no bottom nav).
+      if ((isTelegramUid || isYandexUid) &&
+          status == RegistrationProfileStatus.incomplete) {
+        router.go('/chats');
         return;
       }
-      context.go(next);
+      final next = googleRouteFromProfileStatus(status);
+      router.go(next ?? '/chats');
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -111,6 +209,21 @@ class _TelegramSignInWebViewScreenState
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Открыть в браузере',
+            icon: const Icon(Icons.open_in_browser),
+            onPressed: () async {
+              final url = _currentUrl.trim().isNotEmpty
+                  ? _currentUrl.trim()
+                  : telegramAuthBridgePageUrl();
+              final ok = await _launchExternal(url);
+              if (!ok && mounted) {
+                setState(() => _error = 'Не удалось открыть браузер.');
+              }
+            },
+          ),
+        ],
       ),
       body: Stack(
         fit: StackFit.expand,

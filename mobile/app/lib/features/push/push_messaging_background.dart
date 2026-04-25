@@ -1,14 +1,18 @@
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../firebase_options.dart';
 import 'push_local_notifications_facade.dart';
+import 'push_native_call_service.dart';
 
 /// Top-level для `FirebaseMessaging.onBackgroundMessage` (отдельный изолят).
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kIsWeb) return;
+  DartPluginRegistrant.ensureInitialized();
   if (Firebase.apps.isEmpty) {
     try {
       final opts = DefaultFirebaseOptions.currentPlatform;
@@ -17,6 +21,11 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     } catch (_) {
       return;
     }
+  }
+  final handledByNativeCallUi = await PushNativeCallService.instance
+      .showIncomingFromData(message.data);
+  if (handledByNativeCallUi) {
+    return;
   }
   await PushLocalNotificationsFacade.initializeBackground();
   await PushLocalNotificationsFacade.showFromRemoteMessage(message);

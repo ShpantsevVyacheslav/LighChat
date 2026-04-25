@@ -11,8 +11,10 @@ import 'app_bootstrap.dart';
 import 'app_providers.dart';
 import 'app_router.dart';
 import 'app_theme.dart';
+import 'features/meetings/data/meeting_deep_links.dart';
 import 'features/push/push_messaging_background.dart';
 import 'features/push/push_messaging_scope.dart';
+import 'features/push/push_native_call_service.dart';
 import 'features/chat/data/app_theme_preference.dart';
 import 'features/chat/data/chat_auto_theme_mode.dart';
 import 'features/auth/device_session_firestore_sync.dart';
@@ -34,6 +36,7 @@ Future<void> main() async {
   await bootstrap();
   if (!kIsWeb) {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await PushNativeCallService.instance.ensureInitialized();
   }
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -47,6 +50,7 @@ class MyApp extends ConsumerStatefulWidget {
 
 class _MyAppState extends ConsumerState<MyApp> {
   late final GoRouter _router = createRouter();
+  StreamSubscription<Uri>? _meetingDeepLinksSub;
   ThemeMode _themeMode = ThemeMode.dark;
   Color _seedColor = kDefaultAppThemeSeed;
   String _themeFingerprint = '';
@@ -55,6 +59,22 @@ class _MyAppState extends ConsumerState<MyApp> {
   void initState() {
     super.initState();
     attachAppGoRouter(_router);
+    PushNativeCallService.instance.flushDeferredNavigation();
+    if (!kIsWeb) {
+      attachMeetingWebDeepLinks(_router).then((sub) {
+        if (!mounted) {
+          sub.cancel();
+          return;
+        }
+        _meetingDeepLinksSub = sub;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _meetingDeepLinksSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _applyTheme({
@@ -111,9 +131,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       routerConfig: _router,
       builder: (context, child) => DeviceSessionFirestoreSync(
         child: LiveLocationFirestoreSync(
-          child: PushMessagingScope(
-            child: child ?? const SizedBox.shrink(),
-          ),
+          child: PushMessagingScope(child: child ?? const SizedBox.shrink()),
         ),
       ),
     );

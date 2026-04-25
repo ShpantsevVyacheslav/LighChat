@@ -4,7 +4,7 @@ import type { User, Conversation, ChatMessage, UserRole, UserContactsIndex } fro
 import { ROLES } from '@/lib/constants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
-import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, Loader2, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { GroupChatFormPanel } from '@/components/chat/GroupChatFormPanel';
 import { GroupChatParticipantsManageView } from '@/components/chat/GroupChatParticipantsManageView';
@@ -18,23 +18,29 @@ import { formatLastSeenStatusRu } from '@/lib/last-seen-relative-ru';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { formatPhoneNumberForDisplay } from '@/lib/phone-utils';
 import { isProfileFieldVisibleToOthers } from '@/lib/profile-field-visibility';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { isLiveShareVisible } from '@/lib/live-location-utils';
+import { resolveContactDisplayName } from '@/lib/contact-display-name';
 import { LiveLocationMapDialog } from '@/components/location/LiveLocationMapDialog';
 import { useToast } from '@/hooks/use-toast';
-import { addContactId } from '@/lib/contacts-client-actions';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { categorizeAttachmentsFromMessages } from '@/lib/chat-attachments-from-messages';
 import { useStarredInConversation } from '@/hooks/use-starred-in-conversation';
 import { useChatConversationPrefs } from '@/hooks/use-chat-conversation-prefs';
+import { useSettings } from '@/hooks/use-settings';
 import { buildDashboardChatOpenUrl } from '@/lib/dashboard-conversation-url';
+import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
+import { initiateCall } from '@/components/chat/AudioCallOverlay';
 import {
   WA_PROFILE_BG,
   WA_PROFILE_MUTED,
   WA_CONVERSATION_UTILITY_SHEET_CONTENT_CLASS,
+  WaQuickActionButton,
+  WaQuickActionRow,
   WaMenuSection,
   WaMenuRow,
   WaFooterCaption,
@@ -57,6 +63,8 @@ export type ChatProfileSubMenu =
   | 'privacy'
   | 'encryption'
   | 'leave';
+
+export type ChatProfileSource = 'contacts' | 'mention' | 'sender' | 'chat';
 
 const PROFILE_SUBMENU_TITLES: Record<ChatProfileSubMenu, string> = {
   media: 'Медиа, ссылки и файлы',
@@ -83,6 +91,7 @@ interface ChatParticipantProfileProps {
   /** Программно открыть конкретный подраздел профиля (например, "Обсуждения" из шапки чата). */
   initialSubMenu?: ChatProfileSubMenu | null;
   onInitialSubMenuConsumed?: () => void;
+  profileSource?: ChatProfileSource;
 }
 
 export function ChatParticipantProfile({ 
@@ -97,15 +106,18 @@ export function ChatParticipantProfile({
     onClearProfileFocus,
     initialSubMenu = null,
     onInitialSubMenuConsumed,
+    profileSource = 'chat',
 }: ChatParticipantProfileProps) {
   type GroupProfileLayer = 'main' | 'participants' | 'edit';
   const [groupProfileLayer, setGroupProfileLayer] = useState<GroupProfileLayer>('main');
   const [liveMapOpen, setLiveMapOpen] = useState(false);
   const [profileSubMenu, setProfileSubMenu] = useState<ChatProfileSubMenu | null>(null);
+  const [quickActionBusy, setQuickActionBusy] = useState<string | null>(null);
   const router = useRouter();
   const firestore = useFirestore();
   const { starredCount } = useStarredInConversation(currentUser.id, conversation.id);
-  const { prefs: conversationPrefs } = useChatConversationPrefs(currentUser.id, conversation.id);
+  const { prefs: conversationPrefs, updatePrefs } = useChatConversationPrefs(currentUser.id, conversation.id);
+  const { privacySettings } = useSettings();
   const isGroup = conversation.isGroup;
   const isSelfSavedChat = useMemo(
     () => !isGroup && isSavedMessagesChat(conversation, currentUser.id),
@@ -240,29 +252,183 @@ export function ChatParticipantProfile({
     isGroup,
     showMemberFocus,
   ]);
-
   const { toast } = useToast();
-  const [addContactBusy, setAddContactBusy] = useState(false);
 
-  const handleAddToContacts = useCallback(async () => {
-    if (!firestore || !profileDocId || !contactTargetUser || isContact) return;
-    setAddContactBusy(true);
-    try {
-      await addContactId(firestore, currentUser.id, profileDocId);
-      toast({ title: 'Добавлено в контакты', description: contactTargetUser.name });
-    } catch (e) {
-      console.warn('[LighChat:contacts] add from participant profile', e);
-      toast({ title: 'Не удалось добавить в контакты', variant: 'destructive' });
-    } finally {
-      setAddContactBusy(false);
+  const canRunDirectQuickActions = useMemo(() => {
+    if (!profileDocId || profileDocId === currentUser.id || isSelfSavedChat) return false;
+    if (isGroup && !showMemberFocus) return false;
+    if (!contactTargetUser || contactTargetUser.deletedAt) return false;
+    return canStartDirectChat(currentUser, contactTargetUser);
+  }, [
+    profileDocId,
+    currentUser,
+    isSelfSavedChat,
+    isGroup,
+    showMemberFocus,
+    contactTargetUser,
+  ]);
+
+  const showChatsQuickAction = profileSource === 'contacts' && canRunDirectQuickActions;
+
+  const currentDirectConversationId = useMemo(() => {
+    if (isGroup || isSelfSavedChat) return null;
+    if (!profileDocId || profileDocId !== otherId) return null;
+    return conversation.id;
+  }, [isGroup, isSelfSavedChat, profileDocId, otherId, conversation.id]);
+
+  const muteInCurrentDirect = currentDirectConversationId === conversation.id
+    ? conversationPrefs?.notificationsMuted === true
+    : false;
+
+  const ensureDirectConversationForProfile = useCallback(async (): Promise<{ id: string; target: User } | null> => {
+    if (!firestore || !profileDocId || !contactTargetUser) return null;
+    if (!canStartDirectChat(currentUser, contactTargetUser)) return null;
+    if (!isGroup && !isSelfSavedChat && profileDocId === otherId) {
+      return { id: conversation.id, target: contactTargetUser };
     }
-  }, [firestore, profileDocId, contactTargetUser, isContact, currentUser.id, toast]);
+    const id = await createOrOpenDirectChat(firestore, currentUser, contactTargetUser);
+    let platformWants = false;
+    try {
+      const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));
+      const p = ps.data() as { e2eeDefaultForNewDirectChats?: boolean } | undefined;
+      platformWants = !!p?.e2eeDefaultForNewDirectChats;
+    } catch {
+      /* ignore */
+    }
+    await autoEnableE2eeForNewDirectChat(firestore, id, currentUser.id, {
+      userWants: privacySettings.e2eeForNewDirectChats === true,
+      platformWants,
+    });
+    return { id, target: contactTargetUser };
+  }, [
+    firestore,
+    profileDocId,
+    contactTargetUser,
+    currentUser,
+    isGroup,
+    isSelfSavedChat,
+    otherId,
+    conversation.id,
+    privacySettings.e2eeForNewDirectChats,
+  ]);
+
+  const openDirectChatFromProfile = useCallback(async () => {
+    if (quickActionBusy || !canRunDirectQuickActions) return;
+    setQuickActionBusy('chat');
+    try {
+      const direct = await ensureDirectConversationForProfile();
+      if (!direct) return;
+      onSelectConversation(direct.id);
+      handleSheetOpenChange(false);
+    } catch (e) {
+      console.error('[ChatParticipantProfile] openDirectChatFromProfile failed', e);
+      toast({ title: 'Не удалось открыть чат', variant: 'destructive' });
+    } finally {
+      setQuickActionBusy(null);
+    }
+  }, [
+    quickActionBusy,
+    canRunDirectQuickActions,
+    ensureDirectConversationForProfile,
+    onSelectConversation,
+    handleSheetOpenChange,
+    toast,
+  ]);
+
+  const startDirectCallFromProfile = useCallback(async (video: boolean) => {
+    if (quickActionBusy || !canRunDirectQuickActions || !firestore) return;
+    setQuickActionBusy(video ? 'video' : 'call');
+    try {
+      const direct = await ensureDirectConversationForProfile();
+      if (!direct) return;
+      onSelectConversation(direct.id);
+      initiateCall(firestore, currentUser, direct.target, video, toast);
+      handleSheetOpenChange(false);
+    } catch (e) {
+      console.error('[ChatParticipantProfile] startDirectCallFromProfile failed', e);
+      toast({ title: 'Не удалось начать звонок', variant: 'destructive' });
+    } finally {
+      setQuickActionBusy(null);
+    }
+  }, [
+    quickActionBusy,
+    canRunDirectQuickActions,
+    firestore,
+    ensureDirectConversationForProfile,
+    onSelectConversation,
+    currentUser,
+    toast,
+    handleSheetOpenChange,
+  ]);
+
+  const toggleDirectNotificationsFromProfile = useCallback(async () => {
+    if (quickActionBusy || !canRunDirectQuickActions || !firestore) return;
+    setQuickActionBusy('mute');
+    try {
+      const direct = await ensureDirectConversationForProfile();
+      if (!direct) return;
+      if (direct.id === conversation.id) {
+        const next = !(conversationPrefs?.notificationsMuted === true);
+        updatePrefs({ notificationsMuted: next });
+        toast({
+          title: next ? 'Уведомления отключены' : 'Уведомления включены',
+        });
+      } else {
+        const prefsRef = doc(firestore, 'users', currentUser.id, 'chatConversationPrefs', direct.id);
+        const snap = await getDoc(prefsRef);
+        const currentMuted = !!(snap.data() as { notificationsMuted?: boolean } | undefined)?.notificationsMuted;
+        const next = !currentMuted;
+        await setDoc(
+          prefsRef,
+          {
+            conversationId: direct.id,
+            notificationsMuted: next,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+        onSelectConversation(direct.id);
+        toast({
+          title: next ? 'Уведомления отключены' : 'Уведомления включены',
+        });
+      }
+    } catch (e) {
+      console.error('[ChatParticipantProfile] toggleDirectNotificationsFromProfile failed', e);
+      toast({ title: 'Не удалось изменить уведомления', variant: 'destructive' });
+    } finally {
+      setQuickActionBusy(null);
+    }
+  }, [
+    quickActionBusy,
+    canRunDirectQuickActions,
+    firestore,
+    ensureDirectConversationForProfile,
+    conversation.id,
+    conversationPrefs?.notificationsMuted,
+    updatePrefs,
+    currentUser.id,
+    onSelectConversation,
+    toast,
+  ]);
+
+  const handleOpenContactEditor = useCallback(() => {
+    if (!profileDocId || !contactTargetUser) return;
+    const encodedId = encodeURIComponent(profileDocId);
+    handleSheetOpenChange(false);
+    router.push(`/dashboard/contacts/${encodedId}/edit`);
+  }, [profileDocId, contactTargetUser, handleSheetOpenChange, router]);
 
   const displayParticipantInfo = useMemo(() => {
     if (!profileDocId) return null;
     const info = conversation.participantInfo[profileDocId];
+    const fallbackName = freshParticipant?.name || info?.name || 'Пользователь';
+    const resolvedName = resolveContactDisplayName(
+      contactsIndex?.contactProfiles,
+      profileDocId,
+      fallbackName
+    );
     return {
-      name: freshParticipant?.name || info?.name || 'Пользователь',
+      name: resolvedName,
       avatar: freshParticipant?.avatar || info?.avatar || '',
       email: freshParticipant?.email || '',
       phone: freshParticipant?.phone || '',
@@ -273,7 +439,7 @@ export function ChatParticipantProfile({
       dateOfBirth: freshParticipant?.dateOfBirth || null,
       deletedAt: freshParticipant?.deletedAt || null
     };
-  }, [profileDocId, conversation.participantInfo, freshParticipant]);
+  }, [profileDocId, conversation.participantInfo, freshParticipant, contactsIndex?.contactProfiles]);
 
   /** Строки блока «контакты / о себе» — показываем один сворачиваемый блок вместо длинного списка. */
   const hasContactDetailsRows = useMemo(() => {
@@ -689,6 +855,49 @@ export function ChatParticipantProfile({
           </div>
 
             <div className="mt-3 space-y-1 px-2 sm:px-3">
+              {(canRunDirectQuickActions || showChatsQuickAction) && (
+                <div className="pb-1">
+                  <WaQuickActionRow>
+                    {showChatsQuickAction ? (
+                      <WaQuickActionButton
+                        icon={<MessageSquare />}
+                        label="Чаты"
+                        onClick={() => void openDirectChatFromProfile()}
+                        disabled={quickActionBusy !== null}
+                      />
+                    ) : null}
+                    {canRunDirectQuickActions ? (
+                      <>
+                        <WaQuickActionButton
+                          icon={<Phone />}
+                          label="Звонок"
+                          onClick={() => void startDirectCallFromProfile(false)}
+                          disabled={quickActionBusy !== null}
+                        />
+                        <WaQuickActionButton
+                          icon={<Video />}
+                          label="Видео"
+                          onClick={() => void startDirectCallFromProfile(true)}
+                          disabled={quickActionBusy !== null}
+                        />
+                        <WaQuickActionButton
+                          icon={<Share2 />}
+                          label="Поделиться"
+                          onClick={() => void handleQuickShare()}
+                          disabled={quickActionBusy !== null}
+                        />
+                        <WaQuickActionButton
+                          icon={<Bell />}
+                          label={muteInCurrentDirect ? 'Звук выкл' : 'Звук'}
+                          onClick={() => void toggleDirectNotificationsFromProfile()}
+                          disabled={quickActionBusy !== null}
+                          accentClassName={muteInCurrentDirect ? 'text-amber-500' : 'text-emerald-500'}
+                        />
+                      </>
+                    ) : null}
+                  </WaQuickActionRow>
+                </div>
+              )}
               {hasContactDetailsRows && displayParticipantInfo && (
                 <div
                   className={cn(
@@ -787,18 +996,17 @@ export function ChatParticipantProfile({
                       type="button"
                       variant="secondary"
                       className="inline-flex h-12 shrink-0 flex-row items-center justify-center gap-1.5 rounded-2xl border-border bg-muted px-2.5 font-bold text-foreground shadow-none hover:bg-muted/80 sm:px-3"
-                      disabled={isContact || addContactBusy}
-                      onClick={() => void handleAddToContacts()}
-                      title={isContact ? 'В контактах' : 'Добавить в контакты'}
-                      aria-label={isContact ? 'В контактах' : 'Добавить в контакты'}
+                      onClick={handleOpenContactEditor}
+                      title={isContact ? 'Изменить контакт' : 'Добавить в контакты'}
+                      aria-label={isContact ? 'Изменить контакт' : 'Добавить в контакты'}
                     >
-                      {addContactBusy ? (
-                        <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+                      {isContact ? (
+                        <Edit className="h-5 w-5 shrink-0" aria-hidden />
                       ) : (
                         <UserPlus className="h-5 w-5 shrink-0" aria-hidden />
                       )}
                       <span className="max-w-[5rem] truncate text-left text-[11px] leading-none sm:max-w-[6.5rem] sm:text-sm">
-                        {isContact ? 'В контактах' : 'В контакты'}
+                        {isContact ? 'Изм.' : 'В контакты'}
                       </span>
                     </Button>
                   ) : null}
@@ -811,15 +1019,14 @@ export function ChatParticipantProfile({
                     type="button"
                     variant="secondary"
                     className="h-12 w-full justify-center gap-2 rounded-2xl border-border bg-muted font-bold text-foreground shadow-none hover:bg-muted/80"
-                    disabled={isContact || addContactBusy}
-                    onClick={() => void handleAddToContacts()}
+                    onClick={handleOpenContactEditor}
                   >
-                    {addContactBusy ? (
-                      <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+                    {isContact ? (
+                      <Edit className="h-5 w-5 shrink-0" aria-hidden />
                     ) : (
                       <UserPlus className="h-5 w-5 shrink-0" aria-hidden />
                     )}
-                    {isContact ? 'В контактах' : 'Добавить в контакты'}
+                    {isContact ? 'Изм. контакт' : 'Добавить в контакты'}
                   </Button>
                 </div>
               ) : null}

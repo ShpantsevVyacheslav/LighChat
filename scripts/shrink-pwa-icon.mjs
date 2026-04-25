@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * PNG для PWA / apple-touch: знак масштабируется до ~CONTENT_SCALE стороны квадрата,
- * затем центрируется на белом поле (маяк не упирается в край иконки на «Домой»).
+ * затем центрируется на синем фоне приложения (без белой рамки по краям).
  *
  * Использование: node scripts/shrink-pwa-icon.mjs <вход.png> <выход.png> <размер>
  * Вызывается из scripts/generate-pwa-icons.sh после `cd` в корень репозитория.
@@ -25,8 +25,9 @@ if (!Number.isFinite(sz) || sz < 16) {
   process.exit(1);
 }
 
-/** Доля стороны под маяк; остальное — белая кайма (визуальный «safe area»). */
-const CONTENT_SCALE = 0.82;
+/** Доля стороны под иконку; 1.0 = без внешней каймы. */
+const CONTENT_SCALE = 1.0;
+const APP_BG = { r: 21, g: 64, b: 96, alpha: 1 };
 
 async function main() {
   if (!fs.existsSync(input)) {
@@ -45,14 +46,16 @@ async function main() {
   await sharp(input)
     .resize(inner, inner, {
       fit: "contain",
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
+      background: APP_BG,
     })
+    // Убираем альфу: края всегда на фирменном синем фоне, без светлой окантовки.
+    .flatten({ background: APP_BG })
     .extend({
       top: padT,
       bottom: padB,
       left: padL,
       right: padR,
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
+      background: APP_BG,
     })
     .png()
     .toFile(output);

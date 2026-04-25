@@ -30,9 +30,6 @@ class ConversationStarredScreen extends ConsumerWidget {
         conversationId: conversationId,
       )),
     );
-    final messagesAsync = ref.watch(
-      messagesProvider((conversationId: conversationId, limit: 800)),
-    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -48,18 +45,17 @@ class ConversationStarredScreen extends ConsumerWidget {
                     if (entries.isEmpty) {
                       return _emptyState(context);
                     }
-                    final byId = <String, ChatMessage>{
-                      for (final m
-                          in messagesAsync.value ?? const <ChatMessage>[])
-                        m.id: m,
-                    };
                     return ListView.builder(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                       itemCount: entries.length,
                       itemBuilder: (context, i) {
                         final e = entries[i];
-                        final m = byId[e.messageId];
-                        return _starredTile(context, e, m);
+                        return _StarredMessageTile(
+                          conversationId: conversationId,
+                          currentUserId: currentUserId,
+                          conversation: conversation,
+                          entry: e,
+                        );
                       },
                     );
                   },
@@ -138,15 +134,65 @@ class ConversationStarredScreen extends ConsumerWidget {
     );
   }
 
-  Widget _starredTile(
-    BuildContext context,
-    StarredChatMessageEntry entry,
-    ChatMessage? message,
-  ) {
+  Widget _glass(
+    BuildContext context, {
+    required Widget child,
+    double radius = 20,
+  }) {
     final scheme = Theme.of(context).colorScheme;
-    final senderId = message?.senderId ?? '';
-    final senderName = _senderName(senderId);
-    final preview = _previewText(entry, message);
+    final dark = scheme.brightness == Brightness.dark;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          decoration: BoxDecoration(
+            color: (dark ? Colors.black : Colors.white).withValues(
+              alpha: dark ? 0.24 : 0.42,
+            ),
+            border: Border.all(
+              color: (dark ? Colors.white : Colors.black).withValues(
+                alpha: dark ? 0.14 : 0.10,
+              ),
+            ),
+            borderRadius: BorderRadius.circular(radius),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _StarredMessageTile extends ConsumerWidget {
+  const _StarredMessageTile({
+    required this.conversationId,
+    required this.currentUserId,
+    required this.conversation,
+    required this.entry,
+  });
+
+  final String conversationId;
+  final String currentUserId;
+  final Conversation conversation;
+  final StarredChatMessageEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final msgAsync = ref.watch(
+      chatMessageByIdProvider((
+        conversationId: conversationId,
+        messageId: entry.messageId,
+      )),
+    );
+    final message = msgAsync.asData?.value;
+    final senderName = _senderName(
+      senderId: message?.senderId ?? '',
+      conversation: conversation,
+      currentUserId: currentUserId,
+    );
+    final preview = _previewText(entry: entry, message: message);
     final timeLabel = _formatTime(entry.createdAt);
 
     return Padding(
@@ -211,44 +257,6 @@ class ConversationStarredScreen extends ConsumerWidget {
     );
   }
 
-  String _senderName(String senderId) {
-    if (senderId.trim().isEmpty) return 'Сообщение';
-    final info = conversation.participantInfo?[senderId];
-    if ((info?.name ?? '').trim().isNotEmpty) return info!.name.trim();
-    if (senderId == currentUserId) return 'Вы';
-    return 'Участник';
-  }
-
-  String _previewText(StarredChatMessageEntry entry, ChatMessage? m) {
-    if (m == null) {
-      return entry.previewText ?? 'Сообщение';
-    }
-    final raw = (m.text ?? '').trim();
-    var plain = raw;
-    if (raw.contains('<')) {
-      plain = messageHtmlToPlainText(raw);
-    }
-    plain = plain.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (plain.isNotEmpty) return plain;
-    if ((m.chatPollId ?? '').trim().isNotEmpty) return 'Опрос';
-    if (m.locationShare != null) return 'Локация';
-    if (m.attachments.isNotEmpty) return 'Вложение';
-    return entry.previewText ?? 'Сообщение';
-  }
-
-  String _formatTime(DateTime dt) {
-    final d = dt.toLocal();
-    final now = DateTime.now();
-    final isToday =
-        d.year == now.year && d.month == now.month && d.day == now.day;
-    final hh = d.hour.toString().padLeft(2, '0');
-    final mm = d.minute.toString().padLeft(2, '0');
-    if (isToday) return 'Сегодня, $hh:$mm';
-    final dd = d.day.toString().padLeft(2, '0');
-    final mo = d.month.toString().padLeft(2, '0');
-    return '$dd.$mo $hh:$mm';
-  }
-
   Widget _glass(
     BuildContext context, {
     required Widget child,
@@ -276,5 +284,49 @@ class ConversationStarredScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _senderName({
+    required String senderId,
+    required Conversation conversation,
+    required String currentUserId,
+  }) {
+    if (senderId.trim().isEmpty) return 'Сообщение';
+    final info = conversation.participantInfo?[senderId];
+    if ((info?.name ?? '').trim().isNotEmpty) return info!.name.trim();
+    if (senderId == currentUserId) return 'Вы';
+    return 'Участник';
+  }
+
+  String _previewText({
+    required StarredChatMessageEntry entry,
+    required ChatMessage? message,
+  }) {
+    final m = message;
+    if (m == null) return entry.previewText ?? 'Сообщение';
+    final raw = (m.text ?? '').trim();
+    var plain = raw;
+    if (raw.contains('<')) {
+      plain = messageHtmlToPlainText(raw);
+    }
+    plain = plain.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (plain.isNotEmpty) return plain;
+    if ((m.chatPollId ?? '').trim().isNotEmpty) return 'Опрос';
+    if (m.locationShare != null) return 'Локация';
+    if (m.attachments.isNotEmpty) return 'Вложение';
+    return entry.previewText ?? 'Сообщение';
+  }
+
+  String _formatTime(DateTime dt) {
+    final d = dt.toLocal();
+    final now = DateTime.now();
+    final isToday =
+        d.year == now.year && d.month == now.month && d.day == now.day;
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    if (isToday) return 'Сегодня, $hh:$mm';
+    final dd = d.day.toString().padLeft(2, '0');
+    final mo = d.month.toString().padLeft(2, '0');
+    return '$dd.$mo $hh:$mm';
   }
 }

@@ -8,8 +8,8 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import 'chat_gallery_video_local_cache.dart';
 import 'chat_vlc_network_media.dart';
-import 'message_bubble_delivery_icons.dart';
 import 'video_cached_thumb_image.dart';
 
 const double _kCircleCollapsed = 192;
@@ -109,7 +109,8 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
   }
 
   Future<void> _initNetwork() async {
-    final uri = Uri.tryParse(widget.attachment.url);
+    final sourceUrl = widget.attachment.url.trim();
+    final uri = Uri.tryParse(sourceUrl);
     if (uri == null || uri.scheme.isEmpty) {
       if (mounted) setState(() => _failed = true);
       return;
@@ -125,10 +126,21 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
       } else {
-        c = VideoPlayerController.networkUrl(
-          uri,
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        final cached = await ChatGalleryVideoLocalCache.cachedFileIfExists(
+          sourceUrl,
         );
+        if (cached != null) {
+          c = VideoPlayerController.file(
+            cached,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        } else {
+          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          c = VideoPlayerController.networkUrl(
+            uri,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        }
       }
       await c.initialize();
       if (!mounted) {
@@ -217,7 +229,8 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
         });
       }
     } else if (playing) {
-      setState(() {});
+      // Не вызывать setState на каждом тике: в ленте при play показывается только
+      // заглушка — лишние пересборки строки ломали скролл у соседнего inline-видео.
       _playOverlay?.markNeedsBuild();
     }
   }
@@ -406,8 +419,7 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
                   ),
                 ),
               ),
-            // Duration + delivery icons are rendered BELOW the circle
-            // (same pattern as message bubble footer).
+            // Footer meta under the circle is intentionally hidden.
           ],
         ),
       ),
@@ -415,71 +427,31 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
   }
 
   Widget _circleFooterMeta() {
-    if (!widget.showTimestamps || _isPlaying) return const SizedBox.shrink();
-    final alignRight = widget.isMine;
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Align(
-        alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _formatDuration(_durationSec),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if (widget.isMine) ...[
-                  const SizedBox(width: 4),
-                  MessageBubbleDeliveryIcons(
-                    deliveryStatus: widget.deliveryStatus,
-                    readAt: widget.readAt,
-                    iconColor: Colors.lightBlueAccent.withValues(alpha: 0.95),
-                    size: 11,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _wrappedInteractiveCircle(BuildContext context, double side) {
     final scheme = Theme.of(context).colorScheme;
-    return Listener(
-      onPointerDown: (e) {
-        if (e.kind == PointerDeviceKind.touch ||
-            e.kind == PointerDeviceKind.mouse ||
-            e.kind == PointerDeviceKind.stylus) {
-          _flashControls();
-        }
-      },
-      child: MouseRegion(
-        onEnter: (_) => _flashControls(),
-        child: GestureDetector(
-          onTap: () => unawaited(_togglePlay()),
-          behavior: HitTestBehavior.opaque,
-          child: SizedBox(
-            width: side,
-            height: side,
-            child: _circleVisualLayers(side, scheme),
-          ),
-        ),
+    return GestureDetector(
+      onTap: () => unawaited(_togglePlay()),
+      behavior: HitTestBehavior.deferToChild,
+      child: SizedBox(
+        width: side,
+        height: side,
+        child: _circleVisualLayers(side, scheme),
+      ),
+    );
+  }
+
+  Widget _inlineCircleBody(Widget circle) {
+    return Align(
+      alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: widget.isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [circle, _circleFooterMeta()],
       ),
     );
   }
@@ -580,27 +552,17 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
       return VisibilityDetector(
         key: Key('vc-vis-${widget.playbackSlotId}'),
         onVisibilityChanged: _onVisibilityChanged,
-        child: _collapsedPlaceholder(),
+        child: _inlineCircleBody(_collapsedPlaceholder()),
       );
     }
 
     return VisibilityDetector(
       key: Key('vc-vis-${widget.playbackSlotId}'),
       onVisibilityChanged: _onVisibilityChanged,
-      child: Align(
-        alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: widget.isMine
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            _ready && _controller != null
-                ? _wrappedInteractiveCircle(context, _kCircleCollapsed)
-                : _circleLoadingPlaceholder(),
-            _circleFooterMeta(),
-          ],
-        ),
+      child: _inlineCircleBody(
+        _ready && _controller != null
+            ? _wrappedInteractiveCircle(context, _kCircleCollapsed)
+            : _circleLoadingPlaceholder(),
       ),
     );
   }

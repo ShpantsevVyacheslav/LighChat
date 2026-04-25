@@ -18,8 +18,29 @@ bool isUserListedInGlobalChatSearch(UserProfile viewer, UserProfile candidate) {
   return candidate.privacySettings?.showInGlobalUserSearch != false;
 }
 
-int _sortUsersByNameRu(UserProfile a, UserProfile b) {
-  return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+String _resolvedDisplayName(
+  UserProfile user, {
+  Map<String, String> displayNameById = const {},
+}) {
+  final local = (displayNameById[user.id] ?? '').trim();
+  if (local.isNotEmpty) return local;
+  return user.name;
+}
+
+int _sortUsersByNameRu(
+  UserProfile a,
+  UserProfile b, {
+  Map<String, String> displayNameById = const {},
+}) {
+  final left = _resolvedDisplayName(
+    a,
+    displayNameById: displayNameById,
+  ).toLowerCase();
+  final right = _resolvedDisplayName(
+    b,
+    displayNameById: displayNameById,
+  ).toLowerCase();
+  return left.compareTo(right);
 }
 
 /// Уже отфильтрованный список: контакты, затем глобальный поиск с учётом privacy.
@@ -28,14 +49,24 @@ splitUsersByContactsAndGlobalVisibility({
   required List<UserProfile> matched,
   required UserProfile viewer,
   required List<String> contactIds,
+  Map<String, String> displayNameById = const {},
 }) {
   final set = contactIds.toSet();
   final fromContacts = matched.where((u) => set.contains(u.id)).toList()
-    ..sort(_sortUsersByNameRu);
-  final fromGlobal = matched
-      .where((u) => !set.contains(u.id) && isUserListedInGlobalChatSearch(viewer, u))
-      .toList()
-    ..sort(_sortUsersByNameRu);
+    ..sort(
+      (a, b) => _sortUsersByNameRu(a, b, displayNameById: displayNameById),
+    );
+  final fromGlobal =
+      matched
+          .where(
+            (u) =>
+                !set.contains(u.id) &&
+                isUserListedInGlobalChatSearch(viewer, u),
+          )
+          .toList()
+        ..sort(
+          (a, b) => _sortUsersByNameRu(a, b, displayNameById: displayNameById),
+        );
   return (fromContacts: fromContacts, fromGlobal: fromGlobal);
 }
 
@@ -198,9 +229,15 @@ bool ruEnSubstringMatch(String haystack, String needle) {
 }
 
 /// Web `userMatchesChatSearchQuery` для [UserProfile].
-bool userMatchesChatSearchQuery(UserProfile user, String query) {
+bool userMatchesChatSearchQuery(
+  UserProfile user,
+  String query, {
+  String? displayNameOverride,
+}) {
   final q = query.trim();
   if (q.isEmpty) return true;
+  final localName = (displayNameOverride ?? '').trim();
+  if (localName.isNotEmpty && ruEnSubstringMatch(localName, q)) return true;
   if (user.name.isNotEmpty && ruEnSubstringMatch(user.name, q)) return true;
   final un = (user.username ?? '').trim().toLowerCase();
   if (un.isNotEmpty) {

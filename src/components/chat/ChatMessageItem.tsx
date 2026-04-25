@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import { parseISO } from 'date-fns';
 
-import type { User, Conversation, ChatMessage, ChatAttachment, ReplyContext, ChatSettings } from '@/lib/types';
+import type { User, Conversation, ChatMessage, ChatAttachment, ReplyContext, ChatSettings, UserContactLocalProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   isOnlyEmojis,
@@ -78,7 +78,7 @@ function GifAttachmentImage({ att }: { att: ChatAttachment }) {
         return (
             <video
                 src={displaySrc}
-                className="h-auto w-full max-h-64 object-contain"
+                className="pointer-events-none h-auto w-full max-h-64 object-contain"
                 loop
                 muted
                 playsInline
@@ -117,8 +117,12 @@ interface ChatMessageItemProps {
     isLastInChat?: boolean;
     /** Клик по @упоминанию в тексте — открыть профиль участника */
     onMentionProfileOpen?: (userId: string) => void;
+    /** Группа: из меню отправителя открыть профиль (источник = sender). */
+    onGroupSenderProfileOpen?: (userId: string) => void;
     /** Группа: из меню отправителя — открыть или создать личный чат с автором сообщения */
     onGroupSenderWritePrivate?: (userId: string) => void | Promise<void>;
+    /** Локальные имена контактов текущего пользователя (рендер @ в тексте). */
+    contactProfiles?: Record<string, UserContactLocalProfile>;
     /** Сохранить стикер/GIF из сообщения в пак текущего пользователя (контекстное меню). */
     onSaveStickerGif?: (attachment: ChatAttachment, mode?: 'copy' | 'normalize_sticker') => void;
     /** Расшифрованный HTML для E2E (id сообщения → текст). */
@@ -141,8 +145,10 @@ const ChatMessageItemComponent = ({
     chatSettings,
     isLastInChat = false,
     onMentionProfileOpen,
+    onGroupSenderProfileOpen,
     onGroupSenderWritePrivate,
     onSaveStickerGif,
+    contactProfiles,
     e2eeDecryptedByMessageId,
     isStarred = false,
     onToggleStar,
@@ -270,6 +276,11 @@ const ChatMessageItemComponent = ({
         if (!list?.length) return false;
         return list.some(isGridGalleryAttachment);
     }, [message.attachments, message.isDeleted]);
+    /** Полноэкранный «кино»-режим только для сообщения из одного кружка; иначе сетка/видео сверху не прыгает при play. */
+    const useFullBleedVideoCirclePlaying = useMemo(
+        () => isVideoCircle && isVideoPlaying && !hasGridVisualMedia,
+        [isVideoCircle, isVideoPlaying, hasGridVisualMedia],
+    );
     const hasNeedsMediaNorm = useMemo(() => {
         if (message.isDeleted) return false;
         const list = message.attachments || [];
@@ -514,7 +525,7 @@ const ChatMessageItemComponent = ({
             className={cn(
                 'group flex min-h-[32px] w-full touch-pan-y select-none items-start gap-2 px-4 relative',
                 !isMenuOpen && 'transition-all duration-500',
-                (isVideoCircle && isVideoPlaying) ? 'justify-center my-10' : (isCurrentUser ? 'justify-end' : 'justify-start'), 
+                useFullBleedVideoCirclePlaying ? 'justify-center my-10' : (isCurrentUser ? 'justify-end' : 'justify-start'), 
                 isSelectionActive && !isDeleted && 'cursor-pointer active:bg-muted/30',
                 isVideoPlaying && 'z-[500] relative',
                 isMenuOpen && menuPosition && 'z-[40]'
@@ -551,16 +562,16 @@ const ChatMessageItemComponent = ({
                 'flex items-end gap-2',
                 !isMenuOpen && 'transition-all duration-500',
                 hasGridVisualMedia ? 'min-w-[min(100%,208px)] shrink-0' : 'min-w-0',
-                (isVideoCircle && isVideoPlaying) ? 'max-w-full w-full justify-center flex-row' : (isCurrentUser ? 'flex-row-reverse ml-auto max-w-[90%] md:max-w-[75%]' : 'flex-row max-w-[90%] md:max-w-[75%]'), 
-                isVideoPlaying && 'z-[510] !max-w-full'
+                useFullBleedVideoCirclePlaying ? 'max-w-full w-full justify-center flex-row' : (isCurrentUser ? 'flex-row-reverse ml-auto max-w-[90%] md:max-w-[75%]' : 'flex-row max-w-[90%] md:max-w-[75%]'), 
+                useFullBleedVideoCirclePlaying && 'z-[510] !max-w-full'
             )} style={{ transform: `translateX(${swipeX}px)` }}>
-                {!isCurrentUser && conversation.isGroup && !(isVideoCircle && isVideoPlaying) && !isMenuOpen && (
+                {!isCurrentUser && conversation.isGroup && !useFullBleedVideoCirclePlaying && !isMenuOpen && (
                     showGroupSenderActions ? (
                         <GroupMessageSenderMenu
                             senderId={message.senderId}
                             currentUserId={currentUser.id}
                             disabled={groupSenderMenuDisabled}
-                            onOpenProfile={onMentionProfileOpen}
+                            onOpenProfile={onGroupSenderProfileOpen ?? onMentionProfileOpen}
                             onWritePrivate={onGroupSenderWritePrivate}
                         >
                             <button
@@ -589,10 +600,10 @@ const ChatMessageItemComponent = ({
                         'flex flex-col gap-1 relative',
                         hasGridVisualMedia
                             ? 'w-full max-w-[min(100%,208px)] min-w-[min(100%,169px)] shrink-0'
-                            : isVideoCircle && isVideoPlaying
+                            : useFullBleedVideoCirclePlaying
                               ? 'min-w-0 w-full max-w-full items-center'
                               : 'min-w-0 w-fit',
-                        !(isVideoCircle && isVideoPlaying) &&
+                        !useFullBleedVideoCirclePlaying &&
                             (isCurrentUser ? 'items-end' : 'items-start')
                     )}
                 >
@@ -630,13 +641,13 @@ const ChatMessageItemComponent = ({
                             </div>
                         ) : (
                             <div className={cn('flex flex-col select-none gap-1', hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0')}>
-                                {senderName && !isPureEmoji && !isStickerLike && !isVideoPlaying && !isMenuOpen && !isMediaOnly && (
+                                {senderName && !isPureEmoji && !isStickerLike && !useFullBleedVideoCirclePlaying && !isMenuOpen && !isMediaOnly && (
                                     showGroupSenderActions ? (
                                         <GroupMessageSenderMenu
                                             senderId={message.senderId}
                                             currentUserId={currentUser.id}
                                             disabled={groupSenderMenuDisabled}
-                                            onOpenProfile={onMentionProfileOpen}
+                                            onOpenProfile={onGroupSenderProfileOpen ?? onMentionProfileOpen}
                                             onWritePrivate={onGroupSenderWritePrivate}
                                         >
                                             <button
@@ -655,7 +666,7 @@ const ChatMessageItemComponent = ({
                                         <div className={cn('text-[11px] font-bold px-3 pt-2 uppercase tracking-wider', senderColor)}>{senderName}</div>
                                     )
                                 )}
-                                {message.replyTo && !isPureEmoji && !isStickerLike && !isVideoPlaying && (
+                                {message.replyTo && !isPureEmoji && !isStickerLike && !useFullBleedVideoCirclePlaying && (
                                     <MessageReply
                                         replyTo={message.replyTo}
                                         isCurrentUser={isCurrentUser}
@@ -684,7 +695,9 @@ const ChatMessageItemComponent = ({
                                             isVideoCircle &&
                                                 !isDeleted &&
                                                 (isVideoPlaying
-                                                    ? 'min-h-0 min-w-0 w-full max-w-full overflow-visible rounded-full border-none bg-transparent p-0 shadow-none flex justify-center'
+                                                    ? hasGridVisualMedia
+                                                        ? 'min-w-0 w-full overflow-visible rounded-full border-none bg-transparent p-0 shadow-none'
+                                                        : 'min-h-0 min-w-0 w-full max-w-full overflow-visible rounded-full border-none bg-transparent p-0 shadow-none flex justify-center'
                                                     : 'min-h-[192px] min-w-[192px] overflow-visible rounded-full border-none bg-transparent p-0 shadow-none'),
                                             !(isPureEmoji || isDeleted || isVideoCircle || isStickerLike) &&
                                                 cn(
@@ -770,16 +783,24 @@ const ChatMessageItemComponent = ({
                                         {message.attachments?.map((att, idx) => {
                                                         if (att.name.startsWith('video-circle_'))
                                                             return (
-                                                                <VideoCirclePlayer
+                                                                <div
                                                                     key={idx}
-                                                                    attachment={att}
-                                                                    isCurrentUser={isCurrentUser}
-                                                                    createdAt={message.createdAt}
-                                                                    deliveryStatus={message.deliveryStatus}
-                                                                    readAt={message.readAt}
-                                                                    onPlaybackStateChange={setIsVideoPlaying}
-                                                                    isLastInChat={isLastInChat}
-                                                                />
+                                                                    className={cn(
+                                                                        hasGridVisualMedia &&
+                                                                            isVideoPlaying &&
+                                                                            'flex w-full shrink-0 justify-center',
+                                                                    )}
+                                                                >
+                                                                    <VideoCirclePlayer
+                                                                        attachment={att}
+                                                                        isCurrentUser={isCurrentUser}
+                                                                        createdAt={message.createdAt}
+                                                                        deliveryStatus={message.deliveryStatus}
+                                                                        readAt={message.readAt}
+                                                                        onPlaybackStateChange={setIsVideoPlaying}
+                                                                        isLastInChat={isLastInChat}
+                                                                    />
+                                                                </div>
                                                             );
                                                         if (isAttachmentLikelyIosStickerCutout(att))
                                                             return (
@@ -850,6 +871,7 @@ const ChatMessageItemComponent = ({
                                                                 isColoredBubble={isColoredBubble}
                                                                 conversation={conversation}
                                                                 allUsers={allUsers}
+                                                                contactProfiles={contactProfiles}
                                                                 onMentionProfileOpen={onMentionProfileOpen}
                                                             >
                                                                 {!isStickerLike &&

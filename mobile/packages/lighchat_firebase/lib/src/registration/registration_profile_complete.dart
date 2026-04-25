@@ -15,10 +15,7 @@ bool isRegistrationProfileComplete({
   final u = _normalizedUsername(username ?? '');
   if (u.length < 3 || u.length > 30) return false;
   if (!_usernameAllowed.hasMatch(u)) return false;
-  final digits = (phone ?? '').replaceAll(RegExp(r'\D'), '');
-  if (digits.length != 11) return false;
   final e = (email ?? '').trim();
   if (e.isEmpty || !_emailLike.hasMatch(e)) return false;
   return true;
 }
-

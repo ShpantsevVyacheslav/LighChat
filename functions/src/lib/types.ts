@@ -13,6 +13,7 @@ export type User = {
   bio?: string;
   deletedAt: string | null;
   fcmTokens?: string[];
+  voipTokens?: string[];
   online?: boolean;
   lastSeen?: string;
   dateOfBirth?: string | null;

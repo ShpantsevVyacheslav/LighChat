@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io' show Directory, File, HttpException;
+import 'dart:io' show Directory, File, FileSystemException, HttpException;
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -55,10 +55,7 @@ Route<T> chatMediaViewerPageRoute<T extends Object?>(Widget page) {
     transitionDuration: const Duration(milliseconds: 280),
     reverseTransitionDuration: const Duration(milliseconds: 240),
     pageBuilder: (context, animation, secondaryAnimation) {
-      return _ChatMediaViewerCloseDirectionScope(
-        notifier: dir,
-        child: page,
-      );
+      return _ChatMediaViewerCloseDirectionScope(notifier: dir, child: page);
     },
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return _ChatMediaViewerSlideTransition(
@@ -161,15 +158,23 @@ class ChatMediaViewerScreen extends StatefulWidget {
 }
 
 class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
+  static const double _kTopChromeFallbackHeight = 68;
+
   late List<ChatMediaGalleryItem> _items;
   late PageController _pageController;
   late int _index;
   final Map<int, TransformationController> _imageTransforms = {};
+  final GlobalKey _topChromeKey = GlobalKey();
+  double _topChromeMeasuredHeight = 0;
   bool _zoomed = false;
   double _dismissDragY = 0;
+
   /// Скрывает нижние FAB (ответить / переслать / …), пока активная страница — видео и оно играет.
   bool _galleryVideoPlaying = false;
-  /// Скрывает верхнюю шапку (как и контролы плеера), когда видео играет и контролы спрятаны.
+
+  /// Состояние видимости контролов текущей video-страницы.
+  /// Держим в родителе, чтобы можно было расширять логику chrome без
+  /// подписки на контроллер плеера в этом виджете.
   bool _galleryVideoControlsVisible = true;
 
   @override
@@ -209,10 +214,23 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   ChatMediaGalleryItem? get _current =>
       _items.isEmpty ? null : _items[_index.clamp(0, _items.length - 1)];
 
+  void _scheduleTopChromeMeasure() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _topChromeKey.currentContext;
+      final ro = ctx?.findRenderObject();
+      if (ro is! RenderBox || !ro.hasSize) return;
+      final measured = ro.size.height;
+      if ((measured - _topChromeMeasuredHeight).abs() < 0.5) return;
+      setState(() => _topChromeMeasuredHeight = measured);
+    });
+  }
+
   Future<void> _saveCurrent() async {
     final item = _current;
     if (item == null) return;
     final url = item.attachment.url;
+    final uri = Uri.tryParse(url);
     final rawName = item.attachment.name.trim();
     final name = rawName.isNotEmpty
         ? rawName.replaceAll(RegExp(r'[/\\]'), '_')
@@ -232,14 +250,27 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
           return;
         }
       }
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode != 200) {
-        throw HttpException('HTTP ${res.statusCode}');
-      }
       final f = File(
         '${Directory.systemTemp.path}/lighchat_${DateTime.now().millisecondsSinceEpoch}_$name',
       );
-      await f.writeAsBytes(res.bodyBytes);
+      if (uri == null || uri.scheme.isEmpty) {
+        throw const FormatException('Bad media URL');
+      }
+      if (uri.scheme == 'file') {
+        final src = File(uri.toFilePath());
+        if (!await src.exists()) {
+          throw const FileSystemException('Файл не найден');
+        }
+        await src.copy(f.path);
+      } else if (uri.scheme == 'http' || uri.scheme == 'https') {
+        final res = await http.get(uri);
+        if (res.statusCode != 200) {
+          throw HttpException('HTTP ${res.statusCode}');
+        }
+        await f.writeAsBytes(res.bodyBytes);
+      } else {
+        throw FormatException('Unsupported media scheme: ${uri.scheme}');
+      }
       final video = isChatGridGalleryVideo(item.attachment);
       if (video) {
         await Gal.putVideo(f.path);
@@ -312,6 +343,17 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     final top = MediaQuery.paddingOf(context).top;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final cur = _current;
+    final currentIsVideo =
+        cur != null && isChatGridGalleryVideo(cur.attachment);
+    final showTopChrome = !_zoomed && !(currentIsVideo && _galleryVideoPlaying);
+    if (showTopChrome) {
+      _scheduleTopChromeMeasure();
+    }
+    final topBarControlsInset = (showTopChrome && currentIsVideo)
+        ? (_topChromeMeasuredHeight > 0
+              ? _topChromeMeasuredHeight
+              : top + _kTopChromeFallbackHeight)
+        : 0.0;
     final canDelete =
         cur != null && cur.message.senderId == widget.currentUserId;
     final showReply = widget.onReply != null;
@@ -355,8 +397,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                     // чтобы reverse-анимация продолжилась в ту же сторону,
                     // а не «отпрыгивала» вверх при свайпе вниз.
                     final downward = _dismissDragY > 0 || v > 0;
-                    final dir =
-                        _ChatMediaViewerCloseDirectionScope.maybeOf(context);
+                    final dir = _ChatMediaViewerCloseDirectionScope.maybeOf(
+                      context,
+                    );
                     if (dir != null) {
                       dir.value = downward ? 1.0 : -1.0;
                     }
@@ -405,6 +448,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                             pageIndex: i,
                             url: att.url,
                             mimeType: att.type,
+                            topOverlayInset: i == _index
+                                ? topBarControlsInset
+                                : 0,
                             showEdgeNavigation: multi && !_zoomed,
                             onTapPrev: i > 0 ? goPrev : null,
                             onTapNext: i < _items.length - 1 ? goNext : null,
@@ -417,7 +463,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                             onControlsVisibleChanged: (pageIdx, visible) {
                               if (!mounted || pageIdx != _index) return;
                               if (_galleryVideoControlsVisible != visible) {
-                                setState(() => _galleryVideoControlsVisible = visible);
+                                setState(
+                                  () => _galleryVideoControlsVisible = visible,
+                                );
                               }
                             },
                           );
@@ -436,16 +484,13 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                       },
                     ),
                   ),
-                  if (!_zoomed &&
-                      !(cur != null &&
-                          isChatGridGalleryVideo(cur.attachment) &&
-                          _galleryVideoPlaying &&
-                          !_galleryVideoControlsVisible))
+                  if (showTopChrome)
                     Positioned(
                       top: 0,
                       left: 0,
                       right: 0,
                       child: Container(
+                        key: _topChromeKey,
                         padding: EdgeInsets.fromLTRB(4, top + 4, 8, 16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -730,6 +775,15 @@ class _BackdropLayer extends StatelessWidget {
       );
     }
     final url = att.url;
+    final uri = Uri.tryParse(url);
+    final ImageProvider<Object>? bgImage = (uri != null && uri.scheme == 'file')
+        ? FileImage(File(uri.toFilePath()))
+        : ((uri != null && uri.hasScheme)
+              ? CachedNetworkImageProvider(url)
+              : null);
+    if (bgImage == null) {
+      return const ColoredBox(color: Color(0xFF18181B));
+    }
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -738,7 +792,7 @@ class _BackdropLayer extends StatelessWidget {
           child: Transform.scale(
             scale: 1.18,
             child: Image(
-              image: CachedNetworkImageProvider(url),
+              image: bgImage,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) =>
                   const ColoredBox(color: Color(0xFF18181B)),
@@ -809,6 +863,7 @@ class _GalleryVideoPage extends StatefulWidget {
     required this.pageIndex,
     required this.url,
     this.mimeType,
+    this.topOverlayInset = 0,
     this.showEdgeNavigation = true,
     this.onTapPrev,
     this.onTapNext,
@@ -819,6 +874,7 @@ class _GalleryVideoPage extends StatefulWidget {
   final int pageIndex;
   final String url;
   final String? mimeType;
+  final double topOverlayInset;
   final bool showEdgeNavigation;
   final VoidCallback? onTapPrev;
   final VoidCallback? onTapNext;
@@ -842,6 +898,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
   String _activeUrl = '';
   Timer? _hideControlsTimer;
   final TransformationController _videoZoom = TransformationController();
+
   /// Прогресс сохранения в локальный кэш (0..1) или `null`, если полоска не нужна.
   double? _cacheProgress;
   bool _downloadCancelled = false;
@@ -867,33 +924,40 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
     }
     VideoPlayerController? c;
     try {
-      if (await ChatGalleryVideoLocalCache.hasCachedFile(url)) {
-        final file = await ChatGalleryVideoLocalCache.fileForUrl(url);
+      if (uri.scheme == 'file') {
         c = VideoPlayerController.file(
-          file,
+          File(uri.toFilePath()),
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
       } else {
-        // Важно: не блокировать воспроизведение полной скачкой в кэш.
-        // Играем сразу по сети, а кэширование (если нужно) идёт параллельно.
-        if (mounted) setState(() => _cacheProgress = 0);
-        unawaited(
-          ChatGalleryVideoLocalCache.downloadToCache(
-            url: url,
-            onProgress: (p) {
+        final cached = await ChatGalleryVideoLocalCache.cachedFileIfExists(url);
+        if (cached != null) {
+          c = VideoPlayerController.file(
+            cached,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        } else {
+          // Важно: не блокировать воспроизведение полной скачкой в кэш.
+          // Играем сразу по сети, а кэширование (если нужно) идёт параллельно.
+          if (mounted) setState(() => _cacheProgress = 0);
+          unawaited(
+            ChatGalleryVideoLocalCache.downloadToCache(
+              url: url,
+              onProgress: (p) {
+                if (!mounted || _downloadCancelled) return;
+                setState(() => _cacheProgress = p ?? _cacheProgress);
+              },
+              isCancelled: () => _downloadCancelled || !mounted,
+            ).whenComplete(() {
               if (!mounted || _downloadCancelled) return;
-              setState(() => _cacheProgress = p ?? _cacheProgress);
-            },
-            isCancelled: () => _downloadCancelled || !mounted,
-          ).whenComplete(() {
-            if (!mounted || _downloadCancelled) return;
-            setState(() => _cacheProgress = null);
-          }),
-        );
-        c = VideoPlayerController.networkUrl(
-          uri,
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        );
+              setState(() => _cacheProgress = null);
+            }),
+          );
+          c = VideoPlayerController.networkUrl(
+            uri,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        }
       }
       await c.initialize();
       await c.setLooping(false);
@@ -1082,7 +1146,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
 
   String _urlForQuality(_ViewerVideoQuality quality) {
     final uri = Uri.tryParse(widget.url);
-    if (uri == null || uri.scheme.isEmpty) return widget.url;
+    if (uri == null || uri.scheme.isEmpty || uri.scheme == 'file') {
+      return widget.url;
+    }
     final q = Map<String, String>.from(uri.queryParameters);
     final target = quality.targetHeight;
     if (target == null) {
@@ -1143,6 +1209,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
   }
 
   Future<void> _applyQuality(_ViewerVideoQuality next) async {
+    if (Uri.tryParse(widget.url)?.scheme == 'file') return;
     final old = _av;
     if (old == null || !old.value.isInitialized || _switchingQuality) return;
     final nextUrl = _urlForQuality(next);
@@ -1158,13 +1225,22 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       if (uri == null || uri.scheme.isEmpty) {
         throw const FormatException('Bad URL');
       }
-      if (await ChatGalleryVideoLocalCache.hasCachedFile(nextUrl)) {
-        final file = await ChatGalleryVideoLocalCache.fileForUrl(nextUrl);
+      final cached = await ChatGalleryVideoLocalCache.cachedFileIfExists(
+        nextUrl,
+      );
+      if (cached != null) {
         replacement = VideoPlayerController.file(
-          file,
+          cached,
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
       } else {
+        unawaited(
+          ChatGalleryVideoLocalCache.downloadToCache(
+            url: nextUrl,
+            onProgress: (_) {},
+            isCancelled: () => !mounted,
+          ),
+        );
         replacement = VideoPlayerController.networkUrl(
           uri,
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
@@ -1230,8 +1306,8 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       await c.pause();
       final posMs = c.value.position.inMilliseconds;
       String urlForPip = _activeUrl;
-      if (await ChatGalleryVideoLocalCache.hasCachedFile(_activeUrl)) {
-        final f = await ChatGalleryVideoLocalCache.fileForUrl(_activeUrl);
+      final f = await ChatGalleryVideoLocalCache.cachedFileIfExists(_activeUrl);
+      if (f != null) {
         urlForPip = f.uri.toString();
       }
       final ok = await _PictureInPictureBridge.enter(
@@ -1477,7 +1553,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
                             ),
                             child: Column(
                               children: [
-                                const SizedBox(height: 8),
+                                SizedBox(height: 8 + widget.topOverlayInset),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,

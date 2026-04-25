@@ -12,8 +12,9 @@
 ///   * `hydratedMessages` — клон `messages`, где в `.attachments` добавлены
 ///     расшифрованные E2EE-вложения (blob-URL → `file://…` во временной папке);
 ///   * `decryptedTextByMessageId` — расшифрованный HTML-текст;
-///   * `failedMessageIds` — id сообщений, где либо текст, либо медиа
-///     не удалось расшифровать (UI показывает плейсхолдер).
+///   * `failedMessageIds` — id сообщений, где не удалось расшифровать
+///     текстовый payload (media-ошибки рендерятся отдельными
+///     placeholder-attachments, чтобы не «ронять» всё сообщение).
 ///
 /// Дочерний виджет (обычно `ChatMessageList`) не знает о крипто — он просто
 /// получает готовые данные.
@@ -31,12 +32,18 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'e2ee_plaintext_cache.dart';
 import 'e2ee_runtime.dart';
 
-typedef E2eeMessagesBuilder = Widget Function(
-  BuildContext context,
-  List<ChatMessage> hydratedMessages,
-  Map<String, String> decryptedTextByMessageId,
-  Set<String> failedMessageIds,
-);
+typedef E2eeMessagesBuilder =
+    Widget Function(
+      BuildContext context,
+      List<ChatMessage> hydratedMessages,
+      Map<String, String> decryptedTextByMessageId,
+      Set<String> failedMessageIds,
+    );
+
+/// Служебный MIME для плейсхолдера «расшифровать вложение не удалось».
+/// Рендерится как диагностическая карточка в `message_attachments.dart`.
+const String e2eeMediaDecryptErrorMime =
+    'application/x-lighchat-e2ee-media-error';
 
 class E2eeMessagesResolver extends ConsumerStatefulWidget {
   const E2eeMessagesResolver({
@@ -154,8 +161,9 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
   Future<Directory> _ensureMediaCacheDir() async {
     if (_mediaCacheDir != null) return _mediaCacheDir!;
     _mediaCacheDirFuture ??= () async {
-      final dir =
-          await E2eePlaintextCache.instance.mediaDir(widget.conversationId);
+      final dir = await E2eePlaintextCache.instance.mediaDir(
+        widget.conversationId,
+      );
       _mediaCacheDir = dir;
       return dir;
     }();
@@ -170,7 +178,9 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
       if (payload == null) continue;
 
       // Текст: расшифровываем один раз, если iv/ct непустые.
-      if (!_decrypted.containsKey(m.id) &&
+      if (payload.ivB64.isNotEmpty &&
+          payload.ciphertextB64.isNotEmpty &&
+          !_decrypted.containsKey(m.id) &&
           !_failed.contains(m.id) &&
           !_inFlight.contains(m.id)) {
         _inFlight.add(m.id);
@@ -193,8 +203,22 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
         MediaEnvelopeV2 env;
         try {
           env = MediaEnvelopeV2.fromWireJson(attachmentsJson[i]);
-        } catch (_) {
+        } catch (err) {
           // malformed envelope — единичный слот в failed, остальные продолжают.
+          logE2eeEvent(
+            E2eeTelemetryEventType.mediaDecryptFailure,
+            E2eeTelemetryPayload(
+              conversationId: widget.conversationId,
+              errorCode: normalizeErrorCode(err),
+            ),
+          );
+          slots[i] = _DecryptedMediaEntry(
+            attachment: _buildMediaDecryptFailedAttachment(
+              messageId: m.id,
+              fileId: 'invalid-envelope-$i',
+              mime: 'application/octet-stream',
+            ),
+          );
           continue;
         }
         final key = '${m.id}:${env.fileId}';
@@ -253,8 +277,8 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
   }
 
   /// Phase 9: один envelope → файл в темпе → [ChatAttachment] с `file://` URL.
-  /// Ошибки не пропагируются в общий `_failed` (текст может быть успешным даже
-  /// при сбое media). Вместо этого вкладка с медиа остаётся пустой.
+  /// Ошибки не ломают текст сообщения: вместо «тихой» потери вложения пишем
+  /// диагностический placeholder-attachment.
   Future<void> _decryptMediaOne({
     required MobileE2eeRuntime runtime,
     required String messageId,
@@ -263,9 +287,10 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
     required int slotIndex,
   }) async {
     final key = '$messageId:${envelope.fileId}';
+    final ext = _extensionForMime(envelope.mime);
     try {
       final dir = await _ensureMediaCacheDir();
-      final file = File('${dir.path}/$messageId-${envelope.fileId}');
+      final file = File('${dir.path}/$messageId-${envelope.fileId}$ext');
       // Если файл уже лежит в кэше (напр. при rebuild экрана) — просто переиспользуем.
       if (!await file.exists()) {
         final result = await runtime.decryptMediaForView(
@@ -278,7 +303,6 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
         await file.writeAsBytes(result.data, flush: true);
       }
       if (_disposed) return;
-      final ext = _extensionForMime(envelope.mime);
       final att = ChatAttachment(
         url: Uri.file(file.path).toString(),
         name: '${_prefixForKind(envelope.kind)}${envelope.fileId}$ext',
@@ -292,11 +316,28 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
           slots[slotIndex] = _DecryptedMediaEntry(attachment: att);
         }
       });
-    } catch (_) {
+    } catch (err) {
+      logE2eeEvent(
+        E2eeTelemetryEventType.mediaDecryptFailure,
+        E2eeTelemetryPayload(
+          conversationId: widget.conversationId,
+          errorCode: normalizeErrorCode(err),
+        ),
+      );
       if (_disposed) return;
       setState(() {
         _mediaInFlight.remove(key);
         _mediaFailed.add(key);
+        final slots = _decryptedMedia[messageId];
+        if (slots != null && slotIndex < slots.length) {
+          slots[slotIndex] = _DecryptedMediaEntry(
+            attachment: _buildMediaDecryptFailedAttachment(
+              messageId: messageId,
+              fileId: envelope.fileId,
+              mime: envelope.mime,
+            ),
+          );
+        }
       });
     }
   }
@@ -323,10 +364,7 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
         continue;
       }
       didChange = true;
-      final merged = <ChatAttachment>[
-        ...m.attachments,
-        ...extras,
-      ];
+      final merged = <ChatAttachment>[...m.attachments, ...extras];
       out.add(
         ChatMessage(
           id: m.id,
@@ -401,4 +439,24 @@ String _prefixForKind(MediaKindV2 kind) {
     case MediaKindV2.file:
       return 'file_';
   }
+}
+
+ChatAttachment _buildMediaDecryptFailedAttachment({
+  required String messageId,
+  required String fileId,
+  required String mime,
+}) {
+  final failedName = mime.startsWith('image/')
+      ? 'Не удалось расшифровать изображение'
+      : mime.startsWith('video/')
+      ? 'Не удалось расшифровать видео'
+      : mime.startsWith('audio/')
+      ? 'Не удалось расшифровать аудио'
+      : 'Не удалось расшифровать вложение';
+  return ChatAttachment(
+    url: 'e2ee-error://$messageId/$fileId',
+    name: failedName,
+    type: e2eeMediaDecryptErrorMime,
+    size: 0,
+  );
 }

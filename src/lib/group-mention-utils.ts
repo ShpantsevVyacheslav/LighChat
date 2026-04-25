@@ -1,5 +1,6 @@
-import type { Conversation, User } from '@/lib/types';
+import type { Conversation, User, UserContactLocalProfile } from '@/lib/types';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
+import { resolveContactDisplayName } from '@/lib/contact-display-name';
 
 /** Участник группы для подбора @ и разбора текста сообщения. */
 export type GroupMentionCandidate = {
@@ -19,7 +20,8 @@ function escapeRegExp(s: string): string {
 export function buildGroupMentionCandidates(
   conversation: Conversation,
   allUsers: User[],
-  currentUserId: string
+  currentUserId: string,
+  options?: { contactProfiles?: Record<string, UserContactLocalProfile> | null }
 ): GroupMentionCandidate[] {
   if (!conversation.isGroup) return [];
   const ids = [...new Set(conversation.participantIds)];
@@ -28,9 +30,10 @@ export function buildGroupMentionCandidates(
     if (id === currentUserId) continue;
     const u = allUsers.find((x) => x.id === id);
     if (u && !u.deletedAt) {
+      const resolved = resolveContactDisplayName(options?.contactProfiles, u.id, u.name || '');
       out.push({
         id: u.id,
-        name: u.name || '',
+        name: resolved || u.name || '',
         username: u.username || '',
         avatar: participantListAvatarUrl(u, undefined),
       });
@@ -38,9 +41,10 @@ export function buildGroupMentionCandidates(
     }
     const info = conversation.participantInfo[id];
     if (!info?.name) continue;
+    const resolved = resolveContactDisplayName(options?.contactProfiles, id, info.name);
     out.push({
       id,
-      name: info.name,
+      name: resolved || info.name,
       username: '',
       avatar: participantListAvatarUrl(undefined, info),
     });

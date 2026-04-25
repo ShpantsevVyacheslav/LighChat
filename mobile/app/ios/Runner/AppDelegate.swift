@@ -1,8 +1,11 @@
 import AVFoundation
 import AVKit
+import CryptoKit
 import Flutter
 import UIKit
 import FirebaseCore
+import PushKit
+import flutter_callkit_incoming
 
 /// Нативный PiP для iOS: отдельный AVPlayer по URL (Flutter `video_player` не отдаёт слой в PiP).
 private final class LighChatIosPipBridge: NSObject, AVPictureInPictureControllerDelegate {
@@ -168,7 +171,9 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
 }
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, PKPushRegistryDelegate {
+  private var voipRegistry: PKPushRegistry?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -178,6 +183,7 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     if FirebaseApp.app() == nil {
       FirebaseApp.configure()
     }
+    setupVoipRegistry()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -187,6 +193,102 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
       messenger: engineBridge.applicationRegistrar.messenger())
     LighChatVirtualBackgroundBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+  }
+
+  private func setupVoipRegistry() {
+    let registry = PKPushRegistry(queue: DispatchQueue.main)
+    registry.delegate = self
+    registry.desiredPushTypes = [.voIP]
+    voipRegistry = registry
+  }
+
+  private func normalizedString(_ raw: Any?) -> String? {
+    guard let value = raw else { return nil }
+    let text = String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
+    return text.isEmpty ? nil : text
+  }
+
+  private func boolValue(_ raw: Any?) -> Bool {
+    switch raw {
+    case let value as Bool:
+      return value
+    case let value as NSNumber:
+      return value.boolValue
+    case let value as String:
+      let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+      return normalized == "1" || normalized == "true" || normalized == "video"
+    default:
+      return false
+    }
+  }
+
+  private func callkitUuid(from callId: String) -> String {
+    let digest = Insecure.MD5.hash(data: Foundation.Data(callId.utf8))
+    let hash = digest.map { String(format: "%02x", $0) }.joined()
+    let p1 = String(hash.prefix(8))
+    let p2 = String(hash.dropFirst(8).prefix(4))
+    let p3 = String(hash.dropFirst(12).prefix(4))
+    let p4 = String(hash.dropFirst(16).prefix(4))
+    let p5 = String(hash.dropFirst(20).prefix(12))
+    return "\(p1)-\(p2)-\(p3)-\(p4)-\(p5)"
+  }
+
+  func pushRegistry(
+    _ registry: PKPushRegistry,
+    didUpdate credentials: PKPushCredentials,
+    for type: PKPushType
+  ) {
+    guard type == .voIP else { return }
+    let token = credentials.token.map { String(format: "%02x", $0) }.joined()
+    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.setDevicePushTokenVoIP(token)
+  }
+
+  func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
+    guard type == .voIP else { return }
+    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.setDevicePushTokenVoIP("")
+  }
+
+  func pushRegistry(
+    _ registry: PKPushRegistry,
+    didReceiveIncomingPushWith payload: PKPushPayload,
+    for type: PKPushType,
+    completion: @escaping () -> Void
+  ) {
+    guard type == .voIP else {
+      completion()
+      return
+    }
+
+    let dict = payload.dictionaryPayload
+    let rawCallId = normalizedString(dict["callId"]) ??
+      normalizedString(dict["id"]) ??
+      UUID().uuidString
+    let callkitId = callkitUuid(from: rawCallId)
+    let callerName = normalizedString(dict["callerName"]) ??
+      normalizedString(dict["nameCaller"]) ??
+      normalizedString(dict["handle"]) ??
+      "Кто-то"
+    let isVideo = boolValue(dict["isVideo"])
+    let data = flutter_callkit_incoming.Data(
+      id: callkitId,
+      nameCaller: callerName,
+      handle: callerName,
+      type: isVideo ? 1 : 0
+    )
+    data.extra = [
+      "callId": rawCallId,
+      "callerName": callerName,
+      "isVideo": isVideo ? "1" : "0",
+      "callkitId": callkitId,
+    ]
+
+    guard let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance else {
+      completion()
+      return
+    }
+    plugin.showCallkitIncoming(data, fromPushKit: true) {
+      completion()
+    }
   }
 }
 

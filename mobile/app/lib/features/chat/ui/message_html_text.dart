@@ -21,10 +21,10 @@ String messageHtmlToPlainText(String input) {
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
       .replaceAll('&quot;', '"')
-      .replaceAll('&#39;', "'");
+      .replaceAll('&#39;', "'")
+      .replaceAll('&#x27;', "'");
   s = s.replaceAll(RegExp(r'\r\n?'), '\n');
   s = s.replaceAll(RegExp(r'\n{3,}'), '\n\n');
-  s = s.replaceAll(RegExp(r'[ \t]{2,}'), ' ');
   return s.trim();
 }
 
@@ -35,12 +35,15 @@ class MessageHtmlRenderOpts {
     this.quoteAccent,
     this.quoteMaxWidth = 280,
     this.onMentionTap,
+    this.mentionLabelResolver,
   });
 
   final Color? linkColor;
   final Color? quoteAccent;
   final double quoteMaxWidth;
   final Future<void> Function(String userId)? onMentionTap;
+  final String Function(String userId, String fallbackLabel)?
+  mentionLabelResolver;
 
   static const defaults = MessageHtmlRenderOpts();
 }
@@ -90,7 +93,9 @@ class _ComposeStyle {
       quote: quote ?? this.quote,
       linkHref: clearLink ? null : (linkHref ?? this.linkHref),
       mention: mention ?? this.mention,
-      mentionUserId: clearMentionUserId ? null : (mentionUserId ?? this.mentionUserId),
+      mentionUserId: clearMentionUserId
+          ? null
+          : (mentionUserId ?? this.mentionUserId),
     );
   }
 
@@ -158,13 +163,28 @@ String _flattenText(dom.Node n) {
 
 Future<void> _openExternalUrl(String href) async {
   final u = Uri.tryParse(href);
-  if (u == null || !(u.hasScheme && (u.isScheme('http') || u.isScheme('https')))) {
+  if (u == null ||
+      !(u.hasScheme && (u.isScheme('http') || u.isScheme('https')))) {
     return;
   }
   await launchUrl(u, mode: LaunchMode.externalApplication);
 }
 
-List<InlineSpan> _plainTextToLinkSpans(String text, TextStyle base) {
+final RegExp _urlTrailingPunctuationRe = RegExp(r'''[.,!?;:)\]}]+$''');
+
+({String url, String trailing}) _splitUrlAndTrailingPunctuation(String raw) {
+  final m = _urlTrailingPunctuationRe.firstMatch(raw);
+  if (m == null || m.start <= 0) {
+    return (url: raw, trailing: '');
+  }
+  return (url: raw.substring(0, m.start), trailing: raw.substring(m.start));
+}
+
+List<InlineSpan> _plainTextToLinkSpans(
+  String text,
+  TextStyle base, {
+  Color? linkColor,
+}) {
   final out = <InlineSpan>[];
   final re = RegExp(r'(https?:\/\/[^\s<>"]+)', caseSensitive: false);
   var i = 0;
@@ -172,12 +192,15 @@ List<InlineSpan> _plainTextToLinkSpans(String text, TextStyle base) {
     if (m.start > i) {
       out.add(TextSpan(text: text.substring(i, m.start), style: base));
     }
-    final url = (m.group(0) ?? '').trim();
+    final candidate = (m.group(0) ?? '').trim();
+    final split = _splitUrlAndTrailingPunctuation(candidate);
+    final url = split.url.trim();
+    final trailing = split.trailing;
     if (url.isEmpty) {
       i = m.end;
       continue;
     }
-    final lc = const Color(0xFF7DD3FC);
+    final lc = linkColor ?? const Color(0xFF7DD3FC);
     final rec = TapGestureRecognizer()
       ..onTap = () {
         unawaited(_openExternalUrl(url));
@@ -193,6 +216,9 @@ List<InlineSpan> _plainTextToLinkSpans(String text, TextStyle base) {
         recognizer: rec,
       ),
     );
+    if (trailing.isNotEmpty) {
+      out.add(TextSpan(text: trailing, style: base));
+    }
     i = m.end;
   }
   if (i < text.length) {
@@ -208,11 +234,12 @@ List<InlineSpan> messageHtmlToStyledSpans(
   Color? quoteAccent,
   double quoteMaxWidth = 280,
   Future<void> Function(String userId)? onMentionTap,
+  String Function(String userId, String fallbackLabel)? mentionLabelResolver,
 }) {
   if (input.trim().isEmpty) return const [];
   if (!input.contains('<')) {
     // Plain text: auto-linkify http(s) URLs.
-    return _plainTextToLinkSpans(input, base);
+    return _plainTextToLinkSpans(input, base, linkColor: linkColor);
   }
   try {
     final frag = html_parser.parseFragment(input);
@@ -221,13 +248,12 @@ List<InlineSpan> messageHtmlToStyledSpans(
       quoteAccent: quoteAccent,
       quoteMaxWidth: quoteMaxWidth,
       onMentionTap: onMentionTap,
+      mentionLabelResolver: mentionLabelResolver,
     );
     final spans = _nodesToSpans(frag.nodes, base, const _ComposeStyle(), opts);
     return _trimTrailingLineBreaks(spans);
   } catch (_) {
-    return [
-      TextSpan(text: messageHtmlToPlainText(input), style: base),
-    ];
+    return [TextSpan(text: messageHtmlToPlainText(input), style: base)];
   }
 }
 
@@ -285,9 +311,9 @@ List<InlineSpan> _nodesToSpans(
       if (t.isEmpty) continue;
       final display = st.quote
           ? t
-              .split('\n')
-              .map((line) => line.isEmpty ? line : '▌ $line')
-              .join('\n')
+                .split('\n')
+                .map((line) => line.isEmpty ? line : '▌ $line')
+                .join('\n')
           : t;
       final style = st.toTextStyle(base, opts);
       TapGestureRecognizer? rec;
@@ -307,7 +333,13 @@ List<InlineSpan> _nodesToSpans(
             };
         }
       }
-      out.add(TextSpan(text: display, style: style, recognizer: rec));
+      if (rec == null && !st.mention && display.contains('http')) {
+        out.addAll(
+          _plainTextToLinkSpans(display, style, linkColor: opts.linkColor),
+        );
+      } else {
+        out.add(TextSpan(text: display, style: style, recognizer: rec));
+      }
     } else if (n is dom.Element) {
       out.addAll(_elementToSpans(n, base, st, opts));
     }
@@ -333,10 +365,7 @@ List<InlineSpan> _elementToSpans(
       WidgetSpan(
         alignment: PlaceholderAlignment.baseline,
         baseline: TextBaseline.alphabetic,
-        child: _SpoilerInline(
-          text: inner,
-          style: st.toTextStyle(base, opts),
-        ),
+        child: _SpoilerInline(text: inner, style: st.toTextStyle(base, opts)),
       ),
     ];
   }
@@ -349,7 +378,12 @@ List<InlineSpan> _elementToSpans(
 
   if (tag == 'blockquote') {
     final accent = opts.quoteAccent ?? const Color(0xFF38BDF8);
-    final inner = _nodesToSpans(el.nodes, base, st.copyWith(quote: false), opts);
+    final inner = _nodesToSpans(
+      el.nodes,
+      base,
+      st.copyWith(quote: false),
+      opts,
+    );
     return [
       WidgetSpan(
         alignment: PlaceholderAlignment.baseline,
@@ -359,9 +393,7 @@ List<InlineSpan> _elementToSpans(
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.16),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -394,10 +426,7 @@ List<InlineSpan> _elementToSpans(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            accent,
-                            accent.withValues(alpha: 0.35),
-                          ],
+                          colors: [accent, accent.withValues(alpha: 0.35)],
                         ),
                       ),
                     ),
@@ -453,14 +482,34 @@ List<InlineSpan> _elementToSpans(
     );
   }
 
-  if (tag == 'span' && el.attributes.containsKey('data-chat-mention')) {
-    final uid = (el.attributes['data-chat-mention'] ?? '').trim();
-    return _nodesToSpans(
-      el.nodes,
-      base,
-      st.copyWith(mention: true, mentionUserId: uid, clearMentionUserId: false),
-      opts,
-    );
+  if (tag == 'span' &&
+      (el.attributes.containsKey('data-chat-mention') ||
+          el.attributes.containsKey('data-user-id'))) {
+    final uid =
+        (el.attributes['data-user-id'] ??
+                el.attributes['data-chat-mention'] ??
+                '')
+            .trim();
+    final rawLabel = _flattenText(el).trim();
+    final fallbackLabel = rawLabel.replaceFirst(RegExp(r'^@+'), '').trim();
+    final resolvedRaw =
+        opts.mentionLabelResolver?.call(uid, fallbackLabel) ?? fallbackLabel;
+    final resolved = resolvedRaw.replaceFirst(RegExp(r'^@+'), '').trim();
+    final display = resolved.isNotEmpty
+        ? resolved
+        : (fallbackLabel.isNotEmpty ? fallbackLabel : 'участник');
+    final style = st
+        .copyWith(mention: true, mentionUserId: uid, clearMentionUserId: false)
+        .toTextStyle(base, opts);
+    final onMentionTap = opts.onMentionTap;
+    TapGestureRecognizer? rec;
+    if (uid.isNotEmpty && onMentionTap != null) {
+      rec = TapGestureRecognizer()
+        ..onTap = () {
+          unawaited(onMentionTap(uid));
+        };
+    }
+    return [TextSpan(text: '@$display', style: style, recognizer: rec)];
   }
 
   if (tag == 'li') {
@@ -471,14 +520,29 @@ List<InlineSpan> _elementToSpans(
     ];
   }
 
-  if (tag == 'ul' || tag == 'ol') {
+  if (tag == 'ul') {
     return _nodesToSpans(el.nodes, base, st, opts);
   }
 
-  if (tag == 'h1' ||
-      tag == 'h2' ||
-      tag == 'h3' ||
-      tag == 'h4') {
+  if (tag == 'ol') {
+    final out = <InlineSpan>[];
+    var itemNumber = 1;
+    for (final n in el.nodes) {
+      if (n is dom.Element && (n.localName?.toLowerCase() ?? '') == 'li') {
+        out.add(
+          TextSpan(text: '$itemNumber. ', style: st.toTextStyle(base, opts)),
+        );
+        out.addAll(_nodesToSpans(n.nodes, base, st, opts));
+        out.add(const TextSpan(text: '\n'));
+        itemNumber += 1;
+      } else {
+        out.addAll(_nodesToSpans([n], base, st, opts));
+      }
+    }
+    return out;
+  }
+
+  if (tag == 'h1' || tag == 'h2' || tag == 'h3' || tag == 'h4') {
     final scale = switch (tag) {
       'h1' => 1.25,
       'h2' => 1.15,
@@ -496,10 +560,7 @@ List<InlineSpan> _elementToSpans(
 }
 
 class _SpoilerInline extends StatefulWidget {
-  const _SpoilerInline({
-    required this.text,
-    required this.style,
-  });
+  const _SpoilerInline({required this.text, required this.style});
 
   final String text;
   final TextStyle style;
@@ -531,7 +592,8 @@ class _SpoilerInlineState extends State<_SpoilerInline> {
                 child: Text(
                   widget.text,
                   style: widget.style.copyWith(
-                    color: widget.style.color?.withValues(alpha: 0.92) ??
+                    color:
+                        widget.style.color?.withValues(alpha: 0.92) ??
                         Colors.white.withValues(alpha: 0.9),
                   ),
                 ),

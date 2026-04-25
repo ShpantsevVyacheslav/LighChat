@@ -7,6 +7,9 @@ import 'package:path_provider/path_provider.dart';
 class ChatGalleryVideoLocalCache {
   ChatGalleryVideoLocalCache._();
 
+  static final Map<String, Future<void>> _warmUpInFlight =
+      <String, Future<void>>{};
+
   /// FNV-1a 32-bit — стабильный короткий идентификатор без зависимости `crypto`.
   static String _idForUrl(String url) {
     const prime = 0x01000193;
@@ -42,6 +45,38 @@ class ChatGalleryVideoLocalCache {
     final f = await fileForUrl(url);
     if (!await f.exists()) return false;
     return f.lengthSync() > 0;
+  }
+
+  static Future<File?> cachedFileIfExists(String url) async {
+    final f = await fileForUrl(url);
+    if (!await f.exists()) return null;
+    if (f.lengthSync() <= 0) return null;
+    return f;
+  }
+
+  /// Фоновый подогрев кэша без прогресса и без проброса ошибки в UI.
+  /// Дедуплицирует одновременные запросы по одному URL.
+  static Future<void> warmUp(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return Future<void>.value();
+    if (_warmUpInFlight.containsKey(trimmed)) {
+      return _warmUpInFlight[trimmed]!;
+    }
+    final task = () async {
+      try {
+        await downloadToCache(
+          url: trimmed,
+          onProgress: (_) {},
+          isCancelled: () => false,
+        );
+      } catch (_) {
+        // best-effort: при ошибке просто оставляем без локального файла.
+      } finally {
+        _warmUpInFlight.remove(trimmed);
+      }
+    }();
+    _warmUpInFlight[trimmed] = task;
+    return task;
   }
 
   /// Скачивает по [url] в файл кэша. [onProgress]: 0..1 или `null`, если длина неизвестна.

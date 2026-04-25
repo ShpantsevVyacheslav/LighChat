@@ -85,10 +85,12 @@ Future<RegistrationProfileStatus> getFirestoreRegistrationProfileStatus(
       .collection('users')
       .doc(firebaseUser.uid);
   final isTelegramUid = RegExp(r'^tg_\d+$').hasMatch(firebaseUser.uid);
+  final isYandexUid = RegExp(r'^ya_\d+$').hasMatch(firebaseUser.uid);
   final isOauthSocial = firebaseUser.providerData.any(
         (p) => p.providerId == 'google.com' || p.providerId == 'apple.com',
       ) ||
-      isTelegramUid;
+      isTelegramUid ||
+      isYandexUid;
 
   String asTrimmedString(Object? raw) {
     if (raw == null) return '';
@@ -118,11 +120,10 @@ Future<RegistrationProfileStatus> getFirestoreRegistrationProfileStatus(
             .trim()
             .replaceFirst(RegExp(r'^@'), '')
             .toLowerCase();
-        final phoneDigits = phone.replaceAll(RegExp(r'\D'), '');
         log(
           'profile incomplete (missing_required_field): nameLen=${name.trim().length}, '
           'usernameLen=${normalizedUsername.length}, '
-          'phoneDigits=${phoneDigits.length}, '
+          'hasPhone=${phone.trim().isNotEmpty}, '
           'hasEmail=${email.trim().isNotEmpty}, '
           'emailSource=${docEmail.isNotEmpty ? 'doc' : 'auth'}',
           name: 'registration_profile_gate',

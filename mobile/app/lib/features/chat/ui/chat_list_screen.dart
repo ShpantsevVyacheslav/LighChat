@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import '../data/contact_display_name.dart';
 import '../data/user_profile.dart';
+import '../data/user_contacts_repository.dart';
 import '../data/chat_list_offline_cache.dart';
 import '../data/dm_display_title.dart';
 import '../data/saved_messages_chat.dart';
@@ -58,9 +60,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                      alpha: 0.78,
-                    ),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.78),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -277,7 +279,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     super.initState();
     chatDraftListRevision.addListener(_draftRevListener);
     unawaited(_reloadChatDrafts());
-    WidgetsBinding.instance.addPostFrameCallback((_) => _persistOfflineSnapshot());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _persistOfflineSnapshot(),
+    );
   }
 
   @override
@@ -288,7 +292,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     }
     if (oldWidget.conversations != widget.conversations ||
         oldWidget.userChatIndex != widget.userChatIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _persistOfflineSnapshot());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _persistOfflineSnapshot(),
+      );
     }
   }
 
@@ -820,6 +826,29 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     }
   }
 
+  Future<void> _markConversationAsRead(
+    BuildContext context,
+    ConversationWithId conversation,
+  ) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    try {
+      await repo.markConversationAsRead(
+        conversationId: conversation.id,
+        userId: widget.currentUserId,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Чат помечен как прочитанный.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось пометить чат как прочитанный: $e')),
+      );
+    }
+  }
+
   Future<void> _deleteConversation(
     BuildContext context,
     ConversationWithId conversation,
@@ -954,6 +983,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     final isSaved = _isSavedConversation(conversation);
     final canDelete = !conversation.data.isGroup && !isSaved;
     final canPin = _hasPinnedSupportInActiveFolder();
+    final unreadCount =
+        (conversation.data.unreadCounts?[widget.currentUserId] ?? 0) +
+        (conversation.data.unreadThreadCounts?[widget.currentUserId] ?? 0);
+    final canMarkAllRead = unreadCount > 0;
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -1031,6 +1064,21 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         },
                       ),
                       _ChatMenuButton(
+                        icon: Icons.mark_chat_read_rounded,
+                        iconColor: canMarkAllRead
+                            ? const Color(0xFF58C08A)
+                            : Colors.white.withValues(alpha: 0.32),
+                        label: 'Прочитать все',
+                        labelColor: canMarkAllRead
+                            ? null
+                            : Colors.white.withValues(alpha: 0.38),
+                        onTap: () {
+                          if (!canMarkAllRead) return;
+                          Navigator.of(ctx).pop();
+                          _markConversationAsRead(context, conversation);
+                        },
+                      ),
+                      _ChatMenuButton(
                         icon: Icons.auto_fix_high_rounded,
                         iconColor: Colors.white.withValues(alpha: 0.78),
                         label: 'Очистить историю',
@@ -1083,6 +1131,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     final bottomNavIconStyles = parseBottomNavIconStyles(
       chatSettings['bottomNavIconStyles'],
     );
+    final contactsAsync = ref.watch(
+      userContactsIndexProvider(widget.currentUserId),
+    );
+    final contactProfiles = contactsAsync.value?.contactProfiles ?? const {};
 
     final folder = widget.folders.firstWhere(
       (f) => f.id == _activeFolderId,
@@ -1212,15 +1264,21 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
               orElse: () => '',
             );
             final profile = profiles[otherId];
-            final profileName = (profile?.name ?? '').trim();
+            final cachedName = (data.participantInfo?[otherId]?.name ?? '')
+                .trim();
+            final profileName = resolveContactDisplayName(
+              contactProfiles: contactProfiles,
+              contactUserId: otherId,
+              fallbackName: (profile?.name ?? '').trim().isNotEmpty
+                  ? (profile?.name ?? '').trim()
+                  : cachedName,
+            ).trim();
             if (profileName.isNotEmpty) parts.add(profileName);
             final username = (profile?.username ?? '').trim();
             if (username.isNotEmpty) {
               parts.add(username);
               parts.add('@$username');
             }
-            final cachedName = (data.participantInfo?[otherId]?.name ?? '')
-                .trim();
             if (cachedName.isNotEmpty) parts.add(cachedName);
           }
 
@@ -1250,7 +1308,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         // (например, initial snapshot), показываем «загрузка». Если ids нет —
         // это просто пустая папка.
         final hasChatIdsButNotLoadedYet =
-            !isSearchActive && allowed.isNotEmpty && folderConversations.isEmpty;
+            !isSearchActive &&
+            allowed.isNotEmpty &&
+            folderConversations.isEmpty;
         final theme = Theme.of(context);
         final dark = theme.colorScheme.brightness == Brightness.dark;
         return Stack(
@@ -1283,6 +1343,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             context,
                             profiles: profiles,
                             selfProfile: selfProfile,
+                            contactProfiles: contactProfiles,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1403,8 +1464,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         : isEmptyList
                         ? _buildEmptyState(
                             context: context,
-                            showCreateButton:
-                                !hasAnyChats && !isSearchActive,
+                            showCreateButton: !hasAnyChats && !isSearchActive,
                             title: isSearchActive
                                 ? 'Чаты не найдены'
                                 : hasAnyChats
@@ -1470,6 +1530,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   conversation: c,
                                   otherUserId: other,
                                   profiles: profiles,
+                                  contactProfiles: contactProfiles,
                                 );
                               }
                               final rawLast = (c.data.lastMessageText ?? '')
@@ -1682,6 +1743,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     BuildContext context, {
     required Map<String, UserProfile> profiles,
     required UserProfile? selfProfile,
+    required Map<String, ContactLocalProfile> contactProfiles,
   }) async {
     final controller = TextEditingController();
     final searchController = TextEditingController();
@@ -1690,6 +1752,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     final selectableChats = _buildFolderCandidates(
       profiles: profiles,
       selfProfile: selfProfile,
+      contactProfiles: contactProfiles,
     );
     final selectedIds = <String>{};
 
@@ -2288,6 +2351,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   List<_FolderCandidateChat> _buildFolderCandidates({
     required Map<String, UserProfile> profiles,
     required UserProfile? selfProfile,
+    required Map<String, ContactLocalProfile> contactProfiles,
   }) {
     final uniqueByKey = <String, _FolderCandidateChat>{};
     int tsScore(ConversationWithId c) =>
@@ -2323,6 +2387,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
           conversation: c,
           otherUserId: other,
           profiles: profiles,
+          contactProfiles: contactProfiles,
         );
         subtitle = _usernameLabel(profile?.username);
         avatarUrl =
@@ -2435,4 +2500,3 @@ class _ChatMenuButton extends StatelessWidget {
     );
   }
 }
-

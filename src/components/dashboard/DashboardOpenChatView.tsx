@@ -14,6 +14,11 @@ import { collection, doc } from 'firebase/firestore';
 import type { User, Conversation } from '@/lib/types';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { Loader2 } from 'lucide-react';
+import {
+  DASHBOARD_OPEN_PROFILE_QUERY,
+  DASHBOARD_PROFILE_SOURCE_QUERY,
+  DASHBOARD_PROFILE_USER_QUERY,
+} from '@/lib/dashboard-conversation-url';
 
 type DashboardOpenChatViewProps = {
   conversationId: string;
@@ -37,6 +42,16 @@ export function DashboardOpenChatView({
   const pathname = usePathname();
   const focusMessageId = searchParams.get('focusMessageId');
   const threadRootMessageId = searchParams.get('threadRootMessageId');
+  const openProfile = searchParams.get(DASHBOARD_OPEN_PROFILE_QUERY) === '1';
+  const profileUserId = searchParams.get(DASHBOARD_PROFILE_USER_QUERY);
+  const rawProfileSource = searchParams.get(DASHBOARD_PROFILE_SOURCE_QUERY);
+  const initialProfileSource =
+    rawProfileSource === 'contacts' ||
+    rawProfileSource === 'mention' ||
+    rawProfileSource === 'sender' ||
+    rawProfileSource === 'chat'
+      ? rawProfileSource
+      : null;
 
   const clearFocusMessageFromUrl = React.useCallback(() => {
     const p = new URLSearchParams(searchParams.toString());
@@ -48,6 +63,15 @@ export function DashboardOpenChatView({
   const clearThreadRootMessageFromUrl = React.useCallback(() => {
     const p = new URLSearchParams(searchParams.toString());
     p.delete('threadRootMessageId');
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
+
+  const clearInitialProfileFromUrl = React.useCallback(() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete(DASHBOARD_OPEN_PROFILE_QUERY);
+    p.delete(DASHBOARD_PROFILE_USER_QUERY);
+    p.delete(DASHBOARD_PROFILE_SOURCE_QUERY);
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [searchParams, router, pathname]);
@@ -115,6 +139,10 @@ export function DashboardOpenChatView({
       onFocusMessageConsumed={clearFocusMessageFromUrl}
       threadRootMessageId={threadRootMessageId}
       onThreadRootMessageConsumed={clearThreadRootMessageFromUrl}
+      initialProfileOpen={openProfile}
+      initialProfileFocusUserId={profileUserId}
+      initialProfileSource={initialProfileSource}
+      onInitialProfileConsumed={clearInitialProfileFromUrl}
     />
   );
 }

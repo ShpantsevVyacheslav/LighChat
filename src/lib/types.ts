@@ -17,6 +17,8 @@ export type User = {
   bio?: string;
   deletedAt: string | null;
   fcmTokens?: string[];
+  /** iOS VoIP PushKit токены для нативного входящего экрана звонка. */
+  voipTokens?: string[];
   online?: boolean;
   lastSeen?: string;
   dateOfBirth?: string | null;
@@ -582,8 +584,21 @@ export type UserChatIndex = {
 };
 
 /** Индекс контактов текущего пользователя (без подтверждения со стороны контакта). */
+export type UserContactLocalProfile = {
+  /** Локальное имя контакта у владельца списка (редактируемое поле «ФИО»). */
+  firstName?: string;
+  /** Локальная фамилия контакта у владельца списка (редактируемое поле «ФИО»). */
+  lastName?: string;
+  /** Производное локальное отображаемое имя (firstName + lastName). */
+  displayName?: string;
+  updatedAt?: string;
+};
+
+/** Индекс контактов текущего пользователя (без подтверждения со стороны контакта). */
 export type UserContactsIndex = {
   contactIds?: string[];
+  /** Локальные представления контактов: userId контакта -> локальное ФИО владельца. */
+  contactProfiles?: Record<string, UserContactLocalProfile>;
   /** ISO-время, когда пользователь согласился на синхронизацию с контактами устройства */
   deviceSyncConsentAt?: string | null;
   /** Пользователь отклонил предложение импорта телефонной книги (PWA, первый вход). */

@@ -24,6 +24,7 @@
 
 - `src/actions/*` - Next server actions (админка, уведомления, link preview, storage stats).
 - `functions/src/index.ts` - экспорт триггеров Cloud Functions.
+- `functions/src/lib/apns-voip.ts` - HTTP/2 sender для APNs VoIP (JWT ES256 по `.p8` key) для входящих 1:1 звонков на iOS.
 - `functions/src/triggers/auth/*` - auth lifecycle.
 - `functions/src/triggers/http/*` - callable endpoints.
 - `functions/src/triggers/firestore/*` - реакция на изменения коллекций.
@@ -59,6 +60,9 @@
   - `lib/features/chat/data/chat_media_gallery.dart`, `lib/features/chat/ui/chat_media_viewer_screen.dart` - полноэкранная галерея фото/видео из чата (фильтр как веб `isGridGalleryAttachment`, размытый фон, жесты, меню Ответить/Переслать/Сохранить/Удалить); зависимость `share_plus` для «Сохранить».
   - `lib/features/chat/ui/composer_sticker_gif_sheet.dart`, `lib/features/chat/data/user_sticker_packs_repository.dart` - стикеры/GIF в композере (паки `users/*/stickerPacks`, каталог `publicStickerPacks`, Tenor через `TENOR_PROXY_BASE_URL`).
   - `lib/features/chat/ui/composer_formatting_toolbar.dart`, `lib/features/chat/data/composer_html_editing.dart`, `lib/features/chat/data/sanitize_message_html.dart` - форматирование сообщений (HTML как на веб TipTap).
+  - `lib/features/chat/ui/chat_incoming_call_entry_screen.dart` - route `/calls/incoming/:callId` для входа из системного incoming-call UI: загружает `calls/{id}` и открывает `ChatAudioCallScreen`/`ChatVideoCallScreen` с `existingCallId`.
+  - `lib/features/push/push_native_call_service.dart` - интеграция native incoming-call UI (`flutter_callkit_incoming`), события `Accept/Decline/Timeout`, навигация в `/calls/incoming/:callId`, синхронизация iOS VoIP токена в `users/{uid}.voipTokens`.
+  - `ios/Runner/AppDelegate.swift` - PushKit delegate для iOS VoIP push (`didUpdate credentials`, `didReceiveIncomingPushWith`), bridge в CallKit.
   - `lib/features/auth/ui/profile_screen.dart` - страница «Мой профиль» (редактирование базовых полей пользователя).
 - `mobile/packages/lighchat_models` - доменные модели/DTO и мапперы (контракты Firestore на стороне Flutter).
 - `mobile/packages/lighchat_firebase` - слой доступа к Firebase (Auth/Firestore/FCM/Functions) для Flutter-клиента; `ChatRepository.createGroupChat` + callable `checkGroupInvitesAllowed` (паритет с web). На iOS вызов `checkGroupInvitesAllowed` идёт в обход плагина `cloud_functions` через `firebase_callable_http.dart` (прямой HTTPS-POST), т.к. SDK `FirebaseFunctions 12.9.0` крашит Release-сборку в `_swift_task_dealloc_specific (.cold.2)` на параллельных `async let` внутри `FunctionsContext`.

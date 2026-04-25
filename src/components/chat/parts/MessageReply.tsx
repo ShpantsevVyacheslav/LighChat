@@ -38,7 +38,7 @@ export function MessageReply({ replyTo, isCurrentUser, onClick }: MessageReplyPr
           )}
         >
           {replyTo.mediaType === 'video' || replyTo.mediaType === 'video-circle' ? (
-            <video src={replyTo.mediaPreviewUrl} className="h-full w-full object-cover" muted />
+            <video src={replyTo.mediaPreviewUrl} className="pointer-events-none h-full w-full object-cover" muted playsInline />
           ) : (
             <img
               src={replyTo.mediaPreviewUrl}

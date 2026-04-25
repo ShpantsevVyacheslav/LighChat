@@ -11,8 +11,11 @@ import 'features/auth/ui/profile_screen.dart';
 import 'features/chat/ui/chat_forward_screen.dart';
 import 'features/chat/ui/chat_account_screen.dart';
 import 'features/chat/ui/chat_contacts_screen.dart';
+import 'features/chat/ui/chat_contact_profile_screen.dart';
+import 'features/chat/ui/chat_contact_edit_screen.dart';
 import 'features/chat/ui/chat_call_detail_screen.dart';
 import 'features/chat/ui/chat_calls_screen.dart';
+import 'features/chat/ui/chat_incoming_call_entry_screen.dart';
 import 'features/chat/ui/chat_list_screen.dart';
 import 'features/chat/ui/chat_meetings_screen.dart';
 import 'features/meetings/ui/meeting_entry_screen.dart';
@@ -77,6 +80,28 @@ GoRouter createRouter() {
         ),
       ),
       GoRoute(
+        path: '/contacts/user/:userId',
+        pageBuilder: (context, state) {
+          final userId = state.pathParameters['userId'] ?? '';
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            name: state.name,
+            child: ChatContactProfileScreen(userId: userId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/contacts/user/:userId/edit',
+        pageBuilder: (context, state) {
+          final userId = state.pathParameters['userId'] ?? '';
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            name: state.name,
+            child: ChatContactEditScreen(userId: userId),
+          );
+        },
+      ),
+      GoRoute(
         path: '/calls',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
@@ -109,6 +134,17 @@ GoRouter createRouter() {
             key: state.pageKey,
             name: state.name,
             child: ChatCallDetailScreen(callId: callId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/calls/incoming/:callId',
+        pageBuilder: (context, state) {
+          final callId = state.pathParameters['callId'] ?? '';
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            name: state.name,
+            child: ChatIncomingCallEntryScreen(callId: callId),
           );
         },
       ),

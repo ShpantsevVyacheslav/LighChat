@@ -4,7 +4,7 @@
 
 ## Коллекции верхнего уровня
 
-- `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `notificationSettings` (глобальная политика push).
+- `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `voipTokens` (массив iOS PushKit token для нативного входящего звонка), `notificationSettings` (глобальная политика push).
   - `chatConversationPrefs/{conversationId}` - персональные настройки чата для аккаунта (`notificationsMuted`, `notificationShowPreview`, обои и т.д.).
   - `notifications/{notificationId}`
   - `stickerPacks/{packId}/items/{itemId}`
@@ -23,6 +23,9 @@
   - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата в формате E2EE v2: вложенная мапа `wraps[userId][deviceId]` (ciphertext; сервер не знает plaintext). Единственная поддерживаемая версия — `protocolVersion: 'v2-p256-aesgcm-multi'`; документы с другими версиями клиенты молча ротируют через self-heal.
 - `userChats/{userId}` - денормализованный индекс чатов пользователя.
 - `userContacts/{userId}` - список контактов пользователя.
+  - `contactIds[]` - id добавленных контактов.
+  - `contactProfiles.{contactUserId}` - локальное имя контакта (firstName/lastName/displayName/updatedAt), используется только владельцем списка в списках чатов/поиске/карточках контакта.
+  - `deviceSyncConsentAt`, `phoneBookOfferDismissedAt` - флаги согласия/онбординга для импорта телефонной книги.
   - `deviceLookup/{registrationIndexKey}` - ключи телефонной книги устройства (phone/email) для авто-сопоставления с `registrationIndex` и автодобавления новых зарегистрированных контактов.
 - `calls/{callId}` - документ звонка.
   - `candidates/{candidateId}` - ICE candidates.
@@ -53,7 +56,7 @@
 
 - Push по новым сообщениям: при наличии `e2ee` на документе сообщения текст в FCM не передаётся (только нейтральная подпись).
 - Создание/обновление/удаление `conversations` синхронизирует `members` и `userChats`.
-- Создание `calls` синхронизирует `userCalls`.
+- Создание `calls` синхронизирует `userCalls` и отправляет call-push: FCM (`users.fcmTokens`) + APNs VoIP (`users.voipTokens`, iOS).
 - Создание участника встречи синхронизирует `userMeetings`.
 - Изменения `users` синхронизируют `registrationIndex`.
 - Изменения `users` (phone/email) дополнительно проверяют совпадения в `userContacts/*/deviceLookup/*` (collectionGroup `deviceLookup`) и автоматически добавляют зарегистрировавшегося пользователя в `userContacts/{ownerId}.contactIds` у владельцев совпавших ключей.

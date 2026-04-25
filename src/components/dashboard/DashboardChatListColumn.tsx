@@ -30,6 +30,7 @@ import { FolderManagerDialog } from '@/components/chat/FolderManagerDialog';
 import { ChatFolderAssignmentDialog } from '@/components/chat/ChatFolderAssignmentDialog';
 import { useToast } from '@/hooks/use-toast';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
+import { resolveContactDisplayName } from '@/lib/contact-display-name';
 import { ConversationItem } from '@/components/chat/ConversationItem';
 import { ChatFolderRail } from '@/components/chat/ChatFolderRail';
 import { LighChatSidebarMarkButton } from '@/components/chat/LighChatSidebarMarkButton';
@@ -106,6 +107,16 @@ export function DashboardChatListColumn({
     () => userContactsIndex?.contactIds ?? [],
     [userContactsIndex?.contactIds]
   );
+  const contactDisplayNames = useMemo(() => {
+    const profiles = userContactsIndex?.contactProfiles ?? {};
+    const out: Record<string, string> = {};
+    for (const id of Object.keys(profiles)) {
+      const fallback = allUsers.find((u) => u.id === id)?.name ?? '';
+      const resolved = resolveContactDisplayName(profiles, id, fallback);
+      if (resolved.trim()) out[id] = resolved;
+    }
+    return out;
+  }, [userContactsIndex?.contactProfiles, allUsers]);
 
   const { data: rawConversations, isLoading: isLoadingConversations } = useConversationsByDocumentIds(
     firestore,
@@ -201,13 +212,19 @@ export function DashboardChatListColumn({
           : isSelfDm
             ? conv.name || 'Избранное'
             : otherId
-              ? allUsers.find((u) => u.id === otherId)?.name ||
-                conv.participantInfo[otherId]?.name ||
-                ''
+              ? (() => {
+                  const fromUser = allUsers.find((u) => u.id === otherId)?.name || '';
+                  const fallback = fromUser || conv.participantInfo[otherId]?.name || '';
+                  return resolveContactDisplayName(
+                    userContactsIndex?.contactProfiles,
+                    otherId,
+                    fallback
+                  );
+                })()
               : '';
         return ruEnSubstringMatch(name || '', chatSearchTerm);
       });
-  }, [conversations, chatSearchTerm, currentUser, authUid, allUsers, activeFolder]);
+  }, [conversations, chatSearchTerm, currentUser, authUid, allUsers, activeFolder, userContactsIndex?.contactProfiles]);
 
   const orderedFolderConversations = useMemo(() => {
     const pinsRaw = userChatIndex?.folderPins?.[activeFolderId] || [];
@@ -350,6 +367,23 @@ export function DashboardChatListColumn({
     }
   };
 
+  const handleMarkAllRead = useCallback(
+    async (conversationId: string) => {
+      if (!firestore || !authUid || !conversationId) return;
+      try {
+        await updateDoc(doc(firestore, 'conversations', conversationId), {
+          [`unreadCounts.${authUid}`]: 0,
+          [`unreadThreadCounts.${authUid}`]: 0,
+        });
+        toast({ title: 'Чат помечен как прочитанный' });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Не удалось пометить чат как прочитанный';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      }
+    },
+    [firestore, authUid, toast]
+  );
+
   const handleDeleteFolderDirect = async (folder: ChatFolder) => {
     if (!firestore || !authUid) return;
     try {
@@ -476,6 +510,7 @@ export function DashboardChatListColumn({
                       <NewChatDialog
                         users={allUsers.filter((u) => u.id !== authUid && !u.deletedAt)}
                         contactIds={contactIdsForSearch}
+                        contactDisplayNames={contactDisplayNames}
                         currentUser={currentUserForFirestore!}
                         onSelectConversation={handleSelectConversation}
                         onGroupCreateClick={() => setIsCreatingGroup(true)}
@@ -522,6 +557,7 @@ export function DashboardChatListColumn({
                         isListCollapsed={isListCollapsed}
                         currentUser={currentUserForFirestore!}
                         allUsers={allUsers}
+                        contactDisplayNames={contactDisplayNames}
                         onSelect={handleSelectConversation}
                         onContextMenu={handleContextMenu}
                         onManageFolders={setChatToManageFolders}
@@ -626,6 +662,9 @@ export function DashboardChatListColumn({
             contextMenu.conv.id
           )}
           onToggleFolderPin={toggleFolderPin}
+          onMarkAllRead={(conversationId) => {
+            void handleMarkAllRead(conversationId);
+          }}
         />
       )}
 

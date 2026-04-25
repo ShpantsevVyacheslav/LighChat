@@ -7,12 +7,32 @@ export const DASHBOARD_FOCUS_MESSAGE_QUERY = 'focusMessageId';
 /** Открыть ветку обсуждения корневого сообщения (список обсуждений / профиль чата). */
 export const DASHBOARD_THREAD_ROOT_MESSAGE_QUERY = 'threadRootMessageId';
 
+/** Программно открыть профиль в `ChatParticipantProfile` после загрузки чата. */
+export const DASHBOARD_OPEN_PROFILE_QUERY = 'openProfile';
+export const DASHBOARD_PROFILE_USER_QUERY = 'profileUserId';
+export const DASHBOARD_PROFILE_SOURCE_QUERY = 'profileSource';
+
+export type DashboardChatProfileSource = 'contacts' | 'mention' | 'sender' | 'chat';
+
+function normalizeDashboardProfileSource(
+  raw: string | null | undefined
+): DashboardChatProfileSource | null {
+  if (raw === 'contacts' || raw === 'mention' || raw === 'sender' || raw === 'chat') return raw;
+  return null;
+}
+
 /**
  * Ссылка на открытый чат с опциональным переходом к сообщению или открытием ветки.
  */
 export function buildDashboardChatOpenUrl(
   conversationId: string,
-  options?: { focusMessageId?: string | null; threadRootMessageId?: string | null }
+  options?: {
+    focusMessageId?: string | null;
+    threadRootMessageId?: string | null;
+    openProfile?: boolean;
+    profileUserId?: string | null;
+    profileSource?: DashboardChatProfileSource | null;
+  }
 ): string {
   const p = new URLSearchParams();
   p.set(DASHBOARD_CONVERSATION_QUERY, conversationId);
@@ -21,6 +41,16 @@ export function buildDashboardChatOpenUrl(
   }
   if (options?.threadRootMessageId) {
     p.set(DASHBOARD_THREAD_ROOT_MESSAGE_QUERY, options.threadRootMessageId);
+  }
+  if (options?.openProfile) {
+    p.set(DASHBOARD_OPEN_PROFILE_QUERY, '1');
+  }
+  if (options?.profileUserId) {
+    p.set(DASHBOARD_PROFILE_USER_QUERY, options.profileUserId);
+  }
+  const source = normalizeDashboardProfileSource(options?.profileSource ?? null);
+  if (source) {
+    p.set(DASHBOARD_PROFILE_SOURCE_QUERY, source);
   }
   return `/dashboard/chat?${p.toString()}`;
 }

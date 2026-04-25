@@ -7,6 +7,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/e2ee_auto_enable_helper.dart';
+import '../data/contact_display_name.dart';
 import '../data/new_chat_user_search.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
@@ -49,6 +50,25 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     } else {
       context.go('/chats');
     }
+  }
+
+  UserProfile _withDisplayName(UserProfile p, String displayName) {
+    return UserProfile(
+      id: p.id,
+      name: displayName,
+      username: p.username,
+      avatar: p.avatar,
+      avatarThumb: p.avatarThumb,
+      email: p.email,
+      phone: p.phone,
+      bio: p.bio,
+      role: p.role,
+      online: p.online,
+      lastSeenAt: p.lastSeenAt,
+      dateOfBirth: p.dateOfBirth,
+      deletedAt: p.deletedAt,
+      privacySettings: p.privacySettings,
+    );
   }
 
   Widget _sectionHeader(BuildContext context, String text) {
@@ -285,16 +305,34 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                             .where(isEligibleRegisteredChatUser)
                             .where((p) => canStartDirectChat(self, p))
                             .toList(growable: false);
+                        final displayNameById = <String, String>{};
+                        for (final p in others) {
+                          final fallback = p.name.trim().isNotEmpty
+                              ? p.name.trim()
+                              : 'Пользователь';
+                          displayNameById[p.id] = resolveContactDisplayName(
+                            contactProfiles: contactsIdx.contactProfiles,
+                            contactUserId: p.id,
+                            fallbackName: fallback,
+                          );
+                        }
 
                         final term = _search.text;
                         final matched = others
-                            .where((p) => userMatchesChatSearchQuery(p, term))
+                            .where(
+                              (p) => userMatchesChatSearchQuery(
+                                p,
+                                term,
+                                displayNameOverride: displayNameById[p.id],
+                              ),
+                            )
                             .toList(growable: false);
 
                         final split = splitUsersByContactsAndGlobalVisibility(
                           matched: matched,
                           viewer: self,
                           contactIds: contactsIdx.contactIds,
+                          displayNameById: displayNameById,
                         );
 
                         final scheme = Theme.of(context).colorScheme;
@@ -303,11 +341,15 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         if (split.fromContacts.isNotEmpty) {
                           listChildren.add(_sectionHeader(context, 'КОНТАКТЫ'));
                           for (final p in split.fromContacts) {
+                            final viewProfile = _withDisplayName(
+                              p,
+                              (displayNameById[p.id] ?? p.name).trim(),
+                            );
                             listChildren.add(
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
                                 child: NewChatUserPickerRow(
-                                  profile: p,
+                                  profile: viewProfile,
                                   style: NewChatUserPickerRowStyle.list,
                                   enabled: !_busy,
                                   onTap: () => _openDirect(
@@ -326,11 +368,15 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         if (split.fromGlobal.isNotEmpty) {
                           listChildren.add(_sectionHeader(context, 'ВСЕ ПОЛЬЗОВАТЕЛИ'));
                           for (final p in split.fromGlobal) {
+                            final viewProfile = _withDisplayName(
+                              p,
+                              (displayNameById[p.id] ?? p.name).trim(),
+                            );
                             listChildren.add(
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
                                 child: NewChatUserPickerRow(
-                                  profile: p,
+                                  profile: viewProfile,
                                   style: NewChatUserPickerRowStyle.list,
                                   enabled: !_busy,
                                   onTap: () => _openDirect(

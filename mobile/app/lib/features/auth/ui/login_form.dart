@@ -17,6 +17,7 @@ class LoginForm extends ConsumerStatefulWidget {
 class _LoginFormState extends ConsumerState<LoginForm> {
   bool _busy = false;
   String? _error;
+  bool _obscurePassword = true;
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _emailFocus = FocusNode();
@@ -227,7 +228,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               child: TextField(
                 controller: _password,
                 focusNode: _passwordFocus,
-                obscureText: true,
+                obscureText: _obscurePassword,
                 style: TextStyle(
                   color: dark ? Colors.white : scheme.onSurface,
                   fontWeight: FontWeight.w500,
@@ -244,6 +245,24 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                     Icons.lock_outline_rounded,
                     color: (dark ? Colors.white : scheme.onSurface).withValues(
                       alpha: 0.56,
+                    ),
+                  ),
+                  suffixIcon: IconButton(
+                    tooltip: _obscurePassword
+                        ? 'Показать пароль'
+                        : 'Скрыть пароль',
+                    onPressed: enabled
+                        ? () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          )
+                        : null,
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      color: (dark ? Colors.white : scheme.onSurface).withValues(
+                        alpha: 0.56,
+                      ),
                     ),
                   ),
                   filled: true,

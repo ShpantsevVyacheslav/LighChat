@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -16,7 +17,11 @@ import '../data/profile_attachment_stats.dart';
 import '../data/profile_field_visibility.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/user_chat_policy.dart';
+import '../data/contact_display_name.dart';
+import '../data/e2ee_auto_enable_helper.dart';
+import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
+import 'chat_audio_call_screen.dart';
 import 'chat_avatar.dart';
 import 'e2ee_fingerprint_badge.dart';
 import 'chat_conversation_notifications_screen.dart';
@@ -24,6 +29,7 @@ import 'conversation_encryption_screen.dart';
 import 'conversation_media_links_files_screen.dart';
 import 'conversation_starred_screen.dart';
 import 'chat_shell_backdrop.dart';
+import 'chat_video_call_screen.dart';
 import 'user_avatar_fullscreen_viewer.dart';
 
 const _kRoleLabels = {'admin': 'Администратор', 'worker': 'Участник'};
@@ -38,6 +44,7 @@ class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
     required this.partnerProfile,
     this.onJumpToMessageId,
     this.fullScreen = false,
+    this.showChatsAction = false,
   });
 
   final String conversationId;
@@ -47,6 +54,7 @@ class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
   final UserProfile? partnerProfile;
   final void Function(String messageId)? onJumpToMessageId;
   final bool fullScreen;
+  final bool showChatsAction;
 
   @override
   ConsumerState<ChatPartnerProfileSheet> createState() =>
@@ -56,6 +64,9 @@ class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
 class _ChatPartnerProfileSheetState
     extends ConsumerState<ChatPartnerProfileSheet> {
   bool _addContactBusy = false;
+  bool _chatActionBusy = false;
+  bool _callScreenOpening = false;
+  bool _muteToggleBusy = false;
 
   bool get _isGroup => widget.conversation.isGroup;
 
@@ -231,18 +242,194 @@ class _ChatPartnerProfileSheetState
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _onAddContact(String partnerId) async {
-    final repo = ref.read(userContactsRepositoryProvider);
-    if (repo == null) return;
-    setState(() => _addContactBusy = true);
-    try {
-      await repo.addContactId(widget.currentUserId, partnerId);
-      if (mounted) _toast('Добавлено в контакты');
-    } catch (e) {
-      if (mounted) _toast('Не удалось добавить в контакты');
-    } finally {
-      if (mounted) setState(() => _addContactBusy = false);
+  Future<void> _openChatFromActions({
+    required String partnerId,
+    required String displayTitle,
+  }) async {
+    if (_chatActionBusy) return;
+    final self = widget.selfProfile;
+    final partner = widget.partnerProfile;
+    if (self != null && partner != null && !canStartDirectChat(self, partner)) {
+      _toast('С этим пользователем нельзя связаться.');
+      return;
     }
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+
+    final selfName = (self?.name ?? widget.currentUserId).trim().isNotEmpty
+        ? (self?.name ?? widget.currentUserId).trim()
+        : widget.currentUserId;
+    final peerName =
+        (partner?.name ??
+                widget.conversation.participantInfo?[partnerId]?.name ??
+                displayTitle)
+            .trim()
+            .isNotEmpty
+        ? (partner?.name ??
+                  widget.conversation.participantInfo?[partnerId]?.name ??
+                  displayTitle)
+              .trim()
+        : 'Пользователь';
+    final peerAvatar =
+        partner?.avatar ??
+        widget.conversation.participantInfo?[partnerId]?.avatar;
+    final peerAvatarThumb =
+        partner?.avatarThumb ??
+        widget.conversation.participantInfo?[partnerId]?.avatarThumb;
+
+    setState(() => _chatActionBusy = true);
+    try {
+      final id = await repo.createOrOpenDirectChat(
+        currentUserId: widget.currentUserId,
+        otherUserId: partnerId,
+        currentUserInfo: (
+          name: selfName,
+          avatar: self?.avatar,
+          avatarThumb: self?.avatarThumb,
+        ),
+        otherUserInfo: (
+          name: peerName,
+          avatar: peerAvatar,
+          avatarThumb: peerAvatarThumb,
+        ),
+      );
+      await tryAutoEnableE2eeForMobileDm(
+        firestore: FirebaseFirestore.instance,
+        conversationId: id,
+        currentUserId: widget.currentUserId,
+      );
+      if (!mounted) return;
+      context.push('/chats/$id');
+    } catch (e) {
+      if (!mounted) return;
+      _toast('Не удалось открыть чат: $e');
+    } finally {
+      if (mounted) setState(() => _chatActionBusy = false);
+    }
+  }
+
+  Future<void> _openCallFromActions({
+    required String partnerId,
+    required String displayTitle,
+    required bool isVideo,
+  }) async {
+    if (_callScreenOpening) return;
+    final self = widget.selfProfile;
+    final partner = widget.partnerProfile;
+    if (self != null && partner != null && !canStartDirectChat(self, partner)) {
+      _toast('С этим пользователем нельзя связаться.');
+      return;
+    }
+
+    final selfName = (self?.name ?? widget.currentUserId).trim().isNotEmpty
+        ? (self?.name ?? widget.currentUserId).trim()
+        : widget.currentUserId;
+    final peerName =
+        (partner?.name ??
+                widget.conversation.participantInfo?[partnerId]?.name ??
+                displayTitle)
+            .trim()
+            .isNotEmpty
+        ? (partner?.name ??
+                  widget.conversation.participantInfo?[partnerId]?.name ??
+                  displayTitle)
+              .trim()
+        : 'Собеседник';
+    final peerAvatar =
+        partner?.avatarThumb ??
+        partner?.avatar ??
+        widget.conversation.participantInfo?[partnerId]?.avatarThumb ??
+        widget.conversation.participantInfo?[partnerId]?.avatar;
+
+    if (mounted) {
+      setState(() => _callScreenOpening = true);
+    }
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => isVideo
+              ? ChatVideoCallScreen(
+                  currentUserId: widget.currentUserId,
+                  currentUserName: selfName,
+                  currentUserAvatarUrl: self?.avatarThumb ?? self?.avatar,
+                  peerUserId: partnerId,
+                  peerUserName: peerName,
+                  peerAvatarUrl: peerAvatar,
+                )
+              : ChatAudioCallScreen(
+                  currentUserId: widget.currentUserId,
+                  currentUserName: selfName,
+                  currentUserAvatarUrl: self?.avatarThumb ?? self?.avatar,
+                  peerUserId: partnerId,
+                  peerUserName: peerName,
+                  peerAvatarUrl: peerAvatar,
+                ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _callScreenOpening = false);
+      }
+    }
+  }
+
+  Future<void> _shareProfileFromActions({
+    required String partnerId,
+    required String displayTitle,
+  }) async {
+    final p = widget.partnerProfile;
+    final username = (p?.username ?? '').trim();
+    final phone = (p?.phone ?? '').trim();
+    final lines = <String>[
+      'Контакт в LighChat',
+      displayTitle,
+      if (username.isNotEmpty)
+        username.startsWith('@') ? username : '@$username',
+      if (phone.isNotEmpty) formatPhoneNumberForDisplay(phone),
+      'ID: $partnerId',
+    ];
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: lines.join('\n'),
+          subject: 'Контакт LighChat: $displayTitle',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _toast('Не удалось поделиться контактом');
+    }
+  }
+
+  Future<void> _setConversationMuted(bool muted) async {
+    if (_muteToggleBusy) return;
+    final repo = ref.read(chatSettingsRepositoryProvider);
+    if (repo == null) return;
+    final convId = widget.conversationId.trim();
+    if (convId.isEmpty) {
+      _toast('Чат ещё не создан');
+      return;
+    }
+    setState(() => _muteToggleBusy = true);
+    try {
+      await repo.patchChatConversationPrefs(
+        userId: widget.currentUserId,
+        conversationId: convId,
+        patch: <String, Object?>{'notificationsMuted': muted},
+      );
+      if (!mounted) return;
+      _toast(muted ? 'Уведомления отключены' : 'Уведомления включены');
+    } catch (e) {
+      if (!mounted) return;
+      _toast('Не удалось изменить уведомления');
+    } finally {
+      if (mounted) setState(() => _muteToggleBusy = false);
+    }
+  }
+
+  Future<void> _onAddContact(String partnerId) async {
+    if (!mounted) return;
+    context.push('/contacts/user/${Uri.encodeComponent(partnerId)}/edit');
   }
 
   Future<void> _onRemoveContact(String partnerId) async {
@@ -303,12 +490,23 @@ class _ChatPartnerProfileSheetState
       userContactsIndexProvider(widget.currentUserId),
     );
     final contactIds = contactsAsync.value?.contactIds ?? const <String>[];
+    final contactProfiles =
+        contactsAsync.value?.contactProfiles ??
+        const <String, ContactLocalProfile>{};
     final target = _contactTarget(partnerId);
     final showAdd =
         partnerId != null &&
         _canShowAddToContacts(target, partnerId, contactIds);
     final isContact = partnerId != null && contactIds.contains(partnerId);
+    final displayTitle = !_isGroup && !_isSaved && partnerId != null
+        ? resolveContactDisplayName(
+            contactProfiles: contactProfiles,
+            contactUserId: partnerId,
+            fallbackName: _displayTitle,
+          )
+        : _displayTitle;
     final hasDetailRows = _hasContactDetailRows(fresh, partnerId);
+    final settingsRepo = ref.watch(chatSettingsRepositoryProvider);
 
     final msgsAsync = ref.watch(
       messagesProvider((conversationId: widget.conversationId, limit: 400)),
@@ -357,267 +555,346 @@ class _ChatPartnerProfileSheetState
 
     List<Widget> buildScrollChildren() {
       return [
-          if (!widget.fullScreen) ...[
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: Colors.white.withValues(alpha: 0.22),
-                ),
+        if (!widget.fullScreen) ...[
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                color: Colors.white.withValues(alpha: 0.22),
               ),
             ),
-          ],
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  color: hiPrimary.withValues(alpha: 0.94),
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: widget.fullScreen ? 'Назад' : 'Закрыть',
-                ),
-                const Spacer(),
+          ),
+        ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                color: hiPrimary.withValues(alpha: 0.94),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: widget.fullScreen ? 'Назад' : 'Закрыть',
+              ),
+              const Spacer(),
+              if (!_isGroup && !_isSaved && partnerId != null)
+                TextButton(
+                  onPressed: () => _onAddContact(partnerId),
+                  child: Text(
+                    'Изм.',
+                    style: TextStyle(
+                      color: hiPrimary.withValues(alpha: 0.94),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                )
+              else
                 IconButton(
                   icon: const Icon(Icons.share_rounded, size: 22),
                   color: hiPrimary.withValues(alpha: 0.94),
                   onPressed: _copyChatId,
                   tooltip: 'Скопировать ID чата',
                 ),
-              ],
-            ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Column(
-              children: [
-                const SizedBox(height: 4),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: (_fullscreenAvatarUrl() ?? '').trim().isNotEmpty
-                        ? _openAvatarFullscreen
-                        : null,
-                    customBorder: const CircleBorder(),
-                    child: ChatAvatar(
-                      title: _displayTitle,
-                      radius: 54,
-                      avatarUrl: _displayAvatarUrl,
-                    ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: Column(
+            children: [
+              const SizedBox(height: 4),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: (_fullscreenAvatarUrl() ?? '').trim().isNotEmpty
+                      ? _openAvatarFullscreen
+                      : null,
+                  customBorder: const CircleBorder(),
+                  child: ChatAvatar(
+                    title: displayTitle,
+                    radius: 54,
+                    avatarUrl: _displayAvatarUrl,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  _displayTitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: hiPrimary,
-                    height: 1.15,
-                  ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                displayTitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: hiPrimary,
+                  height: 1.15,
                 ),
-                const SizedBox(height: 8),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitleLine1,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: hiMuted,
+                ),
+              ),
+              if (subtitleLine2 != null) ...[
+                const SizedBox(height: 6),
                 Text(
-                  subtitleLine1,
+                  subtitleLine2,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: hiMuted,
+                    height: 1.25,
+                    color: hiMuted.withValues(alpha: 0.82),
                   ),
                 ),
-                if (subtitleLine2 != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitleLine2,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      height: 1.25,
-                      color: hiMuted.withValues(alpha: 0.82),
-                    ),
-                  ),
-                ],
-                if (partnerId != null &&
-                    (isContact || showAdd) &&
-                    !_isGroup &&
-                    !_isSaved) ...[
-                  const SizedBox(height: 18),
-                  _ContactPill(
-                    isContact: isContact,
-                    busy: _addContactBusy,
-                    onPressed: _addContactBusy
-                        ? null
-                        : () => isContact
-                            ? _onRemoveContact(partnerId)
-                            : _onAddContact(partnerId),
-                  ),
-                ],
+              ],
+              if (!_isGroup && !_isSaved && partnerId != null) ...[
                 const SizedBox(height: 18),
-                if (hasDetailRows && fresh != null && partnerId != null)
-                  _buildContactDataExpansion(
-                    context,
-                    fresh: fresh,
-                    roleDisplay: roleDisplay,
+                StreamBuilder<Map<String, dynamic>>(
+                  stream: settingsRepo?.watchChatConversationPrefs(
+                    userId: widget.currentUserId,
+                    conversationId: widget.conversationId,
                   ),
-                if (_isGroup) ...[
-                  _menuButton(
-                    context,
-                    icon: Icons.group_rounded,
-                    title: 'Участники',
-                    trailing:
-                        '${widget.conversation.participantIds.length}',
-                    onTap: () => _toast('Участники: скоро'),
-                  ),
-                  if (_isGroupAdmin())
-                    _menuButton(
-                      context,
-                      icon: Icons.edit_rounded,
-                      title: 'Редактировать группу',
-                      onTap: () => _toast('Редактирование группы: скоро'),
-                    ),
-                  _sectionDivider(),
-                ],
-                _menuButton(
-                  context,
-                  icon: Icons.perm_media_rounded,
-                  title: 'Медиа, ссылки и файлы',
-                  trailing: mediaLabel,
-                  onTap: _openMediaLinksFiles,
-                ),
-                _menuButton(
-                  context,
-                  icon: Icons.star_rounded,
-                  title: 'Избранное',
-                  trailing: starredLabel,
-                  onTap: _openStarredMessages,
-                ),
-                _menuButton(
-                  context,
-                  icon: Icons.forum_rounded,
-                  title: 'Обсуждения',
-                  trailing: threadsLabel,
-                  onTap: () {
-                    if (!widget.fullScreen) {
-                      Navigator.of(context).pop();
-                    }
-                    context.push(
-                      '/chats/${widget.conversationId}/threads',
-                    );
+                  builder: (context, snap) {
+                    final prefs = snap.data ?? const <String, dynamic>{};
+                    final muted = prefs['notificationsMuted'] == true;
+                    final actions = <_ProfileQuickAction>[
+                      if (widget.showChatsAction)
+                        _ProfileQuickAction(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          label: 'Чаты',
+                          busy: _chatActionBusy,
+                          onTap: _chatActionBusy
+                              ? null
+                              : () => _openChatFromActions(
+                                  partnerId: partnerId,
+                                  displayTitle: displayTitle,
+                                ),
+                        ),
+                      _ProfileQuickAction(
+                        icon: Icons.call_rounded,
+                        label: 'Звонок',
+                        busy: _callScreenOpening,
+                        onTap: _callScreenOpening
+                            ? null
+                            : () => _openCallFromActions(
+                                partnerId: partnerId,
+                                displayTitle: displayTitle,
+                                isVideo: false,
+                              ),
+                      ),
+                      _ProfileQuickAction(
+                        icon: Icons.videocam_rounded,
+                        label: 'Видео',
+                        busy: _callScreenOpening,
+                        onTap: _callScreenOpening
+                            ? null
+                            : () => _openCallFromActions(
+                                partnerId: partnerId,
+                                displayTitle: displayTitle,
+                                isVideo: true,
+                              ),
+                      ),
+                      _ProfileQuickAction(
+                        icon: Icons.share_outlined,
+                        label: 'Поделиться',
+                        onTap: () => _shareProfileFromActions(
+                          partnerId: partnerId,
+                          displayTitle: displayTitle,
+                        ),
+                      ),
+                      _ProfileQuickAction(
+                        icon: muted
+                            ? Icons.notifications_off_rounded
+                            : Icons.notifications_rounded,
+                        label: 'Звук',
+                        active: !muted,
+                        busy: _muteToggleBusy,
+                        onTap: _muteToggleBusy
+                            ? null
+                            : () => _setConversationMuted(!muted),
+                      ),
+                    ];
+                    return _ProfileQuickActions(actions: actions);
                   },
                 ),
-                _sectionDivider(),
+              ],
+              if (partnerId != null &&
+                  (isContact || showAdd) &&
+                  !_isGroup &&
+                  !_isSaved) ...[
+                const SizedBox(height: 18),
+                _ContactPill(
+                  isContact: isContact,
+                  busy: _addContactBusy,
+                  onPressed: _addContactBusy
+                      ? null
+                      : () => isContact
+                            ? _onRemoveContact(partnerId)
+                            : _onAddContact(partnerId),
+                ),
+              ],
+              const SizedBox(height: 18),
+              if (hasDetailRows && fresh != null && partnerId != null)
+                _buildContactDataExpansion(
+                  context,
+                  fresh: fresh,
+                  roleDisplay: roleDisplay,
+                ),
+              if (_isGroup) ...[
                 _menuButton(
                   context,
-                  icon: Icons.notifications_rounded,
-                  title: 'Уведомления',
+                  icon: Icons.group_rounded,
+                  title: 'Участники',
+                  trailing: '${widget.conversation.participantIds.length}',
+                  onTap: () => _toast('Участники: скоро'),
+                ),
+                if (_isGroupAdmin())
+                  _menuButton(
+                    context,
+                    icon: Icons.edit_rounded,
+                    title: 'Редактировать группу',
+                    onTap: () => _toast('Редактирование группы: скоро'),
+                  ),
+                _sectionDivider(),
+              ],
+              _menuButton(
+                context,
+                icon: Icons.perm_media_rounded,
+                title: 'Медиа, ссылки и файлы',
+                trailing: mediaLabel,
+                onTap: _openMediaLinksFiles,
+              ),
+              _menuButton(
+                context,
+                icon: Icons.star_rounded,
+                title: 'Избранное',
+                trailing: starredLabel,
+                onTap: _openStarredMessages,
+              ),
+              _menuButton(
+                context,
+                icon: Icons.forum_rounded,
+                title: 'Обсуждения',
+                trailing: threadsLabel,
+                onTap: () {
+                  if (!widget.fullScreen) {
+                    Navigator.of(context).pop();
+                  }
+                  context.push('/chats/${widget.conversationId}/threads');
+                },
+              ),
+              _sectionDivider(),
+              _menuButton(
+                context,
+                icon: Icons.notifications_rounded,
+                title: 'Уведомления',
+                onTap: () async {
+                  await Navigator.of(context).push<void>(
+                    CupertinoPageRoute(
+                      builder: (_) => ChatConversationNotificationsScreen(
+                        currentUserId: widget.currentUserId,
+                        conversationId: widget.conversationId,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              _menuButton(
+                context,
+                icon: Icons.palette_rounded,
+                title: 'Тема чата',
+                onTap: () => _toast('Тема чата: скоро'),
+              ),
+              _menuButton(
+                context,
+                icon: Icons.timer_rounded,
+                title: 'Исчезающие сообщения',
+                trailing: 'Выкл',
+                onTap: () => _toast('Скоро'),
+              ),
+              _menuButton(
+                context,
+                icon: Icons.shield_rounded,
+                title: 'Расширенная приватность чата',
+                trailing: 'По умолчанию',
+                onTap: () => _toast('Приватность: скоро'),
+              ),
+              if (showEncryptionRow)
+                _menuButton(
+                  context,
+                  icon: Icons.lock_rounded,
+                  title: 'Шифрование',
+                  subtitle: encryptionSubtitle,
+                  trailing: encryptionLabel,
                   onTap: () async {
                     await Navigator.of(context).push<void>(
-                      CupertinoPageRoute(
-                        builder: (_) =>
-                            ChatConversationNotificationsScreen(
-                              currentUserId: widget.currentUserId,
-                              conversationId: widget.conversationId,
-                            ),
+                      CupertinoPageRoute<void>(
+                        builder: (_) => ConversationEncryptionScreen(
+                          conversationId: widget.conversationId,
+                          currentUserId: widget.currentUserId,
+                          conversation: widget.conversation,
+                        ),
                       ),
                     );
                   },
                 ),
-                _menuButton(
-                  context,
-                  icon: Icons.palette_rounded,
-                  title: 'Тема чата',
-                  onTap: () => _toast('Тема чата: скоро'),
+              // Phase 8: отпечаток E2EE собеседника в DM. Рисуем, только
+              // если шифрование включено и это не группа/Saved.
+              if (showEncryptionRow && e2eeOn && partnerId != null) ...[
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 2, 18, 8),
+                  child: E2eeFingerprintBadge(
+                    firestore: FirebaseFirestore.instance,
+                    userId: partnerId,
+                    userLabel: fresh?.name ?? _displayTitle,
+                  ),
                 ),
+              ],
+              if (!_isSaved && !_isGroup && partnerId != null) ...[
+                const SizedBox(height: 18),
+                Text(
+                  'НЕТ ОБЩИХ ГРУПП',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.9,
+                    color: hiFaint.withValues(alpha: 0.95),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 _menuButton(
                   context,
-                  icon: Icons.timer_rounded,
-                  title: 'Исчезающие сообщения',
-                  trailing: 'Выкл',
+                  icon: Icons.group_add_rounded,
+                  title: 'Создать группу с ${fresh?.name ?? _displayTitle}',
                   onTap: () => _toast('Скоро'),
                 ),
-                _menuButton(
-                  context,
-                  icon: Icons.shield_rounded,
-                  title: 'Расширенная приватность чата',
-                  trailing: 'По умолчанию',
-                  onTap: () => _toast('Приватность: скоро'),
-                ),
-                if (showEncryptionRow)
-                  _menuButton(
-                    context,
-                    icon: Icons.lock_rounded,
-                    title: 'Шифрование',
-                    subtitle: encryptionSubtitle,
-                    trailing: encryptionLabel,
-                    onTap: () async {
-                      await Navigator.of(context).push<void>(
-                        CupertinoPageRoute<void>(
-                          builder: (_) => ConversationEncryptionScreen(
-                            conversationId: widget.conversationId,
-                            currentUserId: widget.currentUserId,
-                            conversation: widget.conversation,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                // Phase 8: отпечаток E2EE собеседника в DM. Рисуем, только
-                // если шифрование включено и это не группа/Saved.
-                if (showEncryptionRow && e2eeOn && partnerId != null) ...[
-                  const SizedBox(height: 6),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 2, 18, 8),
-                    child: E2eeFingerprintBadge(
-                      firestore: FirebaseFirestore.instance,
-                      userId: partnerId,
-                      userLabel: fresh?.name ?? _displayTitle,
-                    ),
-                  ),
-                ],
-                if (!_isSaved && !_isGroup && partnerId != null) ...[
-                  const SizedBox(height: 18),
-                  Text(
-                    'НЕТ ОБЩИХ ГРУПП',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.9,
-                      color: hiFaint.withValues(alpha: 0.95),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _menuButton(
-                    context,
-                    icon: Icons.group_add_rounded,
-                    title:
-                        'Создать группу с ${fresh?.name ?? _displayTitle}',
-                    onTap: () => _toast('Скоро'),
-                  ),
-                ],
-                if (_isGroup) ...[
-                  const SizedBox(height: 14),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: hiPrimary.withValues(alpha: 0.88),
-                    ),
-                    onPressed: () => _toast('Покинуть группу: скоро'),
-                    icon: const Icon(Icons.logout_rounded),
-                    label: const Text('Покинуть группу'),
-                  ),
-                ],
-                const SizedBox(height: 20),
               ],
-            ),
+              if (_isGroup) ...[
+                const SizedBox(height: 14),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: hiPrimary.withValues(alpha: 0.88),
+                  ),
+                  onPressed: () => _toast('Покинуть группу: скоро'),
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text('Покинуть группу'),
+                ),
+              ],
+              const SizedBox(height: 20),
+            ],
           ),
+        ),
       ];
     }
 
@@ -654,11 +931,7 @@ class _ChatPartnerProfileSheetState
               child: SafeArea(
                 child: widget.fullScreen
                     ? scroll
-                    : Column(
-                        children: [
-                          Expanded(child: scroll),
-                        ],
-                      ),
+                    : Column(children: [Expanded(child: scroll)]),
               ),
             ),
           ],
@@ -702,7 +975,10 @@ class _ChatPartnerProfileSheetState
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
-            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 2,
+            ),
             title: const Text(
               'Контакты и данные',
               style: TextStyle(
@@ -813,11 +1089,7 @@ class _ChatPartnerProfileSheetState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 22,
-            color: Colors.white.withValues(alpha: 0.88),
-          ),
+          Icon(icon, size: 22, color: Colors.white.withValues(alpha: 0.88)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -969,6 +1241,95 @@ class _ContactPill extends StatelessWidget {
           side: BorderSide(color: Colors.white.withValues(alpha: 0.38)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: const StadiumBorder(),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileQuickAction {
+  const _ProfileQuickAction({
+    required this.icon,
+    required this.label,
+    this.active = false,
+    this.busy = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final bool busy;
+  final VoidCallback? onTap;
+}
+
+class _ProfileQuickActions extends StatelessWidget {
+  const _ProfileQuickActions({required this.actions});
+
+  final List<_ProfileQuickAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    if (actions.isEmpty) return const SizedBox.shrink();
+    return Row(
+      children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          Expanded(child: _ProfileQuickActionButton(action: actions[i])),
+          if (i != actions.length - 1) const SizedBox(width: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProfileQuickActionButton extends StatelessWidget {
+  const _ProfileQuickActionButton({required this.action});
+
+  final _ProfileQuickAction action;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = action.onTap != null;
+    final fg = action.active
+        ? const Color(0xFF69C6FF)
+        : const Color(0xFFF2F4FA).withValues(alpha: enabled ? 0.92 : 0.45);
+    final bg = action.active
+        ? const Color(0xFF69C6FF).withValues(alpha: 0.16)
+        : Colors.white.withValues(alpha: 0.08);
+
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: action.onTap,
+        child: SizedBox(
+          height: 72,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (action.busy)
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: fg),
+                )
+              else
+                Icon(action.icon, size: 22, color: fg),
+              const SizedBox(height: 6),
+              Text(
+                action.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

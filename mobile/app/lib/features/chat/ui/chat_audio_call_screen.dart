@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../data/chat_call_tones.dart';
 import 'chat_avatar.dart';
 
 class ChatAudioCallScreen extends StatefulWidget {
@@ -53,6 +54,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
   final List<RTCIceCandidate> _queuedCandidates = <RTCIceCandidate>[];
   final Set<String> _seenCandidateDocIds = <String>{};
   bool _closedByUser = false;
+  final ChatCallToneController _callTones = ChatCallToneController();
 
   @override
   void initState() {
@@ -62,6 +64,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
 
   Future<void> _init() async {
     await _remoteRenderer.initialize();
+    unawaited(_callTones.prepare().then((_) => _syncCallTones()));
     try {
       if (widget.existingCallId == null || widget.existingCallId!.isEmpty) {
         final callId = await _createOutgoingCall();
@@ -75,6 +78,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       }
       if (!mounted) return;
       setState(() {});
+      _syncCallTones();
       _watchCallDoc();
       await _ensurePeerReady();
       if (!_incoming) {
@@ -208,12 +212,12 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       }
 
       if (_incoming && status == 'calling') {
-        if (mounted) setState(() => _status = 'ringing');
+        _setStatus('ringing');
       } else if (status == 'ongoing') {
         _startTimerIfNeeded();
-        if (mounted) setState(() => _status = 'ongoing');
+        _setStatus('ongoing');
       } else {
-        if (mounted) setState(() => _status = 'calling');
+        _setStatus('calling');
       }
 
       if (!_incoming && !_answerApplied) {
@@ -282,7 +286,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
         'startedAt': DateTime.now().toUtc().toIso8601String(),
       });
       _startTimerIfNeeded();
-      if (mounted) setState(() => _status = 'ongoing');
+      _setStatus('ongoing');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -310,6 +314,30 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       if (!mounted) return;
       setState(() => _seconds += 1);
     });
+  }
+
+  void _setStatus(String next) {
+    if (_status == next) {
+      _syncCallTones();
+      return;
+    }
+    if (mounted) {
+      setState(() => _status = next);
+    } else {
+      _status = next;
+    }
+    _syncCallTones();
+  }
+
+  void _syncCallTones() {
+    final incomingRinging = _incoming && _status == 'ringing';
+    final outgoingRinging = !_incoming && _status == 'calling';
+    unawaited(
+      _callTones.sync(
+        playIncomingRingtone: incomingRinging,
+        playOutgoingRingback: outgoingRinging,
+      ),
+    );
   }
 
   Future<void> _rejectIncoming() async {
@@ -355,6 +383,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
   Future<void> _close(String? message) async {
     if (_closedByUser) return;
     _closedByUser = true;
+    await _callTones.stop();
     if (message != null && mounted) {
       ScaffoldMessenger.of(
         context,
@@ -385,6 +414,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       await _remoteStream!.dispose();
       _remoteStream = null;
     }
+    await _callTones.dispose();
     await _remoteRenderer.dispose();
   }
 

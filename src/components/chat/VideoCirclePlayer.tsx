@@ -41,6 +41,8 @@ export function VideoCirclePlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<SVGCircleElement>(null);
   const isPlayingRef = useRef(false);
+  /** Не вызывать scrollIntoView сразу после жеста скролла ленты — иначе борется с пальцем / резинкой. */
+  const suppressScrollIntoViewUntilRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   /** По умолчанию muted — так браузеры чаще декодируют первый кадр для превью (особенно iOS). */
@@ -160,6 +162,24 @@ export function VideoCirclePlayer({
     return () => observer.disconnect();
   }, [videoSrc]);
 
+  useEffect(() => {
+    const mark = (e: Event) => {
+      const root = rootRef.current;
+      if (!root) return;
+      const scroller = root.closest('[data-virtuoso-scroller]');
+      if (!scroller) return;
+      const t = e.target;
+      if (!(t instanceof Node) || !scroller.contains(t)) return;
+      suppressScrollIntoViewUntilRef.current = performance.now() + 520;
+    };
+    document.addEventListener('wheel', mark, { capture: true, passive: true });
+    document.addEventListener('touchmove', mark, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('wheel', mark, { capture: true });
+      document.removeEventListener('touchmove', mark, { capture: true });
+    };
+  }, []);
+
   const [duration, setDuration] = useState(0);
   const formatTime = (time: number) => {
     if (isNaN(time) || !isFinite(time) || time === 0) return '0:00';
@@ -246,11 +266,13 @@ export function VideoCirclePlayer({
   /** После разворота круга прокручиваем список так, чтобы весь круг был в зоне видимости (учёт поля ввода через scroll-margin). */
   useLayoutEffect(() => {
     if (!isPlaying) return;
+    if (performance.now() < suppressScrollIntoViewUntilRef.current) return;
     const el = rootRef.current;
     if (!el) return;
     let cancelled = false;
     const run = () => {
       if (cancelled) return;
+      if (performance.now() < suppressScrollIntoViewUntilRef.current) return;
       /* auto: иначе при smooth IntersectionObserver может кратковременно увидеть малый ratio и поставить паузу */
       el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
     };
@@ -323,7 +345,7 @@ export function VideoCirclePlayer({
         <video
           ref={videoRef}
           src={videoSrc}
-          className="w-full h-full object-cover rounded-full bg-black shadow-none border-none"
+          className="pointer-events-none w-full h-full object-cover rounded-full bg-black shadow-none border-none"
           playsInline
           loop
           preload="metadata"

@@ -1,3 +1,5 @@
+import 'dart:io' show File;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -38,6 +40,7 @@ class ChatCachedNetworkImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final uri = Uri.tryParse(url);
 
     Widget progress(BuildContext context, String _, DownloadProgress progress) {
       if (compact || !showProgressIndicator) {
@@ -64,6 +67,53 @@ class ChatCachedNetworkImage extends StatelessWidget {
       );
     }
 
+    Widget defaultErrorWidget() {
+      if (errorOverride != null) return errorOverride!;
+      if (compact) {
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.image_not_supported_rounded,
+              size: 14,
+              color: scheme.onSurface.withValues(alpha: 0.55),
+            ),
+          ),
+        );
+      }
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.broken_image_rounded,
+            color: scheme.onSurface.withValues(alpha: 0.55),
+            size: 28,
+          ),
+        ),
+      );
+    }
+
+    // Mixed-source support: E2EE media decrypt-path возвращает `file://...`.
+    if (uri != null && uri.scheme == 'file') {
+      try {
+        return Image.file(
+          File(uri.toFilePath()),
+          width: width,
+          height: height,
+          fit: fit,
+          alignment: alignment,
+          gaplessPlayback: true,
+          errorBuilder: (context, _, _) => defaultErrorWidget(),
+        );
+      } catch (_) {
+        return defaultErrorWidget();
+      }
+    }
+
     return CachedNetworkImage(
       imageUrl: url,
       httpHeaders: httpHeaders,
@@ -74,35 +124,7 @@ class ChatCachedNetworkImage extends StatelessWidget {
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
       progressIndicatorBuilder: progress,
-      errorWidget: (context, failedUrl, err) {
-        if (errorOverride != null) return errorOverride!;
-        if (compact) {
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.image_not_supported_rounded,
-                size: 14,
-                color: scheme.onSurface.withValues(alpha: 0.55),
-              ),
-            ),
-          );
-        }
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.broken_image_rounded,
-              color: scheme.onSurface.withValues(alpha: 0.55),
-              size: 28,
-            ),
-          ),
-        );
-      },
+      errorWidget: (context, failedUrl, err) => defaultErrorWidget(),
     );
   }
 }

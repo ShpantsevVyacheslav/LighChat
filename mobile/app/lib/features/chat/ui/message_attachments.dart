@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
-import 'chat_cached_network_image.dart';
 import '../data/chat_attachment_mosaic_layout.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/chat_media_layout_tokens.dart';
+import '../data/e2ee_decryption_orchestrator.dart'
+    show e2eeMediaDecryptErrorMime;
 import '../data/video_circle_utils.dart';
+import 'chat_cached_network_image.dart';
 import 'message_video_attachment.dart';
 import 'message_video_circle_player.dart';
 import 'message_voice_attachment.dart';
@@ -33,6 +35,7 @@ bool _isVideoAttachment(ChatAttachment a) {
 
 bool _isImageAttachment(ChatAttachment a) {
   if (_isVideoAttachment(a)) return false;
+  if (_isE2eeMediaDecryptErrorAttachment(a)) return false;
   final t = (a.type ?? '').toLowerCase();
   if (t.startsWith('image/')) return true;
   final path = a.url.split('?').first.toLowerCase();
@@ -42,6 +45,10 @@ bool _isImageAttachment(ChatAttachment a) {
       path.endsWith('.gif') ||
       path.endsWith('.webp') ||
       path.endsWith('.heic');
+}
+
+bool _isE2eeMediaDecryptErrorAttachment(ChatAttachment a) {
+  return (a.type ?? '').toLowerCase() == e2eeMediaDecryptErrorMime;
 }
 
 bool _isStickerAttachment(ChatAttachment a) {
@@ -181,11 +188,8 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
         final v0 = onlyOneVideo ? videoLike.first.attachment : null;
         final vw = v0?.width;
         final vh = v0?.height;
-        final isLandscape = vw != null &&
-            vh != null &&
-            vw > 0 &&
-            vh > 0 &&
-            vw >= vh * 1.02;
+        final isLandscape =
+            vw != null && vh != null && vw > 0 && vh > 0 && vw >= vh * 1.02;
         final videoScale = onlyOneVideo && isLandscape ? 1.125 : 1.5;
         final width = _attachmentsColumnWidth(
           available: constraints.maxWidth,
@@ -263,7 +267,11 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                   ),
                 if (files.isNotEmpty) ...[
                   const SizedBox(height: ChatMediaLayoutTokens.mediaToMediaGap),
-                  ...files.map((f) => _FileRow(att: f)),
+                  ...files.map(
+                    (f) => _isE2eeMediaDecryptErrorAttachment(f)
+                        ? _E2eeMediaDecryptErrorRow(att: f)
+                        : _FileRow(att: f),
+                  ),
                 ],
               ],
             ),
@@ -543,8 +551,8 @@ class _AspectImageBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = attachment.width;
     final h = attachment.height;
-    final isLandscape =
-        w != null && h != null && w > 0 && h > 0 && w >= h * 1.02;
+    final hasExplicitSize = w != null && h != null && w > 0 && h > 0;
+    final isLandscape = hasExplicitSize && w >= h * 1.02;
     final capW = isLandscape
         ? maxWidth * ChatMediaLayoutTokens.horizontalAttachmentDisplayScale
         : maxWidth;
@@ -573,7 +581,12 @@ class _AspectImageBox extends StatelessWidget {
 
     final img = ChatCachedNetworkImage(
       url: attachment.url,
-      fit: isLandscape ? BoxFit.cover : BoxFit.contain,
+      // Для вложений без width/height (часто E2EE decrypt-path) `contain`
+      // даёт "внутренний прямоугольник" с острыми углами. Используем `cover`,
+      // чтобы визуально сохранять rounded-card как у обычных медиа.
+      fit: hasExplicitSize
+          ? (isLandscape ? BoxFit.cover : BoxFit.contain)
+          : BoxFit.cover,
       alignment: Alignment.center,
     );
     final open = onOpenGridGallery;
@@ -628,6 +641,48 @@ class _FileRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _E2eeMediaDecryptErrorRow extends StatelessWidget {
+  const _E2eeMediaDecryptErrorRow({required this.att});
+
+  final ChatAttachment att;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final title = att.name.trim().isNotEmpty
+        ? att.name.trim()
+        : 'Не удалось расшифровать вложение';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: scheme.errorContainer.withValues(alpha: 0.35),
+          border: Border.all(color: scheme.error.withValues(alpha: 0.45)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Icon(Icons.lock_open_rounded, color: scheme.error),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: scheme.onErrorContainer.withValues(alpha: 0.92),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],

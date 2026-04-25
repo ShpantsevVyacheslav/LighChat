@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
-import 'package:video_player/video_player.dart';
 
 import 'chat_cached_network_image.dart';
+import 'video_cached_thumb_image.dart';
 
 /// First pinned message preview + unpin (web `PinnedMessageBar` lite).
 class ChatPinnedStrip extends StatelessWidget {
@@ -237,68 +237,14 @@ class _PinnedImageThumb extends StatelessWidget {
   }
 }
 
-class _PinnedVideoThumb extends StatefulWidget {
+class _PinnedVideoThumb extends StatelessWidget {
   const _PinnedVideoThumb({required this.url, required this.mediaType});
 
   final String url;
   final String mediaType;
 
   @override
-  State<_PinnedVideoThumb> createState() => _PinnedVideoThumbState();
-}
-
-class _PinnedVideoThumbState extends State<_PinnedVideoThumb> {
-  VideoPlayerController? _controller;
-  bool _ready = false;
-  bool _failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final uri = Uri.tryParse(widget.url);
-    if (uri == null || uri.scheme.isEmpty) {
-      if (mounted) setState(() => _failed = true);
-      return;
-    }
-    VideoPlayerController? c;
-    try {
-      c = VideoPlayerController.networkUrl(uri);
-      await c.initialize();
-      await c.pause();
-      await c.seekTo(Duration.zero);
-      if (!mounted) {
-        await c.dispose();
-        return;
-      }
-      setState(() {
-        _controller = c;
-        _ready = c != null && c.value.size.width > 0 && c.value.size.height > 0;
-      });
-    } catch (_) {
-      await c?.dispose();
-      if (mounted) setState(() => _failed = true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_failed || !_ready || _controller == null) {
-      return _PinnedMediaIconBox(
-        icon: widget.mediaType == 'video-circle'
-            ? Icons.play_circle_outline_rounded
-            : Icons.videocam_rounded,
-      );
-    }
     return Container(
       width: 28,
       height: 28,
@@ -312,18 +258,11 @@ class _PinnedVideoThumbState extends State<_PinnedVideoThumb> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller!.value.size.width,
-                height: _controller!.value.size.height,
-                child: VideoPlayer(_controller!),
-              ),
-            ),
+            VideoCachedThumbImage(videoUrl: url, fit: BoxFit.cover),
             Align(
               alignment: Alignment.center,
               child: Icon(
-                widget.mediaType == 'video-circle'
+                mediaType == 'video-circle'
                     ? Icons.play_circle_fill_rounded
                     : Icons.play_arrow_rounded,
                 size: 12,

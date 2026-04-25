@@ -2,18 +2,20 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../data/contact_display_name.dart';
 import '../data/sanitize_message_html.dart';
 import '../data/chat_poll_stub_text.dart';
 import '../data/chat_emoji_only.dart';
 import '../data/video_circle_utils.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/link_preview_url_extractor.dart';
+import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
 import 'chat_date_capsule.dart';
 import 'chat_system_event_divider.dart';
@@ -24,7 +26,6 @@ import 'message_deleted_stub.dart';
 import 'message_location_card.dart';
 import 'message_html_text.dart';
 import 'message_link_preview_card.dart';
-import 'group_member_profile_sheet.dart';
 import 'message_reactions_row.dart';
 import 'message_reply_preview.dart';
 import 'message_swipe_to_reply.dart';
@@ -64,6 +65,7 @@ class ChatMessageList extends StatefulWidget {
     this.onOpenMediaGallery,
     this.flashHighlightMessageId,
     this.profileMap,
+    this.contactProfiles = const <String, ContactLocalProfile>{},
     this.onToggleReaction,
     this.onRetryMediaNorm,
     this.onEmitEmojiBurstEvent,
@@ -123,6 +125,7 @@ class ChatMessageList extends StatefulWidget {
   /// Подсветка строки ~2 с после перехода к сообщению.
   final String? flashHighlightMessageId;
   final Map<String, UserProfile>? profileMap;
+  final Map<String, ContactLocalProfile> contactProfiles;
   final Future<void> Function(ChatMessage message, String emoji)?
   onToggleReaction;
   final Future<void> Function(ChatMessage message)? onRetryMediaNorm;
@@ -183,7 +186,9 @@ class _ChatMessageListState extends State<ChatMessageList> {
   final ValueNotifier<String?> _videoCirclePlayingSlotId =
       ValueNotifier<String?>(null);
 
-  /// Ключи на первое сообщение календарного дня — для одной плавающей капсулы даты.
+  /// Ключи на опорное сообщение календарного дня для плавающей капсулы даты.
+  /// В `reversed` якорем служит последнее сообщение группы дня (верхняя граница
+  /// дня в визуальном направлении), иначе — первое.
   final Map<String, GlobalKey> _dayStartKeys = <String, GlobalKey>{};
 
   /// Последняя группировка по дням (синхронно с текущим build).
@@ -478,6 +483,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
     for (final g in groups) {
       if (g.isEmpty) continue;
       final dayKey = ChatMessageList.dayKey(g.first.createdAt);
+      final anchorMessageIndex = widget.reversed ? g.length - 1 : 0;
       final separatorMessageIndex = unreadSeparatorId == null
           ? -1
           : g.indexWhere((m) => m.id == unreadSeparatorId);
@@ -537,14 +543,14 @@ class _ChatMessageListState extends State<ChatMessageList> {
                 onOpenThread: widget.onOpenThread,
                 onOpenMediaGallery: widget.onOpenMediaGallery,
                 profileMap: widget.profileMap,
+                contactProfiles: widget.contactProfiles,
                 onToggleReaction: widget.onToggleReaction,
                 onRetryMediaNorm: widget.onRetryMediaNorm,
                 onSingleEmojiTap: _handleSingleEmojiTap,
-                e2eeDecryptedText:
-                    widget.e2eeDecryptedTextByMessageId?[m.id],
+                e2eeDecryptedText: widget.e2eeDecryptedTextByMessageId?[m.id],
                 e2eeDecryptionFailed:
                     widget.e2eeDecryptionFailedMessageIds?.contains(m.id) ??
-                        false,
+                    false,
               ),
             );
             final rowKey = widget.messageItemKeys[m.id];
@@ -581,7 +587,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
                 child: padded,
               );
             }
-            Widget row = messageIndex == 0
+            Widget row = messageIndex == anchorMessageIndex
                 ? KeyedSubtree(
                     key: _dayStartKeys.putIfAbsent(dayKey, GlobalKey.new),
                     child: padded,
@@ -903,6 +909,7 @@ class _ChatMessageBubble extends StatelessWidget {
     this.onOpenThread,
     this.onOpenMediaGallery,
     this.profileMap,
+    required this.contactProfiles,
     this.onToggleReaction,
     this.onRetryMediaNorm,
     this.onSingleEmojiTap,
@@ -930,6 +937,7 @@ class _ChatMessageBubble extends StatelessWidget {
   final void Function(ChatAttachment attachment, ChatMessage message)?
   onOpenMediaGallery;
   final Map<String, UserProfile>? profileMap;
+  final Map<String, ContactLocalProfile> contactProfiles;
   final Future<void> Function(ChatMessage message, String emoji)?
   onToggleReaction;
   final Future<void> Function(ChatMessage message)? onRetryMediaNorm;
@@ -1002,7 +1010,8 @@ class _ChatMessageBubble extends StatelessWidget {
     final singlePureEmoji = isPureEmoji
         ? _singleEmojiFromOnlyEmojiMessage(displayPlain)
         : null;
-    final linkPreviewUrl = (!hasMedia && !hasPoll && !hasLocation && hasVisibleText)
+    final linkPreviewUrl =
+        (!hasMedia && !hasPoll && !hasLocation && hasVisibleText)
         ? extractFirstHttpUrl(displayPlain)
         : null;
     final reactions =
@@ -1123,6 +1132,32 @@ class _ChatMessageBubble extends StatelessWidget {
           : scheme.primary;
       final quoteMaxFallback =
           ChatMediaLayoutTokens.messageBubbleMaxWidth - 24.0;
+      String resolveMentionDisplayName(String mentionUserId, String fallback) {
+        final uid = mentionUserId.trim();
+        if (uid.isEmpty) {
+          final f = fallback.trim().replaceFirst(RegExp(r'^@+'), '');
+          return f.isNotEmpty ? f : fallback.trim();
+        }
+        final fallbackClean = fallback.trim().replaceFirst(RegExp(r'^@+'), '');
+        final profileName = (profileMap?[uid]?.name ?? '').trim();
+        final convName = (conversation?.participantInfo?[uid]?.name ?? '')
+            .trim();
+        final fallbackName = profileName.isNotEmpty
+            ? profileName
+            : (convName.isNotEmpty
+                  ? convName
+                  : (fallbackClean.isNotEmpty ? fallbackClean : 'Участник'));
+        final resolved = resolveContactDisplayName(
+          contactProfiles: contactProfiles,
+          contactUserId: uid,
+          fallbackName: fallbackName,
+        );
+        final clean = resolved.trim().replaceFirst(RegExp(r'^@+'), '');
+        if (clean.isNotEmpty) return clean;
+        if (fallbackClean.isNotEmpty) return fallbackClean;
+        return fallbackName;
+      }
+
       List<InlineSpan> htmlSpans({double? quoteMaxWidth}) =>
           messageHtmlToStyledSpans(
             html,
@@ -1130,23 +1165,17 @@ class _ChatMessageBubble extends StatelessWidget {
             linkColor: linkColorForHtml,
             quoteAccent: scheme.primary,
             quoteMaxWidth: quoteMaxWidth ?? quoteMaxFallback,
+            mentionLabelResolver: resolveMentionDisplayName,
             onMentionTap: (userId) async {
               final uid = userId.trim();
               if (uid.isEmpty) return;
               if (conversation == null || conversation!.isGroup != true) return;
               if (!context.mounted) return;
-              await Navigator.of(context).push<void>(
-                CupertinoPageRoute<void>(
-                  builder: (_) => GroupMemberProfileSheet(
-                    conversationId: conversationId,
-                    conversation: conversation!,
-                    currentUserId: currentUserId,
-                    memberId: uid,
-                    selfProfile: profileMap?[currentUserId],
-                    memberProfile: profileMap?[uid],
-                  ),
-                ),
-              );
+              if (uid == currentUserId) {
+                context.push('/account');
+                return;
+              }
+              context.push('/contacts/user/${Uri.encodeComponent(uid)}');
             },
           );
 
@@ -1525,9 +1554,7 @@ class _ChatMessageBubble extends StatelessWidget {
                                 )
                               : const BoxDecoration(),
                           child: Padding(
-                            padding: EdgeInsets.all(
-                              selected ? 2 : 0,
-                            ),
+                            padding: EdgeInsets.all(selected ? 2 : 0),
                             child: wrappedBody,
                           ),
                         ),
@@ -1796,8 +1823,9 @@ class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
                                     ) *
                                     (p.wobbleAmp * 0.85)) *
                             h;
-                        final fadeIn = Curves.easeOut
-                            .transform((local / 0.2).clamp(0.0, 1.0));
+                        final fadeIn = Curves.easeOut.transform(
+                          (local / 0.2).clamp(0.0, 1.0),
+                        );
                         final fadeOut = local < 0.58
                             ? 1.0
                             : Curves.easeInOutCubic.transform(

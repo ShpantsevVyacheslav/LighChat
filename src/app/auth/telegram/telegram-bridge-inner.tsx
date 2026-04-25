@@ -27,6 +27,10 @@ export function TelegramBridgeInner() {
   const searchParams = useSearchParams();
   const mobile = searchParams.get("mobile") === "1";
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const [status, setStatus] = React.useState<
+    "idle" | "auth_received" | "calling" | "token_sent" | "error"
+  >("idle");
+  const [statusText, setStatusText] = React.useState<string>("");
 
   React.useEffect(() => {
     if (!mobile || !BOT_NAME) return;
@@ -36,7 +40,10 @@ export function TelegramBridgeInner() {
     container.innerHTML = "";
     window.onTelegramAuth = async (user: unknown) => {
       if (!user || typeof user !== "object") return;
+      setStatus("auth_received");
+      setStatusText("Telegram подтверждён. Завершаем вход…");
       try {
+        setStatus("calling");
         const functions = getFunctions(app, "us-central1");
         const fn = httpsCallable<
           { auth: Record<string, unknown> },
@@ -44,11 +51,42 @@ export function TelegramBridgeInner() {
         >(functions, "signInWithTelegram");
         const res = await fn({ auth: user as Record<string, unknown> });
         const token = res.data?.customToken;
-        if (token && typeof token === "string" && window.TelegramAuth) {
-          window.TelegramAuth.postMessage(token);
+        if (token && typeof token === "string") {
+          /**
+           * Fallback for iOS WebView: иногда `postMessage` в JSChannel не доходит.
+           * Дублируем токен в hash, чтобы приложение смогло вытащить его из URL.
+           */
+          try {
+            window.location.hash = `customToken=${encodeURIComponent(token)}`;
+          } catch {
+            // no-op
+          }
+          if (window.TelegramAuth) {
+            window.TelegramAuth.postMessage(
+              JSON.stringify({ type: "customToken", token })
+            );
+          }
+          setStatus("token_sent");
+          setStatusText("Готово. Возвращаемся в приложение…");
+          return;
         }
+        setStatus("error");
+        setStatusText(
+          "Не удалось вернуть токен в приложение. Откройте эту страницу из приложения ещё раз."
+        );
       } catch (e) {
         console.error("[telegram-bridge] signInWithTelegram failed", e);
+        const msg =
+          typeof e === "object" && e !== null && "message" in e
+            ? String((e as { message: unknown }).message)
+            : "Не удалось выполнить вход через Telegram.";
+        if (window.TelegramAuth) {
+          window.TelegramAuth.postMessage(
+            JSON.stringify({ type: "error", message: msg })
+          );
+        }
+        setStatus("error");
+        setStatusText(msg);
       }
     };
 
@@ -88,6 +126,17 @@ export function TelegramBridgeInner() {
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background p-4">
       <p className="text-sm text-muted-foreground">Войдите через Telegram</p>
       <div ref={containerRef} className="min-h-[56px]" />
+      {status !== "idle" ? (
+        <p
+          className={
+            status === "error"
+              ? "text-center text-sm text-destructive"
+              : "text-center text-sm text-muted-foreground"
+          }
+        >
+          {statusText}
+        </p>
+      ) : null}
     </div>
   );
 }

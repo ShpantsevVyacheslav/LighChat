@@ -29,46 +29,45 @@ final meetingGuestAuthProvider = Provider<MeetingGuestAuth>((ref) {
 });
 
 /// Документ митинга; `null` — не существует/нет доступа.
-final meetingDocProvider =
-    StreamProvider.autoDispose.family<MeetingDoc?, String>((ref, meetingId) {
-  final repo = ref.watch(meetingRepositoryProvider);
-  return repo.watchMeeting(meetingId);
-});
+final meetingDocProvider = StreamProvider.autoDispose
+    .family<MeetingDoc?, String>((ref, meetingId) {
+      final repo = ref.watch(meetingRepositoryProvider);
+      return repo.watchMeeting(meetingId);
+    });
 
 /// Список активных участников митинга. Не включает пользователя до его
 /// собственного join (пока не создал `participants/{uid}`).
 final meetingParticipantsProvider = StreamProvider.autoDispose
     .family<List<MeetingParticipant>, String>((ref, meetingId) {
-  final repo = ref.watch(meetingRepositoryProvider);
-  return repo.watchParticipants(meetingId);
-});
+      final repo = ref.watch(meetingRepositoryProvider);
+      return repo.watchParticipants(meetingId);
+    });
 
 /// Список заявок — видит только host/admin (иначе read deny в правилах).
-final meetingRequestsProvider =
-    StreamProvider.autoDispose.family<List<MeetingRequestDoc>, String>((
-  ref,
-  meetingId,
-) {
-  final repo = ref.watch(meetingRepositoryProvider);
-  return repo.watchRequests(meetingId);
-});
+final meetingRequestsProvider = StreamProvider.autoDispose
+    .family<List<MeetingRequestDoc>, String>((ref, meetingId) {
+      final repo = ref.watch(meetingRepositoryProvider);
+      return repo.watchRequests(meetingId);
+    });
 
 /// Собственная заявка в waiting-room — для отображения прогресса ожидания.
 /// Ключ: пара (meetingId, userId).
 final meetingOwnRequestProvider = StreamProvider.autoDispose
     .family<MeetingRequestDoc?, MeetingOwnRequestKey>((ref, key) {
-  final repo = ref.watch(meetingRepositoryProvider);
-  return repo.watchOwnRequest(key.meetingId, key.userId);
-});
+      final repo = ref.watch(meetingRepositoryProvider);
+      return repo.watchOwnRequest(key.meetingId, key.userId);
+    });
 
-/// История встреч пользователя — те, где он host. Остальные встречи ему
-/// не принадлежат (правила не позволяют читать их без активной подписки
-/// на `participants`).
-final myHostedMeetingsProvider =
-    StreamProvider.autoDispose.family<List<MeetingDoc>, String>((ref, hostId) {
-  final repo = ref.watch(meetingRepositoryProvider);
-  return repo.watchMyHostedMeetings(hostId);
-});
+/// История встреч пользователя (паритет web):
+/// `userMeetings/{uid}.meetingIds` + fallback на встречи, где пользователь host.
+final meetingHistoryProvider = StreamProvider.autoDispose
+    .family<List<MeetingDoc>, String>((ref, userId) {
+      final repo = ref.watch(meetingRepositoryProvider);
+      return repo.watchMeetingHistory(userId);
+    });
+
+/// Legacy alias для обратной совместимости.
+final myHostedMeetingsProvider = meetingHistoryProvider;
 
 /// Репозиторий чата внутри митинга — отдельный от MeetingRepository.
 final meetingChatRepositoryProvider = Provider<MeetingChatRepository>((ref) {
@@ -85,9 +84,9 @@ final meetingFirebaseStorageProvider = Provider<FirebaseStorage>((ref) {
 /// `permission-denied`. Вне участия стрим возвращает ошибку.
 final meetingChatMessagesProvider = StreamProvider.autoDispose
     .family<List<MeetingChatMessage>, String>((ref, meetingId) {
-  final repo = ref.watch(meetingChatRepositoryProvider);
-  return repo.watchMessages(meetingId);
-});
+      final repo = ref.watch(meetingChatRepositoryProvider);
+      return repo.watchMessages(meetingId);
+    });
 
 final meetingPollRepositoryProvider = Provider<MeetingPollRepository>((ref) {
   return MeetingPollRepository(FirebaseFirestore.instance);
@@ -96,9 +95,9 @@ final meetingPollRepositoryProvider = Provider<MeetingPollRepository>((ref) {
 /// Опросы встречи (`meetings/{id}/polls`), паритет web [MeetingPolls].
 final meetingPollsProvider = StreamProvider.autoDispose
     .family<List<MeetingPoll>, String>((ref, meetingId) {
-  final repo = ref.watch(meetingPollRepositoryProvider);
-  return repo.watchPolls(meetingId);
-});
+      final repo = ref.watch(meetingPollRepositoryProvider);
+      return repo.watchPolls(meetingId);
+    });
 
 class MeetingOwnRequestKey {
   const MeetingOwnRequestKey({required this.meetingId, required this.userId});
@@ -127,14 +126,13 @@ const bool kVirtualBackgroundNativeEnabled = bool.fromEnvironment(
 /// Провайдер контроллера виртуального фона. Единственная точка выбора
 /// реализации: сейчас — noop или MethodChannel (управляется флагом сборки).
 /// В будущем сюда можно подложить in-memory для тестов (переопределением).
-final virtualBackgroundControllerProvider = Provider<VirtualBackgroundController>(
-  (ref) {
-    final controller = kVirtualBackgroundNativeEnabled
-        ? MethodChannelVirtualBackgroundController()
-        : NoopVirtualBackgroundController();
-    ref.onDispose(() {
-      controller.dispose().catchError((_) {});
+final virtualBackgroundControllerProvider =
+    Provider<VirtualBackgroundController>((ref) {
+      final controller = kVirtualBackgroundNativeEnabled
+          ? MethodChannelVirtualBackgroundController()
+          : NoopVirtualBackgroundController();
+      ref.onDispose(() {
+        controller.dispose().catchError((_) {});
+      });
+      return controller;
     });
-    return controller;
-  },
-);

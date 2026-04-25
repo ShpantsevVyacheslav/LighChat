@@ -1,22 +1,79 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// `userContacts/{userId}` — same shape as web `UserContactsIndex`.
+class ContactLocalProfile {
+  const ContactLocalProfile({
+    this.firstName,
+    this.lastName,
+    this.displayName,
+    this.updatedAtIso,
+  });
+
+  final String? firstName;
+  final String? lastName;
+  final String? displayName;
+  final String? updatedAtIso;
+
+  static ContactLocalProfile? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    String? readTrimmed(String key) {
+      final v = m[key];
+      if (v is! String) return null;
+      final t = v.trim();
+      return t.isEmpty ? null : t;
+    }
+
+    final firstName = readTrimmed('firstName');
+    final lastName = readTrimmed('lastName');
+    final displayName = readTrimmed('displayName');
+    final updatedAtIso = readTrimmed('updatedAt');
+    if (firstName == null && lastName == null && displayName == null) {
+      return null;
+    }
+    return ContactLocalProfile(
+      firstName: firstName,
+      lastName: lastName,
+      displayName: displayName,
+      updatedAtIso: updatedAtIso,
+    );
+  }
+}
+
 class UserContactsIndex {
-  const UserContactsIndex({required this.contactIds});
+  const UserContactsIndex({
+    required this.contactIds,
+    this.contactProfiles = const <String, ContactLocalProfile>{},
+  });
 
   final List<String> contactIds;
+  final Map<String, ContactLocalProfile> contactProfiles;
 
   static UserContactsIndex fromSnapshot(
     DocumentSnapshot<Map<String, Object?>> snap,
   ) {
-    if (!snap.exists) return const UserContactsIndex(contactIds: <String>[]);
+    if (!snap.exists) {
+      return const UserContactsIndex(contactIds: <String>[]);
+    }
     final data = snap.data();
     final raw = data?['contactIds'];
     final ids = (raw is List ? raw : const <Object?>[])
         .whereType<String>()
         .where((s) => s.isNotEmpty)
         .toList(growable: false);
-    return UserContactsIndex(contactIds: ids);
+
+    final profiles = <String, ContactLocalProfile>{};
+    final rawProfiles = data?['contactProfiles'];
+    if (rawProfiles is Map) {
+      for (final entry in rawProfiles.entries) {
+        final key = entry.key.toString().trim();
+        if (key.isEmpty) continue;
+        final parsed = ContactLocalProfile.fromJson(entry.value);
+        if (parsed != null) profiles[key] = parsed;
+      }
+    }
+
+    return UserContactsIndex(contactIds: ids, contactProfiles: profiles);
   }
 }
 
@@ -51,6 +108,39 @@ class UserContactsRepository {
     }, SetOptions(merge: true));
   }
 
+  Future<void> upsertContactProfile({
+    required String ownerId,
+    required String contactUserId,
+    required String firstName,
+    String? lastName,
+  }) async {
+    final owner = ownerId.trim();
+    final contactId = contactUserId.trim();
+    final first = firstName.trim();
+    final last = (lastName ?? '').trim();
+    if (owner.isEmpty || contactId.isEmpty || first.isEmpty) return;
+
+    final displayName = [
+      first,
+      if (last.isNotEmpty) last,
+    ].join(' ').trim();
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final ref = _firestore.collection('userContacts').doc(owner);
+
+    await ref.set(<String, Object?>{
+      'contactIds': FieldValue.arrayUnion([contactId]),
+    }, SetOptions(merge: true));
+
+    await ref.update(<String, Object?>{
+      'contactProfiles.$contactId.firstName': first,
+      'contactProfiles.$contactId.lastName': last.isEmpty
+          ? FieldValue.delete()
+          : last,
+      'contactProfiles.$contactId.displayName': displayName,
+      'contactProfiles.$contactId.updatedAt': nowIso,
+    });
+  }
+
   Future<void> addContactIds(
     String ownerId,
     List<String> contactUserIds,
@@ -67,9 +157,17 @@ class UserContactsRepository {
 
   Future<void> removeContactId(String ownerId, String contactUserId) async {
     if (ownerId.isEmpty || contactUserId.isEmpty) return;
-    await _firestore.collection('userContacts').doc(ownerId).set({
+    final ref = _firestore.collection('userContacts').doc(ownerId);
+    await ref.set({
       'contactIds': FieldValue.arrayRemove([contactUserId]),
     }, SetOptions(merge: true));
+    try {
+      await ref.update(<String, Object?>{
+        'contactProfiles.$contactUserId': FieldValue.delete(),
+      });
+    } catch (_) {
+      // ignore: there may be no local profile map yet
+    }
   }
 
   Future<void> saveDeviceContactsConsent({

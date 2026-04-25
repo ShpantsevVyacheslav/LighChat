@@ -34,9 +34,11 @@ interface MeetingPollsProps {
   participantsCount: number;
   allParticipants: User[];
   isHost: boolean;
+  /** Пока нет `participants/{uid}`, правила Firestore запрещают читать `polls`. */
+  subscriptionsEnabled?: boolean;
 }
 
-export function MeetingPolls({ meetingId, currentUser, participantsCount, allParticipants, isHost }: MeetingPollsProps) {
+export function MeetingPolls({ meetingId, currentUser, participantsCount, allParticipants, isHost, subscriptionsEnabled = true }: MeetingPollsProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
@@ -48,9 +50,9 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
   const { toast } = useToast();
 
   const pollsQuery = useMemoFirebase(() => {
-    if (!firestore || !meetingId) return null;
+    if (!firestore || !meetingId || !subscriptionsEnabled) return null;
     return query(collection(firestore, `meetings/${meetingId}/polls`), orderBy('createdAt', 'desc'), limit(60));
-  }, [firestore, meetingId]);
+  }, [firestore, meetingId, subscriptionsEnabled]);
 
   const { data: polls } = useCollection<MeetingPoll>(pollsQuery);
 

@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { LinkPreview } from '../LinkPreview';
-import type { Conversation, User } from '@/lib/types';
+import type { Conversation, User, UserContactLocalProfile } from '@/lib/types';
 import { resolveMentionLabelToUserId } from '@/lib/mention-resolve';
 import { sanitizeMessageHtml } from '@/lib/sanitize-message-html';
+import { resolveContactDisplayName } from '@/lib/contact-display-name';
 
 interface MessageTextProps {
   text?: string;
@@ -16,6 +17,7 @@ interface MessageTextProps {
   children?: React.ReactNode;
   conversation?: Conversation;
   allUsers?: User[];
+  contactProfiles?: Record<string, UserContactLocalProfile>;
   onMentionProfileOpen?: (userId: string) => void;
 }
 
@@ -32,12 +34,51 @@ export function MessageText({
   children,
   conversation,
   allUsers,
+  contactProfiles,
   onMentionProfileOpen,
 }: MessageTextProps) {
   // Если нет ни текста, ни дочерних элементов (статуса), ничего не рендерим
   if (!text && !children) return null;
 
-  const safeHtml = text ? sanitizeMessageHtml(text) : '';
+  const safeHtml = useMemo(() => (text ? sanitizeMessageHtml(text) : ''), [text]);
+
+  const displayHtml = useMemo(() => {
+    if (!safeHtml || !safeHtml.includes('data-chat-mention')) return safeHtml;
+    if (typeof window === 'undefined') return safeHtml;
+    if (!conversation || !allUsers?.length) return safeHtml;
+    try {
+      const parser = new DOMParser();
+      const parsed = parser.parseFromString(`<div>${safeHtml}</div>`, 'text/html');
+      const root = parsed.body.firstElementChild as HTMLElement | null;
+      if (!root) return safeHtml;
+      root.querySelectorAll<HTMLElement>('[data-chat-mention]').forEach((el) => {
+        let uid = el.getAttribute('data-user-id') || '';
+        if (!uid) {
+          uid = resolveMentionLabelToUserId(
+            el.textContent || '',
+            conversation,
+            allUsers,
+            contactProfiles
+          ) ?? '';
+        }
+        if (!uid || !conversation.participantIds.includes(uid)) return;
+        const liveUser = allUsers.find((u) => u.id === uid);
+        const fallback =
+          (liveUser?.name || conversation.participantInfo?.[uid]?.name || '').trim() ||
+          el.textContent?.replace(/^[@＠]/u, '').trim() ||
+          'Пользователь';
+        const resolved = resolveContactDisplayName(contactProfiles, uid, fallback);
+        const label = `@${resolved || fallback}`;
+        el.textContent = label;
+        if (!el.getAttribute('data-user-id')) {
+          el.setAttribute('data-user-id', uid);
+        }
+      });
+      return root.innerHTML;
+    } catch {
+      return safeHtml;
+    }
+  }, [safeHtml, conversation, allUsers, contactProfiles]);
 
   const handleTextClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -52,7 +93,7 @@ export function MessageText({
       let uid = mentionEl.getAttribute('data-user-id');
       if (!uid) {
         const label = mentionEl.textContent || '';
-        uid = resolveMentionLabelToUserId(label, conversation, allUsers) ?? '';
+        uid = resolveMentionLabelToUserId(label, conversation, allUsers, contactProfiles) ?? '';
       }
       if (uid && conversation.participantIds.includes(uid)) {
         onMentionProfileOpen(uid);
@@ -72,7 +113,7 @@ export function MessageText({
         )}>
           {text && (
             <div 
-              dangerouslySetInnerHTML={{ __html: safeHtml }} 
+              dangerouslySetInnerHTML={{ __html: displayHtml }} 
               className={cn(
                 "inline [&_p]:inline [&_p]:m-0 [&_p]:text-inherit", 
                 (isCurrentUser || isColoredBubble) ? "text-white [&_a]:text-white [&_a]:underline font-medium" : "[&_a]:text-primary [&_a]:underline"

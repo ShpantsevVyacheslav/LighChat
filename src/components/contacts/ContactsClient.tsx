@@ -1,23 +1,19 @@
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { buildPathWithConversation } from '@/lib/dashboard-conversation-url';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useDoc, useFirestore, useMemoFirebase, useUsersByDocumentIds, useUser as useFirebaseUser } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import type { User, UserContactsIndex, PlatformSettingsDoc } from '@/lib/types';
+import { doc } from 'firebase/firestore';
+import type { UserContactsIndex } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PhoneInput } from '@/components/ui/phone-input';
+import { Input } from '@/components/ui/input';
 import {
   UserPlus,
   Loader2,
-  MessageSquare,
   Trash2,
   Smartphone,
-  Phone,
-  Video,
   AlertCircle as AlertCircleIcon,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -28,12 +24,9 @@ import {
   saveDeviceContactsConsent,
   dismissPhoneBookOffer,
 } from '@/lib/contacts-client-actions';
-import { createOrOpenDirectChat } from '@/lib/direct-chat';
-import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
-import { useSettings } from '@/hooks/use-settings';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
-import { normalizePhoneDigits } from '@/lib/phone-utils';
+import { resolveContactDisplayName } from '@/lib/contact-display-name';
 import { isPwaDisplayMode } from '@/lib/pwa-display-mode';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -49,7 +42,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ContactsSyncPromoBanner } from '@/components/contacts/ContactsSyncPromoBanner';
 import { ContactsPermissionGuideDialog } from '@/components/contacts/ContactsPermissionGuideDialog';
-import { initiateCall } from '@/components/chat/AudioCallOverlay';
 
 type ContactPickerNavigator = Navigator & {
   contacts?: {
@@ -74,21 +66,52 @@ const contactRemoveDialogSurfaceClass = cn(
 
 const contactRemoveDialogOverlayClass = 'bg-black/45 backdrop-blur-md';
 
+type PhoneCountryPreset = {
+  country: string;
+  dialCode: string;
+  hint: string;
+  minDigits: number;
+  maxDigits: number;
+};
+
+const PHONE_COUNTRY_PRESETS: PhoneCountryPreset[] = [
+  { country: 'Россия', dialCode: '+7', hint: '(999) 123-45-67', minDigits: 10, maxDigits: 10 },
+  { country: 'Казахстан', dialCode: '+7', hint: '(777) 123-45-67', minDigits: 10, maxDigits: 10 },
+  { country: 'Беларусь', dialCode: '+375', hint: '29 123 45 67', minDigits: 9, maxDigits: 9 },
+  { country: 'Украина', dialCode: '+380', hint: '50 123 45 67', minDigits: 9, maxDigits: 9 },
+  { country: 'США', dialCode: '+1', hint: '(555) 123-4567', minDigits: 10, maxDigits: 10 },
+  { country: 'Великобритания', dialCode: '+44', hint: '7400 123456', minDigits: 10, maxDigits: 10 },
+];
+
+function maskPhoneDigitsByHint(digits: string, hint: string): string {
+  const clean = digits.replace(/\D/g, '');
+  if (!clean) return '';
+  let di = 0;
+  let out = '';
+  for (const ch of hint) {
+    if (/\d/.test(ch)) {
+      if (di >= clean.length) break;
+      out += clean[di] ?? '';
+      di += 1;
+    } else if (di > 0) {
+      out += ch;
+    }
+  }
+  if (di < clean.length) out += clean.slice(di);
+  return out;
+}
+
 export function ContactsClient() {
   const { user: currentUser } = useAuth();
   const { user: firebaseUser } = useFirebaseUser();
   const ownerUid = firebaseUser?.uid ?? null;
   const firestore = useFirestore();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { privacySettings } = useSettings();
 
   const [phoneInput, setPhoneInput] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+7');
   const [searchBusy, setSearchBusy] = useState(false);
-  const [chatBusyId, setChatBusyId] = useState<string | null>(null);
-  const [callBusy, setCallBusy] = useState<{ userId: string; video: boolean } | null>(null);
   const [removeBusyId, setRemoveBusyId] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -107,16 +130,25 @@ export function ContactsClient() {
     useDoc<UserContactsIndex>(contactsRef);
 
   const contactIds = useMemo(() => contactsIndex?.contactIds ?? [], [contactsIndex?.contactIds]);
+  const contactProfiles = useMemo(
+    () => contactsIndex?.contactProfiles ?? {},
+    [contactsIndex?.contactProfiles]
+  );
 
   const { usersById, isLoading: loadingUsers } = useUsersByDocumentIds(firestore, contactIds);
 
   const contactRows = useMemo(() => {
     if (contactIds.length === 0) return [];
-    return contactIds.map((id) => ({
-      id,
-      user: usersById.get(id) ?? null,
-    }));
-  }, [contactIds, usersById]);
+    return contactIds.map((id) => {
+      const user = usersById.get(id) ?? null;
+      const fallbackName = (user?.name ?? '').trim() || 'Пользователь';
+      return {
+        id,
+        user,
+        displayName: resolveContactDisplayName(contactProfiles, id, fallbackName),
+      };
+    });
+  }, [contactIds, usersById, contactProfiles]);
 
   const listLoading =
     !contactsDocError && (loadingContacts || (contactIds.length > 0 && loadingUsers));
@@ -126,6 +158,28 @@ export function ContactsClient() {
     typeof navigator !== 'undefined' &&
     'contacts' in navigator &&
     typeof (navigator as ContactPickerNavigator).contacts?.select === 'function';
+
+  const selectedPhonePreset = useMemo(
+    () =>
+      PHONE_COUNTRY_PRESETS.find((p) => p.dialCode === phoneCountryCode) ??
+      PHONE_COUNTRY_PRESETS[0],
+    [phoneCountryCode]
+  );
+  const phoneDigits = useMemo(
+    () => phoneInput.replace(/\D/g, ''),
+    [phoneInput]
+  );
+
+  useEffect(() => {
+    const userPhone = (currentUser?.phone ?? '').trim();
+    if (!userPhone) return;
+    const digits = userPhone.replace(/\D/g, '');
+    if (!digits) return;
+    const byDial = [...PHONE_COUNTRY_PRESETS]
+      .sort((a, b) => b.dialCode.length - a.dialCode.length)
+      .find((p) => digits.startsWith(p.dialCode.replace(/\D/g, '')));
+    if (byDial) setPhoneCountryCode(byDial.dialCode);
+  }, [currentUser?.phone]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -210,14 +264,15 @@ export function ContactsClient() {
 
   const handleAddByPhone = async () => {
     if (!firestore || !currentUser || !ownerUid) return;
-    const digits = normalizePhoneDigits(phoneInput);
-    if (digits.length < 11) {
+    const digits = phoneInput.replace(/\D/g, '').slice(0, selectedPhonePreset.maxDigits);
+    if (digits.length < selectedPhonePreset.minDigits) {
       toast({ title: 'Введите номер полностью', variant: 'destructive' });
       return;
     }
+    const lookupPhone = `${phoneCountryCode}${digits}`;
     setSearchBusy(true);
     try {
-      const found = await findUserByPhoneInFirestore(firestore, phoneInput);
+      const found = await findUserByPhoneInFirestore(firestore, lookupPhone);
       if (!found) {
         toast({
           title: 'Пользователь не найден',
@@ -238,15 +293,16 @@ export function ContactsClient() {
         return;
       }
       if (contactIds.includes(found.id)) {
-        toast({ title: 'Уже в контактах', description: found.name });
+        toast({ title: 'Уже в контактах', description: 'Открываю карточку контакта' });
         setPhoneInput('');
         setAddSheetOpen(false);
+        router.push(`/dashboard/contacts/${encodeURIComponent(found.id)}`);
         return;
       }
-      await addContactId(firestore, ownerUid, found.id);
-      toast({ title: 'Контакт добавлен', description: found.name });
+      toast({ title: 'Пользователь найден', description: 'Заполните отображаемое имя контакта' });
       setPhoneInput('');
       setAddSheetOpen(false);
+      router.push(`/dashboard/contacts/${encodeURIComponent(found.id)}/edit`);
     } catch (e) {
       console.error(e);
       toast({ title: 'Ошибка', description: 'Не удалось добавить контакт.', variant: 'destructive' });
@@ -254,55 +310,6 @@ export function ContactsClient() {
       setSearchBusy(false);
     }
   };
-
-  const openChat = async (other: User) => {
-    if (!firestore || !currentUser || !ownerUid) return;
-    setChatBusyId(other.id);
-    try {
-      const id = await createOrOpenDirectChat(firestore, currentUser, other);
-      let platformWants = false;
-      try {
-        const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));
-        const p = ps.data() as PlatformSettingsDoc | undefined;
-        platformWants = !!p?.e2eeDefaultForNewDirectChats;
-      } catch {
-        /* ignore */
-      }
-      await autoEnableE2eeForNewDirectChat(firestore, id, currentUser.id, {
-        userWants: privacySettings.e2eeForNewDirectChats === true,
-        platformWants,
-      });
-      router.replace(
-        buildPathWithConversation(pathname, searchParams.toString(), id)
-      );
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Не удалось открыть чат', variant: 'destructive' });
-    } finally {
-      setChatBusyId(null);
-    }
-  };
-
-  const startCall = useCallback(
-    async (other: User, isVideo: boolean) => {
-      if (!firestore || !currentUser) return;
-      if (!canStartDirectChat(currentUser, other)) {
-        toast({
-          title: 'Звонок недоступен',
-          description: 'С этим пользователем нельзя связаться по правилам ролей.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      setCallBusy({ userId: other.id, video: isVideo });
-      try {
-        await initiateCall(firestore, currentUser, other, isVideo, toast);
-      } finally {
-        setCallBusy(null);
-      }
-    },
-    [firestore, currentUser, toast]
-  );
 
   const performRemoveContact = async (otherId: string) => {
     if (!firestore || !currentUser || !ownerUid) return;
@@ -394,7 +401,20 @@ export function ContactsClient() {
         <button
           type="button"
           className={glassIconButtonClass}
-          onClick={() => setAddSheetOpen(true)}
+          onClick={() => {
+            const myPhone = String(currentUser?.phone ?? '').trim();
+            if (!myPhone) {
+              toast({
+                title: 'Добавьте телефон',
+                description:
+                  'Для поиска контактов по номеру телефона заполните телефон в профиле.',
+                variant: 'destructive',
+              });
+              router.push('/dashboard/profile');
+              return;
+            }
+            setAddSheetOpen(true);
+          }}
           aria-label="Добавить контакт"
         >
           <UserPlus className="h-[1.15rem] w-[1.15rem]" strokeWidth={1.75} />
@@ -418,71 +438,35 @@ export function ContactsClient() {
         </p>
       ) : (
         <ul className="divide-y divide-border/40 dark:divide-white/10">
-          {contactRows.map(({ id, user: u }) => (
+          {contactRows.map(({ id, user: u, displayName }) => (
             <li key={id}>
               <div className="flex items-center gap-3 py-3">
-                <Avatar className="h-11 w-11 shrink-0 ring-1 ring-black/5 dark:ring-white/10">
-                  {u ? <AvatarImage src={userAvatarListUrl(u)} alt="" /> : null}
-                  <AvatarFallback className="text-sm font-medium">{u ? u.name.charAt(0) : '?'}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium leading-tight">{u ? u.name : 'Пользователь недоступен'}</p>
-                  {u
-                    ? u.username?.trim()
-                      ? (
-                          <p className="truncate text-xs text-muted-foreground">@{u.username}</p>
-                        )
-                      : null
-                    : (
-                        <p className="truncate text-xs text-muted-foreground">{`${id.slice(0, 8)}…`}</p>
-                      )}
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    className={cn(glassIconButtonClass, 'h-9 w-9 rounded-[0.75rem]')}
-                    onClick={() => u && openChat(u)}
-                    disabled={!u || chatBusyId === id || callBusy?.userId === id}
-                    aria-label="Написать"
-                  >
-                    {chatBusyId === id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MessageSquare className="h-4 w-4" strokeWidth={1.75} />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      glassIconButtonClass,
-                      'h-9 w-9 rounded-[0.75rem] text-[#34C759] dark:text-[#48E074]'
-                    )}
-                    onClick={() => u && void startCall(u, true)}
-                    disabled={!u || callBusy?.userId === id || chatBusyId === id}
-                    aria-label="Видеозвонок"
-                  >
-                    {callBusy?.userId === id && callBusy.video ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Video className="h-4 w-4" strokeWidth={1.75} />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      glassIconButtonClass,
-                      'h-9 w-9 rounded-[0.75rem] text-[#34C759] dark:text-[#48E074]'
-                    )}
-                    onClick={() => u && void startCall(u, false)}
-                    disabled={!u || callBusy?.userId === id || chatBusyId === id}
-                    aria-label="Аудиозвонок"
-                  >
-                    {callBusy?.userId === id && !callBusy.video ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Phone className="h-4 w-4" strokeWidth={1.75} />
-                    )}
-                  </button>
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  onClick={() => router.push(`/dashboard/contacts/${encodeURIComponent(id)}`)}
+                  aria-label={`Открыть контакт ${displayName}`}
+                >
+                  <Avatar className="h-11 w-11 shrink-0 ring-1 ring-black/5 dark:ring-white/10">
+                    {u ? <AvatarImage src={userAvatarListUrl(u)} alt="" /> : null}
+                    <AvatarFallback className="text-sm font-medium">
+                      {displayName.charAt(0) || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium leading-tight">{displayName}</p>
+                    {u
+                      ? u.username?.trim()
+                        ? (
+                            <p className="truncate text-xs text-muted-foreground">@{u.username}</p>
+                          )
+                        : null
+                      : (
+                          <p className="truncate text-xs text-muted-foreground">{`${id.slice(0, 8)}…`}</p>
+                        )}
+                  </div>
+                </button>
+                <div className="flex shrink-0 items-center gap-1 pl-2">
                   <button
                     type="button"
                     className={cn(
@@ -492,10 +476,10 @@ export function ContactsClient() {
                     onClick={() =>
                       setContactPendingRemove({
                         id,
-                        name: (u?.name?.trim() || 'Контакт').slice(0, 120),
+                        name: (displayName.trim() || 'Контакт').slice(0, 120),
                       })
                     }
-                    disabled={removeBusyId === id || callBusy?.userId === id}
+                    disabled={removeBusyId === id}
                     aria-label="Удалить из контактов"
                   >
                     {removeBusyId === id ? (
@@ -619,11 +603,45 @@ export function ContactsClient() {
             <SheetDescription>Поиск по номеру телефона из профиля в LighChat.</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">
-            <PhoneInput value={phoneInput} onChange={setPhoneInput} placeholder="+7 (900) 000-00-00" className="rounded-xl" />
+            <div className="flex items-center gap-2">
+              <select
+                value={phoneCountryCode}
+                onChange={(e) => {
+                  const dial = e.target.value;
+                  setPhoneCountryCode(dial);
+                  const nextPreset =
+                    PHONE_COUNTRY_PRESETS.find((p) => p.dialCode === dial) ??
+                    PHONE_COUNTRY_PRESETS[0];
+                  const nextDigits = phoneInput
+                    .replace(/\D/g, '')
+                    .slice(0, nextPreset.maxDigits);
+                  setPhoneInput(maskPhoneDigitsByHint(nextDigits, nextPreset.hint));
+                }}
+                className="h-11 min-w-[9.5rem] rounded-xl border border-border bg-background px-3 text-sm"
+              >
+                {PHONE_COUNTRY_PRESETS.map((preset) => (
+                  <option key={`${preset.country}-${preset.dialCode}`} value={preset.dialCode}>
+                    {preset.country} ({preset.dialCode})
+                  </option>
+                ))}
+              </select>
+              <Input
+                type="tel"
+                value={phoneInput}
+                onChange={(e) => {
+                  const digits = e.target.value
+                    .replace(/\D/g, '')
+                    .slice(0, selectedPhonePreset.maxDigits);
+                  setPhoneInput(maskPhoneDigitsByHint(digits, selectedPhonePreset.hint));
+                }}
+                placeholder={selectedPhonePreset.hint}
+                className="h-11 rounded-xl"
+              />
+            </div>
             <Button
               className="h-12 w-full rounded-2xl text-base font-medium shadow-sm"
               onClick={handleAddByPhone}
-              disabled={searchBusy || normalizePhoneDigits(phoneInput).length < 11}
+              disabled={searchBusy || phoneDigits.length < selectedPhonePreset.minDigits}
             >
               {searchBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Добавить

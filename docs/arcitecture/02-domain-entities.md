@@ -4,7 +4,7 @@
 
 ## Пользователи
 
-- `User` - профиль пользователя, роль, presence, настройки, ограничения аккаунта.
+- `User` - профиль пользователя, роль, presence, настройки, ограничения аккаунта; push-токены `fcmTokens` (FCM) и `voipTokens` (iOS PushKit для нативного incoming-call UI).
 - `UserAccountBlock` - флаг/срок/причина блокировки.
 - `UserLiveLocationShare` - состояние активной трансляции геопозиции.
 
@@ -37,7 +37,7 @@
 ## Индексы и служебные документы
 
 - `UserChatIndex` - список чатов пользователя + конфигурация папок.
-- `UserContactsIndex` - контакты пользователя и consent-флаги.
+- `UserContactsIndex` - контакты пользователя и consent-флаги; включает `contactIds[]` и локальные представления `contactProfiles.{contactUserId}` (`firstName`, `lastName`, `displayName`, `updatedAt`), которые используются в UI как персональное имя контакта (видно только владельцу списка).
 - `UserCallsIndex` - список call id пользователя.
 - `UserMeetingsIndex` - список meeting id пользователя.
 - `PlatformSettingsDoc`, `PlatformStoragePolicy` - платформенные настройки квот/retention.

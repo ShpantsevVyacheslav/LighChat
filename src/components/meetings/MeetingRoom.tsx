@@ -137,7 +137,7 @@ export function MeetingRoom({
   }, [firestore, initialMeeting.id]);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !rtc.isParticipantSynced) return;
     const messagesLimit = activeSidebarTab === 'chat' ? 120 : 40;
     const q = query(
       collection(firestore, `meetings/${meeting.id}/messages`),
@@ -160,15 +160,15 @@ export function MeetingRoom({
           setUnreadChatCount(prev => prev + newAdded.length);
       }
     });
-  }, [firestore, meeting.id, activeSidebarTab]);
+  }, [firestore, meeting.id, activeSidebarTab, rtc.isParticipantSynced]);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !rtc.isParticipantSynced) return;
     const q = query(collection(firestore, `meetings/${meeting.id}/polls`), where('status', '==', 'active'));
     return onSnapshot(q, (snap) => {
         setActivePollsCount(snap.size);
     });
-  }, [firestore, meeting.id]);
+  }, [firestore, meeting.id, rtc.isParticipantSynced]);
 
   useEffect(() => {
     Object.values(rtc.participants).forEach((p) => {
@@ -556,7 +556,7 @@ export function MeetingRoom({
 
         <MeetingSidebar 
           activeTab={activeSidebarTab} onActiveTabChange={setActiveSidebarTab} onClose={() => setActiveSidebarTab(null)} currentUser={currentUser as any} chatMessages={chatMessages} newMessageText={newMessageText} setNewMessageText={setNewMessageText} onSendMessage={handleSendMessagePlaceholder} participants={participantList} isHost={isAdmin} hostId={meeting.hostId} adminIds={meeting.adminIds || []} chatEndRef={chatEndRef} {...handleManagement}
-          pollsNode={activeSidebarTab === 'polls' ? <MeetingPolls meetingId={meeting.id} currentUser={currentUser as any} participantsCount={totalPeople} allParticipants={[currentUser, ...participantList] as any} isHost={isAdmin} /> : null}
+          pollsNode={activeSidebarTab === 'polls' ? <MeetingPolls meetingId={meeting.id} currentUser={currentUser as any} participantsCount={totalPeople} allParticipants={[currentUser, ...participantList] as any} isHost={isAdmin} subscriptionsEnabled={rtc.isParticipantSynced} /> : null}
           requestsNode={isAdmin && activeSidebarTab === 'participants' ? <MeetingRequests meetingId={meeting.id} /> : null}
           meetingId={meeting.id}
         />

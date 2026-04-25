@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:typed_data';
+import 'dart:developer' as developer;
 
 import '../auth_errors.dart';
 import 'registration_availability.dart';
@@ -140,10 +141,12 @@ class RegistrationService {
       }
       await batch.commit();
     } catch (e) {
-      // Make the problem visible; web uses registrationIndex for conflict checks.
-      throw Exception(
-        'Пользователь создан, но не удалось записать индекс регистрации (registrationIndex). '
-        'Проверьте Firestore rules. Ошибка: $e',
+      // `registrationIndex/*` is server-write only (Admin SDK / Cloud Functions).
+      // Do not fail the registration flow if client rules block this write.
+      developer.log(
+        'Registration: failed to write registrationIndex (expected when rules deny client writes).',
+        name: 'lighchat.registration',
+        error: e,
       );
     }
   }

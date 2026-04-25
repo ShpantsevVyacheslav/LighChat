@@ -38,7 +38,9 @@ class _VideoCachedThumbImageState extends State<VideoCachedThumbImage> {
   }
 
   Future<void> _load() async {
-    final f = await VideoUrlFirstFrameCache.instance.getOrCreate(widget.videoUrl);
+    final f = await VideoUrlFirstFrameCache.instance.getOrCreate(
+      widget.videoUrl,
+    );
     if (!mounted) return;
     setState(() => _file = f);
   }
@@ -46,12 +48,34 @@ class _VideoCachedThumbImageState extends State<VideoCachedThumbImage> {
   @override
   Widget build(BuildContext context) {
     final f = _file;
-    if (f == null) return const SizedBox.expand();
+    if (f == null) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.black.withValues(alpha: 0.42),
+              Colors.black.withValues(alpha: 0.20),
+            ],
+          ),
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.play_circle_outline_rounded,
+            color: Color(0xCCFFFFFF),
+            size: 26,
+          ),
+        ),
+      );
+    }
     return Image.file(
       f,
       fit: widget.fit,
       gaplessPlayback: true,
-      errorBuilder: (_, _, _) => const SizedBox.expand(),
+      errorBuilder: (_, _, _) => DecoratedBox(
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30)),
+      ),
     );
   }
 }

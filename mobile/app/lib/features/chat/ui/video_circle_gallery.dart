@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:video_player/video_player.dart';
 
+import 'chat_gallery_video_local_cache.dart';
 import 'video_cached_thumb_image.dart';
 
 /// Сетка «Кружков» в профиле собеседника — визуальный паритет с вебом:
@@ -88,7 +90,8 @@ class _VideoCircleGalleryState extends State<VideoCircleGallery> {
       });
     }
 
-    final uri = Uri.tryParse(url);
+    final sourceUrl = url.trim();
+    final uri = Uri.tryParse(sourceUrl);
     if (uri == null || uri.scheme.isEmpty) {
       if (mounted) setState(() => _failed = true);
       return;
@@ -96,10 +99,28 @@ class _VideoCircleGalleryState extends State<VideoCircleGallery> {
 
     VideoPlayerController? c;
     try {
-      c = VideoPlayerController.networkUrl(
-        uri,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
+      if (uri.scheme == 'file') {
+        c = VideoPlayerController.file(
+          File(uri.toFilePath()),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+      } else {
+        final cached = await ChatGalleryVideoLocalCache.cachedFileIfExists(
+          sourceUrl,
+        );
+        if (cached != null) {
+          c = VideoPlayerController.file(
+            cached,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        } else {
+          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          c = VideoPlayerController.networkUrl(
+            uri,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        }
+      }
       await c.initialize();
       if (!mounted) {
         await c.dispose();
@@ -345,7 +366,11 @@ class _ActiveCirclePlayer extends StatelessWidget {
     Widget inner;
     if (failed) {
       inner = const Center(
-        child: Icon(Icons.videocam_off_rounded, color: Colors.white54, size: 44),
+        child: Icon(
+          Icons.videocam_off_rounded,
+          color: Colors.white54,
+          size: 44,
+        ),
       );
     } else {
       inner = Stack(
@@ -362,8 +387,7 @@ class _ActiveCirclePlayer extends StatelessWidget {
                 child: VideoPlayer(controller!),
               ),
             ),
-          if (!playing)
-            ColoredBox(color: Colors.black.withValues(alpha: 0.20)),
+          if (!playing) ColoredBox(color: Colors.black.withValues(alpha: 0.20)),
           Align(
             alignment: Alignment.center,
             child: Container(
@@ -372,9 +396,7 @@ class _ActiveCirclePlayer extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black.withValues(alpha: 0.42),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.10),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
               ),
               child: Icon(
                 playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
@@ -523,4 +545,3 @@ class _CircleProgressPainter extends CustomPainter {
     return oldDelegate.progress != progress;
   }
 }
-

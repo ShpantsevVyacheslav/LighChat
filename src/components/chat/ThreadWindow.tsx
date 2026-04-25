@@ -22,6 +22,7 @@ import type {
     ReactionDetail,
     ChatLocationShare,
     ChatLocationSendMeta,
+    UserContactLocalProfile,
 } from '@/lib/types';
 import type { ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
 import { chatPollFirestoreFields } from '@/lib/chat-poll-create';
@@ -86,8 +87,12 @@ interface ThreadWindowProps {
     onHighlightThreadMessageConsumed?: () => void;
     /** Клик по @ в тексте сообщения ветки — открыть профиль (родительский `ChatWindow`). */
     onMentionProfileOpen?: (userId: string) => void;
+    /** Группа: клик по имени/аватару отправителя (родительский `ChatWindow`). */
+    onGroupSenderProfileOpen?: (userId: string) => void;
     /** Группа: меню отправителя — личный чат (родительский `ChatWindow`). */
     onGroupSenderWritePrivate?: (userId: string) => void | Promise<void>;
+    /** Локальные имена контактов текущего пользователя. */
+    contactProfiles?: Record<string, UserContactLocalProfile>;
     /** Сохранить стикер/GIF из сообщения в пак текущего пользователя. */
     onSaveStickerGif?: (attachment: ChatAttachment, mode?: 'copy' | 'normalize_sticker') => void;
     /** Скрыть плавающий якорь (оверлей профиля родителя — тот же высокий z-index). */
@@ -122,7 +127,9 @@ export function ThreadWindow({
     highlightThreadMessageId = null,
     onHighlightThreadMessageConsumed,
     onMentionProfileOpen,
+    onGroupSenderProfileOpen,
     onGroupSenderWritePrivate,
+    contactProfiles,
     onSaveStickerGif,
     suppressFloatingAnchor = false,
     parentE2eeDecryptedByMessageId = {},
@@ -412,14 +419,6 @@ export function ThreadWindow({
         if (!v) return;
         if (delta > 0) {
             v.scrollBy({ top: delta, behavior: 'auto' });
-            const len = flatItemsRef.current.length;
-            if (len > 0) {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        virtuosoRef.current?.scrollToIndex({ index: len - 1, align: 'end', behavior: 'auto' });
-                    });
-                });
-            }
         } else if (atBottomRef.current) {
             v.scrollBy({ top: delta, behavior: 'auto' });
         }
@@ -1250,7 +1249,9 @@ export function ThreadWindow({
                                         disableContextMenu={true}
                                         chatSettings={chatSettings}
                                         onMentionProfileOpen={onMentionProfileOpen}
+                                        onGroupSenderProfileOpen={onGroupSenderProfileOpen}
                                         onGroupSenderWritePrivate={onGroupSenderWritePrivate}
+                                        contactProfiles={contactProfiles}
                                         e2eeDecryptedByMessageId={parentE2eeDecryptedByMessageId}
                                         onRetryMediaNorm={handleRetryMediaNorm}
                                     />
@@ -1328,8 +1329,10 @@ export function ThreadWindow({
                                         isLastInChat={isLastInChat}
                                         chatSettings={chatSettings}
                                         onMentionProfileOpen={onMentionProfileOpen}
+                                        onGroupSenderProfileOpen={onGroupSenderProfileOpen}
                                         onGroupSenderWritePrivate={onGroupSenderWritePrivate}
                                         onSaveStickerGif={onSaveStickerGif}
+                                        contactProfiles={contactProfiles}
                                         e2eeDecryptedByMessageId={threadE2eeMergedMap}
                                         onRetryMediaNorm={handleRetryMediaNorm}
                                     />
@@ -1366,6 +1369,7 @@ export function ThreadWindow({
                         conversation={conversation}
                         currentUser={currentUser}
                         allUsers={allUsers}
+                        contactProfiles={contactProfiles}
                         isPartnerDeleted={isPartnerDeleted}
                         draftScopeKey={`t:${conversation.id}:${parentMessage.id}`}
                         onRestoreDraftReply={(reply) => setReplyingTo(reply)}

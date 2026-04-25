@@ -58,7 +58,7 @@ export function PinnedMessageBar({
                 {pinnedMessage.mediaType === 'video' || pinnedMessage.mediaType === 'video-circle' ? (
                     <video 
                         src={pinnedMessage.mediaPreviewUrl} 
-                        className="h-full w-full object-cover" 
+                        className="pointer-events-none h-full w-full object-cover" 
                         muted 
                         playsInline
                     />

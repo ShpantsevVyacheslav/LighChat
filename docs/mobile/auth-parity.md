@@ -30,7 +30,7 @@
 Источник: `src/lib/registration-profile-complete.ts`
 - [ ] После входа через Google проверяем `isRegistrationProfileComplete` по данным `users/{uid}`; при «неполном» снимке с **кэша** — повтор с **сервера** (`GetOptions(source: server)`), как web `getDocFromServer` (см. `mobile/app/lib/features/auth/registration_profile_gate.dart`, `registrationProfileCompleteProvider`). Каждый `get` ограничен `kFirestoreRegistrationGetTimeout` (15 с). Дополнительно `isFirestoreRegistrationProfileCompleteWithDeadline` (`Future.any` + ~10 с) — на iOS нативный Firestore иногда не завершает `Future` от `get()`, из‑за чего экран «Проверка регистрации…» не уходил.
 - [ ] После `completeGoogleProfile` — `ref.invalidate(registrationProfileCompleteProvider(uid))`, чтобы список чатов не держал старый `false`.
-- [ ] Если профиль неполный: показываем экран completion, без доступа к чатам до заполнения
+- [ ] Если профиль неполный: экран completion **не обязателен**; при соц-входе недостающее заполняется автоматически (минимум: `username`, `email`). Телефон запрашивается только при действиях контактов по телефону.
 - [ ] Completion пишет `users/{uid}` и обновляет `registrationIndex` (с exceptUid)
 
 ### 6) Avatar UX (web parity)

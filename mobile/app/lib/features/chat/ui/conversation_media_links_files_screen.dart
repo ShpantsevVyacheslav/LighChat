@@ -10,6 +10,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/chat_media_gallery.dart';
+import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_media_viewer_screen.dart';
@@ -74,7 +75,17 @@ class _ConversationMediaLinksFilesScreenState
               const SizedBox(height: 16),
               Expanded(
                 child: messagesAsync.when(
-                  data: (msgsDesc) => _content(context, msgsDesc),
+                  data: (msgsDesc) => E2eeMessagesResolver(
+                    conversationId: widget.conversationId,
+                    messages: msgsDesc,
+                    builder:
+                        (
+                          context,
+                          hydratedMessages,
+                          ignoredDecryptedMap,
+                          ignoredFailedIds,
+                        ) => _content(context, hydratedMessages),
+                  ),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
@@ -168,8 +179,7 @@ class _ConversationMediaLinksFilesScreenState
             ),
             child: Row(
               children: [
-                for (final t in tabs)
-                  Expanded(child: _tabButton(t.$1, t.$2)),
+                for (final t in tabs) Expanded(child: _tabButton(t.$1, t.$2)),
               ],
             ),
           ),
@@ -376,9 +386,7 @@ class _ConversationMediaLinksFilesScreenState
   Widget _circlesGrid(List<_AttachmentEntry> items) {
     if (items.isEmpty) return _emptyBody('Нет кружков');
     final mapped = items
-        .map(
-          (e) => (message: e.message, attachment: e.attachment),
-        )
+        .map((e) => (message: e.message, attachment: e.attachment))
         .toList(growable: false);
     return VideoCircleGallery(
       items: mapped,

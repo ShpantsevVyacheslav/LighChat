@@ -1,5 +1,5 @@
 /**
- * Единые критерии «регистрация завершена» для email и Google (имя, логин, телефон, email).
+ * Единые критерии «регистрация завершена» для входа и базовой навигации.
  * Совпадают с валидацией форм в `register-profile-schema.ts`.
  */
 
@@ -26,8 +26,6 @@ export function isRegistrationProfileComplete(
   const username = normalizedUsername(String(u.username ?? ""));
   if (username.length < 3 || username.length > 30) return false;
   if (!/^[a-zA-Z0-9_]+$/u.test(username)) return false;
-  const phoneDigits = String(u.phone ?? "").replace(/\D/g, "");
-  if (phoneDigits.length !== 11) return false;
   const email = String(u.email ?? "").trim();
   if (!email || !EMAIL_LIKE.test(email)) return false;
   return true;

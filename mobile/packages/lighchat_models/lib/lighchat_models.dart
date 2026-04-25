@@ -724,33 +724,41 @@ class ChatMessageE2eePayload {
     final m = raw.map((k, v) => MapEntry(k.toString(), v));
     final proto = m['protocolVersion'];
     final epochRaw = m['epoch'];
-    final iv = m['iv'];
-    final ct = m['ciphertext'];
+    final ivRaw = m['iv'];
+    final ctRaw = m['ciphertext'];
+    final attachmentsRaw = m['attachments'];
+    final attachmentsJson = attachmentsRaw is List
+        ? attachmentsRaw
+              .whereType<Map>()
+              .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+              .toList(growable: false)
+        : null;
+    final hasAttachments =
+        attachmentsJson != null && attachmentsJson.isNotEmpty;
     if (proto is! String || proto.isEmpty) return null;
-    if (iv is! String || iv.isEmpty) return null;
-    if (ct is! String || ct.isEmpty) return null;
+    // Backward-compatible media-only envelopes:
+    // старые клиенты могли отправлять attachments[] с отсутствующим iv/ct.
+    final iv = ivRaw is String ? ivRaw : (hasAttachments ? '' : null);
+    final ct = ctRaw is String ? ctRaw : (hasAttachments ? '' : null);
+    if (iv == null || ct == null) return null;
+    // Поддержка media-only E2EE envelope: старые клиенты могли писать
+    // пустые iv/ciphertext при наличии `attachments[]`.
+    if (!hasAttachments && (iv.isEmpty || ct.isEmpty)) return null;
     final epoch = epochRaw is int
         ? epochRaw
         : (epochRaw is num ? epochRaw.toInt() : 0);
     final senderDev = m['senderDeviceId'];
-    final attachmentsRaw = m['attachments'];
-    final attachmentsJson = attachmentsRaw is List
-        ? attachmentsRaw
-            .whereType<Map>()
-            .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
-            .toList(growable: false)
-        : null;
     return ChatMessageE2eePayload(
       protocolVersion: proto,
       epoch: epoch,
       ivB64: iv,
       ciphertextB64: ct,
-      senderDeviceId:
-          senderDev is String && senderDev.isNotEmpty ? senderDev : null,
-      attachmentsJson:
-          (attachmentsJson != null && attachmentsJson.isNotEmpty)
-              ? attachmentsJson
-              : null,
+      senderDeviceId: senderDev is String && senderDev.isNotEmpty
+          ? senderDev
+          : null,
+      attachmentsJson: (attachmentsJson != null && attachmentsJson.isNotEmpty)
+          ? attachmentsJson
+          : null,
     );
   }
 
@@ -765,13 +773,8 @@ class ChatMessageE2eePayload {
           other.senderDeviceId == senderDeviceId);
 
   @override
-  int get hashCode => Object.hash(
-        protocolVersion,
-        epoch,
-        ivB64,
-        ciphertextB64,
-        senderDeviceId,
-      );
+  int get hashCode =>
+      Object.hash(protocolVersion, epoch, ivB64, ciphertextB64, senderDeviceId);
 }
 
 class ChatMessage {

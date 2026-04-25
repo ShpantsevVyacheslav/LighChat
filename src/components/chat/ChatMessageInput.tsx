@@ -11,6 +11,7 @@ import type {
   ChatAttachment,
   ChatLocationShare,
   ChatLocationSendMeta,
+  UserContactLocalProfile,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -97,6 +98,7 @@ const ChatMessageInputInner = (
     conversation,
     currentUser,
     allUsers,
+    contactProfiles,
     isPartnerDeleted = false,
     draftScopeKey,
     onRestoreDraftReply,
@@ -155,7 +157,9 @@ const ChatMessageInputInner = (
     const firebaseAuth = useAuth();
 
     const groupMentionCandidates = useMemo((): User[] => {
-        return buildGroupMentionCandidates(conversation, allUsers, currentUser.id).map(
+        return buildGroupMentionCandidates(conversation, allUsers, currentUser.id, {
+            contactProfiles,
+        }).map(
             (c) =>
                 ({
                     id: c.id,
@@ -170,7 +174,7 @@ const ChatMessageInputInner = (
                     createdAt: '',
                 }) as User
         );
-    }, [conversation, allUsers, currentUser.id]);
+    }, [conversation, allUsers, currentUser.id, contactProfiles]);
 
     /** Имена и username для границы @: после «полное имя + пробел» дальше не ищем участников. */
     const mentionBoundaryNames = useMemo(() => {
@@ -579,7 +583,7 @@ const ChatMessageInputInner = (
                     <div className="mb-2 flex flex-row items-center justify-center gap-3 sm:gap-4">
                         <div className="h-14 w-14 shrink-0" aria-hidden />
                         <div className="relative h-48 w-48 shrink-0 rounded-full overflow-hidden border-4 border-primary/20">
-                            <video ref={videoPreviewRef} autoPlay muted playsInline className="h-full w-full object-cover -scale-x-100" />
+                            <video ref={videoPreviewRef} autoPlay muted playsInline className="pointer-events-none h-full w-full object-cover -scale-x-100" />
                         </div>
                         <Button type="button" variant="destructive" size="icon" className="h-14 w-14 shrink-0 rounded-full" onClick={stopVideoRecording} aria-label="Остановить запись">
                             <StopCircle className="h-7 w-7" />
@@ -598,7 +602,7 @@ const ChatMessageInputInner = (
                             <Trash2 className="h-7 w-7" />
                         </Button>
                         <div className="relative h-48 w-48 shrink-0 rounded-full overflow-hidden border-4 border-green-500/20 shadow-2xl">
-                            <video src={videoPreview.url} autoPlay loop playsInline className="h-full w-full object-cover" />
+                            <video src={videoPreview.url} autoPlay loop playsInline className="pointer-events-none h-full w-full object-cover" />
                         </div>
                         <Button type="button" size="icon" className="h-14 w-14 shrink-0 rounded-full bg-primary shadow-xl" onClick={handleSend} aria-label="Отправить">
                             <SendHorizonal className="h-7 w-7" />
@@ -639,7 +643,7 @@ const ChatMessageInputInner = (
                                             )}
                                         >
                                             {replyingTo.mediaType === 'video' || replyingTo.mediaType === 'video-circle' ? (
-                                                <video src={replyingTo.mediaPreviewUrl} className="h-full w-full object-cover" muted />
+                                                <video src={replyingTo.mediaPreviewUrl} className="pointer-events-none h-full w-full object-cover" muted playsInline />
                                             ) : (
                                                 <img
                                                     src={replyingTo.mediaPreviewUrl}
@@ -961,6 +965,8 @@ export interface ChatMessageInputProps {
     conversation: Conversation;
     currentUser: User;
     allUsers: User[];
+    /** Локальные имена контактов текущего пользователя для @-подсказок. */
+    contactProfiles?: Record<string, UserContactLocalProfile>;
     isPartnerDeleted?: boolean;
     /** Ключ в localStorage; по умолчанию `conversation.id`. Для треда: `t:{conversationId}:{parentMessageId}`. */
     draftScopeKey?: string;

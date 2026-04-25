@@ -29,6 +29,7 @@ import '../data/chat_attachment_upload.dart';
 import '../data/chat_message_search.dart';
 import '../data/composer_clipboard_paste.dart';
 import '../data/group_mention_candidates.dart';
+import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
 import 'chat_message_list.dart';
 import 'chat_scroll_anchor_button.dart';
@@ -118,6 +119,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   final Map<String, GlobalKey> _messageItemKeys = <String, GlobalKey>{};
   final Set<String> _sessionReadIds = <String>{};
   List<ChatMessage> _sortedAscCache = const <ChatMessage>[];
+  List<ChatMessage> _hydratedThreadMsgsDescCache = const <ChatMessage>[];
+  ChatMessage? _hydratedParentCache;
   String? _jumpScrollBoostMessageId;
   bool _threadAtBottom = true;
   int _anchorUnreadStep = 0;
@@ -132,7 +135,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -162,6 +167,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         oldWidget.parentMessageId != widget.parentMessageId) {
       _messageItemKeys.clear();
       _sortedAscCache = const <ChatMessage>[];
+      _hydratedThreadMsgsDescCache = const <ChatMessage>[];
+      _hydratedParentCache = null;
       _jumpScrollBoostMessageId = null;
       _replyingTo = null;
       _flashHighlightTimer?.cancel();
@@ -355,7 +362,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       final max = sc.position.maxScrollExtent;
       if (max > 0) {
         final frac = idx / (n - 1);
-        final raw = _threadMessageListReversed ? (max * (1 - frac)) : (max * frac);
+        final raw = _threadMessageListReversed
+            ? (max * (1 - frac))
+            : (max * frac);
         sc.jumpTo(raw.clamp(0.0, max));
       }
     }
@@ -943,7 +952,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
       _composerController.text,
     );
-    final plain = prepared.isEmpty ? '' : messageHtmlToPlainText(prepared).trim();
+    final plain = prepared.isEmpty
+        ? ''
+        : messageHtmlToPlainText(prepared).trim();
 
     final pending = List<XFile>.from(_pendingAttachments);
     if (plain.isEmpty && pending.isEmpty) return;
@@ -1031,9 +1042,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
           ..addAll(pending);
         _replyingTo = replySnap;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось отправить: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Не удалось отправить: $e')));
     } finally {
       if (mounted) setState(() => _sendBusy = false);
     }
@@ -1094,6 +1105,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     final conv = convAsync.asData?.value.isNotEmpty == true
         ? convAsync.asData!.value.first.data
         : null;
+    final contactsAsync = ref.watch(userContactsIndexProvider(user.uid));
 
     final userDocAsync = ref.watch(userChatSettingsDocProvider(user.uid));
     final userDoc = userDocAsync.asData?.value ?? const <String, dynamic>{};
@@ -1193,6 +1205,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                           return a.id.compareTo(b.id);
                         });
                       _sortedAscCache = sortedAsc;
+                      _hydratedThreadMsgsDescCache = const <ChatMessage>[];
                       _syncMessageItemKeys(sortedAsc);
                       _consumePendingFocusIfReady(sortedAsc);
                       final loadedIncomingUnreadCount =
@@ -1272,6 +1285,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                           );
                         }
                       }
+                      final contactProfiles =
+                          contactsAsync.value?.contactProfiles ??
+                          const <String, ContactLocalProfile>{};
 
                       final searchResults = _inThreadSearch
                           ? filterMessagesForInChatSearch(
@@ -1282,33 +1298,58 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
                       return GestureDetector(
                         behavior: HitTestBehavior.translucent,
-                        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                        onTap: () =>
+                            FocusManager.instance.primaryFocus?.unfocus(),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _ThreadRootPanel(
-                              message: parent,
-                              currentUserId: user.uid,
+                            E2eeMessagesResolver(
                               conversationId: widget.conversationId,
-                              conversation: conv,
-                              replyCount: replyCount,
-                              timeHmText: _timeHm(parent.createdAt),
-                              outgoingBubbleColor: scheme.primary,
-                              incomingBubbleColor: Colors.white.withValues(
-                                alpha: scheme.brightness == Brightness.dark
-                                    ? 0.08
-                                    : 0.22,
-                              ),
-                              onOpenMediaGallery: (att) {
-                                _openThreadMediaGallery(
-                                  att,
-                                  parent,
-                                  parent: parent,
-                                  threadMsgsDesc: threadMsgs,
-                                  user: user,
-                                  conv: conv,
-                                );
-                              },
+                              messages: <ChatMessage>[parent],
+                              builder:
+                                  (
+                                    context,
+                                    hydratedParentList,
+                                    ignoredDecryptedMap,
+                                    ignoredFailedIds,
+                                  ) {
+                                    final hydratedParent =
+                                        hydratedParentList.isNotEmpty
+                                        ? hydratedParentList.first
+                                        : parent;
+                                    _hydratedParentCache = hydratedParent;
+                                    final sourceReplies =
+                                        _hydratedThreadMsgsDescCache.isNotEmpty
+                                        ? _hydratedThreadMsgsDescCache
+                                        : threadMsgs;
+                                    return _ThreadRootPanel(
+                                      message: hydratedParent,
+                                      currentUserId: user.uid,
+                                      conversationId: widget.conversationId,
+                                      conversation: conv,
+                                      replyCount: replyCount,
+                                      timeHmText: _timeHm(parent.createdAt),
+                                      outgoingBubbleColor: scheme.primary,
+                                      incomingBubbleColor: Colors.white
+                                          .withValues(
+                                            alpha:
+                                                scheme.brightness ==
+                                                    Brightness.dark
+                                                ? 0.08
+                                                : 0.22,
+                                          ),
+                                      onOpenMediaGallery: (att) {
+                                        _openThreadMediaGallery(
+                                          att,
+                                          hydratedParent,
+                                          parent: hydratedParent,
+                                          threadMsgsDesc: sourceReplies,
+                                          user: user,
+                                          conv: conv,
+                                        );
+                                      },
+                                    );
+                                  },
                             ),
                             Expanded(
                               child: Stack(
@@ -1317,96 +1358,120 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     child: E2eeMessagesResolver(
                                       conversationId: widget.conversationId,
                                       messages: threadMsgs,
-                                      builder: (
-                                        context,
-                                        hydratedThreadMsgs,
-                                        e2eeDecryptedMap,
-                                        e2eeFailedIds,
-                                      ) => ChatMessageList(
-                                      messagesDesc: hydratedThreadMsgs,
-                                      currentUserId: user.uid,
-                                      conversationId: widget.conversationId,
-                                      e2eeDecryptedTextByMessageId:
-                                          e2eeDecryptedMap,
-                                      e2eeDecryptionFailedMessageIds:
-                                          e2eeFailedIds,
-                                      reversed: _threadMessageListReversed,
-                                      conversation: conv,
-                                      scrollController: _scrollController,
-                                      unreadSeparatorMessageId:
-                                          unreadSeparatorMessageId,
-                                      onAtBottomChanged: _onThreadAtBottomChanged,
-                                      onMessageVisible: (message, _) {
-                                        unawaited(
-                                          _markVisibleMessageAsRead(
-                                            message,
-                                            user.uid,
-                                          ),
-                                        );
-                                      },
-                                      messageItemKeys: _messageItemKeys,
-                                      jumpScrollBoostMessageId:
-                                          _jumpScrollBoostMessageId,
-                                      onJumpToMessageId: _scrollToMessageId,
-                                      showTimestamps: true,
-                                      fontSize: 'medium',
-                                      bubbleRadius: 'rounded',
-                                      outgoingBubbleColor: scheme.primary,
-                                      incomingBubbleColor: Colors.white.withValues(
-                                        alpha: scheme.brightness == Brightness.dark
-                                            ? 0.08
-                                            : 0.22,
-                                      ),
-                                      onOpenMediaGallery: (att, m) {
-                                        _openThreadMediaGallery(
-                                          att,
-                                          m,
-                                          parent: parent,
-                                          threadMsgsDesc: threadMsgs,
-                                          user: user,
-                                          conv: conv,
-                                        );
-                                      },
-                                      onRetryMediaNorm: (message) =>
-                                          _retryMediaNormForThread(
-                                            message,
-                                            parentMessageId: parent.id,
-                                          ),
-                                      profileMap: profileMap,
-                                      flashHighlightMessageId:
-                                          _flashHighlightMessageId,
-                                      onSwipeReply: (m) {
-                                        if (_sendBusy) return;
-                                        final c = conv;
-                                        String? dmOtherId;
-                                        if (c != null && !c.isGroup) {
-                                          final others = c.participantIds
-                                              .where((id) => id != user.uid)
-                                              .toList();
-                                          dmOtherId = others.isEmpty
-                                              ? null
-                                              : others.first;
-                                        }
-                                        final p = dmOtherId != null
-                                            ? profileMap[dmOtherId]
-                                            : null;
-                                        setState(() {
-                                          _replyingTo = buildReplyPreview(
-                                            message: m,
-                                            currentUserId: user.uid,
-                                            isGroup: c?.isGroup ?? false,
-                                            otherUserId: dmOtherId,
-                                            otherUserName: p?.name,
-                                          );
-                                        });
-                                        _composerFocus.requestFocus();
-                                      },
-                                      onSwipeBack: () {
-                                        if (context.canPop()) {
-                                          context.pop();
-                                        }
-                                      },
-                                    ),
+                                      builder:
+                                          (
+                                            context,
+                                            hydratedThreadMsgs,
+                                            e2eeDecryptedMap,
+                                            e2eeFailedIds,
+                                          ) {
+                                            _hydratedThreadMsgsDescCache =
+                                                hydratedThreadMsgs;
+                                            final hydratedParentForGallery =
+                                                _hydratedParentCache ?? parent;
+                                            return ChatMessageList(
+                                              messagesDesc: hydratedThreadMsgs,
+                                              currentUserId: user.uid,
+                                              conversationId:
+                                                  widget.conversationId,
+                                              e2eeDecryptedTextByMessageId:
+                                                  e2eeDecryptedMap,
+                                              e2eeDecryptionFailedMessageIds:
+                                                  e2eeFailedIds,
+                                              reversed:
+                                                  _threadMessageListReversed,
+                                              conversation: conv,
+                                              scrollController:
+                                                  _scrollController,
+                                              unreadSeparatorMessageId:
+                                                  unreadSeparatorMessageId,
+                                              onAtBottomChanged:
+                                                  _onThreadAtBottomChanged,
+                                              onMessageVisible: (message, _) {
+                                                unawaited(
+                                                  _markVisibleMessageAsRead(
+                                                    message,
+                                                    user.uid,
+                                                  ),
+                                                );
+                                              },
+                                              messageItemKeys: _messageItemKeys,
+                                              jumpScrollBoostMessageId:
+                                                  _jumpScrollBoostMessageId,
+                                              onJumpToMessageId:
+                                                  _scrollToMessageId,
+                                              showTimestamps: true,
+                                              fontSize: 'medium',
+                                              bubbleRadius: 'rounded',
+                                              outgoingBubbleColor:
+                                                  scheme.primary,
+                                              incomingBubbleColor: Colors.white
+                                                  .withValues(
+                                                    alpha:
+                                                        scheme.brightness ==
+                                                            Brightness.dark
+                                                        ? 0.08
+                                                        : 0.22,
+                                                  ),
+                                              onOpenMediaGallery: (att, m) {
+                                                _openThreadMediaGallery(
+                                                  att,
+                                                  m,
+                                                  parent:
+                                                      hydratedParentForGallery,
+                                                  threadMsgsDesc:
+                                                      hydratedThreadMsgs,
+                                                  user: user,
+                                                  conv: conv,
+                                                );
+                                              },
+                                              onRetryMediaNorm: (message) =>
+                                                  _retryMediaNormForThread(
+                                                    message,
+                                                    parentMessageId: parent.id,
+                                                  ),
+                                              profileMap: profileMap,
+                                              contactProfiles: contactProfiles,
+                                              flashHighlightMessageId:
+                                                  _flashHighlightMessageId,
+                                              onSwipeReply: (m) {
+                                                if (_sendBusy) return;
+                                                final c = conv;
+                                                String? dmOtherId;
+                                                if (c != null && !c.isGroup) {
+                                                  final others = c
+                                                      .participantIds
+                                                      .where(
+                                                        (id) => id != user.uid,
+                                                      )
+                                                      .toList();
+                                                  dmOtherId = others.isEmpty
+                                                      ? null
+                                                      : others.first;
+                                                }
+                                                final p = dmOtherId != null
+                                                    ? profileMap[dmOtherId]
+                                                    : null;
+                                                setState(() {
+                                                  _replyingTo =
+                                                      buildReplyPreview(
+                                                        message: m,
+                                                        currentUserId: user.uid,
+                                                        isGroup:
+                                                            c?.isGroup ?? false,
+                                                        otherUserId: dmOtherId,
+                                                        otherUserName: p?.name,
+                                                      );
+                                                });
+                                                _composerFocus.requestFocus();
+                                              },
+                                              onSwipeBack: () {
+                                                if (context.canPop()) {
+                                                  context.pop();
+                                                }
+                                              },
+                                            );
+                                          },
                                     ),
                                   ),
                                   if (_inThreadSearch)
@@ -1454,11 +1519,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                               // (Phase 7 уберёт этот барьер).
                               onSend: () =>
                                   _submitWithAttachments(user.uid, conv),
-                              groupMentionCandidates: conv != null && conv.isGroup
+                              groupMentionCandidates:
+                                  conv != null && conv.isGroup
                                   ? buildGroupMentionCandidates(
                                       conversation: conv,
                                       currentUserId: user.uid,
-                                      profileMap: null,
+                                      profileMap: profileMap,
+                                      contactProfiles: contactProfiles,
                                     )
                                   : null,
                               onAttachmentSelected: (a) =>
@@ -1495,10 +1562,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                   ),
                                 );
                               },
-                              onClipboardToolbarPaste: _pasteContentFromClipboard,
+                              onClipboardToolbarPaste:
+                                  _pasteContentFromClipboard,
                               showFormattingToolbar: _composerFormattingOpen,
-                              onCloseFormattingToolbar: () =>
-                                  setState(() => _composerFormattingOpen = false),
+                              onCloseFormattingToolbar: () => setState(
+                                () => _composerFormattingOpen = false,
+                              ),
                               replyingTo: _replyingTo,
                               onCancelReply: () =>
                                   setState(() => _replyingTo = null),
@@ -1787,9 +1856,7 @@ class _ThreadRootPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _ThreadRepliesSeparator(
-            label: _threadRepliesLabelRu(replyCount),
-          ),
+          _ThreadRepliesSeparator(label: _threadRepliesLabelRu(replyCount)),
         ],
       ),
     );
@@ -1814,12 +1881,7 @@ class _ThreadRepliesSeparator extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(
-          child: Container(
-            height: 1,
-            color: lineColor,
-          ),
-        ),
+        Expanded(child: Container(height: 1, color: lineColor)),
         const SizedBox(width: 10),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1838,12 +1900,7 @@ class _ThreadRepliesSeparator extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Expanded(
-          child: Container(
-            height: 1,
-            color: lineColor,
-          ),
-        ),
+        Expanded(child: Container(height: 1, color: lineColor)),
       ],
     );
   }

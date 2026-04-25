@@ -47,9 +47,10 @@ function VideoThumb({ video, onClick }: { video: ChatAttachment; onClick: () => 
       <video
         ref={videoRef}
         src={`${displaySrc}#t=0.1`}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         preload="metadata"
         muted
+        playsInline
       />
       <div className="absolute inset-0 flex items-center justify-center bg-black/20">
         <Play className="h-6 w-6 fill-white text-white opacity-80" />

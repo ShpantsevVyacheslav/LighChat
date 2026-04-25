@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -7,9 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../data/device_contact_lookup_keys.dart';
-import '../data/e2ee_auto_enable_helper.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/user_chat_policy.dart';
+import '../data/contact_display_name.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
 import 'add_contact_by_phone_sheet.dart';
@@ -77,17 +76,6 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
   final ScrollController _listController = ScrollController();
 
   bool _syncBusy = false;
-  String? _rowBusyId;
-
-  ({String name, String? avatar, String? avatarThumb}) _packInfo(
-    UserProfile p,
-  ) {
-    return (
-      name: p.name.trim().isNotEmpty ? p.name.trim() : 'Пользователь',
-      avatar: p.avatar,
-      avatarThumb: p.avatarThumb,
-    );
-  }
 
   @override
   void dispose() {
@@ -186,38 +174,6 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     }
   }
 
-  Future<void> _openChat({
-    required BuildContext context,
-    required UserProfile me,
-    required UserProfile peer,
-  }) async {
-    final chatRepo = ref.read(chatRepositoryProvider);
-    if (chatRepo == null) return;
-    setState(() => _rowBusyId = peer.id);
-    try {
-      final id = await chatRepo.createOrOpenDirectChat(
-        currentUserId: me.id,
-        otherUserId: peer.id,
-        currentUserInfo: _packInfo(me),
-        otherUserInfo: _packInfo(peer),
-      );
-      await tryAutoEnableE2eeForMobileDm(
-        firestore: FirebaseFirestore.instance,
-        conversationId: id,
-        currentUserId: me.id,
-      );
-      if (!context.mounted) return;
-      context.push('/chats/$id');
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось открыть чат: $e')));
-    } finally {
-      if (mounted) setState(() => _rowBusyId = null);
-    }
-  }
-
   String _letterForName(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return '#';
@@ -282,11 +238,11 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     return '$years лет';
   }
 
-  List<_ContactListEntry> _buildEntries(List<UserProfile> rows) {
-    final grouped = <String, List<UserProfile>>{};
-    for (final profile in rows) {
-      final letter = _letterForName(profile.name);
-      grouped.putIfAbsent(letter, () => <UserProfile>[]).add(profile);
+  List<_ContactListEntry> _buildEntries(List<_ContactRowData> rows) {
+    final grouped = <String, List<_ContactRowData>>{};
+    for (final row in rows) {
+      final letter = _letterForName(row.displayName);
+      grouped.putIfAbsent(letter, () => <_ContactRowData>[]).add(row);
     }
 
     final orderedLetters = grouped.keys.toList(growable: false)
@@ -303,9 +259,18 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     for (final letter in orderedLetters) {
       entries.add(_ContactListEntry.header(letter));
       final section = grouped[letter]!
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      for (final profile in section) {
-        entries.add(_ContactListEntry.row(profile));
+        ..sort(
+          (a, b) => a.displayName.toLowerCase().compareTo(
+            b.displayName.toLowerCase(),
+          ),
+        );
+      for (final row in section) {
+        entries.add(
+          _ContactListEntry.row(
+            profile: row.profile,
+            displayName: row.displayName,
+          ),
+        );
       }
     }
     return entries;
@@ -416,28 +381,45 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                         final query = _searchController.text
                             .trim()
                             .toLowerCase();
-                        final rows =
+                        final contactRows =
                             ids
                                 .map((id) => byId[id])
                                 .whereType<UserProfile>()
-                                .where((p) {
+                                .map((p) {
+                                  final fallback = p.name.trim().isNotEmpty
+                                      ? p.name.trim()
+                                      : 'Пользователь';
+                                  final displayName = resolveContactDisplayName(
+                                    contactProfiles: idx.contactProfiles,
+                                    contactUserId: p.id,
+                                    fallbackName: fallback,
+                                  );
+                                  return _ContactRowData(
+                                    profile: p,
+                                    displayName: displayName,
+                                  );
+                                })
+                                .where((row) {
                                   if (query.isEmpty) return true;
-                                  final name = p.name.toLowerCase();
-                                  final username = (p.username ?? '')
+                                  final name = row.displayName.toLowerCase();
+                                  final originalName = row.profile.name
+                                      .toLowerCase();
+                                  final username = (row.profile.username ?? '')
                                       .toLowerCase();
                                   return name.contains(query) ||
+                                      originalName.contains(query) ||
                                       username.contains(query);
                                 })
                                 .toList(growable: false)
                               ..sort((a, b) {
-                                final byName = a.name.toLowerCase().compareTo(
-                                  b.name.toLowerCase(),
-                                );
+                                final byName = a.displayName
+                                    .toLowerCase()
+                                    .compareTo(b.displayName.toLowerCase());
                                 if (byName != 0) return byName;
-                                return a.id.compareTo(b.id);
+                                return a.profile.id.compareTo(b.profile.id);
                               });
 
-                        final entries = _buildEntries(rows);
+                        final entries = _buildEntries(contactRows);
                         final letterOffsets = _buildLetterOffsets(entries);
 
                         return Column(
@@ -473,6 +455,21 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                     onTap: (_syncBusy || me == null)
                                         ? null
                                         : () {
+                                            final myPhone =
+                                                (me.phone ?? '').trim();
+                                            if (myPhone.isEmpty) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Добавьте телефон в профиле, чтобы искать контакты по номеру.',
+                                                  ),
+                                                ),
+                                              );
+                                              if (!context.mounted) return;
+                                              context.push('/profile');
+                                              return;
+                                            }
                                             final repo = ref.read(
                                               userContactsRepositoryProvider,
                                             );
@@ -490,7 +487,19 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                                       viewer: me,
                                                       repo: repo,
                                                     ),
-                                              ),
+                                              ).then((selectedUserId) {
+                                                if (selectedUserId == null ||
+                                                    selectedUserId
+                                                        .trim()
+                                                        .isEmpty) {
+                                                  return;
+                                                }
+                                                if (!context.mounted) return;
+                                                context.push(
+                                                  '/contacts/user/${Uri.encodeComponent(selectedUserId)}'
+                                                  '/edit',
+                                                );
+                                              }),
                                             );
                                           },
                                   ),
@@ -505,7 +514,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                               ),
                             ),
                             Expanded(
-                              child: rows.isEmpty
+                              child: contactRows.isEmpty
                                   ? const _EmptyContactsState()
                                   : Stack(
                                       children: [
@@ -525,19 +534,16 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                               );
                                             }
                                             final profile = entry.profile!;
+                                            final displayName =
+                                                entry.displayName ??
+                                                profile.name;
                                             return _ContactRow(
                                               profile: profile,
-                                              busy: _rowBusyId == profile.id,
+                                              displayName: displayName,
                                               statusText: _statusLabel(profile),
-                                              onTap:
-                                                  (me == null ||
-                                                      _rowBusyId != null)
-                                                  ? null
-                                                  : () => _openChat(
-                                                      context: context,
-                                                      me: me,
-                                                      peer: profile,
-                                                    ),
+                                              onTap: () => context.push(
+                                                '/contacts/user/${Uri.encodeComponent(profile.id)}',
+                                              ),
                                             );
                                           },
                                         ),
@@ -671,7 +677,10 @@ class _ContactsSearchField extends StatelessWidget {
             size: _ChatContactsScreenState._searchIconSize,
           ),
           // Keep hint and input vertically centered inside the fixed-height field.
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -757,15 +766,15 @@ class _LetterHeaderRow extends StatelessWidget {
 class _ContactRow extends StatelessWidget {
   const _ContactRow({
     required this.profile,
+    required this.displayName,
     required this.statusText,
     required this.onTap,
-    required this.busy,
   });
 
   final UserProfile profile;
+  final String displayName;
   final String statusText;
   final VoidCallback? onTap;
-  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -783,7 +792,7 @@ class _ContactRow extends StatelessWidget {
             child: Row(
               children: [
                 _ContactAvatar(
-                  title: profile.name,
+                  title: displayName,
                   avatarUrl: profile.avatarThumb ?? profile.avatar,
                   online: profile.online == true,
                 ),
@@ -794,7 +803,7 @@ class _ContactRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        profile.name,
+                        displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -821,12 +830,6 @@ class _ContactRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (busy)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
               ],
             ),
           ),
@@ -970,19 +973,30 @@ class _EmptyContactsState extends StatelessWidget {
   }
 }
 
+class _ContactRowData {
+  const _ContactRowData({required this.profile, required this.displayName});
+
+  final UserProfile profile;
+  final String displayName;
+}
+
 class _ContactListEntry {
-  const _ContactListEntry._({this.letter, this.profile});
+  const _ContactListEntry._({this.letter, this.profile, this.displayName});
 
   factory _ContactListEntry.header(String letter) {
     return _ContactListEntry._(letter: letter);
   }
 
-  factory _ContactListEntry.row(UserProfile profile) {
-    return _ContactListEntry._(profile: profile);
+  factory _ContactListEntry.row({
+    required UserProfile profile,
+    required String displayName,
+  }) {
+    return _ContactListEntry._(profile: profile, displayName: displayName);
   }
 
   final String? letter;
   final UserProfile? profile;
+  final String? displayName;
 
   bool get isHeader => profile == null;
 }

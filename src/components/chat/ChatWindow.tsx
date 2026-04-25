@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useFirestore, useStorage } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useStorage } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
@@ -25,6 +25,7 @@ import type {
   ChatLocationSendMeta,
   PinnedMessage,
   PlatformSettingsDoc,
+  UserContactsIndex,
 } from '@/lib/types';
 import type { ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
 import { chatPollFirestoreFields } from '@/lib/chat-poll-create';
@@ -51,7 +52,7 @@ import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { SelectionHeader } from '@/components/chat/SelectionHeader';
 import { ChatParticipantProfile } from '@/components/chat/ChatParticipantProfile';
-import type { ChatProfileSubMenu } from '@/components/chat/ChatParticipantProfile';
+import type { ChatProfileSource, ChatProfileSubMenu } from '@/components/chat/ChatParticipantProfile';
 import { ChatMessageItem } from './ChatMessageItem';
 import { ChatMessageInput, type ChatMessageInputHandle } from './ChatMessageInput';
 import { initiateCall } from './AudioCallOverlay';
@@ -98,6 +99,7 @@ import {
   measureChatPerf,
 } from '@/components/chat/chat-performance-metrics';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
+import { resolveContactDisplayName } from '@/lib/contact-display-name';
 import {
   MAX_PINNED_MESSAGES,
   conversationPinnedList,
@@ -118,6 +120,11 @@ interface ChatWindowProps {
   onFocusMessageConsumed?: () => void;
   threadRootMessageId?: string | null;
   onThreadRootMessageConsumed?: () => void;
+  /** URL-контракт открытия профиля (например, переход из «Контактов»). */
+  initialProfileOpen?: boolean;
+  initialProfileFocusUserId?: string | null;
+  initialProfileSource?: ChatProfileSource | null;
+  onInitialProfileConsumed?: () => void;
 }
 
 /** Подложки шапки чата на фоне обоев — без обводки, только лёгкое стекло */
@@ -148,6 +155,10 @@ export function ChatWindow({
   onFocusMessageConsumed,
   threadRootMessageId = null,
   onThreadRootMessageConsumed,
+  initialProfileOpen = false,
+  initialProfileFocusUserId = null,
+  initialProfileSource = null,
+  onInitialProfileConsumed,
 }: ChatWindowProps) {
   const firestore = useFirestore();
   const storage = useStorage();
@@ -169,6 +180,11 @@ export function ChatWindow({
     epoch: e2eeConv.e2eeEpoch,
   });
   const [e2eePlaintextByMessageId, setE2eePlaintextByMessageId] = useState<Record<string, string>>({});
+  const userContactsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'userContacts', currentUser.id) : null),
+    [firestore, currentUser.id]
+  );
+  const { data: userContactsIndex } = useDoc<UserContactsIndex>(userContactsRef);
   // E2E enable UI removed from main chat header (kept via auto-enable paths).
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -184,6 +200,7 @@ export function ChatWindow({
   const [profileInitialSubMenu, setProfileInitialSubMenu] = useState<ChatProfileSubMenu | null>(null);
   /** Просмотр карточки участника группы (клик по @ в сообщении). */
   const [profileFocusUserId, setProfileFocusUserId] = useState<string | null>(null);
+  const [profileSource, setProfileSource] = useState<ChatProfileSource>('chat');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   /** Индекс в sortedPins: какой закреп показан в шапке (синхрон с viewport + клик). */
@@ -209,6 +226,7 @@ export function ChatWindow({
   const hasScrolledToUnreadRef = useRef(false);
   /** Якорь: 0 — следующий клик ведёт к первому непрочитанному; 1 — к низу и сброс счётчика. */
   const anchorUnreadStepRef = useRef(0);
+  const suppressUnreadResetKeyRef = useRef('');
 
   const messageInputRef = useRef<ChatMessageInputHandle>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -345,6 +363,7 @@ export function ChatWindow({
         setE2eePlaintextByMessageId({});
         setReplyingTo(null);
         setEditingMessage(null);
+        suppressUnreadResetKeyRef.current = '';
         prevConvIdRef.current = conversation.id;
     }
 
@@ -410,6 +429,10 @@ export function ChatWindow({
     [conversation.isGroup, isSelfSavedChat, otherUser]
   );
   const unreadCount = useMemo(() => conversation.unreadCounts?.[currentUser.id] || 0, [conversation.unreadCounts, currentUser.id]);
+  const unreadThreadCount = useMemo(
+    () => conversation.unreadThreadCounts?.[currentUser.id] || 0,
+    [conversation.unreadThreadCounts, currentUser.id]
+  );
 
   /** Снимаем индикатор @ в списке диалогов при открытии группового чата. */
   useEffect(() => {
@@ -508,6 +531,29 @@ export function ChatWindow({
     [messagesForList, currentUser.id]
   );
 
+  useEffect(() => {
+    if (!firestore || !suppressReadReceipts) return;
+    if (!isFullyReady || !hasScrolledToUnread) return;
+    const totalUnread = unreadCount + unreadThreadCount;
+    if (totalUnread <= 0) {
+      suppressUnreadResetKeyRef.current = '';
+      return;
+    }
+    const key = `${conversation.id}:${totalUnread}`;
+    if (suppressUnreadResetKeyRef.current === key) return;
+    suppressUnreadResetKeyRef.current = key;
+    void markConversationAsRead(firestore, conversation.id, currentUser.id);
+  }, [
+    firestore,
+    suppressReadReceipts,
+    isFullyReady,
+    hasScrolledToUnread,
+    conversation.id,
+    currentUser.id,
+    unreadCount,
+    unreadThreadCount,
+  ]);
+
   const prevUnreadCount = useRef(unreadCount);
   useEffect(() => {
     if (!isFullyReady) return;
@@ -583,15 +629,8 @@ export function ChatWindow({
     const v = virtuosoRef.current;
     if (!v) return;
     if (delta > 0) {
+      /* Только компенсация высоты футера; scrollToIndex в конец ломал жест при прокрутке мимо «кружок + сетка». */
       v.scrollBy({ top: delta, behavior: 'auto' });
-      const len = flatItemsRef.current.length;
-      if (len > 0) {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            virtuosoRef.current?.scrollToIndex({ index: len - 1, align: 'end', behavior: 'auto' });
-          });
-        });
-      }
     } else if (atBottomRef.current) {
       v.scrollBy({ top: delta, behavior: 'auto' });
     }
@@ -732,13 +771,34 @@ export function ChatWindow({
     setIsProfileOpen(open);
     if (!open) setProfileInitialSubMenu(null);
     if (!open) setProfileFocusUserId(null);
+    if (!open) setProfileSource('chat');
   }, []);
 
   const handleOpenThreadsFromHeader = useCallback(() => {
     setProfileFocusUserId(null);
+    setProfileSource('chat');
     setProfileInitialSubMenu('threads');
     setIsProfileOpen(true);
   }, []);
+
+  useEffect(() => {
+    if (!initialProfileOpen) return;
+    const incomingUserId =
+      initialProfileFocusUserId && conversation.participantIds.includes(initialProfileFocusUserId)
+        ? initialProfileFocusUserId
+        : null;
+    setProfileFocusUserId(incomingUserId);
+    setProfileSource(initialProfileSource ?? 'chat');
+    setProfileInitialSubMenu(null);
+    setIsProfileOpen(true);
+    onInitialProfileConsumed?.();
+  }, [
+    initialProfileOpen,
+    initialProfileFocusUserId,
+    initialProfileSource,
+    conversation.participantIds,
+    onInitialProfileConsumed,
+  ]);
 
   const startThreadPanelResize = useCallback(
     (startX: number) => {
@@ -783,6 +843,17 @@ export function ChatWindow({
     (userId: string) => {
       if (!conversation.participantIds.includes(userId)) return;
       setProfileFocusUserId(userId);
+      setProfileSource('mention');
+      setIsProfileOpen(true);
+    },
+    [conversation.participantIds]
+  );
+
+  const handleGroupSenderProfileOpen = useCallback(
+    (userId: string) => {
+      if (!conversation.participantIds.includes(userId)) return;
+      setProfileFocusUserId(userId);
+      setProfileSource('sender');
       setIsProfileOpen(true);
     },
     [conversation.participantIds]
@@ -1091,7 +1162,9 @@ export function ChatWindow({
       const plainForMention = text
         ? text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
         : '';
-      const mentionCandidates = buildGroupMentionCandidates(conversation, allUsers, currentUser.id);
+      const mentionCandidates = buildGroupMentionCandidates(conversation, allUsers, currentUser.id, {
+        contactProfiles: userContactsIndex?.contactProfiles,
+      });
       const mentionedUserIds =
         conversation.isGroup && plainForMention
           ? extractMentionedUserIdsFromPlainText(plainForMention, mentionCandidates, currentUser.id).filter(
@@ -1604,7 +1677,10 @@ export function ChatWindow({
         virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
       anchorUnreadStepRef.current = 0;
       void (async () => {
-        if (suppressReadReceipts) return;
+        if (suppressReadReceipts) {
+          await markConversationAsRead(firestore, conversation.id, currentUser.id);
+          return;
+        }
         try {
           await markManyMessagesAsRead(firestore, conversation.id, currentUser.id, unreadIds);
           unreadIds.forEach((id) => sessionReadIds.current.add(id));
@@ -1676,7 +1752,11 @@ export function ChatWindow({
     ? conversation.name || 'Группа'
     : isSelfSavedChat
       ? conversation.name || 'Избранное'
-      : otherUser?.name || 'Чат';
+      : resolveContactDisplayName(
+          userContactsIndex?.contactProfiles,
+          otherId,
+          (otherUser?.name ?? '').trim() || 'Чат'
+        );
   const chatDisplayAvatar = conversation.isGroup
     ? conversation.photoUrl
     : isSelfSavedChat
@@ -1736,6 +1816,7 @@ export function ChatWindow({
                       )}
                       onClick={() => {
                         setProfileFocusUserId(null);
+                        setProfileSource('chat');
                         setIsProfileOpen(true);
                       }}
                     >
@@ -1782,12 +1863,12 @@ export function ChatWindow({
                             <Badge
                               className={cn(
                                 'absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 bg-red-500 text-white text-[9px] font-black border-2 border-background flex items-center justify-center animate-in zoom-in-50 shadow-sm',
-                                !(conversation.unreadThreadCounts?.[currentUser.id] || 0) && 'hidden'
+                                !unreadThreadCount && 'hidden'
                               )}
                             >
-                              {(conversation.unreadThreadCounts?.[currentUser.id] || 0) > 9
+                              {unreadThreadCount > 9
                                 ? '9+'
-                                : conversation.unreadThreadCounts?.[currentUser.id]}
+                                : unreadThreadCount}
                             </Badge>
                         </div>
                         <div className={cn('p-0.5', chatHeaderIconGlass)}>
@@ -1930,7 +2011,7 @@ export function ChatWindow({
                                 sessionReadIds={sessionReadIds}
                               >
                                 <div className="py-1 px-4">
-                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
                                 </div>
                               </MessageReadOnViewport>
                             );
@@ -1965,6 +2046,7 @@ export function ChatWindow({
               conversation={conversation}
               currentUser={currentUser}
               allUsers={allUsers}
+              contactProfiles={userContactsIndex?.contactProfiles}
               isPartnerDeleted={isPartnerDeleted}
               onRestoreDraftReply={(reply) => setReplyingTo(reply)}
             />
@@ -2008,8 +2090,10 @@ export function ChatWindow({
               highlightThreadMessageId={threadReactionScrollToId}
               onHighlightThreadMessageConsumed={clearThreadReactionScrollTarget}
               onMentionProfileOpen={handleMentionProfileOpen}
+              onGroupSenderProfileOpen={handleGroupSenderProfileOpen}
               onGroupSenderWritePrivate={handleGroupSenderWritePrivate}
               onSaveStickerGif={handleSaveStickerFromMessage}
+              contactProfiles={userContactsIndex?.contactProfiles}
               parentE2eeDecryptedByMessageId={e2eePlaintextByMessageId}
               chatWallpaper={effectiveWallpaper}
               asSidebarOnDesktop
@@ -2036,6 +2120,7 @@ export function ChatWindow({
           currentUser={currentUser}
           messages={messagesForList}
           onSelectConversation={onSelectConversation}
+          profileSource={profileSource}
           initialSubMenu={profileInitialSubMenu}
           onInitialSubMenuConsumed={() => setProfileInitialSubMenu(null)}
         />

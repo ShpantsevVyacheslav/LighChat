@@ -18,8 +18,18 @@ class GroupMentionSuggestions extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
+    const maxHeight = 280.0;
+    const rowHeight = 56.0;
+    const emptyRowHeight = 42.0;
+    const listPadding = 12.0;
+    final rowCount = items.isEmpty ? 1 : items.length;
+    final desiredHeight =
+        (items.isEmpty ? emptyRowHeight : rowCount * rowHeight) + listPadding;
+    final panelHeight = desiredHeight.clamp(54.0, maxHeight).toDouble();
+    final scrollable = rowCount > 4;
     return Container(
-      constraints: const BoxConstraints(maxHeight: 280),
+      height: panelHeight,
+      constraints: const BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         color: (dark ? const Color(0xFF0C1018) : scheme.surfaceContainerLow)
@@ -29,12 +39,18 @@ class GroupMentionSuggestions extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: ListView.builder(
+          physics: scrollable
+              ? const BouncingScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(6),
           itemCount: items.isEmpty ? 1 : items.length,
           itemBuilder: (context, i) {
             if (items.isEmpty) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Text(
                   'Нет совпадений',
                   style: TextStyle(
@@ -84,7 +100,9 @@ class GroupMentionSuggestions extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: fg.withValues(alpha: dark ? 0.62 : 0.56),
+                                  color: fg.withValues(
+                                    alpha: dark ? 0.62 : 0.56,
+                                  ),
                                 ),
                               ),
                           ],
@@ -101,4 +119,3 @@ class GroupMentionSuggestions extends StatelessWidget {
     );
   }
 }
-

@@ -18,26 +18,27 @@ class PushLocalNotificationsFacade {
 
   static const AndroidNotificationChannel _channelSound =
       AndroidNotificationChannel(
-    'lighchat_chat',
-    'Сообщения',
-    description: 'Новые сообщения в чатах',
-    importance: Importance.high,
-  );
+        'lighchat_chat',
+        'Сообщения',
+        description: 'Новые сообщения в чатах',
+        importance: Importance.high,
+      );
 
   static const AndroidNotificationChannel _channelSilent =
       AndroidNotificationChannel(
-    'lighchat_chat_silent',
-    'Сообщения без звука',
-    description: 'Push без звука',
-    importance: Importance.defaultImportance,
-    playSound: false,
-    enableVibration: false,
-  );
+        'lighchat_chat_silent',
+        'Сообщения без звука',
+        description: 'Push без звука',
+        importance: Importance.defaultImportance,
+        playSound: false,
+        enableVibration: false,
+      );
 
   static Future<void> _ensureAndroidChannels() async {
     final android = _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return;
     await android.createNotificationChannel(_channelSound);
     await android.createNotificationChannel(_channelSilent);
@@ -68,7 +69,8 @@ class PushLocalNotificationsFacade {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       await _plugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.requestNotificationsPermission();
     }
     _mainReady = true;
@@ -93,8 +95,10 @@ class PushLocalNotificationsFacade {
   static String _payloadJson(RemoteMessage message) {
     final m = message.data.map((k, v) => MapEntry(k, v?.toString() ?? ''));
     final cid = conversationIdFromPushData(m);
+    final callId = callIdFromPushData(m);
     return jsonEncode(<String, String?>{
       'conversationId': cid,
+      'callId': callId,
       'link': m['link'],
     });
   }
@@ -112,14 +116,14 @@ class PushLocalNotificationsFacade {
     final title = m['title']?.isNotEmpty == true ? m['title']! : 'LighChat';
     final body = m['body'] ?? '';
     final silent = m['silent'] == '1' || m['silent'] == 'true';
-    final channelId =
-        silent ? _channelSilent.id : _channelSound.id;
+    final channelId = silent ? _channelSilent.id : _channelSound.id;
 
     final android = AndroidNotificationDetails(
       channelId,
       silent ? _channelSilent.name : _channelSound.name,
-      channelDescription:
-          silent ? _channelSilent.description : _channelSound.description,
+      channelDescription: silent
+          ? _channelSilent.description
+          : _channelSound.description,
       importance: silent ? Importance.defaultImportance : Importance.high,
       priority: silent ? Priority.low : Priority.high,
       playSound: !silent,

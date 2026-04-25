@@ -18,6 +18,19 @@ class VideoUrlFirstFrameCache {
   String _hashUrl(String url) =>
       sha256.convert(utf8.encode(url)).toString().substring(0, 32);
 
+  String _resolveInputForFfmpeg(String raw) {
+    final trimmed = raw.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.scheme == 'file') {
+      try {
+        return uri.toFilePath();
+      } catch (_) {
+        return trimmed;
+      }
+    }
+    return trimmed;
+  }
+
   Future<File?> getOrCreate(String videoUrl) {
     final trimmed = videoUrl.trim();
     if (trimmed.isEmpty) {
@@ -45,7 +58,8 @@ class VideoUrlFirstFrameCache {
         return existing;
       }
 
-      final quotedIn = '"${videoUrl.replaceAll('"', '\\"')}"';
+      final ffmpegInput = _resolveInputForFfmpeg(videoUrl);
+      final quotedIn = '"${ffmpegInput.replaceAll('"', '\\"')}"';
       final quotedOut = '"${outPath.replaceAll('"', '\\"')}"';
       final cmd =
           '-y -hide_banner -loglevel error -ss 0.05 -i $quotedIn -frames:v 1 -q:v 5 $quotedOut';
@@ -53,7 +67,9 @@ class VideoUrlFirstFrameCache {
       final code = await session.getReturnCode();
       if (!ReturnCode.isSuccess(code)) {
         if (kDebugMode) {
-          debugPrint('VideoUrlFirstFrameCache ffmpeg failed for $videoUrl code=$code');
+          debugPrint(
+            'VideoUrlFirstFrameCache ffmpeg failed for $videoUrl code=$code',
+          );
         }
         return null;
       }

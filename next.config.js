@@ -2,12 +2,11 @@
 const isDesktopBuild = process.env.LIGHCHAT_DESKTOP_BUILD === '1';
 
 const nextConfig = {
-  ...(isDesktopBuild
-    ? {
-        output: 'standalone',
-        distDir: '.next-desktop',
-      }
-    : {}),
+  // Standalone даёт отдельный server bundle в `.next/standalone` — для Firebase
+  // Web Frameworks это заметно уменьшает ZIP Cloud Function (см. deploy 408 при
+  // загрузке ~100+ МБ). Desktop по-прежнему использует отдельный `distDir`.
+  output: 'standalone',
+  ...(isDesktopBuild ? { distDir: '.next-desktop' } : {}),
   /**
    * OAuth popup (Google gapi / Firebase signInWithPopup) вызывает window.close() в дочернем окне.
    * COOP: same-origin блокирует это и шумит в консоли. same-origin-allow-popups — рекомендуемый

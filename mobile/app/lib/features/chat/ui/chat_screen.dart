@@ -31,7 +31,9 @@ import '../data/chat_media_gallery.dart';
 import '../data/reply_preview_builder.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/group_mention_candidates.dart';
+import '../data/contact_display_name.dart';
 import '../data/user_profile.dart';
+import '../data/user_contacts_repository.dart';
 import '../data/chat_message_draft_storage.dart';
 import 'chat_html_composer_controller.dart';
 import 'chat_audio_call_screen.dart';
@@ -88,15 +90,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String? _jumpScrollBoostMessageId;
   bool _loadingOlder = false;
   bool _historyLoadInFlight = false;
+  bool _historyExhausted = false;
+  int _historyNoGrowthStreak = 0;
   bool _historyRestoreScheduled = false;
   int _historyWaitTicks = 0;
   int _historyCycleId = 0;
   int? _activeHistoryCycleId;
   int _historyBaseCount = 0;
+  double? _historyStartPixels;
+  double? _historyStartMaxScrollExtent;
+  bool _historyStartedNearOldestEdge = false;
   int _lastMessagesCount = 0;
   String? _pendingAnchorMessageId;
   double? _pendingAnchorAlignment;
   List<ChatMessage> _sortedAscCache = const <ChatMessage>[];
+  List<ChatMessage> _sortedHydratedAscCache = const <ChatMessage>[];
   bool _suppressAutoScrollToBottom = false;
   bool _chatAtBottom = true;
   int _anchorUnreadStep = 0;
@@ -397,15 +405,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _selectedMessageIds.clear();
       _loadingOlder = false;
       _historyLoadInFlight = false;
+      _historyExhausted = false;
+      _historyNoGrowthStreak = 0;
       _historyRestoreScheduled = false;
       _historyWaitTicks = 0;
       _historyCycleId = 0;
       _activeHistoryCycleId = null;
       _historyBaseCount = 0;
+      _historyStartPixels = null;
+      _historyStartMaxScrollExtent = null;
+      _historyStartedNearOldestEdge = false;
       _lastMessagesCount = 0;
       _pendingAnchorMessageId = null;
       _pendingAnchorAlignment = null;
       _sortedAscCache = const <ChatMessage>[];
+      _sortedHydratedAscCache = const <ChatMessage>[];
       _suppressAutoScrollToBottom = false;
       _chatAtBottom = true;
       _anchorUnreadStep = 0;
@@ -776,6 +790,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             key: conversationIdsCacheKey([widget.conversationId]),
           )),
         );
+        final contactsAsync = ref.watch(userContactsIndexProvider(user.uid));
         final msgsAsync = ref.watch(
           messagesProvider((conversationId: conversationId, limit: _limit)),
         );
@@ -819,17 +834,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 final profile = dmOtherId != null && profileMap != null
                     ? profileMap[dmOtherId]
                     : null;
+                final contactProfiles =
+                    contactsAsync.value?.contactProfiles ??
+                    const <String, ContactLocalProfile>{};
                 final partInfo = conv?.data.participantInfo;
                 final dmFallbackName = dmOtherId != null && partInfo != null
                     ? partInfo[dmOtherId]?.name
                     : null;
+                final resolvedDmName = resolveContactDisplayName(
+                  contactProfiles: contactProfiles,
+                  contactUserId: dmOtherId,
+                  fallbackName: ((profile?.name ?? dmFallbackName) ?? 'Чат')
+                      .trim(),
+                );
                 final title = conv == null
-                    ? ((profile?.name ?? dmFallbackName) ?? 'Чат')
+                    ? resolvedDmName
                     : conv.data.isGroup
                     ? (conv.data.name ?? 'Групповой чат')
                     : isSaved
                     ? (conv.data.name ?? 'Избранное')
-                    : ((profile?.name ?? dmFallbackName) ?? 'Чат');
+                    : resolvedDmName;
+                final profileForSheet = profile == null
+                    ? null
+                    : UserProfile(
+                        id: profile.id,
+                        name: resolvedDmName,
+                        username: profile.username,
+                        avatar: profile.avatar,
+                        avatarThumb: profile.avatarThumb,
+                        email: profile.email,
+                        phone: profile.phone,
+                        bio: profile.bio,
+                        role: profile.role,
+                        online: profile.online,
+                        lastSeenAt: profile.lastSeenAt,
+                        dateOfBirth: profile.dateOfBirth,
+                        deletedAt: profile.deletedAt,
+                        privacySettings: profile.privacySettings,
+                      );
                 final dmFallbackAvatarThumb =
                     dmOtherId != null && partInfo != null
                     ? partInfo[dmOtherId]?.avatarThumb
@@ -887,7 +929,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         conversation: conv.data,
                         currentUserId: user.uid,
                         selfProfile: selfProfile,
-                        partnerProfile: profile,
+                        partnerProfile: profileForSheet,
                         onJumpToMessageId: _scrollToMessageId,
                         fullScreen: true,
                       ),
@@ -1025,13 +1067,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     return;
                                   }
                                   final peerName =
-                                      (profile?.name ?? dmFallbackName ?? title)
+                                      (resolvedDmName.trim().isNotEmpty
+                                                  ? resolvedDmName
+                                                  : title)
                                               .trim()
                                               .isNotEmpty ==
                                           true
-                                      ? (profile?.name ??
-                                            dmFallbackName ??
-                                            title)
+                                      ? resolvedDmName
                                       : 'Собеседник';
                                   final peerAvatar =
                                       profile?.avatarThumb ??
@@ -1064,13 +1106,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     return;
                                   }
                                   final peerName =
-                                      (profile?.name ?? dmFallbackName ?? title)
+                                      (resolvedDmName.trim().isNotEmpty
+                                                  ? resolvedDmName
+                                                  : title)
                                               .trim()
                                               .isNotEmpty ==
                                           true
-                                      ? (profile?.name ??
-                                            dmFallbackName ??
-                                            title)
+                                      ? resolvedDmName
                                       : 'Собеседник';
                                   final peerAvatar =
                                       profile?.avatarThumb ??
@@ -1173,271 +1215,327 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   conversationId:
                                                       conversationId,
                                                   messages: msgs,
-                                                  builder: (
-                                                    context,
-                                                    hydratedMsgs,
-                                                    e2eeDecryptedMap,
-                                                    e2eeFailedIds,
-                                                  ) => ChatMessageList(
-                                                  messagesDesc: hydratedMsgs,
-                                                  currentUserId: user.uid,
-                                                  conversationId:
-                                                      conversationId,
-                                                  e2eeDecryptedTextByMessageId:
-                                                      e2eeDecryptedMap,
-                                                  e2eeDecryptionFailedMessageIds:
-                                                      e2eeFailedIds,
-                                                  reversed:
-                                                      _messageListReversed,
-                                                  conversation: conv?.data,
-                                                  scrollController:
-                                                      _scrollController,
-                                                  onNearOldestEdge:
-                                                      _onScrollLoadOlder,
-                                                  unreadSeparatorMessageId:
-                                                      unreadSeparatorMessageId,
-                                                  onAtBottomChanged:
-                                                      _onChatAtBottomChanged,
-                                                  onMessageVisible: (message, _) {
-                                                    unawaited(
-                                                      _markVisibleMessageAsRead(
-                                                        message,
-                                                        user.uid,
-                                                      ),
-                                                    );
-                                                  },
-                                                  messageItemKeys:
-                                                      _messageItemKeys,
-                                                  jumpScrollBoostMessageId:
-                                                      _jumpScrollBoostMessageId,
-                                                  onJumpToMessageId:
-                                                      _scrollToMessageId,
-                                                  flashHighlightMessageId:
-                                                      _flashHighlightMessageId,
-                                                  selectionMode:
-                                                      _selectedMessageIds
-                                                          .isNotEmpty,
-                                                  selectedMessageIds:
-                                                      _selectedMessageIds,
-                                                  onMessageTap:
-                                                      _toggleMessageSelected,
-                                                  onRetryMediaNorm:
-                                                      _retryMediaNormForMainChat,
-                                                  onEmitEmojiBurstEvent:
-                                                      _emitEmojiBurstEvent,
-                                                  onSwipeReply: (m) {
-                                                    if (_editingMessageId !=
-                                                        null) {
-                                                      _toast(
-                                                        'Сначала завершите редактирование',
-                                                      );
-                                                      return;
-                                                    }
-                                                    if (_selectedMessageIds
-                                                        .isNotEmpty) {
-                                                      return;
-                                                    }
-                                                    setState(() {
-                                                      _editingMessageId = null;
-                                                      _editingPreviewPlain =
-                                                          null;
-                                                      _replyingTo =
-                                                          buildReplyPreview(
-                                                        message: m,
-                                                        currentUserId:
-                                                            user.uid,
-                                                        isGroup: conv?.data
-                                                                .isGroup ??
-                                                            false,
-                                                        otherUserId: dmOtherId,
-                                                        otherUserName:
-                                                            profile?.name,
-                                                      );
-                                                    });
-                                                    _scheduleChatDraftSave();
-                                                    _composerFocusNode
-                                                        .requestFocus();
-                                                  },
-                                                  onSwipeBack: () {
-                                                    if (context.canPop()) {
-                                                      context.pop();
-                                                    }
-                                                  },
-                                                  fontSize: fontSize,
-                                                  bubbleRadius: bubbleRadius,
-                                                  showTimestamps:
-                                                      showTimestamps,
-                                                  outgoingBubbleColor:
-                                                      bubbleColor,
-                                                  incomingBubbleColor:
-                                                      incomingBubbleColor,
-                                                  outgoingMediaFooter:
-                                                      _outgoingImageAlbum ==
-                                                              null ||
-                                                          repo == null
-                                                      ? null
-                                                      : Align(
-                                                          alignment: Alignment
-                                                              .centerRight,
-                                                          child: OutgoingPendingMediaAlbum(
-                                                            key: ValueKey(
-                                                              Object.hash(
-                                                                _outgoingImageAlbum!
-                                                                    .files
-                                                                    .length,
-                                                                _outgoingImageAlbum!
-                                                                    .text,
-                                                                _outgoingImageAlbum!
-                                                                    .replyTo
-                                                                    ?.messageId,
-                                                              ),
-                                                            ),
-                                                            files:
-                                                                _outgoingImageAlbum!
-                                                                    .files,
-                                                            captionText:
-                                                                _outgoingImageAlbum!
-                                                                    .text,
-                                                            replyTo:
-                                                                _outgoingImageAlbum!
-                                                                    .replyTo,
-                                                            conversationId: widget
-                                                                .conversationId,
-                                                            senderId: user.uid,
-                                                            repo: repo,
-                                                            isMine: true,
-                                                            outgoingBubbleColor:
-                                                                bubbleColor,
-                                                            e2eeContext:
-                                                                _outgoingImageAlbum!
-                                                                    .e2eeContext,
-                                                            onFinished: () {
-                                                              if (!mounted) {
-                                                                return;
-                                                              }
-                                                              unawaited(
-                                                                clearChatMessageDraft(
-                                                                  user.uid,
-                                                                  widget
-                                                                      .conversationId,
-                                                                ),
-                                                              );
-                                                              setState(() {
-                                                                _outgoingImageAlbum =
-                                                                    null;
-                                                                _sendBusy =
-                                                                    false;
-                                                              });
-                                                              WidgetsBinding
-                                                                  .instance
-                                                                  .addPostFrameCallback((
-                                                                    _,
-                                                                  ) {
-                                                                    _scheduleAutoScrollToBottomIfNeeded();
-                                                                  });
-                                                            },
-                                                            onFailed: (e) {
-                                                              if (!mounted) {
-                                                                return;
-                                                              }
-                                                              final b =
-                                                                  _outgoingImageAlbum;
-                                                              setState(() {
-                                                                _outgoingImageAlbum =
-                                                                    null;
-                                                                _sendBusy =
-                                                                    false;
-                                                                if (b != null) {
-                                                                  _pendingAttachments
-                                                                    ..clear()
-                                                                    ..addAll(
-                                                                      b.files,
+                                                  builder:
+                                                      (
+                                                        context,
+                                                        hydratedMsgs,
+                                                        e2eeDecryptedMap,
+                                                        e2eeFailedIds,
+                                                      ) {
+                                                        _sortedHydratedAscCache =
+                                                            List<
+                                                                ChatMessage
+                                                              >.from(
+                                                                hydratedMsgs,
+                                                              )
+                                                              ..sort((a, b) {
+                                                                final t = a
+                                                                    .createdAt
+                                                                    .compareTo(
+                                                                      b.createdAt,
                                                                     );
-                                                                  _controller
-                                                                      .text = b
-                                                                      .text;
-                                                                  _replyingTo =
-                                                                      b.replyTo;
+                                                                if (t != 0) {
+                                                                  return t;
                                                                 }
+                                                                return a.id
+                                                                    .compareTo(
+                                                                      b.id,
+                                                                    );
                                                               });
+                                                        return ChatMessageList(
+                                                          messagesDesc:
+                                                              hydratedMsgs,
+                                                          currentUserId:
+                                                              user.uid,
+                                                          conversationId:
+                                                              conversationId,
+                                                          e2eeDecryptedTextByMessageId:
+                                                              e2eeDecryptedMap,
+                                                          e2eeDecryptionFailedMessageIds:
+                                                              e2eeFailedIds,
+                                                          reversed:
+                                                              _messageListReversed,
+                                                          conversation:
+                                                              conv?.data,
+                                                          scrollController:
+                                                              _scrollController,
+                                                          onNearOldestEdge:
+                                                              _historyExhausted
+                                                              ? null
+                                                              : _onScrollLoadOlder,
+                                                          unreadSeparatorMessageId:
+                                                              unreadSeparatorMessageId,
+                                                          onAtBottomChanged:
+                                                              _onChatAtBottomChanged,
+                                                          onMessageVisible:
+                                                              (message, _) {
+                                                                unawaited(
+                                                                  _markVisibleMessageAsRead(
+                                                                    message,
+                                                                    user.uid,
+                                                                  ),
+                                                                );
+                                                              },
+                                                          messageItemKeys:
+                                                              _messageItemKeys,
+                                                          jumpScrollBoostMessageId:
+                                                              _jumpScrollBoostMessageId,
+                                                          onJumpToMessageId:
+                                                              _scrollToMessageId,
+                                                          flashHighlightMessageId:
+                                                              _flashHighlightMessageId,
+                                                          selectionMode:
+                                                              _selectedMessageIds
+                                                                  .isNotEmpty,
+                                                          selectedMessageIds:
+                                                              _selectedMessageIds,
+                                                          onMessageTap:
+                                                              _toggleMessageSelected,
+                                                          onRetryMediaNorm:
+                                                              _retryMediaNormForMainChat,
+                                                          onEmitEmojiBurstEvent:
+                                                              _emitEmojiBurstEvent,
+                                                          onSwipeReply: (m) {
+                                                            if (_editingMessageId !=
+                                                                null) {
+                                                              _toast(
+                                                                'Сначала завершите редактирование',
+                                                              );
+                                                              return;
+                                                            }
+                                                            if (_selectedMessageIds
+                                                                .isNotEmpty) {
+                                                              return;
+                                                            }
+                                                            setState(() {
+                                                              _editingMessageId =
+                                                                  null;
+                                                              _editingPreviewPlain =
+                                                                  null;
+                                                              _replyingTo = buildReplyPreview(
+                                                                message: m,
+                                                                currentUserId:
+                                                                    user.uid,
+                                                                isGroup:
+                                                                    conv
+                                                                        ?.data
+                                                                        .isGroup ??
+                                                                    false,
+                                                                otherUserId:
+                                                                    dmOtherId,
+                                                                otherUserName:
+                                                                    profile
+                                                                        ?.name,
+                                                              );
+                                                            });
+                                                            _scheduleChatDraftSave();
+                                                            _composerFocusNode
+                                                                .requestFocus();
+                                                          },
+                                                          onSwipeBack: () {
+                                                            if (context
+                                                                .canPop()) {
+                                                              context.pop();
+                                                            }
+                                                          },
+                                                          fontSize: fontSize,
+                                                          bubbleRadius:
+                                                              bubbleRadius,
+                                                          showTimestamps:
+                                                              showTimestamps,
+                                                          outgoingBubbleColor:
+                                                              bubbleColor,
+                                                          incomingBubbleColor:
+                                                              incomingBubbleColor,
+                                                          outgoingMediaFooter:
+                                                              _outgoingImageAlbum ==
+                                                                      null ||
+                                                                  repo == null
+                                                              ? null
+                                                              : Align(
+                                                                  alignment:
+                                                                      Alignment
+                                                                          .centerRight,
+                                                                  child: OutgoingPendingMediaAlbum(
+                                                                    key: ValueKey(
+                                                                      Object.hash(
+                                                                        _outgoingImageAlbum!
+                                                                            .files
+                                                                            .length,
+                                                                        _outgoingImageAlbum!
+                                                                            .text,
+                                                                        _outgoingImageAlbum!
+                                                                            .replyTo
+                                                                            ?.messageId,
+                                                                      ),
+                                                                    ),
+                                                                    files: _outgoingImageAlbum!
+                                                                        .files,
+                                                                    captionText:
+                                                                        _outgoingImageAlbum!
+                                                                            .text,
+                                                                    replyTo:
+                                                                        _outgoingImageAlbum!
+                                                                            .replyTo,
+                                                                    conversationId:
+                                                                        widget
+                                                                            .conversationId,
+                                                                    senderId:
+                                                                        user.uid,
+                                                                    repo: repo,
+                                                                    isMine:
+                                                                        true,
+                                                                    outgoingBubbleColor:
+                                                                        bubbleColor,
+                                                                    e2eeContext:
+                                                                        _outgoingImageAlbum!
+                                                                            .e2eeContext,
+                                                                    onFinished: () {
+                                                                      if (!mounted) {
+                                                                        return;
+                                                                      }
+                                                                      unawaited(
+                                                                        clearChatMessageDraft(
+                                                                          user.uid,
+                                                                          widget
+                                                                              .conversationId,
+                                                                        ),
+                                                                      );
+                                                                      setState(() {
+                                                                        _outgoingImageAlbum =
+                                                                            null;
+                                                                        _sendBusy =
+                                                                            false;
+                                                                      });
+                                                                      WidgetsBinding
+                                                                          .instance
+                                                                          .addPostFrameCallback((
+                                                                            _,
+                                                                          ) {
+                                                                            _scheduleAutoScrollToBottomIfNeeded();
+                                                                          });
+                                                                    },
+                                                                    onFailed: (e) {
+                                                                      if (!mounted) {
+                                                                        return;
+                                                                      }
+                                                                      final b =
+                                                                          _outgoingImageAlbum;
+                                                                      setState(() {
+                                                                        _outgoingImageAlbum =
+                                                                            null;
+                                                                        _sendBusy =
+                                                                            false;
+                                                                        if (b !=
+                                                                            null) {
+                                                                          _pendingAttachments
+                                                                            ..clear()
+                                                                            ..addAll(
+                                                                              b.files,
+                                                                            );
+                                                                          _controller
+                                                                              .text = b
+                                                                              .text;
+                                                                          _replyingTo =
+                                                                              b.replyTo;
+                                                                        }
+                                                                      });
+                                                                      ScaffoldMessenger.of(
+                                                                        context,
+                                                                      ).showSnackBar(
+                                                                        SnackBar(
+                                                                          content: Text(
+                                                                            'Не удалось отправить: $e',
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                          onMessageLongPress: (m) =>
+                                                              _onMessageLongPress(
+                                                                m,
+                                                                user,
+                                                                conv,
+                                                                isGroup,
+                                                                dmOtherId,
+                                                                profile,
+                                                                fontSize:
+                                                                    fontSize,
+                                                                starredMessageIds:
+                                                                    starredIdsAsync
+                                                                        .value ??
+                                                                    const <
+                                                                      String
+                                                                    >{},
+                                                              ),
+                                                          onOpenThread: (m) {
+                                                            context.push(
+                                                              '/chats/$conversationId/thread/${m.id}',
+                                                              extra: m,
+                                                            );
+                                                          },
+                                                          onOpenMediaGallery:
+                                                              (att, m) {
+                                                                _openMediaGallery(
+                                                                  att,
+                                                                  m,
+                                                                  user: user,
+                                                                  isGroup:
+                                                                      isGroup,
+                                                                  dmOtherId:
+                                                                      dmOtherId,
+                                                                  profile:
+                                                                      profile,
+                                                                  profileMap:
+                                                                      profileMap,
+                                                                  conv: conv
+                                                                      ?.data,
+                                                                );
+                                                              },
+                                                          profileMap:
+                                                              profileMap,
+                                                          contactProfiles:
+                                                              contactProfiles,
+                                                          onToggleReaction: (m, emoji) async {
+                                                            final r = ref.read(
+                                                              chatRepositoryProvider,
+                                                            );
+                                                            if (r == null ||
+                                                                emoji
+                                                                    .trim()
+                                                                    .isEmpty) {
+                                                              return;
+                                                            }
+                                                            try {
+                                                              await r.toggleMessageReaction(
+                                                                conversationId:
+                                                                    widget
+                                                                        .conversationId,
+                                                                messageId: m.id,
+                                                                userId:
+                                                                    user.uid,
+                                                                emoji: emoji
+                                                                    .trim(),
+                                                              );
+                                                            } catch (e) {
+                                                              if (!context
+                                                                  .mounted) {
+                                                                return;
+                                                              }
                                                               ScaffoldMessenger.of(
                                                                 context,
                                                               ).showSnackBar(
                                                                 SnackBar(
                                                                   content: Text(
-                                                                    'Не удалось отправить: $e',
+                                                                    'Не удалось поставить реакцию: $e',
                                                                   ),
                                                                 ),
                                                               );
-                                                            },
-                                                          ),
-                                                        ),
-                                                  onMessageLongPress: (m) =>
-                                                      _onMessageLongPress(
-                                                        m,
-                                                        user,
-                                                        conv,
-                                                        isGroup,
-                                                        dmOtherId,
-                                                        profile,
-                                                        fontSize: fontSize,
-                                                        starredMessageIds:
-                                                            starredIdsAsync
-                                                                .value ??
-                                                            const <String>{},
-                                                      ),
-                                                  onOpenThread: (m) {
-                                                    context.push(
-                                                      '/chats/$conversationId/thread/${m.id}',
-                                                      extra: m,
-                                                    );
-                                                  },
-                                                  onOpenMediaGallery: (att, m) {
-                                                    _openMediaGallery(
-                                                      att,
-                                                      m,
-                                                      user: user,
-                                                      isGroup: isGroup,
-                                                      dmOtherId: dmOtherId,
-                                                      profile: profile,
-                                                      profileMap: profileMap,
-                                                      conv: conv?.data,
-                                                    );
-                                                  },
-                                                  profileMap: profileMap,
-                                                  onToggleReaction: (m, emoji) async {
-                                                    final r = ref.read(
-                                                      chatRepositoryProvider,
-                                                    );
-                                                    if (r == null ||
-                                                        emoji.trim().isEmpty) {
-                                                      return;
-                                                    }
-                                                    try {
-                                                      await r
-                                                          .toggleMessageReaction(
-                                                            conversationId: widget
-                                                                .conversationId,
-                                                            messageId: m.id,
-                                                            userId: user.uid,
-                                                            emoji: emoji.trim(),
-                                                          );
-                                                    } catch (e) {
-                                                      if (!context.mounted) {
-                                                        return;
-                                                      }
-                                                      ScaffoldMessenger.of(
-                                                        context,
-                                                      ).showSnackBar(
-                                                        SnackBar(
-                                                          content: Text(
-                                                            'Не удалось поставить реакцию: $e',
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }
-                                                  },
-                                                ),
+                                                            }
+                                                          },
+                                                        );
+                                                      },
                                                 ),
                                               ),
                                               if (_inChatSearch)
@@ -1547,14 +1645,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     onSend: () =>
                                         _submitComposer(user.uid, conv?.data),
                                     groupMentionCandidates:
-                                        conv?.data != null &&
-                                                conv!.data.isGroup
-                                            ? buildGroupMentionCandidates(
-                                                conversation: conv.data,
-                                                currentUserId: user.uid,
-                                                profileMap: profileMap,
-                                              )
-                                            : null,
+                                        conv?.data != null && conv!.data.isGroup
+                                        ? buildGroupMentionCandidates(
+                                            conversation: conv.data,
+                                            currentUserId: user.uid,
+                                            profileMap: profileMap,
+                                            contactProfiles: contactProfiles,
+                                          )
+                                        : null,
                                     pendingAttachments: _pendingAttachments,
                                     onRemovePending: (i) {
                                       setState(
@@ -1688,7 +1786,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         ),
                                       );
                                     },
-                                    onClipboardToolbarPaste: _pasteContentFromClipboard,
+                                    onClipboardToolbarPaste:
+                                        _pasteContentFromClipboard,
                                     showFormattingToolbar:
                                         _composerFormattingOpen,
                                     onCloseFormattingToolbar: () => setState(
@@ -1949,7 +2048,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         if (t != 0) return t;
                         return a.id.compareTo(b.id);
                       });
+                    _sortedHydratedAscCache = const <ChatMessage>[];
                     _syncMessageItemKeys(_sortedAscCache);
+                    if (visibleMsgs.length < _limit) {
+                      _historyExhausted = true;
+                    } else if (visibleMsgs.length > _historyBaseCount) {
+                      _historyExhausted = false;
+                    }
                     _preserveViewportOnIncomingGrowth(
                       previousCount: previousVisibleCount,
                       nextCount: visibleMsgs.length,
@@ -2254,7 +2359,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required Conversation? conv,
   }) {
     if (!mounted) return;
-    final items = collectChatMediaGalleryItems(_sortedAscCache);
+    final source = _sortedHydratedAscCache.isNotEmpty
+        ? _sortedHydratedAscCache
+        : _sortedAscCache;
+    final items = collectChatMediaGalleryItems(source);
     if (items.isEmpty) return;
     final ix = indexInChatMediaGallery(items, att.url);
     Navigator.of(context).push<void>(
@@ -2572,13 +2680,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         now.isBefore(_nearOldestCooldownUntil!)) {
       return;
     }
-    if (_historyLoadInFlight || _loadingOlder) return;
+    if (_historyLoadInFlight || _loadingOlder || _historyExhausted) return;
     _historyLoadInFlight = true;
     _suppressAutoScrollToBottom = true;
     _historyCycleId += 1;
     _activeHistoryCycleId = _historyCycleId;
     _historyWaitTicks = 0;
     _historyBaseCount = _lastMessagesCount;
+    final sc = _scrollController;
+    if (sc.hasClients) {
+      final pos = sc.position;
+      _historyStartPixels = pos.pixels;
+      _historyStartMaxScrollExtent = pos.maxScrollExtent;
+      _historyStartedNearOldestEdge = _messageListReversed
+          ? (pos.maxScrollExtent - pos.pixels) <= 72
+          : (pos.pixels - pos.minScrollExtent) <= 72;
+    } else {
+      _historyStartPixels = null;
+      _historyStartMaxScrollExtent = null;
+      _historyStartedNearOldestEdge = false;
+    }
     _pendingAnchorMessageId = _sortedAscCache.isNotEmpty
         ? _sortedAscCache.first.id
         : null;
@@ -2610,11 +2731,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           });
           return;
         }
+        _historyNoGrowthStreak += 1;
+        if (_historyNoGrowthStreak >= 2) {
+          _historyExhausted = true;
+        }
         // Новых сообщений нет — не вызываем ensureVisible (позиция уже сохранена,
-        // если список не снимали с дерева при смене limit).
+        // если список не снимали с дерева при смене limit). Для iOS-bounce
+        // дополнительно фиксируем текущий viewport, чтобы не было "отскока"
+        // вниз на несколько сообщений.
+        _restoreViewportAfterNoHistoryGrowth();
         _finishHistoryLoad();
         return;
       }
+      _historyNoGrowthStreak = 0;
+      _historyExhausted = false;
 
       final anchorId = _pendingAnchorMessageId;
       if (anchorId != null) {
@@ -2643,6 +2773,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
+  void _restoreViewportAfterNoHistoryGrowth() {
+    final sc = _scrollController;
+    if (!sc.hasClients) return;
+    final pos = sc.position;
+    if (_historyStartedNearOldestEdge) {
+      final target = _messageListReversed
+          ? pos.maxScrollExtent
+          : pos.minScrollExtent;
+      if ((target - pos.pixels).abs() > 0.5) {
+        pos.jumpTo(target);
+      }
+      return;
+    }
+    final startPixels = _historyStartPixels;
+    final startMax = _historyStartMaxScrollExtent;
+    if (startPixels == null || startMax == null) return;
+    final deltaMax = pos.maxScrollExtent - startMax;
+    final target = (startPixels + deltaMax).clamp(
+      pos.minScrollExtent,
+      pos.maxScrollExtent,
+    );
+    if ((target - pos.pixels).abs() <= 0.5) return;
+    pos.jumpTo(target);
+  }
+
   void _finishHistoryLoad() {
     _nearOldestCooldownUntil = DateTime.now().add(
       const Duration(milliseconds: 800),
@@ -2652,6 +2807,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _activeHistoryCycleId = null;
     _historyWaitTicks = 0;
     _historyBaseCount = 0;
+    _historyStartPixels = null;
+    _historyStartMaxScrollExtent = null;
+    _historyStartedNearOldestEdge = false;
     _pendingAnchorMessageId = null;
     _pendingAnchorAlignment = null;
     if (mounted && _loadingOlder) {
@@ -2666,8 +2824,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // чтобы включить его в AAD, и (б) encrypted envelope. Все места ниже,
     // отправляющие простой текст, используют этот helper.
     final bool convIsE2ee = isConversationE2eeActive(conv);
-    final MobileE2eeRuntime? e2eeRuntime =
-        convIsE2ee ? ref.read(mobileE2eeRuntimeProvider) : null;
+    final MobileE2eeRuntime? e2eeRuntime = convIsE2ee
+        ? ref.read(mobileE2eeRuntimeProvider)
+        : null;
     final int? e2eeEpoch = conv?.e2eeKeyEpoch;
     Future<(String, Map<String, Object?>)?> buildE2eeForText(
       String plaintextHtml,
@@ -2695,6 +2854,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return null;
       }
     }
+
     if (_sendBusy) return;
     final rawComposer = _controller.text;
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(

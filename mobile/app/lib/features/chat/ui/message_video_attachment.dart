@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../data/chat_media_layout_tokens.dart';
+import 'chat_gallery_video_local_cache.dart';
 import 'chat_vlc_network_media.dart';
 import 'video_cached_thumb_image.dart';
 
@@ -39,6 +40,7 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
   bool _thumbReady = false;
   bool _muted = true;
   bool _controlsVisible = false;
+  bool _autoplayPausedByUser = false;
   Timer? _hideControlsTimer;
   double _visibleFraction = 0;
 
@@ -67,6 +69,7 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
       _thumbReady = false;
       _failed = false;
       _controlsVisible = false;
+      _autoplayPausedByUser = false;
     }
     if ((urlChanged || normChanged) &&
         _normState == ChatMediaNormUiState.none &&
@@ -83,7 +86,8 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
   );
 
   Future<void> _loadThumb() async {
-    final uri = Uri.tryParse(widget.attachment.url);
+    final sourceUrl = widget.attachment.url.trim();
+    final uri = Uri.tryParse(sourceUrl);
     if (uri == null || uri.scheme.isEmpty) {
       if (mounted) setState(() => _failed = true);
       return;
@@ -97,10 +101,21 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
       } else {
-        c = VideoPlayerController.networkUrl(
-          uri,
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        final cached = await ChatGalleryVideoLocalCache.cachedFileIfExists(
+          sourceUrl,
         );
+        if (cached != null) {
+          c = VideoPlayerController.file(
+            cached,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        } else {
+          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          c = VideoPlayerController.networkUrl(
+            uri,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        }
       }
       await c.initialize();
       if (!mounted) {
@@ -149,6 +164,7 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
     final c = _controller;
     if (c == null || !_thumbReady || _failed) return;
     if (!mounted) return;
+    if (_autoplayPausedByUser) return;
     if (_visibleFraction >= _kAutoPlayVisible) {
       if (!c.value.isPlaying) {
         unawaited(c.play());
@@ -166,9 +182,15 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
     _flashControls();
     if (c.value.isPlaying) {
       await c.pause();
+      if (mounted && !_autoplayPausedByUser) {
+        setState(() => _autoplayPausedByUser = true);
+      }
     } else {
       await c.setVolume(_muted ? 0 : 1);
       await c.play();
+      if (mounted && _autoplayPausedByUser) {
+        setState(() => _autoplayPausedByUser = false);
+      }
     }
   }
 
@@ -209,13 +231,16 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
     final c = _controller;
     final arFromController =
         c != null &&
-                c.value.isInitialized &&
-                c.value.size.width > 0 &&
-                c.value.size.height > 0
-            ? (c.value.size.width / c.value.size.height)
-            : null;
-    final safeAr = arFromController ??
-        ((w != null && h != null && w > 0 && h > 0) ? w / h : 16 / 9);
+            c.value.isInitialized &&
+            c.value.size.width > 0 &&
+            c.value.size.height > 0
+        ? (c.value.size.width / c.value.size.height)
+        : null;
+    // Стабильная высота ячейки: при наличии width/height в вложении не подменяем
+    // aspect на размер с плеера (иначе скачок на границе с кружком при скролле).
+    final safeAr = (w != null && h != null && w > 0 && h > 0)
+        ? w / h
+        : (arFromController ?? 16 / 9);
     final url = widget.attachment.url;
     final normState = _normState;
 
@@ -237,7 +262,9 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
               if (normState != ChatMediaNormUiState.none)
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.35,
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -273,7 +300,9 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
               else
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.35,
+                    ),
                   ),
                   child: Center(
                     child: _failed
@@ -289,9 +318,9 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
                           ),
                   ),
                 ),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
                   onTap: normState != ChatMediaNormUiState.none
                       ? null
                       : () => unawaited(_togglePlayPause()),
@@ -305,7 +334,8 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
                     controlsVisible: _controlsVisible,
                     muted: _muted,
                     onToggleMute: () => unawaited(_toggleMute()),
-                    onOpenFullscreen: () => unawaited(_openFullscreen(context, url)),
+                    onOpenFullscreen: () =>
+                        unawaited(_openFullscreen(context, url)),
                   ),
                 ),
               ),
@@ -365,8 +395,8 @@ class _InlineVideoControls extends StatelessWidget {
         final d = value.duration;
         final remaining = d > Duration.zero
             ? (d - value.position).isNegative
-                ? Duration.zero
-                : (d - value.position)
+                  ? Duration.zero
+                  : (d - value.position)
             : Duration.zero;
         return _buildStack(
           context: context,
@@ -416,9 +446,7 @@ class _InlineVideoControls extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 color: Colors.black.withValues(alpha: 0.45),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.10),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
               ),
               child: Text(
                 _fmtDur(remaining),
@@ -436,9 +464,7 @@ class _InlineVideoControls extends StatelessWidget {
             right: 10,
             top: 10,
             child: _RoundIconButton(
-              icon: muted
-                  ? Icons.volume_off_rounded
-                  : Icons.volume_up_rounded,
+              icon: muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
               onTap: onToggleMute,
             ),
           ),
@@ -520,7 +546,8 @@ class _ChatAvPlayerVideoScreenState extends State<_ChatAvPlayerVideoScreen> {
   Future<void> _init() async {
     VideoPlayerController? c;
     try {
-      final uri = Uri.tryParse(widget.url);
+      final sourceUrl = widget.url.trim();
+      final uri = Uri.tryParse(sourceUrl);
       if (uri == null || uri.scheme.isEmpty) {
         if (mounted) setState(() => _failed = true);
         return;
@@ -532,10 +559,21 @@ class _ChatAvPlayerVideoScreenState extends State<_ChatAvPlayerVideoScreen> {
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
       } else {
-        c = VideoPlayerController.networkUrl(
-          uri,
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        final cached = await ChatGalleryVideoLocalCache.cachedFileIfExists(
+          sourceUrl,
         );
+        if (cached != null) {
+          c = VideoPlayerController.file(
+            cached,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        } else {
+          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          c = VideoPlayerController.networkUrl(
+            uri,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+        }
       }
       c.addListener(_onControllerTick);
       await c.initialize();

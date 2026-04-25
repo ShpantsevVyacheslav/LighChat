@@ -1,5 +1,7 @@
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'contact_display_name.dart';
+import 'user_contacts_repository.dart';
 import 'user_profile.dart';
 
 class GroupMentionCandidate {
@@ -20,6 +22,7 @@ List<GroupMentionCandidate> buildGroupMentionCandidates({
   required Conversation conversation,
   required String currentUserId,
   required Map<String, UserProfile>? profileMap,
+  Map<String, ContactLocalProfile>? contactProfiles,
 }) {
   if (!conversation.isGroup) return const [];
   final ids = {...conversation.participantIds}.toList();
@@ -29,11 +32,22 @@ List<GroupMentionCandidate> buildGroupMentionCandidates({
     if (id == currentUserId) continue;
 
     final p = profileMap?[id];
+    final info = conversation.participantInfo?[id];
+    final profileName = (p?.name ?? '').trim();
+    final infoName = (info?.name ?? '').trim();
+    final fallbackName = profileName.isNotEmpty
+        ? profileName
+        : (infoName.isNotEmpty ? infoName : 'Участник');
+    final displayName = resolveContactDisplayName(
+      contactProfiles: contactProfiles ?? const <String, ContactLocalProfile>{},
+      contactUserId: id,
+      fallbackName: fallbackName,
+    );
     if (p != null && (p.deletedAt ?? '').trim().isEmpty) {
       out.add(
         GroupMentionCandidate(
           id: id,
-          name: p.name,
+          name: displayName,
           username: (p.username ?? '').trim(),
           avatarUrl: (p.avatarThumb ?? p.avatar),
         ),
@@ -41,13 +55,10 @@ List<GroupMentionCandidate> buildGroupMentionCandidates({
       continue;
     }
 
-    final info = conversation.participantInfo?[id];
-    final name = (info?.name ?? '').trim();
-    if (name.isEmpty) continue;
     out.add(
       GroupMentionCandidate(
         id: id,
-        name: name,
+        name: displayName,
         username: '',
         avatarUrl: (info?.avatarThumb ?? info?.avatar),
       ),
@@ -55,4 +66,3 @@ List<GroupMentionCandidate> buildGroupMentionCandidates({
   }
   return out;
 }
-

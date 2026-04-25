@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -22,13 +23,7 @@ Future<void> pushVideoCircleCapturePage(
   );
 }
 
-enum _CircleCaptureState {
-  preparing,
-  recordingHold,
-  preview,
-  sending,
-  error,
-}
+enum _CircleCaptureState { preparing, recordingHold, preview, sending, error }
 
 class _VideoCircleCapturePage extends StatefulWidget {
   const _VideoCircleCapturePage({required this.onSend});
@@ -96,6 +91,12 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       return true;
     }
     return _cameras[_cameraIndex].lensDirection == CameraLensDirection.front;
+  }
+
+  /// На iOS фронтальный `CameraPreview` уже зеркальный на уровне платформы.
+  /// На Android обычно требуется ручной `flipX` для selfie-паритета.
+  bool get _needsManualFrontMirror {
+    return defaultTargetPlatform == TargetPlatform.android;
   }
 
   @override
@@ -178,6 +179,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       );
       await cc.initialize();
       await cc.prepareForVideoRecording();
+      await _resetCameraOptics(cc);
 
       _flashSupported = false;
       _flashOn = false;
@@ -210,6 +212,37 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
         _error = 'Не удалось открыть камеру: $e';
       });
     }
+  }
+
+  int _pickCameraIndexForDirection(CameraLensDirection direction) {
+    var fallback = -1;
+    for (var i = 0; i < _cameras.length; i++) {
+      final cam = _cameras[i];
+      if (cam.lensDirection != direction) continue;
+      fallback = i;
+      final name = cam.name.toLowerCase();
+      final looksMainBack =
+          name.contains('wide') &&
+          !name.contains('ultra') &&
+          !name.contains('tele');
+      if (direction == CameraLensDirection.back && looksMainBack) {
+        return i;
+      }
+    }
+    return fallback >= 0 ? fallback : _cameraIndex;
+  }
+
+  Future<void> _resetCameraOptics(CameraController cc) async {
+    try {
+      final minZoom = await cc.getMinZoomLevel();
+      await cc.setZoomLevel(minZoom);
+    } catch (_) {}
+    try {
+      await cc.setFocusMode(FocusMode.auto);
+    } catch (_) {}
+    try {
+      await cc.setExposureMode(ExposureMode.auto);
+    } catch (_) {}
   }
 
   int _pickDefaultFrontCameraIndex() {
@@ -383,9 +416,14 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     }
     if (cc.value.isRecordingPaused) return;
 
-    final next = (_cameraIndex + 1) % _cameras.length;
+    final current = _cameras[_cameraIndex].lensDirection;
+    final targetDirection = current == CameraLensDirection.front
+        ? CameraLensDirection.back
+        : CameraLensDirection.front;
+    final next = _pickCameraIndexForDirection(targetDirection);
     try {
       await cc.setDescription(_cameras[next]);
+      await _resetCameraOptics(cc);
       if (!mounted) return;
       setState(() {
         _cameraIndex = next;
@@ -440,14 +478,16 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Пауза записи недоступна: ${e.description} (${e.code})'),
+          content: Text(
+            'Пауза записи недоступна: ${e.description} (${e.code})',
+          ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Пауза записи: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Пауза записи: $e')));
     }
   }
 
@@ -495,8 +535,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     // Full-width circle (per design). We still cap the side by the
     // available vertical space so the circle cannot collide with the
     // bottom control panel on short devices / landscape.
-    final availableHeight =
-        math.max(0.0, size.height - _bottomPanelReserve);
+    final availableHeight = math.max(0.0, size.height - _bottomPanelReserve);
     final circleSide = math.min(size.width, availableHeight);
 
     return Scaffold(
@@ -636,7 +675,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       side: side,
       borderColor: scheme.primary.withValues(alpha: 0.38),
       child: cc != null && cc.value.isInitialized
-          ? _isFrontCamera
+          ? (_isFrontCamera && _needsManualFrontMirror)
                 ? Transform.flip(
                     flipX: true,
                     child: VideoCircleCameraPreview(
@@ -909,4 +948,3 @@ class _ControlCircleButton extends StatelessWidget {
     );
   }
 }
-

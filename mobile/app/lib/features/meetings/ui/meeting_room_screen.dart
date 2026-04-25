@@ -4,6 +4,9 @@ import 'dart:io' show Platform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../data/meeting_invite_link.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -565,6 +568,18 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
                     : Icons.grid_view_rounded,
                 color: Colors.white,
               ),
+            ),
+            IconButton(
+              tooltip: 'Скопировать ссылку (вход с браузера)',
+              onPressed: () async {
+                final link = meetingWebJoinLink(widget.meetingId);
+                await Clipboard.setData(ClipboardData(text: link));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ссылка для браузера скопирована')),
+                );
+              },
+              icon: const Icon(Icons.link_rounded, color: Colors.white),
             ),
           ],
         ),

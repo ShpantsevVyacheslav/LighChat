@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Eraser, Trash2, FolderEdit, Pin, PinOff } from 'lucide-react';
+import { Eraser, Trash2, FolderEdit, Pin, PinOff, CheckCheck } from 'lucide-react';
 import type { Conversation, User } from '@/lib/types';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 
@@ -15,6 +15,7 @@ interface ChatContextMenuProps {
     onManageFolders?: (conv: Conversation) => void;
     isPinnedInFolder: boolean;
     onToggleFolderPin: (conversationId: string) => void;
+    onMarkAllRead?: (conversationId: string) => void;
 }
 
 export function ChatContextMenu({
@@ -26,6 +27,7 @@ export function ChatContextMenu({
     onManageFolders,
     isPinnedInFolder,
     onToggleFolderPin,
+    onMarkAllRead,
 }: ChatContextMenuProps) {
     const router = useRouter();
 
@@ -33,8 +35,12 @@ export function ChatContextMenu({
         (!conv.lastMessageTimestamp || new Date(conv.clearedAt[currentUser.id]) >= new Date(conv.lastMessageTimestamp));
 
     const isSavedChat = isSavedMessagesChat(conv, currentUser.id);
+    const totalUnread =
+      (conv.unreadCounts?.[currentUser.id] || 0) +
+      (conv.unreadThreadCounts?.[currentUser.id] || 0);
+    const canMarkAllRead = totalUnread > 0;
 
-    const menuTop = Math.min(y, typeof window !== 'undefined' ? window.innerHeight - 220 : y);
+    const menuTop = Math.min(y, typeof window !== 'undefined' ? window.innerHeight - 270 : y);
     const menuLeft = Math.min(x, typeof window !== 'undefined' ? window.innerWidth - 240 : x);
 
     return (
@@ -82,6 +88,16 @@ export function ChatContextMenu({
                     className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-left"
                 >
                     <Eraser className="mr-3 h-4 w-4 opacity-60" /> Очистить историю
+                </button>
+                <button
+                    disabled={!canMarkAllRead}
+                    onClick={() => {
+                        onMarkAllRead?.(conv.id);
+                        onClose();
+                    }}
+                    className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-left"
+                >
+                    <CheckCheck className="mr-3 h-4 w-4 opacity-60 text-emerald-500" /> Прочитать все
                 </button>
                 {!conv.isGroup && !isSavedMessagesChat(conv, currentUser.id) && (
                     <button 

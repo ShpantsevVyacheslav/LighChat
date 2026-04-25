@@ -33,7 +33,7 @@ class StarredChatMessageEntry {
 
 final firebaseReadyProvider = Provider<bool>((ref) => isFirebaseReady());
 
-/// Завершена ли регистрация по `users/{uid}` (сервер для Google/Apple при «пустом» кэше). После `completeGoogleProfile` — [Ref.invalidate].
+/// Завершена ли регистрация по `users/{uid}` (сервер для Google/Apple/Telegram при «пустом» кэше). После `completeGoogleProfile` — [Ref.invalidate].
 final registrationProfileCompleteProvider = FutureProvider.family<bool, String>((
   ref,
   uid,

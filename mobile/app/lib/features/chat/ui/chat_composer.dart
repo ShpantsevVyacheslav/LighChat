@@ -91,7 +91,8 @@ class ChatComposer extends StatefulWidget {
   final List<GroupMentionCandidate>? groupMentionCandidates;
 
   /// Telegram-like hold-to-record: результат записи (без bottom sheet).
-  final Future<void> Function(VoiceMessageRecordResult result)? onVoiceHoldRecorded;
+  final Future<void> Function(VoiceMessageRecordResult result)?
+  onVoiceHoldRecorded;
 
   @override
   State<ChatComposer> createState() => _ChatComposerState();
@@ -199,11 +200,13 @@ class _ChatComposerState extends State<ChatComposer> {
     if (q.isEmpty) {
       filtered = candidates;
     } else {
-      filtered = candidates.where((c) {
-        final n = c.name.toLowerCase();
-        final u = c.username.toLowerCase();
-        return n.contains(q) || u.contains(q);
-      }).toList(growable: false);
+      filtered = candidates
+          .where((c) {
+            final n = c.name.toLowerCase();
+            final u = c.username.toLowerCase();
+            return n.contains(q) || u.contains(q);
+          })
+          .toList(growable: false);
     }
     _mentionQuery = query;
     _mentionAtStartOffset = at;
@@ -218,7 +221,7 @@ class _ChatComposerState extends State<ChatComposer> {
       value: widget.controller.value,
       atStartOffset: at,
       userId: c.id,
-      label: c.username.trim().isNotEmpty ? c.username.trim() : c.name.trim(),
+      label: c.name.trim().isNotEmpty ? c.name.trim() : c.username.trim(),
     );
     widget.focusNode.requestFocus();
     setState(() {
@@ -325,10 +328,7 @@ class _ChatComposerState extends State<ChatComposer> {
             ? IconButton(
                 tooltip: 'Стикеры',
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
-                ),
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                 onPressed: widget.sendBusy ? null : _openStickersPanel,
                 icon: Icon(
                   Icons.emoji_emotions_outlined,
@@ -365,7 +365,8 @@ class _ChatComposerState extends State<ChatComposer> {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final showSendButton = _hasTypedText || widget.pendingAttachments.isNotEmpty;
+    final showSendButton =
+        _hasTypedText || widget.pendingAttachments.isNotEmpty;
     return SafeArea(
       top: false,
       child: Padding(
@@ -375,7 +376,8 @@ class _ChatComposerState extends State<ChatComposer> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.editingPreviewPlain != null && widget.onCancelEdit != null)
+            if (widget.editingPreviewPlain != null &&
+                widget.onCancelEdit != null)
               ComposerEditingBanner(
                 previewPlain: widget.editingPreviewPlain!,
                 onCancel: widget.onCancelEdit!,
@@ -423,117 +425,130 @@ class _ChatComposerState extends State<ChatComposer> {
               widget.e2eeDisabledBanner!
             else
               Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: dark ? 0.09 : 0.16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: dark ? 0.16 : 0.24),
-                    ),
-                  ),
-                  child: IconButton(
-                    tooltip: 'Вложения',
-                    onPressed:
-                        widget.attachmentsEnabled && !widget.sendBusy ? _openAttachmentMenu : null,
-                    iconSize: 19,
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      Icons.add_rounded,
-                      color: widget.attachmentsEnabled && !widget.sendBusy
-                          ? Colors.white.withValues(alpha: 0.90)
-                          : Colors.white.withValues(alpha: 0.35),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 40,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      color: Colors.white.withValues(alpha: dark ? 0.07 : 0.14),
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: dark ? 0.09 : 0.16),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: dark ? 0.16 : 0.24),
+                        color: Colors.white.withValues(
+                          alpha: dark ? 0.16 : 0.24,
+                        ),
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 40),
-                      child: _buildComposerTextField(keyboardOpen),
+                    child: IconButton(
+                      tooltip: 'Вложения',
+                      onPressed: widget.attachmentsEnabled && !widget.sendBusy
+                          ? _openAttachmentMenu
+                          : null,
+                      iconSize: 19,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.add_rounded,
+                        color: widget.attachmentsEnabled && !widget.sendBusy
+                            ? Colors.white.withValues(alpha: 0.90)
+                            : Colors.white.withValues(alpha: 0.35),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: showSendButton
-                        ? const Color(0xFF2A79FF)
-                        : Colors.white.withValues(alpha: dark ? 0.08 : 0.14),
-                    border: showSendButton
-                        ? null
-                        : Border.all(
-                            color: Colors.white.withValues(alpha: dark ? 0.16 : 0.24),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        color: Colors.white.withValues(
+                          alpha: dark ? 0.07 : 0.14,
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withValues(
+                            alpha: dark ? 0.16 : 0.24,
                           ),
-                    boxShadow: showSendButton
-                        ? [
-                            BoxShadow(
-                              color: const Color(0xFF2A79FF).withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ]
-                        : null,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 40),
+                        child: _buildComposerTextField(keyboardOpen),
+                      ),
+                    ),
                   ),
-                  child: widget.sendBusy
-                      ? const Center(
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: showSendButton
+                          ? const Color(0xFF2A79FF)
+                          : Colors.white.withValues(alpha: dark ? 0.08 : 0.14),
+                      border: showSendButton
+                          ? null
+                          : Border.all(
+                              color: Colors.white.withValues(
+                                alpha: dark ? 0.16 : 0.24,
+                              ),
                             ),
-                          ),
-                        )
-                      : (showSendButton
-                          ? IconButton(
-                              onPressed: widget.onSend,
-                              iconSize: 20,
-                              icon: const Icon(
-                                Icons.send_rounded,
+                      boxShadow: showSendButton
+                          ? [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF2A79FF,
+                                ).withValues(alpha: 0.35),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: widget.sendBusy
+                        ? const Center(
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
                                 color: Colors.white,
                               ),
-                            )
-                          : HoldToRecordMicButton(
-                              enabled: !widget.sendBusy &&
-                                  widget.onVoiceHoldRecorded != null,
-                              onTap: widget.onMicTap,
-                              onRecorded: (r) async {
-                                final cb = widget.onVoiceHoldRecorded;
-                                if (cb == null) return;
-                                await cb(r);
-                              },
-                              child: IconButton(
-                                onPressed: widget.onMicTap,
-                                iconSize: 22,
-                                icon: Icon(
-                                  Icons.mic_rounded,
-                                  color: Colors.white.withValues(alpha: 0.92),
-                                ),
-                              ),
-                            )),
-                ),
-              ],
-            ),
+                            ),
+                          )
+                        : (showSendButton
+                              ? IconButton(
+                                  onPressed: widget.onSend,
+                                  iconSize: 20,
+                                  icon: const Icon(
+                                    Icons.send_rounded,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : HoldToRecordMicButton(
+                                  enabled:
+                                      !widget.sendBusy &&
+                                      widget.onVoiceHoldRecorded != null,
+                                  onTap: widget.onMicTap,
+                                  onRecorded: (r) async {
+                                    final cb = widget.onVoiceHoldRecorded;
+                                    if (cb == null) return;
+                                    await cb(r);
+                                  },
+                                  child: IconButton(
+                                    onPressed: widget.onMicTap,
+                                    iconSize: 22,
+                                    icon: Icon(
+                                      Icons.mic_rounded,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.92,
+                                      ),
+                                    ),
+                                  ),
+                                )),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
     );
   }
 }
-

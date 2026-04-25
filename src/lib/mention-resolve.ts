@@ -1,4 +1,5 @@
-import type { Conversation, User } from '@/lib/types';
+import type { Conversation, User, UserContactLocalProfile } from '@/lib/types';
+import { resolveContactDisplayName } from '@/lib/contact-display-name';
 
 /**
  * Сопоставляет текст упоминания из HTML (например «@Иван Иванов») с участником чата.
@@ -7,7 +8,8 @@ import type { Conversation, User } from '@/lib/types';
 export function resolveMentionLabelToUserId(
   rawLabel: string,
   conversation: Conversation,
-  allUsers: User[]
+  allUsers: User[],
+  contactProfiles?: Record<string, UserContactLocalProfile>
 ): string | null {
   const label = rawLabel.replace(/^[@＠]/u, '').trim();
   if (!label) return null;
@@ -17,6 +19,8 @@ export function resolveMentionLabelToUserId(
   for (const id of ids) {
     const u = allUsers.find((x) => x.id === id);
     if (!u) continue;
+    const contactResolved = resolveContactDisplayName(contactProfiles, id, u.name || '');
+    if (norm(contactResolved || '') === l) return u.id;
     if (norm(u.name || '') === l) return u.id;
     if (u.username && norm(u.username) === l) return u.id;
     if (u.username && norm(`@${u.username}`) === l) return u.id;

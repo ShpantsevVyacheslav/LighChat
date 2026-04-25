@@ -138,7 +138,7 @@ function MediaItem({ att }: { att: ChatAttachment }) {
             preload="metadata"
             loop={shortLoopVideo}
             autoPlay={shortLoopVideo}
-            className="absolute inset-0 h-full w-full object-cover bg-black"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover bg-black"
             muted
             playsInline
             onLoadedMetadata={(e) => {

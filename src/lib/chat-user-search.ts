@@ -8,9 +8,15 @@ export function atUsernameLabel(username: string | undefined | null): string | n
 }
 
 /** Совпадение по имени или @username (подстрока; кириллица ↔ латиница). */
-export function userMatchesChatSearchQuery(user: User, query: string): boolean {
+export function userMatchesChatSearchQuery(
+  user: User,
+  query: string,
+  displayNameOverride?: string | null
+): boolean {
   const q = query.trim();
   if (!q) return true;
+  const displayName = (displayNameOverride ?? '').trim();
+  if (displayName && ruEnSubstringMatch(displayName, q)) return true;
   if (user.name && ruEnSubstringMatch(user.name, q)) return true;
   const un = user.username?.trim().toLowerCase();
   if (un) {
@@ -30,8 +36,23 @@ export function isUserListedInGlobalChatSearch(viewer: User, candidate: User): b
   return candidate.privacySettings?.showInGlobalUserSearch !== false;
 }
 
-export function sortUsersByNameRu(a: User, b: User): number {
-  return a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' });
+function resolveUserSortName(
+  user: User,
+  displayNameById?: Record<string, string>
+): string {
+  const local = (displayNameById?.[user.id] ?? '').trim();
+  if (local) return local;
+  return user.name;
+}
+
+export function sortUsersByNameRu(
+  a: User,
+  b: User,
+  displayNameById?: Record<string, string>
+): number {
+  const left = resolveUserSortName(a, displayNameById);
+  const right = resolveUserSortName(b, displayNameById);
+  return left.localeCompare(right, 'ru', { sensitivity: 'base' });
 }
 
 /**
@@ -40,12 +61,15 @@ export function sortUsersByNameRu(a: User, b: User): number {
 export function splitUsersByContactsAndGlobalVisibility(
   matched: User[],
   viewer: User,
-  contactIds: string[]
+  contactIds: string[],
+  displayNameById?: Record<string, string>
 ): { fromContacts: User[]; fromGlobal: User[] } {
   const set = new Set(contactIds);
-  const fromContacts = matched.filter((u) => set.has(u.id)).sort(sortUsersByNameRu);
+  const fromContacts = matched
+    .filter((u) => set.has(u.id))
+    .sort((a, b) => sortUsersByNameRu(a, b, displayNameById));
   const fromGlobal = matched
     .filter((u) => !set.has(u.id) && isUserListedInGlobalChatSearch(viewer, u))
-    .sort(sortUsersByNameRu);
+    .sort((a, b) => sortUsersByNameRu(a, b, displayNameById));
   return { fromContacts, fromGlobal };
 }

@@ -22,6 +22,7 @@ interface ConversationItemProps {
     isListCollapsed: boolean;
     currentUser: User;
     allUsers: User[];
+    contactDisplayNames?: Record<string, string>;
     onSelect: (id: string) => void;
     onContextMenu: (e: React.MouseEvent, conv: Conversation) => void;
     onManageFolders?: (conv: Conversation) => void;
@@ -31,7 +32,7 @@ interface ConversationItemProps {
 
 export function ConversationItem({ 
     conv, isSelected, isMobile, isListCollapsed, 
-    currentUser, allUsers, onSelect, onContextMenu,
+    currentUser, allUsers, contactDisplayNames = {}, onSelect, onContextMenu,
     onManageFolders,
     isPinnedInFolder = false,
     isSavedMessages = false,
@@ -59,13 +60,24 @@ export function ConversationItem({
         ? currentUser.id
         : conv.participantIds.find(id => id !== currentUser.id)!;
     const liveOtherUser = allUsers.find(u => u.id === otherId);
+    const resolveDisplayNameById = (userId: string | null | undefined): string => {
+        const id = (userId ?? '').trim();
+        if (!id) return '';
+        const local = (contactDisplayNames[id] ?? '').trim();
+        if (local) return local;
+        const fromList = allUsers.find((u) => u.id === id)?.name?.trim();
+        if (fromList) return fromList;
+        const fromConv = (conv.participantInfo[id]?.name ?? '').trim();
+        if (fromConv) return fromConv;
+        return '';
+    };
     
     const isPartnerDeleted = !conv.isGroup && !isSavedMessages && liveOtherUser?.deletedAt;
     const displayName = conv.isGroup
         ? (conv.name || 'Группа')
         : isSavedMessages
             ? (conv.name || 'Избранное')
-            : (liveOtherUser?.name || conv.participantInfo[otherId]?.name || 'Чат');
+            : (resolveDisplayNameById(otherId) || 'Чат');
     const avatar = conv.isGroup
         ? conv.photoUrl
         : isSavedMessages
@@ -286,7 +298,7 @@ export function ConversationItem({
                                     <span className="min-w-0 flex-1 truncate">
                                         {conv.lastReactionSenderId === currentUser.id
                                             ? 'Вы'
-                                            : allUsers.find((u) => u.id === conv.lastReactionSenderId)?.name?.split(' ')[0] || 'Кто-то'}{' '}
+                                            : resolveDisplayNameById(conv.lastReactionSenderId).split(' ')[0] || 'Кто-то'}{' '}
                                         поставил(а) реакцию
                                     </span>
                                 </>

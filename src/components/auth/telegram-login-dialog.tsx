@@ -42,30 +42,55 @@ export function TelegramLoginDialog({
   const onAuthUserRef = React.useRef(onAuthUser);
   onAuthUserRef.current = onAuthUser;
 
-  React.useEffect(() => {
-    if (!open || !botName?.trim()) return;
-    const container = containerRef.current;
-    if (!container) return;
+  /**
+   * Radix Dialog рендерит контент в portal; на первом кадре после open=true ref часто ещё null,
+   * и прежний useEffect выходил раньше вставки скрипта — кнопка Telegram не появлялась.
+   */
+  React.useLayoutEffect(() => {
+    if (!open || !botName?.trim()) {
+      delete window.onTelegramAuth;
+      containerRef.current?.replaceChildren();
+      return;
+    }
 
-    container.innerHTML = "";
-    window.onTelegramAuth = (user: unknown) => {
-      if (user && typeof user === "object") {
-        void onAuthUserRef.current(user as Record<string, unknown>);
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    const mountWidget = () => {
+      if (cancelled) return;
+      const container = containerRef.current;
+      if (!container) {
+        attempts += 1;
+        if (attempts < maxAttempts) {
+          requestAnimationFrame(mountWidget);
+        }
+        return;
       }
+
+      container.replaceChildren();
+      window.onTelegramAuth = (user: unknown) => {
+        if (user && typeof user === "object") {
+          void onAuthUserRef.current(user as Record<string, unknown>);
+        }
+      };
+
+      const s = document.createElement("script");
+      s.src = "https://telegram.org/js/telegram-widget.js?22";
+      s.async = true;
+      s.setAttribute("data-telegram-login", botName.trim());
+      s.setAttribute("data-size", "large");
+      s.setAttribute("data-onauth", "onTelegramAuth(user)");
+      s.setAttribute("data-request-access", "write");
+      container.appendChild(s);
     };
 
-    const s = document.createElement("script");
-    s.src = "https://telegram.org/js/telegram-widget.js?22";
-    s.async = true;
-    s.setAttribute("data-telegram-login", botName.trim());
-    s.setAttribute("data-size", "large");
-    s.setAttribute("data-onauth", "onTelegramAuth(user)");
-    s.setAttribute("data-request-access", "write");
-    container.appendChild(s);
+    requestAnimationFrame(mountWidget);
 
     return () => {
+      cancelled = true;
       delete window.onTelegramAuth;
-      container.innerHTML = "";
+      containerRef.current?.replaceChildren();
     };
   }, [open, botName]);
 
