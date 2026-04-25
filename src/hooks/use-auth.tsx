@@ -41,6 +41,7 @@ import {
   setDoc,
   updateDoc,
   deleteField,
+  type Firestore,
 } from 'firebase/firestore';
 
 import type { User } from '@/lib/types';
@@ -61,8 +62,82 @@ import {
   isRegistrationPhoneTaken,
   isRegistrationUsernameTakenInIndex,
 } from '@/lib/registration-field-availability';
+import { isAnonymousPlaceholderEmail } from '@/lib/registration-index-keys';
 import { isRegistrationProfileComplete } from '@/lib/registration-profile-complete';
 import { writeDeviceSession } from '@/lib/device-session';
+import { applyPhoneMask, normalizePhoneDigits } from '@/lib/phone-utils';
+
+const USERNAME_ALLOWED = /^[a-zA-Z0-9_]+$/u;
+
+function normalizeUsernameCandidate(raw: string): string {
+  const base = String(raw ?? '')
+    .trim()
+    .replace(/^@/, '')
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9_]+/gu, '_')
+    .replace(/^_+|_+$/gu, '');
+  return base.slice(0, 30);
+}
+
+async function generateUniqueUsernameForUid(opts: {
+  firestore: Firestore;
+  uid: string;
+  displayName: string;
+}): Promise<string> {
+  const seedFromUid = String(opts.uid).replace(/[^a-zA-Z0-9]/gu, '').slice(-8);
+  const fromName = normalizeUsernameCandidate(opts.displayName);
+  const base =
+    fromName.length >= 3 && USERNAME_ALLOWED.test(fromName)
+      ? fromName
+      : `user_${seedFromUid || 'new'}`;
+
+  for (let i = 0; i < 20; i++) {
+    const candidate = i === 0 ? base : `${base}_${i + 1}`;
+    const normalized = normalizeUsernameCandidate(candidate);
+    if (normalized.length < 3) continue;
+    if (!USERNAME_ALLOWED.test(normalized)) continue;
+    const taken = await isRegistrationUsernameTakenInIndex(
+      opts.firestore,
+      normalized,
+      { exceptUid: opts.uid },
+    );
+    if (!taken) return normalized;
+  }
+
+  return `user_${seedFromUid || 'new'}_${Date.now()
+    .toString(36)
+    .slice(-4)}`.slice(0, 30);
+}
+
+function fallbackEmailForUid(uid: string): string {
+  const local = String(uid)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/gu, '_')
+    .slice(0, 48);
+  return `${local || 'user'}@oauth.local`;
+}
+
+const DICEBEAR_AVATAR_HOST = 'api.dicebear.com';
+
+function isDicebearPlaceholderAvatar(avatar: string | undefined): boolean {
+  const u = String(avatar ?? '').trim().toLowerCase();
+  if (!u) return true;
+  try {
+    return new URL(u).hostname === DICEBEAR_AVATAR_HOST;
+  } catch {
+    return false;
+  }
+}
+
+function formatFirestorePhoneFromAuthPhone(raw: string): string {
+  const d = normalizePhoneDigits(String(raw ?? ''));
+  if (d.length < 10) return '';
+  if (d.length === 11 && d.startsWith('7')) {
+    return applyPhoneMask(`+${d}`);
+  }
+  return `+${d.slice(0, 32)}`;
+}
 
 export interface RegisterData {
   name: string;
@@ -130,9 +205,18 @@ function isTelegramFirebaseUid(uid: string): boolean {
   return /^tg_\d+$/.test(uid);
 }
 
-/** Форма дозаполнения без пароля: Google, Apple или вход через Telegram (custom token). */
+/** Аккаунты с UID `ya_<yandex_numeric_id>` — OAuth Яндекс + custom token на сервере Next.js. */
+function isYandexFirebaseUid(uid: string): boolean {
+  return /^ya_\d+$/.test(uid);
+}
+
+/** Форма дозаполнения без пароля: Google, Apple, Telegram или Яндекс (custom token). */
 function hasPasswordlessProfileCompletion(user: FirebaseUser): boolean {
-  return hasOauthSocialProvider(user) || isTelegramFirebaseUid(user.uid);
+  return (
+    hasOauthSocialProvider(user) ||
+    isTelegramFirebaseUid(user.uid) ||
+    isYandexFirebaseUid(user.uid)
+  );
 }
 
 async function isTelegramProfileUser(u: FirebaseUser): Promise<boolean> {
@@ -143,6 +227,10 @@ async function isTelegramProfileUser(u: FirebaseUser): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function isYandexProfileUid(u: FirebaseUser): boolean {
+  return isYandexFirebaseUid(u.uid);
 }
 
 /**
@@ -171,7 +259,7 @@ async function firestoreAfterOAuthSignIn<T>(
 
 interface AuthContextType {
   user: User | null;
-  /** Аккаунт с Google, Apple или Telegram — форма дозаполнения без пароля. */
+  /** Аккаунт с Google, Apple, Яндекс или Telegram — форма дозаполнения без пароля. */
   googleProfileCompletionFlow: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: RegisterData) => Promise<RegisterResult>;
@@ -179,6 +267,8 @@ interface AuthContextType {
   checkUsernameAvailable: (username: string) => Promise<boolean>;
   signInWithGoogle: () => Promise<boolean>;
   signInWithApple: () => Promise<boolean>;
+  /** Редирект на `/api/auth/yandex` (OAuth Яндекс → custom token). */
+  signInWithYandex: () => Promise<boolean>;
   /** Payload от Telegram Login Widget (поля + hash), см. Cloud Function `signInWithTelegram`. */
   signInWithTelegramPayload: (auth: Record<string, unknown>) => Promise<boolean>;
   logout: () => void;
@@ -275,8 +365,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [auth, router, appUser, firestore]);
 
   /**
-   * После signInWithRedirect / popup (Google или Apple): создать профиль в Firestore при первом входе, проверить блокировки.
-   * Консоль: Firebase → Authentication → Sign-in method → Apple (Services ID, Key .p8, Team ID) и capability в Apple Developer.
+   * После OAuth / custom token (Google, Apple, Telegram, Яндекс): гарантировать `users/{uid}`,
+   * подтянуть телефон/аватар из Firebase Auth, если провайдер их отдал и нет конфликта в `registrationIndex`.
+   * Дефолтный документ от `onUserCreated` может появиться раньше клиента — тогда дозаполняем username/email и т.д.
    */
   const finalizeOAuthCredential = useCallback(
     async (result: UserCredential): Promise<boolean> => {
@@ -292,22 +383,115 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       if (userDoc.exists()) {
-        if (userDoc.data().deletedAt) {
+        const data = userDoc.data() as Record<string, unknown>;
+        if (data.deletedAt) {
           await signOut(auth);
           setError('Ваша учетная запись деактивирована.');
           return false;
         }
+
+        const patch: Record<string, unknown> = {};
+        const displayName = result.user.displayName || 'Пользователь';
+
+        const usernameNow = String(data.username ?? '').trim();
+        if (!usernameNow) {
+          patch.username = await generateUniqueUsernameForUid({
+            firestore,
+            uid: result.user.uid,
+            displayName,
+          });
+        }
+
+        const nameNow = String(data.name ?? '').trim();
+        if (
+          !nameNow ||
+          nameNow === 'Новый пользователь' ||
+          nameNow === 'Telegram' ||
+          nameNow === 'Yandex'
+        ) {
+          patch.name = displayName;
+        }
+
+        const emailNow = String(data.email ?? '').trim().toLowerCase();
+        const nextEmail = (result.user.email || fallbackEmailForUid(result.user.uid))
+          .trim()
+          .toLowerCase();
+        if (!emailNow || isAnonymousPlaceholderEmail(emailNow)) {
+          patch.email = nextEmail;
+        }
+
+        if (data.role == null && data.deletedAt == null) {
+          patch.role = 'worker';
+        }
+
+        const phoneRaw = result.user.phoneNumber || '';
+        const phoneFormatted = phoneRaw ? formatFirestorePhoneFromAuthPhone(phoneRaw) : '';
+        const phoneNow = String(data.phone ?? '').trim();
+        if (!phoneNow && phoneFormatted) {
+          try {
+            const taken = await isRegistrationPhoneTaken(firestore, phoneFormatted, {
+              exceptUid: result.user.uid,
+            });
+            if (!taken) patch.phone = phoneFormatted;
+            else
+              console.info(
+                '[auth] OAuth enrich: phone from provider skipped (registrationIndex)',
+                result.user.uid,
+              );
+          } catch (e) {
+            console.warn('[auth] OAuth enrich: phone availability check failed', e);
+          }
+        }
+
+        const avatarNow = String(data.avatar ?? '').trim();
+        const photo = String(result.user.photoURL ?? '').trim();
+        if (photo && (!avatarNow || isDicebearPlaceholderAvatar(avatarNow))) {
+          patch.avatar = photo;
+        }
+
+        if (Object.keys(patch).length > 0) {
+          try {
+            await firestoreAfterOAuthSignIn(result.user, () => updateDoc(userDocRef, patch));
+          } catch (writeErr) {
+            console.error('OAuth sign-in: не удалось обновить документ users/', writeErr);
+          }
+        }
+
         return true;
       }
 
       try {
+        const displayName = result.user.displayName || 'Пользователь';
+        const username = await generateUniqueUsernameForUid({
+          firestore,
+          uid: result.user.uid,
+          displayName,
+        });
+        const email = (result.user.email || fallbackEmailForUid(result.user.uid))
+          .trim()
+          .toLowerCase();
+
+        let phoneOut = '';
+        const phoneRaw = result.user.phoneNumber || '';
+        const phoneFormatted = phoneRaw ? formatFirestorePhoneFromAuthPhone(phoneRaw) : '';
+        if (phoneFormatted) {
+          try {
+            const taken = await isRegistrationPhoneTaken(firestore, phoneFormatted, {
+              exceptUid: result.user.uid,
+            });
+            if (!taken) phoneOut = phoneFormatted;
+          } catch (e) {
+            console.warn('[auth] OAuth create: phone availability check failed', e);
+          }
+        }
+
         await firestoreAfterOAuthSignIn(result.user, () =>
           setDoc(userDocRef, {
             id: result.user.uid,
-            name: result.user.displayName || 'Пользователь',
-            username: '',
-            phone: result.user.phoneNumber || '',
-            email: result.user.email || '',
+            name: displayName,
+            username,
+            phone: phoneOut,
+            email,
             avatar:
               result.user.photoURL ||
               `https://api.dicebear.com/7.x/avataaars/svg?seed=${result.user.uid}`,
@@ -925,14 +1109,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) {
         const message =
-          'Сессия недействительна. Войдите через Google, Apple или Telegram снова.';
+          'Сессия недействительна. Войдите через Google, Apple, Яндекс или Telegram снова.';
         setError(message);
         return { ok: false, message };
       }
       const isTelegram = await isTelegramProfileUser(firebaseUser);
-      if (!hasOauthSocialProvider(firebaseUser) && !isTelegram) {
+      const isYandex = isYandexProfileUid(firebaseUser);
+      if (!hasOauthSocialProvider(firebaseUser) && !isTelegram && !isYandex) {
         const message =
-          'Завершение этого шага доступно только для аккаунта с входом через Google, Apple или Telegram.';
+          'Завершение этого шага доступно только для аккаунта с входом через Google, Apple, Яндекс или Telegram.';
         setError(message);
         return { ok: false, message };
       }
@@ -943,7 +1128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return {
           ok: false,
           message:
-            'Email нельзя изменить для этого способа входа. Используйте адрес из аккаунта Google или Apple.',
+            'Email нельзя изменить для этого способа входа. Используйте адрес из аккаунта соцсети или Telegram.',
           conflictField: 'email',
         };
       }
@@ -1044,7 +1229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } as Record<string, unknown>);
 
         if (
-          isTelegram &&
+          (isTelegram || isYandex) &&
           (firebaseUser.email ?? '').trim().length === 0 &&
           emailNorm.length > 0 &&
           typeof window !== 'undefined'
@@ -1060,12 +1245,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 });
               } catch (e2) {
                 console.warn(
-                  'completeGoogleProfile: verifyBeforeUpdateEmail (Telegram)',
+                  'completeGoogleProfile: verifyBeforeUpdateEmail (Telegram/Yandex)',
                   e2,
                 );
               }
             } else {
-              console.warn('completeGoogleProfile: updateEmail (Telegram)', e);
+              console.warn(
+                'completeGoogleProfile: updateEmail (Telegram/Yandex)',
+                e,
+              );
             }
           }
           try {
@@ -1151,6 +1339,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return false;
     }
   }, [auth, finalizeOAuthCredential]);
+
+  const signInWithYandex = useCallback(async (): Promise<boolean> => {
+    setError(null);
+    if (typeof window === 'undefined') return false;
+    /** Сервер проверяет YANDEX_CLIENT_ID / YANDEX_CLIENT_SECRET; публичный ID не обязателен для клика. */
+    window.location.assign('/api/auth/yandex');
+    return true;
+  }, []);
 
   const signInWithApple = useCallback(async (): Promise<boolean> => {
     setError(null);
@@ -1405,6 +1601,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       !appUser &&
       !firebaseUser &&
       pathname !== '/' &&
+      !pathname.startsWith('/auth/') &&
       !pathname.startsWith('/meetings/')
     ) {
       router.push('/');
@@ -1422,6 +1619,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     checkUsernameAvailable,
     signInWithGoogle,
     signInWithApple,
+    signInWithYandex,
     signInWithTelegramPayload,
     logout,
     updateUser,

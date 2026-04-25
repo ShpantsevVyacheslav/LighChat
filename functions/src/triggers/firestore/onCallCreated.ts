@@ -1,18 +1,39 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
+import { defineSecret } from "firebase-functions/params";
 import { MulticastMessage } from "firebase-admin/messaging";
+import { isApnsVoipConfigured, sendApnsVoipMulticast } from "../../lib/apns-voip";
+import { apnsVoipConfigFromJsonSecret } from "../../lib/apns-voip-config-secret";
 import { mergeNotificationSettings } from "../../lib/push-notification-policy";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
+/** Один JSON-секрет вместо пяти отдельных — проще первый деплой и меньше точек отказа GSM. */
+const apnsVoipConfigSecret = defineSecret("APNS_VOIP_CONFIG");
+
+const staleVoipReasons = new Set<string>([
+  "baddevicetoken",
+  "unregistered",
+  "devicetokennotfortopic",
+]);
+
+function stringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter((v) => v.length > 0);
+}
 
 /**
  * Cloud Function that triggers when a new call document is created.
  * It sends high-priority push notifications to the receiver.
  */
 export const oncallcreated = onDocumentCreated(
-  "calls/{callId}",
+  {
+    document: "calls/{callId}",
+    secrets: [apnsVoipConfigSecret],
+  },
   async (event) => {
     const snapshot = event.data;
     if (!snapshot) {
@@ -24,6 +45,7 @@ export const oncallcreated = onDocumentCreated(
     const callerId = callData.callerId;
     const receiverId = callData.receiverId;
     const callerName = callData.callerName || "Кто-то";
+    const isVideo = callData.isVideo === true;
     const callId = event.params.callId;
 
     if (!receiverId || !callerId) {
@@ -67,49 +89,102 @@ export const oncallcreated = onDocumentCreated(
         logger.log("Call push skipped: receiver muteAll.", { receiverId });
         return;
       }
-      if (!userData?.fcmTokens || !Array.isArray(userData.fcmTokens) || userData.fcmTokens.length === 0) {
-        logger.log("Receiver has no FCM tokens.", { receiverId });
+
+      const fcmTokens = [...new Set(stringList(userData?.fcmTokens))];
+      const voipTokens = [...new Set(stringList(userData?.voipTokens))];
+      if (!fcmTokens.length && !voipTokens.length) {
+        logger.log("Receiver has no call push tokens.", { receiverId });
         return;
       }
 
-      const tokens = userData.fcmTokens.filter(Boolean);
-      const uniqueTokens = [...new Set(tokens)];
-
-      // 3. Construct notification payload
-      const payload: MulticastMessage = {
-        notification: {
-          title: "Входящий вызов",
-          body: `Вам звонит ${callerName}`,
-        },
-        data: {
-          title: "Входящий вызов",
-          body: `Вам звонит ${callerName}`,
-          link: "/dashboard/chat",
-          icon: "/pwa/icon-192.png",
-          callId: callId,
-        },
-        android: {
-          priority: "high",
+      if (fcmTokens.length > 0) {
+        // 3. Construct FCM payload
+        const payload: MulticastMessage = {
           notification: {
-            sound: "default",
-            clickAction: "OPEN_CHAT_CALL",
-            channelId: "calls",
+            title: "Входящий вызов",
+            body: `Вам звонит ${callerName}`,
           },
-        },
-        apns: {
-          payload: {
-            aps: {
+          data: {
+            title: "Входящий вызов",
+            body: `Вам звонит ${callerName}`,
+            link: "/dashboard/chat",
+            icon: "/pwa/icon-192.png",
+            callId: callId,
+            callerId: callerId,
+            callerName: callerName,
+            isVideo: isVideo ? "1" : "0",
+          },
+          android: {
+            priority: "high",
+            notification: {
               sound: "default",
-              contentAvailable: true,
+              clickAction: "OPEN_CHAT_CALL",
+              channelId: "calls",
             },
           },
-        },
-        tokens: uniqueTokens,
-      };
+          apns: {
+            payload: {
+              aps: {
+                sound: "default",
+                contentAvailable: true,
+              },
+            },
+          },
+          tokens: fcmTokens,
+        };
 
-      // 4. Send notification
-      const response = await messaging.sendEachForMulticast(payload);
-      logger.log(`Call notification sent. Success: ${response.successCount}`);
+        const response = await messaging.sendEachForMulticast(payload);
+        logger.log("Call FCM notification sent.", {
+          receiverId,
+          callId,
+          successCount: response.successCount,
+          failureCount: response.failureCount,
+        });
+      }
+
+      if (voipTokens.length > 0) {
+        const apnsConfig = apnsVoipConfigFromJsonSecret(apnsVoipConfigSecret.value());
+        if (!isApnsVoipConfigured(apnsConfig)) {
+          logger.warn("APNs VoIP config is missing. Skipping VoIP push.", {
+            receiverId,
+            callId,
+          });
+        } else {
+          const result = await sendApnsVoipMulticast({
+            config: apnsConfig,
+            tokens: voipTokens,
+            payload: {
+              callId,
+              callerId,
+              callerName,
+              isVideo,
+            },
+          });
+          logger.log("Call APNs VoIP push sent.", {
+            receiverId,
+            callId,
+            successCount: result.successCount,
+            failureCount: result.failureCount,
+            useSandbox: apnsConfig.useSandbox,
+          });
+
+          const staleTokens = result.failures
+            .filter((f) => staleVoipReasons.has(f.reason.trim().toLowerCase()))
+            .map((f) => f.token);
+          if (staleTokens.length > 0) {
+            await db.doc(`users/${receiverId}`).set(
+              {
+                voipTokens: admin.firestore.FieldValue.arrayRemove(...staleTokens),
+              },
+              { merge: true }
+            );
+            logger.log("Removed stale VoIP tokens after APNs response.", {
+              receiverId,
+              removed: staleTokens.length,
+            });
+          }
+        }
+      }
     } catch (error) {
       logger.error("Error sending call notification.", { error, receiverId });
     }

@@ -6,8 +6,92 @@ import {
   telegramUserIdFromPayload,
   verifyTelegramLoginWidget,
 } from "../../lib/telegram-widget-verify";
+import { mergeProviderPhoneAndAvatarIntoUserDoc } from "../../lib/merge-provider-profile-firestore";
+import { generateUniqueUsernameAdmin } from "../../lib/generate-unique-username-admin";
 
 const telegramBotToken = defineSecret("TELEGRAM_BOT_TOKEN");
+
+/** Код ошибки Firebase Auth Admin (разные версии SDK кладут `code` или `errorInfo.code`). */
+function firebaseAuthErrorCode(e: unknown): string {
+  if (typeof e !== "object" || e === null) return "";
+  const o = e as Record<string, unknown>;
+  if (typeof o.code === "string") return o.code;
+  const ei = o.errorInfo;
+  if (ei && typeof ei === "object" && ei !== null) {
+    const c = (ei as Record<string, unknown>).code;
+    if (typeof c === "string") return c;
+  }
+  return "";
+}
+
+async function updateTelegramUserProfile(
+  uid: string,
+  displayName: string,
+  photoURL: string | undefined
+): Promise<void> {
+  try {
+    await admin.auth().updateUser(uid, {
+      displayName,
+      ...(photoURL ? { photoURL } : {}),
+    });
+  } catch (e: unknown) {
+    if (photoURL) {
+      logger.warn("signInWithTelegram: updateUser with photoURL failed, retry without photo", e);
+      await admin.auth().updateUser(uid, { displayName });
+      return;
+    }
+    throw e;
+  }
+}
+
+async function getOrCreateTelegramAuthUser(
+  uid: string,
+  displayName: string,
+  photoURL: string | undefined
+): Promise<void> {
+  try {
+    await admin.auth().getUser(uid);
+    await updateTelegramUserProfile(uid, displayName, photoURL);
+    return;
+  } catch (e: unknown) {
+    const code = firebaseAuthErrorCode(e);
+    if (code !== "auth/user-not-found") {
+      logger.error("signInWithTelegram: getUser error", e);
+      throw new HttpsError("internal", "Could not load Firebase user.");
+    }
+  }
+
+  try {
+    await admin.auth().createUser({
+      uid,
+      displayName,
+      ...(photoURL ? { photoURL } : {}),
+    });
+  } catch (e: unknown) {
+    const code = firebaseAuthErrorCode(e);
+    if (code === "auth/uid-already-exists") {
+      logger.warn("signInWithTelegram: createUser race (uid exists), updating profile");
+      await updateTelegramUserProfile(uid, displayName, photoURL);
+      return;
+    }
+    if (photoURL) {
+      try {
+        await admin.auth().createUser({ uid, displayName });
+        return;
+      } catch (e2: unknown) {
+        const c2 = firebaseAuthErrorCode(e2);
+        if (c2 === "auth/uid-already-exists") {
+          await updateTelegramUserProfile(uid, displayName, undefined);
+          return;
+        }
+        logger.error("signInWithTelegram: createUser without photo failed", e2);
+        throw new HttpsError("internal", "Could not create Firebase user.");
+      }
+    }
+    logger.error("signInWithTelegram: createUser failed", e);
+    throw new HttpsError("internal", "Could not create Firebase user.");
+  }
+}
 
 function displayNameFromTelegram(raw: Record<string, unknown>): string {
   const first = typeof raw.first_name === "string" ? raw.first_name.trim() : "";
@@ -29,6 +113,17 @@ function photoUrlFromTelegram(raw: Record<string, unknown>): string | undefined 
   } catch {
     return undefined;
   }
+}
+
+function phoneFromTelegramPayload(raw: Record<string, unknown>): string | undefined {
+  const candidates = [raw.phone_number, raw.phone, raw.contact_phone];
+  for (const c of candidates) {
+    if (typeof c !== "string") continue;
+    const s = c.trim();
+    if (s.length < 8 || s.length > 32) continue;
+    if (s.startsWith("+") || /^\d/u.test(s)) return s;
+  }
+  return undefined;
 }
 
 /**
@@ -72,34 +167,66 @@ export const signInWithTelegram = onCall(
     const uid = `tg_${telegramId}`;
     const displayName = displayNameFromTelegram(raw);
     const photoURL = photoUrlFromTelegram(raw);
+    const phoneRaw = phoneFromTelegramPayload(raw);
+
+    await getOrCreateTelegramAuthUser(uid, displayName, photoURL);
+
+    const db = admin.firestore();
 
     try {
-      await admin.auth().getUser(uid);
-      await admin.auth().updateUser(uid, {
-        displayName,
-        ...(photoURL ? { photoURL } : {}),
+      await mergeProviderPhoneAndAvatarIntoUserDoc({
+        db,
+        uid,
+        providerPhoneRaw: phoneRaw,
+        providerPhotoUrl: photoURL,
+        log: logger,
       });
-    } catch (e: unknown) {
-      const code =
-        typeof e === "object" && e !== null && "code" in e
-          ? String((e as { code: unknown }).code)
-          : "";
-      if (code === "auth/user-not-found") {
-        await admin.auth().createUser({
-          uid,
-          displayName,
-          ...(photoURL ? { photoURL } : {}),
-        });
-      } else {
-        logger.error("signInWithTelegram: auth user error", e);
-        throw new HttpsError("internal", "Could not create or update Firebase user.");
-      }
+    } catch (e) {
+      logger.warn("signInWithTelegram: profile merge skipped", { uid, e });
     }
 
-    const customToken = await admin
-      .auth()
-      .createCustomToken(uid, { telegram: true });
+    try {
+      const userRef = db.doc(`users/${uid}`);
+      let userSnap = await userRef.get();
+      for (let attempt = 0; attempt < 6 && !userSnap.exists; attempt++) {
+        await new Promise((r) => setTimeout(r, 150));
+        userSnap = await userRef.get();
+      }
+      if (!userSnap.exists) {
+        logger.warn("signInWithTelegram: users doc not ready, skip username bootstrap", {
+          uid,
+        });
+      } else {
+        const data = userSnap.data() ?? {};
+        const existingUsername = String(data.username ?? "")
+          .trim()
+          .replace(/^@/, "");
+        if (!existingUsername) {
+          const tgHandle =
+            typeof raw.username === "string" && raw.username.trim().length > 0 ?
+              raw.username.trim() :
+              undefined;
+          const username = await generateUniqueUsernameAdmin({
+            db,
+            uid,
+            preferredCandidate: tgHandle,
+            fallbackCandidate: displayName,
+          });
+          await userRef.set({ username }, { merge: true });
+        }
+      }
+    } catch (e) {
+      logger.warn("signInWithTelegram: username bootstrap skipped", { uid, e });
+    }
 
-    return { customToken, uid };
+    try {
+      const customToken = await admin
+        .auth()
+        .createCustomToken(uid, { telegram: true });
+      return { customToken, uid };
+    } catch (e: unknown) {
+      logger.error("signInWithTelegram: createCustomToken failed", e);
+      throw new HttpsError("internal", "Could not issue sign-in token.");
+    }
   }
 );

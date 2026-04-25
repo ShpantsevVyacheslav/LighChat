@@ -50,6 +50,7 @@ import {
 } from "@/components/auth/auth-glass-classes";
 import { TelegramLoginDialog } from "@/components/auth/telegram-login-dialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, AlertCircle, UserPlus } from "lucide-react";
 
 /** Фирменный знак: `public/brand/lighchat-mark.png` (квадратный PNG с альфой; см. `scripts/transparent-lighchat-mark.mjs`). */
@@ -104,8 +105,13 @@ function TelegramIcon({ className }: { className?: string }) {
 
 function YandexIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10zm10.09 4.5V7.27h-.74c-1.47 0-2.24.69-2.24 1.83 0 1.31.58 1.9 1.78 2.74l.99.7-2.87 3.96h-1.72l2.56-3.53c-1.46-1.05-2.28-1.91-2.28-3.56 0-1.94 1.32-3.18 3.78-3.18h2.18v10.27h-1.44z"/>
+    <svg className={className} viewBox="0 0 24 24" role="img" aria-label="Yandex">
+      <circle cx="12" cy="12" r="12" fill="#FC3F1D" />
+      {/* Brand mark: white "Я" as vector path (no font dependency). */}
+      <path
+        fill="#FFFFFF"
+        d="M7.04 12c0-2.761 2.239-5 5-5s5 2.239 5 5-2.239 5-5 5-5-2.239-5-5zm5.045 2.25V9.635h-.37c-.735 0-1.12.345-1.12.915 0 .655.29.95.89 1.37l.495.35-1.435 1.98h-.86l1.28-1.765c-.73-.525-1.14-.955-1.14-1.78 0-.97.66-1.59 1.89-1.59h1.09v5.135h-.72z"
+      />
     </svg>
   );
 }
@@ -119,6 +125,7 @@ export default function AuthPage() {
     completeGoogleProfile,
     signInWithGoogle,
     signInWithApple,
+    signInWithYandex,
     signInWithTelegramPayload,
     error,
     clearError,
@@ -126,7 +133,29 @@ export default function AuthPage() {
     isLoading,
   } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const u = new URL(window.location.href);
+    const yandexErr = u.searchParams.get("yandex_error");
+    if (!yandexErr) return;
+    u.searchParams.delete("yandex_error");
+    window.history.replaceState({}, "", `${u.pathname}${u.search}${u.hash}`);
+    toast({
+      variant: "destructive",
+      title: "Не удалось войти через Яндекс",
+      description:
+        yandexErr === "bad_state"
+          ? "Сессия устарела. Попробуйте войти снова."
+          : yandexErr === "not_configured"
+            ? "Сервер не настроен (YANDEX_CLIENT_ID / YANDEX_CLIENT_SECRET)."
+            : yandexErr === "access_denied"
+              ? "Вход отменён в окне Яндекса."
+              : `Код: ${yandexErr}`,
+    });
+  }, [toast]);
 
   React.useEffect(() => {
     if (!isLoading && isAuthenticated && user && isRegistrationProfileComplete(user)) {
@@ -540,9 +569,10 @@ export default function AuthPage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled
-                className="h-10 rounded-[12px] border-white/40 bg-white/20 opacity-50 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]"
-                title="Яндекс (скоро)"
+                onClick={() => void signInWithYandex()}
+                disabled={isSubmitting || profileIncomplete}
+                className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10 dark:hover:text-white"
+                title="Яндекс"
               >
                 <YandexIcon className="h-[18px] w-[18px]" />
               </Button>

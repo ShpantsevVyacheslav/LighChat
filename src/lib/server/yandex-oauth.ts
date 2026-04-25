@@ -1,0 +1,162 @@
+/**
+ * Серверный OAuth 2.0 Яндекс ID (обмен code → access_token, профиль).
+ * @see https://yandex.ru/dev/id/doc/ru/
+ */
+
+const YANDEX_AUTHORIZE = "https://oauth.yandex.ru/authorize";
+const YANDEX_TOKEN = "https://oauth.yandex.com/token";
+const YANDEX_LOGIN_INFO = "https://login.yandex.ru/info?format=json";
+
+/**
+ * Безопасные дефолтные права (обычно доступны сразу в кабинете Яндекс ID).
+ * `login:phone` / `login:birthday` часто требуют отдельного включения/согласования и могут давать `invalid_scope`.
+ */
+export const YANDEX_DEFAULT_SCOPES = "login:email login:info login:avatar";
+
+export function buildYandexAuthorizeUrl(opts: {
+  clientId: string;
+  redirectUri: string;
+  state: string;
+  scope?: string;
+}): string {
+  const p = new URLSearchParams({
+    response_type: "code",
+    client_id: opts.clientId,
+    redirect_uri: opts.redirectUri,
+    state: opts.state,
+    scope: (opts.scope ?? YANDEX_DEFAULT_SCOPES).trim(),
+  });
+  return `${YANDEX_AUTHORIZE}?${p.toString()}`;
+}
+
+export async function yandexExchangeAuthorizationCode(opts: {
+  code: string;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}): Promise<{ access_token: string }> {
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    code: opts.code,
+    client_id: opts.clientId,
+    client_secret: opts.clientSecret,
+    redirect_uri: opts.redirectUri,
+  });
+
+  const res = await fetch(YANDEX_TOKEN, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+    cache: "no-store",
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(
+      `Yandex token exchange failed: HTTP ${res.status} ${text.slice(0, 400)}`
+    );
+  }
+  let json: { access_token?: string };
+  try {
+    json = JSON.parse(text) as { access_token?: string };
+  } catch {
+    throw new Error("Yandex token response is not JSON");
+  }
+  if (!json.access_token || typeof json.access_token !== "string") {
+    throw new Error("Yandex token response missing access_token");
+  }
+  return { access_token: json.access_token };
+}
+
+export type YandexLoginInfo = {
+  id: string | number;
+  login?: string;
+  first_name?: string;
+  last_name?: string;
+  display_name?: string;
+  real_name?: string;
+  default_email?: string;
+  emails?: string[];
+  /** @see https://yandex.ru/dev/id/doc/ru/user-information — при scope `login:phone`. */
+  default_phone?: { id?: number; number?: string } | string;
+  default_avatar_id?: string;
+  is_avatar_empty?: boolean;
+};
+
+export async function yandexFetchLoginInfo(
+  accessToken: string
+): Promise<YandexLoginInfo> {
+  const res = await fetch(YANDEX_LOGIN_INFO, {
+    headers: { Authorization: `OAuth ${accessToken}` },
+    cache: "no-store",
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(
+      `Yandex login/info failed: HTTP ${res.status} ${text.slice(0, 400)}`
+    );
+  }
+  return JSON.parse(text) as YandexLoginInfo;
+}
+
+export function yandexNumericUserId(info: YandexLoginInfo): string {
+  const raw = info.id;
+  const s = typeof raw === "number" ? String(raw) : String(raw ?? "").trim();
+  if (!/^\d+$/u.test(s)) {
+    throw new Error("Yandex profile: invalid numeric user id");
+  }
+  return s;
+}
+
+export function yandexDisplayName(info: YandexLoginInfo): string {
+  const parts = [
+    typeof info.first_name === "string" ? info.first_name.trim() : "",
+    typeof info.last_name === "string" ? info.last_name.trim() : "",
+  ].filter(Boolean);
+  const combined = parts.join(" ").trim();
+  if (combined.length > 0) return combined.slice(0, 128);
+  for (const k of ["real_name", "display_name"] as const) {
+    const v = info[k];
+    if (typeof v === "string" && v.trim().length > 0) return v.trim().slice(0, 128);
+  }
+  const login = typeof info.login === "string" ? info.login.trim() : "";
+  if (login.length > 0) return login.slice(0, 128);
+  return "Yandex";
+}
+
+const EMAIL_LIKE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+export function yandexPrimaryEmail(info: YandexLoginInfo): string | undefined {
+  const raw =
+    (typeof info.default_email === "string" ? info.default_email : "") ||
+    (Array.isArray(info.emails) && typeof info.emails[0] === "string"
+      ? info.emails[0]
+      : "");
+  const e = raw.trim().toLowerCase();
+  if (!e || !EMAIL_LIKE.test(e)) return undefined;
+  return e;
+}
+
+export function yandexPhotoUrl(info: YandexLoginInfo): string | undefined {
+  if (info.is_avatar_empty) return undefined;
+  const id =
+    typeof info.default_avatar_id === "string" &&
+    info.default_avatar_id.trim().length > 0
+      ? info.default_avatar_id.trim()
+      : typeof info.login === "string" && info.login.trim().length > 0
+        ? info.login.trim()
+        : "";
+  if (!id) return undefined;
+  return `https://avatars.yandex.net/get-yapic/${encodeURIComponent(id)}/islands-200`;
+}
+
+export function yandexPrimaryPhone(info: YandexLoginInfo): string | undefined {
+  const raw = info.default_phone;
+  const num =
+    typeof raw === "string"
+      ? raw.trim()
+      : raw && typeof raw === "object" && typeof raw.number === "string"
+        ? raw.number.trim()
+        : "";
+  if (!num) return undefined;
+  return num.slice(0, 32);
+}
