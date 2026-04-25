@@ -139,6 +139,34 @@ function formatFirestorePhoneFromAuthPhone(raw: string): string {
   return `+${d.slice(0, 32)}`;
 }
 
+function redactForAuthDebug(value: unknown): unknown {
+  if (value == null) return value;
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (!s) return s;
+    if (s.includes('@')) return '<redacted-email>';
+    if (s.startsWith('ya29.') || s.length > 120) return '<redacted>';
+    return s;
+  }
+  if (Array.isArray(value)) return value.map(redactForAuthDebug);
+  if (typeof value === 'object') {
+    const o = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(o)) {
+      if (/token|secret|hash/i.test(k)) out[k] = '<redacted>';
+      else if (/phone/i.test(k)) out[k] = '<redacted-phone>';
+      else if (/email/i.test(k)) out[k] = '<redacted-email>';
+      else out[k] = redactForAuthDebug(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+function authDebugEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_AUTH_DEBUG === '1';
+}
+
 export interface RegisterData {
   name: string;
   username: string;
@@ -375,6 +403,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('OAuth sign-in: Firestore недоступен.');
         setError('Сервис данных недоступен. Обновите страницу и попробуйте снова.');
         return false;
+      }
+
+      if (authDebugEnabled()) {
+        try {
+          const u = result.user;
+          console.info('[auth debug] oauth credential', {
+            uid: u.uid,
+            providerIds: u.providerData.map((p) => p.providerId),
+            email: redactForAuthDebug(u.email),
+            phoneNumber: redactForAuthDebug(u.phoneNumber),
+            displayName: redactForAuthDebug(u.displayName),
+            photoURL: redactForAuthDebug(u.photoURL),
+            providerData: redactForAuthDebug(
+              u.providerData.map((p) => ({
+                providerId: p.providerId,
+                uid: p.uid,
+                displayName: p.displayName,
+                email: p.email,
+                phoneNumber: p.phoneNumber,
+                photoURL: p.photoURL,
+              })),
+            ),
+          });
+        } catch (e) {
+          console.warn('[auth debug] failed to log oauth credential', e);
+        }
       }
 
       const userDocRef = doc(firestore, 'users', result.user.uid);

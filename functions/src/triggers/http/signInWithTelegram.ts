@@ -11,6 +11,19 @@ import { generateUniqueUsernameAdmin } from "../../lib/generate-unique-username-
 
 const telegramBotToken = defineSecret("TELEGRAM_BOT_TOKEN");
 
+function redactTelegramAuthPayloadForLogs(raw: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...raw };
+  for (const k of ["hash", "auth_date"] as const) {
+    if (k in out) out[k] = "<redacted>";
+  }
+  for (const k of ["phone", "phone_number", "contact_phone"] as const) {
+    if (typeof out[k] === "string" && (out[k] as string).trim().length > 0) out[k] = "<redacted>";
+  }
+  // photo_url может быть длинным и содержит идентификаторы — редактируем
+  if (typeof out.photo_url === "string" && out.photo_url.trim().length > 0) out.photo_url = "<redacted>";
+  return out;
+}
+
 /** Код ошибки Firebase Auth Admin (разные версии SDK кладут `code` или `errorInfo.code`). */
 function firebaseAuthErrorCode(e: unknown): string {
   if (typeof e !== "object" || e === null) return "";
@@ -152,6 +165,19 @@ export const signInWithTelegram = onCall(
     const raw = body?.auth;
     if (!raw || typeof raw !== "object") {
       throw new HttpsError("invalid-argument", "Missing auth payload.");
+    }
+
+    if (process.env.TELEGRAM_DEBUG_LOGIN_INFO === "1") {
+      try {
+        logger.info("signInWithTelegram: auth payload keys", {
+          keys: Object.keys(raw).sort(),
+        });
+        logger.info("signInWithTelegram: auth payload (redacted)", {
+          auth: redactTelegramAuthPayloadForLogs(raw),
+        });
+      } catch {
+        /* ignore */
+      }
     }
 
     if (!verifyTelegramLoginWidget(raw, botToken)) {

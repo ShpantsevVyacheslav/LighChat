@@ -82,6 +82,16 @@ export type YandexLoginInfo = {
   is_avatar_empty?: boolean;
 };
 
+function redactYandexLoginInfoForLogs(info: YandexLoginInfo): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...info };
+  if (typeof out.default_email === "string") out.default_email = "<redacted>";
+  if (Array.isArray(out.emails)) out.emails = ["<redacted>"];
+  const dp = out.default_phone as unknown;
+  if (typeof dp === "string") out.default_phone = "<redacted>";
+  else if (dp && typeof dp === "object") out.default_phone = { id: (dp as any).id, number: "<redacted>" };
+  return out;
+}
+
 export async function yandexFetchLoginInfo(
   accessToken: string
 ): Promise<YandexLoginInfo> {
@@ -95,7 +105,19 @@ export async function yandexFetchLoginInfo(
       `Yandex login/info failed: HTTP ${res.status} ${text.slice(0, 400)}`
     );
   }
-  return JSON.parse(text) as YandexLoginInfo;
+  const parsed = JSON.parse(text) as YandexLoginInfo;
+  if (process.env.YANDEX_DEBUG_LOGIN_INFO === "1") {
+    try {
+      console.info(
+        "[yandex login/info] keys:",
+        Object.keys(parsed as Record<string, unknown>).sort(),
+      );
+      console.info("[yandex login/info] redacted:", redactYandexLoginInfoForLogs(parsed));
+    } catch {
+      /* ignore logging errors */
+    }
+  }
+  return parsed;
 }
 
 export function yandexNumericUserId(info: YandexLoginInfo): string {
