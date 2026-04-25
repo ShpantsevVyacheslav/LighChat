@@ -107,10 +107,9 @@ function YandexIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" role="img" aria-label="Yandex">
       <circle cx="12" cy="12" r="12" fill="#FC3F1D" />
-      {/* Brand mark: white "Я" as vector path (no font dependency). */}
       <path
         fill="#FFFFFF"
-        d="M7.04 12c0-2.761 2.239-5 5-5s5 2.239 5 5-2.239 5-5 5-5-2.239-5-5zm5.045 2.25V9.635h-.37c-.735 0-1.12.345-1.12.915 0 .655.29.95.89 1.37l.495.35-1.435 1.98h-.86l1.28-1.765c-.73-.525-1.14-.955-1.14-1.78 0-.97.66-1.59 1.89-1.59h1.09v5.135h-.72z"
+        d="M9.375 6h4.043C15.975 6 17.5 7.27 17.5 9.319c0 1.585-.863 2.709-2.343 3.182L18.125 18h-2.432l-2.823-5.238h-1.18V18h-2.315V6zm2.315 4.95h1.355c1.302 0 2.05-.526 2.05-1.543 0-1.033-.748-1.527-2.05-1.527H11.69v3.07z"
       />
     </svg>
   );
@@ -212,12 +211,12 @@ export default function AuthPage() {
   React.useEffect(() => {
     if (isLoading || !isAuthenticated || !user) return;
     if (!isRegistrationProfileComplete(user)) {
-      setRegisterMode(googleProfileCompletionFlow ? "google" : "email");
-      setRegisterOpen(true);
+      // Profile completion happens on /dashboard/profile now (no modal on home).
+      router.replace("/dashboard/profile");
     } else {
       setRegisterOpen(false);
     }
-  }, [isLoading, isAuthenticated, user, googleProfileCompletionFlow]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   /** Один раз при открытии шага Google — иначе snapshot пользователя (online и т.д.) затирал бы ввод. */
   const googleFormPrefilledRef = React.useRef(false);
@@ -557,12 +556,12 @@ export default function AuthPage() {
                   profileIncomplete ||
                   TELEGRAM_BOT_NAME.length === 0
                 }
-                className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10"
                 title={
                   TELEGRAM_BOT_NAME
                     ? "Telegram"
                     : "Задайте NEXT_PUBLIC_TELEGRAM_BOT_NAME"
                 }
+                className="h-10 rounded-[12px] border-[#2f82b4]/80 bg-[#14476b]/90 text-white backdrop-blur-md transition-all hover:bg-[#1b5b88] active:scale-[0.97] dark:border-[#2f82b4]/80 dark:bg-[#14476b]/90 dark:hover:bg-[#1b5b88]"
               >
                 <TelegramIcon className="h-[18px] w-[18px]" />
               </Button>
@@ -571,7 +570,7 @@ export default function AuthPage() {
                 variant="outline"
                 onClick={() => void signInWithYandex()}
                 disabled={isSubmitting || profileIncomplete}
-                className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10 dark:hover:text-white"
+                className="h-10 rounded-[12px] border-[#9f3d2f]/80 bg-[#4f2018]/90 text-white backdrop-blur-md transition-all hover:bg-[#63281f] active:scale-[0.97] dark:border-[#9f3d2f]/80 dark:bg-[#4f2018]/90 dark:hover:bg-[#63281f]"
                 title="Яндекс"
               >
                 <YandexIcon className="h-[18px] w-[18px]" />

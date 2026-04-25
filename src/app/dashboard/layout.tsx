@@ -90,9 +90,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       user &&
       !isRegistrationProfileComplete(user)
     ) {
-      router.replace('/');
+      // Allow incomplete users to reach profile completion UI.
+      if (pathname !== '/dashboard/profile') {
+        router.replace('/dashboard/profile');
+      }
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, user, router, pathname]);
 
   React.useEffect(() => {
     let disposed = false;
@@ -114,7 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isRegistrationProfileComplete(user)) {
+  if (!isRegistrationProfileComplete(user) && pathname !== '/dashboard/profile') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Icons.spinner className="h-8 w-8 animate-spin text-primary" />
