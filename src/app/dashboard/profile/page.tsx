@@ -7,10 +7,17 @@ import { useToast } from '@/hooks/use-toast';
 import { UserCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 export default function ProfilePage() {
-  const { user, updateUser, isUpdatingUser, isLoading } = useAuth();
+  const { user, updateUser, resendPendingEmailVerification, isUpdatingUser, isLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+
+  const pendingEmail =
+    user?.pendingEmail && user.pendingEmail.trim().length > 0
+      ? user.pendingEmail.trim()
+      : '';
 
   const handleSave = async (data: UserFormSavePayload) => {
     const result = await updateUser(data);
@@ -66,6 +73,43 @@ export default function ProfilePage() {
           </h1>
         </div>
       </div>
+
+      {pendingEmail && pendingEmail.toLowerCase() !== (user.email ?? '').trim().toLowerCase() ? (
+        <Alert>
+          <AlertTitle>Ожидает подтверждения email</AlertTitle>
+          <AlertDescription className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-sm text-muted-foreground">
+                Мы отправили письмо на новый адрес: <span className="font-medium text-foreground">{pendingEmail}</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Перейдите по ссылке в письме, чтобы завершить смену. Если письма нет — проверьте спам.
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={async () => {
+                const res = await resendPendingEmailVerification();
+                if (res.ok) {
+                  toast({
+                    title: 'Письмо отправлено повторно',
+                    description: 'Проверьте почту и перейдите по ссылке для подтверждения.',
+                  });
+                } else {
+                  toast({
+                    variant: 'destructive',
+                    title: 'Не удалось отправить письмо',
+                    description: res.message,
+                  });
+                }
+              }}
+            >
+              Отправить письмо ещё раз
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <UserForm
         layout="horizontal"

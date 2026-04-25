@@ -280,6 +280,7 @@ interface AuthContextType {
   signInWithTelegramPayload: (auth: Record<string, unknown>) => Promise<boolean>;
   logout: () => void;
   updateUser: (newUserData: Partial<User & { password?: string }>) => Promise<UpdateUserResult>;
+  resendPendingEmailVerification: () => Promise<{ ok: true } | { ok: false; message: string }>;
   createNewAuthUser: (email: string, password: string) => Promise<UserCredential>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -764,6 +765,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const userDocRef = doc(firestore, 'users', appUser.id);
     updateDocumentNonBlocking(userDocRef, {
       email: authEmail,
+      pendingEmail: deleteField(),
+      pendingEmailRequestedAt: deleteField(),
       updatedAt: new Date().toISOString(),
     });
   }, [
@@ -1577,6 +1580,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         delete dataToSave.password;
         if (emailVerificationSent) {
           delete dataToSave.email;
+          dataToSave.pendingEmail = emailTrim?.trim().toLowerCase() || '';
+          dataToSave.pendingEmailRequestedAt = new Date().toISOString();
         } else if (emailTrim !== undefined) {
           dataToSave.email = emailTrim;
         }
@@ -1612,6 +1617,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [appUser, firebaseUser, firestore]);
 
+  const resendPendingEmailVerification = useCallback(async () => {
+    if (!firebaseUser || !firestore || !appUser?.id) {
+      return { ok: false as const, message: 'Нет данных пользователя или Firebase.' };
+    }
+    const pending = String(appUser.pendingEmail ?? '').trim().toLowerCase();
+    if (!pending) {
+      return { ok: false as const, message: 'Нет email, ожидающего подтверждения.' };
+    }
+    if (typeof window === 'undefined') {
+      return { ok: false as const, message: 'Отправка письма доступна только в браузере.' };
+    }
+    const res = await requestVerifiedEmailChange({
+      firebaseUser,
+      newEmail: pending,
+      actionCodeSettings: {
+        url: `${window.location.origin}/dashboard/profile`,
+        handleCodeInApp: false,
+      },
+    });
+    if (!res.ok) {
+      const code = res.code ?? '';
+      const message =
+        code === 'auth/requires-recent-login'
+          ? 'Для отправки письма выполните повторный вход и попробуйте снова.'
+          : code === 'auth/unauthorized-domain'
+            ? 'Домен не в Authorized domains (Firebase Console → Authentication → Settings).'
+            : 'Не удалось отправить письмо подтверждения.';
+      return { ok: false as const, message };
+    }
+    await updateDocumentNonBlocking(doc(firestore, 'users', appUser.id), {
+      pendingEmailRequestedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    return { ok: true as const };
+  }, [appUser?.id, appUser?.pendingEmail, firebaseUser, firestore]);
+
   const isLoading = isAuthLoading || isProfileLoading;
   
   useEffect(() => {
@@ -1642,6 +1683,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     signInWithTelegramPayload,
     logout,
     updateUser,
+    resendPendingEmailVerification,
     createNewAuthUser,
     isAuthenticated: !!appUser,
     isLoading,

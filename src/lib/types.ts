@@ -38,6 +38,12 @@ export type User = {
   storageQuotaBytes?: number | null;
   /** Сохраняется в Firestore; синхронизируется с next-themes при входе. */
   appTheme?: AppThemePreference;
+  /**
+   * Email ожидает подтверждения (verifyBeforeUpdateEmail). Пока не подтверждён, `users.email` остаётся прежним.
+   * После подтверждения (Firebase Auth email уже новый) клиент синхронизирует `users.email` и очищает `pendingEmail`.
+   */
+  pendingEmail?: string;
+  pendingEmailRequestedAt?: string;
 };
 
 /** Блокировка учётной записи. until: null — навсегда (пока админ не снимет). */
