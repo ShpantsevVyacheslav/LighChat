@@ -50,11 +50,28 @@ firestore-debug.log
 # Локальная сборка эмулятора (.next, node_modules внутри) — лимит GitHub 100 MB
 .firebase/
 
+# firebase mobile local config (do not commit)
+mobile/app/android/app/google-services.json
+mobile/app/firebase.json
+**/GoogleService-Info.plist
+
 # local dev artifacts
 .turbo/
 .swc/
 .cache/
 *.log
+
+# image/tooling scratch files
+tmp-*.png
+
+# flutter/android build artifacts
+mobile/app/android/build/
+mobile/app/build/
+mobile/app/.dart_tool/
+mobile/app/.flutter-plugins
+mobile/app/.flutter-plugins-dependencies
+mobile/app/.packages
+mobile/app/**/.gradle/
 
 # secrets (keep examples tracked separately)
 .env
