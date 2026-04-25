@@ -21,7 +21,11 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
    * Транзакция: создаём дефолтный профиль только если документа ещё нет; если клиент
    * успел записать профиль между попытками — повторное чтение увидит `exists` и выйдет.
    */
-  const isAnonymous = !user.email && !user.phoneNumber;
+  /** Custom-token пользователи Telegram/Яндекс: в Auth нет email/phone, но это не гость Firebase. */
+  const isOAuthBridgeUid =
+    typeof user.uid === "string" &&
+    (user.uid.startsWith("tg_") || user.uid.startsWith("ya_"));
+  const isAnonymous = !isOAuthBridgeUid && !user.email && !user.phoneNumber;
 
   const userProfile = {
     id: user.uid,

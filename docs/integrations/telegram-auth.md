@@ -48,6 +48,16 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 Пользователи Telegram получают стабильный UID вида `tg_<telegram_user_id>` (создаётся только сервером).
 
+## Где смотреть логи `signInWithTelegram`
+
+1. **[Firebase Console](https://console.firebase.google.com/)** → ваш проект → **Build → Functions** → функция **`signInWithTelegram`** → вкладка **Logs** (или **View logs in Google Cloud**).
+2. **[Google Cloud Console → Logging](https://console.cloud.google.com/logs/query)** — в запросе укажите ресурс Cloud Run для 2nd gen, например:
+   `resource.type="cloud_run_revision" AND resource.labels.service_name="signinwithtelegram"`
+   (имя сервиса может совпадать с именем функции в нижнем регистре; при необходимости найдите его в **Cloud Run → Services**).
+3. **Редактируемый дамп payload виджета** (без секретов): задайте секрет/переменную окружения функции **`TELEGRAM_DEBUG_LOGIN_INFO=1`**, задеплойте функцию и снова выполните вход — в логах появятся ключи полей и объект с редактированием телефона/фото/hash.
+
+Сообщения в **браузерной консоли** (`[auth debug] oauth credential`, ошибки Firestore на клиенте) относятся к **клиенту** после `signInWithCustomToken`, а не к Cloud Function.
+
 ## Если после кнопки «Войти как …» callable возвращает `INTERNAL`
 
 1. Убедитесь, что задеплоена актуальная версия `signInWithTelegram` и секрет `TELEGRAM_BOT_TOKEN` от **того же** бота, что в `NEXT_PUBLIC_TELEGRAM_BOT_NAME`.

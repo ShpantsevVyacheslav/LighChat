@@ -56,10 +56,21 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/meetings/$(meetingId)).data.isPrivate == false;
     }
 
-    /** Сам пользователь не может менять блокировку, роль, soft-delete и квоту — только админ. */
-    function userSensitiveKeysChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys()
-        .hasAny(['accountBlock', 'role', 'deletedAt', 'storageQuotaBytes']);
+    /**
+     * Сам пользователь не может менять блокировку, произвольную смену роли, soft-delete и квоту — только админ.
+     * Исключение: OAuth-bridge (Telegram/Яндекс) получает из `onUserCreated` `role: null` (нет email/phone в Auth);
+     * клиент один раз выставляет `worker` — см. `finalizeOAuthCredential` в use-auth.
+     */
+    function userSensitiveKeysChanged(userId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let roleWasUnset =
+        !resource.data.keys().hasAny(['role']) || resource.data.role == null;
+      let allowWorkerBootstrap =
+        request.auth.uid == userId
+        && roleWasUnset
+        && request.resource.data.role == 'worker';
+      return changed.hasAny(['accountBlock', 'deletedAt', 'storageQuotaBytes'])
+        || (changed.hasAny(['role']) && !allowWorkerBootstrap);
     }
 
     /**
@@ -156,7 +167,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow update: if isSignedIn() && (
         isAdmin() ||
-        (request.auth.uid == userId && !userSensitiveKeysChanged())
+        (request.auth.uid == userId && !userSensitiveKeysChanged(userId))
       );
       allow delete: if false;
 
