@@ -4,7 +4,7 @@ import type { User, Conversation, ChatMessage, UserRole, UserContactsIndex } fro
 import { ROLES } from '@/lib/constants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
-import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone, Ban, Unlock } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { GroupChatFormPanel } from '@/components/chat/GroupChatFormPanel';
 import { GroupChatParticipantsManageView } from '@/components/chat/GroupChatParticipantsManageView';
@@ -16,7 +16,7 @@ import { Badge } from '../ui/badge';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { formatPhoneNumberForDisplay } from '@/lib/phone-utils';
 import { isProfileFieldVisibleToOthers } from '@/lib/profile-field-visibility';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
@@ -52,6 +52,17 @@ import { ConversationThemePanel } from '@/components/chat/conversation-pages/Con
 import { ConversationPrivacyPanel } from '@/components/chat/conversation-pages/ConversationPrivacyPanel';
 import { ConversationEncryptionPanel } from '@/components/chat/conversation-pages/ConversationEncryptionPanel';
 import { LeaveGroupPanel } from '@/components/chat/conversation-pages/LeaveGroupPanel';
+import { normalizeBlockedUserIds } from '@/lib/user-block-utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export type ChatProfileSubMenu =
   | 'media'
@@ -112,6 +123,9 @@ export function ChatParticipantProfile({
   const [liveMapOpen, setLiveMapOpen] = useState(false);
   const [profileSubMenu, setProfileSubMenu] = useState<ChatProfileSubMenu | null>(null);
   const [quickActionBusy, setQuickActionBusy] = useState<string | null>(null);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [unblockDialogOpen, setUnblockDialogOpen] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
   const router = useRouter();
   const firestore = useFirestore();
   const { starredCount } = useStarredInConversation(currentUser.id, conversation.id);
@@ -151,7 +165,43 @@ export function ChatParticipantProfile({
     [firestore, profileDocId]
   );
   
-  const { data: freshParticipant } = useDoc<User>(participantRef);
+  const {
+    data: freshParticipant,
+    error: profileParticipantError,
+    isLoading: profileParticipantLoading,
+  } = useDoc<User>(participantRef);
+
+  const selfUserRef = useMemoFirebase(
+    () => (firestore && currentUser?.id ? doc(firestore, 'users', currentUser.id) : null),
+    [firestore, currentUser?.id]
+  );
+  const { data: selfLive } = useDoc<User>(selfUserRef);
+
+  const myBlockedIds = useMemo(
+    () => normalizeBlockedUserIds(selfLive?.blockedUserIds ?? currentUser.blockedUserIds),
+    [selfLive?.blockedUserIds, currentUser.blockedUserIds]
+  );
+
+  const partnerDocDenied = Boolean(
+    profileDocId &&
+      profileDocId !== currentUser.id &&
+      profileParticipantError &&
+      !profileParticipantLoading
+  );
+
+  const effectiveCurrentUser = useMemo(
+    (): User => ({ ...currentUser, blockedUserIds: myBlockedIds }),
+    [currentUser, myBlockedIds]
+  );
+
+  const showBlockUserRow = Boolean(
+    profileDocId &&
+      profileDocId !== currentUser.id &&
+      !isSelfSavedChat &&
+      (!isGroup || showMemberFocus)
+  );
+
+  const isPartnerBlockedByMe = Boolean(profileDocId && myBlockedIds.includes(profileDocId));
 
   const userContactsRef = useMemoFirebase(
     () => (firestore && currentUser?.id ? doc(firestore, 'userContacts', currentUser.id) : null),
@@ -239,32 +289,36 @@ export function ChatParticipantProfile({
   const canShowAddToContacts = useMemo(() => {
     if (!profileDocId || profileDocId === currentUser.id || isSelfSavedChat) return false;
     if (isGroup && !showMemberFocus) return false;
+    if (partnerDocDenied) return false;
     if (!contactTargetUser || contactTargetUser.deletedAt) return false;
     if (isContact) return true;
-    return canStartDirectChat(currentUser, contactTargetUser);
+    return canStartDirectChat(effectiveCurrentUser, contactTargetUser);
   }, [
     profileDocId,
-    currentUser,
+    effectiveCurrentUser,
     isSelfSavedChat,
     contactTargetUser,
     isContact,
     isGroup,
     showMemberFocus,
+    partnerDocDenied,
   ]);
   const { toast } = useToast();
 
   const canRunDirectQuickActions = useMemo(() => {
     if (!profileDocId || profileDocId === currentUser.id || isSelfSavedChat) return false;
     if (isGroup && !showMemberFocus) return false;
+    if (partnerDocDenied) return false;
     if (!contactTargetUser || contactTargetUser.deletedAt) return false;
-    return canStartDirectChat(currentUser, contactTargetUser);
+    return canStartDirectChat(effectiveCurrentUser, contactTargetUser);
   }, [
     profileDocId,
-    currentUser,
+    effectiveCurrentUser,
     isSelfSavedChat,
     isGroup,
     showMemberFocus,
     contactTargetUser,
+    partnerDocDenied,
   ]);
 
   const showChatsQuickAction = profileSource === 'contacts' && canRunDirectQuickActions;
@@ -281,11 +335,12 @@ export function ChatParticipantProfile({
 
   const ensureDirectConversationForProfile = useCallback(async (): Promise<{ id: string; target: User } | null> => {
     if (!firestore || !profileDocId || !contactTargetUser) return null;
-    if (!canStartDirectChat(currentUser, contactTargetUser)) return null;
+    if (partnerDocDenied) return null;
+    if (!canStartDirectChat(effectiveCurrentUser, contactTargetUser)) return null;
     if (!isGroup && !isSelfSavedChat && profileDocId === otherId) {
       return { id: conversation.id, target: contactTargetUser };
     }
-    const id = await createOrOpenDirectChat(firestore, currentUser, contactTargetUser);
+    const id = await createOrOpenDirectChat(firestore, effectiveCurrentUser, contactTargetUser);
     let platformWants = false;
     try {
       const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));
@@ -294,7 +349,7 @@ export function ChatParticipantProfile({
     } catch {
       /* ignore */
     }
-    await autoEnableE2eeForNewDirectChat(firestore, id, currentUser.id, {
+    await autoEnableE2eeForNewDirectChat(firestore, id, effectiveCurrentUser.id, {
       userWants: privacySettings.e2eeForNewDirectChats === true,
       platformWants,
     });
@@ -303,13 +358,48 @@ export function ChatParticipantProfile({
     firestore,
     profileDocId,
     contactTargetUser,
-    currentUser,
+    effectiveCurrentUser,
+    partnerDocDenied,
     isGroup,
     isSelfSavedChat,
     otherId,
     conversation.id,
     privacySettings.e2eeForNewDirectChats,
   ]);
+
+  const handleConfirmBlockUser = useCallback(async () => {
+    if (!firestore || !profileDocId || blockBusy) return;
+    setBlockBusy(true);
+    try {
+      await updateDoc(doc(firestore, 'users', currentUser.id), {
+        blockedUserIds: arrayUnion(profileDocId),
+      });
+      toast({ title: 'Пользователь заблокирован' });
+      setBlockDialogOpen(false);
+    } catch (e) {
+      console.error('[ChatParticipantProfile] block user', e);
+      toast({ variant: 'destructive', title: 'Не удалось заблокировать' });
+    } finally {
+      setBlockBusy(false);
+    }
+  }, [firestore, profileDocId, blockBusy, currentUser.id, toast]);
+
+  const handleConfirmUnblockUser = useCallback(async () => {
+    if (!firestore || !profileDocId || blockBusy) return;
+    setBlockBusy(true);
+    try {
+      await updateDoc(doc(firestore, 'users', currentUser.id), {
+        blockedUserIds: arrayRemove(profileDocId),
+      });
+      toast({ title: 'Пользователь разблокирован' });
+      setUnblockDialogOpen(false);
+    } catch (e) {
+      console.error('[ChatParticipantProfile] unblock user', e);
+      toast({ variant: 'destructive', title: 'Не удалось разблокировать' });
+    } finally {
+      setBlockBusy(false);
+    }
+  }, [firestore, profileDocId, blockBusy, currentUser.id, toast]);
 
   const openDirectChatFromProfile = useCallback(async () => {
     if (quickActionBusy || !canRunDirectQuickActions) return;
@@ -341,7 +431,7 @@ export function ChatParticipantProfile({
       const direct = await ensureDirectConversationForProfile();
       if (!direct) return;
       onSelectConversation(direct.id);
-      initiateCall(firestore, currentUser, direct.target, video, toast);
+      initiateCall(firestore, effectiveCurrentUser, direct.target, video, toast);
       handleSheetOpenChange(false);
     } catch (e) {
       console.error('[ChatParticipantProfile] startDirectCallFromProfile failed', e);
@@ -355,7 +445,7 @@ export function ChatParticipantProfile({
     firestore,
     ensureDirectConversationForProfile,
     onSelectConversation,
-    currentUser,
+    effectiveCurrentUser,
     toast,
     handleSheetOpenChange,
   ]);
@@ -1055,6 +1145,24 @@ export function ChatParticipantProfile({
                     </div>
                 )}
 
+              {showBlockUserRow ? (
+                <WaMenuSection className="pb-0.5">
+                  <WaMenuRow
+                    icon={
+                      isPartnerBlockedByMe ? (
+                        <Unlock className="h-[18px] w-[18px] shrink-0 text-amber-600" />
+                      ) : (
+                        <Ban className="h-[18px] w-[18px] shrink-0 text-destructive" />
+                      )
+                    }
+                    title={isPartnerBlockedByMe ? 'Разблокировать' : 'Заблокировать'}
+                    onClick={() =>
+                      isPartnerBlockedByMe ? setUnblockDialogOpen(true) : setBlockDialogOpen(true)
+                    }
+                  />
+                </WaMenuSection>
+              ) : null}
+
               <div className="space-y-0.5 pt-0.5">
               <WaMenuSection>
                 <WaMenuRow
@@ -1155,6 +1263,54 @@ export function ChatParticipantProfile({
         </div>
         )}
       </SheetContent>
+
+      <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Заблокировать пользователя?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы не сможете писать этому контакту и звонить ему, пока не разблокируете его в разделе «Заблокированные» в
+              профиле.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={blockBusy}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={blockBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                void handleConfirmBlockUser();
+              }}
+            >
+              Заблокировать
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={unblockDialogOpen} onOpenChange={setUnblockDialogOpen}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Разблокировать пользователя?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Снова станут доступны личные сообщения и звонки (если позволяют настройки и роли).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={blockBusy}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={blockBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleConfirmUnblockUser();
+              }}
+            >
+              Разблокировать
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

@@ -50,6 +50,11 @@ import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-
 import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
+import {
+  directChatComposerBlockedHint,
+  isEitherBlockingFromUserIds,
+  normalizeBlockedUserIds,
+} from '@/lib/user-block-utils';
 import { SelectionHeader } from '@/components/chat/SelectionHeader';
 import { ChatParticipantProfile } from '@/components/chat/ChatParticipantProfile';
 import type { ChatProfileSource, ChatProfileSubMenu } from '@/components/chat/ChatParticipantProfile';
@@ -434,6 +439,74 @@ export function ChatWindow({
     () => !conversation.isGroup && !isSelfSavedChat && !!otherUser?.deletedAt,
     [conversation.isGroup, isSelfSavedChat, otherUser]
   );
+
+  const selfUserRef = useMemoFirebase(
+    () => (!firestore || !currentUser.id ? null : doc(firestore, 'users', currentUser.id)),
+    [firestore, currentUser.id]
+  );
+  const { data: selfUserLive } = useDoc<User>(selfUserRef);
+
+  const partnerUserRef = useMemoFirebase(
+    () =>
+      !firestore || !otherId || conversation.isGroup || isSelfSavedChat
+        ? null
+        : doc(firestore, 'users', otherId),
+    [firestore, otherId, conversation.isGroup, isSelfSavedChat]
+  );
+  const {
+    data: partnerUserLive,
+    error: partnerUserError,
+    isLoading: partnerUserLoading,
+  } = useDoc<User>(partnerUserRef);
+
+  const myBlockedIds = useMemo(
+    () => normalizeBlockedUserIds(selfUserLive?.blockedUserIds ?? currentUser.blockedUserIds),
+    [selfUserLive?.blockedUserIds, currentUser.blockedUserIds]
+  );
+
+  const dmMessagingBlocked = useMemo(() => {
+    if (conversation.isGroup || isSelfSavedChat || !otherId) return false;
+    if (isPartnerDeleted) return false;
+    if (isEitherBlockingFromUserIds(currentUser.id, myBlockedIds, otherId, partnerUserLive?.blockedUserIds)) {
+      return true;
+    }
+    if (partnerUserError && !partnerUserLoading) return true;
+    return false;
+  }, [
+    conversation.isGroup,
+    isSelfSavedChat,
+    otherId,
+    isPartnerDeleted,
+    currentUser.id,
+    myBlockedIds,
+    partnerUserLive?.blockedUserIds,
+    partnerUserError,
+    partnerUserLoading,
+  ]);
+
+  const composerLocked = dmMessagingBlocked;
+  const composerLockedHint = useMemo(() => {
+    if (!composerLocked || isPartnerDeleted) return undefined;
+    if (partnerUserError && !partnerUserLoading) {
+      return 'Пользователь ограничил с вами общение. Отправка недоступна.';
+    }
+    return directChatComposerBlockedHint(
+      currentUser.id,
+      myBlockedIds,
+      otherId!,
+      partnerUserLive?.blockedUserIds
+    );
+  }, [
+    composerLocked,
+    isPartnerDeleted,
+    partnerUserError,
+    partnerUserLoading,
+    currentUser.id,
+    myBlockedIds,
+    otherId,
+    partnerUserLive?.blockedUserIds,
+  ]);
+
   const unreadCount = useMemo(() => conversation.unreadCounts?.[currentUser.id] || 0, [conversation.unreadCounts, currentUser.id]);
   const unreadThreadCount = useMemo(
     () => conversation.unreadThreadCounts?.[currentUser.id] || 0,
@@ -1948,14 +2021,23 @@ export function ChatWindow({
                               />
                             </Button>
                 </div>
-                        {!conversation.isGroup && otherId && !isSelfSavedChat && (
+                        {!conversation.isGroup && otherId && !isSelfSavedChat && !dmMessagingBlocked && (
                           <>
                             <div className={cn('p-0.5', chatHeaderIconGlass)}>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
-                                onClick={() => otherUser && initiateCall(firestore, currentUser, otherUser, true, toast)}
+                                onClick={() => {
+                                  const recv =
+                                    otherUser ??
+                                    ({
+                                      id: otherId,
+                                      name: conversation.participantInfo[otherId]?.name ?? 'Пользователь',
+                                      blockedUserIds: partnerUserLive?.blockedUserIds,
+                                    } as User);
+                                  void initiateCall(firestore, currentUser, recv, true, toast);
+                                }}
                               >
                                 <Video className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.callVideo)} strokeWidth={2} />
                               </Button>
@@ -1965,7 +2047,16 @@ export function ChatWindow({
                                 variant="ghost"
                                 size="icon"
                                 className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
-                                onClick={() => otherUser && initiateCall(firestore, currentUser, otherUser, false, toast)}
+                                onClick={() => {
+                                  const recv =
+                                    otherUser ??
+                                    ({
+                                      id: otherId,
+                                      name: conversation.participantInfo[otherId]?.name ?? 'Пользователь',
+                                      blockedUserIds: partnerUserLive?.blockedUserIds,
+                                    } as User);
+                                  void initiateCall(firestore, currentUser, recv, false, toast);
+                                }}
                               >
                                 <Phone className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.callAudio)} strokeWidth={2} />
                               </Button>
@@ -2108,6 +2199,8 @@ export function ChatWindow({
               allUsers={allUsers}
               contactProfiles={userContactsIndex?.contactProfiles}
               isPartnerDeleted={isPartnerDeleted}
+              composerLocked={composerLocked}
+              composerLockedHint={composerLockedHint}
               onRestoreDraftReply={(reply) => setReplyingTo(reply)}
             />
           </div>
@@ -2147,6 +2240,8 @@ export function ChatWindow({
               }}
               onReactTo={handleReactTo}
               isPartnerDeleted={isPartnerDeleted}
+              composerLocked={composerLocked}
+              composerLockedHint={composerLockedHint}
               highlightThreadMessageId={threadReactionScrollToId}
               onHighlightThreadMessageConsumed={clearThreadReactionScrollTarget}
               onMentionProfileOpen={handleMentionProfileOpen}

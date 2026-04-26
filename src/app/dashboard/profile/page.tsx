@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/use-auth';
 import type { UserFormSavePayload } from '@/components/admin/user-form';
 import { UserForm } from '@/components/admin/user-form';
 import { useToast } from '@/hooks/use-toast';
-import { UserCircle } from 'lucide-react';
+import Link from 'next/link';
+import { UserCircle, Ban } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -72,6 +73,15 @@ export default function ProfilePage() {
             <UserCircle className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Мой профиль
           </h1>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" asChild className="gap-2 rounded-xl">
+          <Link href="/dashboard/profile/blocked">
+            <Ban className="h-4 w-4" aria-hidden />
+            Заблокированные
+          </Link>
+        </Button>
       </div>
 
       {pendingEmail && pendingEmail.toLowerCase() !== (user.email ?? '').trim().toLowerCase() ? (

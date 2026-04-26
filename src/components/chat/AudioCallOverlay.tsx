@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2, Minimize2, Video, VideoOff, X, Maximize2, MonitorUp, MonitorOff, SwitchCamera } from 'lucide-react';
 import type { User, Call } from '@/lib/types';
+import { isEitherBlockingFromUserIds } from '@/lib/user-block-utils';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getWebRtcIceConfig } from '@/lib/webrtc-ice-servers';
@@ -850,7 +851,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
 export const initiateCall = async (
   firestore: any,
   caller: User,
-  receiver: Pick<User, 'id' | 'name'>,
+  receiver: Pick<User, 'id' | 'name'> & { blockedUserIds?: string[] },
   isVideo: boolean,
   toast: any
 ) => {
@@ -858,6 +859,21 @@ export const initiateCall = async (
     if (!navigator.mediaDevices || !window.RTCPeerConnection) {
         toast({ variant: 'destructive', title: 'Ошибка вызова', description: 'Браузер не поддерживает звонки.' });
         return;
+    }
+    if (
+      isEitherBlockingFromUserIds(
+        caller.id,
+        caller.blockedUserIds,
+        receiver.id,
+        receiver.blockedUserIds ?? null
+      )
+    ) {
+      toast({
+        variant: 'destructive',
+        title: 'Звонок недоступен',
+        description: 'Нельзя звонить при блокировке или если пользователь ограничил с вами общение.',
+      });
+      return;
     }
     try {
         const callId = `call_${Date.now()}`;

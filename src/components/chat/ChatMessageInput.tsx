@@ -586,10 +586,12 @@ const ChatMessageInputInner = (
                     <div className="p-4 bg-muted/50 rounded-2xl flex items-center justify-center gap-2 text-muted-foreground">
                         <UserX className="h-4 w-4" /><p className="text-sm font-medium">Пользователь удален</p>
                     </div>
-                ) : composerLocked && composerLockedHint ? (
+                ) : composerLocked ? (
                     <div className="flex gap-3 rounded-2xl bg-muted/50 p-4 text-muted-foreground">
                         <Ban className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                        <p className="text-sm font-medium leading-snug">{composerLockedHint}</p>
+                        <p className="text-sm font-medium leading-snug">
+                          {composerLockedHint?.trim() || 'Общение недоступно.'}
+                        </p>
                     </div>
                 ) : isVideoRecording ? (
                     <div className="mb-2 flex flex-row items-center justify-center gap-3 sm:gap-4">
@@ -842,7 +844,7 @@ const ChatMessageInputInner = (
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
-                                                        disabled={isPartnerDeleted}
+                                                        disabled={inputFrozen}
                                                         onClick={() => setAttachmentSubview('sticker-gif')}
                                                         className="w-full justify-start rounded-xl h-11"
                                                     >
@@ -856,7 +858,7 @@ const ChatMessageInputInner = (
                                     </PopoverContent>
                                 </Popover>
                                 
-                                    <MessageInputEmojiPicker editorRef={editorInstance} disabled={isPartnerDeleted} />
+                                    <MessageInputEmojiPicker editorRef={editorInstance} disabled={inputFrozen} />
 
                                     <div ref={mentionAnchorRef} className="relative flex-1 min-w-0 min-h-0">
                                         <GroupMentionSuggestionsPortal
@@ -874,6 +876,9 @@ const ChatMessageInputInner = (
                                             shouldBlockEnter={() => showMentions && conversation.isGroup}
                                             mentionBoundaryNames={mentionBoundaryNames}
                                         />
+                                    {inputFrozen ? (
+                                      <div className="pointer-events-none absolute inset-0 rounded-[1.25rem] bg-muted/20" aria-hidden />
+                                    ) : null}
                                     </div>
 
                                     {(hasContent || attachments.length > 0 || editingMessage) ? (
@@ -882,7 +887,7 @@ const ChatMessageInputInner = (
                                             size="icon"
                                             className="h-9 w-9 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                                             onClick={handleSend}
-                                            disabled={isSending}
+                                            disabled={isSending || inputFrozen}
                                         >
                                     {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
                                 </Button>
@@ -893,6 +898,7 @@ const ChatMessageInputInner = (
                                             size="icon"
                                             className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
                                             onClick={handleStartAudioRecording}
+                                            disabled={inputFrozen}
                                         >
                                             <Mic className="h-4 w-4" />
                                         </Button>
@@ -984,6 +990,9 @@ export interface ChatMessageInputProps {
     /** Локальные имена контактов текущего пользователя для @-подсказок. */
     contactProfiles?: Record<string, UserContactLocalProfile>;
     isPartnerDeleted?: boolean;
+    /** Личный чат: блокировка (взаимная или односторонняя) — как «удалён», но с отдельным текстом. */
+    composerLocked?: boolean;
+    composerLockedHint?: string;
     /** Ключ в localStorage; по умолчанию `conversation.id`. Для треда: `t:{conversationId}:{parentMessageId}`. */
     draftScopeKey?: string;
     /** Восстановить «Ответ» из черновика при открытии чата. */

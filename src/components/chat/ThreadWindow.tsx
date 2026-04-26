@@ -82,6 +82,8 @@ interface ThreadWindowProps {
     onForwardToThread?: (messages: ChatMessage[]) => void;
     onReactTo: (messageId: string, emoji: string, threadParentId?: string) => void;
     isPartnerDeleted?: boolean;
+    composerLocked?: boolean;
+    composerLockedHint?: string;
     /** Прокрутка к сообщению в треде (например, по якорю «реакция» из основного чата). */
     highlightThreadMessageId?: string | null;
     onHighlightThreadMessageConsumed?: () => void;
@@ -124,6 +126,8 @@ export function ThreadWindow({
     onNavigateToMessage,
     onUpdateMessage, onDeleteMessage, onReplyTo, onForwardMessage, onReactTo,
     isPartnerDeleted = false,
+    composerLocked = false,
+    composerLockedHint,
     highlightThreadMessageId = null,
     onHighlightThreadMessageConsumed,
     onMentionProfileOpen,
@@ -1412,6 +1416,8 @@ export function ThreadWindow({
                         allUsers={allUsers}
                         contactProfiles={contactProfiles}
                         isPartnerDeleted={isPartnerDeleted}
+                        composerLocked={composerLocked}
+                        composerLockedHint={composerLockedHint}
                         draftScopeKey={`t:${conversation.id}:${parentMessage.id}`}
                         onRestoreDraftReply={(reply) => setReplyingTo(reply)}
                     />
