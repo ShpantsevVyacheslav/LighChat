@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -18,7 +17,6 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/chat_media_gallery.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
-import '../data/e2ee_runtime.dart';
 
 import '../data/chat_emoji_only.dart';
 import '../data/chat_location_share_factory.dart';
@@ -26,7 +24,9 @@ import '../data/chat_media_layout_tokens.dart';
 import '../data/chat_poll_stub_text.dart';
 import '../data/reply_preview_builder.dart';
 import '../data/chat_attachment_upload.dart';
+import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/chat_message_search.dart';
+import '../data/user_block_providers.dart';
 import '../data/composer_clipboard_paste.dart';
 import '../data/group_mention_candidates.dart';
 import '../data/user_contacts_repository.dart';
@@ -302,6 +302,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     if (!_isIncomingUnreadForViewer(message, userId)) return;
     final id = message.id.trim();
     if (id.isEmpty) return;
+    if (id.startsWith(kLocalOutboxMessageIdPrefix)) return;
     if (_sessionReadIds.contains(id)) return;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
@@ -1023,8 +1024,6 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
   Future<void> _submitWithAttachments(String uid, [Conversation? conv]) async {
     if (_sendBusy) return;
-    final repo = ref.read(chatRepositoryProvider);
-    if (repo == null) return;
 
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
       _composerController.text,
@@ -1038,92 +1037,28 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
     final replySnap = _replyingTo;
     setState(() => _sendBusy = true);
-    _composerController.clear();
-    setState(() {
-      _pendingAttachments.clear();
-      _replyingTo = null;
-    });
-
-    try {
-      final storage = FirebaseStorage.instance;
-      final uploaded = <ChatAttachment>[];
-      for (final f in pending) {
-        uploaded.add(
-          await uploadChatAttachmentFromXFile(
-            storage: storage,
-            conversationId: widget.conversationId,
-            file: f,
-          ),
+    await ref
+        .read(chatOutboxAttachmentNotifierProvider.notifier)
+        .enqueueFromComposer(
+          conversationId: widget.conversationId,
+          senderId: uid,
+          files: pending,
+          rawCaptionHtml: prepared,
+          replyTo: replySnap,
+          convIsE2ee: isConversationE2eeActive(conv),
+          e2eeEpoch: conv?.e2eeKeyEpoch,
+          threadParentMessageId: widget.parentMessageId,
         );
-      }
-
-      // Phase 4: для текста в E2EE-обсуждении собираем encrypted envelope.
-      Map<String, Object?>? e2eeEnv;
-      String? e2eeMsgId;
-      final bool convIsE2ee = isConversationE2eeActive(conv);
-      if (convIsE2ee && plain.isNotEmpty && uploaded.isEmpty) {
-        final runtime = ref.read(mobileE2eeRuntimeProvider);
-        final epoch = conv?.e2eeKeyEpoch;
-        if (runtime != null && epoch != null) {
-          e2eeMsgId = FirebaseFirestore.instance
-              .collection('conversations')
-              .doc(widget.conversationId)
-              .collection('messages')
-              .doc(widget.parentMessageId)
-              .collection('thread')
-              .doc()
-              .id;
-          try {
-            e2eeEnv = await runtime.encryptOutgoing(
-              conversationId: widget.conversationId,
-              messageId: e2eeMsgId,
-              epoch: epoch,
-              plaintext: prepared,
-            );
-          } on MobileE2eeEncryptException catch (e) {
-            if (mounted) _toast('Шифрование недоступно: ${e.code}');
-            _composerController.text = prepared;
-            setState(() {
-              _pendingAttachments
-                ..clear()
-                ..addAll(pending);
-              _replyingTo = replySnap;
-              _sendBusy = false;
-            });
-            return;
-          }
-        }
-      }
-      await repo.sendThreadTextMessage(
-        conversationId: widget.conversationId,
-        parentMessageId: widget.parentMessageId,
-        senderId: uid,
-        text: prepared,
-        replyTo: replySnap,
-        attachments: uploaded,
-        e2eeEnvelope: e2eeEnv,
-        messageIdOverride: e2eeMsgId,
-      );
-
-      if (mounted) {
-        _composerFocus.unfocus();
-        setState(() => _composerFormattingOpen = false);
-        unawaited(_animateToThreadBottom());
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _composerController.text = prepared;
+    if (mounted) {
       setState(() {
-        _pendingAttachments
-          ..clear()
-          ..addAll(pending);
-        _replyingTo = replySnap;
+        _sendBusy = false;
+        _composerController.clear();
+        _pendingAttachments.clear();
+        _replyingTo = null;
+        _composerFormattingOpen = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось отправить: $e')));
-    } finally {
-      if (mounted) setState(() => _sendBusy = false);
+      _composerFocus.unfocus();
+      unawaited(_animateToThreadBottom());
     }
   }
 
@@ -1257,6 +1192,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
           );
         }
 
+        final outboxJobs = ref.watch(chatOutboxAttachmentNotifierProvider);
         final replyCount = parent.threadCount ?? 0;
         final convTitle = (conv?.name ?? '').trim();
         final headerTitle = convTitle.isNotEmpty ? convTitle : 'Обсуждение';
@@ -1489,7 +1425,17 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                             final hydratedParentForGallery =
                                                 _hydratedParentCache ?? parent;
                                             return ChatMessageList(
-                                              messagesDesc: hydratedThreadMsgs,
+                                              messagesDesc:
+                                                  buildDescWithOutboxMessages(
+                                                hydratedDesc:
+                                                    hydratedThreadMsgs,
+                                                jobs: outboxJobs,
+                                                conversationId:
+                                                    widget.conversationId,
+                                                senderId: user.uid,
+                                                threadParentMessageId:
+                                                    widget.parentMessageId,
+                                              ),
                                               currentUserId: user.uid,
                                               conversationId:
                                                   widget.conversationId,
@@ -1590,6 +1536,14 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                   context.pop();
                                                 }
                                               },
+                                              onOutboxRetry: (mid) {
+                                                handleOutboxRetry(ref, mid);
+                                              },
+                                              onOutboxDismiss: (mid) {
+                                                unawaited(
+                                                  handleOutboxDismiss(ref, mid),
+                                                );
+                                              },
                                             );
                                           },
                                     ),
@@ -1633,6 +1587,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                             ChatComposer(
                               controller: _composerController,
                               focusNode: _composerFocus,
+                              e2eeDisabledBanner: dmComposerBlockBanner(
+                                context: context,
+                                ref: ref,
+                                currentUserId: user.uid,
+                                conv: conv,
+                              ),
                               // Phase 4: текст в E2EE-threads уходит
                               // зашифрованным; attachments по-прежнему
                               // блокируются Phase 0 guard'ом репозитория

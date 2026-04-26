@@ -52,6 +52,20 @@ export const checkGroupInvitesAllowed = onCall(
           continue;
         }
 
+        const targetBlocked = userDoc.data()?.blockedUserIds;
+        const targetBlockedList = Array.isArray(targetBlocked) ? (targetBlocked as string[]) : [];
+        if (targetBlockedList.includes(inviterUid)) {
+          denied.push({ uid: targetId, reason: "none" });
+          continue;
+        }
+
+        const inviterBlocked = inviterDoc.data()?.blockedUserIds;
+        const inviterBlockedList = Array.isArray(inviterBlocked) ? (inviterBlocked as string[]) : [];
+        if (inviterBlockedList.includes(targetId)) {
+          denied.push({ uid: targetId, reason: "none" });
+          continue;
+        }
+
         const policy = userDoc.data()?.privacySettings?.groupInvitePolicy as
           | string
           | undefined;

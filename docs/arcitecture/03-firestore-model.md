@@ -4,7 +4,7 @@
 
 ## Коллекции верхнего уровня
 
-- `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `voipTokens` (массив iOS PushKit token для нативного входящего звонка), `notificationSettings` (глобальная политика push), `profileQrLink` (персональная web-ссылка профиля для QR-кода/шаринга).
+- `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `voipTokens` (массив iOS PushKit token для нативного входящего звонка), `notificationSettings` (глобальная политика push), `profileQrLink` (персональная web-ссылка профиля для QR-кода/шаринга), `blockedUserIds` (массив uid заблокированных пользователей — см. правила и CF `onuserwriteblocksideeffects`).
   - `chatConversationPrefs/{conversationId}` - персональные настройки чата для аккаунта (`notificationsMuted`, `notificationShowPreview`, обои и т.д.).
   - `notifications/{notificationId}`
   - `stickerPacks/{packId}/items/{itemId}`
@@ -12,7 +12,7 @@
   - `e2eeBackups/{backupId}` - password-backup обёрнутого приватника v2 (read/write только владелец). См. RFC §5.2.
   - `e2eePairingSessions/{sessionId}` - эфемерные QR-pairing сессии v2 (TTL 10 мин, чистятся scheduled CF [`cleanupE2eePairingSessions`](../functions/src/triggers/scheduler/cleanupE2eePairingSessions.ts)). См. RFC §5.3, §6.7.
   - `devices/{deviceId}` - реестр клиентских устройств/сессий пользователя (`app`, `platform`, `isActive`, `lastSeenAt`, `lastLoginAt`), read/write только владельцем uid.
-- `registrationIndex/{docId}` - индекс уникальности (email/phone/username), только server-write.
+- `registrationIndex/{docId}` - индекс уникальности (email/phone/username), только server-write; чтение для вошедших ограничено, если владелец индекса (`uid` в документе) заблокировал читателя.
 - `publicStickerPacks/{packId}` - общие стикерпаки (read: авторизованные; write: admin).
   - `items/{itemId}` - стикеры/GIF (те же поля, что у `users/*/stickerPacks/*/items`).
 - `conversations/{conversationId}` - чат и метаданные участников (в т.ч. unread-счётчики и reaction-anchor поля `lastReaction*` + `lastReactionSeenAt`).

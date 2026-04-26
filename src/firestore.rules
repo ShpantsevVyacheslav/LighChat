@@ -19,6 +19,44 @@ service cloud.firestore {
     }
 
     /**
+     * Host или пользователь, попавший в `adminIds` митинга.
+     * Требует существования meetings/{meetingId}; подколлекции вызывают функцию только в контексте
+     * существующего митинга (иначе parent-get кидает denied, что и нужно).
+     */
+    function isMeetingAdmin(meetingId) {
+      let m = get(/databases/$(database)/documents/meetings/$(meetingId)).data;
+      return isSignedIn()
+        && (m.hostId == request.auth.uid
+            || (m.adminIds is list && (request.auth.uid in m.adminIds)));
+    }
+
+    /**
+     * Участник комнаты: существует собственный participants/{uid} — ставится после входа
+     * (в т.ч. гостем после одобрения). Используется для разрешения signals/messages/polls
+     * и чтения списка других участников.
+     */
+    function isMeetingMember(meetingId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/meetings/$(meetingId)/participants/$(request.auth.uid));
+    }
+
+    /**
+     * Гость, чей `requests/{uid}` одобрен хостом. Нужен, чтобы гость мог создать свой
+     * `participants/{uid}` сразу после апрува (до того, как он стал member).
+     */
+    function isMeetingGuestApproved(meetingId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/meetings/$(meetingId)/requests/$(request.auth.uid))
+        && get(/databases/$(database)/documents/meetings/$(meetingId)/requests/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    /** Открытый (не приватный) митинг: вход без апрува. */
+    function isMeetingPublic(meetingId) {
+      return exists(/databases/$(database)/documents/meetings/$(meetingId))
+        && get(/databases/$(database)/documents/meetings/$(meetingId)).data.isPrivate == false;
+    }
+
+    /**
      * Сам пользователь не может менять блокировку, произвольную смену роли, soft-delete и квоту — только админ.
      * Исключение: OAuth-bridge (Telegram/Яндекс) получает из `onUserCreated` `role: null` (нет email/phone в Auth);
      * клиент один раз выставляет `worker` — см. `finalizeOAuthCredential` в use-auth.
@@ -82,6 +120,58 @@ service cloud.firestore {
         );
     }
 
+    /** users/{blocker}.blockedUserIds содержит uid заблокированного. */
+    function userBlocks(blockerUid, blockedUid) {
+      return exists(/databases/$(database)/documents/users/$(blockerUid))
+        && get(/databases/$(database)/documents/users/$(blockerUid)).data.blockedUserIds is list
+        && blockedUid in get(/databases/$(database)/documents/users/$(blockerUid)).data.blockedUserIds;
+    }
+
+    function isDmTwoPartyConversationData(data) {
+      return data.isGroup != true
+        && data.participantIds is list
+        && data.participantIds.size() == 2;
+    }
+
+    function dmPartnerUidFromData(data, me) {
+      let ids = data.participantIds;
+      return ids[0] == me ? ids[1] : ids[0];
+    }
+
+    /** Личный чат: собеседник заблокировал текущего — скрываем диалог для заблокированного. */
+    function isDmHiddenForViewerFromConvData(data) {
+      return isDmTwoPartyConversationData(data)
+        && userBlocks(dmPartnerUidFromData(data, request.auth.uid), request.auth.uid);
+    }
+
+    /** Личный чат: либо я заблокировал собеседника, либо он меня — не отправляем сообщения. */
+    function dmPairMessagingDeniedFromConvData(data) {
+      return isDmTwoPartyConversationData(data)
+        && (
+          userBlocks(request.auth.uid, dmPartnerUidFromData(data, request.auth.uid))
+          || userBlocks(dmPartnerUidFromData(data, request.auth.uid), request.auth.uid)
+        );
+    }
+
+    function dmPairDeniedFromParticipantCreateData(data) {
+      return data.isGroup != true
+        && data.participantIds is list
+        && data.participantIds.size() == 2
+        && (
+          userBlocks(data.participantIds[0], data.participantIds[1])
+          || userBlocks(data.participantIds[1], data.participantIds[0])
+        );
+    }
+
+    function conversationData(conversationId) {
+      return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+    }
+
+    /** Звонок 1:1: запрет, если кто-то из пары заблокировал другого. */
+    function callPairBlockedCreate(callerId, receiverId) {
+      return userBlocks(callerId, receiverId) || userBlocks(receiverId, callerId);
+    }
+
     /** Участник не может менять квоту хранилища диалога; админ — может (ветка isAdmin в allow update). */
     function conversationStorageQuotaUnchanged() {
       let beforeHas = resource.data.keys().hasAny(['storageQuotaBytes']);
@@ -103,7 +193,22 @@ service cloud.firestore {
      * Заполняется только Cloud Functions (Admin SDK); клиент только get.
      */
     match /registrationIndex/{docId} {
-      allow read: if true;
+      /**
+       * До входа (регистрация) — чтение без auth. После входа: если владелец
+       * индекса заблокировал читателя, не раскрываем привязку phone/email/login → uid.
+       */
+      allow read: if request.auth == null
+        || (
+          isSignedIn()
+          && resource.data.keys().hasAll(['uid'])
+          && resource.data.uid is string
+          && (
+            !exists(/databases/$(database)/documents/users/$(resource.data.uid))
+            || !get(/databases/$(database)/documents/users/$(resource.data.uid)).data.keys().hasAny(['blockedUserIds'])
+            || !(get(/databases/$(database)/documents/users/$(resource.data.uid)).data.blockedUserIds is list)
+            || !(request.auth.uid in get(/databases/$(database)/documents/users/$(resource.data.uid)).data.blockedUserIds)
+          )
+        );
       allow write: if false;
     }
 
@@ -122,10 +227,14 @@ service cloud.firestore {
 
     match /users/{userId} {
       /**
-       * Чтение профилей: любой авторизованный (чат, звонки, контакты, упоминания).
-       * Ужесточение — вынести публичные поля в отдельную коллекцию + Server Actions (см. аудит).
+       * Чтение чужого профиля запрещено, если владелец добавил читателя в blockedUserIds.
        */
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId
+        || !resource.data.keys().hasAny(['blockedUserIds'])
+        || !(resource.data.blockedUserIds is list)
+        || !(request.auth.uid in resource.data.blockedUserIds)
+      );
       allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow update: if isSignedIn() && (
         isAdmin() ||
@@ -144,43 +253,134 @@ service cloud.firestore {
         }
       }
 
-      /** Публичные ключи E2E (только обёртки для участников чатов). */
-      match /e2ee/{docId} {
+      /**
+       * v2: публичные ключи всех устройств пользователя. Read — любой
+       * авторизованный (нужно, чтобы слать wrap каждому устройству собеседника),
+       * write — только владелец `userId`. См. docs/arcitecture/07-e2ee-v2-protocol.md §5.1.
+       *
+       * Legacy `users/{uid}/e2ee/{docId}` (v1) удалён в Phase 10 cleanup.
+       */
+      match /e2eeDevices/{deviceId} {
         allow read: if isSignedIn();
         allow write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /**
+       * v2: password-backup обёрнутого приватника. Только владелец видит
+       * и пишет свои backup-doc'и. См. RFC §5.2.
+       */
+      match /e2eeBackups/{backupId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /**
+       * v2: эфемерная QR-pairing сессия, TTL 10 минут (чистится scheduled CF).
+       * Только владелец видит и пишет. См. RFC §5.3 и §6.7.
+       */
+      match /e2eePairingSessions/{sessionId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
 
       /** Реестр устройств пользователя: текущие клиентские сессии, active/lastSeen/fcm. */
       match /devices/{deviceId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
+      /** Избранные сообщения в чатах (только владелец). */
+      match /starredChatMessages/{docId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() && request.auth.uid == userId
+          && request.resource.data.conversationId is string
+          && request.resource.data.messageId is string
+          && request.resource.data.createdAt is string
+          && isConversationMember(request.resource.data.conversationId);
+        allow update: if false;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /** Персональные настройки конкретного чата (только владелец и участник чата). */
+      match /chatConversationPrefs/{conversationId} {
+        allow read, delete: if isSignedIn() && request.auth.uid == userId
+          && isConversationMember(conversationId);
+        allow create, update: if isSignedIn() && request.auth.uid == userId
+          && isConversationMember(conversationId)
+          && request.resource.data.conversationId == conversationId;
+      }
     }
 
+    /**
+     * Митинги (video-конференции):
+     *   - `meetings/{id}` — публичный для чтения любому залогиненному (включая анонимного
+     *     гостя, открывшего /meetings/{id}; иначе JoinMeeting получает permission-denied
+     *     ещё до подачи заявки). Создание/изменение/удаление — только host/admin.
+     *   - `signals/*`, `messages/*`, `polls/*` — приватно для участников (есть participants/{uid}).
+     *   - `participants/{uid}` — запись только своего документа, и только если митинг открытый,
+     *     гость одобрен, либо пользователь — host/admin. Чтение списка — только участникам.
+     *   - `requests/{uid}` — self-create/heartbeat, host-update (approve/deny через callable).
+     */
     match /meetings/{meetingId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.id == meetingId;
+      allow update: if isSignedIn() && (
+        resource.data.hostId == request.auth.uid
+        || (resource.data.adminIds is list && (request.auth.uid in resource.data.adminIds))
+      );
+      allow delete: if isSignedIn() && resource.data.hostId == request.auth.uid;
 
       match /signals/{signalId} {
-        allow read, write: if isSignedIn();
+        allow read: if isMeetingMember(meetingId)
+          && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+        allow create: if isMeetingMember(meetingId)
+          && request.resource.data.from == request.auth.uid;
+        allow delete: if isMeetingMember(meetingId)
+          && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
       }
 
       match /participants/{participantId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+        allow read: if isMeetingMember(meetingId)
+          || isMeetingAdmin(meetingId)
+          || request.auth.uid == participantId;
+        allow create: if isSignedIn() && request.auth.uid == participantId && (
+          isMeetingPublic(meetingId)
+          || isMeetingGuestApproved(meetingId)
+          || isMeetingAdmin(meetingId)
+        );
+        allow update: if isSignedIn() && (
+          request.auth.uid == participantId
+          || isMeetingAdmin(meetingId)
+        );
+        allow delete: if isSignedIn() && (
+          request.auth.uid == participantId
+          || isMeetingAdmin(meetingId)
+        );
       }
 
       match /requests/{userId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if isSignedIn() && (request.auth.uid == userId || isMeetingHost(meetingId));
+        allow read: if isSignedIn() && (
+          request.auth.uid == userId
+          || isMeetingAdmin(meetingId)
+        );
+        allow create, update, delete: if isSignedIn() && (
+          request.auth.uid == userId
+          || isMeetingAdmin(meetingId)
+        );
       }
 
       match /messages/{messageId} {
-        allow read, write: if isSignedIn();
+        allow read: if isMeetingMember(meetingId);
+        allow create: if isMeetingMember(meetingId)
+          && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if isMeetingMember(meetingId) && (
+          resource.data.senderId == request.auth.uid
+          || isMeetingAdmin(meetingId)
+        );
       }
 
       match /polls/{pollId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn();
+        allow read: if isMeetingMember(meetingId);
+        allow write: if isMeetingMember(meetingId);
       }
     }
 
@@ -229,7 +429,10 @@ service cloud.firestore {
               : (
                   isAdmin() ||
                   exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
-                  uidIsConversationParticipantFromData(resource.data)
+                  (
+                    uidIsConversationParticipantFromData(resource.data)
+                    && !isDmHiddenForViewerFromConvData(resource.data)
+                  )
                 )
           )
         ) ||
@@ -238,7 +441,8 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && uidIsConversationParticipantFromData(request.resource.data)
         && request.resource.data.participantIds is list
-        && request.resource.data.participantIds.size() >= 1;
+        && request.resource.data.participantIds.size() >= 1
+        && !dmPairDeniedFromParticipantCreateData(request.resource.data);
       allow update: if isSignedIn() && (
         isAdmin() ||
         (
@@ -255,32 +459,62 @@ service cloud.firestore {
       }
 
       /**
-       * Индикатор «печатает…». Удаление своего typing-документа — по uid (см. firestore.rules).
+       * Индикатор «печатает…». Читать/писать — только участникам.
+       * Удаление своего документа разрешено любому вошедшему с тем же uid: клиент чистит typing
+       * при смене чата; строгая проверка member иногда ломалась на старых/групповых документах.
        */
       match /typing/{typingUserId} {
-        allow read: if isConversationMember(conversationId);
-        allow create, update: if isConversationMember(conversationId) && request.auth.uid == typingUserId;
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow create, update: if isConversationMember(conversationId)
+          && request.auth.uid == typingUserId
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
         allow delete: if isSignedIn() && request.auth.uid == typingUserId;
       }
 
       match /messages/{messageId} {
-        allow read: if isConversationMember(conversationId);
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        // Phase 8: разрешаем клиенту писать system-маркер E2EE
+        // (senderId = '__system__') при условии, что в документе есть
+        // `systemEvent` c допустимым `type`. Обычные сообщения по-прежнему
+        // должны иметь senderId == auth.uid.
         allow create: if isConversationMember(conversationId)
-          && request.resource.data.senderId == request.auth.uid;
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
+          && (
+          request.resource.data.senderId == request.auth.uid
+          || (
+            request.resource.data.senderId == '__system__'
+            && request.resource.data.systemEvent is map
+            && request.resource.data.systemEvent.type is string
+          )
+        );
         allow update, delete: if isConversationMember(conversationId);
 
         match /{subPath=**} {
-          allow read, write: if isConversationMember(conversationId);
+          allow read: if isConversationMember(conversationId)
+            && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+          allow write: if isConversationMember(conversationId)
+            && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+            && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
         }
       }
 
       match /polls/{pollId} {
-        allow read, write: if isConversationMember(conversationId);
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow write: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
       }
 
       /** Эпохи ключей E2E (ciphertext обёрток на участника). */
       match /e2eeSessions/{sessionId} {
-        allow read, write: if isConversationMember(conversationId);
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow write: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
       }
     }
 
@@ -292,7 +526,11 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.callerId == request.auth.uid
         && request.resource.data.receiverId is string
-        && request.resource.data.callerId is string;
+        && request.resource.data.callerId is string
+        && !callPairBlockedCreate(
+          request.resource.data.callerId,
+          request.resource.data.receiverId
+        );
       allow update, delete: if isSignedIn() && (
         request.auth.uid == resource.data.callerId ||
         request.auth.uid == resource.data.receiverId

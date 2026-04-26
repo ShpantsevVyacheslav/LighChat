@@ -12,6 +12,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../chat/ui/chat_cached_network_image.dart';
 import '../../chat/ui/user_avatar_fullscreen_viewer.dart';
+import '../../chat/ui/blocked_users_screen.dart';
 import 'auth_validators.dart';
 import 'auth_glass.dart';
 import 'avatar_picker_cropper.dart';
@@ -570,6 +571,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           readOnly: !_editing,
                           hintText: 'Кратко о себе',
                           maxLines: 4,
+                        ),
+                        const SizedBox(height: 14),
+                        Material(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(16),
+                          child: ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            leading: const Icon(
+                              Icons.block_rounded,
+                              color: Color(0xFFEAF2FF),
+                            ),
+                            title: Text(
+                              'Заблокированные',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: titleColor,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: titleColor.withValues(alpha: 0.72),
+                            ),
+                            onTap: () {
+                              Navigator.of(context).push<void>(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const BlockedUsersScreen(),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                         if (_editing) ...[
                           const SizedBox(height: 22),

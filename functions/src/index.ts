@@ -26,6 +26,7 @@ export { retryChatMediaTranscode } from './triggers/http/retryChatMediaTranscode
 // Firestore Triggers
 export { onconversationcreated } from './triggers/firestore/onConversationCreated';
 export { onuserwritesyncregistrationindex } from './triggers/firestore/onUserWriteSyncRegistrationIndex';
+export { onuserwriteblocksideeffects } from './triggers/firestore/onUserWriteBlockSideEffects';
 export { onconversationdeleted } from './triggers/firestore/onConversationDeleted';
 export { onconversationupdated } from './triggers/firestore/onConversationUpdated';
 export { onmessagecreated } from './triggers/firestore/onMessageCreated';

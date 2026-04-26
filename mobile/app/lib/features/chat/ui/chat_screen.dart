@@ -59,6 +59,7 @@ import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
+import '../data/user_block_providers.dart';
 import '../data/chat_pending_album_provider.dart';
 import '../data/outgoing_album_e2ee_context.dart';
 import '../data/pending_image_album_send.dart';
@@ -1431,61 +1432,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                             }
                                                           },
                                                           onOutboxRetry: (mid) {
-                                                            final jid =
-                                                                outboxJobIdFromSyntheticMessageId(
+                                                            handleOutboxRetry(
+                                                              ref,
                                                               mid,
                                                             );
-                                                            if (jid == null) {
-                                                              return;
-                                                            }
-                                                            ref
-                                                                .read(
-                                                                  chatOutboxAttachmentNotifierProvider
-                                                                      .notifier,
-                                                                )
-                                                                .retry(jid);
                                                           },
-                                                          onOutboxDismiss: (mid) {
-                                                            final jid =
-                                                                outboxJobIdFromSyntheticMessageId(
-                                                              mid,
+                                                          onOutboxDismiss:
+                                                              (mid) {
+                                                            unawaited(
+                                                              handleOutboxDismiss(
+                                                                ref,
+                                                                mid,
+                                                              ),
                                                             );
-                                                            if (jid == null) {
-                                                              return;
-                                                            }
-                                                            final jobs = ref.read(
-                                                              chatOutboxAttachmentNotifierProvider,
-                                                            );
-                                                            OutboxAttachmentJob?
-                                                                hit;
-                                                            for (final j
-                                                                in jobs) {
-                                                              if (j.id ==
-                                                                  jid) {
-                                                                hit = j;
-                                                                break;
-                                                              }
-                                                            }
-                                                            if (hit == null) {
-                                                              return;
-                                                            }
-                                                            final n = ref.read(
-                                                              chatOutboxAttachmentNotifierProvider
-                                                                  .notifier,
-                                                            );
-                                                            if (hit.phase ==
-                                                                OutboxAttachmentPhase
-                                                                    .failed) {
-                                                              unawaited(
-                                                                n.removeJobDisplay(
-                                                                  jid,
-                                                                ),
-                                                              );
-                                                            } else {
-                                                              n.requestCancelInFlight(
-                                                                jid,
-                                                              );
-                                                            }
                                                           },
                                                           fontSize: fontSize,
                                                           bubbleRadius:
@@ -1795,6 +1754,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ChatComposer(
                                     controller: _controller,
                                     focusNode: _composerFocusNode,
+                                    e2eeDisabledBanner: dmComposerBlockBanner(
+                                      context: context,
+                                      ref: ref,
+                                      currentUserId: user.uid,
+                                      conv: conv?.data,
+                                    ),
                                     // Phase 4: в E2EE-чатах текст отправляется
                                     // зашифрованным через [MobileE2eeRuntime].
                                     // Баннер оставляем только когда runtime ещё
@@ -3032,32 +2997,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? ref.read(mobileE2eeRuntimeProvider)
         : null;
     final int? e2eeEpoch = conv?.e2eeKeyEpoch;
-    Future<(String, Map<String, Object?>)?> buildE2eeForText(
-      String plaintextHtml,
-    ) async {
-      if (!convIsE2ee || e2eeRuntime == null || e2eeEpoch == null) return null;
-      final msgId = FirebaseFirestore.instance
-          .collection('conversations')
-          .doc(widget.conversationId)
-          .collection('messages')
-          .doc()
-          .id;
-      try {
-        final env = await e2eeRuntime.encryptOutgoing(
-          conversationId: widget.conversationId,
-          messageId: msgId,
-          epoch: e2eeEpoch,
-          plaintext: plaintextHtml,
-        );
-        return (msgId, env);
-      } on MobileE2eeEncryptException catch (e) {
-        if (mounted) _toast('Шифрование недоступно: ${e.code}');
-        return null;
-      } catch (e) {
-        if (mounted) _toast('Не удалось зашифровать: $e');
-        return null;
-      }
-    }
 
     if (_sendBusy) return;
     final rawComposer = _controller.text;
@@ -3194,41 +3133,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final replySnap = _replyingTo;
     _controller.clear();
-    try {
-      final e2eeTextPayload = plainOut.isEmpty
-          ? null
-          : await buildE2eeForText(prepared);
-      if (convIsE2ee && plainOut.isNotEmpty && e2eeTextPayload == null) {
-        // Шифрование не удалось (toast уже показан), plaintext отправлять
-        // нельзя. Возвращаем текст в composer и прерываем.
-        _controller.text = rawComposer;
-        return;
-      }
-      await repo.sendTextMessage(
-        conversationId: widget.conversationId,
-        senderId: uid,
-        text: plainOut.isEmpty ? '' : prepared,
-        replyTo: replySnap,
-        e2eeEnvelope: e2eeTextPayload?.$2,
-        messageIdOverride: e2eeTextPayload?.$1,
-      );
-      if (mounted) {
-        unawaited(clearChatMessageDraft(uid, widget.conversationId));
-        setState(() {
-          _replyingTo = null;
-          _composerFormattingOpen = false;
-        });
-        _scheduleAutoScrollToBottomIfNeeded();
-      }
-    } catch (e) {
-      final details = e is FirebaseException
-          ? '${e.code}${e.message == null ? '' : ': ${e.message}'}'
-          : '$e';
-      _controller.text = rawComposer;
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось отправить сообщение: $details')),
-      );
+    setState(() => _sendBusy = true);
+    await ref
+        .read(chatOutboxAttachmentNotifierProvider.notifier)
+        .enqueueFromComposer(
+          conversationId: widget.conversationId,
+          senderId: uid,
+          files: const <XFile>[],
+          rawCaptionHtml: prepared,
+          replyTo: replySnap,
+          convIsE2ee: convIsE2ee,
+          e2eeEpoch: e2eeEpoch,
+        );
+    if (mounted) {
+      setState(() {
+        _sendBusy = false;
+        _replyingTo = null;
+        _composerFormattingOpen = false;
+      });
+      unawaited(clearChatMessageDraft(uid, widget.conversationId));
+      _scheduleAutoScrollToBottomIfNeeded();
     }
   }
 

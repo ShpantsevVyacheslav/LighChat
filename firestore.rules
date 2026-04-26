@@ -120,6 +120,58 @@ service cloud.firestore {
         );
     }
 
+    /** users/{blocker}.blockedUserIds содержит uid заблокированного. */
+    function userBlocks(blockerUid, blockedUid) {
+      return exists(/databases/$(database)/documents/users/$(blockerUid))
+        && get(/databases/$(database)/documents/users/$(blockerUid)).data.blockedUserIds is list
+        && blockedUid in get(/databases/$(database)/documents/users/$(blockerUid)).data.blockedUserIds;
+    }
+
+    function isDmTwoPartyConversationData(data) {
+      return data.isGroup != true
+        && data.participantIds is list
+        && data.participantIds.size() == 2;
+    }
+
+    function dmPartnerUidFromData(data, me) {
+      let ids = data.participantIds;
+      return ids[0] == me ? ids[1] : ids[0];
+    }
+
+    /** Личный чат: собеседник заблокировал текущего — скрываем диалог для заблокированного. */
+    function isDmHiddenForViewerFromConvData(data) {
+      return isDmTwoPartyConversationData(data)
+        && userBlocks(dmPartnerUidFromData(data, request.auth.uid), request.auth.uid);
+    }
+
+    /** Личный чат: либо я заблокировал собеседника, либо он меня — не отправляем сообщения. */
+    function dmPairMessagingDeniedFromConvData(data) {
+      return isDmTwoPartyConversationData(data)
+        && (
+          userBlocks(request.auth.uid, dmPartnerUidFromData(data, request.auth.uid))
+          || userBlocks(dmPartnerUidFromData(data, request.auth.uid), request.auth.uid)
+        );
+    }
+
+    function dmPairDeniedFromParticipantCreateData(data) {
+      return data.isGroup != true
+        && data.participantIds is list
+        && data.participantIds.size() == 2
+        && (
+          userBlocks(data.participantIds[0], data.participantIds[1])
+          || userBlocks(data.participantIds[1], data.participantIds[0])
+        );
+    }
+
+    function conversationData(conversationId) {
+      return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+    }
+
+    /** Звонок 1:1: запрет, если кто-то из пары заблокировал другого. */
+    function callPairBlockedCreate(callerId, receiverId) {
+      return userBlocks(callerId, receiverId) || userBlocks(receiverId, callerId);
+    }
+
     /** Участник не может менять квоту хранилища диалога; админ — может (ветка isAdmin в allow update). */
     function conversationStorageQuotaUnchanged() {
       let beforeHas = resource.data.keys().hasAny(['storageQuotaBytes']);
@@ -141,7 +193,22 @@ service cloud.firestore {
      * Заполняется только Cloud Functions (Admin SDK); клиент только get.
      */
     match /registrationIndex/{docId} {
-      allow read: if true;
+      /**
+       * До входа (регистрация) — чтение без auth. После входа: если владелец
+       * индекса заблокировал читателя, не раскрываем привязку phone/email/login → uid.
+       */
+      allow read: if request.auth == null
+        || (
+          isSignedIn()
+          && resource.data.keys().hasAll(['uid'])
+          && resource.data.uid is string
+          && (
+            !exists(/databases/$(database)/documents/users/$(resource.data.uid))
+            || !get(/databases/$(database)/documents/users/$(resource.data.uid)).data.keys().hasAny(['blockedUserIds'])
+            || !(get(/databases/$(database)/documents/users/$(resource.data.uid)).data.blockedUserIds is list)
+            || !(request.auth.uid in get(/databases/$(database)/documents/users/$(resource.data.uid)).data.blockedUserIds)
+          )
+        );
       allow write: if false;
     }
 
@@ -160,10 +227,14 @@ service cloud.firestore {
 
     match /users/{userId} {
       /**
-       * Чтение профилей: любой авторизованный (чат, звонки, контакты, упоминания).
-       * Ужесточение — вынести публичные поля в отдельную коллекцию + Server Actions (см. аудит).
+       * Чтение чужого профиля запрещено, если владелец добавил читателя в blockedUserIds.
        */
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId
+        || !resource.data.keys().hasAny(['blockedUserIds'])
+        || !(resource.data.blockedUserIds is list)
+        || !(request.auth.uid in resource.data.blockedUserIds)
+      );
       allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow update: if isSignedIn() && (
         isAdmin() ||
@@ -358,7 +429,10 @@ service cloud.firestore {
               : (
                   isAdmin() ||
                   exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) ||
-                  uidIsConversationParticipantFromData(resource.data)
+                  (
+                    uidIsConversationParticipantFromData(resource.data)
+                    && !isDmHiddenForViewerFromConvData(resource.data)
+                  )
                 )
           )
         ) ||
@@ -367,7 +441,8 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && uidIsConversationParticipantFromData(request.resource.data)
         && request.resource.data.participantIds is list
-        && request.resource.data.participantIds.size() >= 1;
+        && request.resource.data.participantIds.size() >= 1
+        && !dmPairDeniedFromParticipantCreateData(request.resource.data);
       allow update: if isSignedIn() && (
         isAdmin() ||
         (
@@ -389,18 +464,24 @@ service cloud.firestore {
        * при смене чата; строгая проверка member иногда ломалась на старых/групповых документах.
        */
       match /typing/{typingUserId} {
-        allow read: if isConversationMember(conversationId);
-        allow create, update: if isConversationMember(conversationId) && request.auth.uid == typingUserId;
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow create, update: if isConversationMember(conversationId)
+          && request.auth.uid == typingUserId
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
         allow delete: if isSignedIn() && request.auth.uid == typingUserId;
       }
 
       match /messages/{messageId} {
-        allow read: if isConversationMember(conversationId);
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
         // Phase 8: разрешаем клиенту писать system-маркер E2EE
         // (senderId = '__system__') при условии, что в документе есть
         // `systemEvent` c допустимым `type`. Обычные сообщения по-прежнему
         // должны иметь senderId == auth.uid.
-        allow create: if isConversationMember(conversationId) && (
+        allow create: if isConversationMember(conversationId)
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
+          && (
           request.resource.data.senderId == request.auth.uid
           || (
             request.resource.data.senderId == '__system__'
@@ -411,17 +492,29 @@ service cloud.firestore {
         allow update, delete: if isConversationMember(conversationId);
 
         match /{subPath=**} {
-          allow read, write: if isConversationMember(conversationId);
+          allow read: if isConversationMember(conversationId)
+            && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+          allow write: if isConversationMember(conversationId)
+            && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+            && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
         }
       }
 
       match /polls/{pollId} {
-        allow read, write: if isConversationMember(conversationId);
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow write: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
       }
 
       /** Эпохи ключей E2E (ciphertext обёрток на участника). */
       match /e2eeSessions/{sessionId} {
-        allow read, write: if isConversationMember(conversationId);
+        allow read: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow write: if isConversationMember(conversationId)
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
       }
     }
 
@@ -433,7 +526,11 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.callerId == request.auth.uid
         && request.resource.data.receiverId is string
-        && request.resource.data.callerId is string;
+        && request.resource.data.callerId is string
+        && !callPairBlockedCreate(
+          request.resource.data.callerId,
+          request.resource.data.receiverId
+        );
       allow update, delete: if isSignedIn() && (
         request.auth.uid == resource.data.callerId ||
         request.auth.uid == resource.data.receiverId

@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { 
     SendHorizonal, Paperclip, X, Reply, Mic, StopCircle, Video, 
-    File as FileIcon, Trash2, Pencil, UserX, Loader2, Type, MapPin, BarChart3, SmilePlus
+    File as FileIcon, Trash2, Pencil, UserX, Loader2, Type, MapPin, BarChart3, SmilePlus, Ban
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -100,6 +100,8 @@ const ChatMessageInputInner = (
     allUsers,
     contactProfiles,
     isPartnerDeleted = false,
+    composerLocked = false,
+    composerLockedHint,
     draftScopeKey,
     onRestoreDraftReply,
   }: ChatMessageInputProps,
@@ -155,6 +157,8 @@ const ChatMessageInputInner = (
     const firestore = useFirestore();
     const storage = useStorage();
     const firebaseAuth = useAuth();
+
+    const inputFrozen = isPartnerDeleted || composerLocked;
 
     const groupMentionCandidates = useMemo((): User[] => {
         return buildGroupMentionCandidates(conversation, allUsers, currentUser.id, {
@@ -221,7 +225,7 @@ const ChatMessageInputInner = (
 
     const flushTypingDocument = useCallback(
         (active: boolean) => {
-            if (!typingDocRef || isPartnerDeleted) return;
+            if (!typingDocRef || inputFrozen) return;
             const uid = firebaseAuth.currentUser?.uid;
             if (!active) {
                 if (uid && typingDocRef.id === uid) {
@@ -232,12 +236,12 @@ const ChatMessageInputInner = (
             if (!uid || typingDocRef.id !== uid) return;
             setDocumentNonBlocking(typingDocRef, { at: new Date().toISOString() }, { merge: true });
         },
-        [typingDocRef, isPartnerDeleted, firebaseAuth]
+        [typingDocRef, inputFrozen, firebaseAuth]
     );
 
     const updateTypingStatus = useCallback(
         (isTyping: boolean) => {
-            if (!firestore || !conversation || isPartnerDeleted || !typingDocRef) return;
+            if (!firestore || !conversation || inputFrozen || !typingDocRef) return;
             if (!isTyping) {
                 if (typingThrottleTimerRef.current) {
                     clearTimeout(typingThrottleTimerRef.current);
@@ -260,18 +264,18 @@ const ChatMessageInputInner = (
                 typingThrottleTimerRef.current = setTimeout(sendPulse, TYPING_WRITE_THROTTLE_MS - elapsed);
             }
         },
-        [firestore, conversation, isPartnerDeleted, typingDocRef, flushTypingDocument]
+        [firestore, conversation, inputFrozen, typingDocRef, flushTypingDocument]
     );
 
     useEffect(() => {
         return () => {
             if (typingThrottleTimerRef.current) clearTimeout(typingThrottleTimerRef.current);
             const uid = firebaseAuth.currentUser?.uid;
-            if (typingDocRef && !isPartnerDeleted && uid && typingDocRef.id === uid) {
+            if (typingDocRef && !inputFrozen && uid && typingDocRef.id === uid) {
                 deleteDocumentNonBlocking(typingDocRef);
             }
         };
-    }, [typingDocRef, isPartnerDeleted, firebaseAuth]);
+    }, [typingDocRef, inputFrozen, firebaseAuth]);
 
     const flushDraftToStorageForKey = useCallback(
         (scopeKey: string) => {
@@ -333,7 +337,7 @@ const ChatMessageInputInner = (
 
     const handleSend = async () => {
         const editor = editorInstance.current;
-        if (isSending || isPartnerDeleted || !editor) return;
+        if (isSending || inputFrozen || !editor) return;
         
         const text = editor.getHTML();
         const hasText = editor.getText().trim().length > 0;
@@ -395,6 +399,7 @@ const ChatMessageInputInner = (
         
         syncMentionUiFromQuery(mentionQuery);
 
+        if (inputFrozen) return;
         updateTypingStatus(true);
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => updateTypingStatus(false), 3000);
@@ -409,10 +414,10 @@ const ChatMessageInputInner = (
 
     /** `applyKeyboardStickerHeuristic`: PNG/WebP/JPEG — только вставка с клавиатуры. HEIC/HEIF всегда проверяются на малый «стикерный» размер и при успехе конвертируются в PNG + `sticker_`. */
     const ingestAttachmentFiles = useCallback(async (raw: File[], applyKeyboardStickerHeuristic: boolean) => {
-        if (!raw.length || isPartnerDeleted) return;
+        if (!raw.length || inputFrozen) return;
         const next = await normalizeFilesAsStickersIfApplicable(raw, applyKeyboardStickerHeuristic);
         setAttachments((prev) => [...prev, ...next]);
-    }, [isPartnerDeleted]);
+    }, [inputFrozen]);
 
     useImperativeHandle(ref, () => ({
         addDraftFiles: (files: File[]) => {
@@ -425,6 +430,7 @@ const ChatMessageInputInner = (
     };
 
     const handleStartVideoRecording = async () => {
+        if (inputFrozen) return;
         setIsAttachmentMenuOpen(false);
         setAttachmentSubview('main');
         try {
@@ -477,7 +483,7 @@ const ChatMessageInputInner = (
     }, []);
 
     const handleSendAudioPreview = async () => {
-        if (!audioPreview || isSending || isPartnerDeleted) return;
+        if (!audioPreview || isSending || inputFrozen) return;
         const { file, url } = audioPreview;
         const currentReplyingTo = replyingTo;
         URL.revokeObjectURL(url);
@@ -494,6 +500,7 @@ const ChatMessageInputInner = (
     };
 
     const handleStartAudioRecording = async () => {
+        if (inputFrozen) return;
         try {
             setAudioPreview((prev) => {
                 if (prev?.url) URL.revokeObjectURL(prev.url);
@@ -578,6 +585,11 @@ const ChatMessageInputInner = (
                 {isPartnerDeleted ? (
                     <div className="p-4 bg-muted/50 rounded-2xl flex items-center justify-center gap-2 text-muted-foreground">
                         <UserX className="h-4 w-4" /><p className="text-sm font-medium">Пользователь удален</p>
+                    </div>
+                ) : composerLocked && composerLockedHint ? (
+                    <div className="flex gap-3 rounded-2xl bg-muted/50 p-4 text-muted-foreground">
+                        <Ban className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                        <p className="text-sm font-medium leading-snug">{composerLockedHint}</p>
                     </div>
                 ) : isVideoRecording ? (
                     <div className="mb-2 flex flex-row items-center justify-center gap-3 sm:gap-4">
@@ -739,7 +751,11 @@ const ChatMessageInputInner = (
                                             if (!open) setAttachmentSubview('main');
                                         }}
                                     >
-                                    <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9 shrink-0"><Paperclip className="h-4 w-4" /></Button></PopoverTrigger>
+                                    <PopoverTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" disabled={inputFrozen}>
+                                        <Paperclip className="h-4 w-4" />
+                                      </Button>
+                                    </PopoverTrigger>
                                         <PopoverContent
                                             className={cn(
                                                 attachmentSubview === 'sticker-gif' ? 'w-[min(100vw-1.5rem,20rem)]' : 'w-64',
@@ -803,7 +819,7 @@ const ChatMessageInputInner = (
                                                         <Button
                                                             variant="ghost"
                                                             type="button"
-                                                            disabled={isPartnerDeleted}
+                                                            disabled={inputFrozen}
                                                             onClick={() => { setIsAttachmentMenuOpen(false); setLocationDialogOpen(true); }}
                                                             className="w-full justify-start rounded-xl h-11"
                                                         >
@@ -815,7 +831,7 @@ const ChatMessageInputInner = (
                                                         <Button
                                                             variant="ghost"
                                                             type="button"
-                                                            disabled={isPartnerDeleted}
+                                                            disabled={inputFrozen}
                                                             onClick={() => { setIsAttachmentMenuOpen(false); setPollDialogOpen(true); }}
                                                             className="w-full justify-start rounded-xl h-11"
                                                         >

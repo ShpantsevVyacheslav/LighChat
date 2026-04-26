@@ -23,6 +23,7 @@ import '../data/user_chat_policy.dart';
 import '../data/contact_display_name.dart';
 import '../data/e2ee_auto_enable_helper.dart';
 import '../data/user_contacts_repository.dart';
+import '../data/user_block_providers.dart';
 import '../data/user_profile.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_avatar.dart';
@@ -603,6 +604,86 @@ class _ChatPartnerProfileSheetState
     );
   }
 
+  Future<void> _toggleBlockPartner(
+    String partnerId,
+    bool currentlyBlocked,
+  ) async {
+    if (currentlyBlocked) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Разблокировать пользователя?'),
+          content: const Text(
+            'Пользователь снова сможет писать вам и видеть ваш профиль в поиске (в пределах правил приватности).',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Разблокировать'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.currentUserId)
+            .set(
+          <String, Object?>{
+            'blockedUserIds': FieldValue.arrayRemove([partnerId]),
+          },
+          SetOptions(merge: true),
+        );
+        if (mounted) _toast('Пользователь разблокирован');
+      } catch (e) {
+        if (mounted) _toast('Не удалось разблокировать: $e');
+      }
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Заблокировать пользователя?'),
+        content: const Text(
+          'Он не увидит чат с вами, не сможет найти вас в поиске и добавить в контакты. '
+          'У него вы пропадёте из контактов. Вы сохраните переписку, но не сможете писать ему, '
+          'пока он в списке заблокированных.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Заблокировать'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.currentUserId)
+          .set(
+        <String, Object?>{
+          'blockedUserIds': FieldValue.arrayUnion([partnerId]),
+        },
+        SetOptions(merge: true),
+      );
+      if (mounted) _toast('Пользователь заблокирован');
+    } catch (e) {
+      if (mounted) _toast('Не удалось заблокировать: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final partnerId = _dmPartnerId;
@@ -676,6 +757,13 @@ class _ChatPartnerProfileSheetState
     final encryptionSubtitle = e2eeOn
         ? 'Сквозное шифрование включено. Нажмите для подробностей.'
         : 'Сквозное шифрование выключено. Нажмите, чтобы включить.';
+
+    final myBlockedAsync = ref.watch(
+      userBlockedUserIdsProvider(widget.currentUserId),
+    );
+    final myBlocked = myBlockedAsync.value ?? const <String>[];
+    final partnerIsBlocked =
+        partnerId != null && myBlocked.contains(partnerId);
 
     List<Widget> buildScrollChildren() {
       return [
@@ -914,6 +1002,18 @@ class _ChatPartnerProfileSheetState
                   context.push('/chats/${widget.conversationId}/threads');
                 },
               ),
+              if (!_isGroup && !_isSaved && partnerId != null)
+                _menuButton(
+                  context,
+                  icon: partnerIsBlocked
+                      ? Icons.lock_open_rounded
+                      : Icons.block_rounded,
+                  title:
+                      partnerIsBlocked ? 'Разблокировать' : 'Заблокировать',
+                  onTap: () => unawaited(
+                    _toggleBlockPartner(partnerId, partnerIsBlocked),
+                  ),
+                ),
               _sectionDivider(),
               _menuButton(
                 context,
