@@ -39,6 +39,15 @@ class ChatWallpaperBackground extends StatelessWidget {
     'linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)': const LinearGradient(
       colors: [Color(0xFFD4FC79), Color(0xFF96E6A1)],
     ),
+    'linear-gradient(135deg, #C6E8EB 0%, #E9D0DE 100%)': const LinearGradient(
+      colors: [Color(0xFFC6E8EB), Color(0xFFE9D0DE)],
+    ),
+    'linear-gradient(135deg, #D9F904 0%, #6CEB00 100%)': const LinearGradient(
+      colors: [Color(0xFFD9F904), Color(0xFF6CEB00)],
+    ),
+    'linear-gradient(135deg, #151619 0%, #23242A 100%)': const LinearGradient(
+      colors: [Color(0xFF151619), Color(0xFF23242A)],
+    ),
   };
 
   @override

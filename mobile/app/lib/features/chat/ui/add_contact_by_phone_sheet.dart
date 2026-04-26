@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
@@ -817,42 +818,70 @@ class _AddContactByPhoneSheetState
                     children: [
                       Row(
                         children: [
-                          ChatAvatar(
-                            title: title,
-                            radius: 24,
-                            avatarUrl: profile.avatarThumb ?? profile.avatar,
-                          ),
-                          const SizedBox(width: 10),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.95),
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  context.push(
+                                    '/contacts/user/${Uri.encodeComponent(profile.id)}',
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      ChatAvatar(
+                                        title: title,
+                                        radius: 24,
+                                        avatarUrl:
+                                            profile.avatarThumb ??
+                                            profile.avatar,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              title,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.95,
+                                                ),
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                            if (subtitle != null) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                subtitle,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: Colors.white
+                                                      .withValues(
+                                                    alpha: 0.68,
+                                                  ),
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                if (subtitle != null) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    subtitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.68,
-                                      ),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ],
+                              ),
                             ),
                           ),
                           Container(

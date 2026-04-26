@@ -39,6 +39,7 @@ import 'chat_audio_call_screen.dart';
 import 'chat_video_call_screen.dart';
 import 'chat_header.dart';
 import 'chat_message_search_overlay.dart';
+import 'effective_chat_wallpaper.dart';
 import 'chat_wallpaper_background.dart';
 import 'chat_media_viewer_screen.dart';
 import 'chat_message_list.dart';
@@ -57,6 +58,10 @@ import 'chat_poll_create_sheet.dart';
 import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
+import '../data/chat_outbox_attachment_notifier.dart';
+import '../data/chat_pending_album_provider.dart';
+import '../data/outgoing_album_e2ee_context.dart';
+import '../data/pending_image_album_send.dart';
 import 'outgoing_pending_media_album.dart';
 import 'live_location_stop_banner.dart';
 import 'location_send_preview_sheet.dart';
@@ -125,8 +130,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _actionBusy = false;
   final List<XFile> _pendingAttachments = <XFile>[];
 
-  /// Локальные файлы + текст, пока грузится альбом в ленте (превью + прогресс).
-  _PendingImageAlbumSend? _outgoingImageAlbum;
   bool _sendBusy = false;
 
   /// Панель «Форматирование» над композером (паритет `FormattingToolbar.tsx`).
@@ -390,6 +393,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void didUpdateWidget(ChatScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.conversationId != widget.conversationId) {
+      ref
+          .read(pendingImageAlbumNotifierProvider.notifier)
+          .setFor(oldWidget.conversationId, null);
+    }
+    if (oldWidget.conversationId != widget.conversationId) {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
         unawaited(
@@ -433,7 +441,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _nearOldestCooldownUntil = null;
       _messageItemKeys.clear();
       _jumpScrollBoostMessageId = null;
-      _outgoingImageAlbum = null;
+      ref
+          .read(pendingImageAlbumNotifierProvider.notifier)
+          .setFor(widget.conversationId, null);
       _sendBusy = false;
       _barPinIndex = 0;
       _pinnedBarSkipSyncUntilMs = 0;
@@ -532,6 +542,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (!_isIncomingUnreadForViewer(message, userId)) return;
     final id = message.id.trim();
     if (id.isEmpty) return;
+    if (id.startsWith(kLocalOutboxMessageIdPrefix)) return;
     if (_sessionReadIds.contains(id)) return;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
@@ -935,10 +946,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     dmOtherId.isNotEmpty;
                 final threadsUnread =
                     conv?.data.unreadThreadCounts?[user.uid] ?? 0;
-                final effectiveWallpaper =
-                    (wallpaper != null && wallpaper.trim().isNotEmpty)
-                    ? wallpaper
-                    : null;
+                final prefsStream = ref
+                    .read(chatSettingsRepositoryProvider)
+                    ?.watchChatConversationPrefs(
+                      userId: user.uid,
+                      conversationId: conversationId,
+                    );
 
                 void handleBack() {
                   if (_inChatSearch) {
@@ -977,7 +990,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 Widget chatShell(
                   List<ChatMessage> msgs, {
                   required bool showSpinner,
+                  required String? effectiveWallpaper,
                 }) {
+                  final pendingAlbum = ref.watch(
+                    pendingImageAlbumNotifierProvider.select(
+                      (m) => m[widget.conversationId],
+                    ),
+                  );
+                  final outboxJobs = ref.watch(chatOutboxAttachmentNotifierProvider);
                   final repo = ref.read(chatRepositoryProvider);
                   final isGroup = conv?.data.isGroup ?? false;
                   final pins = conv == null
@@ -1308,7 +1328,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               });
                                                         return ChatMessageList(
                                                           messagesDesc:
-                                                              hydratedMsgs,
+                                                              buildDescWithOutboxMessages(
+                                                            hydratedDesc:
+                                                                hydratedMsgs,
+                                                            jobs: outboxJobs,
+                                                            conversationId:
+                                                                conversationId,
+                                                            senderId: user.uid,
+                                                          ),
                                                           currentUserId:
                                                               user.uid,
                                                           conversationId:
@@ -1403,6 +1430,63 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               context.pop();
                                                             }
                                                           },
+                                                          onOutboxRetry: (mid) {
+                                                            final jid =
+                                                                outboxJobIdFromSyntheticMessageId(
+                                                              mid,
+                                                            );
+                                                            if (jid == null) {
+                                                              return;
+                                                            }
+                                                            ref
+                                                                .read(
+                                                                  chatOutboxAttachmentNotifierProvider
+                                                                      .notifier,
+                                                                )
+                                                                .retry(jid);
+                                                          },
+                                                          onOutboxDismiss: (mid) {
+                                                            final jid =
+                                                                outboxJobIdFromSyntheticMessageId(
+                                                              mid,
+                                                            );
+                                                            if (jid == null) {
+                                                              return;
+                                                            }
+                                                            final jobs = ref.read(
+                                                              chatOutboxAttachmentNotifierProvider,
+                                                            );
+                                                            OutboxAttachmentJob?
+                                                                hit;
+                                                            for (final j
+                                                                in jobs) {
+                                                              if (j.id ==
+                                                                  jid) {
+                                                                hit = j;
+                                                                break;
+                                                              }
+                                                            }
+                                                            if (hit == null) {
+                                                              return;
+                                                            }
+                                                            final n = ref.read(
+                                                              chatOutboxAttachmentNotifierProvider
+                                                                  .notifier,
+                                                            );
+                                                            if (hit.phase ==
+                                                                OutboxAttachmentPhase
+                                                                    .failed) {
+                                                              unawaited(
+                                                                n.removeJobDisplay(
+                                                                  jid,
+                                                                ),
+                                                              );
+                                                            } else {
+                                                              n.requestCancelInFlight(
+                                                                jid,
+                                                              );
+                                                            }
+                                                          },
                                                           fontSize: fontSize,
                                                           bubbleRadius:
                                                               bubbleRadius,
@@ -1413,52 +1497,55 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                           incomingBubbleColor:
                                                               incomingBubbleColor,
                                                           outgoingMediaFooter:
-                                                              _outgoingImageAlbum ==
+                                                              pendingAlbum ==
                                                                       null ||
                                                                   repo == null
                                                               ? null
-                                                              : Align(
-                                                                  alignment:
-                                                                      Alignment
-                                                                          .centerRight,
-                                                                  child: OutgoingPendingMediaAlbum(
-                                                                    key: ValueKey(
-                                                                      Object.hash(
-                                                                        _outgoingImageAlbum!
-                                                                            .files
-                                                                            .length,
-                                                                        _outgoingImageAlbum!
-                                                                            .text,
-                                                                        _outgoingImageAlbum!
-                                                                            .replyTo
-                                                                            ?.messageId,
-                                                                      ),
-                                                                    ),
-                                                                    files: _outgoingImageAlbum!
-                                                                        .files,
-                                                                    captionText:
-                                                                        _outgoingImageAlbum!
-                                                                            .text,
-                                                                    replyTo:
-                                                                        _outgoingImageAlbum!
-                                                                            .replyTo,
-                                                                    conversationId:
-                                                                        widget
-                                                                            .conversationId,
-                                                                    senderId:
-                                                                        user.uid,
-                                                                    repo: repo,
-                                                                    isMine:
-                                                                        true,
-                                                                    outgoingBubbleColor:
-                                                                        bubbleColor,
-                                                                    e2eeContext:
-                                                                        _outgoingImageAlbum!
-                                                                            .e2eeContext,
+                                                              : Builder(
+                                                                  builder: (_) {
+                                                                    final album =
+                                                                        pendingAlbum;
+                                                                    return Align(
+                                                                      alignment:
+                                                                          Alignment
+                                                                              .centerRight,
+                                                                      child: OutgoingPendingMediaAlbum(
+                                                                        key: ValueKey(
+                                                                          Object.hash(
+                                                                            album.files.length,
+                                                                            album.text,
+                                                                            album.replyTo
+                                                                                ?.messageId,
+                                                                          ),
+                                                                        ),
+                                                                        files: album.files,
+                                                                        captionText:
+                                                                            album.text,
+                                                                        replyTo:
+                                                                            album.replyTo,
+                                                                        conversationId:
+                                                                            widget
+                                                                                .conversationId,
+                                                                        senderId:
+                                                                            user.uid,
+                                                                        repo: repo,
+                                                                        isMine:
+                                                                            true,
+                                                                        outgoingBubbleColor:
+                                                                            bubbleColor,
+                                                                        e2eeContext:
+                                                                            album.e2eeContext,
                                                                     onFinished: () {
-                                                                      if (!mounted) {
-                                                                        return;
-                                                                      }
+                                                                      ref
+                                                                          .read(
+                                                                            pendingImageAlbumNotifierProvider
+                                                                                .notifier,
+                                                                          )
+                                                                          .setFor(
+                                                                            widget
+                                                                                .conversationId,
+                                                                            null,
+                                                                          );
                                                                       unawaited(
                                                                         clearChatMessageDraft(
                                                                           user.uid,
@@ -1466,56 +1553,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                               .conversationId,
                                                                         ),
                                                                       );
-                                                                      setState(() {
-                                                                        _outgoingImageAlbum =
-                                                                            null;
-                                                                        _sendBusy =
-                                                                            false;
-                                                                      });
-                                                                      WidgetsBinding
-                                                                          .instance
-                                                                          .addPostFrameCallback((
-                                                                            _,
-                                                                          ) {
-                                                                            _scheduleAutoScrollToBottomIfNeeded();
-                                                                          });
+                                                                      if (mounted) {
+                                                                        setState(
+                                                                          () =>
+                                                                              _sendBusy =
+                                                                                  false,
+                                                                        );
+                                                                        WidgetsBinding
+                                                                            .instance
+                                                                            .addPostFrameCallback((
+                                                                              _,
+                                                                            ) {
+                                                                              _scheduleAutoScrollToBottomIfNeeded();
+                                                                            });
+                                                                      }
                                                                     },
                                                                     onFailed: (e) {
-                                                                      if (!mounted) {
-                                                                        return;
-                                                                      }
-                                                                      final b =
-                                                                          _outgoingImageAlbum;
-                                                                      setState(() {
-                                                                        _outgoingImageAlbum =
-                                                                            null;
-                                                                        _sendBusy =
-                                                                            false;
-                                                                        if (b !=
-                                                                            null) {
-                                                                          _pendingAttachments
-                                                                            ..clear()
-                                                                            ..addAll(
-                                                                              b.files,
-                                                                            );
-                                                                          _controller
-                                                                              .text = b
-                                                                              .text;
-                                                                          _replyingTo =
-                                                                              b.replyTo;
-                                                                        }
-                                                                      });
-                                                                      ScaffoldMessenger.of(
-                                                                        context,
-                                                                      ).showSnackBar(
-                                                                        SnackBar(
-                                                                          content: Text(
-                                                                            'Не удалось отправить: $e',
+                                                                      final b = ref.read(
+                                                                        pendingImageAlbumNotifierProvider,
+                                                                      )[widget.conversationId];
+                                                                      ref
+                                                                          .read(
+                                                                            pendingImageAlbumNotifierProvider
+                                                                                .notifier,
+                                                                          )
+                                                                          .setFor(
+                                                                            widget
+                                                                                .conversationId,
+                                                                            null,
+                                                                          );
+                                                                      if (mounted) {
+                                                                        setState(() {
+                                                                          _sendBusy =
+                                                                              false;
+                                                                          if (b !=
+                                                                              null) {
+                                                                            _pendingAttachments
+                                                                              ..clear()
+                                                                              ..addAll(
+                                                                                b.files,
+                                                                              );
+                                                                            _controller
+                                                                                .text = b
+                                                                                .text;
+                                                                            _replyingTo =
+                                                                                b.replyTo;
+                                                                          }
+                                                                        });
+                                                                        ScaffoldMessenger.of(
+                                                                          context,
+                                                                        ).showSnackBar(
+                                                                          SnackBar(
+                                                                            content: Text(
+                                                                              'Не удалось отправить: $e',
+                                                                            ),
                                                                           ),
-                                                                        ),
-                                                                      );
+                                                                        );
+                                                                      }
                                                                     },
                                                                   ),
+                                                                );
+                                                                  },
                                                                 ),
                                                           onMessageLongPress: (m) =>
                                                               _onMessageLongPress(
@@ -1820,7 +1918,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         _editingMessageId == null,
                                     sendBusy:
                                         _sendBusy ||
-                                        _outgoingImageAlbum != null,
+                                        pendingAlbum != null,
                                     onAttachmentSelected: (a) =>
                                         unawaited(_handleComposerAttachment(a)),
                                     onMicTap: () =>
@@ -2104,49 +2202,81 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   );
                 }
 
-                return msgsAsync.when(
-                  skipLoadingOnReload: true,
-                  data: (msgs) {
-                    final clearedAtIso = conv?.data.clearedAt?[user.uid];
-                    final visibleMsgs = _filterByClearedAt(msgs, clearedAtIso);
-                    final previousVisibleCount = _lastMessagesCount;
-                    _lastMessagesCount = visibleMsgs.length;
-                    _sortedAscCache = List<ChatMessage>.from(visibleMsgs)
-                      ..sort((a, b) {
-                        final t = a.createdAt.compareTo(b.createdAt);
-                        if (t != 0) return t;
-                        return a.id.compareTo(b.id);
-                      });
-                    _sortedHydratedAscCache = const <ChatMessage>[];
-                    _syncMessageItemKeys(_sortedAscCache);
-                    if (visibleMsgs.length < _limit) {
-                      _historyExhausted = true;
-                    } else if (visibleMsgs.length > _historyBaseCount) {
-                      _historyExhausted = false;
-                    }
-                    _preserveViewportOnIncomingGrowth(
-                      previousCount: previousVisibleCount,
-                      nextCount: visibleMsgs.length,
-                    );
-                    _scheduleHistoryAnchorRestore(visibleMsgs);
-                    return chatShell(visibleMsgs, showSpinner: false);
-                  },
-                  // При смене limit новый family-провайдер даёт loading: не убираем список
-                  // (иначе ChatMessageList dispose → снова jump вниз).
-                  loading: () {
-                    if (_sortedAscCache.isNotEmpty) {
+                String? wallpaperForPrefs(Map<String, dynamic>? prefData) {
+                  return resolveEffectiveChatWallpaper(
+                    globalChatWallpaper: wallpaper,
+                    conversationPrefs: prefData ?? const <String, dynamic>{},
+                  );
+                }
+
+                Widget messagesShell(String? effectiveWp) {
+                  return msgsAsync.when(
+                    skipLoadingOnReload: true,
+                    data: (msgs) {
+                      final clearedAtIso = conv?.data.clearedAt?[user.uid];
+                      final visibleMsgs = _filterByClearedAt(msgs, clearedAtIso);
+                      final previousVisibleCount = _lastMessagesCount;
+                      _lastMessagesCount = visibleMsgs.length;
+                      _sortedAscCache = List<ChatMessage>.from(visibleMsgs)
+                        ..sort((a, b) {
+                          final t = a.createdAt.compareTo(b.createdAt);
+                          if (t != 0) return t;
+                          return a.id.compareTo(b.id);
+                        });
+                      _sortedHydratedAscCache = const <ChatMessage>[];
                       _syncMessageItemKeys(_sortedAscCache);
-                      return chatShell(_sortedAscCache, showSpinner: false);
-                    }
-                    return chatShell(const <ChatMessage>[], showSpinner: true);
-                  },
-                  error: (e, _) => Scaffold(
-                    appBar: AppBar(title: const Text('Сообщения')),
-                    body: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text('Ошибка загрузки сообщений: $e'),
+                      if (visibleMsgs.length < _limit) {
+                        _historyExhausted = true;
+                      } else if (visibleMsgs.length > _historyBaseCount) {
+                        _historyExhausted = false;
+                      }
+                      _preserveViewportOnIncomingGrowth(
+                        previousCount: previousVisibleCount,
+                        nextCount: visibleMsgs.length,
+                      );
+                      _scheduleHistoryAnchorRestore(visibleMsgs);
+                      return chatShell(
+                        visibleMsgs,
+                        showSpinner: false,
+                        effectiveWallpaper: effectiveWp,
+                      );
+                    },
+                    // При смене limit новый family-провайдер даёт loading: не убираем список
+                    // (иначе ChatMessageList dispose → снова jump вниз).
+                    loading: () {
+                      if (_sortedAscCache.isNotEmpty) {
+                        _syncMessageItemKeys(_sortedAscCache);
+                        return chatShell(
+                          _sortedAscCache,
+                          showSpinner: false,
+                          effectiveWallpaper: effectiveWp,
+                        );
+                      }
+                      return chatShell(
+                        const <ChatMessage>[],
+                        showSpinner: true,
+                        effectiveWallpaper: effectiveWp,
+                      );
+                    },
+                    error: (e, _) => Scaffold(
+                      appBar: AppBar(title: const Text('Сообщения')),
+                      body: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text('Ошибка загрузки сообщений: $e'),
+                      ),
                     ),
-                  ),
+                  );
+                }
+
+                if (prefsStream == null) {
+                  return messagesShell(wallpaperForPrefs(null));
+                }
+                return StreamBuilder<Map<String, dynamic>>(
+                  stream: prefsStream,
+                  initialData: const <String, dynamic>{},
+                  builder: (context, snap) {
+                    return messagesShell(wallpaperForPrefs(snap.data));
+                  },
                 );
               },
             );
@@ -2484,6 +2614,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _toggleMessageSelected(ChatMessage m) {
+    if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return;
     setState(() {
       if (_selectedMessageIds.contains(m.id)) {
         _selectedMessageIds.remove(m.id);
@@ -3010,13 +3141,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             messageId: reservedId,
           );
         }
+        ref.read(pendingImageAlbumNotifierProvider.notifier).setFor(
+              widget.conversationId,
+              PendingImageAlbumSend(
+                files: pending,
+                text: textSave,
+                replyTo: replySnap,
+                e2eeContext: albumE2eeContext,
+              ),
+            );
         setState(() {
-          _outgoingImageAlbum = _PendingImageAlbumSend(
-            files: pending,
-            text: textSave,
-            replyTo: replySnap,
-            e2eeContext: albumE2eeContext,
-          );
           _pendingAttachments.clear();
           _controller.clear();
           _replyingTo = null;
@@ -3033,121 +3167,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return;
       }
       setState(() => _sendBusy = true);
-      _controller.clear();
-      setState(() => _pendingAttachments.clear());
-      try {
-        final storage = FirebaseStorage.instance;
-        // E2EE v2 Phase 9: при активном E2EE encryptable файлы шифруются в
-        // `chat-attachments-enc/...` и кладутся в `e2ee.attachments[]`;
-        // стикеры/GIFs по-прежнему идут plaintext в `attachments[]`.
-        final effectiveMessageId = FirebaseFirestore.instance
-            .collection('conversations')
-            .doc(widget.conversationId)
-            .collection('messages')
-            .doc()
-            .id;
-        E2eeAttachmentPrepareResult prep;
-        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
-          try {
-            prep = await prepareE2eeAttachmentsForSend(
-              runtime: e2eeRuntime,
-              storage: storage,
-              conversationId: widget.conversationId,
-              messageId: effectiveMessageId,
-              epoch: e2eeEpoch,
-              files: pending,
-            );
-          } on MobileE2eeEncryptException catch (e) {
-            if (mounted) _toast('Не удалось зашифровать вложение: ${e.code}');
-            if (mounted) {
-              _controller.text = rawComposer;
-              setState(() {
-                _pendingAttachments
-                  ..clear()
-                  ..addAll(pending);
-                _replyingTo = replySnap;
-              });
-            }
-            return;
-          }
-        } else {
-          prep = E2eeAttachmentPrepareResult(
-            plaintextFiles: pending,
-            encryptedEnvelopes: const <Map<String, Object?>>[],
+      await ref
+          .read(chatOutboxAttachmentNotifierProvider.notifier)
+          .enqueueFromComposer(
+            conversationId: widget.conversationId,
+            senderId: uid,
+            files: pending,
+            rawCaptionHtml: prepared,
+            replyTo: replySnap,
+            convIsE2ee: convIsE2ee,
+            e2eeEpoch: e2eeEpoch,
           );
-        }
-
-        final uploaded = <ChatAttachment>[];
-        for (final f in prep.plaintextFiles) {
-          uploaded.add(
-            await uploadChatAttachmentFromXFile(
-              storage: storage,
-              conversationId: widget.conversationId,
-              file: f,
-            ),
-          );
-        }
-
-        Map<String, Object?>? outgoingEnvelope;
-        String? msgIdOverride;
-        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
-          // Шифруем ВСЕГДА, даже если текста нет — так iv/ciphertext непустые
-          // и `ChatMessageE2eePayload.fromJson` корректно распознает envelope.
-          Map<String, Object?> textEnvelope;
-          try {
-            textEnvelope = await e2eeRuntime.encryptOutgoing(
-              conversationId: widget.conversationId,
-              messageId: effectiveMessageId,
-              epoch: e2eeEpoch,
-              plaintext: textSave,
-            );
-          } on MobileE2eeEncryptException catch (e) {
-            if (mounted) _toast('Шифрование недоступно: ${e.code}');
-            return;
-          }
-          outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
-            textEnvelope: textEnvelope,
-            mediaEnvelopes: prep.encryptedEnvelopes,
-            epoch: e2eeEpoch,
-          );
-          msgIdOverride = effectiveMessageId;
-        }
-
-        await repo.sendTextMessage(
-          conversationId: widget.conversationId,
-          senderId: uid,
-          text: outgoingEnvelope != null ? '' : textSave,
-          replyTo: replySnap,
-          attachments: uploaded,
-          e2eeEnvelope: outgoingEnvelope,
-          messageIdOverride: msgIdOverride,
-        );
-        if (mounted) {
-          unawaited(clearChatMessageDraft(uid, widget.conversationId));
-          setState(() {
-            _replyingTo = null;
-            _composerFormattingOpen = false;
-          });
-          _scheduleAutoScrollToBottomIfNeeded();
-        }
-      } catch (e) {
-        final details = e is FirebaseException
-            ? '${e.code}${e.message == null ? '' : ': ${e.message}'}'
-            : '$e';
-        if (mounted) {
-          _controller.text = rawComposer;
-          setState(() {
-            _pendingAttachments
-              ..clear()
-              ..addAll(pending);
-            _replyingTo = replySnap;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Не удалось отправить сообщение: $details')),
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _sendBusy = false);
+      if (mounted) {
+        setState(() {
+          _sendBusy = false;
+          _pendingAttachments.clear();
+          _controller.clear();
+          _replyingTo = null;
+          _composerFormattingOpen = false;
+        });
+        unawaited(clearChatMessageDraft(uid, widget.conversationId));
+        _scheduleAutoScrollToBottomIfNeeded();
       }
       return;
     }
@@ -3743,23 +3783,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         break;
     }
   }
-}
-
-class _PendingImageAlbumSend {
-  _PendingImageAlbumSend({
-    required this.files,
-    required this.text,
-    this.replyTo,
-    this.e2eeContext,
-  });
-
-  final List<XFile> files;
-  final String text;
-  final ReplyContext? replyTo;
-  // E2EE v2 Phase 9: если чат работает с E2EE, сюда кладётся runtime+epoch+
-  // предзаказанный messageId. OutgoingPendingMediaAlbum использует этот контекст
-  // для шифрования файлов и текста.
-  final OutgoingAlbumE2eeContext? e2eeContext;
 }
 
 class _AnchorReactionTarget {

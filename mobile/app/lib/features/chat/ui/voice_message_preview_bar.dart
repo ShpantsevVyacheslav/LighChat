@@ -153,7 +153,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
         : 0.0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -170,37 +170,39 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
           const SizedBox(width: 4),
           // Main pill: play + waveform + time.
           Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: border),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(6, 4, 10, 4),
-                child: Row(
-                  children: [
-                    Material(
-                      color: accent,
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: widget.busy ? null : _toggle,
-                        child: SizedBox(
-                          width: 34,
-                          height: 34,
-                          child: Icon(
-                            _failed
-                                ? Icons.error_outline_rounded
-                                : (_playing
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded),
-                            color: Colors.white,
-                            size: 22,
+            child: Material(
+              color: Colors.transparent,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: border),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+                  child: Row(
+                    children: [
+                      Material(
+                        color: accent,
+                        shape: const CircleBorder(),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: widget.busy ? null : _toggle,
+                          child: SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: Icon(
+                              _failed
+                                  ? Icons.error_outline_rounded
+                                  : (_playing
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded),
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: LayoutBuilder(
@@ -237,6 +239,8 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                         color: meta,
                         fontWeight: FontWeight.w600,
                         fontSize: 12.5,
+                        decoration: TextDecoration.none,
+                        decorationThickness: 0,
                         fontFeatures: const <FontFeature>[
                           FontFeature.tabularFigures(),
                         ],
@@ -245,6 +249,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
           const SizedBox(width: 6),

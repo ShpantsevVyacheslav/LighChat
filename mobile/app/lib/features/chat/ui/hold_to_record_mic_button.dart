@@ -65,6 +65,9 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   bool _tapMode = false;
   double _dragDx = 0;
   double _dragDy = 0;
+  /// Точка старта long press (глобальные координаты) — для `Listener` на весь экран,
+  /// пока палец ушёл с маленькой кнопки микрофона.
+  Offset? _dragOriginGlobal;
 
   // Post‑release preview overlay.
   OverlayEntry? _previewOverlay;
@@ -73,7 +76,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
 
   // Slide‑left threshold for cancel (Telegram parity).
   static const double _kCancelDx = -80;
-  static const double _kPauseUpDy = -52;
+  static const double _kPauseUpDy = -44;
   static const double _kResumeDownDy = -28;
 
   @override
@@ -98,6 +101,19 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   }
 
   bool get _cancelArmed => _dragDx <= _kCancelDx;
+
+  /// Накопленное смещение от точки старта: с микрофона (offsetFromOrigin) или с экрана.
+  void _updateRecordingDrag(double dx, double dy) {
+    if (!_recording || _tapMode) return;
+    _dragDx = dx;
+    _dragDy = dy;
+    if (_dragDy <= _kPauseUpDy && !_paused) {
+      unawaited(_pause());
+    } else if (_dragDy >= _kResumeDownDy && _paused) {
+      unawaited(_resume());
+    }
+    _recOverlay?.markNeedsBuild();
+  }
 
   Duration _currentElapsed() {
     if (_recording && !_paused && _activeRunStartedAt != null) {
@@ -142,18 +158,26 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         final bottom = MediaQuery.paddingOf(context).bottom;
         final insetsBottom = MediaQuery.viewInsetsOf(context).bottom;
         final armed = _cancelArmed;
-        return Positioned(
-          left: 12,
-          right: 12,
-          // Replace composer input row visually (same y-position).
-          bottom: insetsBottom + bottom + 8,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: _recording ? 1 : 0),
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            child: Material(
-              color: Colors.black.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(24),
+        final pauseHintT = !_tapMode && !_paused && !armed && _dragDy < 0
+            ? ((-_dragDy) / (-_kPauseUpDy)).clamp(0.0, 1.0)
+            : 0.0;
+        final pill = TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: _recording ? 1 : 0),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: Material(
+            color: Colors.black.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: _paused
+                    ? Border.all(
+                        color: const Color(0xFFFFB74D).withValues(alpha: 0.85),
+                        width: 1.5,
+                      )
+                    : null,
+              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
@@ -162,7 +186,25 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                 child: Row(
                   children: [
                     _PulsingRecordDot(active: !armed && !_paused),
-                    const SizedBox(width: 10),
+                    if (_paused) ...[
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.pause_circle_rounded,
+                        size: 30,
+                        color: Color(0xFFFFB74D),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Пауза',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ] else
+                      const SizedBox(width: 10),
                     Text(
                       _fmt(_elapsed),
                       style: const TextStyle(
@@ -176,37 +218,52 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                       ),
                     ),
                     const Spacer(),
-                    if (_tapMode) ...[
-                      _RecMiniBtn(
-                        icon: _paused
-                            ? Icons.play_arrow_rounded
-                            : Icons.pause_rounded,
-                        onTap: _paused ? _resume : _pause,
-                      ),
-                      const SizedBox(width: 6),
-                      _RecMiniBtn(icon: Icons.stop_rounded, onTap: _finish),
-                      const SizedBox(width: 6),
-                      _RecMiniBtn(icon: Icons.close_rounded, onTap: _cancel),
-                    ] else ...[
-                      _RecMiniBtn(
-                        icon: _paused
-                            ? Icons.play_arrow_rounded
-                            : Icons.pause_rounded,
-                        onTap: _paused ? _resume : _pause,
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.chevron_left_rounded,
-                        size: 18,
+                  if (_tapMode) ...[
+                    _RecMiniBtn(
+                      icon: _paused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                      onTap: _paused ? _resume : _pause,
+                    ),
+                    const SizedBox(width: 6),
+                    _RecMiniBtn(icon: Icons.stop_rounded, onTap: _finish),
+                    const SizedBox(width: 6),
+                    _RecMiniBtn(icon: Icons.close_rounded, onTap: _cancel),
+                  ] else ...[
+                    Opacity(
+                      opacity: 0.32 + 0.68 * pauseHintT,
+                      child: Icon(
+                        Icons.keyboard_arrow_up_rounded,
+                        size: 22,
                         color: Colors.white.withValues(
-                          alpha: armed ? 0.95 : 0.72,
+                          alpha: 0.55 + 0.4 * pauseHintT,
                         ),
                       ),
-                      const SizedBox(width: 2),
-                      Text(
+                    ),
+                    const SizedBox(width: 4),
+                    _RecMiniBtn(
+                      icon: _paused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                      onTap: _paused ? _resume : _pause,
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.chevron_left_rounded,
+                      size: 18,
+                      color: Colors.white.withValues(
+                        alpha: armed ? 0.95 : 0.72,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Flexible(
+                      child: Text(
                         armed
                             ? 'Отпустите — отмена'
                             : 'Влево — отмена · Вверх — пауза',
+                        maxLines: 2,
+                        overflow: TextOverflow.fade,
+                        softWrap: true,
                         style: TextStyle(
                           color: Colors.white.withValues(
                             alpha: armed ? 0.95 : 0.72,
@@ -215,23 +272,53 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                           fontSize: 12.5,
                         ),
                       ),
-                    ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
-            builder: (context, t, child) {
-              return Opacity(
-                opacity: t,
-                child: Transform.translate(
-                  offset: Offset(0, (1 - t) * 12),
-                  child: Transform.scale(
-                    scale: 0.985 + (t * 0.015),
-                    child: child,
-                  ),
+            ),
+          ),
+          builder: (context, t, child) {
+            return Opacity(
+              opacity: t,
+              child: Transform.translate(
+                offset: Offset(0, (1 - t) * 12),
+                child: Transform.scale(
+                  scale: 0.985 + (t * 0.015),
+                  child: child,
                 ),
-              );
-            },
+              ),
+            );
+          },
+        );
+        return Positioned.fill(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (!_tapMode)
+                Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerMove: (e) {
+                    final o = _dragOriginGlobal;
+                    if (!_recording || o == null) return;
+                    final delta = e.position - o;
+                    _updateRecordingDrag(delta.dx, delta.dy);
+                  },
+                ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    12,
+                    0,
+                    12,
+                    insetsBottom + bottom + 8,
+                  ),
+                  child: pill,
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -244,6 +331,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
 
   Future<void> _start({required bool tapMode}) async {
     if (!widget.enabled || _busy || _recording) return;
+    if (tapMode) _dragOriginGlobal = null;
     setState(() {
       _busy = true;
       _tapMode = tapMode;
@@ -297,6 +385,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     _tapMode = false;
     _dragDx = 0;
     _dragDy = 0;
+    _dragOriginGlobal = null;
     _notifyOverlayVisibility();
     if (mounted) setState(() {});
   }
@@ -319,6 +408,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       _tapMode = false;
       _dragDx = 0;
       _dragDy = 0;
+      _dragOriginGlobal = null;
       if (!mounted) return;
       setState(() {});
 
@@ -359,29 +449,32 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         final bottomPad = MediaQuery.paddingOf(ctx).bottom;
         final viewInsets = MediaQuery.viewInsetsOf(ctx).bottom;
         return Positioned(
-          left: 12,
-          right: 12,
+          left: 0,
+          right: 0,
           bottom: viewInsets + bottomPad + 8,
-          child: VoiceMessagePreviewBar(
-            filePath: result.filePath,
-            duration: result.duration,
-            busy: _previewBusy,
-            onCancel: () async {
-              if (_previewBusy) return;
-              _dismissPreview();
-              await _deleteSilently(result.filePath);
-            },
-            onSend: () async {
-              if (_previewBusy) return;
-              _previewBusy = true;
-              _previewOverlay?.markNeedsBuild();
-              try {
-                await widget.onRecorded(result);
-              } finally {
-                _previewBusy = false;
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: VoiceMessagePreviewBar(
+              filePath: result.filePath,
+              duration: result.duration,
+              busy: _previewBusy,
+              onCancel: () async {
+                if (_previewBusy) return;
                 _dismissPreview();
-              }
-            },
+                await _deleteSilently(result.filePath);
+              },
+              onSend: () async {
+                if (_previewBusy) return;
+                _previewBusy = true;
+                _previewOverlay?.markNeedsBuild();
+                try {
+                  await widget.onRecorded(result);
+                } finally {
+                  _previewBusy = false;
+                  _dismissPreview();
+                }
+              },
+            ),
           ),
         );
       },
@@ -414,26 +507,30 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                 ? () => unawaited(_start(tapMode: true))
                 : widget.onTap)
           : null,
-      onLongPressStart: (_) => unawaited(_start(tapMode: false)),
+      onLongPressStart: (d) {
+        _dragOriginGlobal = d.globalPosition;
+        unawaited(_start(tapMode: false));
+      },
       onLongPressMoveUpdate: (d) {
-        if (!_recording) return;
-        if (_tapMode) return;
-        _dragDx = d.offsetFromOrigin.dx;
-        _dragDy = d.offsetFromOrigin.dy;
-        if (_dragDy <= _kPauseUpDy && !_paused) {
-          unawaited(_pause());
-        } else if (_dragDy >= _kResumeDownDy && _paused) {
-          unawaited(_resume());
-        }
-        _recOverlay?.markNeedsBuild();
+        if (!_recording || _tapMode) return;
+        _updateRecordingDrag(d.offsetFromOrigin.dx, d.offsetFromOrigin.dy);
       },
       onLongPressEnd: (_) {
         if (_tapMode) return;
         if (_cancelArmed) {
           unawaited(_cancel());
-        } else {
-          unawaited(_finish());
+          return;
         }
+        // На паузе отпускание пальца не завершает запись — показываем полный
+        // ряд кнопок (стоп / отмена), как в tap-to-record.
+        if (_paused) {
+          if (mounted) {
+            setState(() => _tapMode = true);
+            _recOverlay?.markNeedsBuild();
+          }
+          return;
+        }
+        unawaited(_finish());
       },
       child: widget.child,
     );

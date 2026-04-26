@@ -5,11 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
-
-const double _kHeaderTitleSize = 16;
-const double _kCardTitleSize = 18;
-const double _kBodyTextSize = 14;
-const double _kMutedTextSize = 13;
+import 'notification_settings_ui.dart';
 
 class ChatNotificationsScreen extends ConsumerWidget {
   const ChatNotificationsScreen({super.key});
@@ -156,64 +152,11 @@ class _NotificationsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-    final titleColor = dark
-        ? Colors.white.withValues(alpha: 0.95)
-        : scheme.onSurface.withValues(alpha: 0.94);
-    final subtitleColor = dark
-        ? Colors.white.withValues(alpha: 0.56)
-        : scheme.onSurface.withValues(alpha: 0.62);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Material(
-                color: (dark ? Colors.white : scheme.surface).withValues(
-                  alpha: dark ? 0.08 : 0.74,
-                ),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go('/account');
-                    }
-                  },
-                  child: SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: Icon(
-                      Icons.chevron_left_rounded,
-                      size: 30,
-                      color: titleColor,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Icon(
-                Icons.notifications_none_rounded,
-                color: Color(0xFF4DA2FF),
-                size: 30,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Уведомления',
-                style: TextStyle(
-                  fontSize: _kHeaderTitleSize,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor,
-                ),
-              ),
-            ],
-          ),
-        ),
+        const NotificationSettingsPageHeader(title: 'Уведомления'),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -222,38 +165,23 @@ class _NotificationsView extends StatelessWidget {
               children: [
                 const SizedBox(height: 2),
                 const SizedBox(height: 4),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(
-                      alpha: dark ? 0.35 : 0.55,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(
+                NotificationSettingsMutedBanner(
+                  text:
                       'Push на устройство: после входа приложение запросит разрешение; '
                       'при отказе включите уведомления для LighChat в настройках системы.',
-                      style: TextStyle(
-                        fontSize: _kMutedTextSize,
-                        color: subtitleColor,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 22),
-                _SettingsCard(
+                NotificationSettingsCard(
                   title: 'Основные',
                   children: [
-                    _SwitchRow(
+                    NotificationSettingsSwitchRow(
                       title: 'Отключить все',
                       subtitle: 'Полностью выключить уведомления.',
                       value: settings.muteAll,
                       onChanged: onMuteAllChanged,
                     ),
                     const SizedBox(height: 4),
-                    _SwitchRow(
+                    NotificationSettingsSwitchRow(
                       title: 'Звук',
                       subtitle: 'Воспроизводить звук при новом сообщении.',
                       value: settings.soundEnabled,
@@ -261,7 +189,7 @@ class _NotificationsView extends StatelessWidget {
                       disabled: settings.muteAll,
                     ),
                     const SizedBox(height: 4),
-                    _SwitchRow(
+                    NotificationSettingsSwitchRow(
                       title: 'Предпросмотр',
                       subtitle: 'Показывать текст сообщения в уведомлении.',
                       value: settings.showPreview,
@@ -271,12 +199,12 @@ class _NotificationsView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
-                _SettingsCard(
+                NotificationSettingsCard(
                   title: 'Тихие часы',
                   subtitle:
                       'Уведомления не будут беспокоить в указанный период.',
                   children: [
-                    _SwitchRow(
+                    NotificationSettingsSwitchRow(
                       title: 'Включить тихие часы',
                       value: settings.quietHoursEnabled,
                       onChanged: onQuietHoursChanged,
@@ -298,7 +226,7 @@ class _NotificationsView extends StatelessWidget {
                             child: Text(
                               '—',
                               style: TextStyle(
-                                fontSize: _kCardTitleSize,
+                                fontSize: kNotificationSettingsCardTitleSize,
                                 color: (dark ? Colors.white : scheme.onSurface)
                                     .withValues(alpha: dark ? 0.72 : 0.64),
                               ),
@@ -359,133 +287,6 @@ class _NotificationsView extends StatelessWidget {
   }
 }
 
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({
-    required this.title,
-    required this.children,
-    this.subtitle,
-  });
-
-  final String title;
-  final String? subtitle;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final fg = dark ? Colors.white : scheme.onSurface;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        color: (dark ? const Color(0xFF0D121A) : scheme.surfaceContainerLow)
-            .withValues(alpha: dark ? 0.78 : 0.92),
-        border: Border.all(color: fg.withValues(alpha: dark ? 0.14 : 0.10)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: _kCardTitleSize,
-                fontWeight: FontWeight.w700,
-                color: fg.withValues(alpha: dark ? 0.95 : 0.94),
-              ),
-            ),
-          ),
-          if (subtitle != null) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Text(
-                subtitle!,
-                style: TextStyle(
-                  fontSize: _kMutedTextSize,
-                  color: fg.withValues(alpha: dark ? 0.52 : 0.60),
-                ),
-              ),
-            ),
-          ],
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.title,
-    required this.value,
-    required this.onChanged,
-    this.subtitle,
-    this.disabled = false,
-  });
-
-  final String title;
-  final String? subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final bool disabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final fg = dark ? Colors.white : scheme.onSurface;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: _kBodyTextSize,
-                    fontWeight: FontWeight.w500,
-                    color: disabled
-                        ? fg.withValues(alpha: dark ? 0.42 : 0.42)
-                        : fg.withValues(alpha: dark ? 0.95 : 0.94),
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      fontSize: _kMutedTextSize,
-                      color: disabled
-                          ? fg.withValues(alpha: dark ? 0.32 : 0.38)
-                          : fg.withValues(alpha: dark ? 0.56 : 0.62),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Switch.adaptive(
-            value: value,
-            onChanged: disabled ? null : onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: const Color(0xFF2F86FF),
-            inactiveThumbColor: (dark ? Colors.white : scheme.surface)
-                .withValues(alpha: dark ? 0.9 : 1),
-            inactiveTrackColor: (dark ? Colors.white : scheme.onSurface)
-                .withValues(alpha: dark ? 0.2 : 0.2),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TimeButton extends StatelessWidget {
   const _TimeButton({
     required this.label,
@@ -512,7 +313,7 @@ class _TimeButton extends StatelessWidget {
             child: Text(
               label!,
               style: TextStyle(
-                fontSize: _kMutedTextSize,
+                fontSize: kNotificationSettingsMutedTextSize,
                 color: fg.withValues(alpha: dark ? 0.78 : 0.7),
               ),
             ),
@@ -540,7 +341,7 @@ class _TimeButton extends StatelessWidget {
                   child: Text(
                     value,
                     style: TextStyle(
-                      fontSize: _kBodyTextSize,
+                      fontSize: kNotificationSettingsBodyTextSize,
                       color: fg.withValues(alpha: dark ? 0.9 : 0.86),
                     ),
                   ),

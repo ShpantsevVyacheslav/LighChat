@@ -14,24 +14,10 @@ import '../data/chat_attachment_upload.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/e2ee_runtime.dart';
+import '../data/outgoing_album_e2ee_context.dart';
 import 'message_html_text.dart';
 import 'message_reply_preview.dart';
 import 'video_first_frame.dart';
-
-/// E2EE v2 Phase 9: контекст шифрования для альбома. Если задан — widget
-/// шифрует каждое вложение через `prepareE2eeAttachmentsForSend` и кладёт
-/// envelope'ы в `e2ee.attachments[]`. Если `null` — plaintext-путь как раньше.
-class OutgoingAlbumE2eeContext {
-  const OutgoingAlbumE2eeContext({
-    required this.runtime,
-    required this.epoch,
-    required this.messageId,
-  });
-
-  final MobileE2eeRuntime runtime;
-  final int epoch;
-  final String messageId;
-}
 
 /// Совпадает с эвристикой превью в `ComposerPendingAttachmentsStrip`.
 Widget _captionBody({

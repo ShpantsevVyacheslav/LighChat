@@ -134,8 +134,8 @@ class _WebStyleVoiceRow extends StatelessWidget {
         ? scheme.onPrimary.withValues(alpha: 0.18)
         : scheme.onSurface.withValues(alpha: 0.16);
     final fillColor = isMine
-        ? scheme.primary.withValues(alpha: 0.10)
-        : scheme.surfaceContainerHighest.withValues(alpha: 0.22);
+        ? scheme.primary.withValues(alpha: 0.16)
+        : scheme.surfaceContainerHighest.withValues(alpha: 0.30);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
@@ -312,10 +312,16 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       });
       _stateSub = _player.playerStateStream.listen((s) {
         if (!mounted) return;
-        setState(() => _playing = s.playing);
         if (s.processingState == ProcessingState.completed) {
           _VoicePlaybackExclusive.clear(this);
+          setState(() {
+            _playing = false;
+            _position = _duration;
+          });
+          unawaited(_player.seek(Duration.zero));
+          return;
         }
+        setState(() => _playing = s.playing);
       });
       if (mounted) setState(() => _ready = true);
     } catch (_) {

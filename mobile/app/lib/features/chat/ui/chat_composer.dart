@@ -307,10 +307,14 @@ class _ChatComposerState extends State<ChatComposer> {
       maxLines: 1,
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
-      strutStyle: const StrutStyle(
+      strutStyle: StrutStyle(
         forceStrutHeight: true,
+        fontSize: 15.5,
         height: 1.15,
-        leading: 0,
+        // Небольшой верхний «воздух» — оптически центрирует строку в капсуле
+        // (иначе глифы визуально прилипают к верху при forceStrutHeight).
+        leading: 1.5,
+        leadingDistribution: TextLeadingDistribution.proportional,
       ),
       style: const TextStyle(
         fontSize: 15.5,
@@ -329,7 +333,7 @@ class _ChatComposerState extends State<ChatComposer> {
         border: InputBorder.none,
         // Центрируем текст и placeholder по вертикали внутри фиксированной высоты.
         isDense: true,
-        contentPadding: EdgeInsets.zero,
+        contentPadding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
         isCollapsed: false,
         suffixIcon: keyboardOpen
             ? IconButton(

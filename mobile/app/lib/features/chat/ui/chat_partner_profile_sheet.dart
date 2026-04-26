@@ -28,6 +28,7 @@ import 'chat_audio_call_screen.dart';
 import 'chat_avatar.dart';
 import 'e2ee_fingerprint_badge.dart';
 import 'chat_conversation_notifications_screen.dart';
+import 'chat_conversation_theme_screen.dart';
 import 'conversation_encryption_screen.dart';
 import 'conversation_media_links_files_screen.dart';
 import 'conversation_starred_screen.dart';
@@ -542,6 +543,19 @@ class _ChatPartnerProfileSheetState
     context.push('/contacts/user/${Uri.encodeComponent(partnerId)}/edit');
   }
 
+  void _onLeadingAppBarBack() {
+    if (widget.fullScreen) {
+      final router = GoRouter.of(context);
+      if (router.canPop()) {
+        router.pop();
+      } else {
+        context.go('/contacts');
+      }
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   Future<void> _onRemoveContact(String partnerId) async {
     final repo = ref.read(userContactsRepositoryProvider);
     if (repo == null) return;
@@ -685,7 +699,7 @@ class _ChatPartnerProfileSheetState
               IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
                 color: hiPrimary.withValues(alpha: 0.94),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: _onLeadingAppBarBack,
                 tooltip: widget.fullScreen ? 'Назад' : 'Закрыть',
               ),
               const Spacer(),
@@ -920,7 +934,16 @@ class _ChatPartnerProfileSheetState
                 context,
                 icon: Icons.palette_rounded,
                 title: 'Тема чата',
-                onTap: () => _toast('Тема чата: скоро'),
+                onTap: () async {
+                  await Navigator.of(context).push<void>(
+                    CupertinoPageRoute(
+                      builder: (_) => ChatConversationThemeScreen(
+                        currentUserId: widget.currentUserId,
+                        conversationId: widget.conversationId,
+                      ),
+                    ),
+                  );
+                },
               ),
               _menuButton(
                 context,

@@ -48,11 +48,47 @@ import 'message_location_card.dart';
 import 'chat_media_viewer_screen.dart';
 import 'chat_poll_create_sheet.dart';
 import 'chat_wallpaper_background.dart';
+import 'effective_chat_wallpaper.dart';
 import 'chat_composer.dart';
 import 'location_send_preview_sheet.dart';
 import 'share_location_sheet.dart';
 import 'thread_header.dart';
 import 'video_circle_capture_page.dart';
+
+Widget threadWallpaperBackdrop({
+  required WidgetRef ref,
+  required String userId,
+  required String conversationId,
+  required String? globalWallpaper,
+  required Widget child,
+}) {
+  final repo = ref.read(chatSettingsRepositoryProvider);
+  if (repo == null) {
+    return ChatWallpaperBackground(
+      wallpaper: resolveEffectiveChatWallpaper(
+        globalChatWallpaper: globalWallpaper,
+        conversationPrefs: const <String, dynamic>{},
+      ),
+      child: child,
+    );
+  }
+  return StreamBuilder<Map<String, dynamic>>(
+    stream: repo.watchChatConversationPrefs(
+      userId: userId,
+      conversationId: conversationId,
+    ),
+    initialData: const <String, dynamic>{},
+    builder: (context, snap) {
+      return ChatWallpaperBackground(
+        wallpaper: resolveEffectiveChatWallpaper(
+          globalChatWallpaper: globalWallpaper,
+          conversationPrefs: snap.data ?? const <String, dynamic>{},
+        ),
+        child: child,
+      );
+    },
+  );
+}
 
 String _threadRepliesUpperRu(int n) {
   if (n % 100 >= 11 && n % 100 <= 14) return '$n ОТВЕТОВ';
@@ -1172,8 +1208,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     return parentAsync.when(
       loading: () => Scaffold(
         extendBodyBehindAppBar: true,
-        body: ChatWallpaperBackground(
-          wallpaper: wallpaper,
+        body: threadWallpaperBackdrop(
+          ref: ref,
+          userId: user.uid,
+          conversationId: widget.conversationId,
+          globalWallpaper: wallpaper,
           child: Column(
             children: [
               SizedBox(height: topUnderAppBar),
@@ -1184,8 +1223,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       ),
       error: (e, _) => Scaffold(
         extendBodyBehindAppBar: true,
-        body: ChatWallpaperBackground(
-          wallpaper: wallpaper,
+        body: threadWallpaperBackdrop(
+          ref: ref,
+          userId: user.uid,
+          conversationId: widget.conversationId,
+          globalWallpaper: wallpaper,
           child: Column(
             children: [
               SizedBox(height: topUnderAppBar),
@@ -1198,8 +1240,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         if (parent == null || parent.isDeleted) {
           return Scaffold(
             extendBodyBehindAppBar: true,
-            body: ChatWallpaperBackground(
-              wallpaper: wallpaper,
+            body: threadWallpaperBackdrop(
+              ref: ref,
+              userId: user.uid,
+              conversationId: widget.conversationId,
+              globalWallpaper: wallpaper,
               child: Column(
                 children: [
                   SizedBox(height: topUnderAppBar),
@@ -1220,8 +1265,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
         return Scaffold(
           extendBodyBehindAppBar: true,
-          body: ChatWallpaperBackground(
-            wallpaper: wallpaper,
+          body: threadWallpaperBackdrop(
+            ref: ref,
+            userId: user.uid,
+            conversationId: widget.conversationId,
+            globalWallpaper: wallpaper,
             child: Column(
               children: [
                 PreferredSize(

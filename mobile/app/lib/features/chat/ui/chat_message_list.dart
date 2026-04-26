@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/contact_display_name.dart';
 import '../data/sanitize_message_html.dart';
 import '../data/chat_poll_stub_text.dart';
@@ -73,6 +74,8 @@ class ChatMessageList extends StatefulWidget {
     this.onSwipeBack,
     this.e2eeDecryptedTextByMessageId,
     this.e2eeDecryptionFailedMessageIds,
+    this.onOutboxRetry,
+    this.onOutboxDismiss,
   });
 
   final List<ChatMessage> messagesDesc;
@@ -156,6 +159,10 @@ class ChatMessageList extends StatefulWidget {
   /// карту и передаёт её сюда.
   final Map<String, String>? e2eeDecryptedTextByMessageId;
   final Set<String>? e2eeDecryptionFailedMessageIds;
+
+  /// Локальная очередь отправки вложений ([buildDescWithOutboxMessages]).
+  final void Function(String messageId)? onOutboxRetry;
+  final void Function(String messageId)? onOutboxDismiss;
 
   static String dayKey(DateTime dt) {
     final d = dt.toLocal();
@@ -551,6 +558,8 @@ class _ChatMessageListState extends State<ChatMessageList> {
                 e2eeDecryptionFailed:
                     widget.e2eeDecryptionFailedMessageIds?.contains(m.id) ??
                     false,
+                onOutboxRetry: widget.onOutboxRetry,
+                onOutboxDismiss: widget.onOutboxDismiss,
               ),
             );
             final rowKey = widget.messageItemKeys[m.id];
@@ -947,6 +956,8 @@ class _ChatMessageBubble extends StatelessWidget {
     this.onSingleEmojiTap,
     this.e2eeDecryptedText,
     this.e2eeDecryptionFailed = false,
+    this.onOutboxRetry,
+    this.onOutboxDismiss,
   });
 
   final ChatMessage message;
@@ -982,6 +993,9 @@ class _ChatMessageBubble extends StatelessWidget {
   /// Phase 4: попытка дешифровки завершилась ошибкой (нет ключа эпохи / wrap
   /// не предназначен этому устройству). Показываем «Не удалось расшифровать».
   final bool e2eeDecryptionFailed;
+
+  final void Function(String messageId)? onOutboxRetry;
+  final void Function(String messageId)? onOutboxDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -1532,7 +1546,18 @@ class _ChatMessageBubble extends StatelessWidget {
     // На iOS/web engine сочетание IntrinsicWidth + RichText(WidgetSpan) может
     // падать в dry-layout/baseline (debugCannotComputeDryLayout). Поэтому
     // не используем IntrinsicWidth для пузыря.
-    final wrappedBody = body;
+    final outboxFail = isMine &&
+        message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
+        (message.deliveryStatus ?? '') == 'failed';
+    final wrappedBody = outboxFail
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: scheme.error, width: 1.4),
+            ),
+            child: body,
+          )
+        : body;
 
     final isVideoCircleMsg = message.attachments.any(isVideoCircleAttachment);
 
@@ -1585,7 +1610,8 @@ class _ChatMessageBubble extends StatelessWidget {
                         onLongPress:
                             !selectionMode &&
                                 onMessageLongPress != null &&
-                                !message.isDeleted
+                                !message.isDeleted &&
+                                !message.id.startsWith(kLocalOutboxMessageIdPrefix)
                             ? () => onMessageLongPress!(message)
                             : null,
                         child: wrappedBody,
@@ -1595,6 +1621,37 @@ class _ChatMessageBubble extends StatelessWidget {
                 ),
               ],
             ),
+            if (isMine &&
+                onOutboxRetry != null &&
+                onOutboxDismiss != null &&
+                message.id.startsWith(kLocalOutboxMessageIdPrefix)) ...[
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 0,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      if ((message.deliveryStatus ?? '') == 'failed')
+                        TextButton(
+                          onPressed: () => onOutboxRetry!(message.id),
+                          child: const Text('Повторить'),
+                        ),
+                      TextButton(
+                        onPressed: () => onOutboxDismiss!(message.id),
+                        child: Text(
+                          (message.deliveryStatus ?? '') == 'failed'
+                              ? 'Убрать'
+                              : 'Отменить',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             if (reactions.isNotEmpty)
               MessageReactionsRow(
                 reactions: reactions,

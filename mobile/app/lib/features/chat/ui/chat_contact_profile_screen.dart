@@ -88,8 +88,12 @@ class ChatContactProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authAsync = ref.watch(authUserProvider);
+    final scheme = Theme.of(context).colorScheme;
+    final shellBg = scheme.brightness == Brightness.dark
+        ? const Color(0xFF04070C)
+        : const Color(0xFFF3F6FC);
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: shellBg,
       body: SafeArea(
         child: authAsync.when(
           data: (authUser) {

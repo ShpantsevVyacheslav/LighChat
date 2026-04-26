@@ -55,7 +55,11 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
         lastName: last,
       );
       if (!mounted) return;
-      context.go('/contacts/user/${Uri.encodeComponent(widget.userId)}');
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/contacts/user/${Uri.encodeComponent(widget.userId)}');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,9 +126,15 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                           TextButton(
                             onPressed: _saving
                                 ? null
-                                : () => context.go(
-                                    '/contacts/user/${Uri.encodeComponent(widget.userId)}',
-                                  ),
+                                : () {
+                                    if (context.canPop()) {
+                                      context.pop();
+                                    } else {
+                                      context.go(
+                                        '/contacts/user/${Uri.encodeComponent(widget.userId)}',
+                                      );
+                                    }
+                                  },
                             child: const Text('Отмена'),
                           ),
                           const Spacer(),
