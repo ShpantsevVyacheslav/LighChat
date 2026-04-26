@@ -8,11 +8,13 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../data/add_contact_profile_providers.dart';
 import '../data/device_contact_lookup_keys.dart';
 import '../data/profile_qr_link.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
+import 'add_contact_phone_mask_formatter.dart';
 import 'chat_avatar.dart';
 
 class AddContactByPhoneSheet extends ConsumerStatefulWidget {
@@ -203,7 +205,7 @@ class _AddContactByPhoneSheetState
     if (matched.isEmpty) return;
     final country = matched.first;
     final nationalDigits = digits.substring(country.dialDigits.length);
-    final masked = _PhoneMaskFormatter.formatDigits(
+    final masked = AddContactNationalPhoneMaskFormatter.formatDigits(
       nationalDigits,
       phoneHint: country.phoneHint,
     );
@@ -506,7 +508,7 @@ class _AddContactByPhoneSheetState
     setState(() {
       _selectedCountry = selected;
       final nationalDigits = _extractNationalPhoneDigits(_nationalPhone.text);
-      _nationalPhone.text = _PhoneMaskFormatter.formatDigits(
+      _nationalPhone.text = AddContactNationalPhoneMaskFormatter.formatDigits(
         nationalDigits,
         phoneHint: _selectedCountry.phoneHint,
       );
@@ -612,7 +614,7 @@ class _AddContactByPhoneSheetState
                     onChanged: _handlePhoneChanged,
                     onSubmitted: (_) => unawaited(_searchByPhone()),
                     inputFormatters: <TextInputFormatter>[
-                      _PhoneMaskFormatter(
+                      AddContactNationalPhoneMaskFormatter(
                         phoneHint: _selectedCountry.phoneHint,
                         maxNationalDigits: _selectedCountry.maxNationalDigits,
                       ),
@@ -748,17 +750,15 @@ class _AddContactByPhoneSheetState
     if (_matchedIds.isEmpty) {
       return const SizedBox.shrink();
     }
-    final profilesRepo = ref.watch(userProfilesRepositoryProvider);
-    if (profilesRepo == null) {
+    if (ref.watch(userProfilesRepositoryProvider) == null) {
       return _ResultPlaceholderCard(
         text: 'Результаты пока недоступны',
         warning: true,
       );
     }
+    final idsKey = addContactMatchedProfilesProviderKey(_matchedIds);
     final profilesAsync = ref.watch(
-      StreamProvider.autoDispose<Map<String, UserProfile>>((ref) {
-        return profilesRepo.watchUsersByIds(_matchedIds);
-      }),
+      addContactMatchedProfilesStreamProvider(idsKey),
     );
 
     return profilesAsync.when(
@@ -1293,54 +1293,3 @@ const List<_PhoneCountry> _phoneCountries = [
     maxNationalDigits: 9,
   ),
 ];
-
-class _PhoneMaskFormatter extends TextInputFormatter {
-  const _PhoneMaskFormatter({
-    required this.phoneHint,
-    required this.maxNationalDigits,
-  });
-
-  final String phoneHint;
-  final int maxNationalDigits;
-
-  static bool _isDigit(String ch) => RegExp(r'\d').hasMatch(ch);
-
-  static String formatDigits(String digits, {required String phoneHint}) {
-    if (digits.isEmpty) return '';
-    final cleaned = digits.replaceAll(RegExp(r'\D'), '');
-    final out = StringBuffer();
-    var di = 0;
-    for (var i = 0; i < phoneHint.length; i++) {
-      final ch = phoneHint[i];
-      if (_isDigit(ch)) {
-        if (di >= cleaned.length) break;
-        out.write(cleaned[di]);
-        di++;
-      } else {
-        if (di == 0) continue;
-        out.write(ch);
-      }
-    }
-    if (di < cleaned.length) {
-      out.write(cleaned.substring(di));
-    }
-    return out.toString();
-  }
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final rawDigits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final limited = rawDigits.length > maxNationalDigits
-        ? rawDigits.substring(0, maxNationalDigits)
-        : rawDigits;
-    final nextText = formatDigits(limited, phoneHint: phoneHint);
-    return TextEditingValue(
-      text: nextText,
-      selection: TextSelection.collapsed(offset: nextText.length),
-      composing: TextRange.empty,
-    );
-  }
-}

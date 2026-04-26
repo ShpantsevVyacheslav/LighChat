@@ -536,6 +536,9 @@ export function ChatWindow({
     () => messagesForList.filter((m) => isIncomingUnreadForViewer(m, currentUser.id)).length,
     [messagesForList, currentUser.id]
   );
+  // При скрытых read-receipts readAt не обновляется намеренно, поэтому для якоря
+  // и связанных UI-состояний опираемся на conversation.unreadCounts.
+  const unreadCountForAnchor = suppressReadReceipts ? unreadCount : incomingUnreadCount;
 
   useEffect(() => {
     if (!firestore || !suppressReadReceipts) return;
@@ -571,7 +574,7 @@ export function ChatWindow({
     }
     prevUnreadCount.current = unreadCount;
 
-    if (incomingUnreadCount === 0) {
+    if (unreadCountForAnchor === 0 || suppressReadReceipts) {
       if (unreadSeparatorId) {
           setUnreadSeparatorId(null);
           hasClearedSeparatorRef.current = false;
@@ -586,7 +589,15 @@ export function ChatWindow({
         setUnreadSeparatorId(oldestUnread.id);
       }
     }
-  }, [isFullyReady, unreadCount, unreadSeparatorId, messagesForList, currentUser.id, incomingUnreadCount]);
+  }, [
+    isFullyReady,
+    unreadCount,
+    unreadSeparatorId,
+    messagesForList,
+    currentUser.id,
+    unreadCountForAnchor,
+    suppressReadReceipts,
+  ]);
 
   const flatItems = useMemo(
     () => buildChatListRows(messagesForList, unreadSeparatorId),
@@ -700,7 +711,7 @@ export function ChatWindow({
 
   useEffect(() => {
     if (isFullyReady && !hasScrolledToUnread && virtuosoRef.current && flatItems.length > 0) {
-        if (incomingUnreadCount > 0 && !unreadSeparatorId) return;
+        if (!suppressReadReceipts && unreadCountForAnchor > 0 && !unreadSeparatorId) return;
 
         const timer = setTimeout(() => {
             const unreadSeparatorIdx = flatItems.findIndex(item => item.type === 'unread-separator');
@@ -721,7 +732,14 @@ export function ChatWindow({
         }, 200);
         return () => clearTimeout(timer);
     }
-  }, [isFullyReady, hasScrolledToUnread, flatItems, incomingUnreadCount, unreadSeparatorId]);
+  }, [
+    isFullyReady,
+    hasScrolledToUnread,
+    flatItems,
+    unreadCountForAnchor,
+    unreadSeparatorId,
+    suppressReadReceipts,
+  ]);
 
   const handleRangeChanged = useCallback((range: { startIndex: number; endIndex: number }) => {
     currentVisibleRange.current = range;
@@ -1655,8 +1673,35 @@ export function ChatWindow({
       parentId: conversation.lastReactionParentId
   } : null;
 
+  const logAnchorDebug = useCallback(
+    (event: string, extra?: Record<string, unknown>) => {
+      incrementChatPerfCounter('chat-anchor-click-total');
+      incrementChatPerfCounter(`chat-anchor-click-${event}`);
+      if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') return;
+      console.debug('[ChatAnchor][dev]', {
+        event,
+        conversationId: conversation.id,
+        userId: currentUser.id,
+        suppressReadReceipts,
+        conversationUnread: unreadCount,
+        incomingUnread: incomingUnreadCount,
+        unreadThread: unreadThreadCount,
+        ...extra,
+      });
+    },
+    [
+      conversation.id,
+      currentUser.id,
+      suppressReadReceipts,
+      unreadCount,
+      incomingUnreadCount,
+      unreadThreadCount,
+    ]
+  );
+
   const handleAnchorClick = () => {
     if (!firestore) return;
+    logAnchorDebug('click');
     const currentItems = flatItemsRef.current;
     const lastIdx = Math.max(0, currentItems.length - 1);
     const separatorIdx = currentItems.findIndex((item) => item.type === 'unread-separator');
@@ -1664,8 +1709,17 @@ export function ChatWindow({
       .filter((m) => isIncomingUnreadForViewer(m, currentUser.id))
       .map((m) => m.id);
 
+    if (suppressReadReceipts && unreadCount > 0) {
+      logAnchorDebug('suppress-reset', { unreadCount });
+      virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
+      anchorUnreadStepRef.current = 0;
+      void markConversationAsRead(firestore, conversation.id, currentUser.id);
+      return;
+    }
+
     if (unreadIds.length > 0) {
       if (anchorUnreadStepRef.current === 0) {
+        logAnchorDebug('jump-to-unread', { unreadIds: unreadIds.length, separatorIdx });
         if (separatorIdx !== -1) {
         virtuosoRef.current?.scrollToIndex({ index: separatorIdx, align: 'start', behavior: 'smooth' });
     } else {
@@ -1680,6 +1734,7 @@ export function ChatWindow({
         anchorUnreadStepRef.current = 1;
         return;
       }
+        logAnchorDebug('mark-all-read', { unreadIds: unreadIds.length });
         virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
       anchorUnreadStepRef.current = 0;
       void (async () => {
@@ -1699,6 +1754,7 @@ export function ChatWindow({
       return;
     }
 
+    logAnchorDebug('jump-to-bottom');
     virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
     anchorUnreadStepRef.current = 0;
   };
@@ -2026,7 +2082,7 @@ export function ChatWindow({
                     <ChatAnchor
                       suppressed={suppressChatAnchor}
                       isVisible={showScrollButton}
-                      unreadCount={incomingUnreadCount}
+                      unreadCount={unreadCountForAnchor}
                       lastReaction={latestReaction}
                       onClick={handleAnchorClick}
                       onNavigateToReaction={handleNavigateToReaction}

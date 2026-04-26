@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useDoc, useFirestore, useMemoFirebase, useUsersByDocumentIds, useUser as useFirebaseUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { UserContactsIndex } from '@/lib/types';
+import type { User, UserContactsIndex } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -14,11 +14,15 @@ import {
   Loader2,
   Trash2,
   Smartphone,
+  QrCode,
+  Camera,
+  Upload,
   AlertCircle as AlertCircleIcon,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   findUserByPhoneInFirestore,
+  findUserByIdInFirestore,
   addContactId,
   removeContactId,
   saveDeviceContactsConsent,
@@ -31,6 +35,7 @@ import { isPwaDisplayMode } from '@/lib/pwa-display-mode';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -42,12 +47,33 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ContactsSyncPromoBanner } from '@/components/contacts/ContactsSyncPromoBanner';
 import { ContactsPermissionGuideDialog } from '@/components/contacts/ContactsPermissionGuideDialog';
+import { extractProfileUserIdFromQrPayload } from '@/lib/profile-qr-link';
 
 type ContactPickerNavigator = Navigator & {
   contacts?: {
     select: (props: string[], opts?: { multiple?: boolean }) => Promise<Array<{ tel?: string[] }>>;
   };
 };
+
+type BarcodeDetectorCtorLike = new (opts?: { formats?: string[] }) => {
+  detect: (source: ImageBitmapSource) => Promise<unknown>;
+};
+
+function getBarcodeDetectorCtor(): BarcodeDetectorCtorLike | null {
+  if (typeof window === 'undefined') return null;
+  const maybeCtor = (window as unknown as { BarcodeDetector?: BarcodeDetectorCtorLike }).BarcodeDetector;
+  return typeof maybeCtor === 'function' ? maybeCtor : null;
+}
+
+function pickRawQrValue(detected: unknown): string | null {
+  if (!Array.isArray(detected)) return null;
+  for (const item of detected) {
+    if (!item || typeof item !== 'object') continue;
+    const raw = (item as { rawValue?: unknown }).rawValue;
+    if (typeof raw === 'string' && raw.trim()) return raw.trim();
+  }
+  return null;
+}
 
 /** Кнопка-иконка в духе iOS: стекло без яркой обводки. */
 const glassIconButtonClass = cn(
@@ -115,11 +141,21 @@ export function ContactsClient() {
   const [removeBusyId, setRemoveBusyId] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrPayloadInput, setQrPayloadInput] = useState('');
+  const [qrBusy, setQrBusy] = useState(false);
+  const [qrCameraError, setQrCameraError] = useState<string | null>(null);
   const [pwaPhoneBookOpen, setPwaPhoneBookOpen] = useState(false);
   const [contactPermissionGuideOpen, setContactPermissionGuideOpen] = useState(false);
   /** Подтверждение удаления из списка контактов. */
   const [contactPendingRemove, setContactPendingRemove] = useState<{ id: string; name: string } | null>(null);
   const skipDismissOnCloseRef = useRef(false);
+  const qrVideoRef = useRef<HTMLVideoElement | null>(null);
+  const qrFileInputRef = useRef<HTMLInputElement | null>(null);
+  const qrLoopRef = useRef<number | null>(null);
+  const qrStreamRef = useRef<MediaStream | null>(null);
+  const qrHandlingRef = useRef(false);
+  const qrLastScanAtRef = useRef(0);
 
   const contactsRef = useMemoFirebase(() => {
     if (!firestore || !ownerUid) return null;
@@ -262,6 +298,227 @@ export function ContactsClient() {
     !listLoading &&
     (hasConsent || Boolean(contactsIndex?.phoneBookOfferDismissedAt));
 
+  const handleResolvedContactCandidate = useCallback(
+    (foundUser: User) => {
+      if (!currentUser || !ownerUid) return false;
+      const normalizedId = foundUser.id.trim();
+      if (!normalizedId) return false;
+
+      if (normalizedId === ownerUid) {
+        toast({ title: 'Нельзя добавить себя', variant: 'destructive' });
+        return false;
+      }
+
+      if (!canStartDirectChat(currentUser, foundUser)) {
+        toast({
+          title: 'Недоступно',
+          description: 'С этим пользователем нельзя связаться по правилам ролей.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      setPhoneInput('');
+      setQrPayloadInput('');
+      setQrDialogOpen(false);
+      setAddSheetOpen(false);
+
+      if (contactIds.includes(normalizedId)) {
+        toast({ title: 'Уже в контактах', description: 'Открываю карточку контакта' });
+        router.push(`/dashboard/contacts/${encodeURIComponent(normalizedId)}`);
+        return true;
+      }
+
+      toast({ title: 'Пользователь найден', description: 'Заполните отображаемое имя контакта' });
+      router.push(`/dashboard/contacts/${encodeURIComponent(normalizedId)}/edit`);
+      return true;
+    },
+    [currentUser, ownerUid, toast, contactIds, router]
+  );
+
+  const handleAddByQrPayload = useCallback(
+    async (payload: string): Promise<boolean> => {
+      if (!firestore || !ownerUid || !currentUser) return false;
+      const userId = extractProfileUserIdFromQrPayload(payload);
+      if (!userId) {
+        toast({
+          title: 'QR-код не распознан',
+          description: 'Ожидается ссылка профиля LighChat.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      setQrBusy(true);
+      try {
+        const found = await findUserByIdInFirestore(firestore, userId);
+        if (!found) {
+          toast({
+            title: 'Профиль не найден',
+            description: 'Пользователь из QR-кода не найден в LighChat.',
+            variant: 'destructive',
+          });
+          return false;
+        }
+        return handleResolvedContactCandidate(found);
+      } catch (e) {
+        console.error(e);
+        toast({
+          title: 'Ошибка QR',
+          description: 'Не удалось обработать QR-код.',
+          variant: 'destructive',
+        });
+        return false;
+      } finally {
+        setQrBusy(false);
+        qrHandlingRef.current = false;
+      }
+    },
+    [firestore, ownerUid, currentUser, toast, handleResolvedContactCandidate]
+  );
+
+  const stopQrCamera = useCallback(() => {
+    if (qrLoopRef.current != null) {
+      window.cancelAnimationFrame(qrLoopRef.current);
+      qrLoopRef.current = null;
+    }
+    if (qrStreamRef.current) {
+      for (const track of qrStreamRef.current.getTracks()) track.stop();
+      qrStreamRef.current = null;
+    }
+    if (qrVideoRef.current) {
+      qrVideoRef.current.pause();
+      qrVideoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const startQrCamera = useCallback(async () => {
+    const Detector = getBarcodeDetectorCtor();
+    if (!Detector) {
+      setQrCameraError('Сканирование камерой недоступно в этом браузере. Вставьте ссылку из QR ниже.');
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setQrCameraError('Камера недоступна в этом браузере. Вставьте ссылку из QR ниже.');
+      return;
+    }
+
+    stopQrCamera();
+    setQrCameraError(null);
+    qrLastScanAtRef.current = 0;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+      });
+      qrStreamRef.current = stream;
+
+      const video = qrVideoRef.current;
+      if (!video) {
+        stopQrCamera();
+        setQrCameraError('Не удалось открыть предпросмотр камеры.');
+        return;
+      }
+
+      video.srcObject = stream;
+      await video.play().catch(() => undefined);
+
+      const detector = new Detector({ formats: ['qr_code'] });
+      const loop = async () => {
+        const videoEl = qrVideoRef.current;
+        if (!videoEl) return;
+        const now = Date.now();
+        if (
+          !qrHandlingRef.current &&
+          now - qrLastScanAtRef.current >= 220 &&
+          videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+        ) {
+          qrLastScanAtRef.current = now;
+          try {
+            const found = await detector.detect(videoEl);
+            const payload = pickRawQrValue(found);
+            if (payload) {
+              setQrPayloadInput(payload);
+              qrHandlingRef.current = true;
+              const success = await handleAddByQrPayload(payload);
+              if (success) return;
+            }
+          } catch {
+            // Ignore intermittent detection errors, keep scanning.
+          }
+        }
+        qrLoopRef.current = window.requestAnimationFrame(() => {
+          void loop();
+        });
+      };
+
+      qrLoopRef.current = window.requestAnimationFrame(() => {
+        void loop();
+      });
+    } catch (e) {
+      console.error(e);
+      setQrCameraError('Не удалось открыть камеру. Разрешите доступ или вставьте QR-ссылку вручную.');
+      stopQrCamera();
+    }
+  }, [handleAddByQrPayload, stopQrCamera]);
+
+  const handleQrImageUpload = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+      event.target.value = '';
+      if (!file) return;
+
+      const Detector = getBarcodeDetectorCtor();
+      if (!Detector) {
+        toast({
+          title: 'Загрузка QR недоступна',
+          description: 'В этом браузере поддерживается только ручная вставка ссылки.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      try {
+        const bitmap = await createImageBitmap(file);
+        try {
+          const detector = new Detector({ formats: ['qr_code'] });
+          const found = await detector.detect(bitmap);
+          const payload = pickRawQrValue(found);
+          if (!payload) {
+            toast({
+              title: 'QR не найден',
+              description: 'На изображении не удалось распознать QR-код.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          setQrPayloadInput(payload);
+          await handleAddByQrPayload(payload);
+        } finally {
+          bitmap.close();
+        }
+      } catch (e) {
+        console.error(e);
+        toast({
+          title: 'Ошибка обработки изображения',
+          description: 'Не удалось прочитать QR-код из файла.',
+          variant: 'destructive',
+        });
+      }
+    },
+    [handleAddByQrPayload, toast]
+  );
+
+  useEffect(() => {
+    if (!qrDialogOpen) {
+      stopQrCamera();
+      qrHandlingRef.current = false;
+      return;
+    }
+    void startQrCamera();
+    return () => stopQrCamera();
+  }, [qrDialogOpen, startQrCamera, stopQrCamera]);
+
   const handleAddByPhone = async () => {
     if (!firestore || !currentUser || !ownerUid) return;
     const digits = phoneInput.replace(/\D/g, '').slice(0, selectedPhonePreset.maxDigits);
@@ -280,29 +537,7 @@ export function ContactsClient() {
         });
         return;
       }
-      if (found.id === ownerUid) {
-        toast({ title: 'Нельзя добавить себя', variant: 'destructive' });
-        return;
-      }
-      if (!canStartDirectChat(currentUser, found)) {
-        toast({
-          title: 'Недоступно',
-          description: 'С этим пользователем нельзя связаться по правилам ролей.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      if (contactIds.includes(found.id)) {
-        toast({ title: 'Уже в контактах', description: 'Открываю карточку контакта' });
-        setPhoneInput('');
-        setAddSheetOpen(false);
-        router.push(`/dashboard/contacts/${encodeURIComponent(found.id)}`);
-        return;
-      }
-      toast({ title: 'Пользователь найден', description: 'Заполните отображаемое имя контакта' });
-      setPhoneInput('');
-      setAddSheetOpen(false);
-      router.push(`/dashboard/contacts/${encodeURIComponent(found.id)}/edit`);
+      handleResolvedContactCandidate(found);
     } catch (e) {
       console.error(e);
       toast({ title: 'Ошибка', description: 'Не удалось добавить контакт.', variant: 'destructive' });
@@ -401,20 +636,7 @@ export function ContactsClient() {
         <button
           type="button"
           className={glassIconButtonClass}
-          onClick={() => {
-            const myPhone = String(currentUser?.phone ?? '').trim();
-            if (!myPhone) {
-              toast({
-                title: 'Добавьте телефон',
-                description:
-                  'Для поиска контактов по номеру телефона заполните телефон в профиле.',
-                variant: 'destructive',
-              });
-              router.push('/dashboard/profile');
-              return;
-            }
-            setAddSheetOpen(true);
-          }}
+          onClick={() => setAddSheetOpen(true)}
           aria-label="Добавить контакт"
         >
           <UserPlus className="h-[1.15rem] w-[1.15rem]" strokeWidth={1.75} />
@@ -600,7 +822,7 @@ export function ContactsClient() {
         <SheetContent side="bottom" className={sheetSurfaceClass}>
           <SheetHeader className="text-left">
             <SheetTitle className="text-lg font-semibold">Добавить контакт</SheetTitle>
-            <SheetDescription>Поиск по номеру телефона из профиля в LighChat.</SheetDescription>
+            <SheetDescription>Поиск по номеру телефона или QR-коду профиля LighChat.</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">
             <div className="flex items-center gap-2">
@@ -646,9 +868,122 @@ export function ContactsClient() {
               {searchBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Добавить
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 w-full rounded-2xl text-base font-medium"
+              onClick={() => {
+                setQrPayloadInput('');
+                setQrCameraError(null);
+                setQrDialogOpen(true);
+              }}
+              disabled={searchBusy || qrBusy}
+            >
+              <QrCode className="mr-2 h-4 w-4" />
+              Добавить по QR-коду
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog
+        open={qrDialogOpen}
+        onOpenChange={(open) => {
+          setQrDialogOpen(open);
+          if (!open) {
+            setQrPayloadInput('');
+            setQrCameraError(null);
+          }
+        }}
+      >
+        <DialogContent
+          className="max-w-[min(100%,28rem)] rounded-2xl border border-border/60 bg-background/95 p-4 sm:p-5"
+          showCloseButton
+        >
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="text-base">Сканировать QR-код контакта</DialogTitle>
+            <DialogDescription>
+              Наведите камеру на QR-код профиля LighChat или вставьте ссылку вручную.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="relative overflow-hidden rounded-xl border border-border/60 bg-black/40">
+              <video
+                ref={qrVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="aspect-video w-full object-cover"
+              />
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
+                <div className="rounded-full border border-white/30 bg-black/35 px-3 py-1 text-xs font-medium text-white/90">
+                  {qrCameraError ? 'Камера недоступна' : 'Сканирование...'}
+                </div>
+              </div>
+            </div>
+
+            {qrCameraError ? (
+              <p className="text-xs text-muted-foreground">{qrCameraError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Если камера не видит QR, загрузите изображение или вставьте QR-ссылку.
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 flex-1 rounded-xl"
+                onClick={() => qrFileInputRef.current?.click()}
+                disabled={qrBusy}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Загрузить QR
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 flex-1 rounded-xl"
+                onClick={() => {
+                  void startQrCamera();
+                }}
+                disabled={qrBusy}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                Перезапустить
+              </Button>
+            </div>
+
+            <Input
+              value={qrPayloadInput}
+              onChange={(e) => setQrPayloadInput(e.target.value)}
+              placeholder="https://lighchat.online/dashboard/contacts/..."
+              className="h-11 rounded-xl"
+            />
+            <Button
+              type="button"
+              className="h-11 w-full rounded-xl font-semibold"
+              disabled={qrBusy || !qrPayloadInput.trim()}
+              onClick={() => {
+                qrHandlingRef.current = true;
+                void handleAddByQrPayload(qrPayloadInput);
+              }}
+            >
+              {qrBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Найти контакт
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <input
+        ref={qrFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleQrImageUpload}
+      />
     </div>
   );
 }

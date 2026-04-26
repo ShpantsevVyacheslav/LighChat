@@ -63,6 +63,28 @@ class UserProfilesRepository {
     return controller.stream;
   }
 
+  /// One-shot reads for a small id set (e.g. device sync eligibility). Avoids
+  /// [listAllUsers] which does not scale.
+  Future<Map<String, UserProfile>> getUsersByIdsOnce(
+    Iterable<String> userIds,
+  ) async {
+    final ids = userIds.map((s) => s.trim()).where((s) => s.isNotEmpty).toSet();
+    if (ids.isEmpty) return const {};
+    final out = <String, UserProfile>{};
+    await Future.wait(ids.map((id) async {
+      try {
+        final snap = await _firestore.collection('users').doc(id).get();
+        if (!snap.exists) return;
+        final data = snap.data();
+        final p = data == null ? null : UserProfile.fromJson(snap.id, data);
+        if (p != null) out[id] = p;
+      } catch (_) {
+        // Skip missing/forbidden docs; caller treats as absent.
+      }
+    }));
+    return Map.unmodifiable(out);
+  }
+
   Future<List<UserProfile>> listAllUsers() async {
     final snap = await _firestore.collection('users').get();
     return snap.docs

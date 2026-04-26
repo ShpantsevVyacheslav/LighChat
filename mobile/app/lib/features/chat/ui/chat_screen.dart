@@ -109,6 +109,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   int _anchorUnreadStep = 0;
   final Set<String> _sessionReadIds = <String>{};
   bool _initialOpenPositionResolved = false;
+  /// Сессионный id сообщения перед которым рисуется «Непрочитанные»; не следует за
+  /// «текущим» oldest-unread при прочитке (паритет web `unreadSeparatorId`).
+  String? _sessionUnreadSeparatorAnchorMessageId;
   String _suppressReadConversationResetKey = '';
 
   /// После подгрузки истории не дергать сразу повторный запрос у верхнего края.
@@ -424,6 +427,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _chatAtBottom = true;
       _anchorUnreadStep = 0;
       _initialOpenPositionResolved = false;
+      _sessionUnreadSeparatorAnchorMessageId = null;
       _sessionReadIds.clear();
       _suppressReadConversationResetKey = '';
       _nearOldestCooldownUntil = null;
@@ -505,6 +509,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     }
     return out;
+  }
+
+  void _syncSessionUnreadSeparatorAnchor({
+    required List<ChatMessage> sortedAsc,
+    required String viewerId,
+  }) {
+    if (_loadedIncomingUnreadCount(sortedAsc, viewerId) == 0) {
+      _sessionUnreadSeparatorAnchorMessageId = null;
+      return;
+    }
+    _sessionUnreadSeparatorAnchorMessageId ??=
+        _oldestIncomingUnreadId(sortedAsc, viewerId);
   }
 
   Future<void> _markVisibleMessageAsRead(
@@ -1018,10 +1034,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   } else if (_suppressReadConversationResetKey.isNotEmpty) {
                     _suppressReadConversationResetKey = '';
                   }
-                  final unreadSeparatorMessageId = _oldestIncomingUnreadId(
-                    sortedAscForAnchor,
-                    user.uid,
+                  _syncSessionUnreadSeparatorAnchor(
+                    sortedAsc: sortedAscForAnchor,
+                    viewerId: user.uid,
                   );
+                  final unreadSeparatorMessageId =
+                      _sessionUnreadSeparatorAnchorMessageId;
                   _maybeResolveInitialOpenPosition(
                     unreadSeparatorMessageId: unreadSeparatorMessageId,
                   );

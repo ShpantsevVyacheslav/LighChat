@@ -130,8 +130,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
 
       final profilesRepo = ref.read(userProfilesRepositoryProvider);
       if (profilesRepo != null && toAdd.isNotEmpty) {
-        final all = await profilesRepo.listAllUsers();
-        final byId = <String, UserProfile>{for (final p in all) p.id: p};
+        final byId = await profilesRepo.getUsersByIdsOnce(toAdd);
         final eligible = toAdd
             .where((id) {
               final p = byId[id];

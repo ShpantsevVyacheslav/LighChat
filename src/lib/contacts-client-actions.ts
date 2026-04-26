@@ -48,6 +48,17 @@ export async function findUserByPhoneInFirestore(
   return null;
 }
 
+export async function findUserByIdInFirestore(
+  firestore: Firestore,
+  userId: string
+): Promise<User | null> {
+  const uid = userId.trim();
+  if (!uid) return null;
+  const userSnap = await getDoc(doc(firestore, "users", uid));
+  if (!userSnap.exists()) return null;
+  return { id: userSnap.id, ...userSnap.data() } as User;
+}
+
 export async function addContactId(
   firestore: Firestore,
   ownerId: string,

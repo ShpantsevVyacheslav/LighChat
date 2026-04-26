@@ -124,6 +124,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   String? _jumpScrollBoostMessageId;
   bool _threadAtBottom = true;
   int _anchorUnreadStep = 0;
+  /// Паритет основного чата: разделитель не «едет» при прочитке в сессии.
+  String? _sessionUnreadSeparatorAnchorMessageId;
   String _suppressThreadUnreadResetKey = '';
   bool _sendBusy = false;
   String? _pendingFocusMessageId;
@@ -176,6 +178,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       _flashHighlightMessageId = null;
       _threadAtBottom = true;
       _anchorUnreadStep = 0;
+      _sessionUnreadSeparatorAnchorMessageId = null;
       _suppressThreadUnreadResetKey = '';
       _sessionReadIds.clear();
       _pendingFocusMessageId = widget.focusMessageId?.trim();
@@ -240,6 +243,18 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       }
     }
     return out;
+  }
+
+  void _syncSessionUnreadSeparatorAnchor({
+    required List<ChatMessage> sortedAsc,
+    required String viewerId,
+  }) {
+    if (_loadedIncomingUnreadCount(sortedAsc, viewerId) == 0) {
+      _sessionUnreadSeparatorAnchorMessageId = null;
+      return;
+    }
+    _sessionUnreadSeparatorAnchorMessageId ??=
+        _oldestIncomingUnreadId(sortedAsc, viewerId);
   }
 
   Future<void> _markVisibleMessageAsRead(
@@ -1267,10 +1282,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                       } else if (_suppressThreadUnreadResetKey.isNotEmpty) {
                         _suppressThreadUnreadResetKey = '';
                       }
-                      final unreadSeparatorMessageId = _oldestIncomingUnreadId(
-                        sortedAsc,
-                        user.uid,
+                      _syncSessionUnreadSeparatorAnchor(
+                        sortedAsc: sortedAsc,
+                        viewerId: user.uid,
                       );
+                      final unreadSeparatorMessageId =
+                          _sessionUnreadSeparatorAnchorMessageId;
                       final serverUnreadCount =
                           parent.unreadThreadCounts?[user.uid] ?? 0;
                       final unreadBadgeCount = loadedIncomingUnreadCount > 0
