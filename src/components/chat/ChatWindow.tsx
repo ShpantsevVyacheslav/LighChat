@@ -464,6 +464,11 @@ export function ChatWindow({
     [selfUserLive?.blockedUserIds, currentUser.blockedUserIds]
   );
 
+  const callerForCalls = useMemo(
+    (): User => ({ ...currentUser, blockedUserIds: myBlockedIds }),
+    [currentUser, myBlockedIds]
+  );
+
   const dmMessagingBlocked = useMemo(() => {
     if (conversation.isGroup || isSelfSavedChat || !otherId) return false;
     if (isPartnerDeleted) return false;
@@ -2036,7 +2041,7 @@ export function ChatWindow({
                                       name: conversation.participantInfo[otherId]?.name ?? 'Пользователь',
                                       blockedUserIds: partnerUserLive?.blockedUserIds,
                                     } as User);
-                                  void initiateCall(firestore, currentUser, recv, true, toast);
+                                  void initiateCall(firestore, callerForCalls, recv, true, toast);
                                 }}
                               >
                                 <Video className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.callVideo)} strokeWidth={2} />
@@ -2055,7 +2060,7 @@ export function ChatWindow({
                                       name: conversation.participantInfo[otherId]?.name ?? 'Пользователь',
                                       blockedUserIds: partnerUserLive?.blockedUserIds,
                                     } as User);
-                                  void initiateCall(firestore, currentUser, recv, false, toast);
+                                  void initiateCall(firestore, callerForCalls, recv, false, toast);
                                 }}
                               >
                                 <Phone className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.callAudio)} strokeWidth={2} />
