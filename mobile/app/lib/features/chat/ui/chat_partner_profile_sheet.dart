@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
@@ -6,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:lighchat_models/lighchat_models.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
@@ -380,25 +383,39 @@ class _ChatPartnerProfileSheetState
     final p = widget.partnerProfile;
     final username = (p?.username ?? '').trim();
     final phone = (p?.phone ?? '').trim();
+    Rect? shareRect;
+    final ro = context.findRenderObject();
+    if (ro is RenderBox && ro.hasSize) {
+      final origin = ro.localToGlobal(Offset.zero);
+      shareRect = origin & ro.size;
+    }
+    final avatarUrl = (p?.avatar ?? p?.avatarThumb ?? _displayAvatarUrl ?? '')
+        .trim();
+    final profileUrl =
+        'https://lighchat.online/dashboard/contacts/${Uri.encodeComponent(partnerId)}';
+    final sharedFiles = <XFile>[];
+    final avatarFile = await _downloadAvatarForShare(
+      avatarUrl: avatarUrl,
+      partnerId: partnerId,
+    );
+    if (avatarFile != null) {
+      sharedFiles.add(avatarFile);
+    }
     final lines = <String>[
       'Контакт в LighChat',
       displayTitle,
       if (username.isNotEmpty)
         username.startsWith('@') ? username : '@$username',
       if (phone.isNotEmpty) formatPhoneNumberForDisplay(phone),
-      'ID: $partnerId',
+      if (avatarUrl.isNotEmpty) 'Аватар: $avatarUrl',
+      'Профиль: $profileUrl',
     ];
     try {
-      Rect? shareRect;
-      final ro = context.findRenderObject();
-      if (ro is RenderBox && ro.hasSize) {
-        final origin = ro.localToGlobal(Offset.zero);
-        shareRect = origin & ro.size;
-      }
       await SharePlus.instance.share(
         ShareParams(
           text: lines.join('\n'),
           subject: 'Контакт LighChat: $displayTitle',
+          files: sharedFiles,
           sharePositionOrigin: shareRect,
         ),
       );
@@ -410,6 +427,87 @@ class _ChatPartnerProfileSheetState
       await Clipboard.setData(ClipboardData(text: fallback));
       if (!mounted) return;
       _toast('Не удалось открыть шаринг. Текст контакта скопирован.');
+    }
+  }
+
+  Future<XFile?> _downloadAvatarForShare({
+    required String avatarUrl,
+    required String partnerId,
+  }) async {
+    if (avatarUrl.isEmpty) return null;
+    final uri = Uri.tryParse(avatarUrl);
+    if (uri == null || !(uri.isScheme('https') || uri.isScheme('http'))) {
+      return null;
+    }
+    try {
+      final res = await http.get(uri).timeout(const Duration(seconds: 15));
+      if (res.statusCode < 200 ||
+          res.statusCode >= 300 ||
+          res.bodyBytes.isEmpty) {
+        return null;
+      }
+      final ext = _shareAvatarExt(
+        contentType: res.headers['content-type'],
+        path: uri.path,
+      );
+      final mimeType = _shareAvatarMimeType(
+        contentType: res.headers['content-type'],
+        ext: ext,
+      );
+      final dir = await getTemporaryDirectory();
+      final safePartnerId = partnerId.replaceAll(
+        RegExp(r'[^a-zA-Z0-9._-]'),
+        '_',
+      );
+      final file = File(
+        '${dir.path}/lighchat_share_avatar_${safePartnerId}_${DateTime.now().millisecondsSinceEpoch}.$ext',
+      );
+      await file.writeAsBytes(res.bodyBytes, flush: true);
+      return XFile(file.path, name: 'avatar.$ext', mimeType: mimeType);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _shareAvatarExt({required String? contentType, required String path}) {
+    final ct = (contentType ?? '').toLowerCase();
+    if (ct.contains('png')) return 'png';
+    if (ct.contains('webp')) return 'webp';
+    if (ct.contains('gif')) return 'gif';
+    if (ct.contains('heic')) return 'heic';
+    if (ct.contains('heif')) return 'heif';
+    if (ct.contains('jpeg') || ct.contains('jpg')) return 'jpg';
+    final p = path.toLowerCase();
+    if (p.endsWith('.png')) return 'png';
+    if (p.endsWith('.webp')) return 'webp';
+    if (p.endsWith('.gif')) return 'gif';
+    if (p.endsWith('.heic')) return 'heic';
+    if (p.endsWith('.heif')) return 'heif';
+    if (p.endsWith('.jpeg') || p.endsWith('.jpg')) return 'jpg';
+    return 'jpg';
+  }
+
+  String _shareAvatarMimeType({
+    required String? contentType,
+    required String ext,
+  }) {
+    final ct = (contentType ?? '').trim();
+    if (ct.startsWith('image/')) return ct;
+    switch (ext) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      case 'heic':
+        return 'image/heic';
+      case 'heif':
+        return 'image/heif';
+      case 'jpeg':
+      case 'jpg':
+      default:
+        return 'image/jpeg';
     }
   }
 

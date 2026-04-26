@@ -5,8 +5,11 @@ import 'user_profile.dart';
 String partnerPresenceLine(UserProfile? p) {
   if (p == null) return 'Не в сети';
   if (p.deletedAt != null && p.deletedAt!.isNotEmpty) return '';
-  if (p.online == true) return 'В сети';
+  final privacy = p.privacySettings;
+  final canShowOnline = privacy?.showOnlineStatus != false;
+  final canShowLastSeen = privacy?.showLastSeen != false;
+  if (canShowOnline && p.online == true) return 'В сети';
   final last = p.lastSeenAt;
-  if (last != null) return formatLastSeenStatusRu(last);
+  if (canShowLastSeen && last != null) return formatLastSeenStatusRu(last);
   return 'Не в сети';
 }

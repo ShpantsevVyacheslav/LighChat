@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Соответствует web `PrivacySettings` (флаги видимости полей для других).
 class UserPrivacySettings {
   const UserPrivacySettings({
+    this.showOnlineStatus,
+    this.showLastSeen,
+    this.showReadReceipts,
     this.showEmailToOthers,
     this.showPhoneToOthers,
     this.showBioToOthers,
@@ -10,10 +13,14 @@ class UserPrivacySettings {
     this.showInGlobalUserSearch,
   });
 
+  final bool? showOnlineStatus;
+  final bool? showLastSeen;
+  final bool? showReadReceipts;
   final bool? showEmailToOthers;
   final bool? showPhoneToOthers;
   final bool? showBioToOthers;
   final bool? showDateOfBirthToOthers;
+
   /// Web `privacySettings.showInGlobalUserSearch` — листинг в «все пользователи» при новом чате.
   final bool? showInGlobalUserSearch;
 
@@ -21,12 +28,30 @@ class UserPrivacySettings {
     if (raw is! Map) return null;
     final m = raw.map((k, v) => MapEntry(k.toString(), v));
     return UserPrivacySettings(
-      showEmailToOthers: m['showEmailToOthers'] is bool ? m['showEmailToOthers'] as bool : null,
-      showPhoneToOthers: m['showPhoneToOthers'] is bool ? m['showPhoneToOthers'] as bool : null,
-      showBioToOthers: m['showBioToOthers'] is bool ? m['showBioToOthers'] as bool : null,
-      showDateOfBirthToOthers: m['showDateOfBirthToOthers'] is bool ? m['showDateOfBirthToOthers'] as bool : null,
-      showInGlobalUserSearch:
-          m['showInGlobalUserSearch'] is bool ? m['showInGlobalUserSearch'] as bool : null,
+      showOnlineStatus: m['showOnlineStatus'] is bool
+          ? m['showOnlineStatus'] as bool
+          : null,
+      showLastSeen: m['showLastSeen'] is bool
+          ? m['showLastSeen'] as bool
+          : null,
+      showReadReceipts: m['showReadReceipts'] is bool
+          ? m['showReadReceipts'] as bool
+          : null,
+      showEmailToOthers: m['showEmailToOthers'] is bool
+          ? m['showEmailToOthers'] as bool
+          : null,
+      showPhoneToOthers: m['showPhoneToOthers'] is bool
+          ? m['showPhoneToOthers'] as bool
+          : null,
+      showBioToOthers: m['showBioToOthers'] is bool
+          ? m['showBioToOthers'] as bool
+          : null,
+      showDateOfBirthToOthers: m['showDateOfBirthToOthers'] is bool
+          ? m['showDateOfBirthToOthers'] as bool
+          : null,
+      showInGlobalUserSearch: m['showInGlobalUserSearch'] is bool
+          ? m['showInGlobalUserSearch'] as bool
+          : null,
     );
   }
 }
@@ -38,6 +63,7 @@ class UserProfile {
     this.username,
     this.avatar,
     this.avatarThumb,
+    this.profileQrLink,
     this.email,
     this.phone,
     this.bio,
@@ -54,9 +80,11 @@ class UserProfile {
   final String? username;
   final String? avatar;
   final String? avatarThumb;
+  final String? profileQrLink;
   final String? email;
   final String? phone;
   final String? bio;
+
   /// Web `UserRole`: `admin` | `worker`.
   final String? role;
   final bool? online;
@@ -82,18 +110,29 @@ class UserProfile {
   static UserProfile? fromJson(String id, Map<String, Object?> json) {
     final name = json['name'];
     if (name is! String || name.trim().isEmpty) return null;
-    final username = json['username'] is String ? json['username'] as String : null;
+    final username = json['username'] is String
+        ? json['username'] as String
+        : null;
     final avatar = json['avatar'] is String ? json['avatar'] as String : null;
-    final avatarThumb = json['avatarThumb'] is String ? json['avatarThumb'] as String : null;
+    final avatarThumb = json['avatarThumb'] is String
+        ? json['avatarThumb'] as String
+        : null;
+    final profileQrLink = json['profileQrLink'] is String
+        ? json['profileQrLink'] as String
+        : null;
     final email = json['email'] is String ? json['email'] as String : null;
     final phone = json['phone'] is String ? json['phone'] as String : null;
     final bio = json['bio'] is String ? json['bio'] as String : null;
     final role = json['role'] is String ? json['role'] as String : null;
     final online = json['online'] is bool ? json['online'] as bool : null;
     final lastSeenAt = _parseLastSeen(json['lastSeen']);
-    final dateOfBirth = json['dateOfBirth'] is String ? json['dateOfBirth'] as String : null;
+    final dateOfBirth = json['dateOfBirth'] is String
+        ? json['dateOfBirth'] as String
+        : null;
     final deletedAt = _parseDeletedAt(json['deletedAt']);
-    final privacySettings = UserPrivacySettings.fromJson(json['privacySettings']);
+    final privacySettings = UserPrivacySettings.fromJson(
+      json['privacySettings'],
+    );
 
     return UserProfile(
       id: id,
@@ -101,6 +140,7 @@ class UserProfile {
       username: username,
       avatar: avatar,
       avatarThumb: avatarThumb,
+      profileQrLink: profileQrLink,
       email: email,
       phone: phone,
       bio: bio,

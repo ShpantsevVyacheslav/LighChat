@@ -9,14 +9,20 @@ import 'registration_availability.dart';
 import 'registration_keys.dart';
 import 'registration_models.dart';
 
+String _buildProfileQrLink(String uid) {
+  final safeUid = uid.trim();
+  if (safeUid.isEmpty) return 'https://lighchat.online/dashboard/contacts';
+  return 'https://lighchat.online/dashboard/contacts/${Uri.encodeComponent(safeUid)}';
+}
+
 class RegistrationService {
   RegistrationService({
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  }) : _auth = auth ?? FirebaseAuth.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _storage = storage ?? FirebaseStorage.instance;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -41,7 +47,8 @@ class RegistrationService {
     if (await isRegistrationPhoneTaken(firestore: _firestore, key: phoneKey)) {
       throw RegistrationConflict(
         field: 'phone',
-        message: 'Этот номер телефона уже зарегистрирован. Укажите другой номер.',
+        message:
+            'Этот номер телефона уже зарегистрирован. Укажите другой номер.',
       );
     }
     if (await isRegistrationUsernameTaken(
@@ -103,12 +110,17 @@ class RegistrationService {
       'phone': phone,
       'avatar': avatarUrl,
       'avatarThumb': avatarThumbUrl,
+      'profileQrLink': _buildProfileQrLink(uid),
       'deletedAt': null,
       'createdAt': nowIso,
       if (data.bio?.trim().isNotEmpty ?? false) 'bio': data.bio!.trim(),
-      if (data.dateOfBirth?.trim().isNotEmpty ?? false) 'dateOfBirth': data.dateOfBirth!.trim(),
+      if (data.dateOfBirth?.trim().isNotEmpty ?? false)
+        'dateOfBirth': data.dateOfBirth!.trim(),
     };
-    await _firestore.collection('users').doc(uid).set(userDoc, SetOptions(merge: true));
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set(userDoc, SetOptions(merge: true));
 
     // 5) Write registrationIndex docs (best-effort; if blocked by rules, surface clearly).
     try {
@@ -116,14 +128,24 @@ class RegistrationService {
       if (emailKey != null) {
         batch.set(
           _firestore.collection('registrationIndex').doc(emailKey),
-          <String, Object?>{'uid': uid, 'type': 'email', 'value': email, 'updatedAt': nowIso},
+          <String, Object?>{
+            'uid': uid,
+            'type': 'email',
+            'value': email,
+            'updatedAt': nowIso,
+          },
           SetOptions(merge: true),
         );
       }
       if (phoneKey != null) {
         batch.set(
           _firestore.collection('registrationIndex').doc(phoneKey),
-          <String, Object?>{'uid': uid, 'type': 'phone', 'value': phone, 'updatedAt': nowIso},
+          <String, Object?>{
+            'uid': uid,
+            'type': 'phone',
+            'value': phone,
+            'updatedAt': nowIso,
+          },
           SetOptions(merge: true),
         );
       }
@@ -133,7 +155,10 @@ class RegistrationService {
           <String, Object?>{
             'uid': uid,
             'type': 'username',
-            'value': data.username.trim().replaceFirst(RegExp(r'^@'), '').toLowerCase(),
+            'value': data.username
+                .trim()
+                .replaceFirst(RegExp(r'^@'), '')
+                .toLowerCase(),
             'updatedAt': nowIso,
           },
           SetOptions(merge: true),
@@ -181,7 +206,8 @@ class RegistrationService {
     )) {
       throw RegistrationConflict(
         field: 'phone',
-        message: 'Этот номер телефона уже зарегистрирован. Укажите другой номер.',
+        message:
+            'Этот номер телефона уже зарегистрирован. Укажите другой номер.',
       );
     }
     if (await isRegistrationUsernameTaken(
@@ -234,24 +260,38 @@ class RegistrationService {
       'phone': phone,
       'avatar': avatarUrl,
       'avatarThumb': avatarThumbUrl,
+      'profileQrLink': _buildProfileQrLink(uid),
       if (data.bio?.trim().isNotEmpty ?? false) 'bio': data.bio!.trim(),
       if (data.dateOfBirth?.trim().isNotEmpty ?? false)
         'dateOfBirth': data.dateOfBirth!.trim(),
     };
-    await _firestore.collection('users').doc(uid).set(userDoc, SetOptions(merge: true));
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set(userDoc, SetOptions(merge: true));
 
     final batch = _firestore.batch();
     if (emailKey != null) {
       batch.set(
         _firestore.collection('registrationIndex').doc(emailKey),
-        <String, Object?>{'uid': uid, 'type': 'email', 'value': email, 'updatedAt': nowIso},
+        <String, Object?>{
+          'uid': uid,
+          'type': 'email',
+          'value': email,
+          'updatedAt': nowIso,
+        },
         SetOptions(merge: true),
       );
     }
     if (phoneKey != null) {
       batch.set(
         _firestore.collection('registrationIndex').doc(phoneKey),
-        <String, Object?>{'uid': uid, 'type': 'phone', 'value': phone, 'updatedAt': nowIso},
+        <String, Object?>{
+          'uid': uid,
+          'type': 'phone',
+          'value': phone,
+          'updatedAt': nowIso,
+        },
         SetOptions(merge: true),
       );
     }
@@ -261,7 +301,10 @@ class RegistrationService {
         <String, Object?>{
           'uid': uid,
           'type': 'username',
-          'value': data.username.trim().replaceFirst(RegExp(r'^@'), '').toLowerCase(),
+          'value': data.username
+              .trim()
+              .replaceFirst(RegExp(r'^@'), '')
+              .toLowerCase(),
           'updatedAt': nowIso,
         },
         SetOptions(merge: true),
@@ -270,4 +313,3 @@ class RegistrationService {
     await batch.commit();
   }
 }
-

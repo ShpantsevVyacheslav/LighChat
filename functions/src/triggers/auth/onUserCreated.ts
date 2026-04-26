@@ -27,6 +27,8 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
     (user.uid.startsWith("tg_") || user.uid.startsWith("ya_"));
   const isAnonymous = !isOAuthBridgeUid && !user.email && !user.phoneNumber;
 
+  const profileQrLink = `https://lighchat.online/dashboard/contacts/${encodeURIComponent(user.uid)}`;
+
   const userProfile = {
     id: user.uid,
     name: user.displayName || (isAnonymous ? "Гость" : "Новый пользователь"),
@@ -34,6 +36,7 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
     email: user.email || (isAnonymous ? `guest_${user.uid}@anonymous.com` : ""),
     phone: user.phoneNumber || "",
     avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+    profileQrLink,
     role: isAnonymous ? null : "worker",
     bio: "",
     dateOfBirth: null,

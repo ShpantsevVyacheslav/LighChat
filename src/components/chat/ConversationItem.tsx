@@ -14,6 +14,7 @@ import { useConversationTypingOthers } from '@/hooks/use-conversation-typing-oth
 import { useElementInViewport } from '@/hooks/use-element-in-viewport';
 import { usePageVisibility } from '@/hooks/use-page-visibility';
 import { useChatMainDraftPreview } from '@/hooks/use-chat-main-draft-preview';
+import { canShowOnlineStatus } from '@/lib/presence-visibility';
 
 interface ConversationItemProps {
     conv: Conversation;
@@ -60,6 +61,7 @@ export function ConversationItem({
         ? currentUser.id
         : conv.participantIds.find(id => id !== currentUser.id)!;
     const liveOtherUser = allUsers.find(u => u.id === otherId);
+    const canShowOtherOnline = canShowOnlineStatus(liveOtherUser);
     const resolveDisplayNameById = (userId: string | null | undefined): string => {
         const id = (userId ?? '').trim();
         if (!id) return '';
@@ -248,7 +250,11 @@ export function ConversationItem({
                         <AvatarImage src={avatar} alt={displayName} className="object-cover" />
                         <AvatarFallback className="bg-muted text-foreground font-bold">{displayName.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    {!conv.isGroup && !isSavedMessages && liveOtherUser?.online && !isPartnerDeleted && (
+                    {!conv.isGroup &&
+                        !isSavedMessages &&
+                        canShowOtherOnline &&
+                        liveOtherUser?.online &&
+                        !isPartnerDeleted && (
                         <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-background rounded-full z-10" />
                     )}
                     {isListCollapsed && totalUnread > 0 && (

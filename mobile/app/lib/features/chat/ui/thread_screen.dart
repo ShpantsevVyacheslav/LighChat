@@ -124,6 +124,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   String? _jumpScrollBoostMessageId;
   bool _threadAtBottom = true;
   int _anchorUnreadStep = 0;
+  String _suppressThreadUnreadResetKey = '';
   bool _sendBusy = false;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
@@ -175,6 +176,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       _flashHighlightMessageId = null;
       _threadAtBottom = true;
       _anchorUnreadStep = 0;
+      _suppressThreadUnreadResetKey = '';
       _sessionReadIds.clear();
       _pendingFocusMessageId = widget.focusMessageId?.trim();
       if (_pendingFocusMessageId != null && _pendingFocusMessageId!.isEmpty) {
@@ -243,7 +245,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   Future<void> _markVisibleMessageAsRead(
     ChatMessage message,
     String userId,
+    bool allowReadReceipts,
   ) async {
+    if (!allowReadReceipts) return;
     if (!_isIncomingUnreadForViewer(message, userId)) return;
     final id = message.id.trim();
     if (id.isEmpty) return;
@@ -267,10 +271,29 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   Future<void> _markManyUnreadAsRead({
     required String userId,
     required List<String> unreadIds,
+    required bool allowReadReceipts,
   }) async {
     if (unreadIds.isEmpty) return;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
+    if (!allowReadReceipts) {
+      final toReset = unreadIds
+          .where((id) => !_sessionReadIds.contains(id))
+          .toList(growable: false);
+      if (toReset.isEmpty) return;
+      _sessionReadIds.addAll(toReset);
+      try {
+        await repo.markThreadMessagesSeenWithoutReceipt(
+          conversationId: widget.conversationId,
+          userId: userId,
+          threadParentMessageId: widget.parentMessageId,
+          unreadCount: toReset.length,
+        );
+      } catch (_) {
+        _sessionReadIds.removeAll(toReset);
+      }
+      return;
+    }
     final toMark = unreadIds
         .where((id) => !_sessionReadIds.contains(id))
         .toList(growable: false);
@@ -1115,6 +1138,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     final rawChatSettings = Map<String, dynamic>.from(
       userDoc['chatSettings'] as Map? ?? const <String, dynamic>{},
     );
+    final rawPrivacySettings = Map<String, dynamic>.from(
+      userDoc['privacySettings'] as Map? ?? const <String, dynamic>{},
+    );
+    final allowReadReceipts = rawPrivacySettings['showReadReceipts'] != false;
     final wallpaper = rawChatSettings['chatWallpaper'] as String?;
 
     final threadAsync = ref.watch(
@@ -1217,6 +1244,29 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                         sortedAsc,
                         user.uid,
                       );
+                      if (!allowReadReceipts) {
+                        final suppressKey =
+                            '${widget.parentMessageId}:$loadedIncomingUnreadCount';
+                        if (loadedIncomingUnreadCount > 0 &&
+                            _suppressThreadUnreadResetKey != suppressKey) {
+                          _suppressThreadUnreadResetKey = suppressKey;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            unawaited(
+                              _markManyUnreadAsRead(
+                                userId: user.uid,
+                                unreadIds: loadedIncomingUnreadIds,
+                                allowReadReceipts: false,
+                              ),
+                            );
+                          });
+                        } else if (loadedIncomingUnreadCount == 0 &&
+                            _suppressThreadUnreadResetKey.isNotEmpty) {
+                          _suppressThreadUnreadResetKey = '';
+                        }
+                      } else if (_suppressThreadUnreadResetKey.isNotEmpty) {
+                        _suppressThreadUnreadResetKey = '';
+                      }
                       final unreadSeparatorMessageId = _oldestIncomingUnreadId(
                         sortedAsc,
                         user.uid,
@@ -1269,6 +1319,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                           _markManyUnreadAsRead(
                             userId: user.uid,
                             unreadIds: loadedIncomingUnreadIds,
+                            allowReadReceipts: allowReadReceipts,
                           ),
                         );
                       }
@@ -1395,6 +1446,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                   _markVisibleMessageAsRead(
                                                     message,
                                                     user.uid,
+                                                    allowReadReceipts,
                                                   ),
                                                 );
                                               },

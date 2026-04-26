@@ -4,7 +4,7 @@
 
 ## Коллекции верхнего уровня
 
-- `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `voipTokens` (массив iOS PushKit token для нативного входящего звонка), `notificationSettings` (глобальная политика push).
+- `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `voipTokens` (массив iOS PushKit token для нативного входящего звонка), `notificationSettings` (глобальная политика push), `profileQrLink` (персональная web-ссылка профиля для QR-кода/шаринга).
   - `chatConversationPrefs/{conversationId}` - персональные настройки чата для аккаунта (`notificationsMuted`, `notificationShowPreview`, обои и т.д.).
   - `notifications/{notificationId}`
   - `stickerPacks/{packId}/items/{itemId}`
@@ -27,7 +27,7 @@
   - `contactProfiles.{contactUserId}` - локальное имя контакта (firstName/lastName/displayName/updatedAt), используется только владельцем списка в списках чатов/поиске/карточках контакта.
   - `deviceSyncConsentAt`, `phoneBookOfferDismissedAt` - флаги согласия/онбординга для импорта телефонной книги.
   - `deviceLookup/{registrationIndexKey}` - ключи телефонной книги устройства (phone/email) для авто-сопоставления с `registrationIndex` и автодобавления новых зарегистрированных контактов.
-- `calls/{callId}` - документ звонка (`status`: `calling|ongoing|ended|cancelled|missed`, legacy: `rejected`).
+- `calls/{callId}` - документ звонка (`status`: `calling|ongoing|ended|cancelled|missed`, legacy: `rejected`), `endedBy` (uid завершившего/сбросившего участника, если известен).
   - `candidates/{candidateId}` - ICE candidates.
 - `userCalls/{userId}` - денормализованный индекс звонков.
 - `meetings/{meetingId}` - документ встречи.

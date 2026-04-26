@@ -22,8 +22,8 @@ import 'voice_message_record_sheet.dart';
 ///   * **Plain tap** (when [tapToRecord] is enabled) — starts the same visual
 ///     flow as hold‑to‑record, with pause/stop/cancel controls.
 ///
-/// The preview is rendered via an `OverlayEntry` so no changes are needed in
-/// the composer / chat screen widget tree.
+/// The recording/preview bar is rendered via an `OverlayEntry`, while parent
+/// composer can hide the regular input row via [onOverlayVisibilityChanged].
 class HoldToRecordMicButton extends StatefulWidget {
   const HoldToRecordMicButton({
     super.key,
@@ -32,6 +32,7 @@ class HoldToRecordMicButton extends StatefulWidget {
     required this.onTap,
     required this.onRecorded,
     this.tapToRecord = false,
+    this.onOverlayVisibilityChanged,
   });
 
   final Widget child;
@@ -43,6 +44,7 @@ class HoldToRecordMicButton extends StatefulWidget {
   /// on success.
   final Future<void> Function(VoiceMessageRecordResult result) onRecorded;
   final bool tapToRecord;
+  final ValueChanged<bool>? onOverlayVisibilityChanged;
 
   @override
   State<HoldToRecordMicButton> createState() => _HoldToRecordMicButtonState();
@@ -67,6 +69,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   // Post‑release preview overlay.
   OverlayEntry? _previewOverlay;
   bool _previewBusy = false;
+  bool _lastOverlayVisible = false;
 
   // Slide‑left threshold for cancel (Telegram parity).
   static const double _kCancelDx = -80;
@@ -77,9 +80,21 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   void dispose() {
     _ticker?.cancel();
     _recOverlay?.remove();
+    _recOverlay = null;
     _previewOverlay?.remove();
+    _previewOverlay = null;
+    _notifyOverlayVisibility(force: true);
     unawaited(_recorder.dispose());
     super.dispose();
+  }
+
+  bool get _isOverlayVisible => _recOverlay != null || _previewOverlay != null;
+
+  void _notifyOverlayVisibility({bool force = false}) {
+    final visible = _isOverlayVisible;
+    if (!force && visible == _lastOverlayVisible) return;
+    _lastOverlayVisible = visible;
+    widget.onOverlayVisibilityChanged?.call(visible);
   }
 
   bool get _cancelArmed => _dragDx <= _kCancelDx;
@@ -222,6 +237,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       },
     );
     Overlay.of(context, rootOverlay: true).insert(_recOverlay!);
+    _notifyOverlayVisibility();
   }
 
   // ───────────────────────────── Record lifecycle ──────────────────────────
@@ -281,6 +297,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     _tapMode = false;
     _dragDx = 0;
     _dragDy = 0;
+    _notifyOverlayVisibility();
     if (mounted) setState(() {});
   }
 
@@ -317,14 +334,17 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         if (path != null && path.trim().isNotEmpty) {
           await _deleteSilently(path);
         }
+        _notifyOverlayVisibility();
         return;
       }
       _showPreviewOverlay(
         result: VoiceMessageRecordResult(filePath: path, duration: elapsed),
       );
+      _notifyOverlayVisibility();
     } catch (_) {
       // ignore
     } finally {
+      _notifyOverlayVisibility();
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -367,11 +387,13 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       },
     );
     Overlay.of(context, rootOverlay: true).insert(_previewOverlay!);
+    _notifyOverlayVisibility();
   }
 
   void _dismissPreview() {
     _previewOverlay?.remove();
     _previewOverlay = null;
+    _notifyOverlayVisibility();
   }
 
   Future<void> _deleteSilently(String path) async {

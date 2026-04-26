@@ -294,9 +294,11 @@ class PushNativeCallService {
       final nextStatus = status == 'calling'
           ? (actedByCaller ? 'missed' : 'cancelled')
           : 'ended';
+      final endedBy = _activeUid;
       await ref.update(<String, Object?>{
         'status': nextStatus,
         'endedAt': DateTime.now().toUtc().toIso8601String(),
+        if (endedBy != null && endedBy.isNotEmpty) 'endedBy': endedBy,
       });
     } catch (_) {}
   }

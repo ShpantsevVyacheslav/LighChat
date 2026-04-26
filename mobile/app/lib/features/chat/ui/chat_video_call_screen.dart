@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../data/chat_call_tones.dart';
@@ -221,6 +222,7 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       await ref.update(<String, Object?>{
         'status': 'missed',
         'endedAt': DateTime.now().toUtc().toIso8601String(),
+        'endedBy': widget.currentUserId,
       });
     } catch (_) {}
   }
@@ -271,6 +273,9 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
         final resolvedStatus = resolveCallTerminalStatusForViewer(
           rawStatus: status,
           viewerIsReceiver: viewerIsReceiver,
+          callerId: data['callerId'] as String?,
+          receiverId: data['receiverId'] as String?,
+          endedBy: data['endedBy'] as String?,
         );
         final txt = resolvedStatus == 'missed'
             ? 'Пропущенный звонок'
@@ -419,6 +424,7 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       await _firestore.collection('calls').doc(callId).update(<String, Object?>{
         'status': 'cancelled',
         'endedAt': DateTime.now().toUtc().toIso8601String(),
+        'endedBy': widget.currentUserId,
       });
     }
     await _close(null);
@@ -433,6 +439,7 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       await _firestore.collection('calls').doc(callId).update(<String, Object?>{
         'status': nextStatus,
         'endedAt': DateTime.now().toUtc().toIso8601String(),
+        'endedBy': widget.currentUserId,
       });
     }
     await _close(null);
@@ -486,7 +493,12 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       ).showSnackBar(SnackBar(content: Text(message)));
     }
     if (mounted) {
-      Navigator.of(context).maybePop();
+      final nav = Navigator.of(context);
+      if (nav.canPop()) {
+        nav.pop();
+      } else {
+        context.go('/calls');
+      }
     }
   }
 

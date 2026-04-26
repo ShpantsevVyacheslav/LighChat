@@ -39,7 +39,7 @@ import { parseISO, isToday, isYesterday, format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { MediaViewer, type MediaViewerItem } from '@/components/chat/media-viewer';
-import { getReplyPreview } from '@/lib/chat-utils';
+import { getReplyPreview, markThreadMessagesSeenWithoutReadReceipt } from '@/lib/chat-utils';
 import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
 import { ChatDateListAnchor } from '@/components/chat/ChatDateListAnchor';
 import { ChatFloatingDateLabel } from '@/components/chat/ChatFloatingDateLabel';
@@ -143,7 +143,8 @@ export function ThreadWindow({
     const storage = useStorage();
     const { toast } = useToast();
     const router = useRouter();
-    const { chatSettings } = useSettings();
+    const { chatSettings, privacySettings } = useSettings();
+    const suppressReadReceipts = privacySettings.showReadReceipts === false;
     const effectiveThreadWallpaper = chatWallpaperProp != null && chatWallpaperProp !== '' ? chatWallpaperProp : chatSettings.chatWallpaper;
     const e2eeConv = useE2eeConversation(firestore, conversation, currentUser.id);
     const e2eeMediaApi = useE2eeMediaAttachments({
@@ -349,6 +350,37 @@ export function ThreadWindow({
     const unreadCount = useMemo(() => {
         return allMessages.filter((m) => isIncomingUnreadForViewer(m)).length;
     }, [allMessages, isIncomingUnreadForViewer]);
+
+    useEffect(() => {
+        if (!suppressReadReceipts) return;
+        if (!firestore || !isFullyReady || !hasScrolledToUnread) return;
+        const pendingIds = allMessages
+            .filter((m) => isIncomingUnreadForViewer(m) && !sessionReadIds.current.has(m.id))
+            .map((m) => m.id);
+        if (pendingIds.length === 0) return;
+
+        pendingIds.forEach((id) => sessionReadIds.current.add(id));
+        void markThreadMessagesSeenWithoutReadReceipt(
+            firestore,
+            conversation.id,
+            currentUser.id,
+            parentMessage.id,
+            pendingIds.length
+        ).catch((e) => {
+            console.error('[ThreadWindow] suppress-read-receipts thread reset failed', e);
+            pendingIds.forEach((id) => sessionReadIds.current.delete(id));
+        });
+    }, [
+        suppressReadReceipts,
+        firestore,
+        isFullyReady,
+        hasScrolledToUnread,
+        allMessages,
+        isIncomingUnreadForViewer,
+        conversation.id,
+        currentUser.id,
+        parentMessage.id,
+    ]);
 
     const prevUnreadCount = useRef(unreadCount);
     useEffect(() => {
@@ -1299,7 +1331,7 @@ export function ThreadWindow({
                                 currentUserId={currentUser.id}
                                 conversationId={conversation.id}
                                 firestore={firestore}
-                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread}
+                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread && !suppressReadReceipts}
                                 viewportLayoutKey={viewportScrollerKey}
                                 sessionReadIds={sessionReadIds}
                                 isThread

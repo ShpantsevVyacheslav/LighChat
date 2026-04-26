@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, Crown, MessageCircle, MoreVertical, ShieldOff, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { canShowOnlineStatus } from '@/lib/presence-visibility';
 
 function resolveGroupMemberUser(
   id: string,
@@ -243,7 +244,7 @@ export function GroupChatParticipantsManageView({
                   <Avatar className="relative h-11 w-11 shrink-0 border border-border/40 shadow-sm">
                     <AvatarImage src={userAvatarListUrl(p)} className="object-cover" />
                     <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
-                    {p.online && !p.deletedAt && (
+                    {p.online && canShowOnlineStatus(p) && !p.deletedAt && (
                       <div className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500" />
                     )}
                   </Avatar>

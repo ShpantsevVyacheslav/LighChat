@@ -8,7 +8,9 @@ import '../data/bottom_nav_icon_settings.dart';
 import '../data/chat_call_formatting.dart';
 import '../data/chat_call_status.dart';
 import '../data/chat_calls_providers.dart';
+import '../data/contact_display_name.dart';
 import '../data/new_chat_user_search.dart';
+import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
 import 'chat_bottom_nav.dart';
@@ -76,6 +78,10 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
         );
 
         final historyAsync = ref.watch(chatCallsHistoryProvider);
+        final contactsAsync = ref.watch(userContactsIndexProvider(user.uid));
+        final contactProfiles =
+            contactsAsync.asData?.value.contactProfiles ??
+            const <String, ContactLocalProfile>{};
 
         return historyAsync.when(
           data: (snap) {
@@ -134,11 +140,20 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                           ? call.receiverId
                           : call.callerId;
                       final found = profiles[otherId];
-                      final name = found?.name.trim().isNotEmpty == true
-                          ? found!.name.trim()
-                          : (isOutgoing
-                                ? (call.receiverName ?? '')
-                                : call.callerName);
+                      final fallbackName =
+                          (isOutgoing
+                                  ? (call.receiverName ?? '')
+                                  : call.callerName)
+                              .trim();
+                      final name = resolveContactDisplayName(
+                        contactProfiles: contactProfiles,
+                        contactUserId: otherId,
+                        fallbackName: found?.name.trim().isNotEmpty == true
+                            ? found!.name.trim()
+                            : (fallbackName.isEmpty
+                                  ? 'Неизвестный'
+                                  : fallbackName),
+                      );
                       return ruEnSubstringMatch(
                         name.trim().isEmpty ? 'Неизвестный' : name.trim(),
                         term,
@@ -295,25 +310,32 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                                           ? call.receiverId
                                           : call.callerId;
                                       final found = profiles[otherId];
+                                      final fallbackName =
+                                          (isOutgoing
+                                                  ? (call.receiverName ?? '')
+                                                  : call.callerName)
+                                              .trim();
                                       final displayName =
-                                          found?.name.trim().isNotEmpty == true
-                                          ? found!.name.trim()
-                                          : (isOutgoing
-                                                    ? (call.receiverName ?? '')
-                                                    : call.callerName)
-                                                .trim()
-                                                .isNotEmpty
-                                          ? (isOutgoing
-                                                ? (call.receiverName ?? '')
-                                                      .trim()
-                                                : call.callerName.trim())
-                                          : 'Неизвестный';
+                                          resolveContactDisplayName(
+                                            contactProfiles: contactProfiles,
+                                            contactUserId: otherId,
+                                            fallbackName:
+                                                found?.name.trim().isNotEmpty ==
+                                                    true
+                                                ? found!.name.trim()
+                                                : (fallbackName.isEmpty
+                                                      ? 'Неизвестный'
+                                                      : fallbackName),
+                                          );
                                       final avatarUrl =
                                           found?.avatarThumb ?? found?.avatar;
                                       final resolvedStatus =
                                           resolveCallTerminalStatusForViewer(
                                             rawStatus: call.status,
                                             viewerIsReceiver: !isOutgoing,
+                                            callerId: call.callerId,
+                                            receiverId: call.receiverId,
+                                            endedBy: call.endedBy,
                                           );
                                       final missed = resolvedStatus == 'missed';
                                       final cancelled =

@@ -100,6 +100,7 @@ import {
 } from '@/components/chat/chat-performance-metrics';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 import { resolveContactDisplayName } from '@/lib/contact-display-name';
+import { resolvePresenceLabel } from '@/lib/presence-visibility';
 import {
   MAX_PINNED_MESSAGES,
   conversationPinnedList,
@@ -167,7 +168,8 @@ export function ChatWindow({
   const { chatSettings, privacySettings } = useSettings();
   const { prefs } = useChatConversationPrefs(currentUser.id, conversation.id);
   const { starredMessageIds } = useStarredInConversation(currentUser.id, conversation.id);
-  const suppressReadReceipts = prefs?.suppressReadReceipts === true;
+  const suppressReadReceipts =
+    prefs?.suppressReadReceipts === true || privacySettings.showReadReceipts === false;
   const effectiveWallpaper =
     prefs?.chatWallpaper != null && prefs.chatWallpaper !== ''
       ? prefs.chatWallpaper
@@ -424,6 +426,10 @@ export function ChatWindow({
     return conversation.participantIds.find((id) => id !== currentUser.id) ?? null;
   }, [conversation.participantIds, currentUser.id, isSelfSavedChat]);
   const otherUser = useMemo(() => (otherId ? allUsers.find((u) => u.id === otherId) : undefined), [allUsers, otherId]);
+  const otherPresenceLabel = useMemo(
+    () => (otherUser ? resolvePresenceLabel(otherUser) : 'Не в сети'),
+    [otherUser]
+  );
   const isPartnerDeleted = useMemo(
     () => !conversation.isGroup && !isSelfSavedChat && !!otherUser?.deletedAt,
     [conversation.isGroup, isSelfSavedChat, otherUser]
@@ -1842,9 +1848,7 @@ export function ChatWindow({
                                 ? `${conversation.participantIds.length} участников`
                                 : isSelfSavedChat
                                   ? 'Только вы'
-                                  : otherUser?.online
-                                    ? 'В сети'
-                                    : 'Не в сети'}
+                                  : otherPresenceLabel}
                             </span>
                         </div>
                     </div>

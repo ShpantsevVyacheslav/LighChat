@@ -1589,7 +1589,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 14),
                       SizedBox(
-                        height: 60,
+                        height: 54,
                         child: OutlinedButton.icon(
                           onPressed: _resetSettings,
                           style: OutlinedButton.styleFrom(
@@ -1603,19 +1603,19 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                   .withValues(alpha: dark ? 0.16 : 0.12),
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(18),
                             ),
                           ),
                           icon: Icon(
                             Icons.sync_rounded,
-                            size: 20,
+                            size: 18,
                             color: (dark ? Colors.white : scheme.onSurface)
-                                .withValues(alpha: dark ? 0.8 : 0.65),
+                                .withValues(alpha: dark ? 0.82 : 0.68),
                           ),
                           label: Text(
                             'Сбросить настройки',
                             style: TextStyle(
-                              fontSize: _kBlockTitleSize,
+                              fontSize: 13.5,
                               fontWeight: FontWeight.w500,
                               color: (dark ? Colors.white : scheme.onSurface)
                                   .withValues(alpha: dark ? 0.74 : 0.72),

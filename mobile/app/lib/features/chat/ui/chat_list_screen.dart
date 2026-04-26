@@ -1516,7 +1516,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   orElse: () => '',
                                 );
                                 final p = profiles[other];
-                                isOnline = p?.online ?? false;
+                                isOnline =
+                                    p?.online == true &&
+                                    p?.privacySettings?.showOnlineStatus !=
+                                        false;
                                 avatarUrl =
                                     p?.avatarThumb ??
                                     p?.avatar ??

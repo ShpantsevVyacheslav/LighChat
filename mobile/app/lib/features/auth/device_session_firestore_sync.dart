@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String _kDeviceIdPrefsKey = 'lighchat_device_id_v1';
-const Duration _kDeviceHeartbeat = Duration(minutes: 1);
+const Duration _kDeviceHeartbeat = Duration(seconds: 30);
 
 class DeviceSessionFirestoreSync extends StatefulWidget {
   const DeviceSessionFirestoreSync({super.key, required this.child});
@@ -20,8 +20,8 @@ class DeviceSessionFirestoreSync extends StatefulWidget {
       _DeviceSessionFirestoreSyncState();
 }
 
-class _DeviceSessionFirestoreSyncState
-    extends State<DeviceSessionFirestoreSync> {
+class _DeviceSessionFirestoreSyncState extends State<DeviceSessionFirestoreSync>
+    with WidgetsBindingObserver {
   StreamSubscription<User?>? _authSub;
   Timer? _heartbeat;
   String? _activeUid;
@@ -30,12 +30,14 @@ class _DeviceSessionFirestoreSyncState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
     _onAuthChanged(FirebaseAuth.instance.currentUser);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _heartbeat?.cancel();
     _authSub?.cancel();
     final uid = _activeUid;
@@ -94,20 +96,24 @@ class _DeviceSessionFirestoreSyncState
     try {
       final deviceId = await _deviceId();
       final now = DateTime.now().toUtc().toIso8601String();
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('devices')
-          .doc(deviceId)
-          .set(<String, Object?>{
-            'deviceId': deviceId,
-            'platform': _platformLabel(),
-            'app': 'mobile',
-            'isActive': active,
-            'lastSeenAt': now,
-            if (markLogin) 'lastLoginAt': now,
-            'updatedAt': now,
-          }, SetOptions(merge: true));
+      final firestore = FirebaseFirestore.instance;
+      final userRef = firestore.collection('users').doc(uid);
+      final deviceRef = userRef.collection('devices').doc(deviceId);
+      final batch = firestore.batch();
+      batch.set(deviceRef, <String, Object?>{
+        'deviceId': deviceId,
+        'platform': _platformLabel(),
+        'app': 'mobile',
+        'isActive': active,
+        'lastSeenAt': now,
+        if (markLogin) 'lastLoginAt': now,
+        'updatedAt': now,
+      }, SetOptions(merge: true));
+      batch.set(userRef, <String, Object?>{
+        'online': active,
+        'lastSeen': now,
+      }, SetOptions(merge: true));
+      await batch.commit();
     } catch (_) {}
   }
 
@@ -129,6 +135,25 @@ class _DeviceSessionFirestoreSyncState
     if (nextUid == null) return;
     unawaited(_writeDeviceSession(uid: nextUid, active: true, markLogin: true));
     _startHeartbeat(nextUid);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final uid = _activeUid;
+    if (uid == null) return;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        unawaited(_writeDeviceSession(uid: uid, active: true));
+        _startHeartbeat(uid);
+        return;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _heartbeat?.cancel();
+        unawaited(_writeDeviceSession(uid: uid, active: false));
+        return;
+    }
   }
 
   @override

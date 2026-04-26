@@ -57,7 +57,6 @@ export default function NotificationSettingsPage() {
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
             <BellRing className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Уведомления
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Управление звуками и показом уведомлений.</p>
         </div>
       </div>
 

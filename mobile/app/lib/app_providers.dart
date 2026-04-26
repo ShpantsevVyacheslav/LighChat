@@ -272,8 +272,7 @@ final starredMessagesInConversationProvider =
           .collection('users')
           .doc(uid)
           .collection('starredChatMessages')
-          .where('conversationId', isEqualTo: convId)
-          .orderBy('createdAt', descending: true);
+          .where('conversationId', isEqualTo: convId);
 
       DateTime parseCreatedAt(Object? raw) {
         if (raw is Timestamp) return raw.toDate().toLocal();
@@ -289,7 +288,7 @@ final starredMessagesInConversationProvider =
         // сначала отдаём пустой список, затем живые данные Firestore.
         yield const <StarredChatMessageEntry>[];
         await for (final snap in q.snapshots()) {
-          yield snap.docs
+          final entries = snap.docs
               .map((d) {
                 final data = d.data();
                 final messageId = data['messageId'];
@@ -308,6 +307,8 @@ final starredMessagesInConversationProvider =
               })
               .where((x) => x.messageId.isNotEmpty)
               .toList(growable: false);
+          entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          yield entries;
         }
       }
 

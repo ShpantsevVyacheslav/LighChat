@@ -109,6 +109,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   int _anchorUnreadStep = 0;
   final Set<String> _sessionReadIds = <String>{};
   bool _initialOpenPositionResolved = false;
+  String _suppressReadConversationResetKey = '';
 
   /// После подгрузки истории не дергать сразу повторный запрос у верхнего края.
   DateTime? _nearOldestCooldownUntil;
@@ -424,6 +425,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _anchorUnreadStep = 0;
       _initialOpenPositionResolved = false;
       _sessionReadIds.clear();
+      _suppressReadConversationResetKey = '';
       _nearOldestCooldownUntil = null;
       _messageItemKeys.clear();
       _jumpScrollBoostMessageId = null;
@@ -508,7 +510,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _markVisibleMessageAsRead(
     ChatMessage message,
     String userId,
+    bool allowReadReceipts,
   ) async {
+    if (!allowReadReceipts) return;
     if (!_isIncomingUnreadForViewer(message, userId)) return;
     final id = message.id.trim();
     if (id.isEmpty) return;
@@ -530,10 +534,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _markManyUnreadAsReadAndConversation({
     required String userId,
     required List<String> unreadIds,
+    required bool allowReadReceipts,
     bool forceConversationReset = false,
   }) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
+    if (!allowReadReceipts) {
+      try {
+        await repo.markConversationAsRead(
+          conversationId: widget.conversationId,
+          userId: userId,
+        );
+      } catch (_) {}
+      return;
+    }
     final toMark = unreadIds
         .where((id) => !_sessionReadIds.contains(id))
         .toList(growable: false);
@@ -776,6 +790,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         final rawChatSettings = Map<String, dynamic>.from(
           userDoc['chatSettings'] as Map? ?? const <String, dynamic>{},
         );
+        final rawPrivacySettings = Map<String, dynamic>.from(
+          userDoc['privacySettings'] as Map? ?? const <String, dynamic>{},
+        );
+        final allowReadReceipts =
+            rawPrivacySettings['showReadReceipts'] != false;
         final fontSize = (rawChatSettings['fontSize'] as String?) ?? 'medium';
         final bubbleRadius =
             (rawChatSettings['bubbleRadius'] as String?) ?? 'rounded';
@@ -975,6 +994,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     sortedAscForAnchor,
                     user.uid,
                   );
+                  if (!allowReadReceipts) {
+                    final suppressKey =
+                        '${widget.conversationId}:$loadedIncomingUnreadCount';
+                    if (loadedIncomingUnreadCount > 0 &&
+                        _suppressReadConversationResetKey != suppressKey) {
+                      _suppressReadConversationResetKey = suppressKey;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        unawaited(
+                          _markManyUnreadAsReadAndConversation(
+                            userId: user.uid,
+                            unreadIds: loadedIncomingUnreadIds,
+                            allowReadReceipts: false,
+                            forceConversationReset: true,
+                          ),
+                        );
+                      });
+                    } else if (loadedIncomingUnreadCount == 0 &&
+                        _suppressReadConversationResetKey.isNotEmpty) {
+                      _suppressReadConversationResetKey = '';
+                    }
+                  } else if (_suppressReadConversationResetKey.isNotEmpty) {
+                    _suppressReadConversationResetKey = '';
+                  }
                   final unreadSeparatorMessageId = _oldestIncomingUnreadId(
                     sortedAscForAnchor,
                     user.uid,
@@ -1036,6 +1079,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         _markManyUnreadAsReadAndConversation(
                           userId: user.uid,
                           unreadIds: loadedIncomingUnreadIds,
+                          allowReadReceipts: allowReadReceipts,
                           forceConversationReset: true,
                         ),
                       );
@@ -1275,6 +1319,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                   _markVisibleMessageAsRead(
                                                                     message,
                                                                     user.uid,
+                                                                    allowReadReceipts,
                                                                   ),
                                                                 );
                                                               },

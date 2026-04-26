@@ -13,6 +13,7 @@ class ChatCallRecord {
     required this.createdAt,
     this.startedAt,
     this.endedAt,
+    this.endedBy,
   });
 
   final String id;
@@ -25,6 +26,7 @@ class ChatCallRecord {
   final DateTime createdAt;
   final DateTime? startedAt;
   final DateTime? endedAt;
+  final String? endedBy;
 
   static DateTime? _parseDate(dynamic v) {
     if (v == null) return null;
@@ -39,9 +41,7 @@ class ChatCallRecord {
     final callerId = data['callerId'];
     final receiverId = data['receiverId'];
     final callerName = data['callerName'];
-    if (callerId is! String ||
-        receiverId is! String ||
-        callerName is! String) {
+    if (callerId is! String || receiverId is! String || callerName is! String) {
       return null;
     }
     final status = data['status'];
@@ -61,6 +61,7 @@ class ChatCallRecord {
       createdAt: created,
       startedAt: _parseDate(data['startedAt']),
       endedAt: _parseDate(data['endedAt']),
+      endedBy: data['endedBy'] is String ? data['endedBy'] as String : null,
     );
   }
 }

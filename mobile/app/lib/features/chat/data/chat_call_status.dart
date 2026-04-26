@@ -13,11 +13,28 @@ bool isTerminalCallStatus(String rawStatus) {
 String resolveCallTerminalStatusForViewer({
   required String rawStatus,
   required bool viewerIsReceiver,
+  String? callerId,
+  String? receiverId,
+  String? endedBy,
 }) {
+  final endedById = (endedBy ?? '').trim();
+  final caller = (callerId ?? '').trim();
+  final receiver = (receiverId ?? '').trim();
   switch (rawStatus) {
     case 'ended':
       return 'ended';
     case 'cancelled':
+      if (viewerIsReceiver &&
+          endedById.isNotEmpty &&
+          caller.isNotEmpty &&
+          receiver.isNotEmpty) {
+        if (endedById == caller) {
+          return 'missed';
+        }
+        if (endedById == receiver) {
+          return 'cancelled';
+        }
+      }
       return 'cancelled';
     case 'missed':
       return viewerIsReceiver ? 'missed' : 'cancelled';

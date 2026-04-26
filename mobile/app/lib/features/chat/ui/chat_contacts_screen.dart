@@ -84,13 +84,13 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     super.dispose();
   }
 
-  Future<void> _syncDeviceContacts({
+  Future<bool> _syncDeviceContacts({
     required BuildContext context,
     required String ownerId,
     required UserProfile viewer,
     required UserContactsRepository repo,
   }) async {
-    if (_syncBusy) return;
+    if (_syncBusy) return false;
     setState(() => _syncBusy = true);
     try {
       final permission = await FlutterContacts.permissions.request(
@@ -100,11 +100,11 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
           permission == PermissionStatus.granted ||
           permission == PermissionStatus.limited;
       if (!granted) {
-        if (!context.mounted) return;
+        if (!context.mounted) return false;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Доступ к контактам не предоставлен.')),
         );
-        return;
+        return false;
       }
 
       final contacts = await FlutterContacts.getAll(
@@ -140,7 +140,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
             })
             .toList(growable: false);
         await repo.addContactIds(ownerId, eligible);
-        if (!context.mounted) return;
+        if (!context.mounted) return false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -150,11 +150,11 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
             ),
           ),
         );
-        return;
+        return true;
       }
 
       await repo.addContactIds(ownerId, toAdd);
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -164,11 +164,13 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
           ),
         ),
       );
+      return true;
     } catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка синхронизации контактов: $e')),
       );
+      return false;
     } finally {
       if (mounted) setState(() => _syncBusy = false);
     }
@@ -185,7 +187,11 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
   }
 
   String _statusLabel(UserProfile profile) {
-    if (profile.online == true) return 'онлайн';
+    final privacy = profile.privacySettings;
+    final canShowOnline = privacy?.showOnlineStatus != false;
+    final canShowLastSeen = privacy?.showLastSeen != false;
+    if (canShowOnline && profile.online == true) return 'онлайн';
+    if (!canShowLastSeen) return 'Был (а) недавно';
     final lastSeen = profile.lastSeenAt;
     if (lastSeen == null) return 'Был (а) недавно';
     final now = DateTime.now();
@@ -455,11 +461,12 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                     onTap: (_syncBusy || me == null)
                                         ? null
                                         : () {
-                                            final myPhone =
-                                                (me.phone ?? '').trim();
+                                            final myPhone = (me.phone ?? '')
+                                                .trim();
                                             if (myPhone.isEmpty) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
                                                 const SnackBar(
                                                   content: Text(
                                                     'Добавьте телефон в профиле, чтобы искать контакты по номеру.',
@@ -480,6 +487,9 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                                 ownerId: ownerId,
                                                 viewer: me,
                                                 contactsRepo: repo,
+                                                existingContactIds: idx
+                                                    .contactIds
+                                                    .toSet(),
                                                 onSyncDeviceContacts: () =>
                                                     _syncDeviceContacts(
                                                       context: context,
@@ -794,7 +804,9 @@ class _ContactRow extends StatelessWidget {
                 _ContactAvatar(
                   title: displayName,
                   avatarUrl: profile.avatarThumb ?? profile.avatar,
-                  online: profile.online == true,
+                  online:
+                      profile.online == true &&
+                      profile.privacySettings?.showOnlineStatus != false,
                 ),
                 const SizedBox(width: 16),
                 Expanded(

@@ -4,7 +4,7 @@
 
 ## Пользователи
 
-- `User` - профиль пользователя, роль, presence, настройки, ограничения аккаунта; push-токены `fcmTokens` (FCM) и `voipTokens` (iOS PushKit для нативного incoming-call UI).
+- `User` - профиль пользователя, роль, presence, настройки, ограничения аккаунта; push-токены `fcmTokens` (FCM) и `voipTokens` (iOS PushKit для нативного incoming-call UI), а также `profileQrLink` (персональная ссылка для QR/шаринга профиля).
 - `UserAccountBlock` - флаг/срок/причина блокировки.
 - `UserLiveLocationShare` - состояние активной трансляции геопозиции.
 
@@ -21,7 +21,7 @@
 
 ## Звонки и встречи
 
-- `Call` - 1:1 звонок (caller/receiver, offer/answer, timestamps). Статусы: `calling` (дозвон), `ongoing` (активный), `ended` (завершён после активной фазы), `cancelled` (отменён/отклонён до соединения), `missed` (непринятый; авто-таймаут 60с или отмена инициатором во время дозвона), `rejected` (legacy-значение для старых документов).
+- `Call` - 1:1 звонок (caller/receiver, offer/answer, timestamps). Статусы: `calling` (дозвон), `ongoing` (активный), `ended` (завершён после активной фазы), `cancelled` (отменён/отклонён до соединения), `missed` (непринятый; авто-таймаут 60с или отмена инициатором во время дозвона), `rejected` (legacy-значение для старых документов). Поле `endedBy` (uid) фиксирует, кто завершил/сбросил звонок, чтобы клиент корректно маппил `missed/cancelled` для разных ролей.
 - `Meeting` - встреча (host/adminIds/status/privacy).
 - `MeetingSignal` - signaling payload для WebRTC во встрече.
 - `MeetingMessage` - чат-сообщение встречи.

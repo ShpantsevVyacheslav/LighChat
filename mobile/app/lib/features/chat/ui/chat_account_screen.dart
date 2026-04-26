@@ -7,6 +7,8 @@ import '../data/app_theme_preference.dart';
 import '../data/user_profile.dart';
 import '../../auth/ui/auth_glass.dart';
 import 'chat_avatar.dart';
+import 'profile_qr_sheet.dart';
+import '../data/profile_qr_link.dart';
 
 class ChatAccountScreen extends ConsumerWidget {
   const ChatAccountScreen({super.key});
@@ -54,6 +56,7 @@ class ChatAccountScreen extends ConsumerWidget {
                       ? rawUsername.trim().replaceFirst(RegExp(r'^@'), '')
                       : 'user';
                   final avatarUrl = profile?.avatarThumb ?? profile?.avatar;
+                  final profileQrLink = (profile?.profileQrLink ?? '').trim();
 
                   return _AccountView(
                     name: name,
@@ -68,6 +71,29 @@ class ChatAccountScreen extends ConsumerWidget {
                       }
                     },
                     onProfileTap: () => context.push('/profile'),
+                    onQrTap: () async {
+                      var resolvedQrLink = profileQrLink;
+                      if (resolvedQrLink.isEmpty) {
+                        resolvedQrLink = buildProfileShareUrl(user.uid);
+                        final repo = ref.read(chatSettingsRepositoryProvider);
+                        if (repo != null) {
+                          try {
+                            await repo.patchUserDoc(user.uid, <String, Object?>{
+                              'profileQrLink': resolvedQrLink,
+                            });
+                          } catch (_) {}
+                        }
+                      }
+                      if (!context.mounted) return;
+                      await ProfileQrSheet.show(
+                        context,
+                        userId: user.uid,
+                        name: name,
+                        username: username,
+                        avatarUrl: avatarUrl,
+                        profileQrLink: resolvedQrLink,
+                      );
+                    },
                     onChatSettingsTap: () => context.push('/settings/chats'),
                     onNotificationsTap: () =>
                         context.push('/settings/notifications'),
@@ -135,6 +161,7 @@ class _AccountView extends StatelessWidget {
     required this.themeLabel,
     required this.onBack,
     required this.onProfileTap,
+    required this.onQrTap,
     required this.onChatSettingsTap,
     required this.onNotificationsTap,
     required this.onPrivacyTap,
@@ -148,6 +175,7 @@ class _AccountView extends StatelessWidget {
   final String themeLabel;
   final VoidCallback onBack;
   final VoidCallback onProfileTap;
+  final VoidCallback onQrTap;
   final VoidCallback onChatSettingsTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onPrivacyTap;
@@ -192,6 +220,25 @@ class _AccountView extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              Material(
+                color: dark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : scheme.surface.withValues(alpha: 0.72),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onQrTap,
+                  child: SizedBox(
+                    width: 46,
+                    height: 46,
+                    child: Icon(
+                      Icons.qr_code_2_rounded,
+                      size: 24,
+                      color: titleColor,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 18),

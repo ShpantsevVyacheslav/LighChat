@@ -8,6 +8,10 @@ import {
 
 const db = admin.firestore();
 
+function buildProfileQrLink(userId: string): string {
+  return `https://lighchat.online/dashboard/contacts/${encodeURIComponent(userId)}`;
+}
+
 type IndexField = RegistrationIndexField;
 
 async function deleteIndexIfOwned(
@@ -136,6 +140,25 @@ export const onuserwritesyncregistrationindex = onDocumentWritten(
         lookupId: e.id,
         userId,
       });
+    }
+
+    if (after?.exists) {
+      const afterData = after.data() ?? {};
+      const currentQr =
+        typeof afterData.profileQrLink === "string" ?
+          afterData.profileQrLink.trim() :
+          "";
+      const desiredQr = buildProfileQrLink(userId);
+      if (currentQr !== desiredQr) {
+        try {
+          await db.collection("users").doc(userId).set(
+            { profileQrLink: desiredQr },
+            { merge: true },
+          );
+        } catch (e) {
+          logger.error("users.profileQrLink sync failed", { userId, e });
+        }
+      }
     }
   },
 );

@@ -99,12 +99,14 @@ class ChatComposer extends StatefulWidget {
 }
 
 class _ChatComposerState extends State<ChatComposer> {
+  static const double _kComposerControlSize = 38;
   final GlobalKey _composerColumnKey = GlobalKey();
   OverlayEntry? _attachmentOverlayEntry;
   bool _hasTypedText = false;
   String? _mentionQuery;
   int? _mentionAtStartOffset;
   List<GroupMentionCandidate> _mentionFiltered = const [];
+  bool _holdRecordOverlayVisible = false;
 
   bool _computeHasTypedText() {
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
@@ -302,17 +304,17 @@ class _ChatComposerState extends State<ChatComposer> {
           ? null
           : ComposerClipboardMaterialSelectionControls(onPaste: paste),
       minLines: 1,
-      maxLines: 6,
+      maxLines: 1,
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
       strutStyle: const StrutStyle(
         forceStrutHeight: true,
-        height: 1.25,
+        height: 1.15,
         leading: 0,
       ),
       style: const TextStyle(
         fontSize: 15.5,
-        height: 1.25,
+        height: 1.15,
         color: Colors.white,
         fontWeight: FontWeight.w500,
       ),
@@ -322,22 +324,22 @@ class _ChatComposerState extends State<ChatComposer> {
           color: Colors.white.withValues(alpha: 0.42),
           fontWeight: FontWeight.w500,
           fontSize: 15.5,
-          height: 1.25,
+          height: 1.15,
         ),
         border: InputBorder.none,
-        // Центрируем текст и placeholder внутри строки ввода по вертикали.
-        isDense: false,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        // Центрируем текст и placeholder по вертикали внутри фиксированной высоты.
+        isDense: true,
+        contentPadding: EdgeInsets.zero,
         isCollapsed: false,
         suffixIcon: keyboardOpen
             ? IconButton(
                 tooltip: 'Стикеры',
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                 onPressed: widget.sendBusy ? null : _openStickersPanel,
                 icon: Icon(
                   Icons.emoji_emotions_outlined,
-                  size: 22,
+                  size: 20,
                   color: widget.sendBusy
                       ? Colors.white.withValues(alpha: 0.35)
                       : Colors.white.withValues(alpha: 0.88),
@@ -345,8 +347,8 @@ class _ChatComposerState extends State<ChatComposer> {
               )
             : null,
         suffixIconConstraints: const BoxConstraints(
-          minWidth: 40,
-          minHeight: 40,
+          minWidth: 34,
+          minHeight: 34,
         ),
       ),
       textInputAction: TextInputAction.newline,
@@ -429,142 +431,192 @@ class _ChatComposerState extends State<ChatComposer> {
               // попытку записать войс в E2EE‑чат, которую пока не поддерживаем.
               widget.e2eeDisabledBanner!
             else
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: dark ? 0.09 : 0.16),
-                      border: Border.all(
-                        color: Colors.white.withValues(
-                          alpha: dark ? 0.16 : 0.24,
-                        ),
-                      ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(
+                      sizeFactor: animation,
+                      axis: Axis.vertical,
+                      axisAlignment: -1,
+                      child: child,
                     ),
-                    child: IconButton(
-                      tooltip: 'Вложения',
-                      onPressed: widget.attachmentsEnabled && !widget.sendBusy
-                          ? _openAttachmentMenu
-                          : null,
-                      iconSize: 19,
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        Icons.add_rounded,
-                        color: widget.attachmentsEnabled && !widget.sendBusy
-                            ? Colors.white.withValues(alpha: 0.90)
-                            : Colors.white.withValues(alpha: 0.35),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22),
-                        color: Colors.white.withValues(
-                          alpha: dark ? 0.07 : 0.14,
-                        ),
-                        border: Border.all(
-                          color: Colors.white.withValues(
-                            alpha: dark ? 0.16 : 0.24,
-                          ),
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minHeight: 40),
-                        child: _buildComposerTextField(keyboardOpen),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: showSendButton
-                          ? const Color(0xFF2A79FF)
-                          : Colors.white.withValues(alpha: dark ? 0.08 : 0.14),
-                      border: showSendButton
-                          ? null
-                          : Border.all(
+                  );
+                },
+                child: _holdRecordOverlayVisible
+                    // Во время hold‑to‑record/preview строка записи заменяет input‑ряд.
+                    // Сама строка записи рисуется через Overlay внутри HoldToRecordMicButton.
+                    ? const SizedBox(
+                        key: ValueKey('recording-row-placeholder'),
+                        height: _kComposerControlSize,
+                      )
+                    : Row(
+                        key: const ValueKey('composer-input-row'),
+                        children: [
+                          Container(
+                            width: _kComposerControlSize,
+                            height: _kComposerControlSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
                               color: Colors.white.withValues(
-                                alpha: dark ? 0.16 : 0.24,
+                                alpha: dark ? 0.09 : 0.16,
+                              ),
+                              border: Border.all(
+                                color: Colors.white.withValues(
+                                  alpha: dark ? 0.16 : 0.24,
+                                ),
                               ),
                             ),
-                      boxShadow: showSendButton
-                          ? [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF2A79FF,
-                                ).withValues(alpha: 0.35),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: widget.sendBusy
-                        ? const Center(
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                            child: IconButton(
+                              tooltip: 'Вложения',
+                              onPressed:
+                                  widget.attachmentsEnabled && !widget.sendBusy
+                                  ? _openAttachmentMenu
+                                  : null,
+                              iconSize: 17,
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                Icons.add_rounded,
+                                color:
+                                    widget.attachmentsEnabled &&
+                                        !widget.sendBusy
+                                    ? Colors.white.withValues(alpha: 0.90)
+                                    : Colors.white.withValues(alpha: 0.35),
                               ),
                             ),
-                          )
-                        : (showSendButton
-                              ? IconButton(
-                                  onPressed: widget.onSend,
-                                  iconSize: 20,
-                                  icon: const Icon(
-                                    Icons.send_rounded,
-                                    color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Container(
+                              height: _kComposerControlSize,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(22),
+                                color: Colors.white.withValues(
+                                  alpha: dark ? 0.07 : 0.14,
+                                ),
+                                border: Border.all(
+                                  color: Colors.white.withValues(
+                                    alpha: dark ? 0.16 : 0.24,
                                   ),
-                                )
-                              : () {
-                                  final canInlineVoice =
-                                      !widget.sendBusy &&
-                                      widget.onVoiceHoldRecorded != null;
-                                  if (!canInlineVoice) {
-                                    return IconButton(
-                                      onPressed: widget.onMicTap,
-                                      iconSize: 22,
-                                      icon: Icon(
-                                        Icons.mic_rounded,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.92,
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                  return HoldToRecordMicButton(
-                                    enabled: true,
-                                    tapToRecord: true,
-                                    onTap: () {},
-                                    onRecorded: (r) async {
-                                      final cb = widget.onVoiceHoldRecorded;
-                                      if (cb == null) return;
-                                      await cb(r);
-                                    },
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.mic_rounded,
-                                        size: 22,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.92,
-                                        ),
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minHeight: _kComposerControlSize,
+                                ),
+                                child: _buildComposerTextField(keyboardOpen),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            width: _kComposerControlSize,
+                            height: _kComposerControlSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: showSendButton
+                                  ? const Color(0xFF2A79FF)
+                                  : Colors.white.withValues(
+                                      alpha: dark ? 0.08 : 0.14,
+                                    ),
+                              border: showSendButton
+                                  ? null
+                                  : Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: dark ? 0.16 : 0.24,
                                       ),
                                     ),
-                                  );
-                                }()),
-                  ),
-                ],
+                              boxShadow: showSendButton
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF2A79FF,
+                                        ).withValues(alpha: 0.35),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: widget.sendBusy
+                                ? const Center(
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : (showSendButton
+                                      ? IconButton(
+                                          onPressed: widget.onSend,
+                                          iconSize: 18,
+                                          icon: const Icon(
+                                            Icons.send_rounded,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : () {
+                                          final canInlineVoice =
+                                              !widget.sendBusy &&
+                                              widget.onVoiceHoldRecorded !=
+                                                  null;
+                                          if (!canInlineVoice) {
+                                            return IconButton(
+                                              onPressed: widget.onMicTap,
+                                              iconSize: 20,
+                                              icon: Icon(
+                                                Icons.mic_rounded,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.92,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          return HoldToRecordMicButton(
+                                            enabled: true,
+                                            tapToRecord: true,
+                                            onTap: () {},
+                                            onOverlayVisibilityChanged:
+                                                (visible) {
+                                                  if (_holdRecordOverlayVisible ==
+                                                          visible ||
+                                                      !mounted) {
+                                                    return;
+                                                  }
+                                                  setState(() {
+                                                    _holdRecordOverlayVisible =
+                                                        visible;
+                                                  });
+                                                },
+                                            onRecorded: (r) async {
+                                              final cb =
+                                                  widget.onVoiceHoldRecorded;
+                                              if (cb == null) return;
+                                              await cb(r);
+                                            },
+                                            child: Center(
+                                              child: Icon(
+                                                Icons.mic_rounded,
+                                                size: 20,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.92,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }()),
+                          ),
+                        ],
+                      ),
               ),
           ],
         ),

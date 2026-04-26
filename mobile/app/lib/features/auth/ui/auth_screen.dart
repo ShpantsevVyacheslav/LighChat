@@ -299,13 +299,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   child: _SocialAuthIconTile(
                                     dark: dark,
                                     tooltip: 'Telegram',
-                                    background: dark
-                                        ? const Color(
-                                            0xFF229ED9,
-                                          ).withValues(alpha: 0.22)
-                                        : const Color(
-                                            0xFF229ED9,
-                                          ).withValues(alpha: 0.14),
                                     onPressed: (!firebaseReady || _busy)
                                         ? null
                                         : () {
@@ -325,13 +318,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   child: _SocialAuthIconTile(
                                     dark: dark,
                                     tooltip: 'Яндекс',
-                                    background: dark
-                                        ? const Color(
-                                            0xFFFC3F1D,
-                                          ).withValues(alpha: 0.22)
-                                        : const Color(
-                                            0xFFFC3F1D,
-                                          ).withValues(alpha: 0.12),
                                     onPressed: (!firebaseReady || _busy)
                                         ? null
                                         : () {
@@ -491,11 +477,12 @@ class _YandexBrandIcon extends StatelessWidget {
   <circle cx="12" cy="12" r="12" fill="#FC3F1D"/>
   <text
     x="12"
-    y="13"
+    y="12"
     fill="#FFFFFF"
-    font-size="14"
-    font-weight="700"
+    font-size="16"
+    font-weight="800"
     text-anchor="middle"
+    dominant-baseline="central"
     font-family="Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif"
   >Я</text>
 </svg>

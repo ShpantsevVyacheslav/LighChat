@@ -13,6 +13,8 @@ export type User = {
   avatar: string;
   /** Круглое превью (~512×512) для списков чатов и миниатюр; иначе UI использует `avatar`. */
   avatarThumb?: string;
+  /** Персональная ссылка профиля для QR/шаринга контакта. */
+  profileQrLink?: string;
   phone: string;
   bio?: string;
   deletedAt: string | null;

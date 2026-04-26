@@ -10,6 +10,8 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../data/chat_call_formatting.dart';
 import '../data/chat_call_status.dart';
 import '../data/chat_calls_providers.dart';
+import '../data/contact_display_name.dart';
+import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_avatar.dart';
@@ -101,6 +103,10 @@ class ChatCallDetailScreen extends ConsumerWidget {
         final peerId = rawCall.callerId == authUid
             ? rawCall.receiverId
             : rawCall.callerId;
+        final contactsAsync = ref.watch(userContactsIndexProvider(authUid));
+        final contactProfiles =
+            contactsAsync.asData?.value.contactProfiles ??
+            const <String, ContactLocalProfile>{};
         final profilesRepo = ref.watch(userProfilesRepositoryProvider);
         final stream = profilesRepo != null
             ? profilesRepo.watchUsersByIds(<String>[authUid, peerId])
@@ -112,17 +118,19 @@ class ChatCallDetailScreen extends ConsumerWidget {
             final profiles = snap.data ?? const <String, UserProfile>{};
             final peer = profiles[peerId];
             final self = profiles[authUid];
-            final peerName = peer?.name.trim().isNotEmpty == true
-                ? peer!.name.trim()
-                : (rawCall.callerId == authUid
-                          ? (rawCall.receiverName ?? '')
-                          : rawCall.callerName)
-                      .trim()
-                      .isNotEmpty
-                ? (rawCall.callerId == authUid
-                      ? (rawCall.receiverName ?? '').trim()
-                      : rawCall.callerName.trim())
-                : 'Неизвестный';
+            final isOutgoing = rawCall.callerId == authUid;
+            final fallbackPeerName = isOutgoing
+                ? (rawCall.receiverName ?? '').trim()
+                : rawCall.callerName.trim();
+            final peerName = resolveContactDisplayName(
+              contactProfiles: contactProfiles,
+              contactUserId: peerId,
+              fallbackName: peer?.name.trim().isNotEmpty == true
+                  ? peer!.name.trim()
+                  : (fallbackPeerName.isNotEmpty
+                        ? fallbackPeerName
+                        : 'Неизвестный'),
+            );
             final peerAvatar = peer?.avatarThumb ?? peer?.avatar;
             final meName = self?.name.trim().isNotEmpty == true
                 ? self!.name.trim()
@@ -148,6 +156,9 @@ class ChatCallDetailScreen extends ConsumerWidget {
             final resolvedStatus = resolveCallTerminalStatusForViewer(
               rawStatus: rawCall.status,
               viewerIsReceiver: rawCall.receiverId == authUid,
+              callerId: rawCall.callerId,
+              receiverId: rawCall.receiverId,
+              endedBy: rawCall.endedBy,
             );
             final statusChipText = callStatusLabelRu(resolvedStatus);
             final statusChipColor = resolvedStatus == 'missed'
@@ -217,6 +228,15 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                       label: rawCall.isVideo
                                           ? 'Видеозвонок'
                                           : 'Аудиозвонок',
+                                      fg: fg,
+                                    ),
+                                    _InfoChip(
+                                      icon: isOutgoing
+                                          ? Icons.call_made_rounded
+                                          : Icons.call_received_rounded,
+                                      label: isOutgoing
+                                          ? 'Исходящий'
+                                          : 'Входящий',
                                       fg: fg,
                                     ),
                                     Container(

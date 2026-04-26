@@ -44,8 +44,7 @@ class E2eeNotSupportedOnMobileException implements Exception {
   String get code => 'e2ee_not_supported_on_mobile';
 
   @override
-  String toString() =>
-      'E2eeNotSupportedOnMobileException(${message ?? code})';
+  String toString() => 'E2eeNotSupportedOnMobileException(${message ?? code})';
 }
 
 class ChatRepository {
@@ -408,8 +407,8 @@ class ChatRepository {
         .doc(parentMessageId)
         .collection('thread');
 
-    final newDoc = messageIdOverride != null &&
-            messageIdOverride.trim().isNotEmpty
+    final newDoc =
+        messageIdOverride != null && messageIdOverride.trim().isNotEmpty
         ? threadCol.doc(messageIdOverride)
         : threadCol.doc();
     final payload = <String, Object?>{
@@ -707,19 +706,21 @@ class ChatRepository {
             .where((s) => s.isNotEmpty)
             .toList();
 
-        final msgRef = messageIdOverride != null &&
-                messageIdOverride.trim().isNotEmpty
+        final msgRef =
+            messageIdOverride != null && messageIdOverride.trim().isNotEmpty
             ? _firestore
-                .collection('conversations')
-                .doc(conversationId)
-                .collection('messages')
-                .doc(messageIdOverride)
+                  .collection('conversations')
+                  .doc(conversationId)
+                  .collection('messages')
+                  .doc(messageIdOverride)
             : _firestore
-                .collection('conversations')
-                .doc(conversationId)
-                .collection('messages')
-                .doc();
-        final convRef = _firestore.collection('conversations').doc(conversationId);
+                  .collection('conversations')
+                  .doc(conversationId)
+                  .collection('messages')
+                  .doc();
+        final convRef = _firestore
+            .collection('conversations')
+            .doc(conversationId);
 
         final unread = <String, Object?>{};
         for (final id in participantIds) {
@@ -737,16 +738,13 @@ class ChatRepository {
 
         final batch = _firestore.batch();
         batch.set(msgRef, payload);
-        batch.update(
-          convRef,
-          <String, Object?>{
-            'lastMessageText': preview,
-            'lastMessageTimestamp': nowIso,
-            'lastMessageSenderId': senderId,
-            'lastMessageIsThread': false,
-            ...unread,
-          },
-        );
+        batch.update(convRef, <String, Object?>{
+          'lastMessageText': preview,
+          'lastMessageTimestamp': nowIso,
+          'lastMessageSenderId': senderId,
+          'lastMessageIsThread': false,
+          ...unread,
+        });
         await batch.commit();
       });
     } on FirebaseException catch (e, st) {
@@ -1261,7 +1259,8 @@ class ChatRepository {
     // Phase 4: если сообщение E2EE — должен прийти новый envelope. Plaintext
     // edit поверх зашифрованного сообщения по-прежнему запрещён.
     final e2eeRaw = msgData['e2ee'];
-    final msgHasCiphertext = e2eeRaw is Map &&
+    final msgHasCiphertext =
+        e2eeRaw is Map &&
         e2eeRaw['ciphertext'] is String &&
         (e2eeRaw['ciphertext'] as String).isNotEmpty;
     if (msgHasCiphertext && !hasE2ee) {
@@ -1461,6 +1460,66 @@ class ChatRepository {
       await convRef.update(<String, Object?>{
         'unreadCounts.$uid': 0,
         'unreadThreadCounts.$uid': 0,
+      });
+    });
+  }
+
+  int _asNonNegativeInt(Object? raw) {
+    if (raw is int) return raw < 0 ? 0 : raw;
+    if (raw is num) {
+      final v = raw.toInt();
+      return v < 0 ? 0 : v;
+    }
+    return 0;
+  }
+
+  /// Сброс unreadThreadCounts без проставления `readAt` (глобально скрытые read receipts).
+  Future<void> markThreadMessagesSeenWithoutReceipt({
+    required String conversationId,
+    required String userId,
+    required String threadParentMessageId,
+    required int unreadCount,
+  }) async {
+    final convId = conversationId.trim();
+    final uid = userId.trim();
+    final parentId = threadParentMessageId.trim();
+    final count = unreadCount < 0 ? 0 : unreadCount;
+    if (convId.isEmpty || uid.isEmpty || parentId.isEmpty || count <= 0) return;
+
+    final convRef = _firestore.collection('conversations').doc(convId);
+    final parentRef = convRef.collection('messages').doc(parentId);
+
+    await _withAuthRefreshRetry(() async {
+      await _firestore.runTransaction((tx) async {
+        final convSnap = await tx.get(convRef);
+        if (convSnap.exists) {
+          final convData = convSnap.data();
+          final unreadMap = convData?['unreadThreadCounts'];
+          final current = unreadMap is Map
+              ? _asNonNegativeInt(unreadMap[uid])
+              : 0;
+          final dec = current < count ? current : count;
+          if (dec > 0) {
+            tx.update(convRef, <String, Object?>{
+              'unreadThreadCounts.$uid': FieldValue.increment(-dec),
+            });
+          }
+        }
+
+        final parentSnap = await tx.get(parentRef);
+        if (parentSnap.exists) {
+          final parentData = parentSnap.data();
+          final unreadMap = parentData?['unreadThreadCounts'];
+          final current = unreadMap is Map
+              ? _asNonNegativeInt(unreadMap[uid])
+              : 0;
+          final dec = current < count ? current : count;
+          if (dec > 0) {
+            tx.update(parentRef, <String, Object?>{
+              'unreadThreadCounts.$uid': FieldValue.increment(-dec),
+            });
+          }
+        }
       });
     });
   }

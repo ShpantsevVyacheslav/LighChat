@@ -4,10 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/device_contact_lookup_keys.dart';
+import '../data/profile_qr_link.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
@@ -19,34 +21,35 @@ class AddContactByPhoneSheet extends ConsumerStatefulWidget {
     required this.ownerId,
     required this.viewer,
     required this.contactsRepo,
+    required this.existingContactIds,
     required this.onSyncDeviceContacts,
   });
 
   final String ownerId;
   final UserProfile viewer;
   final UserContactsRepository contactsRepo;
-  final Future<void> Function() onSyncDeviceContacts;
+  final Set<String> existingContactIds;
+  final Future<bool> Function() onSyncDeviceContacts;
 
   static Future<String?> show(
     BuildContext context, {
     required String ownerId,
     required UserProfile viewer,
     required UserContactsRepository contactsRepo,
-    required Future<void> Function() onSyncDeviceContacts,
+    required Set<String> existingContactIds,
+    required Future<bool> Function() onSyncDeviceContacts,
   }) async {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: AddContactByPhoneSheet(
-          ownerId: ownerId,
-          viewer: viewer,
-          contactsRepo: contactsRepo,
-          onSyncDeviceContacts: onSyncDeviceContacts,
-        ),
+      builder: (sheetContext) => AddContactByPhoneSheet(
+        ownerId: ownerId,
+        viewer: viewer,
+        contactsRepo: contactsRepo,
+        existingContactIds: existingContactIds,
+        onSyncDeviceContacts: onSyncDeviceContacts,
       ),
     );
   }
@@ -61,10 +64,15 @@ class _AddContactByPhoneSheetState
   final TextEditingController _nationalPhone = TextEditingController();
   final TextEditingController _countrySearch = TextEditingController();
   bool _busy = false;
+  bool _syncBusy = false;
+  bool _errorIsSoft = false;
   String? _error;
-  List<String> _matchedIds = const <String>[];
+  String? _info;
   bool _checkedConsent = false;
   bool _hasDeviceConsent = false;
+  bool _syncWithPhone = false;
+  bool _isApplyingPhoneMask = false;
+  List<String> _matchedIds = const <String>[];
   late _PhoneCountry _selectedCountry;
 
   @override
@@ -127,14 +135,32 @@ class _AddContactByPhoneSheetState
       setState(() {
         _checkedConsent = true;
         _hasDeviceConsent = ok;
+        _syncWithPhone = ok;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _checkedConsent = true;
         _hasDeviceConsent = false;
+        _syncWithPhone = false;
       });
     }
+  }
+
+  void _setError(String message, {bool soft = false}) {
+    setState(() {
+      _error = message;
+      _errorIsSoft = soft;
+      _info = null;
+    });
+  }
+
+  void _setInfo(String message) {
+    setState(() {
+      _info = message;
+      _error = null;
+      _errorIsSoft = false;
+    });
   }
 
   String _extractNationalPhoneDigits(String input) {
@@ -153,20 +179,99 @@ class _AddContactByPhoneSheetState
     return '${_selectedCountry.dialCode}$national';
   }
 
-  Future<void> _search() async {
+  void _clearResultsKeepMessage() {
+    setState(() {
+      _matchedIds = const <String>[];
+      _info = null;
+      _error = null;
+      _errorIsSoft = false;
+    });
+  }
+
+  void _handlePhoneChanged(String value) {
+    if (_isApplyingPhoneMask) return;
+    _clearResultsKeepMessage();
+
+    final looksLikeInternational = value.contains('+');
+    if (!looksLikeInternational) return;
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return;
+
+    final sorted = [..._phoneCountries]
+      ..sort((a, b) => b.dialDigits.length.compareTo(a.dialDigits.length));
+    final matched = sorted.where((c) => digits.startsWith(c.dialDigits));
+    if (matched.isEmpty) return;
+    final country = matched.first;
+    final nationalDigits = digits.substring(country.dialDigits.length);
+    final masked = _PhoneMaskFormatter.formatDigits(
+      nationalDigits,
+      phoneHint: country.phoneHint,
+    );
+    setState(() {
+      _selectedCountry = country;
+      _isApplyingPhoneMask = true;
+      _nationalPhone.text = masked;
+      _nationalPhone.selection = TextSelection.collapsed(offset: masked.length);
+      _isApplyingPhoneMask = false;
+    });
+  }
+
+  Future<void> _toggleSyncWithPhone(bool next) async {
+    if (_syncBusy || _busy) return;
+    if (!next) {
+      setState(() {
+        _syncWithPhone = false;
+        _hasDeviceConsent = false;
+      });
+      try {
+        await widget.contactsRepo.saveDeviceContactsConsent(
+          ownerId: widget.ownerId,
+          granted: false,
+        );
+      } catch (_) {
+        // Ignore network issues here: local toggle state is still explicit.
+      }
+      return;
+    }
+
+    if (_hasDeviceConsent) {
+      setState(() => _syncWithPhone = true);
+      return;
+    }
+
+    setState(() => _syncBusy = true);
+    var ok = false;
+    try {
+      ok = await widget.onSyncDeviceContacts();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _syncBusy = false;
+          _syncWithPhone = ok;
+          _hasDeviceConsent = ok;
+        });
+        if (ok) {
+          _setInfo('Синхронизация включена');
+        } else {
+          _setError('Не удалось включить синхронизацию контактов', soft: true);
+        }
+      }
+    }
+  }
+
+  Future<void> _searchByPhone() async {
     if (_busy) return;
     final key = registrationPhoneKey(_buildE164Phone());
     if (key == null) {
-      setState(() {
-        _matchedIds = const <String>[];
-        _error = 'Введите номер телефона';
-      });
+      _setError('Введите корректный номер телефона');
       return;
     }
     setState(() {
       _busy = true;
-      _error = null;
       _matchedIds = const <String>[];
+      _error = null;
+      _errorIsSoft = false;
+      _info = null;
     });
     try {
       final ids = await widget.contactsRepo
@@ -177,22 +282,92 @@ class _AddContactByPhoneSheetState
       if (!mounted) return;
       setState(() => _matchedIds = filtered);
       if (filtered.isEmpty) {
-        setState(() => _error = 'Пользователь не найден');
+        _setError('Контакт по этому номеру не найден', soft: true);
+      } else {
+        _setInfo('Контакт найден');
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Не удалось выполнить поиск: $e');
+      _setError('Не удалось выполнить поиск: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _selectContact(UserProfile peer) async {
+  Future<void> _searchByQrPayload(String payload) async {
     if (_busy) return;
-    if (!canStartDirectChat(widget.viewer, peer)) {
-      setState(() => _error = 'Нельзя добавить этого пользователя');
+    final userId = extractProfileUserIdFromQrPayload(payload);
+    if (userId == null || userId.trim().isEmpty) {
+      _setError('QR-код не содержит профиль LighChat', soft: true);
       return;
     }
+    if (userId == widget.ownerId) {
+      _setError('Это ваш собственный профиль', soft: true);
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _matchedIds = const <String>[];
+      _error = null;
+      _errorIsSoft = false;
+      _info = null;
+    });
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      if (!mounted) return;
+      if (!doc.exists) {
+        _setError('Профиль из QR-кода не найден', soft: true);
+        return;
+      }
+      setState(() => _matchedIds = <String>[userId]);
+      _setInfo('Контакт найден по QR-коду');
+    } catch (e) {
+      if (!mounted) return;
+      _setError('Не удалось прочитать QR-код: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openQrScanner() async {
+    if (_busy) return;
+    final payload = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _ContactQrScannerSheet(),
+    );
+    if (!mounted || payload == null || payload.trim().isEmpty) return;
+    await _searchByQrPayload(payload);
+  }
+
+  Future<void> _addContact(UserProfile peer) async {
+    if (_busy) return;
+    if (!canStartDirectChat(widget.viewer, peer)) {
+      _setError('Нельзя добавить этого пользователя');
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await widget.contactsRepo.addContactId(widget.ownerId, peer.id);
+      if (!mounted) return;
+      Navigator.of(context).pop(peer.id);
+    } catch (e) {
+      if (!mounted) return;
+      _setError('Не удалось добавить контакт: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openExistingContact(UserProfile peer) async {
+    if (_busy) return;
     if (!mounted) return;
     Navigator.of(context).pop(peer.id);
   }
@@ -201,17 +376,17 @@ class _AddContactByPhoneSheetState
     final selected = await showModalBottomSheet<_PhoneCountry>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF050611),
+      backgroundColor: const Color(0xFF11131A),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         _countrySearch.text = '';
         return DraggableScrollableSheet(
           expand: false,
-          initialChildSize: 0.75,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
+          initialChildSize: 0.78,
+          minChildSize: 0.42,
+          maxChildSize: 0.95,
           builder: (context, scrollController) {
             return StatefulBuilder(
               builder: (context, setModalState) {
@@ -228,14 +403,14 @@ class _AddContactByPhoneSheetState
                           .toList(growable: false);
 
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                   child: Column(
                     children: [
                       Container(
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: Colors.white.withValues(alpha: 0.28),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -244,16 +419,36 @@ class _AddContactByPhoneSheetState
                         controller: _countrySearch,
                         onChanged: (_) => setModalState(() {}),
                         style: const TextStyle(fontSize: 18),
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search, size: 24),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.search, size: 24),
                           hintText: 'Поиск страны или кода',
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 18,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.06),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.14),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.14),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2A79FF),
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Expanded(
                         child: ListView.builder(
                           controller: scrollController,
@@ -264,7 +459,7 @@ class _AddContactByPhoneSheetState
                             return ListTile(
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 8,
-                                vertical: 8,
+                                vertical: 6,
                               ),
                               minLeadingWidth: 34,
                               leading: Text(
@@ -274,23 +469,20 @@ class _AddContactByPhoneSheetState
                               title: Text(
                                 country.name,
                                 style: const TextStyle(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  country.dialCode,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white.withValues(alpha: 0.72),
-                                  ),
+                              subtitle: Text(
+                                country.dialCode,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.white.withValues(alpha: 0.72),
                                 ),
                               ),
                               trailing: selected
                                   ? const Icon(
-                                      Icons.check,
+                                      Icons.check_rounded,
                                       color: Color(0xFF2A79FF),
                                       size: 24,
                                     )
@@ -321,308 +513,678 @@ class _AddContactByPhoneSheetState
       _nationalPhone.selection = TextSelection.collapsed(
         offset: _nationalPhone.text.length,
       );
+      _matchedIds = const <String>[];
+      _info = null;
+      _error = null;
+      _errorIsSoft = false;
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final fg = Colors.white.withValues(alpha: 0.94);
-    final keyboardBottom = MediaQuery.viewInsetsOf(context).bottom;
+  Widget _buildTopActions() {
+    return Row(
+      children: [
+        _RoundHeaderAction(
+          icon: Icons.close_rounded,
+          onTap: _busy ? null : () => Navigator.of(context).pop(),
+        ),
+        const Expanded(
+          child: Text(
+            'Новый контакт',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 34 / 2,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ),
+        _RoundHeaderAction(
+          icon: Icons.check_rounded,
+          onTap: _busy ? null : () => unawaited(_searchByPhone()),
+        ),
+      ],
+    );
+  }
 
-    final profilesRepo = ref.watch(userProfilesRepositoryProvider);
-    final profilesAsync = profilesRepo == null || _matchedIds.isEmpty
-        ? const AsyncValue<Map<String, UserProfile>>.data(
-            <String, UserProfile>{},
-          )
-        : ref.watch(
-            StreamProvider.autoDispose<Map<String, UserProfile>>((ref) {
-              return profilesRepo.watchUsersByIds(_matchedIds);
-            }),
-          );
-
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOutCubic,
-      padding: EdgeInsets.only(bottom: keyboardBottom + 12),
-      child: Material(
-        color: Colors.black.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(22),
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Добавить контакт',
-                  style: TextStyle(
-                    color: fg,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'По номеру телефона',
-                  style: TextStyle(
-                    color: fg.withValues(alpha: 0.62),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: _busy
-                          ? null
-                          : () => unawaited(_pickPhoneCountry()),
-                      child: Container(
-                        height: 46,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(
-                            alpha: dark ? 0.08 : 0.10,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _selectedCountry.flag,
-                              style: const TextStyle(fontSize: 18),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _selectedCountry.dialCode,
-                              style: TextStyle(
-                                color: fg,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            Icon(
-                              Icons.expand_more_rounded,
-                              color: fg.withValues(alpha: 0.8),
-                              size: 18,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _nationalPhone,
-                        enabled: !_busy,
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (_) => unawaited(_search()),
-                        inputFormatters: <TextInputFormatter>[
-                          _PhoneMaskFormatter(
-                            phoneHint: _selectedCountry.phoneHint,
-                            maxNationalDigits:
-                                _selectedCountry.maxNationalDigits,
-                          ),
-                        ],
-                        style: TextStyle(
-                          color: fg,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: _selectedCountry.phoneHint,
-                          hintStyle: TextStyle(
-                            color: fg.withValues(alpha: 0.45),
-                            fontWeight: FontWeight.w600,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white.withValues(
-                            alpha: dark ? 0.08 : 0.10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.10),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.12),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF2A79FF),
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      height: 44,
-                      width: 44,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          backgroundColor: const Color(0xFF2A79FF),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: _busy ? null : () => unawaited(_search()),
-                        child: _busy
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.search_rounded,
-                                color: Colors.white,
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 10),
+  Widget _buildPhoneBlock() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withValues(alpha: 0.065),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            onTap: (_busy || _syncBusy)
+                ? null
+                : () => unawaited(_pickPhoneCountry()),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+              child: Row(
+                children: [
                   Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Colors.redAccent.shade100,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    _selectedCountry.flag,
+                    style: const TextStyle(fontSize: 20),
                   ),
-                ],
-                const SizedBox(height: 12),
-                if (_checkedConsent && !_hasDeviceConsent) ...[
-                  OutlinedButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () async {
-                            await widget.onSyncDeviceContacts();
-                            if (!mounted) return;
-                            setState(() => _hasDeviceConsent = true);
-                          },
-                    icon: const Icon(Icons.sync_rounded),
-                    label: const Text('Синхронизировать контакты'),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 280),
-                  child: profilesAsync.when(
-                    data: (map) {
-                      final profiles = _matchedIds
-                          .map((id) => map[id])
-                          .whereType<UserProfile>()
-                          .where((p) => (p.deletedAt ?? '').trim().isEmpty)
-                          .toList(growable: false);
-                      if (profiles.isEmpty) return const SizedBox.shrink();
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        physics: const ClampingScrollPhysics(),
-                        itemCount: profiles.length,
-                        separatorBuilder: (_, _) => Divider(
-                          height: 1,
-                          color: Colors.white.withValues(alpha: 0.10),
-                        ),
-                        itemBuilder: (context, i) {
-                          final p = profiles[i];
-                          final title = p.name.trim().isNotEmpty
-                              ? p.name.trim()
-                              : 'Пользователь';
-                          final subtitle = (p.username ?? '').trim().isEmpty
-                              ? null
-                              : (p.username!.startsWith('@')
-                                    ? p.username!
-                                    : '@${p.username!}');
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            onTap: _busy
-                                ? null
-                                : () => unawaited(_selectContact(p)),
-                            leading: ChatAvatar(
-                              title: title,
-                              radius: 22,
-                              avatarUrl: p.avatarThumb ?? p.avatar,
-                            ),
-                            title: Text(
-                              title,
-                              style: TextStyle(
-                                color: fg,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            subtitle: subtitle == null
-                                ? null
-                                : Text(
-                                    subtitle,
-                                    style: TextStyle(
-                                      color: fg.withValues(alpha: 0.65),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                            trailing: FilledButton(
-                              onPressed: _busy
-                                  ? null
-                                  : () => unawaited(_selectContact(p)),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFF2A79FF),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text('Выбрать'),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (e, _) => Text(
-                      'Ошибка: $e',
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _selectedCountry.name,
                       style: TextStyle(
-                        color: Colors.redAccent.shade100,
+                        color: Colors.white.withValues(alpha: 0.94),
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: Colors.white.withValues(alpha: 0.62),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, color: Colors.white.withValues(alpha: 0.12)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            child: Row(
+              children: [
+                Text(
+                  _selectedCountry.dialCode,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    fontSize: 28 / 2,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _busy
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        child: const Text('Закрыть'),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _nationalPhone,
+                    enabled: !_busy,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.search,
+                    onChanged: _handlePhoneChanged,
+                    onSubmitted: (_) => unawaited(_searchByPhone()),
+                    inputFormatters: <TextInputFormatter>[
+                      _PhoneMaskFormatter(
+                        phoneHint: _selectedCountry.phoneHint,
+                        maxNationalDigits: _selectedCountry.maxNationalDigits,
                       ),
+                    ],
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.94),
+                      fontSize: 28 / 2,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
                     ),
-                  ],
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: _selectedCountry.phoneHint,
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.34),
+                        fontSize: 28 / 2,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSyncRow() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.065),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Синхронизировать с телефоном',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  fontSize: 30 / 2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (_syncBusy)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: Colors.white,
+                ),
+              )
+            else
+              Switch.adaptive(
+                value: _syncWithPhone,
+                onChanged: (_busy || !_checkedConsent)
+                    ? null
+                    : (v) => unawaited(_toggleSyncWithPhone(v)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQrActionRow() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: (_busy || _syncBusy) ? null : () => unawaited(_openQrScanner()),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white.withValues(alpha: 0.065),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(
+          children: [
+            Icon(
+              Icons.qr_code_scanner_rounded,
+              size: 24,
+              color: Colors.blue.shade300,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Добавить по QR-коду',
+              style: TextStyle(
+                color: Colors.blue.shade300,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusLine() {
+    final message = _error ?? _info;
+    if (message == null || message.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final isError = _error != null && !_errorIsSoft;
+    final isSoftError = _error != null && _errorIsSoft;
+    final color = isError
+        ? Colors.redAccent.shade100
+        : isSoftError
+        ? Colors.orange.shade200
+        : Colors.greenAccent.shade100;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResult() {
+    if (_matchedIds.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final profilesRepo = ref.watch(userProfilesRepositoryProvider);
+    if (profilesRepo == null) {
+      return _ResultPlaceholderCard(
+        text: 'Результаты пока недоступны',
+        warning: true,
+      );
+    }
+    final profilesAsync = ref.watch(
+      StreamProvider.autoDispose<Map<String, UserProfile>>((ref) {
+        return profilesRepo.watchUsersByIds(_matchedIds);
+      }),
+    );
+
+    return profilesAsync.when(
+      loading: () => const _ResultLoadingCard(),
+      error: (e, _) => _ResultPlaceholderCard(
+        text: 'Ошибка загрузки контакта: $e',
+        warning: true,
+      ),
+      data: (map) {
+        final profiles = _matchedIds
+            .map((id) => map[id])
+            .whereType<UserProfile>()
+            .where((p) => (p.deletedAt ?? '').trim().isEmpty)
+            .toList(growable: false);
+        if (profiles.isEmpty) {
+          return const _ResultPlaceholderCard(
+            text: 'Профиль не найден',
+            warning: true,
+          );
+        }
+        return Column(
+          children: profiles
+              .map((profile) {
+                final title = profile.name.trim().isNotEmpty
+                    ? profile.name.trim()
+                    : 'Пользователь';
+                final username = (profile.username ?? '').trim();
+                final subtitle = username.isEmpty
+                    ? null
+                    : (username.startsWith('@') ? username : '@$username');
+                final alreadyAdded = widget.existingContactIds.contains(
+                  profile.id,
+                );
+                final allowed = canStartDirectChat(widget.viewer, profile);
+                final badgeText = alreadyAdded
+                    ? 'Уже в контактах'
+                    : (allowed ? 'Новый контакт' : 'Недоступно');
+                final badgeColor = alreadyAdded
+                    ? const Color(0xFF2E87FF)
+                    : (allowed
+                          ? const Color(0xFF36C26C)
+                          : const Color(0xFF8A8E99));
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    color: Colors.white.withValues(alpha: 0.07),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          ChatAvatar(
+                            title: title,
+                            radius: 24,
+                            avatarUrl: profile.avatarThumb ?? profile.avatar,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                if (subtitle != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.68,
+                                      ),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              color: badgeColor.withValues(alpha: 0.18),
+                              border: Border.all(
+                                color: badgeColor.withValues(alpha: 0.44),
+                              ),
+                            ),
+                            child: Text(
+                              badgeText,
+                              style: TextStyle(
+                                color: badgeColor,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: alreadyAdded
+                            ? OutlinedButton(
+                                onPressed: _busy
+                                    ? null
+                                    : () => unawaited(
+                                        _openExistingContact(profile),
+                                      ),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(46),
+                                  side: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.24),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: const Text('Открыть контакт'),
+                              )
+                            : FilledButton(
+                                onPressed: (!_busy && allowed)
+                                    ? () => unawaited(_addContact(profile))
+                                    : null,
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(46),
+                                  backgroundColor: const Color(0xFF2A79FF),
+                                  disabledBackgroundColor: Colors.white
+                                      .withValues(alpha: 0.08),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  allowed
+                                      ? 'Добавить в контакты'
+                                      : 'Добавление недоступно',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              })
+              .toList(growable: false),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardBottom = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(bottom: keyboardBottom),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Color(0xFF12141C),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            16 + MediaQuery.paddingOf(context).bottom,
+          ),
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildTopActions(),
+                const SizedBox(height: 18),
+                _buildPhoneBlock(),
+                const SizedBox(height: 12),
+                _buildSyncRow(),
+                const SizedBox(height: 10),
+                _buildQrActionRow(),
+                const SizedBox(height: 10),
+                _buildStatusLine(),
+                if (_busy) ...[
+                  const SizedBox(height: 12),
+                  const _ResultLoadingCard(),
+                ],
+                const SizedBox(height: 8),
+                _buildSearchResult(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundHeaderAction extends StatelessWidget {
+  const _RoundHeaderAction({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.11),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 46,
+          height: 46,
+          child: Icon(icon, color: Colors.white, size: 27),
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultLoadingCard extends StatelessWidget {
+  const _ResultLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.065),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: const [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2.2),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Ищем контакт...',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultPlaceholderCard extends StatelessWidget {
+  const _ResultPlaceholderCard({required this.text, this.warning = false});
+
+  final String text;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = warning ? Colors.orange.shade200 : Colors.white70;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.05),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.11)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+}
+
+class _ContactQrScannerSheet extends StatefulWidget {
+  const _ContactQrScannerSheet();
+
+  @override
+  State<_ContactQrScannerSheet> createState() => _ContactQrScannerSheetState();
+}
+
+class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
+  final MobileScannerController _controller = MobileScannerController(
+    facing: CameraFacing.back,
+    torchEnabled: false,
+  );
+  bool _handled = false;
+  bool _torchEnabled = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggleTorch() async {
+    await _controller.toggleTorch();
+    if (!mounted) return;
+    setState(() => _torchEnabled = !_torchEnabled);
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_handled) return;
+    for (final barcode in capture.barcodes) {
+      final value = barcode.rawValue?.trim();
+      if (value == null || value.isEmpty) continue;
+      _handled = true;
+      Navigator.of(context).pop(value);
+      return;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF101218),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.24),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  'Сканировать QR-код',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.96),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Вспышка',
+                  onPressed: _toggleTorch,
+                  icon: Icon(
+                    _torchEnabled
+                        ? Icons.flash_on_rounded
+                        : Icons.flash_off_rounded,
+                  ),
+                  color: Colors.white.withValues(alpha: 0.88),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: SizedBox(
+                height: 360,
+                child: MobileScanner(
+                  controller: _controller,
+                  onDetect: _onDetect,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Наведите камеру на QR-код профиля LighChat',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.72),
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(46),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('Отмена'),
+              ),
+            ),
+          ],
         ),
       ),
     );

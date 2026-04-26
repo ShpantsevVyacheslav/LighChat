@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../data/chat_call_tones.dart';
@@ -49,6 +50,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
   bool _remoteDescriptionSet = false;
   bool _answerApplied = false;
   bool _micMuted = false;
+  bool _speakerOn = false;
   bool _busy = false;
   int _seconds = 0;
   Timer? _timer;
@@ -216,6 +218,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       await ref.update(<String, Object?>{
         'status': 'missed',
         'endedAt': DateTime.now().toUtc().toIso8601String(),
+        'endedBy': widget.currentUserId,
       });
     } catch (_) {}
   }
@@ -266,6 +269,9 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
         final resolvedStatus = resolveCallTerminalStatusForViewer(
           rawStatus: status,
           viewerIsReceiver: viewerIsReceiver,
+          callerId: data['callerId'] as String?,
+          receiverId: data['receiverId'] as String?,
+          endedBy: data['endedBy'] as String?,
         );
         final txt = resolvedStatus == 'missed'
             ? 'Пропущенный звонок'
@@ -412,6 +418,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       await _firestore.collection('calls').doc(callId).update(<String, Object?>{
         'status': 'cancelled',
         'endedAt': DateTime.now().toUtc().toIso8601String(),
+        'endedBy': widget.currentUserId,
       });
     }
     await _close(null);
@@ -426,6 +433,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       await _firestore.collection('calls').doc(callId).update(<String, Object?>{
         'status': nextStatus,
         'endedAt': DateTime.now().toUtc().toIso8601String(),
+        'endedBy': widget.currentUserId,
       });
     }
     await _close(null);
@@ -441,6 +449,18 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
     final next = !_micMuted;
     track.enabled = !next;
     setState(() => _micMuted = next);
+  }
+
+  Future<void> _setSpeaker(bool next) async {
+    try {
+      await Helper.setSpeakerphoneOn(next);
+      if (!mounted) return;
+      setState(() => _speakerOn = next);
+    } catch (_) {}
+  }
+
+  void _toggleSpeaker() {
+    unawaited(_setSpeaker(!_speakerOn));
   }
 
   String _durationLabel() {
@@ -459,7 +479,12 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       ).showSnackBar(SnackBar(content: Text(message)));
     }
     if (mounted) {
-      Navigator.of(context).maybePop();
+      final nav = Navigator.of(context);
+      if (nav.canPop()) {
+        nav.pop();
+      } else {
+        context.go('/calls');
+      }
     }
   }
 
@@ -485,6 +510,9 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       _remoteStream = null;
     }
     await _callTones.dispose();
+    try {
+      await Helper.setSpeakerphoneOn(false);
+    } catch (_) {}
     await _remoteRenderer.dispose();
   }
 
@@ -594,6 +622,16 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
                                 ? Icons.mic_off_rounded
                                 : Icons.mic_rounded,
                             bg: _micMuted
+                                ? Colors.white.withValues(alpha: 0.22)
+                                : Colors.white.withValues(alpha: 0.12),
+                          ),
+                          const SizedBox(width: 28),
+                          _roundCallButton(
+                            onTap: _toggleSpeaker,
+                            icon: _speakerOn
+                                ? Icons.volume_up_rounded
+                                : Icons.volume_off_rounded,
+                            bg: _speakerOn
                                 ? Colors.white.withValues(alpha: 0.22)
                                 : Colors.white.withValues(alpha: 0.12),
                           ),

@@ -1,6 +1,6 @@
 'use client';
 
-import { doc, updateDoc, increment, writeBatch, type Firestore } from 'firebase/firestore';
+import { doc, runTransaction, updateDoc, increment, writeBatch, type Firestore } from 'firebase/firestore';
 import type { ChatAttachment, ChatMessage, User, ReplyContext } from '@/lib/types';
 import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
 import { isGridGalleryAttachment, isGridGalleryVideo } from '@/components/chat/attachment-visual';
@@ -194,6 +194,53 @@ export async function markConversationAsRead(
     } catch (e) {
         console.error("[ChatUtils] Failed to mark as read:", e);
     }
+}
+
+/**
+ * Сброс unread счётчиков ветки без проставления `readAt` (когда глобально скрыты read receipts).
+ */
+export async function markThreadMessagesSeenWithoutReadReceipt(
+    firestore: Firestore,
+    conversationId: string,
+    userId: string,
+    threadParentId: string,
+    unreadCount: number
+) {
+    if (!firestore || !conversationId || !userId || !threadParentId) return;
+    if (!Number.isFinite(unreadCount) || unreadCount <= 0) return;
+    const normalizedCount = Math.max(0, Math.trunc(unreadCount));
+    if (normalizedCount <= 0) return;
+
+    const convRef = doc(firestore, 'conversations', conversationId);
+    const parentRef = doc(firestore, `conversations/${conversationId}/messages`, threadParentId);
+
+    await runTransaction(firestore, async (tx) => {
+        const convSnap = await tx.get(convRef);
+        if (convSnap.exists()) {
+            const convData = convSnap.data() as { unreadThreadCounts?: Record<string, unknown> };
+            const raw = convData.unreadThreadCounts?.[userId];
+            const current = typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 0;
+            const dec = Math.min(current, normalizedCount);
+            if (dec > 0) {
+                tx.update(convRef, {
+                    [`unreadThreadCounts.${userId}`]: increment(-dec),
+                });
+            }
+        }
+
+        const parentSnap = await tx.get(parentRef);
+        if (parentSnap.exists()) {
+            const parentData = parentSnap.data() as { unreadThreadCounts?: Record<string, unknown> };
+            const raw = parentData.unreadThreadCounts?.[userId];
+            const current = typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 0;
+            const dec = Math.min(current, normalizedCount);
+            if (dec > 0) {
+                tx.update(parentRef, {
+                    [`unreadThreadCounts.${userId}`]: increment(-dec),
+                });
+            }
+        }
+    });
 }
 
 /** Первое вложение-стикер или GIF в сообщении (для «Сохранить в мои стикеры»). */

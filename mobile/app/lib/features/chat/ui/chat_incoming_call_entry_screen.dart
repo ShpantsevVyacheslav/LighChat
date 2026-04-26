@@ -4,9 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/chat_calls_providers.dart';
 import '../data/chat_call_status.dart';
+import '../data/contact_display_name.dart';
+import '../data/user_contacts_repository.dart';
+import '../data/user_profile.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_shell_backdrop.dart';
 import 'chat_video_call_screen.dart';
@@ -30,13 +34,16 @@ class _ChatIncomingCallEntryScreenState
     extends ConsumerState<ChatIncomingCallEntryScreen> {
   bool _opening = false;
   String? _openedCallId;
+  bool _terminalRedirectScheduled = false;
 
   Future<void> _openCallIfReady({
     required String callId,
     required String currentUserId,
     required String currentUserName,
+    required String? currentUserAvatarUrl,
     required String peerUserId,
     required String peerUserName,
+    required String? peerAvatarUrl,
     required bool isVideo,
   }) async {
     if (_opening || _openedCallId == callId) return;
@@ -48,15 +55,19 @@ class _ChatIncomingCallEntryScreenState
           ? ChatVideoCallScreen(
               currentUserId: currentUserId,
               currentUserName: currentUserName,
+              currentUserAvatarUrl: currentUserAvatarUrl,
               peerUserId: peerUserId,
               peerUserName: peerUserName,
+              peerAvatarUrl: peerAvatarUrl,
               existingCallId: callId,
             )
           : ChatAudioCallScreen(
               currentUserId: currentUserId,
               currentUserName: currentUserName,
+              currentUserAvatarUrl: currentUserAvatarUrl,
               peerUserId: peerUserId,
               peerUserName: peerUserName,
+              peerAvatarUrl: peerAvatarUrl,
               existingCallId: callId,
             ),
     );
@@ -65,6 +76,15 @@ class _ChatIncomingCallEntryScreenState
     if (mounted) {
       _opening = false;
     }
+  }
+
+  void _scheduleCallsRedirect() {
+    if (_terminalRedirectScheduled) return;
+    _terminalRedirectScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go('/calls');
+    });
   }
 
   @override
@@ -81,17 +101,19 @@ class _ChatIncomingCallEntryScreenState
           );
         }
         if (call == null) {
+          _scheduleCallsRedirect();
           return _IncomingStateBody(
             title: 'Звонок не найден',
-            subtitle: 'Вызов уже завершён или удалён.',
+            subtitle: 'Вызов уже завершён или удалён. Возвращаемся к звонкам…',
             actionLabel: 'К звонкам',
             onAction: () => context.go('/calls'),
           );
         }
         if (isTerminalCallStatus(call.status)) {
+          _scheduleCallsRedirect();
           return _IncomingStateBody(
             title: 'Звонок завершён',
-            subtitle: 'Этот вызов уже недоступен.',
+            subtitle: 'Этот вызов уже недоступен. Возвращаемся к звонкам…',
             actionLabel: 'К звонкам',
             onAction: () => context.go('/calls'),
           );
@@ -99,41 +121,74 @@ class _ChatIncomingCallEntryScreenState
 
         final meIsCaller = call.callerId == authUid;
         final peerUserId = meIsCaller ? call.receiverId : call.callerId;
-        final peerUserName = meIsCaller
-            ? ((call.receiverName?.trim().isNotEmpty ?? false)
-                  ? call.receiverName!.trim()
-                  : 'Собеседник')
-            : call.callerName.trim().isNotEmpty
-            ? call.callerName.trim()
-            : 'Собеседник';
-        final currentUserName = meIsCaller
-            ? (call.callerName.trim().isNotEmpty
-                  ? call.callerName.trim()
-                  : authUid)
-            : ((call.receiverName?.trim().isNotEmpty ?? false)
-                  ? call.receiverName!.trim()
-                  : authUid);
+        final contactsAsync = ref.watch(userContactsIndexProvider(authUid));
+        final contactProfiles =
+            contactsAsync.asData?.value.contactProfiles ??
+            const <String, ContactLocalProfile>{};
+        final profilesRepo = ref.watch(userProfilesRepositoryProvider);
+        final profilesStream = profilesRepo == null
+            ? Stream.value(const <String, UserProfile>{})
+            : profilesRepo.watchUsersByIds(<String>[authUid, peerUserId]);
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          unawaited(
-            _openCallIfReady(
-              callId: call.id,
-              currentUserId: authUid,
-              currentUserName: currentUserName,
-              peerUserId: peerUserId,
-              peerUserName: peerUserName,
-              isVideo: call.isVideo,
-            ),
-          );
-        });
+        return StreamBuilder<Map<String, UserProfile>>(
+          stream: profilesStream,
+          builder: (context, profileSnap) {
+            final profiles = profileSnap.data ?? const <String, UserProfile>{};
+            final selfProfile = profiles[authUid];
+            final peerProfile = profiles[peerUserId];
 
-        return _IncomingStateBody(
-          title: 'Открываем звонок…',
-          subtitle: call.isVideo
-              ? 'Подключение к видеозвонку'
-              : 'Подключение к аудиозвонку',
-          loading: true,
+            final fallbackPeerName = meIsCaller
+                ? ((call.receiverName?.trim().isNotEmpty ?? false)
+                      ? call.receiverName!.trim()
+                      : 'Собеседник')
+                : (call.callerName.trim().isNotEmpty
+                      ? call.callerName.trim()
+                      : 'Собеседник');
+            final peerUserName = resolveContactDisplayName(
+              contactProfiles: contactProfiles,
+              contactUserId: peerUserId,
+              fallbackName: peerProfile?.name.trim().isNotEmpty == true
+                  ? peerProfile!.name.trim()
+                  : fallbackPeerName,
+            );
+            final currentUserName = selfProfile?.name.trim().isNotEmpty == true
+                ? selfProfile!.name.trim()
+                : (meIsCaller
+                      ? (call.callerName.trim().isNotEmpty
+                            ? call.callerName.trim()
+                            : authUid)
+                      : ((call.receiverName?.trim().isNotEmpty ?? false)
+                            ? call.receiverName!.trim()
+                            : authUid));
+            final currentUserAvatarUrl =
+                selfProfile?.avatarThumb ?? selfProfile?.avatar;
+            final peerAvatarUrl =
+                peerProfile?.avatarThumb ?? peerProfile?.avatar;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              unawaited(
+                _openCallIfReady(
+                  callId: call.id,
+                  currentUserId: authUid,
+                  currentUserName: currentUserName,
+                  currentUserAvatarUrl: currentUserAvatarUrl,
+                  peerUserId: peerUserId,
+                  peerUserName: peerUserName,
+                  peerAvatarUrl: peerAvatarUrl,
+                  isVideo: call.isVideo,
+                ),
+              );
+            });
+
+            return _IncomingStateBody(
+              title: 'Открываем звонок…',
+              subtitle: call.isVideo
+                  ? 'Подключение к видеозвонку'
+                  : 'Подключение к аудиозвонку',
+              loading: true,
+            );
+          },
         );
       },
       loading: () => const _IncomingStateBody(

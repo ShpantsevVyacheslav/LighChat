@@ -101,10 +101,11 @@ function YandexIcon({ className }: { className?: string }) {
       <circle cx="12" cy="12" r="12" fill="#FC3F1D" />
       <text
         x="12"
-        y="13"
+        y="12"
         textAnchor="middle"
-        fontSize="14"
-        fontWeight="700"
+        dominantBaseline="central"
+        fontSize="16"
+        fontWeight="800"
         fontFamily="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif"
         fill="#FFFFFF"
       >Я</text>

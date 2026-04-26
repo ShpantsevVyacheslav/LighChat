@@ -13,8 +13,6 @@ import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '../ui/badge';
-import { parseISO } from 'date-fns';
-import { formatLastSeenStatusRu } from '@/lib/last-seen-relative-ru';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -35,6 +33,7 @@ import { buildDashboardChatOpenUrl } from '@/lib/dashboard-conversation-url';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
 import { initiateCall } from '@/components/chat/AudioCallOverlay';
+import { resolvePresenceLabel } from '@/lib/presence-visibility';
 import {
   WA_PROFILE_BG,
   WA_PROFILE_MUTED,
@@ -436,6 +435,8 @@ export function ChatParticipantProfile({
       role: freshParticipant?.role || '',
       online: freshParticipant?.online || false,
       lastSeen: freshParticipant?.lastSeen || '',
+      showOnlineStatus: freshParticipant?.privacySettings?.showOnlineStatus !== false,
+      showLastSeen: freshParticipant?.privacySettings?.showLastSeen !== false,
       dateOfBirth: freshParticipant?.dateOfBirth || null,
       deletedAt: freshParticipant?.deletedAt || null
     };
@@ -520,21 +521,14 @@ export function ChatParticipantProfile({
     if (isGroup && !showMemberFocus) return '';
     if (displayParticipantInfo.deletedAt) return '';
     if (!showMemberFocus && isPartnerDeleted) return '';
-    if (displayParticipantInfo.online) return 'В сети';
-    if (displayParticipantInfo.lastSeen) {
-      try {
-        const lastSeenDate =
-          typeof displayParticipantInfo.lastSeen === 'string'
-            ? parseISO(displayParticipantInfo.lastSeen) 
-            : (displayParticipantInfo.lastSeen as { toDate?: () => Date }).toDate?.() ||
-              new Date(displayParticipantInfo.lastSeen as string | number | Date);
-        if (Number.isNaN(lastSeenDate.getTime())) return 'Не в сети';
-        return formatLastSeenStatusRu(lastSeenDate);
-      } catch {
-        return 'Был(а) в сети недавно';
-      }
-    }
-    return 'Не в сети';
+    return resolvePresenceLabel({
+      online: displayParticipantInfo.online,
+      lastSeen: displayParticipantInfo.lastSeen,
+      privacySettings: {
+        showOnlineStatus: displayParticipantInfo.showOnlineStatus,
+        showLastSeen: displayParticipantInfo.showLastSeen,
+      },
+    });
   }, [isGroup, showMemberFocus, displayParticipantInfo, isPartnerDeleted]);
   
   const currentDescription = showMemberFocus
