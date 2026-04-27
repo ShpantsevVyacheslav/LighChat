@@ -460,7 +460,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final enabled = firebaseReady && !_busy;
     final scheme = Theme.of(context).colorScheme;
@@ -508,7 +508,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
             title: Text(
-              l10n?.profile_title ?? 'Профиль',
+              l10n.profile_title,
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -518,7 +518,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             actions: [
               if (!_editing)
                 IconButton(
-                  tooltip: l10n?.profile_edit_tooltip ?? 'Редактировать',
+                  tooltip: l10n.profile_edit_tooltip,
                   icon: const Icon(Icons.edit_outlined),
                   color: const Color(0xFFEAF2FF),
                   onPressed: () => setState(() => _editing = true),
@@ -550,7 +550,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         const SizedBox(height: 28),
                         _FieldLabel(
-                          text: l10n?.profile_full_name_label ?? 'ФИО',
+                          text: l10n.profile_full_name_label,
                           color: fieldLabelColor,
                         ),
                         const SizedBox(height: 10),
@@ -558,13 +558,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           controller: _name,
                           enabled: !_busy,
                           readOnly: !_editing,
-                          hintText:
-                              l10n?.profile_full_name_hint ?? 'Имя',
+                          hintText: l10n.profile_full_name_hint,
                           textCapitalization: TextCapitalization.words,
                         ),
                         const SizedBox(height: 22),
                         _FieldLabel(
-                          text: l10n?.profile_username_label ?? 'Логин',
+                          text: l10n.profile_username_label,
                           color: fieldLabelColor,
                         ),
                         const SizedBox(height: 10),
@@ -577,7 +576,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         const SizedBox(height: 22),
                         _FieldLabel(
-                          text: l10n?.profile_email_label ?? 'Email',
+                          text: l10n.profile_email_label,
                           color: fieldLabelColor,
                         ),
                         const SizedBox(height: 10),
@@ -597,7 +596,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _FieldLabel(
-                                    text: l10n?.profile_phone_label ?? 'Телефон',
+                                    text: l10n.profile_phone_label,
                                     color: fieldLabelColor,
                                   ),
                                   const SizedBox(height: 10),
@@ -619,8 +618,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _FieldLabel(
-                                    text: l10n?.profile_birthdate_label ??
-                                        'Дата рождения',
+                                    text: l10n.profile_birthdate_label,
                                     color: fieldLabelColor,
                                   ),
                                   const SizedBox(height: 10),
@@ -638,7 +636,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         const SizedBox(height: 22),
                         _FieldLabel(
-                          text: l10n?.profile_about_label ?? 'О себе',
+                          text: l10n.profile_about_label,
                           color: fieldLabelColor,
                         ),
                         const SizedBox(height: 10),
@@ -646,7 +644,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           controller: _bio,
                           enabled: !_busy,
                           readOnly: !_editing,
-                          hintText: l10n?.profile_about_hint ?? 'Кратко о себе',
+                          hintText: l10n.profile_about_hint,
                           maxLines: 4,
                         ),
                         if (!_editing) ...[
@@ -692,10 +690,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     : null,
                                 child: Text(
                                   _showPasswordSection
-                                      ? (l10n?.profile_password_toggle_hide ??
-                                          'Скрыть смену пароля')
-                                      : (l10n?.profile_password_toggle_show ??
-                                          'Изменить пароль'),
+                                      ? l10n.profile_password_toggle_hide
+                                      : l10n.profile_password_toggle_show,
                                   style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
@@ -707,8 +703,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             if (_showPasswordSection) ...[
                               const SizedBox(height: 8),
                               _FieldLabel(
-                                text: l10n?.profile_password_new_label ??
-                                    'Новый пароль',
+                                text: l10n.profile_password_new_label,
                                 color: fieldLabelColor,
                               ),
                               const SizedBox(height: 8),
@@ -722,8 +717,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                               const SizedBox(height: 16),
                               _FieldLabel(
-                                text: l10n?.profile_password_confirm_label ??
-                                    'Повторите пароль',
+                                text: l10n.profile_password_confirm_label,
                                 color: fieldLabelColor,
                               ),
                               const SizedBox(height: 8),
@@ -775,7 +769,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       ),
                                     ),
                                     child: Text(
-                                      l10n?.common_cancel ?? 'Отмена',
+                                      l10n.common_cancel,
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
@@ -833,7 +827,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                               ),
                                             )
                                           : Text(
-                                              l10n?.common_save ?? 'Сохранить',
+                                              l10n.common_save,
                                               style: const TextStyle(
                                                 fontSize: 15,
                                                 fontWeight: FontWeight.w700,
@@ -911,10 +905,8 @@ class _PasswordField extends StatelessWidget {
         ),
         suffixIcon: IconButton(
           tooltip: obscure
-              ? (AppLocalizations.of(context)?.profile_password_tooltip_show ??
-                  'Показать пароль')
-              : (AppLocalizations.of(context)?.profile_password_tooltip_hide ??
-                  'Скрыть'),
+              ? AppLocalizations.of(context)!.profile_password_tooltip_show
+              : AppLocalizations.of(context)!.profile_password_tooltip_hide,
           onPressed: enabled ? onToggleObscure : null,
           icon: Icon(
             obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,

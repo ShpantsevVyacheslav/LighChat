@@ -19,6 +19,7 @@ import {
   DASHBOARD_PROFILE_SOURCE_QUERY,
   DASHBOARD_PROFILE_USER_QUERY,
 } from '@/lib/dashboard-conversation-url';
+import { useI18n } from '@/hooks/use-i18n';
 
 type DashboardOpenChatViewProps = {
   conversationId: string;
@@ -77,6 +78,7 @@ export function DashboardOpenChatView({
   }, [searchParams, router, pathname]);
 
   const { user: currentUser } = useAuth();
+  const { t } = useI18n();
   const { user: firebaseAuthUser } = useFirebaseAuthUser();
   const authUid = firebaseAuthUser?.uid ?? currentUser?.id ?? null;
   const currentUserForFirestore = React.useMemo((): User | null => {
@@ -121,7 +123,7 @@ export function DashboardOpenChatView({
   if (!conversation) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-6 text-center text-muted-foreground text-sm">
-        Чат не найден или нет доступа.
+        {t('openChat.notFound')}
       </div>
     );
   }

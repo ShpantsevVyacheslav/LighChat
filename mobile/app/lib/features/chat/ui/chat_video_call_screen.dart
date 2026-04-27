@@ -7,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../data/chat_call_tones.dart';
 import '../data/chat_call_status.dart';
+import '../../../l10n/app_localizations.dart';
 import 'chat_avatar.dart';
 import 'in_app_call_mini_window_controller.dart';
 import 'picture_in_picture_bridge.dart';
@@ -173,9 +174,10 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка видеозвонка: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.video_call_error_init(e))),
+      );
       Navigator.of(context).maybePop();
     }
   }
@@ -339,7 +341,8 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       snap,
     ) async {
       if (!snap.exists) {
-        await _close('Звонок завершён');
+        if (!mounted) return;
+        await _close(AppLocalizations.of(context)!.video_call_ended);
         return;
       }
       final data = snap.data() ?? const <String, dynamic>{};
@@ -357,11 +360,13 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
           receiverId: data['receiverId'] as String?,
           endedBy: data['endedBy'] as String?,
         );
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         final txt = resolvedStatus == 'missed'
-            ? 'Пропущенный звонок'
+            ? l10n.video_call_status_missed
             : resolvedStatus == 'cancelled'
-            ? 'Звонок отменен'
-            : 'Звонок завершён';
+                ? l10n.video_call_status_cancelled
+                : l10n.video_call_ended;
         await _close(txt);
         return;
       }
@@ -416,17 +421,18 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
     final pc = _pc;
     if (callId == null || pc == null) return;
     setState(() => _busy = true);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final snap = await _firestore.collection('calls').doc(callId).get();
       final data = snap.data() ?? const <String, dynamic>{};
       final offer = data['offer'];
       if (offer is! Map) {
-        throw 'Оффер ещё не готов, попробуйте снова';
+        throw l10n.video_call_error_offer_not_ready;
       }
       final type = offer['type'];
       final sdp = offer['sdp'];
       if (type is! String || sdp is! String || sdp.trim().isEmpty) {
-        throw 'Некорректные данные звонка';
+        throw l10n.video_call_error_invalid_call_data;
       }
       await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
       _remoteDescriptionSet = true;
@@ -447,9 +453,9 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       _setStatus('ongoing');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось принять звонок: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.video_call_error_accept_failed(e))),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -633,6 +639,7 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isIncomingRinging = _incoming && _status == 'ringing';
     final hasRemote = _remoteRenderer.srcObject != null;
     final screen = MediaQuery.sizeOf(context);
@@ -707,14 +714,14 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
                       onPressed: _status == 'ongoing' ? () => _enterPip(auto: false) : null,
                       icon: const Icon(Icons.picture_in_picture_alt_rounded),
                       color: Colors.white.withValues(alpha: 0.94),
-                      tooltip: 'PiP',
+                      tooltip: l10n.video_call_pip_tooltip,
                     ),
                   if (!isIncomingRinging)
                     IconButton(
                       onPressed: _status == 'ongoing' ? _enterInAppMiniWindow : null,
                       icon: const Icon(Icons.open_in_new_rounded),
                       color: Colors.white.withValues(alpha: 0.94),
-                      tooltip: 'Mini window',
+                      tooltip: l10n.video_call_mini_window_tooltip,
                     ),
                 ],
               ),
@@ -740,8 +747,8 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
                     _status == 'ongoing'
                         ? _durationLabel()
                         : (isIncomingRinging
-                              ? 'Входящий видеозвонок'
-                              : 'Видеозвонок…'),
+                              ? l10n.video_call_incoming
+                              : l10n.video_call_connecting),
                     style: TextStyle(
                       color: Colors.cyanAccent.withValues(alpha: 0.88),
                       fontSize: 15,

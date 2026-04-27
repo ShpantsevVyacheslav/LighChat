@@ -140,6 +140,9 @@ class Conversation {
     this.e2eeEnabled,
     this.e2eeKeyEpoch,
     this.e2eeEncryptedDataTypesOverride,
+    this.disappearingMessageTtlSec,
+    this.disappearingMessagesUpdatedAt,
+    this.disappearingMessagesUpdatedBy,
   });
 
   final bool isGroup;
@@ -173,6 +176,11 @@ class Conversation {
   final int? e2eeKeyEpoch;
   final Map<String, bool>? e2eeEncryptedDataTypesOverride;
 
+  /// Секунды TTL для новых сообщений; null — выкл.
+  final int? disappearingMessageTtlSec;
+  final String? disappearingMessagesUpdatedAt;
+  final String? disappearingMessagesUpdatedBy;
+
   static Conversation fromJson(JsonMap json) {
     final rawParticipants = json['participantIds'];
     final participantIds =
@@ -190,6 +198,16 @@ class Conversation {
     int? parseEpoch(Object? raw) {
       if (raw is int) return raw;
       if (raw is num) return raw.toInt();
+      return null;
+    }
+
+    int? parseDisappearingTtl(Object? raw) {
+      if (raw == null) return null;
+      if (raw is int) return raw > 0 ? raw : null;
+      if (raw is num) {
+        final v = raw.toInt();
+        return v > 0 ? v : null;
+      }
       return null;
     }
 
@@ -311,6 +329,17 @@ class Conversation {
       e2eeEncryptedDataTypesOverride: parseBoolMap(
         json['e2eeEncryptedDataTypesOverride'],
       ),
+      disappearingMessageTtlSec: parseDisappearingTtl(
+        json['disappearingMessageTtlSec'],
+      ),
+      disappearingMessagesUpdatedAt:
+          json['disappearingMessagesUpdatedAt'] is String
+          ? json['disappearingMessagesUpdatedAt'] as String
+          : null,
+      disappearingMessagesUpdatedBy:
+          json['disappearingMessagesUpdatedBy'] is String
+          ? json['disappearingMessagesUpdatedBy'] as String
+          : null,
     );
   }
 }

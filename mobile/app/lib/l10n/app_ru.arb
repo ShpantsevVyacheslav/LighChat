@@ -335,7 +335,17 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "chat_list_item_draft_line": "Черновик · {line}",
+  "@chat_list_item_draft_line": {
+    "placeholders": {
+      "line": {}
+    }
+  },
+  "chat_list_item_chat_created": "Чат создан",
+  "chat_list_item_no_messages_yet": "Пока нет сообщений",
+  "chat_list_item_history_cleared": "История очищена",
+  "chat_list_firebase_not_configured": "Firebase ещё не настроен."
   ,
   "new_chat_title": "Новый чат",
   "new_chat_subtitle": "Выберите пользователя, чтобы начать диалог, или создайте группу.",
@@ -387,10 +397,37 @@
   "voice_transcript_copy": "Копировать",
   "voice_transcript_loading": "Транскрибация…",
   "voice_transcript_failed": "Не удалось получить текст.",
+  "voice_transcript_error": "Не удалось сделать транскрибацию: {error}",
+  "@voice_transcript_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "chat_messages_title": "Сообщения",
   "chat_call_decline": "Отклонить",
   "chat_call_open": "Открыть",
   "chat_call_accept": "Принять",
+  "video_call_error_init": "Ошибка видеозвонка: {error}",
+  "@video_call_error_init": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_ended": "Звонок завершён",
+  "video_call_status_missed": "Пропущенный звонок",
+  "video_call_status_cancelled": "Звонок отменён",
+  "video_call_error_offer_not_ready": "Оффер ещё не готов, попробуйте снова",
+  "video_call_error_invalid_call_data": "Некорректные данные звонка",
+  "video_call_error_accept_failed": "Не удалось принять звонок: {error}",
+  "@video_call_error_accept_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_incoming": "Входящий видеозвонок",
+  "video_call_connecting": "Видеозвонок…",
+  "video_call_pip_tooltip": "Картинка в картинке",
+  "video_call_mini_window_tooltip": "Мини-окно",
   "chat_delete_message_title_single": "Удалить сообщение?",
   "chat_delete_message_title_multi": "Удалить сообщения?",
   "chat_delete_message_body_single": "Сообщение будет скрыто у всех.",
@@ -468,6 +505,12 @@
       "suffix": {}
     }
   },
+  "devices_snackbar_failed_suffix": ", ошибок: {count}",
+  "@devices_snackbar_failed_suffix": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "devices_error_revoke_failed": "Ошибка revoke: {error}",
   "@devices_error_revoke_failed": {
     "placeholders": {
@@ -542,6 +585,7 @@
   "media_viewer_video_quality": "Качество",
   "media_viewer_error_quality_switch_failed": "Не удалось переключить качество",
   "media_viewer_error_pip_open_failed": "Не удалось открыть PiP",
+  "media_viewer_pip_not_supported": "Картинка в картинке не поддерживается на этом устройстве.",
   "media_viewer_video_processing": "Видео обрабатывается на сервере и скоро станет доступно.",
   "media_viewer_video_playback_failed": "Не удалось воспроизвести видео."
 }

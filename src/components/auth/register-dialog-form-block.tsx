@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import type { Control, FieldValues, UseFormReturn } from "react-hook-form";
-import type * as z from "zod";
 import { AtSign, AlertCircle, Camera, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,19 +12,15 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { DateOfBirthPicker } from "@/components/ui/date-of-birth-picker";
 import type { User } from "@/lib/types";
 import { userAvatarListUrl } from "@/lib/user-avatar-display";
-import {
-  emailPasswordRegistrationSchema,
-  googleProfileFormSchema,
-} from "@/lib/register-profile-schema";
+import type { EmailPasswordRegistrationValues, GoogleProfileFormValues } from "@/lib/register-profile-schema";
 import {
   AUTH_GLASS_INPUT_CLASS,
   AUTH_GLASS_INPUT_ERROR_CLASS,
   AUTH_LABEL_CLASS,
 } from "@/components/auth/auth-glass-classes";
 import { cn } from "@/lib/utils";
-
-type EmailFormValues = z.infer<typeof emailPasswordRegistrationSchema>;
-type GoogleFormValues = z.infer<typeof googleProfileFormSchema>;
+import { useI18n } from "@/hooks/use-i18n";
+import type { TranslateFn } from "@/components/i18n-provider";
 
 export type RegisterDialogMode = "email" | "google";
 
@@ -44,13 +39,13 @@ type CommonProps = {
 type RegisterDialogFormBlockProps =
   | (CommonProps & {
       mode: "email";
-      form: UseFormReturn<EmailFormValues>;
-      onValidSubmit: (values: EmailFormValues) => void;
+      form: UseFormReturn<EmailPasswordRegistrationValues>;
+      onValidSubmit: (values: EmailPasswordRegistrationValues) => void;
     })
   | (CommonProps & {
       mode: "google";
-      form: UseFormReturn<GoogleFormValues>;
-      onValidSubmit: (values: GoogleFormValues) => void;
+      form: UseFormReturn<GoogleProfileFormValues>;
+      onValidSubmit: (values: GoogleProfileFormValues) => void;
     });
 
 function RegisterSharedFields(props: {
@@ -61,6 +56,7 @@ function RegisterSharedFields(props: {
   avatarPreview: string | null;
   avatarInputRef: React.RefObject<HTMLInputElement>;
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  t: TranslateFn;
 }) {
   const {
     control,
@@ -70,6 +66,7 @@ function RegisterSharedFields(props: {
     avatarPreview,
     avatarInputRef,
     onAvatarChange,
+    t,
   } = props;
 
   return (
@@ -101,7 +98,7 @@ function RegisterSharedFields(props: {
           onChange={onAvatarChange}
         />
         <p className="max-w-[240px] text-center text-[10px] leading-snug text-slate-500 dark:text-white/40">
-          Необязательно. Круг — превью в списках и чатах; полный снимок сохраняется для просмотра в профиле.
+          {t("auth.registerForm.avatarHint")}
         </p>
       </div>
 
@@ -110,9 +107,13 @@ function RegisterSharedFields(props: {
         name="name"
         render={({ field }) => (
           <FormItem className="space-y-1">
-            <FormLabel className={AUTH_LABEL_CLASS}>Имя *</FormLabel>
+            <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.nameLabel")}</FormLabel>
             <FormControl>
-              <Input placeholder="Ваше имя" {...field} className={AUTH_GLASS_INPUT_CLASS} />
+              <Input
+                placeholder={t("auth.registerForm.namePlaceholder")}
+                {...field}
+                className={AUTH_GLASS_INPUT_CLASS}
+              />
             </FormControl>
             <FormMessage className="text-[10px]" />
           </FormItem>
@@ -123,7 +124,7 @@ function RegisterSharedFields(props: {
         name="username"
         render={({ field, fieldState }) => (
           <FormItem className="space-y-1">
-            <FormLabel className={AUTH_LABEL_CLASS}>Логин *</FormLabel>
+            <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.usernameLabel")}</FormLabel>
             <FormControl>
               <div className="relative">
                 <AtSign className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-white/45" />
@@ -151,7 +152,7 @@ function RegisterSharedFields(props: {
         name="phone"
         render={({ field, fieldState }) => (
           <FormItem className="space-y-1">
-            <FormLabel className={AUTH_LABEL_CLASS}>Телефон *</FormLabel>
+            <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.phoneLabel")}</FormLabel>
             <FormControl>
               <PhoneInput
                 value={field.value}
@@ -174,7 +175,7 @@ function RegisterSharedFields(props: {
         name="email"
         render={({ field, fieldState }) => (
           <FormItem className="space-y-1">
-            <FormLabel className={AUTH_LABEL_CLASS}>Email *</FormLabel>
+            <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.emailLabel")}</FormLabel>
             <FormControl>
               <Input
                 type="email"
@@ -201,15 +202,13 @@ function RegisterSharedFields(props: {
   );
 }
 
-function RegisterOptionalFields(props: {
-  control: Control<FieldValues>;
-}) {
-  const { control } = props;
+function RegisterOptionalFields(props: { control: Control<FieldValues>; t: TranslateFn }) {
+  const { control, t } = props;
   return (
     <>
       <div className="pb-0.5 pt-2">
         <p className="ml-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/45">
-          Необязательные поля
+          {t("auth.registerForm.optionalSectionTitle")}
         </p>
       </div>
 
@@ -218,7 +217,7 @@ function RegisterOptionalFields(props: {
         name="dateOfBirth"
         render={({ field }) => (
           <FormItem className="space-y-1">
-            <FormLabel className={AUTH_LABEL_CLASS}>Дата рождения</FormLabel>
+            <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.dateOfBirthLabel")}</FormLabel>
             <FormControl>
               <DateOfBirthPicker
                 value={field.value}
@@ -235,10 +234,10 @@ function RegisterOptionalFields(props: {
         name="bio"
         render={({ field }) => (
           <FormItem className="space-y-1">
-            <FormLabel className={AUTH_LABEL_CLASS}>О себе</FormLabel>
+            <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.bioLabel")}</FormLabel>
             <FormControl>
               <Textarea
-                placeholder="Расскажите немного о себе..."
+                placeholder={t("auth.registerForm.bioPlaceholder")}
                 {...field}
                 rows={2}
                 className="resize-none rounded-[14px] border border-white/35 bg-white/45 px-3.5 py-2.5 text-sm shadow-inner shadow-black/5 backdrop-blur-md placeholder:text-slate-500/80 focus-visible:border-primary/50 dark:border-white/12 dark:bg-white/[0.08] dark:text-white dark:placeholder:text-white/40"
@@ -253,6 +252,7 @@ function RegisterOptionalFields(props: {
 }
 
 export function RegisterDialogFormBlock(props: RegisterDialogFormBlockProps) {
+  const { t } = useI18n();
   const {
     registerMode,
     user,
@@ -282,18 +282,19 @@ export function RegisterDialogFormBlock(props: RegisterDialogFormBlockProps) {
             avatarPreview={avatarPreview}
             avatarInputRef={avatarInputRef}
             onAvatarChange={onAvatarChange}
+            t={t}
           />
           <FormField
             control={form.control}
             name="password"
             render={({ field, fieldState }) => (
               <FormItem className="space-y-1">
-                <FormLabel className={AUTH_LABEL_CLASS}>Пароль *</FormLabel>
+                <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.passwordLabel")}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showRegisterPassword ? "text" : "password"}
-                      placeholder="Минимум 6 символов"
+                      placeholder={t("auth.registerForm.passwordPlaceholder")}
                       {...field}
                       onChange={(e) => {
                         form.clearErrors("password");
@@ -325,11 +326,11 @@ export function RegisterDialogFormBlock(props: RegisterDialogFormBlockProps) {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem className="space-y-1">
-                <FormLabel className={AUTH_LABEL_CLASS}>Подтвердите пароль *</FormLabel>
+                <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.registerForm.confirmPasswordLabel")}</FormLabel>
                 <FormControl>
                   <Input
                     type={showRegisterPassword ? "text" : "password"}
-                    placeholder="Повторите пароль"
+                    placeholder={t("auth.registerForm.confirmPasswordPlaceholder")}
                     {...field}
                     className={AUTH_GLASS_INPUT_CLASS}
                   />
@@ -338,7 +339,7 @@ export function RegisterDialogFormBlock(props: RegisterDialogFormBlockProps) {
               </FormItem>
             )}
           />
-          <RegisterOptionalFields control={form.control as unknown as Control<FieldValues>} />
+          <RegisterOptionalFields control={form.control as unknown as Control<FieldValues>} t={t} />
           {error && registerOpen ? (
             <div className="flex items-center gap-2 rounded-[14px] border border-destructive/20 bg-destructive/10 p-2.5 text-[11px] font-medium text-destructive backdrop-blur-sm dark:bg-destructive/15 animate-in slide-in-from-top-1">
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -366,8 +367,9 @@ export function RegisterDialogFormBlock(props: RegisterDialogFormBlockProps) {
           avatarPreview={avatarPreview}
           avatarInputRef={avatarInputRef}
           onAvatarChange={onAvatarChange}
+          t={t}
         />
-        <RegisterOptionalFields control={form.control as unknown as Control<FieldValues>} />
+        <RegisterOptionalFields control={form.control as unknown as Control<FieldValues>} t={t} />
         {error && registerOpen ? (
           <div className="flex items-center gap-2 rounded-[14px] border border-destructive/20 bg-destructive/10 p-2.5 text-[11px] font-medium text-destructive backdrop-blur-sm dark:bg-destructive/15 animate-in slide-in-from-top-1">
             <AlertCircle className="h-4 w-4 shrink-0" />

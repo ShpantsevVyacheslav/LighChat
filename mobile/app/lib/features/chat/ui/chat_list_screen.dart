@@ -89,9 +89,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: !firebaseReady
-          ? const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Firebase is not configured yet.'),
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                AppLocalizations.of(context)!.chat_list_firebase_not_configured,
+              ),
             )
           : userAsync.when(
               data: (user) {
@@ -359,13 +361,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       context.push('/chats/$id');
     } catch (e) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.chat_list_error_open_starred(e) ??
-                'Не удалось открыть Избранное: $e',
-          ),
+          content: Text(l10n.chat_list_error_open_starred(e)),
         ),
       );
     }
@@ -385,8 +384,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       return '$hh:$mm';
     }
     if (diffDays == 1) {
-      final l10n = AppLocalizations.of(context);
-      return l10n?.chat_list_yesterday ?? 'Вчера';
+      return AppLocalizations.of(context)!.chat_list_yesterday;
     }
     final dd = dt.day.toString().padLeft(2, '0');
     final mo = dt.month.toString().padLeft(2, '0');
@@ -420,7 +418,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final l10n = AppLocalizations.of(ctx);
+        final l10n = AppLocalizations.of(ctx)!;
         final scheme = Theme.of(ctx).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
         return SafeArea(
@@ -474,7 +472,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             ),
                             SizedBox(width: 12),
                             Text(
-                              l10n?.chat_list_folder_delete_action ?? 'Удалить',
+                              l10n.chat_list_folder_delete_action,
                               style: const TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
@@ -511,15 +509,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       }
     } catch (e) {
       if (!context.mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.chat_list_error_delete_folder(e) ??
-                'Не удалось удалить папку: $e',
-          ),
+          content: Text(l10n.chat_list_error_delete_folder(e)),
         ),
       );
     }
@@ -533,7 +528,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       context: context,
       barrierDismissible: true,
       builder: (ctx) {
-        final l10n = AppLocalizations.of(ctx);
+        final l10n = AppLocalizations.of(ctx)!;
         final scheme = Theme.of(ctx).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
         return Dialog(
@@ -555,7 +550,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  l10n?.chat_list_folder_delete_title ?? 'Удалить папку?',
+                  l10n.chat_list_folder_delete_title,
                   style: const TextStyle(
                     fontSize: 22 / 2,
                     fontWeight: FontWeight.w700,
@@ -563,8 +558,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  l10n?.chat_list_folder_delete_body(folder.name) ??
-                      'Папка "${folder.name}" будет удалена. Чаты останутся на месте.',
+                  l10n.chat_list_folder_delete_body(folder.name),
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.35,
@@ -586,7 +580,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             color: scheme.onSurface.withValues(alpha: 0.20),
                           ),
                         ),
-                        child: Text(l10n?.common_cancel ?? 'Отмена'),
+                        child: Text(l10n.common_cancel),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -602,7 +596,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           ),
                         ),
                         child: Text(
-                          l10n?.chat_list_folder_delete_action ?? 'Удалить',
+                          l10n.chat_list_folder_delete_action,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -638,13 +632,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   ) async {
     if (!_hasPinnedSupportInActiveFolder()) {
       if (!context.mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.chat_list_pin_not_available ??
-                'В этой папке закрепление недоступно.',
-          ),
+          content: Text(l10n.chat_list_pin_not_available),
         ),
       );
       return;
@@ -668,25 +659,21 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         SnackBar(
           content: Text(
             pinned
-                ? (AppLocalizations.of(context)?.chat_list_pin_pinned_in_folder(
-                      folderName,
-                    ) ??
-                    'Чат закреплен в папке "$folderName"')
-                : (AppLocalizations.of(context)
-                        ?.chat_list_pin_unpinned_in_folder(folderName) ??
-                    'Чат откреплен из папки "$folderName"'),
+                ? AppLocalizations.of(
+                    context,
+                  )!.chat_list_pin_pinned_in_folder(folderName)
+                : AppLocalizations.of(
+                    context,
+                  )!.chat_list_pin_unpinned_in_folder(folderName),
           ),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.chat_list_error_toggle_pin(e) ??
-                'Не удалось изменить закрепление: $e',
-          ),
+          content: Text(l10n.chat_list_error_toggle_pin(e)),
         ),
       );
     }
@@ -709,6 +696,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         final scheme = Theme.of(ctx).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
         bool busy = false;
+        final foldersL10n = AppLocalizations.of(ctx)!;
         return StatefulBuilder(
           builder: (context, setModalState) {
             Future<void> toggleFolder(ChatFolder folder) async {
@@ -721,13 +709,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                 );
               } catch (e) {
                 if (!ctx.mounted) return;
-                final l10n = AppLocalizations.of(ctx);
+                final l10n = AppLocalizations.of(ctx)!;
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      l10n?.chat_list_error_update_folder(e) ??
-                          'Не удалось обновить папку: $e',
-                    ),
+                    content: Text(l10n.chat_list_error_update_folder(e)),
                   ),
                 );
               } finally {
@@ -753,16 +738,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Папки',
-                      style: TextStyle(
+                    Text(
+                      foldersL10n.chat_list_folders_title,
+                      style: const TextStyle(
                         fontSize: 22 / 2,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Выберите папки для этого чата.',
+                      foldersL10n.chat_list_folders_subtitle,
                       style: TextStyle(
                         fontSize: 14,
                         color: scheme.onSurface.withValues(alpha: 0.62),
@@ -771,7 +756,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                     const SizedBox(height: 14),
                     if (customFolders.isEmpty)
                       Text(
-                        'Пока нет кастомных папок.',
+                        foldersL10n.chat_list_folders_empty,
                         style: TextStyle(
                           color: scheme.onSurface.withValues(alpha: 0.56),
                         ),
@@ -849,10 +834,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-                      child: Text(
-                        AppLocalizations.of(ctx)?.chat_list_action_close ??
-                            'Закрыть',
-                      ),
+                      child: Text(foldersL10n.chat_list_action_close),
                     ),
                   ],
                 ),
@@ -870,13 +852,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   ) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmChatAction(
       context: context,
-      title: l10n?.chat_list_clear_history_title ?? 'Очистить историю?',
-      description: l10n?.chat_list_clear_history_body ??
-          'Сообщения исчезнут только из вашего окна чата. У собеседника история останется.',
-      confirmLabel: l10n?.chat_list_clear_history_confirm ?? 'Очистить',
+      title: l10n.chat_list_clear_history_title,
+      description: l10n.chat_list_clear_history_body,
+      confirmLabel: l10n.chat_list_clear_history_confirm,
       destructive: false,
     );
     if (!confirmed) return;
@@ -887,13 +868,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       );
     } catch (e) {
       if (!context.mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10nErr = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.chat_list_error_clear_history(e) ??
-                'Не удалось очистить историю: $e',
-          ),
+          content: Text(l10nErr.chat_list_error_clear_history(e)),
         ),
       );
     }
@@ -912,13 +890,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       );
     } catch (e) {
       if (!context.mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10nErr = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.chat_list_error_mark_read(e) ??
-                'Не удалось пометить чат как прочитанный: $e',
-          ),
+          content: Text(l10nErr.chat_list_error_mark_read(e)),
         ),
       );
     }
@@ -930,13 +905,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   ) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmChatAction(
       context: context,
-      title: l10n?.chat_list_delete_chat_title ?? 'Удалить чат?',
-      description: l10n?.chat_list_delete_chat_body ??
-          'Переписка будет безвозвратно удалена для всех участников. Это действие нельзя отменить.',
-      confirmLabel: l10n?.chat_list_delete_chat_confirm ?? 'Удалить',
+      title: l10n.chat_list_delete_chat_title,
+      description: l10n.chat_list_delete_chat_body,
+      confirmLabel: l10n.chat_list_delete_chat_confirm,
       destructive: true,
     );
     if (!confirmed) return;
@@ -947,15 +921,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       );
     } catch (e) {
       if (!context.mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10nErr = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.chat_list_error_delete_chat(e) ??
-                'Не удалось удалить чат: $e',
-          ),
+          content: Text(l10nErr.chat_list_error_delete_chat(e)),
         ),
       );
     }
@@ -973,6 +944,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
+        final l10n = AppLocalizations.of(ctx)!;
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.symmetric(horizontal: 24),
@@ -1023,7 +995,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             color: scheme.onSurface.withValues(alpha: 0.20),
                           ),
                         ),
-                        child: const Text('Отмена'),
+                        child: Text(l10n.common_cancel),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1077,6 +1049,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
+        final l10n = AppLocalizations.of(ctx)!;
         return Stack(
           children: [
             Positioned.fill(
@@ -1123,8 +1096,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         _ChatMenuButton(
                           icon: Icons.folder_open_rounded,
                           iconColor: const Color(0xFF45C7D7),
-                          label:
-                              l10n?.chat_list_context_folders ?? 'Папки',
+                          label: l10n.chat_list_context_folders,
                           onTap: () {
                             Navigator.of(ctx).pop();
                             _openChatFoldersDialog(context, conversation);
@@ -1138,8 +1110,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             ? const Color(0xFFF0AA3C)
                             : Colors.white.withValues(alpha: 0.32),
                         label: _isPinnedInActiveFolder(conversation.id)
-                            ? (l10n?.chat_list_context_unpin ?? 'Открепить чат')
-                            : (l10n?.chat_list_context_pin ?? 'Закрепить чат'),
+                            ? l10n.chat_list_context_unpin
+                            : l10n.chat_list_context_pin,
                         labelColor: canPin
                             ? null
                             : Colors.white.withValues(alpha: 0.38),
@@ -1153,8 +1125,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         iconColor: canMarkAllRead
                             ? const Color(0xFF58C08A)
                             : Colors.white.withValues(alpha: 0.32),
-                        label: l10n?.chat_list_context_mark_all_read ??
-                            'Прочитать все',
+                        label: l10n.chat_list_context_mark_all_read,
                         labelColor: canMarkAllRead
                             ? null
                             : Colors.white.withValues(alpha: 0.38),
@@ -1167,8 +1138,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       _ChatMenuButton(
                         icon: Icons.auto_fix_high_rounded,
                         iconColor: Colors.white.withValues(alpha: 0.78),
-                        label: l10n?.chat_list_context_clear_history ??
-                            'Очистить историю',
+                        label: l10n.chat_list_context_clear_history,
                         onTap: () {
                           Navigator.of(ctx).pop();
                           _clearChatHistory(context, conversation);
@@ -1178,8 +1148,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         _ChatMenuButton(
                           icon: Icons.delete_outline_rounded,
                           iconColor: const Color(0xFFC53A34),
-                          label: l10n?.chat_list_context_delete_chat ??
-                              'Удалить чат',
+                          label: l10n.chat_list_context_delete_chat,
                           labelColor: const Color(0xFFC53A34),
                           onTap: () {
                             Navigator.of(ctx).pop();
@@ -1317,11 +1286,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       stream: profilesStream,
       builder: (context, snapProfiles) {
         final profiles = snapProfiles.data ?? const <String, UserProfile>{};
+        final l10nList = AppLocalizations.of(context)!;
         final selfProfile = profiles[widget.currentUserId];
         final rawSelfName = selfProfile?.name ?? '';
         final selfName = rawSelfName.trim().isNotEmpty
             ? rawSelfName.trim()
-            : 'Профиль';
+            : l10nList.account_menu_profile;
         final selfAvatar = selfProfile?.avatarThumb ?? selfProfile?.avatar;
 
         String conversationSearchText(ConversationWithId conversation) {
@@ -1331,7 +1301,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
           if (rawName.isNotEmpty) parts.add(rawName);
 
           if (isSavedMessagesConversation(data, widget.currentUserId)) {
-            parts.add('Избранное');
+            parts.add(l10nList.chat_list_folder_default_starred);
             final selfUsername = (selfProfile?.username ?? '').trim();
             if (selfUsername.isNotEmpty) {
               parts.add(selfUsername);
@@ -1670,13 +1640,17 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   isEmptyConversation && clearedAt != null;
                               final subtitle =
                                   (draftLine != null && draftLine.isNotEmpty)
-                                  ? 'Черновик · $draftLine'
+                                  ? l10nList.chat_list_item_draft_line(
+                                      draftLine,
+                                    )
                                   : (isNewlyCreatedAfterClear
-                                        ? 'Чат создан'
+                                        ? l10nList.chat_list_item_chat_created
                                         : (isEmptyConversation
-                                              ? 'Пока нет сообщений'
+                                              ? l10nList
+                                                    .chat_list_item_no_messages_yet
                                               : isClearedForCurrentUser
-                                              ? 'История очищена'
+                                              ? l10nList
+                                                    .chat_list_item_history_cleared
                                               : rawLast));
                               final unreadCount =
                                   (c.data.unreadCounts?[widget.currentUserId] ??
@@ -1790,14 +1764,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(22),
                     onTap: onCreateTap,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 34,
                         vertical: 14,
                       ),
                       child: Text(
-                        'Создать',
-                        style: TextStyle(
+                        AppLocalizations.of(context)!.chat_list_action_create,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF123238),
@@ -1892,6 +1866,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
               ),
               child: StatefulBuilder(
                 builder: (context, setModalState) {
+                  final sheetL10n = AppLocalizations.of(ctx)!;
                   final modalBg = dark
                       ? const Color(0xFF0C0D11).withValues(alpha: 0.96)
                       : scheme.surfaceContainerHigh;
@@ -1924,9 +1899,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       );
                     } catch (e) {
                       if (!mounted) return;
-                      ScaffoldMessenger.of(
-                        this.context,
-                      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+                      final errL10n = AppLocalizations.of(this.context)!;
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: Text(errL10n.chat_list_error_generic(e)),
+                        ),
+                      );
                     }
                   }
 
@@ -2003,7 +1981,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Новая папка',
+                                      sheetL10n.chat_list_create_folder_title,
                                       style: TextStyle(
                                         fontSize: 28 / 2,
                                         fontWeight: FontWeight.w700,
@@ -2012,7 +1990,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Создайте папку для быстрой фильтрации чатов.',
+                                      sheetL10n.chat_list_create_folder_subtitle,
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: scheme.onSurface.withValues(
@@ -2036,7 +2014,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'НАЗВАНИЕ ПАПКИ',
+                              sheetL10n.chat_list_create_folder_name_label,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
@@ -2110,7 +2088,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'ЧАТЫ (${selectedIds.length})',
+                                  sheetL10n.chat_list_create_folder_chats_label(
+                                    selectedIds.length,
+                                  ),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
@@ -2131,9 +2111,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                             selectableChats.map((c) => c.id),
                                           );
                                       }),
-                                child: const Text(
-                                  'ВЫБРАТЬ ВСЁ',
-                                  style: TextStyle(
+                                child: Text(
+                                  sheetL10n.chat_list_create_folder_select_all,
+                                  style: const TextStyle(
                                     color: Color(0xFF2E86FF),
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -2144,7 +2124,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     ? null
                                     : () => setModalState(selectedIds.clear),
                                 child: Text(
-                                  'СБРОСИТЬ',
+                                  sheetL10n.chat_list_create_folder_reset,
                                   style: TextStyle(
                                     color: scheme.onSurface.withValues(
                                       alpha: 0.60,
@@ -2194,7 +2174,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     ),
                                     textAlignVertical: TextAlignVertical.center,
                                     decoration: InputDecoration(
-                                      hintText: 'Поиск по названию...',
+                                      hintText: sheetL10n
+                                          .chat_list_create_folder_search_hint,
                                       border: InputBorder.none,
                                       isDense: true,
                                       contentPadding:
@@ -2217,7 +2198,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             child: filteredChats.isEmpty
                                 ? Center(
                                     child: Text(
-                                      'Подходящие чаты не найдены',
+                                      sheetL10n
+                                          .chat_list_create_folder_no_matches,
                                       style: TextStyle(
                                         color: modalFg.withValues(alpha: 0.56),
                                       ),
@@ -2415,7 +2397,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     ),
                                   ),
                                   child: Text(
-                                    'Отмена',
+                                    sheetL10n.common_cancel,
                                     style: TextStyle(
                                       color: modalFg,
                                       fontSize: 17,
@@ -2464,7 +2446,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     ),
                                     onPressed: canCreate ? submit : null,
                                     child: Text(
-                                      'Создать',
+                                      sheetL10n.chat_list_action_create,
                                       style: TextStyle(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w700,

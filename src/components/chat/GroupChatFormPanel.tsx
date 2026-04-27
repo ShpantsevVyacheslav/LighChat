@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 
-import type { User, Conversation } from '@/lib/types';
+import type { User, Conversation, UserRole } from '@/lib/types';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import {
   atUsernameLabel,
@@ -28,14 +27,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, Loader2, Users, Crown, ShieldOff, UserX, MoreVertical } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ROLES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
-
-const groupChatFormSchema = z.object({
-  name: z.string().min(1, 'Название группы обязательно'),
-  description: z.string().optional(),
-});
+import { createGroupChatFormSchema, type GroupChatFormValues } from '@/lib/group-chat-form-schema';
+import { useI18n } from '@/hooks/use-i18n';
 
 export type GroupChatFormPanelProps = {
   /** Синхронизация с внешним «открыт» (диалог / слой sheet). */
@@ -66,9 +61,23 @@ export function GroupChatFormPanel({
   toolbar,
   onBusyChange,
 }: GroupChatFormPanelProps) {
+  const { t } = useI18n();
   const [isEditing, setIsEditing] = useState(!!initialData);
-  const form = useForm<z.infer<typeof groupChatFormSchema>>({
-    resolver: zodResolver(groupChatFormSchema),
+
+  const groupFormNameRequired = useMemo(() => t('chat.groupForm.nameRequired'), [t]);
+  const groupChatFormSchemaResolved = useMemo(
+    () => createGroupChatFormSchema(groupFormNameRequired),
+    [groupFormNameRequired],
+  );
+  const groupChatFormSchemaRef = useRef(groupChatFormSchemaResolved);
+  groupChatFormSchemaRef.current = groupChatFormSchemaResolved;
+  const groupChatResolver = useCallback<Resolver<GroupChatFormValues>>(
+    (values, context, options) => zodResolver(groupChatFormSchemaRef.current)(values, context, options),
+    [],
+  );
+
+  const form = useForm<GroupChatFormValues>({
+    resolver: groupChatResolver,
   });
 
   const [participants, setParticipants] = useState<User[]>([]);
@@ -86,6 +95,9 @@ export function GroupChatFormPanel({
   const storage = useStorage();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
+
+  const platformRoleLabel = (role: UserRole | undefined) =>
+    role === 'admin' ? t('admin.roles.admin') : role ? t('admin.roles.worker') : '';
 
   useEffect(() => {
     onBusyChange?.(isProcessing);
@@ -159,7 +171,7 @@ export function GroupChatFormPanel({
       const blob = await response.blob();
       setAvatarFile(new File([blob], file.name, { type: 'image/jpeg' }));
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Ошибка обработки фото' });
+      toast({ variant: 'destructive', title: t('chat.groupForm.toastPhotoErrorTitle') });
     } finally {
       setIsProcessing(false);
     }
@@ -174,7 +186,7 @@ export function GroupChatFormPanel({
 
   const handleRemoveParticipant = (userIdToRemove: string) => {
     if (userIdToRemove === initialData?.createdByUserId) {
-      toast({ variant: 'destructive', title: 'Невозможно удалить создателя группы' });
+      toast({ variant: 'destructive', title: t('chat.groupForm.toastCannotRemoveCreatorTitle') });
       return;
     }
     setParticipants((prev) => prev.filter((p) => p.id !== userIdToRemove));
@@ -196,14 +208,14 @@ export function GroupChatFormPanel({
     if (isEditing && userIdToToggle === initialData?.createdByUserId) {
       toast({
         variant: 'destructive',
-        title: 'Действие запрещено',
-        description: 'Невозможно изменить права создателя группы.',
+        title: t('chat.groupForm.toastCreatorRightsTitle'),
+        description: t('chat.groupForm.toastCreatorRightsDesc'),
       });
       return;
     }
 
     if (adminIds.has(userIdToToggle) && adminIds.size === 1) {
-      toast({ variant: 'destructive', title: 'Невозможно убрать последнего администратора' });
+      toast({ variant: 'destructive', title: t('chat.groupForm.toastLastAdminTitle') });
       return;
     }
     setAdminIds((prev) => {
@@ -217,23 +229,23 @@ export function GroupChatFormPanel({
     });
   };
 
-  const onSubmit = async (data: z.infer<typeof groupChatFormSchema>) => {
+  const onSubmit = async (data: GroupChatFormValues) => {
     if (!firestore) return;
 
     if (participants.length < (isEditing ? 1 : 2)) {
       const description = isEditing
-        ? 'В группе должен остаться хотя бы один участник.'
-        : 'Добавьте хотя бы одного участника — группа не может состоять только из вас.';
+        ? t('chat.groupForm.participantsMinEdit')
+        : t('chat.groupForm.participantsMinCreate');
       setParticipantsHighlightError(description);
-      toast({ variant: 'destructive', title: 'Недостаточно участников', description });
+      toast({ variant: 'destructive', title: t('chat.groupForm.participantsMinTitle'), description });
       return;
     }
     setParticipantsHighlightError(null);
     if (adminIds.size === 0) {
       toast({
         variant: 'destructive',
-        title: 'Нет администратора',
-        description: 'В группе должен быть хотя бы один администратор.',
+        title: t('chat.groupForm.noAdminTitle'),
+        description: t('chat.groupForm.noAdminDesc'),
       });
       return;
     }
@@ -255,15 +267,15 @@ export function GroupChatFormPanel({
                 const name =
                   participants.find((p) => p.id === d.uid)?.name ??
                   allUsers.find((u) => u.id === d.uid)?.name ??
-                  'Участник';
+                  t('chat.groupForm.fallbackParticipantName');
                 return d.reason === 'none'
-                  ? `${name} не принимает приглашения в группы`
-                  : `${name} разрешает групповые приглашения только от людей из своих контактов`;
+                  ? t('chat.groupForm.inviteDeniedNone', { name })
+                  : t('chat.groupForm.inviteDeniedContactsOnly', { name });
               })
               .join(' ');
             toast({
               variant: 'destructive',
-              title: 'Не удалось добавить в группу',
+              title: t('chat.groupForm.inviteAddFailedTitle'),
               description: details,
             });
             setIsProcessing(false);
@@ -273,8 +285,8 @@ export function GroupChatFormPanel({
           console.error('checkGroupInvitesAllowed:', checkErr);
           toast({
             variant: 'destructive',
-            title: 'Проверка не выполнена',
-            description: 'Не удалось проверить настройки конфиденциальности. Попробуйте позже.',
+            title: t('chat.groupForm.privacyCheckFailedTitle'),
+            description: t('chat.groupForm.privacyCheckFailedDesc'),
           });
           setIsProcessing(false);
           return;
@@ -313,7 +325,7 @@ export function GroupChatFormPanel({
           adminIds: finalAdminIdsForDb,
           participantInfo: participantInfo,
         });
-        toast({ title: 'Группа обновлена' });
+        toast({ title: t('chat.groupForm.toastUpdatedTitle') });
         onEditSaved?.();
       } else {
         const newConversation: Omit<Conversation, 'id'> = {
@@ -326,7 +338,7 @@ export function GroupChatFormPanel({
           participantInfo,
           createdByUserId: currentUser.id,
           lastMessageTimestamp: new Date().toISOString(),
-          lastMessageText: `${currentUser.name} создал(а) группу`,
+          lastMessageText: t('chat.groupForm.systemMessageCreated', { name: currentUser.name }),
           unreadCounts: Object.fromEntries(finalParticipantIds.map((id) => [id, 0])),
           typing: {},
         };
@@ -341,7 +353,7 @@ export function GroupChatFormPanel({
       console.error(e);
       toast({
         variant: 'destructive',
-        title: isEditing ? 'Ошибка обновления' : 'Ошибка создания группы',
+        title: isEditing ? t('chat.groupForm.saveErrorEditTitle') : t('chat.groupForm.saveErrorCreateTitle'),
         description: msg,
       });
     } finally {
@@ -385,7 +397,7 @@ export function GroupChatFormPanel({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Название группы</FormLabel>
+                  <FormLabel>{t('chat.groupForm.nameLabel')}</FormLabel>
                   <FormControl>
                     <Input {...field} className="rounded-xl" />
                   </FormControl>
@@ -398,7 +410,7 @@ export function GroupChatFormPanel({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Описание</FormLabel>
+                  <FormLabel>{t('chat.groupForm.descriptionLabel')}</FormLabel>
                   <FormControl>
                     <Textarea {...field} className="rounded-xl" />
                   </FormControl>
@@ -424,7 +436,7 @@ export function GroupChatFormPanel({
                 className={cn('text-lg font-medium', participantsHighlightError && 'text-destructive')}
                 id="group-form-participants-heading"
               >
-                Участники ({participants.length})
+                {t('chat.groupForm.participantsHeading', { count: participants.length })}
               </h3>
               {participantsHighlightError ? (
                 <p id="group-form-participants-error" className="text-sm font-medium text-destructive" role="alert">
@@ -447,12 +459,12 @@ export function GroupChatFormPanel({
                             {login ? <p className="truncate text-xs text-muted-foreground">{login}</p> : null}
                             {p.role && p.role !== 'worker' ? (
                               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                {adminIds.has(p.id) ? 'Администратор' : ROLES[p.role]}
+                                {adminIds.has(p.id) ? t('chat.groupForm.groupAdminShort') : platformRoleLabel(p.role)}
                               </p>
                             ) : null}
                             {p.role === 'worker' && adminIds.has(p.id) ? (
                               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Администратор
+                                {t('chat.groupForm.groupAdminShort')}
                               </p>
                             ) : null}
                           </div>
@@ -471,14 +483,14 @@ export function GroupChatFormPanel({
                                 ) : (
                                   <Crown className="mr-2 h-4 w-4" />
                                 )}
-                                {adminIds.has(p.id) ? 'Разжаловать' : 'Сделать админом'}
+                                {adminIds.has(p.id) ? t('chat.groupForm.demoteAdmin') : t('chat.groupForm.promoteAdmin')}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onSelect={() => handleRemoveParticipant(p.id)}
                                 disabled={p.id === initialData?.createdByUserId}
                               >
-                                <UserX className="mr-2 h-4 w-4" /> Удалить из группы
+                                <UserX className="mr-2 h-4 w-4" /> {t('chat.groupForm.removeFromGroup')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -491,10 +503,10 @@ export function GroupChatFormPanel({
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-lg font-medium">Добавить участников</h3>
+              <h3 className="text-lg font-medium">{t('chat.groupForm.addMembersTitle')}</h3>
               <div className="relative">
                 <Input
-                  placeholder="Поиск пользователей..."
+                  placeholder={t('chat.groupForm.addMembersSearchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="h-11 rounded-full"
@@ -505,7 +517,7 @@ export function GroupChatFormPanel({
                   {addFromContacts.length > 0 ? (
                     <>
                       <p className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Контакты
+                        {t('chat.groupForm.sectionContacts')}
                       </p>
                       {addFromContacts.map((user) => {
                         const login = atUsernameLabel(user.username);
@@ -529,7 +541,7 @@ export function GroupChatFormPanel({
                               ) : null}
                               {user.role && user.role !== 'worker' ? (
                                 <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                                  {ROLES[user.role]}
+                                  {platformRoleLabel(user.role)}
                                 </span>
                               ) : null}
                             </div>
@@ -546,7 +558,7 @@ export function GroupChatFormPanel({
                           addFromContacts.length === 0 ? 'pt-0.5' : 'pt-1'
                         )}
                       >
-                        Все пользователи
+                        {t('chat.groupForm.sectionAllUsers')}
                       </p>
                       {addFromGlobal.map((user) => {
                         const login = atUsernameLabel(user.username);
@@ -570,7 +582,7 @@ export function GroupChatFormPanel({
                               ) : null}
                               {user.role && user.role !== 'worker' ? (
                                 <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                                  {ROLES[user.role]}
+                                  {platformRoleLabel(user.role)}
                                 </span>
                               ) : null}
                             </div>
@@ -580,7 +592,7 @@ export function GroupChatFormPanel({
                     </>
                   ) : null}
                   {addFromContacts.length === 0 && addFromGlobal.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-muted-foreground">Нет доступных пользователей</p>
+                    <p className="p-4 text-center text-xs text-muted-foreground">{t('chat.groupForm.noUsersToAdd')}</p>
                   ) : null}
                 </div>
               </ScrollArea>
@@ -596,10 +608,10 @@ export function GroupChatFormPanel({
             disabled={isProcessing}
             className="rounded-full border-none font-bold shadow-none"
           >
-            Отмена
+            {t('chat.groupForm.cancel')}
           </Button>
           <Button type="submit" disabled={isProcessing} className="min-w-[120px] rounded-full font-bold shadow-lg shadow-primary/20">
-            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isEditing ? 'Сохранить' : 'Создать'}
+            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isEditing ? t('chat.groupForm.save') : t('chat.groupForm.create')}
           </Button>
         </div>
       </form>

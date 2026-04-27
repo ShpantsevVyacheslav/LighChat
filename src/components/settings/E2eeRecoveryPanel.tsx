@@ -40,6 +40,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import {
   createPasswordBackupV2,
   E2EE_BACKUP_MIN_PASSWORD_LENGTH,
@@ -56,6 +57,7 @@ export function E2eeRecoveryPanel() {
   const firestore = useFirestore();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const [hasBackup, setHasBackup] = React.useState<boolean | null>(null);
   const [mode, setMode] = React.useState<DialogMode>(null);
@@ -93,15 +95,17 @@ export function E2eeRecoveryPanel() {
     if (password.length < E2EE_BACKUP_MIN_PASSWORD_LENGTH) {
       toast({
         variant: 'destructive',
-        title: 'Пароль слишком короткий',
-        description: `Минимум ${E2EE_BACKUP_MIN_PASSWORD_LENGTH} символов.`,
+        title: t('e2eeRecovery.passwordTooShortTitle'),
+        description: t('e2eeRecovery.passwordTooShortDesc', {
+          min: E2EE_BACKUP_MIN_PASSWORD_LENGTH,
+        }),
       });
       return;
     }
     if (password !== confirm) {
       toast({
         variant: 'destructive',
-        title: 'Пароли не совпадают',
+        title: t('e2eeRecovery.passwordsMismatchTitle'),
       });
       return;
     }
@@ -118,15 +122,15 @@ export function E2eeRecoveryPanel() {
         privateKeyPkcs8: pkcs8,
       });
       toast({
-        title: 'Backup создан',
-        description: 'Сохраните пароль в надёжном месте.',
+        title: t('e2eeRecovery.backupCreatedTitle'),
+        description: t('e2eeRecovery.backupCreatedDesc'),
       });
       setHasBackup(true);
       closeDialog();
     } catch (e) {
       toast({
         variant: 'destructive',
-        title: 'Не удалось создать backup',
+        title: t('e2eeRecovery.backupCreateErrorTitle'),
         description: e instanceof Error ? e.message : String(e),
       });
     } finally {
@@ -137,7 +141,7 @@ export function E2eeRecoveryPanel() {
   async function handleRestore() {
     if (!firestore || !user?.id) return;
     if (!password) {
-      toast({ variant: 'destructive', title: 'Введите пароль' });
+      toast({ variant: 'destructive', title: t('e2eeRecovery.enterPasswordTitle') });
       return;
     }
     setBusy(true);
@@ -170,21 +174,21 @@ export function E2eeRecoveryPanel() {
         publicKeySpkiB64,
       });
       toast({
-        title: 'Ключ восстановлен',
-        description: 'Обновите страницу, чтобы чаты использовали новый ключ.',
+        title: t('e2eeRecovery.keyRestoredTitle'),
+        description: t('e2eeRecovery.keyRestoredDesc'),
       });
       closeDialog();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({
         variant: 'destructive',
-        title: 'Не удалось восстановить',
+        title: t('e2eeRecovery.restoreErrorTitle'),
         description: msg.includes('E2EE_BACKUP_WRONG_PASSWORD')
-          ? 'Неверный пароль'
+          ? t('e2eeRecovery.wrongPassword')
           : msg.includes('E2EE_BACKUP_NOT_FOUND')
-            ? 'Backup не найден'
+            ? t('e2eeRecovery.backupNotFound')
             : msg.includes('E2EE_BACKUP_DEVICE_PUBKEY_MISSING')
-              ? 'Публичный ключ устройства не найден. Устройство, создавшее backup, было удалено — восстановление невозможно.'
+              ? t('e2eeRecovery.devicePubKeyMissing')
               : msg,
       });
     } finally {
@@ -200,47 +204,37 @@ export function E2eeRecoveryPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5" />
-            Резервирование и передача ключа
+            {t('e2eeRecovery.cardTitle')}
           </CardTitle>
-          <CardDescription>
-            Два способа восстановиться, если потеряете все устройства: backup
-            паролем или передача ключа с другого устройства по QR.
-          </CardDescription>
+          <CardDescription>{t('e2eeRecovery.cardDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-col gap-2 rounded-lg border p-4">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <Lock className="h-4 w-4" /> Backup паролем
+              <Lock className="h-4 w-4" /> {t('e2eeRecovery.passwordBackupTitle')}
             </div>
-            <p className="text-sm text-muted-foreground">
-              Приватный ключ шифруется паролем и сохраняется в Firestore. Пароль
-              нигде не хранится — его невозможно восстановить.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('e2eeRecovery.passwordBackupBody')}</p>
             <div className="flex gap-2">
               <Button onClick={() => setMode('create')} variant="default">
-                {hasBackup ? 'Перезаписать backup' : 'Создать backup'}
+                {hasBackup ? t('e2eeRecovery.overwriteBackup') : t('e2eeRecovery.createBackup')}
               </Button>
               <Button
                 onClick={() => setMode('restore')}
                 variant="outline"
               >
                 <RefreshCcw className="h-4 w-4 mr-1" />
-                Восстановить
+                {t('e2eeRecovery.restore')}
               </Button>
             </div>
           </div>
           <div className="flex flex-col gap-2 rounded-lg border p-4">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <QrCode className="h-4 w-4" /> Передача ключа по QR
+              <QrCode className="h-4 w-4" /> {t('e2eeRecovery.qrSectionTitle')}
             </div>
-            <p className="text-sm text-muted-foreground">
-              На новом устройстве показываем QR, на старом сканируем камерой
-              (mobile) или вставляем QR-строку (web). Сверяете 6-значный код —
-              приватный ключ переносится безопасно.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('e2eeRecovery.qrSectionBody')}</p>
             <div>
               <Button onClick={() => setQrOpen(true)} variant="default">
-                Открыть QR-pairing
+                {t('e2eeRecovery.openQrPairing')}
               </Button>
             </div>
           </div>
@@ -253,17 +247,17 @@ export function E2eeRecoveryPanel() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {mode === 'create' ? 'Создать backup ключа' : 'Восстановить из backup'}
+              {mode === 'create' ? t('e2eeRecovery.dialogCreateTitle') : t('e2eeRecovery.dialogRestoreTitle')}
             </DialogTitle>
             <DialogDescription>
               {mode === 'create'
-                ? `Минимум ${E2EE_BACKUP_MIN_PASSWORD_LENGTH} символов. Пароль невозможно восстановить.`
-                : 'Введите пароль, под которым создавали backup.'}
+                ? t('e2eeRecovery.dialogCreateHint', { min: E2EE_BACKUP_MIN_PASSWORD_LENGTH })
+                : t('e2eeRecovery.dialogRestoreHint')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="e2ee-recovery-password">Пароль</Label>
+              <Label htmlFor="e2ee-recovery-password">{t('e2eeRecovery.passwordLabel')}</Label>
               <Input
                 id="e2ee-recovery-password"
                 type="password"
@@ -274,7 +268,7 @@ export function E2eeRecoveryPanel() {
             </div>
             {mode === 'create' && (
               <div className="space-y-1">
-                <Label htmlFor="e2ee-recovery-confirm">Повторите пароль</Label>
+                <Label htmlFor="e2ee-recovery-confirm">{t('e2eeRecovery.confirmPasswordLabel')}</Label>
                 <Input
                   id="e2ee-recovery-confirm"
                   type="password"
@@ -286,13 +280,17 @@ export function E2eeRecoveryPanel() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={closeDialog} disabled={busy}>
-              Отмена
+              {t('e2eeRecovery.cancel')}
             </Button>
             <Button
               onClick={() => (mode === 'create' ? handleCreate() : handleRestore())}
               disabled={busy}
             >
-              {busy ? 'Работаем…' : mode === 'create' ? 'Сохранить' : 'Восстановить'}
+              {busy
+                ? t('e2eeRecovery.busy')
+                : mode === 'create'
+                  ? t('common.save')
+                  : t('e2eeRecovery.restore')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -695,6 +695,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String chat_list_item_draft_line(Object line) {
+    return 'Draft · $line';
+  }
+
+  @override
+  String get chat_list_item_chat_created => 'Chat created';
+
+  @override
+  String get chat_list_item_no_messages_yet => 'No messages yet';
+
+  @override
+  String get chat_list_item_history_cleared => 'History cleared';
+
+  @override
+  String get chat_list_firebase_not_configured =>
+      'Firebase isn’t configured yet.';
+
+  @override
   String get new_chat_title => 'New chat';
 
   @override
@@ -818,6 +836,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voice_transcript_failed => 'Couldn’t get the text.';
 
   @override
+  String voice_transcript_error(Object error) {
+    return 'Couldn’t transcribe: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Messages';
 
   @override
@@ -828,6 +851,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chat_call_accept => 'Accept';
+
+  @override
+  String video_call_error_init(Object error) {
+    return 'Video call error: $error';
+  }
+
+  @override
+  String get video_call_ended => 'Call ended';
+
+  @override
+  String get video_call_status_missed => 'Missed call';
+
+  @override
+  String get video_call_status_cancelled => 'Call cancelled';
+
+  @override
+  String get video_call_error_offer_not_ready =>
+      'Offer isn’t ready yet. Try again.';
+
+  @override
+  String get video_call_error_invalid_call_data => 'Invalid call data';
+
+  @override
+  String video_call_error_accept_failed(Object error) {
+    return 'Couldn’t accept the call: $error';
+  }
+
+  @override
+  String get video_call_incoming => 'Incoming video call';
+
+  @override
+  String get video_call_connecting => 'Video call…';
+
+  @override
+  String get video_call_pip_tooltip => 'Picture in picture';
+
+  @override
+  String get video_call_mini_window_tooltip => 'Mini window';
 
   @override
   String get chat_delete_message_title_single => 'Delete message?';
@@ -965,6 +1026,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String devices_snackbar_failed_suffix(Object count) {
+    return ', errors: $count';
+  }
+
+  @override
   String devices_error_revoke_failed(Object error) {
     return 'Revoke error: $error';
   }
@@ -1093,6 +1159,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get media_viewer_error_pip_open_failed => 'Couldn’t open PiP';
+
+  @override
+  String get media_viewer_pip_not_supported =>
+      'Picture-in-picture isn’t supported on this device.';
 
   @override
   String get media_viewer_video_processing =>

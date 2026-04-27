@@ -38,6 +38,7 @@ import { ChatContextMenu } from '@/components/chat/ChatContextMenu';
 import { DashboardBottomNav } from '@/components/dashboard/DashboardBottomNav';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CHAT_SIDEBAR_SHELL } from '@/lib/chat-glass-styles';
+import { useI18n } from '@/hooks/use-i18n';
 
 export type DashboardChatListColumnProps = {
   openConversationId: string | null;
@@ -66,6 +67,7 @@ export function DashboardChatListColumn({
   }, [currentUser, authUid]);
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isListCollapsed, setIsListCollapsed] = useState(false);
   const [chatSearchTerm, setChatSearchTerm] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
@@ -153,13 +155,13 @@ export function DashboardChatListColumn({
     const defaultFolders: ChatFolder[] = [
       {
         id: 'all',
-        name: 'Все',
+        name: t('chatList.folderAll'),
         conversationIds: withSaved(conversationsForFolders.map((c) => c.id)),
         type: 'all',
       },
       {
         id: 'unread',
-        name: 'Новые',
+        name: t('chatList.folderNew'),
         conversationIds: conversations
           .filter(
             (c) =>
@@ -171,13 +173,13 @@ export function DashboardChatListColumn({
       },
       {
         id: 'personal',
-        name: 'Личные',
+        name: t('chatList.folderDirect'),
         conversationIds: withSaved(conversationsForFolders.filter((c) => !c.isGroup).map((c) => c.id)),
         type: 'personal',
       },
       {
         id: 'groups',
-        name: 'Групповые',
+        name: t('chatList.folderGroups'),
         conversationIds: conversationsForFolders.filter((c) => c.isGroup).map((c) => c.id),
         type: 'groups',
       },
@@ -187,7 +189,7 @@ export function DashboardChatListColumn({
       conversationIds: savedId ? f.conversationIds.filter((id) => id !== savedId) : f.conversationIds,
     }));
     return [...defaultFolders, ...customFolders];
-  }, [conversationsForFolders, userChatIndex?.folders, authUid, savedMessagesConv?.id]);
+  }, [conversationsForFolders, userChatIndex?.folders, authUid, savedMessagesConv?.id, t]);
 
   const folders = useMemo(
     () => mergeSidebarFolderOrder(userChatIndex?.sidebarFolderOrder, foldersUnsorted),
@@ -210,7 +212,7 @@ export function DashboardChatListColumn({
         const name = conv.isGroup
           ? conv.name
           : isSelfDm
-            ? conv.name || 'Избранное'
+            ? conv.name || t('chatList.folderStarred')
             : otherId
               ? (() => {
                   const fromUser = allUsers.find((u) => u.id === otherId)?.name || '';
@@ -224,7 +226,16 @@ export function DashboardChatListColumn({
               : '';
         return ruEnSubstringMatch(name || '', chatSearchTerm);
       });
-  }, [conversations, chatSearchTerm, currentUser, authUid, allUsers, activeFolder, userContactsIndex?.contactProfiles]);
+  }, [
+    conversations,
+    chatSearchTerm,
+    currentUser,
+    authUid,
+    allUsers,
+    activeFolder,
+    userContactsIndex?.contactProfiles,
+    t,
+  ]);
 
   const orderedFolderConversations = useMemo(() => {
     const pinsRaw = userChatIndex?.folderPins?.[activeFolderId] || [];
@@ -282,11 +293,11 @@ export function DashboardChatListColumn({
           sidebarFolderOrder: orderedIds,
         });
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Не удалось сохранить порядок папок';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        const msg = e instanceof Error ? e.message : t('chatList.toastReorderError');
+        toast({ variant: 'destructive', title: t('common.error'), description: msg });
       }
     },
-    [firestore, authUid, toast]
+    [firestore, authUid, toast, t]
   );
 
   const handleContextMenu = (e: React.MouseEvent, conv: Conversation) => {
@@ -343,7 +354,7 @@ export function DashboardChatListColumn({
       await updateDoc(doc(firestore, 'userChats', authUid), { folders: customFolders });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      toast({ variant: 'destructive', title: t('common.error'), description: msg });
     }
   };
 
@@ -358,12 +369,14 @@ export function DashboardChatListColumn({
     try {
       await updateDoc(doc(firestore, 'userChats', authUid), { folderPins });
       toast({
-        title: idx >= 0 ? 'Чат откреплён' : 'Чат закреплён',
-        description: `Папка «${activeFolder?.name || activeFolderId}»`,
+        title: idx >= 0 ? t('chatList.toastPinUnpinned') : t('chatList.toastPinPinned'),
+        description: t('chatList.toastPinFolderCaption', {
+          name: activeFolder?.name || activeFolderId,
+        }),
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Не удалось изменить закрепление';
-      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      const msg = e instanceof Error ? e.message : t('chatList.toastPinError');
+      toast({ variant: 'destructive', title: t('common.error'), description: msg });
     }
   };
 
@@ -375,13 +388,13 @@ export function DashboardChatListColumn({
           [`unreadCounts.${authUid}`]: 0,
           [`unreadThreadCounts.${authUid}`]: 0,
         });
-        toast({ title: 'Чат помечен как прочитанный' });
+        toast({ title: t('chatList.toastMarkRead') });
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Не удалось пометить чат как прочитанный';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        const msg = e instanceof Error ? e.message : t('chatList.toastMarkReadError');
+        toast({ variant: 'destructive', title: t('common.error'), description: msg });
       }
     },
-    [firestore, authUid, toast]
+    [firestore, authUid, toast, t]
   );
 
   const handleDeleteFolderDirect = async (folder: ChatFolder) => {
@@ -391,10 +404,10 @@ export function DashboardChatListColumn({
       const updatedFolders = currentFolders.filter((f) => f.id !== folder.id);
       await updateDoc(doc(firestore, 'userChats', authUid), { folders: updatedFolders });
       if (activeFolderId === folder.id) setActiveFolderId('all');
-      toast({ title: 'Папка удалена' });
+      toast({ title: t('chatList.toastFolderDeleted') });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      toast({ variant: 'destructive', title: 'Ошибка удаления', description: msg });
+      toast({ variant: 'destructive', title: t('chatList.toastFolderDeleteErrorTitle'), description: msg });
     }
   };
 
@@ -489,7 +502,7 @@ export function DashboardChatListColumn({
                   <LighChatSidebarMarkButton
                     compact
                     onClick={() => setIsListCollapsed(false)}
-                    title="Развернуть боковую панель"
+                    title={t('dashboard.expandSidebarTitle')}
                   />
                 </div>
               )}
@@ -499,7 +512,7 @@ export function DashboardChatListColumn({
                     <div className="relative min-w-0 flex-1">
                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        placeholder="Поиск..."
+                        placeholder={t('chatList.searchPlaceholder')}
                         value={chatSearchTerm}
                         tabIndex={-1}
                         onChange={(e) => setChatSearchTerm(e.target.value)}
@@ -536,14 +549,14 @@ export function DashboardChatListColumn({
                     </div>
                   ) : orderedFolderConversations.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
-                      <p className="text-sm">В этой папке пока пусто.</p>
+                      <p className="text-sm">{t('chatList.emptyFolder')}</p>
                       {activeFolder?.type === 'custom' && (
                         <Button
                           variant="link"
                           onClick={() => handleEditFolder(activeFolder)}
                           className="mt-2 h-auto p-0 text-xs font-bold text-primary"
                         >
-                          Добавить чаты
+                          {t('chatList.addChats')}
                         </Button>
                       )}
                     </div>
@@ -606,7 +619,7 @@ export function DashboardChatListColumn({
               setFolderContextMenu(null);
             }}
           >
-            <Pencil className="h-4 w-4" /> Редактировать
+            <Pencil className="h-4 w-4" /> {t('chatList.editFolder')}
           </button>
           <button
             type="button"
@@ -620,7 +633,7 @@ export function DashboardChatListColumn({
               0
             }
           >
-            <ArrowUp className="h-4 w-4" /> Переместить вверх
+            <ArrowUp className="h-4 w-4" /> {t('chatList.moveUp')}
           </button>
           <button
             type="button"
@@ -634,7 +647,7 @@ export function DashboardChatListColumn({
               (userChatIndex?.folders || []).length - 1
             }
           >
-            <ArrowDown className="h-4 w-4" /> Переместить вниз
+            <ArrowDown className="h-4 w-4" /> {t('chatList.moveDown')}
           </button>
           <div className="my-1 h-px bg-border" />
           <button
@@ -645,7 +658,7 @@ export function DashboardChatListColumn({
               setFolderContextMenu(null);
             }}
           >
-            <Trash2 className="h-4 w-4" /> Удалить
+            <Trash2 className="h-4 w-4" /> {t('chatList.deleteFolder')}
           </button>
         </div>
       )}

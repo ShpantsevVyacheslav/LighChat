@@ -39,15 +39,15 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final userAsync = ref.watch(authUserProvider);
 
     if (widget.messages.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n?.forward_title ?? 'Переслать')),
+        appBar: AppBar(title: Text(l10n.forward_title)),
         body: Center(
           child: Text(
-            l10n?.forward_empty_no_messages ?? 'Нет сообщений для пересылки',
+            l10n.forward_empty_no_messages,
           ),
         ),
       );
@@ -60,7 +60,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
         data: (user) {
           if (user == null) {
             return Center(
-              child: Text(l10n?.forward_error_not_authorized ?? 'Не авторизован'),
+              child: Text(l10n.forward_error_not_authorized),
             );
           }
           final uid = user.uid;
@@ -84,8 +84,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                       child: Padding(
                         padding: EdgeInsets.all(24),
                         child: Text(
-                          l10n?.forward_empty_no_recipients ??
-                              'Нет контактов и чатов для пересылки',
+                          l10n.forward_empty_no_recipients,
                         ),
                       ),
                     );
@@ -179,9 +178,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                               alpha: 0.78,
                                             ),
                                           ),
-                                          hintText:
-                                              l10n?.forward_search_hint ??
-                                              'Поиск контактов…',
+                                          hintText: l10n.forward_search_hint,
                                           hintStyle: TextStyle(
                                             color: Colors.white.withValues(
                                               alpha: 0.55,
@@ -210,10 +207,9 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                             ),
                                             child: Text(
                                               rows.isEmpty
-                                                  ? (l10n?.forward_empty_no_available_recipients ??
-                                                      'Доступных получателей нет.\nМожно пересылать только контактам и в ваши активные чаты.')
-                                                  : (l10n?.forward_empty_not_found ??
-                                                      'Ничего не найдено'),
+                                                  ? l10n
+                                                      .forward_empty_no_available_recipients
+                                                  : l10n.forward_empty_not_found,
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 color: Colors.white.withValues(
@@ -336,10 +332,9 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                                       const SizedBox(width: 7),
                                                       Text(
                                                         _selectedKeys.isEmpty
-                                                            ? (l10n?.forward_action_pick_recipients ??
-                                                                'Выберите получателей')
-                                                            : (l10n?.forward_action_send ??
-                                                                'Отправить'),
+                                                            ? l10n
+                                                                .forward_action_pick_recipients
+                                                            : l10n.forward_action_send,
                                                         style: const TextStyle(
                                                           fontSize: 16,
                                                           fontWeight:
@@ -364,33 +359,33 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                         const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Center(
                       child: Text(
-                        l10n?.forward_error_generic(e) ?? 'Ошибка: $e',
+                        l10n.forward_error_generic(e),
                       ),
                     ),
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
-                  child: Text(l10n?.forward_error_generic(e) ?? 'Ошибка: $e'),
+                  child: Text(l10n.forward_error_generic(e)),
                 ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
-              child: Text(l10n?.forward_error_generic(e) ?? 'Ошибка: $e'),
+              child: Text(l10n.forward_error_generic(e)),
             ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text(l10n?.forward_error_generic(e) ?? 'Ошибка: $e'),
+          child: Text(l10n.forward_error_generic(e)),
         ),
       ),
     );
   }
 
   Widget _topBar() {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 2, 12, 0),
       child: _glassPanel(
@@ -407,7 +402,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
               ),
               Expanded(
                 child: Text(
-                  l10n?.forward_title ?? 'Переслать',
+                  l10n.forward_title,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -524,7 +519,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
     Map<String, UserProfile> profiles,
     Set<String> allowedSelectionKeys,
   ) async {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
     setState(() => _busy = true);
@@ -534,7 +529,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
     for (final m in widget.messages) {
       nameMap.putIfAbsent(
         m.senderId,
-        () => l10n?.forward_sender_fallback ?? 'Участник',
+        () => l10n.forward_sender_fallback,
       );
     }
     try {
@@ -550,8 +545,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    l10n?.forward_error_profiles_load ??
-                        'Не удалось загрузить профили для открытия чата',
+                    l10n.forward_error_profiles_load,
                   ),
                 ),
               );
@@ -591,8 +585,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                l10n?.forward_empty_no_available_recipients ??
-                    'Нет доступных получателей. Можно пересылать только контактам и в ваши активные чаты.',
+                l10n.forward_empty_no_available_recipients,
               ),
             ),
           );
@@ -613,12 +606,10 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
       if (!mounted) return;
       final msg = e.toString();
       final friendly = msg.contains('forward_failed_permission_or_membership')
-          ? (l10n?.forward_error_send_no_permissions ??
-              'Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.')
+          ? l10n.forward_error_send_no_permissions
           : (msg.contains('permission-denied')
-                ? (l10n?.forward_error_send_forbidden_chat ??
-                    'Не удалось переслать: доступ к одному из чатов запрещён.')
-                : (l10n?.forward_error_generic(e) ?? 'Ошибка: $e'));
+                ? l10n.forward_error_send_forbidden_chat
+                : l10n.forward_error_generic(e));
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(friendly)));

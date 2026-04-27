@@ -32,6 +32,8 @@ import 'e2ee_fingerprint_badge.dart';
 import 'chat_conversation_notifications_screen.dart';
 import 'chat_conversation_theme_screen.dart';
 import 'conversation_encryption_screen.dart';
+import 'conversation_disappearing_screen.dart';
+import '../data/disappearing_messages_label.dart';
 import 'conversation_media_links_files_screen.dart';
 import 'conversation_starred_screen.dart';
 import 'chat_shell_backdrop.dart';
@@ -798,6 +800,9 @@ class _ChatPartnerProfileSheetState
     final threadsLabel = threadsCount == 0 ? 'Нет' : '$threadsCount';
 
     final showEncryptionRow = !_isGroup && !_isSaved;
+    final showDisappearingMessagesRow = !_isSaved;
+    final disappearingTrailing =
+        formatDisappearingTtlSummary(widget.conversation.disappearingMessageTtlSec);
     final e2eeOn =
         widget.conversation.e2eeEnabled == true &&
         (widget.conversation.e2eeKeyEpoch ?? 0) > 0;
@@ -1109,13 +1114,24 @@ class _ChatPartnerProfileSheetState
                   );
                 },
               ),
-              _menuButton(
-                context,
-                icon: Icons.timer_rounded,
-                title: 'Исчезающие сообщения',
-                trailing: 'Выкл',
-                onTap: () => _toast('Скоро'),
-              ),
+              if (showDisappearingMessagesRow)
+                _menuButton(
+                  context,
+                  icon: Icons.timer_rounded,
+                  title: 'Исчезающие сообщения',
+                  trailing: disappearingTrailing,
+                  onTap: () async {
+                    await Navigator.of(context).push<void>(
+                      CupertinoPageRoute<void>(
+                        builder: (_) => ConversationDisappearingScreen(
+                          conversationId: widget.conversationId,
+                          currentUserId: widget.currentUserId,
+                          initialConversation: widget.conversation,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               _menuButton(
                 context,
                 icon: Icons.shield_rounded,

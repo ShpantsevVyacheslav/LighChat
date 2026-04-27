@@ -124,28 +124,25 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final newLabel = await showDialog<String>(
       context: context,
       builder: (ctx) {
-        final l10n = AppLocalizations.of(ctx);
+        final l10n = AppLocalizations.of(ctx)!;
         return AlertDialog(
-          title: Text(
-            l10n?.devices_dialog_rename_title ?? 'Переименовать устройство',
-          ),
+          title: Text(l10n.devices_dialog_rename_title),
           content: TextField(
             controller: controller,
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              hintText: l10n?.devices_dialog_rename_hint ??
-                  'Например, iPhone 15 — Safari',
+              hintText: l10n.devices_dialog_rename_hint,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(l10n?.common_cancel ?? 'Отмена'),
+              child: Text(l10n.common_cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-              child: Text(l10n?.common_save ?? 'Сохранить'),
+              child: Text(l10n.common_save),
             ),
           ],
         );
@@ -165,13 +162,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       await _loadDevices(user.uid);
     } catch (e) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10nErr = AppLocalizations.of(context)!;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.devices_error_rename_failed(e) ??
-                'Не удалось переименовать: $e',
-          ),
+          content: Text(l10nErr.devices_error_rename_failed(e)),
         ),
       );
     }
@@ -188,26 +182,22 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        final l10n = AppLocalizations.of(ctx);
+        final l10n = AppLocalizations.of(ctx)!;
         return AlertDialog(
-          title: Text(
-            l10n?.devices_dialog_revoke_title ?? 'Отозвать устройство?',
-          ),
+          title: Text(l10n.devices_dialog_revoke_title),
           content: Text(
             isCurrent
-                ? (l10n?.devices_dialog_revoke_body_current ??
-                    'Вы собираетесь отозвать ТЕКУЩЕЕ устройство. После этого вы не сможете читать новые сообщения в зашифрованных чатах с этого клиента.')
-                : (l10n?.devices_dialog_revoke_body_other ??
-                    'Устройство больше не сможет читать новые сообщения в зашифрованных чатах. Старые сообщения останутся доступны на нём.'),
+                ? l10n.devices_dialog_revoke_body_current
+                : l10n.devices_dialog_revoke_body_other,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(l10n?.common_cancel ?? 'Отмена'),
+              child: Text(l10n.common_cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(l10n?.devices_action_revoke ?? 'Отозвать'),
+              child: Text(l10n.devices_action_revoke),
             ),
           ],
         );
@@ -237,25 +227,24 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         },
       );
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
-      final suffix = result.failed > 0 ? ', ошибок: ${result.failed}' : '';
+      final l10nOk = AppLocalizations.of(context)!;
+      final suffix = result.failed > 0
+          ? l10nOk.devices_snackbar_failed_suffix(result.failed)
+          : '';
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            l10n?.devices_snackbar_revoked(result.rekeyed, suffix) ??
-                'Устройство отозвано. Обновлено чатов: ${result.rekeyed}$suffix',
+            l10nOk.devices_snackbar_revoked(result.rekeyed, suffix),
           ),
         ),
       );
       await _loadDevices(user.uid);
     } catch (e) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10nErr = AppLocalizations.of(context)!;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.devices_error_revoke_failed(e) ?? 'Ошибка revoke: $e',
-          ),
+          content: Text(l10nErr.devices_error_revoke_failed(e)),
         ),
       );
     } finally {
@@ -265,7 +254,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     return Scaffold(
@@ -287,7 +276,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        l10n?.devices_title ?? 'Мои устройства',
+                        l10n.devices_title,
                         style: TextStyle(
                           fontSize: 38,
                           height: 1.06,
@@ -297,8 +286,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l10n?.devices_subtitle ??
-                            'Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.',
+                        l10n.devices_subtitle,
                         style: TextStyle(
                           fontSize: 16,
                           color: dark
@@ -321,7 +309,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                         ),
                       if (_devices != null && _devices!.isEmpty)
                         Text(
-                          l10n?.devices_empty ?? 'Устройств пока нет.',
+                          l10n.devices_empty,
                           style: TextStyle(
                             color: dark ? Colors.white70 : Colors.black54,
                           ),
@@ -354,11 +342,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                l10n?.devices_progress_rekeying(
-                                      _progressDone,
-                                      _progressTotal,
-                                    ) ??
-                                    'Обновление чатов: $_progressDone / $_progressTotal',
+                                l10n.devices_progress_rekeying(
+                                  _progressDone,
+                                  _progressTotal,
+                                ),
                                 style: TextStyle(
                                   color: dark
                                       ? Colors.white70
@@ -401,7 +388,7 @@ class _DeviceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final isRevoked = device.revoked;
@@ -439,7 +426,7 @@ class _DeviceCard extends StatelessWidget {
               if (isCurrent && !isRevoked) ...[
                 const SizedBox(width: 6),
                 _TinyChip(
-                  label: l10n?.devices_chip_current ?? 'Это устройство',
+                  label: l10n.devices_chip_current,
                   color: scheme.primary,
                   textColor: scheme.onPrimary,
                 ),
@@ -447,7 +434,7 @@ class _DeviceCard extends StatelessWidget {
               if (isRevoked) ...[
                 const SizedBox(width: 6),
                 _TinyChip(
-                  label: l10n?.devices_chip_revoked ?? 'Отозвано',
+                  label: l10n.devices_chip_revoked,
                   color: scheme.error.withValues(alpha: 0.15),
                   textColor: scheme.error,
                 ),
@@ -456,8 +443,7 @@ class _DeviceCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            l10n?.devices_meta_created_activity(createdAt, lastSeenAt) ??
-                'Создано: $createdAt  •  Активность: $lastSeenAt',
+            l10n.devices_meta_created_activity(createdAt, lastSeenAt),
             style: TextStyle(
               fontSize: 12,
               color: dark ? Colors.white60 : Colors.black54,
@@ -477,8 +463,7 @@ class _DeviceCard extends StatelessWidget {
           if (isRevoked && device.revokedAt != null) ...[
             const SizedBox(height: 4),
             Text(
-              l10n?.devices_meta_revoked_at('${device.revokedAt}') ??
-                  'Отозвано: ${device.revokedAt}',
+              l10n.devices_meta_revoked_at('${device.revokedAt}'),
               style: TextStyle(fontSize: 12, color: scheme.error),
             ),
           ],
@@ -489,13 +474,13 @@ class _DeviceCard extends StatelessWidget {
               TextButton.icon(
                 onPressed: isRevoked ? null : onRename,
                 icon: const Icon(Icons.edit_outlined, size: 16),
-                label: Text(l10n?.devices_action_rename ?? 'Rename'),
+                label: Text(l10n.devices_action_rename),
               ),
               const SizedBox(width: 6),
               FilledButton.tonalIcon(
                 onPressed: isRevoked ? null : onRevoke,
                 icon: const Icon(Icons.shield_outlined, size: 16),
-                label: Text(l10n?.devices_action_revoke ?? 'Revoke'),
+                label: Text(l10n.devices_action_revoke),
               ),
             ],
           ),

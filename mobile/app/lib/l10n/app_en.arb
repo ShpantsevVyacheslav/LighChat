@@ -335,7 +335,17 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "chat_list_item_draft_line": "Draft · {line}",
+  "@chat_list_item_draft_line": {
+    "placeholders": {
+      "line": {}
+    }
+  },
+  "chat_list_item_chat_created": "Chat created",
+  "chat_list_item_no_messages_yet": "No messages yet",
+  "chat_list_item_history_cleared": "History cleared",
+  "chat_list_firebase_not_configured": "Firebase isn’t configured yet."
   ,
   "new_chat_title": "New chat",
   "new_chat_subtitle": "Pick someone to start a conversation, or create a group.",
@@ -387,10 +397,37 @@
   "voice_transcript_copy": "Copy",
   "voice_transcript_loading": "Transcribing…",
   "voice_transcript_failed": "Couldn’t get the text.",
+  "voice_transcript_error": "Couldn’t transcribe: {error}",
+  "@voice_transcript_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "chat_messages_title": "Messages",
   "chat_call_decline": "Decline",
   "chat_call_open": "Open",
   "chat_call_accept": "Accept",
+  "video_call_error_init": "Video call error: {error}",
+  "@video_call_error_init": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_ended": "Call ended",
+  "video_call_status_missed": "Missed call",
+  "video_call_status_cancelled": "Call cancelled",
+  "video_call_error_offer_not_ready": "Offer isn’t ready yet. Try again.",
+  "video_call_error_invalid_call_data": "Invalid call data",
+  "video_call_error_accept_failed": "Couldn’t accept the call: {error}",
+  "@video_call_error_accept_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_incoming": "Incoming video call",
+  "video_call_connecting": "Video call…",
+  "video_call_pip_tooltip": "Picture in picture",
+  "video_call_mini_window_tooltip": "Mini window",
   "chat_delete_message_title_single": "Delete message?",
   "chat_delete_message_title_multi": "Delete messages?",
   "chat_delete_message_body_single": "This message will be hidden for everyone.",
@@ -468,6 +505,12 @@
       "suffix": {}
     }
   },
+  "devices_snackbar_failed_suffix": ", errors: {count}",
+  "@devices_snackbar_failed_suffix": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "devices_error_revoke_failed": "Revoke error: {error}",
   "@devices_error_revoke_failed": {
     "placeholders": {
@@ -542,6 +585,7 @@
   "media_viewer_video_quality": "Quality",
   "media_viewer_error_quality_switch_failed": "Couldn’t switch quality",
   "media_viewer_error_pip_open_failed": "Couldn’t open PiP",
+  "media_viewer_pip_not_supported": "Picture-in-picture isn’t supported on this device.",
   "media_viewer_video_processing": "This video is being processed on the server and will be available soon.",
   "media_viewer_video_playback_failed": "Couldn’t play the video."
 }

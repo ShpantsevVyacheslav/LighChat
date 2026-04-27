@@ -21,8 +21,8 @@ import '../../../l10n/app_localizations.dart';
 
 String formatChatMediaViewerDate(BuildContext context, DateTime utcOrLocal) {
   final d = utcOrLocal.toLocal();
-  final l10n = AppLocalizations.of(context);
-  final localeName = l10n?.localeName ?? Localizations.localeOf(context).toString();
+  final l10n = AppLocalizations.of(context)!;
+  final localeName = l10n.localeName;
   // Example: "27 April 2026, 16:23" / "27 апреля 2026, 16:23"
   final f = intl.DateFormat('d MMMM yyyy, HH:mm', localeName);
   return f.format(d);
@@ -229,13 +229,10 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
         final granted = await Gal.requestAccess(toAlbum: true);
         if (!granted) {
           if (mounted) {
-            final l10n = AppLocalizations.of(context);
+            final l10n = AppLocalizations.of(context)!;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  l10n?.media_viewer_error_no_gallery_access ??
-                      'Нет доступа к сохранению в галерею',
-                ),
+                content: Text(l10n.media_viewer_error_no_gallery_access),
               ),
             );
           }
@@ -271,15 +268,12 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
       }
     } catch (e) {
       if (mounted) {
-        final l10n = AppLocalizations.of(context);
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(
           SnackBar(
-            content: Text(
-              l10n?.media_viewer_error_save_failed(e) ??
-                  'Не удалось сохранить: $e',
-            ),
+            content: Text(l10n.media_viewer_error_save_failed(e)),
           ),
         );
       }
@@ -311,13 +305,10 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     if (item == null) return;
     if (kIsWeb) {
       if (mounted) {
-        final l10n = AppLocalizations.of(context);
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              l10n?.media_viewer_error_share_unavailable_web ??
-                  'Шаринг недоступен в веб-версии',
-            ),
+            content: Text(l10n.media_viewer_error_share_unavailable_web),
           ),
         );
       }
@@ -376,14 +367,12 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
       );
     } catch (e) {
       if (mounted) {
-        final l10n = AppLocalizations.of(context);
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(
           SnackBar(
-            content: Text(
-              l10n?.media_viewer_error_send_failed(e) ?? 'Не удалось отправить: $e',
-            ),
+            content: Text(l10n.media_viewer_error_send_failed(e)),
           ),
         );
       }
@@ -712,7 +701,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                               },
                               itemBuilder: (ctx) {
                                 final hi = Colors.white.withValues(alpha: 0.92);
-                                final l10n = AppLocalizations.of(context);
+                                final l10n = AppLocalizations.of(context)!;
                                 return [
                                   if (showReply)
                                     PopupMenuItem(
@@ -722,8 +711,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                           Icon(Icons.reply_rounded, color: hi),
                                           const SizedBox(width: 12),
                                           Text(
-                                            l10n?.media_viewer_action_reply ??
-                                                'Ответить',
+                                            l10n.media_viewer_action_reply,
                                             style: TextStyle(
                                               color: hi,
                                               fontWeight: FontWeight.w600,
@@ -739,8 +727,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                         Icon(Icons.forward_rounded, color: hi),
                                         const SizedBox(width: 12),
                                         Text(
-                                          l10n?.media_viewer_action_forward ??
-                                              'Переслать',
+                                          l10n.media_viewer_action_forward,
                                           style: TextStyle(
                                             color: hi,
                                             fontWeight: FontWeight.w600,
@@ -756,8 +743,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                         Icon(Icons.share_outlined, color: hi),
                                         const SizedBox(width: 12),
                                         Text(
-                                          l10n?.media_viewer_action_send ??
-                                              'Отправить',
+                                          l10n.media_viewer_action_send,
                                           style: TextStyle(
                                             color: hi,
                                             fontWeight: FontWeight.w600,
@@ -773,8 +759,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                         Icon(Icons.download_rounded, color: hi),
                                         const SizedBox(width: 12),
                                         Text(
-                                          l10n?.media_viewer_action_save ??
-                                              'Сохранить',
+                                          l10n.media_viewer_action_save,
                                           style: TextStyle(
                                             color: hi,
                                             fontWeight: FontWeight.w600,
@@ -791,8 +776,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                           Icon(Icons.chat_rounded, color: hi),
                                           const SizedBox(width: 12),
                                           Text(
-                                            l10n?.media_viewer_action_show_in_chat ??
-                                                'Показать в чате',
+                                            l10n.media_viewer_action_show_in_chat,
                                             style: TextStyle(
                                               color: hi,
                                               fontWeight: FontWeight.w600,
@@ -812,8 +796,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                           ),
                                           const SizedBox(width: 12),
                                           Text(
-                                            l10n?.media_viewer_action_delete ??
-                                                'Удалить',
+                                            l10n.media_viewer_action_delete,
                                             style: const TextStyle(
                                               color: Colors.redAccent,
                                               fontWeight: FontWeight.w600,
@@ -1231,7 +1214,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       context: context,
       backgroundColor: const Color(0xFF1A1A1C),
       builder: (context) {
-        final l10n = AppLocalizations.of(context);
+        final l10n = AppLocalizations.of(context)!;
         const options = <double>[1.0, 1.25, 1.5, 1.75, 2.0];
         return SafeArea(
           child: Column(
@@ -1239,8 +1222,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
             children: [
               const SizedBox(height: 8),
               Text(
-                l10n?.media_viewer_video_playback_speed ??
-                    'Скорость воспроизведения',
+                l10n.media_viewer_video_playback_speed,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.92),
                   fontWeight: FontWeight.w700,
@@ -1292,7 +1274,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       context: context,
       backgroundColor: const Color(0xFF1A1A1C),
       builder: (context) {
-        final l10n = AppLocalizations.of(context);
+        final l10n = AppLocalizations.of(context)!;
         const options = <_ViewerVideoQuality>[
           _ViewerVideoQuality.auto,
           _ViewerVideoQuality.p1080,
@@ -1305,7 +1287,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
             children: [
               const SizedBox(height: 8),
               Text(
-                l10n?.media_viewer_video_quality ?? 'Качество',
+                l10n.media_viewer_video_quality,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.92),
                   fontWeight: FontWeight.w700,
@@ -1405,13 +1387,10 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       _showControlsTemporarily(force: true);
     } catch (_) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.media_viewer_error_quality_switch_failed ??
-                'Не удалось переключить качество',
-          ),
+          content: Text(l10n.media_viewer_error_quality_switch_failed),
         ),
       );
     } finally {
@@ -1426,10 +1405,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
     final supported = await _PictureInPictureBridge.isSupported();
     if (!supported) {
       if (!mounted) return;
+      final l10nPip = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('PiP не поддерживается на этом устройстве'),
-        ),
+        SnackBar(content: Text(l10nPip.media_viewer_pip_not_supported)),
       );
       return;
     }
@@ -1456,13 +1434,10 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
           _pipResumeTarget = null;
         }
         if (mounted) {
-          final l10n = AppLocalizations.of(context);
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                l10n?.media_viewer_error_pip_open_failed ??
-                    'Не удалось открыть PiP',
-              ),
+              content: Text(l10n.media_viewer_error_pip_open_failed),
             ),
           );
         }
@@ -1474,15 +1449,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
     }
     final ok = await _PictureInPictureBridge.enter(aspectW: w, aspectH: h);
     if (!ok && mounted) {
-      final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n?.media_viewer_error_pip_open_failed ?? 'Не удалось открыть PiP',
-          ),
-        ),
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.media_viewer_error_pip_open_failed)),
       );
     }
   }
@@ -1544,14 +1513,13 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       mimeType: widget.mimeType,
     );
     if (unsupported) {
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       return _wrapWithEdgeNav(
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              l10n?.media_viewer_video_processing ??
-                  'Видео обрабатывается на сервере и скоро станет доступно.',
+              l10n.media_viewer_video_processing,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
@@ -1560,14 +1528,13 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       );
     }
     if (_failed) {
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       return _wrapWithEdgeNav(
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              l10n?.media_viewer_video_playback_failed ??
-                  'Не удалось воспроизвести видео.',
+              l10n.media_viewer_video_playback_failed,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.88),

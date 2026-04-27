@@ -34,6 +34,7 @@ export { onconversationdeleted } from './triggers/firestore/onConversationDelete
 export { onconversationupdated } from './triggers/firestore/onConversationUpdated';
 export { onmessagecreated } from './triggers/firestore/onMessageCreated';
 export { onthreadmessagecreated } from './triggers/firestore/onThreadMessageCreated';
+export { onchatmessagedeleted, onchatthreadmessagedeleted } from './triggers/firestore/onChatMessageDeleted';
 export {
   onchatmessagemediatranscode,
   onchatthreadmessagemediatranscode,

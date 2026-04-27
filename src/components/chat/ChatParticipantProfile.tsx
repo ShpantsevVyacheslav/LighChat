@@ -51,6 +51,8 @@ import { ConversationNotificationsPanel } from '@/components/chat/conversation-p
 import { ConversationThemePanel } from '@/components/chat/conversation-pages/ConversationThemePanel';
 import { ConversationPrivacyPanel } from '@/components/chat/conversation-pages/ConversationPrivacyPanel';
 import { ConversationEncryptionPanel } from '@/components/chat/conversation-pages/ConversationEncryptionPanel';
+import { ConversationDisappearingMessagesPanel } from '@/components/chat/conversation-pages/ConversationDisappearingMessagesPanel';
+import { formatDisappearingTtlSummary } from '@/lib/disappearing-messages-presets';
 import { LeaveGroupPanel } from '@/components/chat/conversation-pages/LeaveGroupPanel';
 import { normalizeBlockedUserIds } from '@/lib/user-block-utils';
 import {
@@ -72,6 +74,7 @@ export type ChatProfileSubMenu =
   | 'theme'
   | 'privacy'
   | 'encryption'
+  | 'disappearing'
   | 'leave';
 
 export type ChatProfileSource = 'contacts' | 'mention' | 'sender' | 'chat';
@@ -84,6 +87,7 @@ const PROFILE_SUBMENU_TITLES: Record<ChatProfileSubMenu, string> = {
   theme: 'Тема этого чата',
   privacy: 'Приватность этого чата',
   encryption: 'Шифрование',
+  disappearing: 'Исчезающие сообщения',
   leave: 'Покинуть группу',
 };
 
@@ -679,6 +683,8 @@ export function ChatParticipantProfile({
     conversationPrefs?.suppressReadReceipts === true ? 'Свои настройки' : 'По умолчанию';
 
   const showEncryptionMenuRow = !isGroup && !isSelfSavedChat;
+  /** Личный чат или основной профиль группы (не карточка участника). */
+  const showDisappearingMessagesRow = !isSelfSavedChat && (!isGroup || (isGroup && !showMemberFocus));
   const e2eeSummaryOn = !!(conversation.e2eeEnabled && (conversation.e2eeKeyEpoch ?? 0) > 0);
   const encryptionSummaryLabel = e2eeSummaryOn ? 'Вкл' : 'Выкл';
   const encryptionRowDescription = e2eeSummaryOn
@@ -802,6 +808,13 @@ export function ChatParticipantProfile({
                 ) : null}
                 {profileSubMenu === 'encryption' ? (
                   <ConversationEncryptionPanel conversation={conversation} currentUserId={currentUser.id} />
+                ) : null}
+                {profileSubMenu === 'disappearing' ? (
+                  <ConversationDisappearingMessagesPanel
+                    conversation={conversation}
+                    currentUserId={currentUser.id}
+                    canEdit={!isGroup || isAdmin}
+                  />
                 ) : null}
                 {profileSubMenu === 'leave' && isGroup && !showMemberFocus ? (
                   <LeaveGroupPanel
@@ -1197,14 +1210,18 @@ export function ChatParticipantProfile({
                 />
               </WaMenuSection>
               <WaMenuSection className="mt-0.5">
-                <WaMenuRow
-                  icon={<History />}
-                  title="Исчезающие сообщения"
-                  right={<span className="text-xs text-muted-foreground">Выкл</span>}
-                  onClick={() =>
-                    toast({ title: 'Скоро', description: 'Таймер удаления сообщений появится позже.' })
-                  }
-                />
+                {showDisappearingMessagesRow ? (
+                  <WaMenuRow
+                    icon={<History />}
+                    title="Исчезающие сообщения"
+                    right={
+                      <span className="text-xs text-muted-foreground">
+                        {formatDisappearingTtlSummary(conversation.disappearingMessageTtlSec)}
+                      </span>
+                    }
+                    onClick={() => setProfileSubMenu('disappearing')}
+                  />
+                ) : null}
                 <WaMenuRow
                   icon={<Shield />}
                   title="Расширенная приватность чата"

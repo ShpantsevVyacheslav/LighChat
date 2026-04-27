@@ -19,6 +19,7 @@ import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 
 function normalizeAppTheme(theme: string | undefined, resolved: string | undefined): AppThemePreference {
   const t = theme ?? resolved;
@@ -66,6 +67,7 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
   const { isMobile, setOpenMobile } = useSidebar();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const handleNav = React.useCallback(() => {
     onNavigate();
@@ -85,21 +87,24 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
       setTheme(prev);
       toast({
         variant: 'destructive',
-        title: 'Не удалось сохранить тему',
+        title: t('accountMenu.themeSaveErrorTitle'),
         description: result.message,
       });
     }
   };
 
-  const themeChoices: { value: AppThemePreference; label: string }[] = [
-    { value: 'light', label: 'Светлая' },
-    { value: 'dark', label: 'Тёмная' },
-    /** Режим `chat` в данных: палитра от фона чата — в меню кратко «Авто». */
-    { value: 'chat', label: 'Авто' },
-  ];
+  const themeChoices: { value: AppThemePreference; label: string }[] = React.useMemo(
+    () => [
+      { value: 'light' as const, label: t('accountMenu.themeLight') },
+      { value: 'dark' as const, label: t('accountMenu.themeDark') },
+      /** Режим `chat` в данных: палитра от фона чата — в меню кратко «Авто». */
+      { value: 'chat' as const, label: t('accountMenu.themeAuto') },
+    ],
+    [t]
+  );
 
   const currentThemeLabel =
-    themeChoices.find((c) => c.value === currentTheme)?.label ?? 'Тёмная';
+    themeChoices.find((c) => c.value === currentTheme)?.label ?? t('accountMenu.themeDark');
 
   const cycleTheme = () => {
     const i = THEME_CYCLE.indexOf(currentTheme);
@@ -121,29 +126,39 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
       </div>
       <div className="h-px bg-border/50 mx-2 my-1" />
       <nav className="flex flex-col gap-0.5">
-        <ProfileMenuItem icon={UserCircle} label="Профиль" href="/dashboard/profile" onClick={handleNav} />
-        <ProfileMenuItem icon={MessageSquare} label="Настройки чатов" href="/dashboard/settings/chats" onClick={handleNav} />
+        <ProfileMenuItem icon={UserCircle} label={t('accountMenu.profile')} href="/dashboard/profile" onClick={handleNav} />
+        <ProfileMenuItem
+          icon={MessageSquare}
+          label={t('accountMenu.chatSettings')}
+          href="/dashboard/settings/chats"
+          onClick={handleNav}
+        />
         {role === 'admin' && (
           <ProfileMenuItem
             icon={ShieldCheck}
-            label="Администрирование"
+            label={t('accountMenu.admin')}
             href="/dashboard/admin"
             onClick={handleNav}
           />
         )}
-        <ProfileMenuItem icon={BellRing} label="Уведомления" href="/dashboard/settings/notifications" onClick={handleNav} />
-        <ProfileMenuItem icon={Shield} label="Конфиденциальность" href="/dashboard/settings/privacy" onClick={handleNav} />
+        <ProfileMenuItem
+          icon={BellRing}
+          label={t('accountMenu.notifications')}
+          href="/dashboard/settings/notifications"
+          onClick={handleNav}
+        />
+        <ProfileMenuItem icon={Shield} label={t('accountMenu.privacy')} href="/dashboard/settings/privacy" onClick={handleNav} />
       </nav>
       <div className="h-px bg-border/50 mx-2 my-1" />
       <button
         type="button"
         onClick={cycleTheme}
         className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-foreground/5 transition-colors text-left group"
-        aria-label={`Тема: ${currentThemeLabel}. Нажмите, чтобы переключить`}
+        aria-label={t('accountMenu.themeAria', { label: currentThemeLabel })}
       >
         <Palette className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
         <span className="flex-1 min-w-0">
-          <span className="font-medium">Тема</span>
+          <span className="font-medium">{t('accountMenu.theme')}</span>
           <span className="text-muted-foreground"> · {currentThemeLabel}</span>
         </span>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" aria-hidden />
@@ -158,7 +173,7 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-destructive hover:bg-destructive/5 transition-colors"
       >
         <LogOut className="h-4 w-4" />
-        <span>Выйти</span>
+        <span>{t('accountMenu.signOut')}</span>
       </button>
     </>
   );

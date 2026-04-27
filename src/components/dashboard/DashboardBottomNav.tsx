@@ -15,6 +15,22 @@ import { bottomNavIosTileClasses } from '@/lib/bottom-nav-ios-tiles';
 import { resolveBottomNavLucideIconName } from '@/lib/bottom-nav-icons';
 import { LucideBottomNavIcon } from '@/components/dashboard/LucideBottomNavIcon';
 import { mergeBottomNavIconVisualStyles } from '@/lib/bottom-nav-icon-style-merge';
+import { useI18n } from '@/hooks/use-i18n';
+
+function navTooltipForHref(href: string, t: (path: string) => string): string {
+  switch (href) {
+    case '/dashboard/chat':
+      return t('nav.chats');
+    case '/dashboard/contacts':
+      return t('nav.contacts');
+    case '/dashboard/meetings':
+      return t('nav.meetings');
+    case '/dashboard/calls':
+      return t('nav.calls');
+    default:
+      return href;
+  }
+}
 
 export type DashboardBottomNavVariant = 'fullWidth' | 'chatSidebar';
 
@@ -33,6 +49,7 @@ export function DashboardBottomNav({
   const { user } = useAuth();
   const { chatSettings } = useSettings();
   const pathname = usePathname();
+  const { t } = useI18n();
   const totalUnreadCount = useTotalUnreadCount(user?.id);
 
   const role = user?.role;
@@ -48,7 +65,7 @@ export function DashboardBottomNav({
           'border-t border-white/25 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-3xl backdrop-saturate-150 dark:border-white/10',
           'bg-white/45 shadow-none dark:bg-zinc-950/45'
         )}
-        aria-label="Профиль"
+        aria-label={t('dashboard.navAriaProfileCollapsed')}
       >
         <div className="flex w-full items-center justify-center px-2 py-1">
           <DashboardAccountNavButton popoverAlign="center" className="h-10 w-10" navAppearance={appearance} />
@@ -66,7 +83,7 @@ export function DashboardBottomNav({
         variant === 'chatSidebar' &&
           'border-black/10 bg-white/42 shadow-none dark:border-white/10 dark:bg-zinc-950/45'
       )}
-      aria-label="Разделы приложения"
+      aria-label={t('dashboard.navAriaSections')}
     >
       <div
         className={cn(
@@ -164,7 +181,7 @@ export function DashboardBottomNav({
                   </span>
                 </Link>
               </TooltipTrigger>
-              <TooltipContent side="top">{link.label}</TooltipContent>
+              <TooltipContent side="top">{navTooltipForHref(link.href, t)}</TooltipContent>
             </Tooltip>
           );
         })}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
@@ -31,8 +31,10 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { isRegistrationProfileComplete } from "@/lib/registration-profile-complete";
 import {
-  emailPasswordRegistrationSchema,
-  googleProfileFormSchema,
+  createEmailPasswordRegistrationSchema,
+  createGoogleProfileFormSchema,
+  type EmailPasswordRegistrationValues,
+  type GoogleProfileFormValues,
 } from "@/lib/register-profile-schema";
 import {
   AuthBrandWordmarkBlock,
@@ -51,6 +53,8 @@ import {
 import { TelegramLoginDialog } from "@/components/auth/telegram-login-dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/hooks/use-i18n";
+import { PublicLanguageMenu } from "@/components/i18n/public-language-menu";
 import { Eye, EyeOff, Loader2, AlertCircle, UserPlus } from "lucide-react";
 
 /** Фирменный знак: `public/brand/lighchat-mark.png` (квадратный PNG с альфой; см. `scripts/transparent-lighchat-mark.mjs`). */
@@ -62,11 +66,6 @@ const TELEGRAM_BOT_NAME =
   typeof process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME === "string"
     ? process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME.trim()
     : "";
-
-const loginSchema = z.object({
-  email: z.string().email({ message: "Неверный формат email." }),
-  password: z.string().min(1, { message: "Пароль не может быть пустым." }),
-});
 
 function AppleIcon({ className }: { className?: string }) {
   return (
@@ -95,9 +94,115 @@ function TelegramIcon({ className }: { className?: string }) {
   );
 }
 
-function YandexIcon({ className }: { className?: string }) {
+type LoginValues = { email: string; password: string };
+
+function HomeLoginEmailPasswordForm({
+  profileIncomplete,
+  registerOpen,
+  error,
+  isSubmitting,
+  onValidSubmit,
+}: {
+  profileIncomplete: boolean;
+  registerOpen: boolean;
+  error: string | null | undefined;
+  isSubmitting: boolean;
+  onValidSubmit: (values: LoginValues) => void | Promise<void>;
+}) {
+  const { t } = useI18n();
+  const [showPassword, setShowPassword] = React.useState(false);
+  const loginSchema = React.useMemo(
+    () =>
+      z.object({
+        email: z.string().email({ message: t("auth.loginEmailInvalid") }),
+        password: z.string().min(1, { message: t("auth.loginPasswordRequired") }),
+      }),
+    [t],
+  );
+  const loginForm = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
   return (
-    <svg className={className} viewBox="0 0 24 24" role="img" aria-label="Yandex">
+    <Form {...loginForm}>
+      <form
+        onSubmit={loginForm.handleSubmit(onValidSubmit)}
+        className={cn("space-y-3", profileIncomplete && "hidden")}
+      >
+        <FormField
+          control={loginForm.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem className="space-y-1">
+              <FormLabel className={AUTH_LABEL_CLASS}>Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="you@example.com" {...field} className={AUTH_GLASS_INPUT_CLASS} />
+              </FormControl>
+              <FormMessage className="text-[10px]" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={loginForm.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem className="space-y-1">
+              <FormLabel className={AUTH_LABEL_CLASS}>{t("auth.loginPasswordLabel")}</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    {...field}
+                    className={`${AUTH_GLASS_INPUT_CLASS} pr-10`}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0.5 top-1/2 h-9 w-9 -translate-y-1/2 text-slate-500 hover:bg-white/30 hover:text-slate-800 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </FormControl>
+              <FormMessage className="text-[10px]" />
+            </FormItem>
+          )}
+        />
+
+        {error && !registerOpen && (
+          <div className="flex items-center gap-2 rounded-[14px] border border-destructive/20 bg-destructive/10 p-2.5 text-[11px] font-medium text-destructive backdrop-blur-sm dark:bg-destructive/15 animate-in slide-in-from-top-1">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          variant="default"
+          disabled={isSubmitting}
+          className="h-11 w-full rounded-[14px] font-semibold shadow-md shadow-primary/25 transition-all active:scale-[0.99]"
+        >
+          {isSubmitting && !registerOpen ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("auth.loginSubmitting")}
+            </>
+          ) : (
+            t("auth.loginSubmit")
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+function YandexIcon({ className, title }: { className?: string; title: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" role="img" aria-label={title}>
       <circle cx="12" cy="12" r="12" fill="#FC3F1D" />
       <text
         x="12"
@@ -131,6 +236,7 @@ export default function AuthPage() {
   } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { t, locale } = useI18n();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -142,17 +248,17 @@ export default function AuthPage() {
     window.history.replaceState({}, "", `${u.pathname}${u.search}${u.hash}`);
     toast({
       variant: "destructive",
-      title: "Не удалось войти через Яндекс",
+      title: t("auth.yandexLoginFailedTitle"),
       description:
         yandexErr === "bad_state"
-          ? "Сессия устарела. Попробуйте войти снова."
+          ? t("auth.yandexErrorBadState")
           : yandexErr === "not_configured"
-            ? "Сервер не настроен (YANDEX_CLIENT_ID / YANDEX_CLIENT_SECRET)."
+            ? t("auth.yandexErrorNotConfigured")
             : yandexErr === "access_denied"
-              ? "Вход отменён в окне Яндекса."
-              : `Код: ${yandexErr}`,
+              ? t("auth.yandexErrorAccessDenied")
+              : t("auth.yandexErrorCode", { code: yandexErr }),
     });
-  }, [toast]);
+  }, [toast, t]);
 
   React.useEffect(() => {
     if (!isLoading && isAuthenticated && user && isRegistrationProfileComplete(user)) {
@@ -160,7 +266,6 @@ export default function AuthPage() {
     }
   }, [isLoading, isAuthenticated, user, router]);
 
-  const [showPassword, setShowPassword] = React.useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
   const [registerOpen, setRegisterOpen] = React.useState(false);
   const [registerMode, setRegisterMode] = React.useState<"email" | "google">("email");
@@ -175,13 +280,48 @@ export default function AuthPage() {
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
   const pendingAvatarFullRef = React.useRef<File | null>(null);
 
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
-  });
+  const registerValidationMessages = React.useMemo(
+    () => ({
+      usernameMin: t("auth.registerValidation.usernameMin"),
+      usernameMax: t("auth.registerValidation.usernameMax"),
+      usernameRegex: t("auth.registerValidation.usernameRegex"),
+      usernameRefine: t("auth.registerValidation.usernameRefine"),
+      phoneFull: t("auth.registerValidation.phoneFull"),
+      dateOfBirthInvalid: t("auth.registerValidation.dateOfBirthInvalid"),
+      nameMin: t("auth.registerValidation.nameMin"),
+      emailInvalid: t("auth.registerValidation.emailInvalid"),
+      bioMax: t("auth.registerValidation.bioMax"),
+      passwordMin: t("auth.registerValidation.passwordMin"),
+      passwordsMismatch: t("auth.registerValidation.passwordsMismatch"),
+    }),
+    [t],
+  );
 
-  const emailRegisterForm = useForm<z.infer<typeof emailPasswordRegistrationSchema>>({
-    resolver: zodResolver(emailPasswordRegistrationSchema),
+  const emailPasswordRegistrationSchemaResolved = React.useMemo(
+    () => createEmailPasswordRegistrationSchema(registerValidationMessages),
+    [registerValidationMessages],
+  );
+  const googleProfileFormSchemaResolved = React.useMemo(
+    () => createGoogleProfileFormSchema(registerValidationMessages),
+    [registerValidationMessages],
+  );
+
+  const emailSchemaRef = React.useRef(emailPasswordRegistrationSchemaResolved);
+  emailSchemaRef.current = emailPasswordRegistrationSchemaResolved;
+  const googleSchemaRef = React.useRef(googleProfileFormSchemaResolved);
+  googleSchemaRef.current = googleProfileFormSchemaResolved;
+
+  const emailRegisterResolver = React.useCallback<Resolver<EmailPasswordRegistrationValues>>(
+    (values, context, options) => zodResolver(emailSchemaRef.current)(values, context, options),
+    [],
+  );
+  const googleRegisterResolver = React.useCallback<Resolver<GoogleProfileFormValues>>(
+    (values, context, options) => zodResolver(googleSchemaRef.current)(values, context, options),
+    [],
+  );
+
+  const emailRegisterForm = useForm<EmailPasswordRegistrationValues>({
+    resolver: emailRegisterResolver,
     defaultValues: {
       name: "",
       username: "",
@@ -194,8 +334,8 @@ export default function AuthPage() {
     },
   });
 
-  const googleRegisterForm = useForm<z.infer<typeof googleProfileFormSchema>>({
-    resolver: zodResolver(googleProfileFormSchema),
+  const googleRegisterForm = useForm<GoogleProfileFormValues>({
+    resolver: googleRegisterResolver,
     defaultValues: {
       name: "",
       username: "",
@@ -235,7 +375,7 @@ export default function AuthPage() {
     });
   }, [registerOpen, registerMode, user, googleRegisterForm]);
 
-  const onLogin = async (values: z.infer<typeof loginSchema>) => {
+  const onLogin = async (values: LoginValues) => {
     setIsSubmitting(true);
     const success = await login(values.email, values.password);
     if (success) {
@@ -245,7 +385,7 @@ export default function AuthPage() {
     }
   };
 
-  const onRegister = async (values: z.infer<typeof emailPasswordRegistrationSchema>) => {
+  const onRegister = async (values: EmailPasswordRegistrationValues) => {
     setIsSubmitting(true);
     emailRegisterForm.clearErrors();
     const result = await register({
@@ -272,7 +412,7 @@ export default function AuthPage() {
     }
   };
 
-  const onGoogleProfileComplete = async (values: z.infer<typeof googleProfileFormSchema>) => {
+  const onGoogleProfileComplete = async (values: GoogleProfileFormValues) => {
     setIsSubmitting(true);
     googleRegisterForm.clearErrors();
     const result = await completeGoogleProfile({
@@ -392,6 +532,7 @@ export default function AuthPage() {
 
   return (
     <div className="relative min-h-dvh w-full overflow-x-hidden overflow-y-auto">
+      <PublicLanguageMenu className="fixed top-[max(0.5rem,env(safe-area-inset-top))] right-3 z-[100]" />
       {/* Фиксированный яркий фон под стеклянный слой (iOS-like vibrancy) */}
       <div aria-hidden className="fixed inset-0 z-0 bg-slate-100 dark:bg-[#070b14]" />
       <div
@@ -430,81 +571,17 @@ export default function AuthPage() {
           <CardContent className="relative p-4 pt-5 sm:p-5 sm:pt-6">
             {profileIncomplete ? (
               <p className="rounded-[14px] border border-white/35 bg-white/25 px-3 py-3 text-center text-sm leading-snug text-slate-700 backdrop-blur-md dark:border-white/12 dark:bg-white/[0.06] dark:text-white/85">
-                Вы вошли через Google, Apple или Telegram. Заполните оставшиеся поля в открывшейся форме — без них доступ к приложению недоступен.
+                {t('auth.landingProfileIncomplete')}
               </p>
             ) : null}
-            <Form {...loginForm}>
-              <form
-                onSubmit={loginForm.handleSubmit(onLogin)}
-                className={cn("space-y-3", profileIncomplete && "hidden")}
-              >
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="you@example.com" {...field} className={AUTH_GLASS_INPUT_CLASS} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className={AUTH_LABEL_CLASS}>Пароль</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            {...field}
-                            className={`${AUTH_GLASS_INPUT_CLASS} pr-10`}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0.5 top-1/2 h-9 w-9 -translate-y-1/2 text-slate-500 hover:bg-white/30 hover:text-slate-800 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-
-                {error && !registerOpen && (
-                  <div className="flex items-center gap-2 rounded-[14px] border border-destructive/20 bg-destructive/10 p-2.5 text-[11px] font-medium text-destructive backdrop-blur-sm dark:bg-destructive/15 animate-in slide-in-from-top-1">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    {error}
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  variant="default"
-                  disabled={isSubmitting}
-                  className="h-11 w-full rounded-[14px] font-semibold shadow-md shadow-primary/25 transition-all active:scale-[0.99]"
-                >
-                  {isSubmitting && !registerOpen ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Вход...
-                    </>
-                  ) : (
-                    "Войти"
-                  )}
-                </Button>
-              </form>
-            </Form>
+            <HomeLoginEmailPasswordForm
+              key={locale}
+              profileIncomplete={profileIncomplete}
+              registerOpen={registerOpen}
+              error={error}
+              isSubmitting={isSubmitting}
+              onValidSubmit={onLogin}
+            />
 
             <p
               className={cn(
@@ -512,7 +589,7 @@ export default function AuthPage() {
                 profileIncomplete && "hidden",
               )}
             >
-              или
+              {t("auth.dividerOr")}
             </p>
 
             <div className={cn("grid grid-cols-4 gap-1.5 sm:gap-2", profileIncomplete && "hidden")}>
@@ -545,11 +622,7 @@ export default function AuthPage() {
                   profileIncomplete ||
                   TELEGRAM_BOT_NAME.length === 0
                 }
-                title={
-                  TELEGRAM_BOT_NAME
-                    ? "Telegram"
-                    : "Задайте NEXT_PUBLIC_TELEGRAM_BOT_NAME"
-                }
+                title={TELEGRAM_BOT_NAME ? "Telegram" : t("auth.telegramBotMissing")}
                 className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
               >
                 <TelegramIcon className="h-[18px] w-[18px]" />
@@ -560,9 +633,9 @@ export default function AuthPage() {
                 onClick={() => void signInWithYandex()}
                 disabled={isSubmitting || profileIncomplete}
                 className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
-                title="Яндекс"
+                title={t("auth.yandexTitle")}
               >
-                <YandexIcon className="h-[18px] w-[18px]" />
+                <YandexIcon className="h-[18px] w-[18px]" title={t("auth.yandexTitle")} />
               </Button>
             </div>
 
@@ -575,7 +648,7 @@ export default function AuthPage() {
                   className="h-10 w-full gap-2 rounded-[12px] font-semibold text-primary hover:bg-primary/10 dark:text-sky-300 dark:hover:bg-white/10 dark:hover:text-sky-200"
                 >
                   <UserPlus className="h-4 w-4" />
-                  Создать аккаунт
+                  {t("auth.registerCta")}
                 </Button>
               </div>
             ) : null}
@@ -628,20 +701,19 @@ export default function AuthPage() {
           <DialogHeader className="relative z-10 shrink-0 space-y-2 px-5 pb-2 pt-5 text-center sm:text-center">
             <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white">
               {registerMode === "google"
-                ? "Завершите регистрацию"
-                : "Создать аккаунт"}
+                ? t("auth.registerDialogCompleteTitle")
+                : t("auth.registerDialogCreateTitle")}
             </DialogTitle>
             <DialogDescription className="text-center text-xs leading-relaxed text-slate-600 dark:text-white/55">
               {registerMode === "google" ? (
                 <>
-                  Укажите телефон и логин и при необходимости поправьте имя. Пароль не нужен — вход через Google, Apple или Telegram.
-                  {" "}
+                  {t("auth.registerDialogGoogleBody")}{" "}
                   <AuthBrandWordmarkTitle as="span" size="inline" className="inline font-bold" />
                 </>
               ) : (
                 <>
                   <span className="text-slate-500 dark:text-white/45">
-                    Заполните данные для регистрации в{" "}
+                    {t("auth.registerDialogEmailIntro")}{" "}
                   </span>
                   <AuthBrandWordmarkTitle as="span" size="inline" className="inline font-bold" />
                 </>
@@ -688,12 +760,12 @@ export default function AuthPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {registerMode === "google" ? "Сохранение..." : "Создание..."}
+                  {registerMode === "google" ? t("auth.registerSaving") : t("auth.registerCreating")}
                 </>
               ) : registerMode === "google" ? (
-                "Сохранить и продолжить"
+                t("auth.registerSaveContinue")
               ) : (
-                "Создать аккаунт"
+                t("auth.registerSubmitCreate")
               )}
             </Button>
           </div>

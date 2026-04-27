@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import {
   getOrCreateDeviceIdentityV2,
   listAllE2eeDevicesV2,
@@ -63,17 +64,21 @@ async function shortFingerprint(publicKeySpkiB64: string): Promise<string | null
   }
 }
 
-function formatDate(iso?: string): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString();
-}
-
 export function DevicesPanel() {
   const firestore = useFirestore();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  const { t, locale } = useI18n();
+
+  const formatDate = React.useCallback(
+    (iso?: string) => {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU');
+    },
+    [locale]
+  );
 
   const [identity, setIdentity] = React.useState<DeviceIdentityV2 | null>(null);
   const [devices, setDevices] = React.useState<DeviceRow[] | null>(null);
@@ -145,7 +150,7 @@ export function DevicesPanel() {
     } catch (e) {
       toast({
         variant: 'destructive',
-        title: 'Не удалось переименовать',
+        title: t('devices.toastRenameError'),
         description: e instanceof Error ? e.message : String(e),
       });
     }
@@ -166,8 +171,13 @@ export function DevicesPanel() {
         },
       });
       toast({
-        title: 'Устройство отозвано',
-        description: `Обновлено чатов: ${result.rekeyed}${result.failed ? `, ошибок: ${result.failed}` : ''}`,
+        title: t('devices.toastRevokedTitle'),
+        description: t('devices.toastRevokedDesc', {
+          rekeyed: String(result.rekeyed),
+          failedSuffix: result.failed
+            ? t('devices.toastRevokedFailedSuffix', { failed: String(result.failed) })
+            : '',
+        }),
       });
       setRevokeTarget(null);
       setRevokeProgress(null);
@@ -175,7 +185,7 @@ export function DevicesPanel() {
     } catch (e) {
       toast({
         variant: 'destructive',
-        title: 'Ошибка revoke',
+        title: t('devices.toastRevokeError'),
         description: e instanceof Error ? e.message : String(e),
       });
     } finally {
@@ -192,13 +202,9 @@ export function DevicesPanel() {
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Fingerprint className="h-4 w-4 text-muted-foreground" />
-          Мои устройства (E2EE)
+          {t('devices.panelTitle')}
         </CardTitle>
-        <CardDescription>
-          Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв устройства
-          автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — после этого отозванное
-          устройство больше не сможет читать новые сообщения.
-        </CardDescription>
+        <CardDescription>{t('devices.panelDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {loadError && (
@@ -206,7 +212,7 @@ export function DevicesPanel() {
         )}
         {devices === null && !loadError && <Skeleton className="h-20 w-full" />}
         {devices && devices.length === 0 && (
-          <div className="text-sm text-muted-foreground">Устройств пока нет.</div>
+          <div className="text-sm text-muted-foreground">{t('devices.empty')}</div>
         )}
         {devices?.map((d) => {
           const isCurrent = identity?.deviceId === d.deviceId;
@@ -224,17 +230,20 @@ export function DevicesPanel() {
                   </Badge>
                   {isCurrent && !isRevoked && (
                     <Badge className="text-[10px]" variant="default">
-                      Это устройство
+                      {t('devices.badgeCurrent')}
                     </Badge>
                   )}
                   {isRevoked && (
                     <Badge variant="destructive" className="text-[10px]">
-                      Отозвано
+                      {t('devices.badgeRevoked')}
                     </Badge>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Создано: {formatDate(d.createdAt)} • Активность: {formatDate(d.lastSeenAt)}
+                  {t('devices.createdActivity', {
+                    created: formatDate(d.createdAt),
+                    activity: formatDate(d.lastSeenAt),
+                  })}
                 </div>
                 {d.fingerprintShort && (
                   <div className="text-[11px] font-mono text-muted-foreground mt-1 break-all">
@@ -243,7 +252,7 @@ export function DevicesPanel() {
                 )}
                 {isRevoked && d.revokedAt && (
                   <div className="text-xs text-destructive mt-1">
-                    Отозвано: {formatDate(d.revokedAt)}
+                    {t('devices.revokedAt', { date: formatDate(d.revokedAt) })}
                   </div>
                 )}
               </div>
@@ -257,7 +266,7 @@ export function DevicesPanel() {
                   }}
                   disabled={isRevoked}
                 >
-                  <Pencil className="h-3.5 w-3.5 mr-1" /> Rename
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> {t('devices.rename')}
                 </Button>
                 <Button
                   size="sm"
@@ -270,7 +279,7 @@ export function DevicesPanel() {
                   ) : (
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                   )}
-                  Revoke
+                  {t('devices.revoke')}
                 </Button>
               </div>
             </div>
@@ -290,21 +299,19 @@ export function DevicesPanel() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Переименовать устройство</AlertDialogTitle>
-            <AlertDialogDescription>
-              Имя видите только вы. Используйте его чтобы отличать устройства в списке.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('devices.renameDialogTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('devices.renameDialogDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
           <Input
             value={renameDraft}
             onChange={(e) => setRenameDraft(e.target.value)}
-            placeholder="Например, iPhone 15 — Safari"
+            placeholder={t('devices.renamePlaceholder')}
             maxLength={120}
           />
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleRenameConfirm} disabled={!renameDraft.trim()}>
-              Сохранить
+              {t('common.save')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -322,11 +329,11 @@ export function DevicesPanel() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Отозвать устройство?</AlertDialogTitle>
+            <AlertDialogTitle>{t('devices.revokeDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {identity?.deviceId === revokeTarget?.deviceId
-                ? 'Вы собираетесь отозвать текущее устройство. После этого вы не сможете читать новые сообщения в зашифрованных чатах с этого клиента — придётся заново опубликовать ключ.'
-                : 'Устройство больше не сможет читать новые сообщения в зашифрованных чатах. Старые сообщения останутся доступны на нём (приватный ключ остаётся локально).'}
+                ? t('devices.revokeDialogBodyCurrent')
+                : t('devices.revokeDialogBodyOther')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {revokeProgress && (
@@ -334,19 +341,24 @@ export function DevicesPanel() {
               {revoking && (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Обновление чатов…
+                  {t('devices.revokeProgress')}
                 </div>
               )}
               <div>
-                Обработано: {revokeProgress.done}
-                {revokeProgress.total > 0 ? ` из ${revokeProgress.total}` : ''}
+                {t('devices.revokeProcessed', {
+                  done: String(revokeProgress.done),
+                  ofTotal:
+                    revokeProgress.total > 0
+                      ? t('devices.revokeOfTotal', { total: String(revokeProgress.total) })
+                      : '',
+                })}
               </div>
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={revoking}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel disabled={revoking}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleRevokeConfirm} disabled={revoking}>
-              {revoking ? 'Отзыв…' : 'Отозвать'}
+              {revoking ? t('devices.revoking') : t('devices.revokeAction')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

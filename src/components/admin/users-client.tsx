@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { User, UserRole } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
-import { ROLES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,7 +43,6 @@ import { useAuth as useFirebaseAuth, useFirestore, useCollection, useMemoFirebas
 import { collection, deleteField, doc, query, updateDoc } from "firebase/firestore";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
-import { ru } from "date-fns/locale";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { UserBlockDialog } from "@/components/admin/user-block-dialog";
@@ -52,6 +50,8 @@ import { AdminResetPasswordDialog } from "@/components/admin/admin-reset-passwor
 import { isAccountBlocked } from "@/lib/account-block-utils";
 import { useToast } from "@/hooks/use-toast";
 import { ruEnSubstringMatch } from "@/lib/ru-latin-search-normalize";
+import { useI18n } from "@/hooks/use-i18n";
+import { useDateFnsLocale } from "@/hooks/use-date-fns-locale";
 
 interface UsersClientProps {
   /** Скрыть верхний заголовок страницы (вкладка админки). */
@@ -63,6 +63,8 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
   const firebaseAuth = useFirebaseAuth();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const [searchTerm, setSearchTerm] = useState("");
   const [blockTarget, setBlockTarget] = useState<User | null>(null);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
@@ -93,27 +95,27 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
       await updateDoc(doc(firestore, "users", user.id), {
         accountBlock: deleteField(),
       });
-      toast({ title: "Блокировка снята" });
+      toast({ title: t("admin.usersList.toastUnblockedTitle") });
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "Не удалось разблокировать" });
+      toast({ variant: "destructive", title: t("admin.usersList.toastUnblockErrorTitle") });
     }
   };
 
   const handleSetRole = async (user: User, role: UserRole) => {
     if (!firestore) return;
     if (user.role === "admin" && role === "worker" && adminCount <= 1) {
-      toast({ variant: "destructive", title: "Нельзя снять последнего администратора" });
+      toast({ variant: "destructive", title: t("admin.usersList.toastLastAdminErrorTitle") });
       return;
     }
     try {
       await updateDoc(doc(firestore, "users", user.id), { role });
       toast({
-        title: role === "admin" ? "Назначен администратором" : "Роль изменена на участника",
+        title: role === "admin" ? t("admin.usersList.toastRoleAdminTitle") : t("admin.usersList.toastRoleWorkerTitle"),
       });
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "Не удалось обновить роль" });
+      toast({ variant: "destructive", title: t("admin.usersList.toastRoleErrorTitle") });
     }
   };
 
@@ -151,8 +153,8 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
             bVal = b.name.toLowerCase();
             break;
           case 'role':
-            aVal = (a.role ? ROLES[a.role] : '').toLowerCase();
-            bVal = (b.role ? ROLES[b.role] : '').toLowerCase();
+            aVal = (a.role ? (a.role === "admin" ? t("admin.roles.admin") : t("admin.roles.worker")) : "").toLowerCase();
+            bVal = (b.role ? (b.role === "admin" ? t("admin.roles.admin") : t("admin.roles.worker")) : "").toLowerCase();
             break;
           case 'createdAt':
             aVal = toTime(a.createdAt);
@@ -169,7 +171,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
       });
     }
     return sortableItems;
-  }, [filteredUsers, sortConfig]);
+  }, [filteredUsers, sortConfig, t]);
 
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
@@ -192,7 +194,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
   const PaginationControls = () => (
     <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
         <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">На странице:</span>
+            <span className="text-sm text-muted-foreground">{t("admin.usersList.perPage")}</span>
             <Select value={String(pageSize)} onValueChange={(value) => { setPageSize(Number(value)); setCurrentPage(1); }}>
                 <SelectTrigger className="w-[80px] rounded-full h-9">
                     <SelectValue placeholder={String(pageSize)} />
@@ -206,29 +208,37 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
         </div>
         <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">
-                Страница {currentPage} из {totalPages}
+                {t("admin.usersList.pageOf", { current: currentPage, total: totalPages })}
             </span>
             <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isUsersLoading} className="rounded-full">
-                    Назад
+                    {t("admin.usersList.back")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || isUsersLoading} className="rounded-full">
-                    Вперед
+                    {t("admin.usersList.forward")}
                 </Button>
             </div>
         </div>
     </div>
   );
 
-  const formatDate = (dateVal: any) => {
-      if (!dateVal) return '—';
+  const formatDate = useCallback(
+    (dateVal: unknown) => {
+      if (!dateVal) return t("admin.usersList.dash");
       try {
-          const date = typeof dateVal.toDate === 'function' ? dateVal.toDate() : (typeof dateVal === 'string' ? parseISO(dateVal) : new Date(dateVal));
-          return format(date, "dd.MM.yyyy", { locale: ru });
-      } catch (e) {
-          return '—';
+        const date =
+          typeof (dateVal as { toDate?: () => Date }).toDate === "function"
+            ? (dateVal as { toDate: () => Date }).toDate()
+            : typeof dateVal === "string"
+              ? parseISO(dateVal)
+              : new Date(dateVal as string | number);
+        return format(date, "dd.MM.yyyy", { locale: dateFnsLocale });
+      } catch {
+        return t("admin.usersList.dash");
       }
-  };
+    },
+    [t, dateFnsLocale],
+  );
 
   return (
     <div className="space-y-6">
@@ -236,22 +246,22 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
         <div className="animate-in fade-in slide-in-from-top-4 duration-700 flex items-center gap-2">
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
-              <UserCog className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Пользователи
+              <UserCog className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> {t("admin.usersList.title")}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Управление учетными записями сотрудников и их ролями.</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">{t("admin.usersList.subtitle")}</p>
           </div>
         </div>
       )}
 
       <div className="flex items-center justify-between gap-4">
         <Input
-          placeholder="Поиск по имени, email или телефону..."
+          placeholder={t("admin.usersList.searchPlaceholder")}
           value={searchTerm}
           tabIndex={-1}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full max-w-lg rounded-full"
         />
-        <Button onClick={() => router.push('/dashboard/users/new')} size="icon" aria-label="Добавить пользователя" className="rounded-full shadow-lg shadow-primary/20">
+        <Button onClick={() => router.push('/dashboard/users/new')} size="icon" aria-label={t("admin.usersList.addUserAria")} className="rounded-full shadow-lg shadow-primary/20">
             <PlusCircle className="h-4 w-4" />
         </Button>
       </div>
@@ -261,22 +271,22 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
             <TableRow>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('name')} className="hover:bg-transparent p-0 font-semibold h-auto">
-                  Пользователь <ArrowUpDown className="ml-2 h-4 w-4" />
+                  {t("admin.usersList.colUser")} <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Телефон</TableHead>
+              <TableHead>{t("admin.usersList.colEmail")}</TableHead>
+              <TableHead>{t("admin.usersList.colPhone")}</TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('role')} className="hover:bg-transparent p-0 font-semibold h-auto">
-                  Роль <ArrowUpDown className="ml-2 h-4 w-4" />
+                  {t("admin.usersList.colRole")} <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('createdAt')} className="hover:bg-transparent p-0 font-semibold h-auto">
-                  Добавлен <ArrowUpDown className="ml-2 h-4 w-4" />
+                  {t("admin.usersList.colAdded")} <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
-              <TableHead><span className="sr-only">Действия</span></TableHead>
+              <TableHead><span className="sr-only">{t("admin.usersList.colActionsSr")}</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -284,7 +294,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                  <p className="mt-2 text-muted-foreground">Загрузка пользователей...</p>
+                  <p className="mt-2 text-muted-foreground">{t("admin.usersList.loading")}</p>
                 </TableCell>
               </TableRow>
             ) : paginatedUsers.length > 0 ? (
@@ -304,11 +314,11 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant="outline" className="rounded-full bg-muted/50">
-                        {user.role ? ROLES[user.role] : "—"}
+                        {user.role ? (user.role === "admin" ? t("admin.roles.admin") : t("admin.roles.worker")) : t("admin.usersList.dash")}
                       </Badge>
                       {isAccountBlocked(user) && (
                         <Badge variant="destructive" className="rounded-full text-xs">
-                          Заблокирован
+                          {t("admin.usersList.blocked")}
                         </Badge>
                       )}
                     </div>
@@ -320,14 +330,14 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0 rounded-full">
-                            <span className="sr-only">Открыть меню</span>
+                            <span className="sr-only">{t("admin.usersList.openMenuSr")}</span>
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl shadow-2xl border-none">
                         <DropdownMenuItem onSelect={() => router.push(`/dashboard/users/${user.id}/edit`)}>
                             <Edit className="mr-2 h-4 w-4" />
-                            Редактировать
+                            {t("admin.usersList.edit")}
                         </DropdownMenuItem>
                         {isAdmin && (
                           <>
@@ -335,7 +345,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                             {isAccountBlocked(user) ? (
                               <DropdownMenuItem onSelect={() => void handleUnblock(user)}>
                                 <ShieldOff className="mr-2 h-4 w-4" />
-                                Разблокировать
+                                {t("admin.usersList.unblock")}
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
@@ -343,17 +353,17 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                                 disabled={currentUser?.id === user.id}
                               >
                                 <Ban className="mr-2 h-4 w-4" />
-                                Заблокировать
+                                {t("admin.usersList.block")}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem onSelect={() => setResetTarget(user)}>
                               <KeyRound className="mr-2 h-4 w-4" />
-                              Сбросить пароль
+                              {t("admin.usersList.resetPassword")}
                             </DropdownMenuItem>
                             {user.role !== "admin" && (
                               <DropdownMenuItem onSelect={() => void handleSetRole(user, "admin")}>
                                 <ShieldCheck className="mr-2 h-4 w-4" />
-                                Сделать администратором
+                                {t("admin.usersList.makeAdmin")}
                               </DropdownMenuItem>
                             )}
                             {user.role === "admin" && (
@@ -365,7 +375,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                                 }
                               >
                                 <ShieldOff className="mr-2 h-4 w-4" />
-                                Снять роль администратора
+                                {t("admin.usersList.removeAdmin")}
                               </DropdownMenuItem>
                             )}
                           </>
@@ -377,7 +387,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                             disabled={currentUser?.id === user.id}
                         >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Удалить
+                            {t("admin.usersList.delete")}
                         </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -387,7 +397,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  Пользователи не найдены.
+                  {t("admin.usersList.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -399,7 +409,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
         {isUsersLoading ? (
             <div className="text-center text-muted-foreground pt-10">
                 <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                <p className="mt-2">Загрузка пользователей...</p>
+                <p className="mt-2">{t("admin.usersList.loading")}</p>
             </div>
         ) : paginatedUsers.length > 0 ? (
           paginatedUsers.map((user) => (
@@ -415,11 +425,11 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                       <CardTitle className="text-base leading-tight truncate">{user.name}</CardTitle>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1">
                         <p className="text-[10px] uppercase font-bold text-primary tracking-wider">
-                          {user.role ? ROLES[user.role] : "—"}
+                          {user.role ? (user.role === "admin" ? t("admin.roles.admin") : t("admin.roles.worker")) : t("admin.usersList.dash")}
                         </p>
                         {isAccountBlocked(user) && (
                           <Badge variant="destructive" className="rounded-full px-1.5 py-0 text-[9px]">
-                            Заблокирован
+                            {t("admin.usersList.blocked")}
                           </Badge>
                         )}
                       </div>
@@ -428,14 +438,14 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0 shrink-0 rounded-full">
-                        <span className="sr-only">Открыть меню</span>
+                        <span className="sr-only">{t("admin.usersList.openMenuSr")}</span>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-xl shadow-2xl border-none">
                       <DropdownMenuItem onSelect={() => router.push(`/dashboard/users/${user.id}/edit`)}>
                         <Edit className="mr-2 h-4 w-4" />
-                        Редактировать
+                        {t("admin.usersList.edit")}
                       </DropdownMenuItem>
                       {isAdmin && (
                         <>
@@ -443,7 +453,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                           {isAccountBlocked(user) ? (
                             <DropdownMenuItem onSelect={() => void handleUnblock(user)}>
                               <ShieldOff className="mr-2 h-4 w-4" />
-                              Разблокировать
+                              {t("admin.usersList.unblock")}
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
@@ -451,17 +461,17 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                               disabled={currentUser?.id === user.id}
                             >
                               <Ban className="mr-2 h-4 w-4" />
-                              Заблокировать
+                              {t("admin.usersList.block")}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem onSelect={() => setResetTarget(user)}>
                             <KeyRound className="mr-2 h-4 w-4" />
-                            Сбросить пароль
+                            {t("admin.usersList.resetPassword")}
                           </DropdownMenuItem>
                           {user.role !== "admin" && (
                             <DropdownMenuItem onSelect={() => void handleSetRole(user, "admin")}>
                               <ShieldCheck className="mr-2 h-4 w-4" />
-                              Сделать администратором
+                              {t("admin.usersList.makeAdmin")}
                             </DropdownMenuItem>
                           )}
                           {user.role === "admin" && (
@@ -473,7 +483,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                               }
                             >
                               <ShieldOff className="mr-2 h-4 w-4" />
-                              Снять роль администратора
+                              {t("admin.usersList.removeAdmin")}
                             </DropdownMenuItem>
                           )}
                         </>
@@ -485,7 +495,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                         disabled={currentUser?.id === user.id}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Удалить
+                        {t("admin.usersList.delete")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -493,16 +503,16 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
               </CardHeader>
               <CardContent className="text-sm space-y-2 pt-0 pb-4">
                 <div className="flex justify-between items-center gap-4">
-                  <span className="text-muted-foreground shrink-0">Email:</span>
+                  <span className="text-muted-foreground shrink-0">{t("admin.usersList.mobileEmailLabel")}</span>
                   <span className="font-medium truncate text-right flex-1 opacity-80" title={user.email}>{user.email}</span>
                 </div>
                 <div className="flex justify-between items-center gap-4">
-                  <span className="text-muted-foreground shrink-0">Телефон:</span>
+                  <span className="text-muted-foreground shrink-0">{t("admin.usersList.mobilePhoneLabel")}</span>
                   <span className="font-medium truncate text-right">{formatPhoneNumberForDisplay(user.phone)}</span>
                 </div>
                 <Separator className="opacity-20" />
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Добавлен:</span>
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {t("admin.usersList.mobileAddedLabel")}</span>
                   <span className="font-bold opacity-80">{formatDate(user.createdAt)}</span>
                 </div>
               </CardContent>
@@ -510,7 +520,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
           ))
         ) : (
           <div className="text-center text-muted-foreground pt-10">
-            Пользователи не найдены.
+            {t("admin.usersList.empty")}
           </div>
         )}
       </div>

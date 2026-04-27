@@ -15,10 +15,7 @@ import { doc } from 'firebase/firestore';
 import { cn, formatDuration } from '@/lib/utils';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
-import {
-  callOutcomeLabel,
-  resolveCallOutcomeForViewer,
-} from '@/lib/call-status';
+import { resolveCallOutcomeForViewer, type ResolvedCallOutcome } from '@/lib/call-status';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,12 +29,13 @@ import {
   Clock,
 } from 'lucide-react';
 import { format, isToday, isYesterday, parseISO, differenceInSeconds } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { initiateCall } from '@/components/chat/AudioCallOverlay';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
+import { useDateFnsLocale } from '@/hooks/use-date-fns-locale';
 /**
  * История звонков (завершённые/отменённые/пропущенные). Доступ с нижней навигации «Звонки».
  */
@@ -54,6 +52,20 @@ export function CallsHistoryPage() {
 
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
+
+  const callOutcomeLabel = (outcome: ResolvedCallOutcome) => {
+    switch (outcome) {
+      case 'missed':
+        return t('calls.outcomeMissed');
+      case 'cancelled':
+        return t('calls.outcomeCancelled');
+      case 'ended':
+      default:
+        return t('calls.outcomeEnded');
+    }
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
 
@@ -100,15 +112,15 @@ export function CallsHistoryPage() {
       const otherId = isOutgoing ? call.receiverId : call.callerId;
       const foundUser = allUsers.find((u) => u.id === otherId);
       const name =
-        foundUser?.name || (isOutgoing ? call.receiverName : call.callerName) || 'Неизвестный';
+        foundUser?.name || (isOutgoing ? call.receiverName : call.callerName) || t('calls.unknownContact');
       return ruEnSubstringMatch(name, searchTerm);
     });
-  }, [calls, searchTerm, allUsers, authUid]);
+  }, [calls, searchTerm, allUsers, authUid, t]);
 
   const formatCallDate = (dateStr: string) => {
     const date = parseISO(dateStr);
     if (isToday(date)) return format(date, 'HH:mm');
-    if (isYesterday(date)) return 'Вчера';
+    if (isYesterday(date)) return t('calls.yesterday');
     return format(date, 'dd.MM.yy');
   };
 
@@ -118,8 +130,8 @@ export function CallsHistoryPage() {
     if (!peer) {
       toast({
         variant: 'destructive',
-        title: 'Не удалось начать звонок',
-        description: 'Данные пользователя не загружены.',
+        title: t('calls.toastStartCallTitle'),
+        description: t('calls.toastStartCallDesc'),
       });
       return;
     }
@@ -137,20 +149,20 @@ export function CallsHistoryPage() {
     const peerName =
       peer?.name ||
       (selectedCall.callerId === authUid ? selectedCall.receiverName : selectedCall.callerName) ||
-      'Неизвестный';
+      t('calls.unknownContact');
     return { peerId, peerName, peerAvatar: peer ? userAvatarListUrl(peer) : '' };
-  }, [selectedCall, authUid, allUsers]);
+  }, [selectedCall, authUid, allUsers, t]);
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-col">
       <div className="shrink-0 px-1 pb-3 pt-1">
         <div className="px-2 pb-2 pt-1">
-          <h1 className="text-lg font-bold tracking-tight">Звонки</h1>
+          <h1 className="text-lg font-bold tracking-tight">{t('calls.title')}</h1>
         </div>
         <div className="relative min-w-0 px-2">
           <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Поиск по имени..."
+            placeholder={t('calls.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="h-10 w-full rounded-full border-black/10 bg-background/50 pl-10 text-sm backdrop-blur-sm dark:border-white/12"
@@ -174,7 +186,7 @@ export function CallsHistoryPage() {
             </div>
           ) : filteredCalls.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
-              <p className="text-sm">История звонков пуста.</p>
+              <p className="text-sm">{t('calls.emptyState')}</p>
             </div>
           ) : (
             filteredCalls.map((call) => {
@@ -182,7 +194,9 @@ export function CallsHistoryPage() {
               const otherId = isOutgoing ? call.receiverId : call.callerId;
               const foundUser = allUsers.find((u) => u.id === otherId);
               const displayName =
-                foundUser?.name || (isOutgoing ? call.receiverName : call.callerName) || 'Неизвестный';
+                foundUser?.name ||
+                (isOutgoing ? call.receiverName : call.callerName) ||
+                t('calls.unknownContact');
               const avatar = userAvatarListUrl(foundUser);
               const outcome = resolveCallOutcomeForViewer(call, authUid ?? '');
               const isMissed = outcome === 'missed';
@@ -277,8 +291,8 @@ export function CallsHistoryPage() {
       <Dialog open={!!selectedCall} onOpenChange={(open) => !open && setSelectedCall(null)}>
         <DialogContent className="rounded-2xl border-none shadow-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Сведения о звонке</DialogTitle>
-            <DialogDescription>Детальная статистика вызова</DialogDescription>
+            <DialogTitle>{t('calls.detailsTitle')}</DialogTitle>
+            <DialogDescription>{t('calls.detailsDescription')}</DialogDescription>
           </DialogHeader>
           {selectedCall && authUid && callDetailsPeer &&
             (() => {
@@ -305,7 +319,7 @@ export function CallsHistoryPage() {
                       ) : (
                         <Phone className="mr-1 h-3 w-3" />
                       )}
-                      {selectedCall.isVideo ? 'Видеозвонок' : 'Аудиозвонок'}
+                      {selectedCall.isVideo ? t('calls.typeVideo') : t('calls.typeAudio')}
                     </span>
                     <span
                       className={cn(
@@ -321,16 +335,16 @@ export function CallsHistoryPage() {
               <div className="grid gap-4 rounded-2xl bg-muted/50 p-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-muted-foreground">
-                    <CalendarIcon className="h-4 w-4" /> Дата:
+                    <CalendarIcon className="h-4 w-4" /> {t('calls.dateLabel')}
                   </span>
                   <span className="font-semibold">
-                    {format(parseISO(selectedCall.createdAt), 'dd MMMM yyyy', { locale: ru })}
+                    {format(parseISO(selectedCall.createdAt), 'dd MMMM yyyy', { locale: dateFnsLocale })}
                   </span>
                 </div>
                 {selectedCall.startedAt && selectedCall.endedAt && (
                   <div className="flex items-center justify-between border-t border-border/20 pt-2">
                     <span className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4" /> Длительность:
+                      <Clock className="h-4 w-4" /> {t('calls.durationLabel')}
                     </span>
                     <span className="font-bold text-primary">
                       {formatDuration(
@@ -350,7 +364,7 @@ export function CallsHistoryPage() {
                     setSelectedCall(null);
                   }}
                 >
-                  <Phone className="mr-2 h-4 w-4" /> Позвонить
+                  <Phone className="mr-2 h-4 w-4" /> {t('calls.callAgain')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -362,7 +376,7 @@ export function CallsHistoryPage() {
                     setSelectedCall(null);
                   }}
                 >
-                  <Video className="mr-2 h-4 w-4" /> Видео
+                  <Video className="mr-2 h-4 w-4" /> {t('calls.videoCall')}
                 </Button>
               </div>
                 </div>

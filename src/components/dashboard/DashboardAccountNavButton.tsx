@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ChatSettings } from '@/lib/types';
 import { DashboardAccountMenuContent } from '@/components/dashboard/DashboardAccountMenuContent';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
+import { useI18n } from '@/hooks/use-i18n';
 
 type DashboardAccountNavButtonProps = {
   className?: string;
@@ -26,6 +27,7 @@ export function DashboardAccountNavButton({
   navAppearance = 'colorful',
 }: DashboardAccountNavButtonProps) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
 
   if (!user) return null;
@@ -37,7 +39,7 @@ export function DashboardAccountNavButton({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label="Профиль и настройки"
+          aria-label={t('dashboard.accountMenuAria')}
           className={cn(
             'relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-[background,transform] duration-200',
             !minimal &&

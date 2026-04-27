@@ -31,15 +31,3 @@ export function resolveCallOutcomeForViewer(
       return 'ended';
   }
 }
-
-export function callOutcomeLabel(outcome: ResolvedCallOutcome): string {
-  switch (outcome) {
-    case 'missed':
-      return 'Пропущен';
-    case 'cancelled':
-      return 'Отменен';
-    case 'ended':
-    default:
-      return 'Завершен';
-  }
-}

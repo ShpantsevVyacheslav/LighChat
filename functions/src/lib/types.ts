@@ -71,6 +71,9 @@ export type Conversation = {
   };
   pinnedMessage?: PinnedMessage | null;
   pinnedMessages?: PinnedMessage[];
+  disappearingMessageTtlSec?: number | null;
+  disappearingMessagesUpdatedAt?: string;
+  disappearingMessagesUpdatedBy?: string;
 };
 
 export type ReplyContext = {
@@ -100,6 +103,7 @@ export type ChatMessage = {
   forwardedFrom?: {
     name: string;
   };
+  expireAt?: unknown;
 };
 
 export type UserChatIndex = {

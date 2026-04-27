@@ -1316,6 +1316,36 @@ abstract class AppLocalizations {
   /// **'Ошибка: {error}'**
   String chat_list_error_generic(Object error);
 
+  /// No description provided for @chat_list_item_draft_line.
+  ///
+  /// In ru, this message translates to:
+  /// **'Черновик · {line}'**
+  String chat_list_item_draft_line(Object line);
+
+  /// No description provided for @chat_list_item_chat_created.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат создан'**
+  String get chat_list_item_chat_created;
+
+  /// No description provided for @chat_list_item_no_messages_yet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет сообщений'**
+  String get chat_list_item_no_messages_yet;
+
+  /// No description provided for @chat_list_item_history_cleared.
+  ///
+  /// In ru, this message translates to:
+  /// **'История очищена'**
+  String get chat_list_item_history_cleared;
+
+  /// No description provided for @chat_list_firebase_not_configured.
+  ///
+  /// In ru, this message translates to:
+  /// **'Firebase ещё не настроен.'**
+  String get chat_list_firebase_not_configured;
+
   /// No description provided for @new_chat_title.
   ///
   /// In ru, this message translates to:
@@ -1544,6 +1574,12 @@ abstract class AppLocalizations {
   /// **'Не удалось получить текст.'**
   String get voice_transcript_failed;
 
+  /// No description provided for @voice_transcript_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось сделать транскрибацию: {error}'**
+  String voice_transcript_error(Object error);
+
   /// No description provided for @chat_messages_title.
   ///
   /// In ru, this message translates to:
@@ -1567,6 +1603,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Принять'**
   String get chat_call_accept;
+
+  /// No description provided for @video_call_error_init.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка видеозвонка: {error}'**
+  String video_call_error_init(Object error);
+
+  /// No description provided for @video_call_ended.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонок завершён'**
+  String get video_call_ended;
+
+  /// No description provided for @video_call_status_missed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пропущенный звонок'**
+  String get video_call_status_missed;
+
+  /// No description provided for @video_call_status_cancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонок отменён'**
+  String get video_call_status_cancelled;
+
+  /// No description provided for @video_call_error_offer_not_ready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оффер ещё не готов, попробуйте снова'**
+  String get video_call_error_offer_not_ready;
+
+  /// No description provided for @video_call_error_invalid_call_data.
+  ///
+  /// In ru, this message translates to:
+  /// **'Некорректные данные звонка'**
+  String get video_call_error_invalid_call_data;
+
+  /// No description provided for @video_call_error_accept_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось принять звонок: {error}'**
+  String video_call_error_accept_failed(Object error);
+
+  /// No description provided for @video_call_incoming.
+  ///
+  /// In ru, this message translates to:
+  /// **'Входящий видеозвонок'**
+  String get video_call_incoming;
+
+  /// No description provided for @video_call_connecting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеозвонок…'**
+  String get video_call_connecting;
+
+  /// No description provided for @video_call_pip_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Картинка в картинке'**
+  String get video_call_pip_tooltip;
+
+  /// No description provided for @video_call_mini_window_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мини-окно'**
+  String get video_call_mini_window_tooltip;
 
   /// No description provided for @chat_delete_message_title_single.
   ///
@@ -1790,6 +1892,12 @@ abstract class AppLocalizations {
   /// **'Устройство отозвано. Обновлено чатов: {rekeyed}{suffix}'**
   String devices_snackbar_revoked(Object rekeyed, Object suffix);
 
+  /// No description provided for @devices_snackbar_failed_suffix.
+  ///
+  /// In ru, this message translates to:
+  /// **', ошибок: {count}'**
+  String devices_snackbar_failed_suffix(Object count);
+
   /// No description provided for @devices_error_revoke_failed.
   ///
   /// In ru, this message translates to:
@@ -2011,6 +2119,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Не удалось открыть PiP'**
   String get media_viewer_error_pip_open_failed;
+
+  /// No description provided for @media_viewer_pip_not_supported.
+  ///
+  /// In ru, this message translates to:
+  /// **'Картинка в картинке не поддерживается на этом устройстве.'**
+  String get media_viewer_pip_not_supported;
 
   /// No description provided for @media_viewer_video_processing.
   ///

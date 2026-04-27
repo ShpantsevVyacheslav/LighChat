@@ -4,6 +4,7 @@ import * as admin from "firebase-admin";
 import { senderListAvatarForPush } from "../../lib/push-sender-avatar";
 import { buildDataPayload, evaluateChatMessagePush } from "../../lib/push-notification-policy";
 import { sendDataMulticastGrouped } from "../../lib/fcm-send-data-batches";
+import { trySetMessageExpireAtForDisappearing } from "../../lib/disappearing-chat-messages";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -121,5 +122,14 @@ export const onthreadmessagecreated = onDocumentCreated(
     } catch (error) {
       logger.error("Error sending thread message via FCM:", error);
     }
+
+    await trySetMessageExpireAtForDisappearing({
+      db,
+      messageRef: messageSnapshot.ref,
+      messageData: messageData as Record<string, unknown>,
+      conversationData: conversationData as Record<string, unknown>,
+      conversationId,
+      messageId: event.params.threadMessageId,
+    });
   },
 );

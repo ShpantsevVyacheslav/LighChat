@@ -260,6 +260,13 @@ export type Conversation = {
    * Если отсутствует — используется глобальная политика пользователя.
    */
   e2eeEncryptedDataTypesOverride?: E2eeEncryptedDataTypes | null;
+  /**
+   * Исчезающие сообщения: TTL в секундах для **новых** сообщений (от `createdAt`).
+   * null / отсутствие — выкл. Поле `expireAt` на документе сообщения выставляет только CF (Firestore TTL).
+   */
+  disappearingMessageTtlSec?: number | null;
+  disappearingMessagesUpdatedAt?: string;
+  disappearingMessagesUpdatedBy?: string;
 };
 
 /** Документ Firestore: platformSettings/main */
@@ -561,6 +568,11 @@ export type ChatMessage = {
   /** Phase 8: system-event маркер (E2EE включен/ротация/устройства и т.п.).
    *  Рендерится вместо обычного bubble как разделитель в timeline. */
   systemEvent?: ChatSystemEvent;
+  /**
+   * Время автоудаления документа (Firestore Timestamp); пишет только Admin SDK + TTL на поле `expireAt`.
+   * Клиент не изменяет (см. firestore.rules).
+   */
+  expireAt?: unknown;
 };
 
 /** Phase 8 (§9.4 RFC E2EE v2): типизированные system-маркеры timeline'а. */

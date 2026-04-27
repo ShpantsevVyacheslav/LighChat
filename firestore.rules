@@ -184,6 +184,44 @@ service cloud.firestore {
       return qAfter == qBefore;
     }
 
+    /** Создатель или админ группы (для полей исчезающих сообщений на `conversations`). */
+    function isGroupAdminOrCreatorFromConvData(data) {
+      let uid = request.auth.uid;
+      let creator = data.createdByUserId;
+      let admins = data.adminIds is list ? data.adminIds : [];
+      return (creator is string && uid == creator)
+        || (admins is list && uid in admins);
+    }
+
+    /**
+     * В группе менять `disappearingMessageTtlSec` / метаданные смены могут только создатель и adminIds.
+     * В личных чатах — любой участник (как и прочие поля parent).
+     */
+    function conversationDisappearingUpdateAllowed() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let touches = changed.hasAny([
+        'disappearingMessageTtlSec',
+        'disappearingMessagesUpdatedAt',
+        'disappearingMessagesUpdatedBy',
+      ]);
+      return !touches
+        || resource.data.isGroup != true
+        || isGroupAdminOrCreatorFromConvData(resource.data);
+    }
+
+    /** Клиент не создаёт `expireAt` (выставляет только Admin SDK + TTL). */
+    function chatMessageCreateWithoutExpireAt() {
+      return !request.resource.data.keys().hasAny(['expireAt']);
+    }
+
+    /** Клиент не добавляет/не меняет/не удаляет `expireAt` на сообщениях. */
+    function chatMessageExpireAtUnchanged() {
+      let had = resource.data.keys().hasAny(['expireAt']);
+      let will = request.resource.data.keys().hasAny(['expireAt']);
+      return (!had && !will)
+        || (had && will && request.resource.data.expireAt == resource.data.expireAt);
+    }
+
     /** Участник активного звонка (документ call уже существует). */
     function isCallParticipantForExisting(callId) {
       let d = get(/databases/$(database)/documents/calls/$(callId)).data;
@@ -464,6 +502,7 @@ service cloud.firestore {
         (
           uidIsConversationParticipantFromData(resource.data)
           && conversationStorageQuotaUnchanged()
+          && conversationDisappearingUpdateAllowed()
         )
       );
       allow delete: if isSignedIn() && uidIsConversationParticipantFromData(resource.data);
@@ -497,6 +536,7 @@ service cloud.firestore {
         // должны иметь senderId == auth.uid.
         allow create: if isConversationMember(conversationId)
           && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
+          && chatMessageCreateWithoutExpireAt()
           && (
           request.resource.data.senderId == request.auth.uid
           || (
@@ -505,12 +545,22 @@ service cloud.firestore {
             && request.resource.data.systemEvent.type is string
           )
         );
-        allow update, delete: if isConversationMember(conversationId);
+        allow update: if isConversationMember(conversationId)
+          && chatMessageExpireAtUnchanged();
+        allow delete: if isConversationMember(conversationId);
 
         match /{subPath=**} {
           allow read: if isConversationMember(conversationId)
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
-          allow write: if isConversationMember(conversationId)
+          allow create: if isConversationMember(conversationId)
+            && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+            && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
+            && chatMessageCreateWithoutExpireAt();
+          allow update: if isConversationMember(conversationId)
+            && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
+            && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
+            && chatMessageExpireAtUnchanged();
+          allow delete: if isConversationMember(conversationId)
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
             && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
         }

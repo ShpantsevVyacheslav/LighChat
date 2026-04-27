@@ -3,6 +3,7 @@
 import { useSettings, DEFAULT_PRIVACY_SETTINGS } from "@/hooks/use-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/hooks/use-i18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -11,23 +12,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users, Lock } from "lucide-react";
 import { DevicesPanel } from "@/components/settings/DevicesPanel";
 import { E2eeRecoveryPanel } from "@/components/settings/E2eeRecoveryPanel";
+import { LanguageSettingsCard } from "@/components/settings/LanguageSettingsCard";
 import { DEFAULT_E2EE_ENCRYPTED_DATA_TYPES } from "@/lib/e2ee/e2ee-data-type-policy";
+
 export default function PrivacySettingsPage() {
   const { user, isLoading } = useAuth();
   const { privacySettings, updatePrivacySettings } = useSettings();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const handleUpdate = async (patch: Partial<typeof privacySettings>) => {
     const ok = await updatePrivacySettings(patch);
     if (!ok) {
-      toast({ variant: "destructive", title: "Ошибка", description: "Не удалось сохранить настройки." });
+      toast({
+        variant: "destructive",
+        title: t("privacy.toastSaveErrorTitle"),
+        description: t("privacy.toastSaveErrorDesc"),
+      });
     }
   };
 
   const handleReset = async () => {
     const ok = await updatePrivacySettings(DEFAULT_PRIVACY_SETTINGS);
     if (ok) {
-      toast({ title: "Сброшено", description: "Настройки конфиденциальности восстановлены по умолчанию." });
+      toast({
+        title: t("privacy.toastResetTitle"),
+        description: t("privacy.toastResetDesc"),
+      });
     }
   };
 
@@ -47,33 +58,27 @@ export default function PrivacySettingsPage() {
       <div className="animate-in fade-in slide-in-from-top-4 duration-700 flex items-center gap-2">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
-            <Shield className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Конфиденциальность
+            <Shield className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> {t("privacy.pageTitle")}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Видимость в чатах и то, что другие видят в вашем профиле.
-          </p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{t("privacy.pageSubtitle")}</p>
         </div>
       </div>
+
+      <LanguageSettingsCard />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Lock className="h-4 w-4 text-muted-foreground" />
-            Сквозное шифрование
+            {t("privacy.e2eeTitle")}
           </CardTitle>
-          <CardDescription>
-            Новые личные чаты: при создании приложение попробует включить E2E, если у вас и у собеседника опубликованы
-            ключи (нужен хотя бы один вход на устройстве). Администраторы и сервер не читают зашифрованные сообщения.
-          </CardDescription>
+          <CardDescription>{t("privacy.e2eeDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Пытаться включать E2E в новых личных чатах</Label>
-              <p className="text-xs text-muted-foreground">
-                Работает вместе с платформенной настройкой (если её включил админ). Если ключей нет — чат останется
-                обычным.
-              </p>
+              <Label className="text-sm font-medium">{t("privacy.e2eeTryNewDmLabel")}</Label>
+              <p className="text-xs text-muted-foreground">{t("privacy.e2eeTryNewDmHint")}</p>
             </div>
             <Switch
               checked={privacySettings.e2eeForNewDirectChats === true}
@@ -86,45 +91,43 @@ export default function PrivacySettingsPage() {
               const effective = { ...cur, replyPreview: cur.text };
               return (
                 <>
-            <div>
-              <Label className="text-sm font-medium">Что шифруем в E2EE чатах</Label>
-              <p className="text-xs text-muted-foreground">
-                Это не меняет протокол шифрования — только решает, какие типы данных отправлять в зашифрованном виде.
-              </p>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label className="text-sm font-medium">Текст сообщений</Label>
-              </div>
-              <Switch
-                checked={effective.text}
-                onCheckedChange={(v) =>
-                  handleUpdate({
-                    e2eeEncryptedDataTypes: {
-                      ...effective,
-                      text: v,
-                      replyPreview: v,
-                    },
-                  })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label className="text-sm font-medium">Вложения (медиа/файлы)</Label>
-              </div>
-              <Switch
-                checked={effective.media}
-                onCheckedChange={(v) =>
-                  handleUpdate({
-                    e2eeEncryptedDataTypes: {
-                      ...effective,
-                      media: v,
-                    },
-                  })
-                }
-              />
-            </div>
+                  <div>
+                    <Label className="text-sm font-medium">{t("privacy.e2eeWhatEncryptTitle")}</Label>
+                    <p className="text-xs text-muted-foreground">{t("privacy.e2eeWhatEncryptHint")}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">{t("privacy.e2eeTextLabel")}</Label>
+                    </div>
+                    <Switch
+                      checked={effective.text}
+                      onCheckedChange={(v) =>
+                        handleUpdate({
+                          e2eeEncryptedDataTypes: {
+                            ...effective,
+                            text: v,
+                            replyPreview: v,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">{t("privacy.e2eeMediaLabel")}</Label>
+                    </div>
+                    <Switch
+                      checked={effective.media}
+                      onCheckedChange={(v) =>
+                        handleUpdate({
+                          e2eeEncryptedDataTypes: {
+                            ...effective,
+                            media: v,
+                          },
+                        })
+                      }
+                    />
+                  </div>
                 </>
               );
             })()}
@@ -137,14 +140,14 @@ export default function PrivacySettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Видимость</CardTitle>
-          <CardDescription>Кто может видеть вашу активность.</CardDescription>
+          <CardTitle className="text-base">{t("privacy.visibilityTitle")}</CardTitle>
+          <CardDescription>{t("privacy.visibilitySubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Статус онлайн</Label>
-              <p className="text-xs text-muted-foreground">Другие пользователи видят, что вы в сети.</p>
+              <Label className="text-sm font-medium">{t("privacy.onlineStatusLabel")}</Label>
+              <p className="text-xs text-muted-foreground">{t("privacy.onlineStatusHint")}</p>
             </div>
             <Switch
               checked={privacySettings.showOnlineStatus}
@@ -153,8 +156,8 @@ export default function PrivacySettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Последний визит</Label>
-              <p className="text-xs text-muted-foreground">Показывать время последнего посещения.</p>
+              <Label className="text-sm font-medium">{t("privacy.lastSeenLabel")}</Label>
+              <p className="text-xs text-muted-foreground">{t("privacy.lastSeenHint")}</p>
             </div>
             <Switch
               checked={privacySettings.showLastSeen}
@@ -163,8 +166,8 @@ export default function PrivacySettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Индикатор прочтения</Label>
-              <p className="text-xs text-muted-foreground">Показывать отправителям, что вы прочитали сообщение.</p>
+              <Label className="text-sm font-medium">{t("privacy.readReceiptsLabel")}</Label>
+              <p className="text-xs text-muted-foreground">{t("privacy.readReceiptsHint")}</p>
             </div>
             <Switch
               checked={privacySettings.showReadReceipts}
@@ -178,19 +181,15 @@ export default function PrivacySettingsPage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            Приглашения в группы
+            {t("privacy.groupInvitesTitle")}
           </CardTitle>
-          <CardDescription>
-            Кто может добавлять вас в групповой чат. Администраторы приложения не ограничены этим правилом.
-          </CardDescription>
+          <CardDescription>{t("privacy.groupInvitesSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Все пользователи</Label>
-              <p className="text-xs text-muted-foreground">
-                Любой участник может включить вас в новую группу или добавить в существующую.
-              </p>
+              <Label className="text-sm font-medium">{t("privacy.groupInviteEveryoneLabel")}</Label>
+              <p className="text-xs text-muted-foreground">{t("privacy.groupInviteEveryoneHint")}</p>
             </div>
             <Switch
               checked={groupInvitePolicy === "everyone"}
@@ -201,10 +200,8 @@ export default function PrivacySettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Только контакты</Label>
-              <p className="text-xs text-muted-foreground">
-                В группу вас сможет добавить только тот, кого вы сами сохранили в «Контактах».
-              </p>
+              <Label className="text-sm font-medium">{t("privacy.groupInviteContactsLabel")}</Label>
+              <p className="text-xs text-muted-foreground">{t("privacy.groupInviteContactsHint")}</p>
             </div>
             <Switch
               checked={groupInvitePolicy === "contacts"}
@@ -215,10 +212,8 @@ export default function PrivacySettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Никто</Label>
-              <p className="text-xs text-muted-foreground">
-                Обычные пользователи не смогут добавить вас в группу.
-              </p>
+              <Label className="text-sm font-medium">{t("privacy.groupInviteNoneLabel")}</Label>
+              <p className="text-xs text-muted-foreground">{t("privacy.groupInviteNoneHint")}</p>
             </div>
             <Switch
               checked={groupInvitePolicy === "none"}
@@ -232,19 +227,16 @@ export default function PrivacySettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Поиск собеседников</CardTitle>
-          <CardDescription>Кто может найти вас по имени среди всех пользователей приложения.</CardDescription>
+          <CardTitle className="text-base">{t("privacy.searchPeersTitle")}</CardTitle>
+          <CardDescription>{t("privacy.searchPeersSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
               <Search className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <div>
-                <Label className="text-sm font-medium">Глобальный поиск</Label>
-                <p className="text-xs text-muted-foreground">
-                  Если выключено, вы не отображаетесь в списке «Все пользователи» при создании чата. В блоке «Контакты»
-                  вы по-прежнему видны тем, кто добавил вас в контакты.
-                </p>
+                <Label className="text-sm font-medium">{t("privacy.globalSearchLabel")}</Label>
+                <p className="text-xs text-muted-foreground">{t("privacy.globalSearchHint")}</p>
               </div>
             </div>
             <Switch
@@ -257,16 +249,16 @@ export default function PrivacySettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Профиль для других</CardTitle>
-          <CardDescription>Что показывать в карточке контакта и в профиле из беседы.</CardDescription>
+          <CardTitle className="text-base">{t("privacy.profileOthersTitle")}</CardTitle>
+          <CardDescription>{t("privacy.profileOthersSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
               <Mail className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <div>
-                <Label className="text-sm font-medium">Email</Label>
-                <p className="text-xs text-muted-foreground">Адрес почты в профиле собеседника.</p>
+                <Label className="text-sm font-medium">{t("privacy.showEmailLabel")}</Label>
+                <p className="text-xs text-muted-foreground">{t("privacy.showEmailHint")}</p>
               </div>
             </div>
             <Switch
@@ -278,8 +270,8 @@ export default function PrivacySettingsPage() {
             <div className="flex items-start gap-3 min-w-0">
               <Smartphone className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <div>
-                <Label className="text-sm font-medium">Номер телефона</Label>
-                <p className="text-xs text-muted-foreground">В профиле и в списке контактов у других.</p>
+                <Label className="text-sm font-medium">{t("privacy.showPhoneLabel")}</Label>
+                <p className="text-xs text-muted-foreground">{t("privacy.showPhoneHint")}</p>
               </div>
             </div>
             <Switch
@@ -291,8 +283,8 @@ export default function PrivacySettingsPage() {
             <div className="flex items-start gap-3 min-w-0">
               <Cake className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <div>
-                <Label className="text-sm font-medium">Дата рождения</Label>
-                <p className="text-xs text-muted-foreground">Поле «День рождения» в профиле.</p>
+                <Label className="text-sm font-medium">{t("privacy.showDobLabel")}</Label>
+                <p className="text-xs text-muted-foreground">{t("privacy.showDobHint")}</p>
               </div>
             </div>
             <Switch
@@ -304,8 +296,8 @@ export default function PrivacySettingsPage() {
             <div className="flex items-start gap-3 min-w-0">
               <UserRound className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <div>
-                <Label className="text-sm font-medium">О себе</Label>
-                <p className="text-xs text-muted-foreground">Текст биографии в профиле.</p>
+                <Label className="text-sm font-medium">{t("privacy.showBioLabel")}</Label>
+                <p className="text-xs text-muted-foreground">{t("privacy.showBioHint")}</p>
               </div>
             </div>
             <Switch
@@ -316,11 +308,14 @@ export default function PrivacySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Reset */}
       <div className="flex justify-center pt-2">
-        <Button variant="ghost" onClick={handleReset} className="rounded-full gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <Button
+          variant="ghost"
+          onClick={handleReset}
+          className="rounded-full gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
           <RotateCcw className="h-4 w-4" />
-          Сбросить настройки
+          {t("privacy.resetDefaultsButton")}
         </Button>
       </div>
     </div>

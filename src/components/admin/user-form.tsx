@@ -3,9 +3,8 @@
 "use client";
 
 import React, { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import type { User, UserRole } from "@/lib/types";
 import { ROLES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -38,16 +37,20 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { compressImage } from "@/lib/image-compression";
-import {
-  isNormalizedUsernameTokenAllowed,
-  normalizeUsernameCandidate,
-} from "@/lib/username-candidate";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RegisterAvatarCropOverlay } from "@/components/auth/register-avatar-crop-overlay";
 import { uploadUserAvatarPair } from "@/lib/upload-user-avatar-pair";
 import { userAvatarListUrl } from "@/lib/user-avatar-display";
 import { useDashboardMainColumnScope } from "@/contexts/dashboard-main-column-scope";
+import {
+  createUserFormSchema,
+  profileDisplayDateToIso,
+  type UserFormValues,
+} from "@/lib/user-form-schema";
+import { useI18n } from "@/hooks/use-i18n";
+
+export type { UserFormValues } from "@/lib/user-form-schema";
 
 const applyDateMask = (value: string): string => {
   if (!value) return "";
@@ -76,39 +79,6 @@ const isoToDisplay = (value: string | null | undefined): string => {
   return value;
 };
 
-/** ДД.ММ.ГГГГ → yyyy-MM-dd для Firestore (как при регистрации). */
-const displayDateToIso = (display: string | undefined): string | undefined => {
-  if (!display?.trim()) return undefined;
-  const t = display.trim();
-  const m = t.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (!m) return undefined;
-  const y = Number(m[3]);
-  const mo = Number(m[2]);
-  const d = Number(m[1]);
-  const dt = new Date(Date.UTC(y, mo - 1, d, 12));
-  if (Number.isNaN(dt.getTime())) return undefined;
-  const year = dt.getUTCFullYear();
-  const currentYear = new Date().getFullYear();
-  if (year < 1920 || year > currentYear) return undefined;
-  return `${m[3]}-${m[2]}-${m[1]}`;
-};
-
-const userFormSchema = z.object({
-  name: z.string().min(2, { message: "Имя должно содержать не менее 2 символов." }),
-  username: z.string().max(30, { message: "Логин не должен превышать 30 символов." }),
-  email: z.string().email({ message: "Неверный формат email." }),
-  phone: z.string().optional(),
-  dateOfBirth: z.string().optional(),
-  bio: z.string().max(200, { message: "Не более 200 символов." }).optional(),
-  password: z.string().optional(),
-  /** Только для страницы профиля: должен совпадать с password при смене пароля. */
-  confirmPassword: z.string().optional(),
-  role: z.enum(Object.keys(ROLES) as [UserRole, ...UserRole[]], { required_error: "Необходимо выбрать роль." }),
-  avatar: z.string().url({ message: "Пожалуйста, введите действительный URL." }).optional().or(z.literal('')),
-  avatarThumb: z.string().url({ message: "Некорректный URL превью." }).optional().or(z.literal('')),
-});
-
-export type UserFormValues = z.infer<typeof userFormSchema>;
 /** Данные для сохранения (confirmPassword не уходит в API/Firestore). */
 export type UserFormSavePayload = Omit<UserFormValues, "confirmPassword">;
 
@@ -128,6 +98,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
   const getDashboardMainColumnEl = useDashboardMainColumnScope();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isUploading, startUploading] = useTransition();
   const [showPassword, setShowPassword] = React.useState(false);
   const [profileCropOpen, setProfileCropOpen] = React.useState(false);
@@ -142,63 +113,39 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
     };
   }, [profileCropSrc]);
 
+  const userFormValidationMessages = React.useMemo(
+    () => ({
+      nameMin: t("admin.userFormValidation.nameMin"),
+      usernameMax: t("admin.userFormValidation.usernameMax"),
+      emailInvalid: t("admin.userFormValidation.emailInvalid"),
+      bioMax: t("admin.userFormValidation.bioMax"),
+      roleRequired: t("admin.userFormValidation.roleRequired"),
+      avatarUrlInvalid: t("admin.userFormValidation.avatarUrlInvalid"),
+      avatarThumbUrlInvalid: t("admin.userFormValidation.avatarThumbUrlInvalid"),
+      passwordMinCreate: t("admin.userFormValidation.passwordMinCreate"),
+      passwordMinEdit: t("admin.userFormValidation.passwordMinEdit"),
+      passwordsMismatch: t("admin.userFormValidation.passwordsMismatch"),
+      usernameRules: t("admin.userFormValidation.usernameRules"),
+      phoneFull: t("admin.userFormValidation.phoneFull"),
+      dateOfBirthInvalid: t("admin.userFormValidation.dateOfBirthInvalid"),
+    }),
+    [t],
+  );
+
+  const userFormSchemaResolved = React.useMemo(
+    () => createUserFormSchema(userFormValidationMessages, { isEditing, isProfilePage }),
+    [userFormValidationMessages, isEditing, isProfilePage],
+  );
+  const userFormSchemaRef = React.useRef(userFormSchemaResolved);
+  userFormSchemaRef.current = userFormSchemaResolved;
+
+  const userFormResolver = React.useCallback<Resolver<UserFormValues>>(
+    (values, context, options) => zodResolver(userFormSchemaRef.current)(values, context, options),
+    [],
+  );
+
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema.superRefine((data, ctx) => {
-        if (!isEditing && (!data.password || data.password.length < 6)) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Пароль должен содержать не менее 6 символов.",
-                path: ["password"],
-            });
-        }
-        if (isEditing && data.password && data.password.length > 0 && data.password.length < 6) {
-             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Пароль должен быть не менее 6 символов.",
-                path: ["password"],
-            });
-        }
-        if (isProfilePage && data.password && data.password.length >= 6) {
-            if ((data.confirmPassword ?? "") !== data.password) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "Пароли не совпадают.",
-                    path: ["confirmPassword"],
-                });
-            }
-        }
-
-        const normU = normalizeUsernameCandidate(data.username ?? "");
-        if (normU.length > 0) {
-          if (!isNormalizedUsernameTokenAllowed(normU)) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Логин: латиница, цифры, _ и .; 3–30 символов; точка не в начале/конце, без ..",
-              path: ["username"],
-            });
-          }
-        }
-
-        if (isProfilePage) {
-          const digits = (data.phone ?? "").replace(/\D/g, "");
-          if (digits.length > 0 && digits.length !== 11) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Введите полный номер телефона.",
-              path: ["phone"],
-            });
-          }
-          if (data.dateOfBirth?.trim()) {
-            if (!displayDateToIso(data.dateOfBirth)) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Некорректная дата рождения (ДД.ММ.ГГГГ).",
-                path: ["dateOfBirth"],
-              });
-            }
-          }
-        }
-    })),
+    resolver: userFormResolver,
     defaultValues: {
       name: initialData?.name || "",
       username: initialData?.username || "",
@@ -224,12 +171,12 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
             const compressedDataUri = await compressImage(file);
             form.setValue("avatar", compressedDataUri, { shouldValidate: true });
             toast({
-              title: "Фото готово к загрузке",
-              description: "Аватар будет загружен после создания пользователя.",
+              title: t("admin.userForm.toastAvatarReadyTitle"),
+              description: t("admin.userForm.toastAvatarReadyDesc"),
             });
           } catch (e) {
             console.error("[UserForm] avatar preview", e);
-            toast({ variant: "destructive", title: "Ошибка обработки фото" });
+            toast({ variant: "destructive", title: t("admin.userForm.toastPhotoProcessErrorTitle") });
           }
         });
         return;
@@ -241,7 +188,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           let imageBlob: Blob = file;
 
           if (file.size > MAX_SIZE_BYTES && file.type.startsWith("image/")) {
-            toast({ title: "Файл слишком большой", description: "Сжимаем изображение..." });
+            toast({ title: t("admin.userForm.toastFileLargeTitle"), description: t("admin.userForm.toastFileLargeDesc") });
             const compressedDataUri = await compressImage(file);
             const response = await fetch(compressedDataUri);
             imageBlob = await response.blob();
@@ -261,15 +208,15 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
             avatarThumb: deleteField(),
           });
 
-          toast({ title: "Аватар обновлен!", description: "Новый аватар сохранён." });
+          toast({ title: t("admin.userForm.toastAvatarUpdatedTitle"), description: t("admin.userForm.toastAvatarUpdatedDesc") });
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error);
           console.error("[UserForm] avatar upload failed:", error);
-          toast({ variant: "destructive", title: "Ошибка загрузки", description: message });
+          toast({ variant: "destructive", title: t("admin.userForm.toastUploadErrorTitle"), description: message });
         }
       });
     },
-    [firestore, form, initialData?.id, startUploading, storage, toast]
+    [firestore, form, initialData?.id, startUploading, storage, toast, t]
   );
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,13 +270,13 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           avatarThumb: avatarThumbUrl ?? deleteField(),
         });
         toast({
-          title: "Аватар обновлён!",
-          description: "Сохранены полное фото и круглое превью.",
+          title: t("admin.userForm.toastAvatarPairTitle"),
+          description: t("admin.userForm.toastAvatarPairDesc"),
         });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         console.error("[UserForm] profile avatar pair upload failed:", error);
-        toast({ variant: "destructive", title: "Ошибка загрузки", description: message });
+        toast({ variant: "destructive", title: t("admin.userForm.toastUploadErrorTitle"), description: message });
       }
     });
   };
@@ -338,7 +285,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
     const { confirmPassword: _confirm, password, ...rest } = data;
     const usernameNorm = (rest.username ?? "").trim().replace(/^@/, "").toLowerCase();
     const dobRaw = rest.dateOfBirth?.trim() ?? "";
-    const dobIso = displayDateToIso(dobRaw);
+    const dobIso = profileDisplayDateToIso(dobRaw);
 
     const payload: UserFormSavePayload = {
       ...rest,
@@ -370,7 +317,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isUploading}
                       className="group relative disabled:opacity-60"
-                      aria-label="Изменить аватар"
+                      aria-label={t("admin.userForm.changeAvatarAria")}
                     >
                       <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-white/45 bg-white/20 backdrop-blur-md transition-colors group-hover:border-primary/60 group-disabled:pointer-events-none dark:border-white/25 dark:bg-white/[0.06]">
                         {field.value ? (
@@ -398,7 +345,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                       onChange={handleProfileAvatarPick}
                     />
                     <p className="max-w-[240px] text-center text-[10px] leading-snug text-slate-500 dark:text-white/40">
-                      Необязательно. Полный кадр — в профиле при открытии фото; круг из окна — в списках и сообщениях.
+                      {t("admin.userForm.profileAvatarHint")}
                     </p>
                   </div>
                 ) : (
@@ -439,7 +386,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                                 variant="ghost"
                                 size="icon"
                                 className="text-white hover:bg-white/20 hover:text-white"
-                                aria-label="Закрыть"
+                                aria-label={t("admin.userForm.closeAria")}
                               >
                                 <X className="h-6 w-6" />
                               </Button>
@@ -473,7 +420,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                         className="rounded-full"
                       >
                         {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isEditing ? "Изменить аватар" : "Добавить аватар"}
+                        {isEditing ? t("admin.userForm.changeAvatar") : t("admin.userForm.addAvatar")}
                       </Button>
                     </div>
                   </div>
@@ -492,9 +439,9 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>ФИО</FormLabel>
+              <FormLabel>{t("admin.userForm.fullNameLabel")}</FormLabel>
               <FormControl>
-                <Input placeholder="Иванов Иван" {...field} className="rounded-xl" />
+                <Input placeholder={t("admin.userForm.fullNamePlaceholder")} {...field} className="rounded-xl" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -505,12 +452,12 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Логин</FormLabel>
+              <FormLabel>{t("admin.userForm.usernameLabel")}</FormLabel>
               <FormControl>
                 <Input placeholder="username" {...field} className="rounded-xl" autoComplete="username" />
               </FormControl>
               <FormDescription className="text-xs">
-                Латиница, цифры, символ подчёркивания и точка; не менее 3 символов, если указан.
+                {t("admin.userForm.usernameHint")}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -521,7 +468,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t("admin.userForm.emailLabel")}</FormLabel>
               <FormControl>
                 <Input
                   type="email"
@@ -532,11 +479,11 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                 />
               </FormControl>
               {isEditing && !isProfilePage && (
-                <FormDescription>Email нельзя изменить после создания.</FormDescription>
+                <FormDescription>{t("admin.userForm.emailLockedHint")}</FormDescription>
               )}
               {isProfilePage && (
                 <FormDescription className="text-xs">
-                  Меняет email для входа в Firebase; при ошибке может потребоваться недавний вход.
+                  {t("admin.userForm.emailProfileHint")}
                 </FormDescription>
               )}
               <FormMessage />
@@ -549,7 +496,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
             name="phone"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Телефон</FormLabel>
+                <FormLabel>{t("admin.userForm.phoneLabel")}</FormLabel>
                 <FormControl>
                     <PhoneInput
                       value={field.value ?? ""}
@@ -566,10 +513,10 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
             name="dateOfBirth"
             render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Дата рождения</FormLabel>
+                    <FormLabel>{t("admin.userForm.dateOfBirthLabel")}</FormLabel>
                     <FormControl>
                     <Input 
-                        placeholder="ДД.ММ.ГГГГ" 
+                        placeholder={t("admin.userForm.datePlaceholder")} 
                         {...field} 
                         value={field.value ?? ''}
                         onChange={(e) => field.onChange(applyDateMask(e.target.value))}
@@ -586,17 +533,17 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           name="bio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>О себе</FormLabel>
+              <FormLabel>{t("admin.userForm.bioLabel")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Кратко о себе (необязательно)"
+                  placeholder={t("admin.userForm.bioPlaceholder")}
                   className="min-h-[100px] rounded-xl resize-y"
                   maxLength={200}
                   {...field}
                   value={field.value ?? ""}
                 />
               </FormControl>
-              <FormDescription className="text-xs">Не более 200 символов.</FormDescription>
+              <FormDescription className="text-xs">{t("admin.userForm.bioMaxHint")}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -604,7 +551,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
         {isProfilePage ? (
           <div className="rounded-xl space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Смена пароля</p>
+              <p className="text-sm font-medium">{t("admin.userForm.passwordSectionTitle")}</p>
               <Button
                 type="button"
                 variant="ghost"
@@ -620,7 +567,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                   }
                 }}
               >
-                {showPassword ? "Скрыть" : "Изменить пароль"}
+                {showPassword ? t("admin.userForm.hidePassword") : t("admin.userForm.changePassword")}
               </Button>
             </div>
             {showPassword && (
@@ -630,17 +577,17 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs text-muted-foreground">Новый пароль</FormLabel>
+                      <FormLabel className="text-xs text-muted-foreground">{t("admin.userForm.newPasswordLabel")}</FormLabel>
                       <FormControl>
                         <Input
                           type="password"
-                          placeholder="Минимум 6 символов"
+                          placeholder={t("admin.userForm.newPasswordPlaceholder")}
                           {...field}
                           className="rounded-xl"
                           autoComplete="new-password"
                         />
                       </FormControl>
-                      <FormDescription className="text-[11px]">Оставьте пустым, чтобы не менять.</FormDescription>
+                      <FormDescription className="text-[11px]">{t("admin.userForm.leavePasswordEmptyHint")}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -650,11 +597,11 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs text-muted-foreground">Подтвердите пароль</FormLabel>
+                      <FormLabel className="text-xs text-muted-foreground">{t("admin.userForm.confirmPasswordLabel")}</FormLabel>
                       <FormControl>
                         <Input
                           type="password"
-                          placeholder="Повторите новый пароль"
+                          placeholder={t("admin.userForm.confirmPasswordPlaceholder")}
                           {...field}
                           className="rounded-xl"
                           autoComplete="new-password"
@@ -673,12 +620,12 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Пароль</FormLabel>
+                <FormLabel>{t("admin.userForm.passwordLabel")}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input 
                       type={showPassword ? 'text' : 'password'}
-                      placeholder={isEditing ? "Оставьте пустым, чтобы не менять" : "••••••••"} 
+                      placeholder={isEditing ? t("admin.userForm.passwordPlaceholderLeaveEmpty") : "••••••••"} 
                       {...field} 
                       className="rounded-xl pr-10" />
                     <Button
@@ -692,8 +639,8 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
                     </Button>
                   </div>
                 </FormControl>
-                {isEditing && <FormDescription>Введите новый пароль, чтобы сбросить его для этого пользователя.</FormDescription>}
-                {!isEditing && <FormDescription>Пароль должен содержать не менее 6 символов.</FormDescription>}
+                {isEditing && <FormDescription>{t("admin.userForm.passwordHintEdit")}</FormDescription>}
+                {!isEditing && <FormDescription>{t("admin.userForm.passwordHintCreate")}</FormDescription>}
                 <FormMessage />
               </FormItem>
             )}
@@ -705,17 +652,17 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
             name="role"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Роль</FormLabel>
+                <FormLabel>{t("admin.userForm.roleLabel")}</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Выберите роль" />
+                      <SelectValue placeholder={t("admin.userForm.rolePlaceholder")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Object.entries(ROLES).map(([role, name]) => (
+                    {(Object.keys(ROLES) as UserRole[]).map((role) => (
                       <SelectItem key={role} value={role}>
-                        {name}
+                        {role === "admin" ? t("admin.roles.admin") : t("admin.roles.worker")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -740,12 +687,12 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
         <div className="flex justify-end gap-2 pt-6">
           {!hideCancelButton && (
             <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting || isUploading} className="rounded-full">
-              Отмена
+              {t("admin.userForm.cancel")}
             </Button>
           )}
           <Button type="submit" disabled={isProfilePage ? (isSubmitting || isUploading || !form.formState.isDirty) : (isSubmitting || isUploading)} className="rounded-full bg-primary hover:bg-primary/90 text-white shadow-md px-8">
             {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Сохранить
+            {t("admin.userForm.save")}
           </Button>
         </div>
       </form>

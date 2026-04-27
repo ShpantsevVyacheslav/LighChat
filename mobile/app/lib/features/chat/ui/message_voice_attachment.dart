@@ -291,10 +291,6 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   bool _busy = false;
   String? _localTranscript;
 
-  AppLocalizations? _l10n(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations);
-  }
-
   Future<void> _ensureTranscript() async {
     if (_busy) return;
     final existing = (widget.transcript ?? _localTranscript ?? '').trim();
@@ -311,9 +307,9 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
       setState(() => _localTranscript = res.transcript);
     } catch (e) {
       if (!mounted) return;
-      // Errors-only UX: surface failure as a SnackBar.
+      final l10nErr = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось сделать транскрибацию: $e')),
+        SnackBar(content: Text(l10nErr.voice_transcript_error(e))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -333,12 +329,12 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
 
     final current = (widget.transcript ?? _localTranscript ?? '').trim();
 
-    final l10n = _l10n(context);
-    final showLabel = l10n?.voice_transcript_show ?? 'Показать текст';
-    final hideLabel = l10n?.voice_transcript_hide ?? 'Скрыть текст';
-    final copyLabel = l10n?.voice_transcript_copy ?? 'Копировать';
-    final loadingLabel = l10n?.voice_transcript_loading ?? 'Транскрибация…';
-    final failedLabel = l10n?.voice_transcript_failed ?? 'Не удалось получить текст.';
+    final l10n = AppLocalizations.of(context)!;
+    final showLabel = l10n.voice_transcript_show;
+    final hideLabel = l10n.voice_transcript_hide;
+    final copyLabel = l10n.voice_transcript_copy;
+    final loadingLabel = l10n.voice_transcript_loading;
+    final failedLabel = l10n.voice_transcript_failed;
     return Padding(
       padding: const EdgeInsets.only(top: 6, left: 2, right: 2),
       child: Column(

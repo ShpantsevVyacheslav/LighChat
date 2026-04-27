@@ -81,11 +81,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   Future<void> _forgotPassword() async {
     final email = _email.text.trim();
     if (email.isEmpty) {
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       setState(
-        () => _error =
-            l10n?.auth_login_error_enter_email_for_reset ??
-            'Введите email для восстановления пароля',
+        () => _error = l10n.auth_login_error_enter_email_for_reset,
       );
       return;
     }
@@ -100,7 +98,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final enabled = !_busy;
@@ -111,7 +109,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            l10n?.auth_login_email_label ?? 'Email',
+            l10n.auth_login_email_label,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -201,7 +199,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           ),
           const SizedBox(height: 16),
           Text(
-            l10n?.auth_login_password_label ?? 'Пароль',
+            l10n.auth_login_password_label,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -240,7 +238,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
-                  hintText: l10n?.auth_login_password_hint ?? 'Пароль',
+                  hintText: l10n.auth_login_password_hint,
                   hintStyle: TextStyle(
                     fontSize: 13,
                     color: (dark ? Colors.white : scheme.onSurface).withValues(
@@ -255,9 +253,8 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   ),
                   suffixIcon: IconButton(
                     tooltip: _obscurePassword
-                        ? (l10n?.profile_password_tooltip_show ??
-                            'Показать пароль')
-                        : (l10n?.profile_password_tooltip_hide ?? 'Скрыть'),
+                        ? l10n.profile_password_tooltip_show
+                        : l10n.profile_password_tooltip_hide,
                     onPressed: enabled
                         ? () => setState(
                             () => _obscurePassword = !_obscurePassword,
@@ -317,7 +314,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                 foregroundColor: const Color(0xFF38A3FF),
               ),
               child: Text(
-                l10n?.auth_login_forgot_password ?? 'Забыли пароль?',
+                l10n.auth_login_forgot_password,
               ),
             ),
           ),
@@ -367,7 +364,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                         ),
                       )
                     : Text(
-                        l10n?.auth_login_sign_in ?? 'Войти',
+                        l10n.auth_login_sign_in,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,

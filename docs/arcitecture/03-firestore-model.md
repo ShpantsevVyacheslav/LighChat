@@ -17,9 +17,10 @@
 - `publicStickerPacks/{packId}` - общие стикерпаки (read: авторизованные; write: admin).
   - `items/{itemId}` - стикеры/GIF (те же поля, что у `users/*/stickerPacks/*/items`).
 - `conversations/{conversationId}` - чат и метаданные участников (в т.ч. unread-счётчики и reaction-anchor поля `lastReaction*` + `lastReactionSeenAt`).
+  - **Исчезающие сообщения:** `disappearingMessageTtlSec` (число секунд или `null` = выкл), опционально `disappearingMessagesUpdatedAt` (ISO), `disappearingMessagesUpdatedBy` (uid). В личном чате меняют оба участника; в группе — только создатель/админы (см. `firestore.rules`). На документы `messages/*` и `messages/*/thread/*` CF после создания пишет `expireAt` (Timestamp) для [Firestore TTL](https://firebase.google.com/docs/firestore/ttl); клиент поле `expireAt` не задаёт.
   - `members/{memberId}` - server-maintained индекс участников для правил.
   - `typing/{typingUserId}`
-  - `messages/{messageId}` (+ вложенные thread-path документы; для медиа-нормализации используется поле `mediaNorm` со статусом `pending|done|failed` и `failedIndexes`; для синхронизации emoji-эффектов используется `emojiBurst: {eventId, emoji, by, at}`)
+  - `messages/{messageId}` (+ вложенные thread-path документы; для медиа-нормализации используется поле `mediaNorm` со статусом `pending|done|failed` и `failedIndexes`; для синхронизации emoji-эффектов используется `emojiBurst: {eventId, emoji, by, at}`; при включённом таймере исчезновения — поле `expireAt` для TTL-удаления)
   - `polls/{pollId}`
   - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата в формате E2EE v2: вложенная мапа `wraps[userId][deviceId]` (ciphertext; сервер не знает plaintext). Единственная поддерживаемая версия — `protocolVersion: 'v2-p256-aesgcm-multi'`; документы с другими версиями клиенты молча ротируют через self-heal.
 - `userChats/{userId}` - денормализованный индекс чатов пользователя.
@@ -56,6 +57,7 @@
 ## Что поддерживают Cloud Functions
 
 - Push по новым сообщениям: при наличии `e2ee` на документе сообщения текст в FCM не передаётся (только нейтральная подпись).
+- Исчезающие сообщения: триггеры `onmessagecreated` / `onthreadmessagecreated` выставляют `expireAt` по `conversations.disappearingMessageTtlSec`; `onchatmessagedeleted` / `onchatthreadmessagedeleted` чистят закрепы и при необходимости пересчитывают `lastMessage*` на `conversations/{id}`. Перед этим те же триггеры вызывают удаление объектов в **Storage** по разрешённым префиксам `chat-attachments/{cid}/…` и `chat-attachments-enc/{cid}/…` (вложения plaintext, каталог `norm/{messageId}/`, зашифрованные чанки E2EE v2 по `fileId`).
 - Создание/обновление/удаление `conversations` синхронизирует `members` и `userChats`.
 - Создание `calls` синхронизирует `userCalls` и отправляет call-push: FCM (`users.fcmTokens`) + APNs VoIP (`users.voipTokens`, iOS).
 - Scheduler `checkUserPresence` дополнительно переводит `calls.status=calling` старше 60 секунд в `missed` и проставляет `endedAt`.

@@ -702,6 +702,23 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String chat_list_item_draft_line(Object line) {
+    return 'Черновик · $line';
+  }
+
+  @override
+  String get chat_list_item_chat_created => 'Чат создан';
+
+  @override
+  String get chat_list_item_no_messages_yet => 'Пока нет сообщений';
+
+  @override
+  String get chat_list_item_history_cleared => 'История очищена';
+
+  @override
+  String get chat_list_firebase_not_configured => 'Firebase ещё не настроен.';
+
+  @override
   String get new_chat_title => 'Новый чат';
 
   @override
@@ -827,6 +844,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voice_transcript_failed => 'Не удалось получить текст.';
 
   @override
+  String voice_transcript_error(Object error) {
+    return 'Не удалось сделать транскрибацию: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Сообщения';
 
   @override
@@ -837,6 +859,44 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chat_call_accept => 'Принять';
+
+  @override
+  String video_call_error_init(Object error) {
+    return 'Ошибка видеозвонка: $error';
+  }
+
+  @override
+  String get video_call_ended => 'Звонок завершён';
+
+  @override
+  String get video_call_status_missed => 'Пропущенный звонок';
+
+  @override
+  String get video_call_status_cancelled => 'Звонок отменён';
+
+  @override
+  String get video_call_error_offer_not_ready =>
+      'Оффер ещё не готов, попробуйте снова';
+
+  @override
+  String get video_call_error_invalid_call_data => 'Некорректные данные звонка';
+
+  @override
+  String video_call_error_accept_failed(Object error) {
+    return 'Не удалось принять звонок: $error';
+  }
+
+  @override
+  String get video_call_incoming => 'Входящий видеозвонок';
+
+  @override
+  String get video_call_connecting => 'Видеозвонок…';
+
+  @override
+  String get video_call_pip_tooltip => 'Картинка в картинке';
+
+  @override
+  String get video_call_mini_window_tooltip => 'Мини-окно';
 
   @override
   String get chat_delete_message_title_single => 'Удалить сообщение?';
@@ -974,6 +1034,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String devices_snackbar_failed_suffix(Object count) {
+    return ', ошибок: $count';
+  }
+
+  @override
   String devices_error_revoke_failed(Object error) {
     return 'Ошибка revoke: $error';
   }
@@ -1102,6 +1167,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get media_viewer_error_pip_open_failed => 'Не удалось открыть PiP';
+
+  @override
+  String get media_viewer_pip_not_supported =>
+      'Картинка в картинке не поддерживается на этом устройстве.';
 
   @override
   String get media_viewer_video_processing =>

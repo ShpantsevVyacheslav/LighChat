@@ -83,7 +83,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) {
-        final l10n = AppLocalizations.of(ctx);
+        final l10n = AppLocalizations.of(ctx)!;
         return AlertDialog(
           title: Text(title),
           content: Form(
@@ -97,14 +97,13 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                   textCapitalization: TextCapitalization.none,
                   autofocus: true,
                   decoration: InputDecoration(
-                    labelText: l10n?.e2ee_password_label ?? 'Пароль',
+                    labelText: l10n.e2ee_password_label,
                   ),
                   validator: (v) {
                     if ((v ?? '').length < e2eeBackupMinPasswordLength) {
-                      return l10n?.e2ee_password_min_length(
-                            e2eeBackupMinPasswordLength,
-                          ) ??
-                          'Минимум $e2eeBackupMinPasswordLength символов';
+                      return l10n.e2ee_password_min_length(
+                        e2eeBackupMinPasswordLength,
+                      );
                     }
                     return null;
                   },
@@ -116,13 +115,11 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                     obscureText: true,
                     textCapitalization: TextCapitalization.none,
                     decoration: InputDecoration(
-                      labelText: l10n?.e2ee_password_confirm_label ??
-                          'Повторите пароль',
+                      labelText: l10n.e2ee_password_confirm_label,
                     ),
                     validator: (v) {
                       if (v != c1.text) {
-                        return l10n?.e2ee_password_mismatch ??
-                            'Пароли не совпадают';
+                        return l10n.e2ee_password_mismatch;
                       }
                       return null;
                     },
@@ -134,7 +131,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(null),
-              child: Text(l10n?.common_cancel ?? 'Отмена'),
+              child: Text(l10n.common_cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -157,10 +154,10 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
     final identity = _identity;
     if (identity == null) return;
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final pwd = await _promptPassword(
-      title: l10n?.e2ee_backup_create_title ?? 'Создать backup ключа',
-      confirmLabel: l10n?.common_save ?? 'Сохранить',
+      title: l10n.e2ee_backup_create_title,
+      confirmLabel: l10n.common_save,
       requireConfirmation: true,
     );
     if (pwd == null || pwd.isEmpty) return;
@@ -179,12 +176,10 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
       setState(() => _hasBackup = true);
     } catch (e) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10nErr = AppLocalizations.of(context)!;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            l10n?.e2ee_backup_create_error(e) ?? 'Не удалось создать backup: $e',
-          ),
+          content: Text(l10nErr.e2ee_backup_create_error(e)),
         ),
       );
     }
@@ -194,10 +189,10 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
     final user = await ref.read(authUserProvider.future);
     if (user == null) return;
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final pwd = await _promptPassword(
-      title: l10n?.e2ee_backup_restore_title ?? 'Восстановить по паролю',
-      confirmLabel: l10n?.e2ee_backup_restore_action ?? 'Восстановить',
+      title: l10n.e2ee_backup_restore_title,
+      confirmLabel: l10n.e2ee_backup_restore_action,
     );
     if (pwd == null || pwd.isEmpty) return;
     if (!mounted) return;
@@ -219,14 +214,13 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
       await _bootstrap();
     } catch (e) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
+      final l10nErr = AppLocalizations.of(context)!;
       final msg = e.toString();
       final user = msg.contains('E2EE_BACKUP_WRONG_PASSWORD')
-          ? (l10n?.e2ee_backup_wrong_password ?? 'Неверный пароль')
+          ? l10nErr.e2ee_backup_wrong_password
           : msg.contains('E2EE_BACKUP_NOT_FOUND')
-              ? (l10n?.e2ee_backup_not_found ?? 'Backup не найден')
-              : (l10n?.e2ee_backup_restore_error(e) ??
-                  'Не удалось восстановить: $e');
+              ? l10nErr.e2ee_backup_not_found
+              : l10nErr.e2ee_backup_restore_error(e);
       messenger.showSnackBar(SnackBar(content: Text(user)));
     }
   }
@@ -253,7 +247,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: AuthBackground(
         child: SafeArea(
@@ -264,7 +258,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                 elevation: 0,
                 pinned: true,
                 leading: const AppBackButton(fallbackLocation: '/settings/privacy'),
-                title: Text(l10n?.e2ee_recovery_title ?? 'E2EE — резервирование'),
+                title: Text(l10n.e2ee_recovery_title),
               ),
               if (_loading)
                 const SliverFillRemaining(
@@ -278,8 +272,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        l10n?.e2ee_recovery_error_generic(_loadError!) ??
-                            'Ошибка: $_loadError',
+                        l10n.e2ee_recovery_error_generic(_loadError!),
                       ),
                     ),
                   ),
@@ -289,22 +282,16 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                   delegate: SliverChildListDelegate([
                     const SizedBox(height: 12),
                     _Card(
-                      title: l10n?.e2ee_backup_password_card_title ??
-                          'Backup паролем',
-                      description: l10n?.e2ee_backup_password_card_description ??
-                          'Создайте зашифрованный backup приватного ключа. '
-                              'Если потеряете все устройства, сможете восстановить '
-                              'его на новом, зная только пароль. '
-                              'Пароль нельзя восстановить — записывайте надёжно.',
+                      title: l10n.e2ee_backup_password_card_title,
+                      description: l10n.e2ee_backup_password_card_description,
                       children: [
                         FilledButton.icon(
                           onPressed: _onCreateBackup,
                           icon: const Icon(Icons.lock_outline_rounded),
                           label: Text(
                             _hasBackup
-                                ? (l10n?.e2ee_backup_overwrite ??
-                                    'Перезаписать backup')
-                                : (l10n?.e2ee_backup_create ?? 'Создать backup'),
+                                ? l10n.e2ee_backup_overwrite
+                                : l10n.e2ee_backup_create,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -313,8 +300,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                             onPressed: _onRestoreBackup,
                             icon: const Icon(Icons.restore_rounded),
                             label: Text(
-                              l10n?.e2ee_backup_restore ??
-                                  'Восстановить из backup',
+                              l10n.e2ee_backup_restore,
                             ),
                           ),
                         if (!_hasBackup)
@@ -322,26 +308,21 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                             onPressed: _onRestoreBackup,
                             icon: const Icon(Icons.restore_rounded),
                             label: Text(
-                              l10n?.e2ee_backup_already_have ??
-                                  'У меня уже есть backup',
+                              l10n.e2ee_backup_already_have,
                             ),
                           ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     _Card(
-                      title: l10n?.e2ee_qr_transfer_title ??
-                          'Передача ключа по QR',
-                      description: l10n?.e2ee_qr_transfer_description ??
-                          'На новом устройстве показываем QR, на старом сканируем камерой. '
-                              'Сверяете 6-значный код — приватный ключ переносится безопасно.',
+                      title: l10n.e2ee_qr_transfer_title,
+                      description: l10n.e2ee_qr_transfer_description,
                       children: [
                         FilledButton.icon(
                           onPressed: () => context.push('/settings/e2ee-qr-pairing'),
                           icon: const Icon(Icons.qr_code_scanner_rounded),
                           label: Text(
-                            l10n?.e2ee_qr_transfer_open ??
-                                'Открыть QR-pairing',
+                            l10n.e2ee_qr_transfer_open,
                           ),
                         ),
                       ],

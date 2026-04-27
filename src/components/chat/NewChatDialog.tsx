@@ -4,7 +4,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
-import { ROLES } from '@/lib/constants';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
 import { useSettings } from '@/hooks/use-settings';
@@ -24,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { PenSquare, Users, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
+import { useI18n } from '@/hooks/use-i18n';
 
 export function NewChatDialog({
   users,
@@ -45,6 +45,7 @@ export function NewChatDialog({
   /** className для кнопки-триггера (рядом с поиском). */
   triggerClassName?: string;
 }) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -107,7 +108,7 @@ export function NewChatDialog({
             triggerClassName
           )}
           disabled={isCreating}
-          aria-label="Новый чат"
+          aria-label={t('chat.newChat.triggerAria')}
         >
           {isCreating ? (
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -118,14 +119,14 @@ export function NewChatDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-2xl border-none shadow-2xl">
         <DialogHeader>
-          <DialogTitle>Новый чат</DialogTitle>
+          <DialogTitle>{t('chat.newChat.title')}</DialogTitle>
           <DialogDescription>
-            Выберите пользователя чтобы начать диалог или создайте группу.
+            {t('chat.newChat.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
           <Input
-            placeholder="Имя, ник или @username…"
+            placeholder={t('chat.newChat.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="rounded-full"
@@ -133,14 +134,14 @@ export function NewChatDialog({
           />
           <Button variant="outline" className="w-full rounded-full border-none bg-muted/50 hover:bg-muted" onClick={() => { setIsOpen(false); onGroupCreateClick(); }} disabled={isCreating}>
             <Users className="mr-2 h-4 w-4" />
-            Создать группу
+            {t('chat.newChat.createGroup')}
           </Button>
           <ScrollArea className="h-64">
             <div className="space-y-1 pr-2">
               {fromContacts.length > 0 && (
                 <>
                   <p className="px-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Контакты
+                    {t('chat.newChat.sectionContacts')}
                   </p>
                   {fromContacts.map((user) => {
                     const displayName = (contactDisplayNames[user.id] ?? '').trim() || user.name;
@@ -167,7 +168,7 @@ export function NewChatDialog({
                         ) : null}
                         {user.role && user.role !== 'worker' && (
                           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {ROLES[user.role]}
+                            {user.role === 'admin' ? t('admin.roles.admin') : t('admin.roles.worker')}
                           </p>
                         )}
                       </div>
@@ -184,7 +185,7 @@ export function NewChatDialog({
                       fromContacts.length === 0 && 'pt-1'
                     )}
                   >
-                    Все пользователи
+                    {t('chat.newChat.sectionAllUsers')}
                   </p>
                   {fromGlobal.map((user) => {
                     const displayName = (contactDisplayNames[user.id] ?? '').trim() || user.name;
@@ -211,7 +212,7 @@ export function NewChatDialog({
                         ) : null}
                         {user.role && user.role !== 'worker' && (
                           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {ROLES[user.role]}
+                            {user.role === 'admin' ? t('admin.roles.admin') : t('admin.roles.worker')}
                           </p>
                         )}
                       </div>
@@ -221,7 +222,7 @@ export function NewChatDialog({
                 </>
               )}
               {fromContacts.length === 0 && fromGlobal.length === 0 && (
-                <p className="py-8 text-center text-sm text-muted-foreground">Никого не найдено</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">{t('chat.newChat.empty')}</p>
               )}
             </div>
           </ScrollArea>

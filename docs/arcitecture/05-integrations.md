@@ -4,6 +4,10 @@
 
 - Auth: login/register/social auth, соответствие `users/{uid}`.
 - Firestore: realtime-данные (чаты, звонки, встречи, индексы).
+  - **TTL исчезающих сообщений:** после деплоя CF включите в консоли Firestore (или gcloud) политику TTL на поле **`expireAt`** для групп коллекций:
+    - `conversations/{conversationId}/messages/{messageId}`
+    - `conversations/{conversationId}/messages/{messageId}/thread/{threadMessageId}`  
+    Имя поля должно совпадать с тем, что пишут функции (`expireAt`, тип Timestamp). Без политики TTL документы с `expireAt` не удаляются автоматически.
 - Storage: медиа/вложения/аватары/фоновые ресурсы.
 - Cloud Functions (v2): auth/firestore/http/scheduler automation.
 - FCM: data-push для уведомлений и входящих звонков (Android/Web и fallback).
@@ -16,7 +20,7 @@
 
 - Callable HTTP: `createNewUser`, `updateUserAdmin`, `backfillConversationMembers`, `backfillRegistrationIndex`, `requestMeetingAccess`, `respondToMeetingRequest`, `checkGroupInvitesAllowed`, `retryChatMediaTranscode`.
   - **iOS-обход для `checkGroupInvitesAllowed`:** мобильный клиент (`mobile/packages/lighchat_firebase/lib/src/firebase_callable_http.dart`) на iOS вызывает функцию прямым `POST https://us-central1-{projectId}.cloudfunctions.net/checkGroupInvitesAllowed` с `Authorization: Bearer <idToken>`, минуя плагин `cloud_functions`. Причина — SDK `FirebaseFunctions` 12.9.0 в `FunctionsContext.context(options:)` использует три параллельных `async let`, на которых Swift-рантайм iOS крашит Release-процесс в `_swift_task_dealloc_specific (.cold.2)` (SIGABRT, «freed pointer was not the last allocation»). Контракт ответа (`{result: …}` / `{error: {status,message}}`) и семантика ошибок сохранены; Android/Web идут штатно через `cloud_functions`.
-- Firestore triggers: `onconversationcreated`, `onconversationupdated`, `onconversationdeleted`, `onmessagecreated`, `onthreadmessagecreated`, `onchatmessagemediatranscode`, `onchatthreadmessagemediatranscode`, `oncallcreated`, `onmeetingparticipantcreated`, `onuserwritesyncregistrationindex`.
+- Firestore triggers: `onconversationcreated`, `onconversationupdated`, `onconversationdeleted`, `onmessagecreated`, `onthreadmessagecreated`, `onchatmessagedeleted`, `onchatthreadmessagedeleted`, `onchatmessagemediatranscode`, `onchatthreadmessagemediatranscode`, `oncallcreated`, `onmeetingparticipantcreated`, `onuserwritesyncregistrationindex`.
 - `oncallcreated` для APNs VoIP использует **один** secret `APNS_VOIP_CONFIG` (JSON): `keyId`, `teamId`, `bundleId`, `privateKeyPem` (содержимое `.p8`, в JSON можно экранировать переводы строк как `\\n`), `useSandbox` (`true`/`false`). Пустой JSON или пустые поля — VoIP пропускается. См. [`apns-voip-secrets.md`](../integrations/apns-voip-secrets.md).
 - **Медиа в чате (нормализация):** после создания документа сообщения (основной ленты или треда) функции `onchatmessagemediatranscode` / `onchatthreadmessagemediatranscode` скачивают вложения по публичному URL, при необходимости перекодируют **FFmpeg** (видео → **MP4 H.264 + AAC**, прочее аудио → **M4A AAC**), загружают в Storage по пути `chat-attachments/{conversationId}/norm/{messageId}/…_lcnorm.{mp4|m4a}`, **обновляют** `attachments` на новый URL и **удаляют исходный объект** в `chat-attachments/{conversationId}/…` (если путь распознан из старого URL), чтобы не хранить два файла. Уже `video/mp4` и `audio/mp4` / `audio/mpeg` не перекодируются — оригинал не трогается. В документ сообщения пишется `mediaNorm` (`pending|done|failed`, `failedIndexes`, `updatedAt`) для UI-статуса и ручного retry. Для ручного перезапуска используется callable `retryChatMediaTranscode` (main/thread). Лимит входного размера ~220 МБ; требуются **2 GiB RAM**, до **540 s** таймаут.
 - Auth trigger: `onUserCreated`.
