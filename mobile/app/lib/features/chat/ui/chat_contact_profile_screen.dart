@@ -7,6 +7,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/user_profile.dart';
 import 'chat_partner_profile_sheet.dart';
+import 'chat_shell_backdrop.dart';
 
 class ChatContactProfileScreen extends ConsumerWidget {
   const ChatContactProfileScreen({super.key, required this.userId});
@@ -94,75 +95,83 @@ class ChatContactProfileScreen extends ConsumerWidget {
         : const Color(0xFFF3F6FC);
     return Scaffold(
       backgroundColor: shellBg,
-      body: SafeArea(
-        child: authAsync.when(
-          data: (authUser) {
-            if (authUser == null) {
-              return const Center(child: CupertinoActivityIndicator());
-            }
-            final ownerId = authUser.uid;
-            final profilesRepo = ref.watch(userProfilesRepositoryProvider);
-            final profileStream = profilesRepo?.watchUsersByIds(<String>[
-              ownerId,
-              userId,
-            ]);
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const ChatShellBackdrop(),
+          SafeArea(
+            child: authAsync.when(
+              data: (authUser) {
+                if (authUser == null) {
+                  return const Center(child: CupertinoActivityIndicator());
+                }
+                final ownerId = authUser.uid;
+                final profilesRepo = ref.watch(userProfilesRepositoryProvider);
+                final profileStream = profilesRepo?.watchUsersByIds(<String>[
+                  ownerId,
+                  userId,
+                ]);
 
-            final indexAsync = ref.watch(userChatIndexProvider(ownerId));
-            final conversationIds =
-                indexAsync.asData?.value?.conversationIds ?? const <String>[];
-            final conversationsAsync = ref.watch(
-              conversationsProvider((
-                key: conversationIdsCacheKey(conversationIds),
-              )),
-            );
-
-            return StreamBuilder<Map<String, UserProfile>>(
-              stream: profileStream,
-              builder: (context, snap) {
-                final profileMap = snap.data ?? const <String, UserProfile>{};
-                final selfProfile = profileMap[ownerId];
-                final partnerProfile = profileMap[userId];
-
-                final loadedConversations =
-                    conversationsAsync.asData?.value ??
-                    const <ConversationWithId>[];
-                final direct = _findDirectConversation(
-                  conversations: loadedConversations,
-                  ownerId: ownerId,
-                  partnerId: userId,
+                final indexAsync = ref.watch(userChatIndexProvider(ownerId));
+                final conversationIds =
+                    indexAsync.asData?.value?.conversationIds ??
+                    const <String>[];
+                final conversationsAsync = ref.watch(
+                  conversationsProvider((
+                    key: conversationIdsCacheKey(conversationIds),
+                  )),
                 );
 
-                final conversationId =
-                    direct?.id ?? _canonicalDirectChatId(ownerId, userId);
-                final conversation =
-                    direct?.data ??
-                    _buildFallbackDirectConversation(
+                return StreamBuilder<Map<String, UserProfile>>(
+                  stream: profileStream,
+                  builder: (context, snap) {
+                    final profileMap =
+                        snap.data ?? const <String, UserProfile>{};
+                    final selfProfile = profileMap[ownerId];
+                    final partnerProfile = profileMap[userId];
+
+                    final loadedConversations =
+                        conversationsAsync.asData?.value ??
+                        const <ConversationWithId>[];
+                    final direct = _findDirectConversation(
+                      conversations: loadedConversations,
                       ownerId: ownerId,
                       partnerId: userId,
-                      selfProfile: selfProfile,
-                      partnerProfile: partnerProfile,
                     );
 
-                return ChatPartnerProfileSheet(
-                  conversationId: conversationId,
-                  conversation: conversation,
-                  currentUserId: ownerId,
-                  selfProfile: selfProfile,
-                  partnerProfile: partnerProfile,
-                  fullScreen: true,
-                  showChatsAction: true,
+                    final conversationId =
+                        direct?.id ?? _canonicalDirectChatId(ownerId, userId);
+                    final conversation =
+                        direct?.data ??
+                        _buildFallbackDirectConversation(
+                          ownerId: ownerId,
+                          partnerId: userId,
+                          selfProfile: selfProfile,
+                          partnerProfile: partnerProfile,
+                        );
+
+                    return ChatPartnerProfileSheet(
+                      conversationId: conversationId,
+                      conversation: conversation,
+                      currentUserId: ownerId,
+                      selfProfile: selfProfile,
+                      partnerProfile: partnerProfile,
+                      fullScreen: true,
+                      showChatsAction: true,
+                    );
+                  },
                 );
               },
-            );
-          },
-          loading: () => const Center(child: CupertinoActivityIndicator()),
-          error: (e, _) => Center(
-            child: Text(
-              'Ошибка: $e',
-              style: const TextStyle(color: Colors.white70),
+              loading: () => const Center(child: CupertinoActivityIndicator()),
+              error: (e, _) => Center(
+                child: Text(
+                  'Ошибка: $e',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

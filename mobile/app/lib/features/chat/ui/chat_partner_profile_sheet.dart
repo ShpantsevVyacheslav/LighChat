@@ -577,6 +577,16 @@ class _ChatPartnerProfileSheetState
 
   Future<void> _onAddContact(String partnerId) async {
     if (!mounted) return;
+    final url = ((widget.partnerProfile?.avatarThumb ??
+                widget.partnerProfile?.avatar) ??
+            '')
+        .trim();
+    if (url.isNotEmpty) {
+      try {
+        await precacheImage(NetworkImage(url), context);
+      } catch (_) {}
+    }
+    if (!mounted) return;
     context.push('/contacts/user/${Uri.encodeComponent(partnerId)}/edit');
   }
 

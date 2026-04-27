@@ -6,7 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' as flutter_contacts;
+import 'package:permission_handler/permission_handler.dart' show openAppSettings;
 
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -105,15 +106,20 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
   }
 
   Future<void> _refreshOsContactsPermission() async {
-    final st = await Permission.contacts.status;
+    final st = await flutter_contacts.FlutterContacts.permissions.request(
+      flutter_contacts.PermissionType.read,
+    );
     if (!mounted) return;
     setState(() {
-      _contactsOsGranted = st.isGranted || st.isLimited;
+      _contactsOsGranted =
+          st == flutter_contacts.PermissionStatus.granted ||
+          st == flutter_contacts.PermissionStatus.limited;
     });
   }
 
-  /// Тумблер отражает системное разрешение (как просили: синхронизирован с ОС).
-  bool get _syncSwitchOn => _contactsOsGranted;
+  /// Тумблер отражает «синхронизация включена» (основной UX), но при этом
+  /// учитывает реальное разрешение ОС.
+  bool get _syncSwitchOn => _hasDeviceConsent && _contactsOsGranted;
 
   _PhoneCountry _detectDefaultCountry() {
     final byPhone = _detectByPhone(widget.viewer.phone);
@@ -263,22 +269,17 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
       return;
     }
 
-    var st = await Permission.contacts.status;
-    if (st.isDenied) {
-      st = await Permission.contacts.request();
-    }
+    final st = await flutter_contacts.FlutterContacts.permissions.request(
+      flutter_contacts.PermissionType.read,
+    );
     if (!mounted) return;
-    if (st.isPermanentlyDenied) {
+    if (st != flutter_contacts.PermissionStatus.granted &&
+        st != flutter_contacts.PermissionStatus.limited) {
       await openAppSettings();
       _setError(
         'Включите доступ к контактам для LighChat в настройках системы.',
         soft: true,
       );
-      await _refreshOsContactsPermission();
-      return;
-    }
-    if (!st.isGranted && !st.isLimited) {
-      _setError('Доступ к контактам не предоставлен.', soft: true);
       await _refreshOsContactsPermission();
       return;
     }
