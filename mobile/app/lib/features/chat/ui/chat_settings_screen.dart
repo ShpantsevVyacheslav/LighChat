@@ -13,6 +13,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../../auth/ui/auth_glass.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
+import '../../../l10n/app_localizations.dart';
 
 class ChatSettingsScreen extends ConsumerStatefulWidget {
   const ChatSettingsScreen({super.key});
@@ -186,9 +187,15 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       await repo.patchChatSettings(user.uid, patch);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось сохранить: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.settings_chats_error_cannot_save(e.toString()),
+          ),
+        ),
+      );
       await _load();
     }
   }
@@ -225,9 +232,15 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки фона: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.settings_chats_error_wallpaper_load(e.toString()),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -247,9 +260,15 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка удаления фона: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.settings_chats_error_wallpaper_delete(e.toString()),
+          ),
+        ),
+      );
     }
   }
 
@@ -257,17 +276,18 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
         return AlertDialog(
-          title: const Text('Удалить фон?'),
-          content: const Text('Этот фон будет удалён из вашего списка.'),
+          title: Text(l10n.settings_chats_wallpaper_delete_confirm_title),
+          content: Text(l10n.settings_chats_wallpaper_delete_confirm_body),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.common_cancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.common_delete),
             ),
           ],
         );
@@ -1290,7 +1310,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Настройки чатов',
+                      AppLocalizations.of(context)!.settings_chats_title,
                       style: TextStyle(
                         fontSize: _kHeaderTitleSize,
                         fontWeight: FontWeight.w700,
@@ -1312,7 +1332,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Предпросмотр',
+                        AppLocalizations.of(context)!.settings_chats_preview,
                         style: TextStyle(
                           fontSize: _kSectionTitleSize,
                           fontWeight: FontWeight.w700,

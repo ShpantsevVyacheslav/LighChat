@@ -35,6 +35,7 @@ import '../data/contact_display_name.dart';
 import '../data/user_profile.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/chat_message_draft_storage.dart';
+import '../../../l10n/app_localizations.dart';
 import 'chat_html_composer_controller.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_video_call_screen.dart';
@@ -117,6 +118,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   int _anchorUnreadStep = 0;
   final Set<String> _sessionReadIds = <String>{};
   bool _initialOpenPositionResolved = false;
+
   /// Сессионный id сообщения перед которым рисуется «Непрочитанные»; не следует за
   /// «текущим» oldest-unread при прочитке (паритет web `unreadSeparatorId`).
   String? _sessionUnreadSeparatorAnchorMessageId;
@@ -532,8 +534,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _sessionUnreadSeparatorAnchorMessageId = null;
       return;
     }
-    _sessionUnreadSeparatorAnchorMessageId ??=
-        _oldestIncomingUnreadId(sortedAsc, viewerId);
+    _sessionUnreadSeparatorAnchorMessageId ??= _oldestIncomingUnreadId(
+      sortedAsc,
+      viewerId,
+    );
   }
 
   Future<void> _markVisibleMessageAsRead(
@@ -875,7 +879,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   viewerId: user.uid,
                   viewerBlockedIds: myBlockedAsync.value ?? const <String>[],
                   partnerId: dmOtherId,
-                  partnerBlockedIds: partnerBlockedAsync?.value ?? const <String>[],
+                  partnerBlockedIds:
+                      partnerBlockedAsync?.value ?? const <String>[],
                   partnerUserDocDenied: partnerBlockedAsync?.hasError == true,
                 );
             final profilesRepo = ref.watch(userProfilesRepositoryProvider);
@@ -1020,7 +1025,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       (m) => m[widget.conversationId],
                     ),
                   );
-                  final outboxJobs = ref.watch(chatOutboxAttachmentNotifierProvider);
+                  final outboxJobs = ref.watch(
+                    chatOutboxAttachmentNotifierProvider,
+                  );
                   final repo = ref.read(chatRepositoryProvider);
                   final isGroup = conv?.data.isGroup ?? false;
                   final pins = conv == null
@@ -1352,13 +1359,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                         return ChatMessageList(
                                                           messagesDesc:
                                                               buildDescWithOutboxMessages(
-                                                            hydratedDesc:
-                                                                hydratedMsgs,
-                                                            jobs: outboxJobs,
-                                                            conversationId:
-                                                                conversationId,
-                                                            senderId: user.uid,
-                                                          ),
+                                                                hydratedDesc:
+                                                                    hydratedMsgs,
+                                                                jobs:
+                                                                    outboxJobs,
+                                                                conversationId:
+                                                                    conversationId,
+                                                                senderId:
+                                                                    user.uid,
+                                                              ),
                                                           currentUserId:
                                                               user.uid,
                                                           conversationId:
@@ -1459,8 +1468,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               mid,
                                                             );
                                                           },
-                                                          onOutboxDismiss:
-                                                              (mid) {
+                                                          onOutboxDismiss: (mid) {
                                                             unawaited(
                                                               handleOutboxDismiss(
                                                                 ref,
@@ -1495,105 +1503,92 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                           Object.hash(
                                                                             album.files.length,
                                                                             album.text,
-                                                                            album.replyTo
-                                                                                ?.messageId,
+                                                                            album.replyTo?.messageId,
                                                                           ),
                                                                         ),
-                                                                        files: album.files,
+                                                                        files: album
+                                                                            .files,
                                                                         captionText:
                                                                             album.text,
                                                                         replyTo:
                                                                             album.replyTo,
                                                                         conversationId:
-                                                                            widget
-                                                                                .conversationId,
+                                                                            widget.conversationId,
                                                                         senderId:
                                                                             user.uid,
-                                                                        repo: repo,
+                                                                        repo:
+                                                                            repo,
                                                                         isMine:
                                                                             true,
                                                                         outgoingBubbleColor:
                                                                             bubbleColor,
                                                                         e2eeContext:
                                                                             album.e2eeContext,
-                                                                    onFinished: () {
-                                                                      ref
-                                                                          .read(
-                                                                            pendingImageAlbumNotifierProvider
-                                                                                .notifier,
-                                                                          )
-                                                                          .setFor(
-                                                                            widget
-                                                                                .conversationId,
-                                                                            null,
+                                                                        onFinished: () {
+                                                                          ref
+                                                                              .read(
+                                                                                pendingImageAlbumNotifierProvider.notifier,
+                                                                              )
+                                                                              .setFor(
+                                                                                widget.conversationId,
+                                                                                null,
+                                                                              );
+                                                                          unawaited(
+                                                                            clearChatMessageDraft(
+                                                                              user.uid,
+                                                                              widget.conversationId,
+                                                                            ),
                                                                           );
-                                                                      unawaited(
-                                                                        clearChatMessageDraft(
-                                                                          user.uid,
-                                                                          widget
-                                                                              .conversationId,
-                                                                        ),
-                                                                      );
-                                                                      if (mounted) {
-                                                                        setState(
-                                                                          () =>
-                                                                              _sendBusy =
-                                                                                  false,
-                                                                        );
-                                                                        WidgetsBinding
-                                                                            .instance
-                                                                            .addPostFrameCallback((
+                                                                          if (mounted) {
+                                                                            setState(
+                                                                              () => _sendBusy = false,
+                                                                            );
+                                                                            WidgetsBinding.instance.addPostFrameCallback((
                                                                               _,
                                                                             ) {
                                                                               _scheduleAutoScrollToBottomIfNeeded();
                                                                             });
-                                                                      }
-                                                                    },
-                                                                    onFailed: (e) {
-                                                                      final b = ref.read(
-                                                                        pendingImageAlbumNotifierProvider,
-                                                                      )[widget.conversationId];
-                                                                      ref
-                                                                          .read(
-                                                                            pendingImageAlbumNotifierProvider
-                                                                                .notifier,
-                                                                          )
-                                                                          .setFor(
-                                                                            widget
-                                                                                .conversationId,
-                                                                            null,
-                                                                          );
-                                                                      if (mounted) {
-                                                                        setState(() {
-                                                                          _sendBusy =
-                                                                              false;
-                                                                          if (b !=
-                                                                              null) {
-                                                                            _pendingAttachments
-                                                                              ..clear()
-                                                                              ..addAll(
-                                                                                b.files,
-                                                                              );
-                                                                            _controller
-                                                                                .text = b
-                                                                                .text;
-                                                                            _replyingTo =
-                                                                                b.replyTo;
                                                                           }
-                                                                        });
-                                                                        ScaffoldMessenger.of(
-                                                                          context,
-                                                                        ).showSnackBar(
-                                                                          SnackBar(
-                                                                            content: Text(
-                                                                              'Не удалось отправить: $e',
-                                                                            ),
-                                                                          ),
-                                                                        );
-                                                                      }
-                                                                    },
-                                                                  ),
-                                                                );
+                                                                        },
+                                                                        onFailed: (e) {
+                                                                          final b = ref.read(
+                                                                            pendingImageAlbumNotifierProvider,
+                                                                          )[widget.conversationId];
+                                                                          ref
+                                                                              .read(
+                                                                                pendingImageAlbumNotifierProvider.notifier,
+                                                                              )
+                                                                              .setFor(
+                                                                                widget.conversationId,
+                                                                                null,
+                                                                              );
+                                                                          if (mounted) {
+                                                                            setState(() {
+                                                                              _sendBusy = false;
+                                                                              if (b !=
+                                                                                  null) {
+                                                                                _pendingAttachments
+                                                                                  ..clear()
+                                                                                  ..addAll(
+                                                                                    b.files,
+                                                                                  );
+                                                                                _controller.text = b.text;
+                                                                                _replyingTo = b.replyTo;
+                                                                              }
+                                                                            });
+                                                                            ScaffoldMessenger.of(
+                                                                              context,
+                                                                            ).showSnackBar(
+                                                                              SnackBar(
+                                                                                content: Text(
+                                                                                  'Не удалось отправить: $e',
+                                                                                ),
+                                                                              ),
+                                                                            );
+                                                                          }
+                                                                        },
+                                                                      ),
+                                                                    );
                                                                   },
                                                                 ),
                                                           onMessageLongPress: (m) =>
@@ -1799,11 +1794,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     onSend: () {
                                       final globalPolicy =
                                           E2eeDataTypePolicy.fromFirestore(
-                                        rawPrivacySettings['e2eeEncryptedDataTypes'],
-                                      );
+                                            rawPrivacySettings['e2eeEncryptedDataTypes'],
+                                          );
                                       final convData = conv?.data;
-                                      final overrideRaw =
-                                          convData?.e2eeEncryptedDataTypesOverride;
+                                      final overrideRaw = convData
+                                          ?.e2eeEncryptedDataTypesOverride;
                                       final overridePolicy = overrideRaw == null
                                           ? null
                                           : E2eeDataTypePolicy.fromFirestore(
@@ -1811,9 +1806,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                             );
                                       final effectivePolicy =
                                           resolveE2eeEffectivePolicy(
-                                        global: globalPolicy,
-                                        override: overridePolicy,
-                                      );
+                                            global: globalPolicy,
+                                            override: overridePolicy,
+                                          );
                                       unawaited(
                                         _submitComposer(
                                           user.uid,
@@ -1927,9 +1922,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     },
                                     attachmentsEnabled:
                                         _editingMessageId == null,
-                                    sendBusy:
-                                        _sendBusy ||
-                                        pendingAlbum != null,
+                                    sendBusy: _sendBusy || pendingAlbum != null,
                                     onAttachmentSelected: (a) =>
                                         unawaited(_handleComposerAttachment(a)),
                                     onMicTap: () =>
@@ -2225,7 +2218,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     skipLoadingOnReload: true,
                     data: (msgs) {
                       final clearedAtIso = conv?.data.clearedAt?[user.uid];
-                      final visibleMsgs = _filterByClearedAt(msgs, clearedAtIso);
+                      final visibleMsgs = _filterByClearedAt(
+                        msgs,
+                        clearedAtIso,
+                      );
                       final previousVisibleCount = _lastMessagesCount;
                       _lastMessagesCount = visibleMsgs.length;
                       _sortedAscCache = List<ChatMessage>.from(visibleMsgs)
@@ -2270,7 +2266,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       );
                     },
                     error: (e, _) => Scaffold(
-                      appBar: AppBar(title: const Text('Сообщения')),
+                      appBar: AppBar(
+                        title: Text(
+                          AppLocalizations.of(context)!.chat_messages_title,
+                        ),
+                      ),
                       body: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text('Ошибка загрузки сообщений: $e'),
@@ -2446,16 +2446,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить сообщение?'),
-        content: const Text('Сообщение будет скрыто у всех.'),
+        title: Text(
+          AppLocalizations.of(context)!.chat_delete_message_title_single,
+        ),
+        content: Text(
+          AppLocalizations.of(context)!.chat_delete_message_body_single,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить'),
+            child: Text(AppLocalizations.of(context)!.common_delete),
           ),
         ],
       ),
@@ -2530,16 +2534,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить файл?'),
-        content: const Text('Будет удалён только этот файл из сообщения.'),
+        title: Text(AppLocalizations.of(context)!.chat_delete_file_title),
+        content: Text(AppLocalizations.of(context)!.chat_delete_file_body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить'),
+            child: Text(AppLocalizations.of(context)!.common_delete),
           ),
         ],
       ),
@@ -3153,7 +3157,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             encryptText: e2eePolicy.text,
           );
         }
-        ref.read(pendingImageAlbumNotifierProvider.notifier).setFor(
+        ref
+            .read(pendingImageAlbumNotifierProvider.notifier)
+            .setFor(
               widget.conversationId,
               PendingImageAlbumSend(
                 files: pending,
@@ -3363,7 +3369,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   E2eeDataTypePolicy _resolveEffectiveE2eePolicyForChat(String uid) {
     final userDoc =
         ref.read(userChatSettingsDocProvider(uid)).asData?.value ??
-            const <String, dynamic>{};
+        const <String, dynamic>{};
     final rawPrivacy =
         userDoc['privacySettings'] as Map? ?? const <String, dynamic>{};
     final global = E2eeDataTypePolicy.fromFirestore(
@@ -3379,8 +3385,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? convList.first.data
         : null;
     final overrideRaw = conv?.e2eeEncryptedDataTypesOverride;
-    final overridePolicy =
-        overrideRaw == null ? null : E2eeDataTypePolicy.fromFirestore(overrideRaw);
+    final overridePolicy = overrideRaw == null
+        ? null
+        : E2eeDataTypePolicy.fromFirestore(overrideRaw);
     return resolveE2eeEffectivePolicy(global: global, override: overridePolicy);
   }
 

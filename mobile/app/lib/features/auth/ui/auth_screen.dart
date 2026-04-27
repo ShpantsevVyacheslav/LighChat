@@ -17,6 +17,7 @@ import 'register_form.dart';
 import 'telegram_sign_in_webview_screen.dart';
 import 'yandex_sign_in_webview_screen.dart';
 import '../../shared/ui/app_back_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -44,10 +45,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return;
     }
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Не удалось открыть политику конфиденциальности'),
-      ),
+      SnackBar(content: Text(l10n.auth_error_open_privacy_policy)),
     );
   }
 
@@ -97,6 +97,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final userAsync = ref.watch(authUserProvider);
     final repo = ref.watch(authRepositoryProvider);
@@ -143,7 +144,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             const Center(child: AuthBrandHeader()),
                             const SizedBox(height: 8),
                             Text(
-                              'Безопасный мессенджер',
+                              l10n.auth_brand_tagline,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 23 / 2,
@@ -155,7 +156,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             const SizedBox(height: 14),
                             if (!firebaseReady)
                               Text(
-                                'Firebase не готов. Проверь `firebase_options.dart` и GoogleService-Info.plist.',
+                                l10n.auth_firebase_not_ready,
                                 style: TextStyle(color: scheme.error),
                               ),
                             userAsync.when(
@@ -175,7 +176,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                             ),
                                             const SizedBox(height: 10),
                                             Text(
-                                              'Переходим в чаты...',
+                                              l10n.auth_redirecting_to_chats,
                                               style: TextStyle(
                                                 color:
                                                     (dark
@@ -225,7 +226,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     horizontal: 14,
                                   ),
                                   child: Text(
-                                    'или',
+                                    l10n.auth_or,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 10.5,
@@ -356,7 +357,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               onPressed: (!firebaseReady || _busy)
                                   ? null
                                   : _openRegisterSheet,
-                              child: const Text('Создать аккаунт'),
+                              child: Text(l10n.auth_create_account),
                             ),
                             const SizedBox(height: 12),
                             if (!keyboardVisible)
@@ -372,9 +373,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     tapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  child: const Text(
-                                    'Политика конфиденциальности',
-                                    style: TextStyle(
+                                  child: Text(
+                                    l10n.auth_privacy_policy,
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
                                     ),

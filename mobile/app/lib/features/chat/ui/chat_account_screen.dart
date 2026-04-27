@@ -9,6 +9,8 @@ import '../../auth/ui/auth_glass.dart';
 import 'chat_avatar.dart';
 import 'profile_qr_sheet.dart';
 import '../data/profile_qr_link.dart';
+import '../../settings/data/app_language_preference.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ChatAccountScreen extends ConsumerWidget {
   const ChatAccountScreen({super.key});
@@ -46,12 +48,13 @@ class ChatAccountScreen extends ConsumerWidget {
               return StreamBuilder<Map<String, UserProfile>>(
                 stream: profileStream,
                 builder: (context, snap) {
+                  final l10n = AppLocalizations.of(context)!;
                   final profile = snap.data?[user.uid];
                   final rawName = profile?.name ?? '';
                   final rawUsername = profile?.username ?? '';
                   final name = rawName.trim().isNotEmpty
                       ? rawName.trim()
-                      : 'Профиль';
+                      : l10n.account_menu_profile;
                   final username = rawUsername.trim().isNotEmpty
                       ? rawUsername.trim().replaceFirst(RegExp(r'^@'), '')
                       : 'user';
@@ -63,6 +66,10 @@ class ChatAccountScreen extends ConsumerWidget {
                     username: username,
                     avatarUrl: avatarUrl,
                     themeLabel: appThemeLabel,
+                    languageLabel: languageLabelForTrailing(
+                      l10n: l10n,
+                      pref: ref.watch(appLanguagePreferenceProvider),
+                    ),
                     onBack: () {
                       if (context.canPop()) {
                         context.pop();
@@ -98,6 +105,7 @@ class ChatAccountScreen extends ConsumerWidget {
                     onNotificationsTap: () =>
                         context.push('/settings/notifications'),
                     onPrivacyTap: () => context.push('/settings/privacy'),
+                    onLanguageTap: () => context.push('/settings/language'),
                     onThemeTap: () async {
                       final repo = ref.read(chatSettingsRepositoryProvider);
                       if (repo == null) return;
@@ -116,7 +124,9 @@ class ChatAccountScreen extends ConsumerWidget {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Не удалось сохранить тему: $e'),
+                            content: Text(
+                              l10n.common_error_cannot_save_theme(e.toString()),
+                            ),
                           ),
                         );
                       }
@@ -131,7 +141,11 @@ class ChatAccountScreen extends ConsumerWidget {
                       } catch (e) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Не удалось выйти: $e')),
+                          SnackBar(
+                            content: Text(
+                              l10n.common_error_cannot_sign_out(e.toString()),
+                            ),
+                          ),
                         );
                       }
                     },
@@ -143,7 +157,11 @@ class ChatAccountScreen extends ConsumerWidget {
             error: (e, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Ошибка профиля: $e'),
+                child: Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.account_error_profile(e.toString()),
+                ),
               ),
             ),
           ),
@@ -159,12 +177,14 @@ class _AccountView extends StatelessWidget {
     required this.username,
     required this.avatarUrl,
     required this.themeLabel,
+    required this.languageLabel,
     required this.onBack,
     required this.onProfileTap,
     required this.onQrTap,
     required this.onChatSettingsTap,
     required this.onNotificationsTap,
     required this.onPrivacyTap,
+    required this.onLanguageTap,
     required this.onThemeTap,
     required this.onSignOutTap,
   });
@@ -173,17 +193,20 @@ class _AccountView extends StatelessWidget {
   final String username;
   final String? avatarUrl;
   final String themeLabel;
+  final String languageLabel;
   final VoidCallback onBack;
   final VoidCallback onProfileTap;
   final VoidCallback onQrTap;
   final VoidCallback onChatSettingsTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onPrivacyTap;
+  final VoidCallback onLanguageTap;
   final VoidCallback onThemeTap;
   final VoidCallback onSignOutTap;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final titleColor = dark
@@ -287,27 +310,33 @@ class _AccountView extends StatelessWidget {
                     children: [
                       _MenuItem(
                         icon: Icons.person_outline_rounded,
-                        title: 'Профиль',
+                        title: l10n.account_menu_profile,
                         onTap: onProfileTap,
                       ),
                       _MenuItem(
                         icon: Icons.chat_bubble_outline_rounded,
-                        title: 'Настройки чатов',
+                        title: l10n.account_menu_chat_settings,
                         onTap: onChatSettingsTap,
                       ),
                       _MenuItem(
                         icon: Icons.notifications_none_rounded,
-                        title: 'Уведомления',
+                        title: l10n.account_menu_notifications,
                         onTap: onNotificationsTap,
                       ),
                       _MenuItem(
                         icon: Icons.access_time_rounded,
-                        title: 'Конфиденциальность',
+                        title: l10n.account_menu_privacy,
                         onTap: onPrivacyTap,
                       ),
                       _MenuItem(
+                        icon: Icons.language_rounded,
+                        title: l10n.account_menu_language,
+                        trailing: '· $languageLabel',
+                        onTap: onLanguageTap,
+                      ),
+                      _MenuItem(
                         icon: Icons.auto_awesome_outlined,
-                        title: 'Тема',
+                        title: l10n.account_menu_theme,
                         trailing: '· $themeLabel',
                         onTap: onThemeTap,
                       ),
@@ -320,7 +349,7 @@ class _AccountView extends StatelessWidget {
                       const SizedBox(height: 10),
                       _MenuItem(
                         icon: Icons.logout_rounded,
-                        title: 'Выйти',
+                        title: l10n.account_menu_sign_out,
                         warning: true,
                         onTap: onSignOutTap,
                       ),
@@ -333,6 +362,20 @@ class _AccountView extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+String languageLabelForTrailing({
+  required AppLocalizations l10n,
+  required AppLanguagePreference pref,
+}) {
+  switch (pref) {
+    case AppLanguagePreference.system:
+      return l10n.settings_language_system;
+    case AppLanguagePreference.ru:
+      return l10n.settings_language_ru;
+    case AppLanguagePreference.en:
+      return l10n.settings_language_en;
   }
 }
 

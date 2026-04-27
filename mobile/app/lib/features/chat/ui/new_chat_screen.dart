@@ -19,6 +19,7 @@ import '../data/user_profile.dart';
 import 'chat_shell_backdrop.dart';
 import 'device_contact_invite_row.dart';
 import 'new_chat_user_picker_row.dart';
+import '../../../l10n/app_localizations.dart';
 
 class NewChatScreen extends ConsumerStatefulWidget {
   const NewChatScreen({super.key});
@@ -146,7 +147,12 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   Widget _sectionHeader(BuildContext context, String text) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(_horizontalPad, 20, _horizontalPad, 10),
+      padding: const EdgeInsets.fromLTRB(
+        _horizontalPad,
+        20,
+        _horizontalPad,
+        10,
+      ),
       child: Text(
         text,
         style: TextStyle(
@@ -160,6 +166,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   }
 
   Widget _searchField(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fill = dark
@@ -180,14 +187,11 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
               controller: _search,
               onChanged: (_) => setState(() {}),
               textCapitalization: TextCapitalization.sentences,
-              style: TextStyle(
-                fontSize: 15,
-                color: scheme.onSurface,
-              ),
+              style: TextStyle(fontSize: 15, color: scheme.onSurface),
               cursorColor: scheme.primary,
               textAlignVertical: TextAlignVertical.center,
               decoration: InputDecoration(
-                hintText: 'Имя, ник или @username...',
+                hintText: l10n.new_chat_search_hint,
                 hintStyle: TextStyle(
                   fontSize: 15,
                   color: scheme.onSurface.withValues(alpha: 0.42),
@@ -218,6 +222,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   }
 
   Widget _createGroupButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fill = dark
@@ -242,7 +247,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Создать группу',
+                l10n.new_chat_create_group,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -281,6 +286,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   }
 
   Widget _headerBlock(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(_horizontalPad, 6, _horizontalPad, 0),
@@ -292,7 +298,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Новый чат',
+                  l10n.new_chat_title,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
@@ -302,7 +308,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Выберите пользователя, чтобы начать диалог, или создайте группу.',
+                  l10n.new_chat_subtitle,
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
@@ -338,18 +344,24 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
             child: userAsync.when(
               data: (u) {
                 if (u == null) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/auth'));
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => context.go('/auth'),
+                  );
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (profilesRepo == null || repo == null || _usersFuture == null) {
+                if (profilesRepo == null ||
+                    repo == null ||
+                    _usersFuture == null) {
                   return const Padding(
                     padding: EdgeInsets.all(16),
                     child: Text('Firebase не готов.'),
                   );
                 }
 
-                final contactsAsync = ref.watch(userContactsIndexProvider(u.uid));
+                final contactsAsync = ref.watch(
+                  userContactsIndexProvider(u.uid),
+                );
 
                 return contactsAsync.when(
                   data: (contactsIdx) {
@@ -357,7 +369,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                       future: _usersFuture,
                       builder: (context, snap) {
                         if (snap.connectionState != ConnectionState.done) {
-                          return const Center(child: CircularProgressIndicator());
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
 
                         final all = snap.data ?? const <UserProfile>[];
@@ -410,6 +424,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         );
 
                         final scheme = Theme.of(context).colorScheme;
+                        final l10n = AppLocalizations.of(context)!;
                         final listChildren = <Widget>[];
 
                         final deviceCandidates = buildDeviceContactCandidates(
@@ -417,14 +432,23 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                           term: term,
                           limit: 12,
                         );
-                        if (term.trim().isNotEmpty && deviceCandidates.isNotEmpty) {
-                          listChildren.add(_sectionHeader(context, 'КОНТАКТЫ ТЕЛЕФОНА'));
+                        if (term.trim().isNotEmpty &&
+                            deviceCandidates.isNotEmpty) {
+                          listChildren.add(
+                            _sectionHeader(
+                              context,
+                              l10n.new_chat_section_phone_contacts,
+                            ),
+                          );
                           for (final c in deviceCandidates) {
                             final uid = _deviceContactIdToUserId[c.contactId];
-                            final registered = uid != null && uid.trim().isNotEmpty;
+                            final registered =
+                                uid != null && uid.trim().isNotEmpty;
                             listChildren.add(
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: _horizontalPad,
+                                ),
                                 child: DeviceContactInviteRow(
                                   candidate: c,
                                   registered: registered,
@@ -445,13 +469,13 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                   onInvite: registered
                                       ? null
                                       : () async {
-                                          final origin = shareOriginForContext(context);
+                                          final origin = shareOriginForContext(
+                                            context,
+                                          );
                                           await SharePlus.instance.share(
                                             ShareParams(
-                                              text:
-                                                  'Поставь LighChat: https://lighchat.online\n'
-                                                  'Приглашаю тебя в LighChat — вот ссылка на установку.',
-                                              subject: 'Приглашение в LighChat',
+                                              text: l10n.invite_text,
+                                              subject: l10n.invite_subject,
                                               sharePositionOrigin: origin,
                                             ),
                                           );
@@ -463,7 +487,12 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         }
 
                         if (split.fromContacts.isNotEmpty) {
-                          listChildren.add(_sectionHeader(context, 'КОНТАКТЫ'));
+                          listChildren.add(
+                            _sectionHeader(
+                              context,
+                              l10n.new_chat_section_contacts,
+                            ),
+                          );
                           for (final p in split.fromContacts) {
                             final viewProfile = _withDisplayName(
                               p,
@@ -471,7 +500,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                             );
                             listChildren.add(
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: _horizontalPad,
+                                ),
                                 child: NewChatUserPickerRow(
                                   profile: viewProfile,
                                   style: NewChatUserPickerRowStyle.list,
@@ -490,7 +521,12 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         }
 
                         if (split.fromGlobal.isNotEmpty) {
-                          listChildren.add(_sectionHeader(context, 'ВСЕ ПОЛЬЗОВАТЕЛИ'));
+                          listChildren.add(
+                            _sectionHeader(
+                              context,
+                              l10n.new_chat_section_all_users,
+                            ),
+                          );
                           for (final p in split.fromGlobal) {
                             final viewProfile = _withDisplayName(
                               p,
@@ -498,7 +534,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                             );
                             listChildren.add(
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: _horizontalPad,
+                                ),
                                 child: NewChatUserPickerRow(
                                   profile: viewProfile,
                                   style: NewChatUserPickerRowStyle.list,
@@ -522,12 +560,16 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                             _headerBlock(context),
                             const SizedBox(height: 22),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: _horizontalPad,
+                              ),
                               child: _searchField(context),
                             ),
                             const SizedBox(height: 10),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: _horizontalPad,
+                              ),
                               child: _createGroupButton(context),
                             ),
                             if (_error != null)
@@ -540,7 +582,10 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                 ),
                                 child: Text(
                                   _error!,
-                                  style: TextStyle(color: scheme.error, fontSize: 13),
+                                  style: TextStyle(
+                                    color: scheme.error,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                             Expanded(
@@ -550,18 +595,26 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                         padding: const EdgeInsets.all(24),
                                         child: Text(
                                           term.trim().isEmpty
-                                              ? 'Нет пользователей, с которыми можно начать чат.'
-                                              : 'Никого не найдено.',
+                                              ? AppLocalizations.of(
+                                                  context,
+                                                )!.new_chat_empty_no_users
+                                              : AppLocalizations.of(
+                                                  context,
+                                                )!.new_chat_empty_not_found,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: scheme.onSurface.withValues(alpha: 0.55),
+                                            color: scheme.onSurface.withValues(
+                                              alpha: 0.55,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     )
                                   : ListView(
-                                      padding: const EdgeInsets.only(bottom: 24),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 24,
+                                      ),
                                       children: listChildren,
                                     ),
                             ),
@@ -570,10 +623,15 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                       },
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text('Контакты: $e'),
+                    child: Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.new_chat_error_contacts(e.toString()),
+                    ),
                   ),
                 );
               },
@@ -604,8 +662,16 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
       final convId = await repo.createOrOpenDirectChat(
         currentUserId: uid,
         otherUserId: peer.id,
-        currentUserInfo: (name: me.name, avatar: me.avatar, avatarThumb: me.avatarThumb),
-        otherUserInfo: (name: peer.name, avatar: peer.avatar, avatarThumb: peer.avatarThumb),
+        currentUserInfo: (
+          name: me.name,
+          avatar: me.avatar,
+          avatarThumb: me.avatarThumb,
+        ),
+        otherUserInfo: (
+          name: peer.name,
+          avatar: peer.avatar,
+          avatarThumb: peer.avatarThumb,
+        ),
       );
       // Phase 4: auto-enable E2EE, если это требует политика платформы или
       // пользователя. Ошибки молча игнорируются (паритет web), не блокируют

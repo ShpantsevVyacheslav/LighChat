@@ -1,0 +1,277 @@
+{
+  "@@locale": "ru",
+  "settings_language_title": "Язык",
+  "settings_language_system": "Системный",
+  "settings_language_ru": "Русский",
+  "settings_language_en": "English",
+  "settings_language_hint_system": "При выборе «Системный» язык соответствует настройкам устройства.",
+  "account_menu_profile": "Профиль",
+  "account_menu_chat_settings": "Настройки чатов",
+  "account_menu_notifications": "Уведомления",
+  "account_menu_privacy": "Конфиденциальность",
+  "account_menu_language": "Язык",
+  "account_menu_theme": "Тема",
+  "account_menu_sign_out": "Выйти",
+  "common_soon": "Скоро",
+  "common_theme_prefix": "Тема: {label}",
+  "@common_theme_prefix": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "common_error_cannot_save_theme": "Не удалось сохранить тему: {error}",
+  "@common_error_cannot_save_theme": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "common_error_cannot_sign_out": "Не удалось выйти: {error}",
+  "@common_error_cannot_sign_out": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "account_error_profile": "Ошибка профиля: {error}",
+  "@account_error_profile": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_title": "Уведомления",
+  "notifications_section_main": "Основные",
+  "notifications_mute_all_title": "Отключить все",
+  "notifications_mute_all_subtitle": "Полностью выключить уведомления.",
+  "notifications_sound_title": "Звук",
+  "notifications_sound_subtitle": "Воспроизводить звук при новом сообщении.",
+  "notifications_preview_title": "Предпросмотр",
+  "notifications_preview_subtitle": "Показывать текст сообщения в уведомлении.",
+  "notifications_section_quiet_hours": "Тихие часы",
+  "notifications_quiet_hours_subtitle": "Уведомления не будут беспокоить в указанный период.",
+  "notifications_quiet_hours_enable_title": "Включить тихие часы",
+  "notifications_reset_button": "Сбросить настройки",
+  "notifications_error_cannot_save": "Не удалось сохранить настройки: {error}",
+  "@notifications_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_error_load": "Ошибка загрузки уведомлений: {error}",
+  "@notifications_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_title": "Конфиденциальность",
+  "privacy_error_cannot_save": "Не удалось сохранить настройки: {error}",
+  "@privacy_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_error_load": "Ошибка загрузки конфиденциальности: {error}",
+  "@privacy_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_e2ee_section": "Сквозное шифрование",
+  "privacy_e2ee_enable_for_all_chats": "Включить шифрование (E2E) для всех чатов",
+  "privacy_e2ee_what_encrypt": "Что шифруем в E2EE чатах",
+  "privacy_e2ee_text": "Текст сообщений",
+  "privacy_e2ee_media": "Вложения (медиа/файлы)",
+  "privacy_my_devices_title": "Мои устройства",
+  "privacy_my_devices_subtitle": "Список устройств с опубликованным ключом. Переименовать или отозвать.",
+  "privacy_key_backup_title": "Резервное копирование и передача ключа",
+  "privacy_key_backup_subtitle": "Создать backup паролем или передать ключ другому устройству по QR.",
+  "privacy_visibility_section": "Видимость",
+  "privacy_online_title": "Статус онлайн",
+  "privacy_online_subtitle": "Другие пользователи видят, что вы в сети.",
+  "privacy_last_seen_title": "Последний визит",
+  "privacy_last_seen_subtitle": "Показывать время последнего посещения.",
+  "privacy_read_receipts_title": "Индикатор прочтения",
+  "privacy_read_receipts_subtitle": "Показывать отправителям, что вы прочитали сообщение.",
+  "privacy_group_invites_section": "Приглашения в группы",
+  "privacy_group_invites_subtitle": "Кто может добавлять вас в групповой чат.",
+  "privacy_group_invites_everyone": "Все пользователи",
+  "privacy_group_invites_contacts": "Только контакты",
+  "privacy_group_invites_nobody": "Никто",
+  "privacy_global_search_section": "Поиск собеседников",
+  "privacy_global_search_subtitle": "Кто может найти вас по имени среди всех пользователей приложения.",
+  "privacy_global_search_title": "Глобальный поиск",
+  "privacy_global_search_hint": "Если выключено, вы не отображаетесь в списке «Все пользователи» при создании чата. В блоке «Контакты» вы по-прежнему видны тем, кто добавил вас в контакты.",
+  "privacy_profile_for_others_section": "Профиль для других",
+  "privacy_profile_for_others_subtitle": "Что показывать в карточке контакта и в профиле из беседы.",
+  "privacy_email_subtitle": "Адрес почты в профиле собеседника.",
+  "privacy_phone_title": "Номер телефона",
+  "privacy_phone_subtitle": "В профиле и в списке контактов у других.",
+  "privacy_birthdate_title": "Дата рождения",
+  "privacy_birthdate_subtitle": "Поле «День рождения» в профиле.",
+  "privacy_about_title": "О себе",
+  "privacy_about_subtitle": "Текст биографии в профиле.",
+  "privacy_reset_button": "Сбросить настройки",
+  "common_cancel": "Отмена",
+  "common_delete": "Удалить",
+  "common_choose": "Выбрать",
+  "common_nothing_found": "Ничего не найдено",
+  "common_retry": "Повторить",
+  "settings_chats_title": "Настройки чатов",
+  "settings_chats_preview": "Предпросмотр",
+  "settings_chats_outgoing": "Исходящие сообщения",
+  "settings_chats_incoming": "Входящие сообщения",
+  "settings_chats_font_size": "Размер шрифта",
+  "settings_chats_font_small": "Мелкий",
+  "settings_chats_font_medium": "Средний",
+  "settings_chats_font_large": "Крупный",
+  "settings_chats_bubble_shape": "Форма пузырьков",
+  "settings_chats_bubble_rounded": "Округлённые",
+  "settings_chats_bubble_square": "Квадратные",
+  "settings_chats_chat_background": "Фон чата",
+  "settings_chats_chat_background_pick_hint": "Выберите фото из галереи или настройте",
+  "settings_chats_advanced": "Дополнительно",
+  "settings_chats_show_time": "Показывать время",
+  "settings_chats_show_time_subtitle": "Время отправки под сообщениями",
+  "settings_chats_reset": "Сбросить настройки",
+  "settings_chats_error_cannot_save": "Не удалось сохранить: {error}",
+  "@settings_chats_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_load": "Ошибка загрузки фона: {error}",
+  "@settings_chats_error_wallpaper_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_delete": "Ошибка удаления фона: {error}",
+  "@settings_chats_error_wallpaper_delete": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_wallpaper_delete_confirm_title": "Удалить фон?",
+  "settings_chats_wallpaper_delete_confirm_body": "Этот фон будет удалён из вашего списка.",
+  "settings_chats_icon_picker_title": "Иконка: «{label}»",
+  "@settings_chats_icon_picker_title": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "settings_chats_icon_picker_search_hint": "Поиск по названию…",
+  "settings_chats_icon_color": "Цвет иконки",
+  "settings_chats_reset_icon_size": "Сбросить размер",
+  "settings_chats_reset_icon_stroke": "Сбросить толщину",
+  "settings_chats_tile_background": "Фон плитки под иконкой",
+  "settings_chats_default_gradient": "Градиент по умолчанию",
+  "settings_chats_inherit_global": "Наследовать от глобальных",
+  "settings_chats_no_background": "Без фона",
+  "settings_chats_no_background_on": "Без фона (вкл.)"
+  ,
+  "chat_list_title": "Чаты",
+  "chat_list_search_hint": "Поиск…",
+  "chat_list_loading_connecting": "Подключение к аккаунту…",
+  "chat_list_loading_conversations": "Загрузка бесед…",
+  "chat_list_loading_list": "Загрузка списка чатов…",
+  "chat_list_loading_sign_out": "Выход…",
+  "chat_list_empty_search_title": "Чаты не найдены",
+  "chat_list_empty_search_body": "Попробуйте изменить запрос. Поиск работает по имени пользователя и логину.",
+  "chat_list_empty_folder_title": "В этой папке пока пусто",
+  "chat_list_empty_folder_body": "Переключитесь на другую папку или создайте новый чат через кнопку вверху.",
+  "chat_list_empty_all_title": "Пока нет чатов",
+  "chat_list_empty_all_body": "Создайте новый чат, чтобы начать переписку.",
+  "chat_list_action_new_folder": "Новая папка",
+  "chat_list_action_new_chat": "Новый чат",
+  "chat_list_action_create": "Создать",
+  "chat_list_action_close": "Закрыть",
+  "chat_list_folders_title": "Папки",
+  "chat_list_folders_subtitle": "Выберите папки для этого чата.",
+  "chat_list_folders_empty": "Пока нет кастомных папок.",
+  "chat_list_create_folder_title": "Новая папка",
+  "chat_list_create_folder_subtitle": "Создайте папку для быстрой фильтрации чатов.",
+  "chat_list_create_folder_name_label": "НАЗВАНИЕ ПАПКИ",
+  "chat_list_create_folder_chats_label": "ЧАТЫ ({count})",
+  "@chat_list_create_folder_chats_label": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_list_create_folder_select_all": "ВЫБРАТЬ ВСЁ",
+  "chat_list_create_folder_reset": "СБРОСИТЬ",
+  "chat_list_create_folder_search_hint": "Поиск по названию…",
+  "chat_list_create_folder_no_matches": "Подходящие чаты не найдены",
+  "chat_list_folder_default_starred": "Избранное",
+  "chat_list_folder_default_all": "Все",
+  "chat_list_folder_default_new": "Новые",
+  "chat_list_folder_default_direct": "Личные",
+  "chat_list_folder_default_groups": "Группы",
+  "chat_list_yesterday": "Вчера",
+  "chat_list_snackbar_history_cleared": "История очищена.",
+  "chat_list_snackbar_marked_read": "Чат помечен как прочитанный.",
+  "chat_list_error_generic": "Ошибка: {error}",
+  "@chat_list_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  }
+  ,
+  "new_chat_title": "Новый чат",
+  "new_chat_subtitle": "Выберите пользователя, чтобы начать диалог, или создайте группу.",
+  "new_chat_search_hint": "Имя, ник или @username…",
+  "new_chat_create_group": "Создать группу",
+  "new_chat_section_phone_contacts": "КОНТАКТЫ ТЕЛЕФОНА",
+  "new_chat_section_contacts": "КОНТАКТЫ",
+  "new_chat_section_all_users": "ВСЕ ПОЛЬЗОВАТЕЛИ",
+  "new_chat_empty_no_users": "Нет пользователей, с которыми можно начать чат.",
+  "new_chat_empty_not_found": "Никого не найдено.",
+  "new_chat_error_contacts": "Контакты: {error}",
+  "@new_chat_error_contacts": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invite_subject": "Приглашение в LighChat",
+  "invite_text": "Поставь LighChat: https://lighchat.online\\nПриглашаю тебя в LighChat — вот ссылка на установку.",
+  "new_group_title": "Создать группу",
+  "new_group_search_hint": "Поиск пользователей…",
+  "new_group_pick_photo_tooltip": "Нажмите, чтобы выбрать фото группы. Удерживайте, чтобы убрать.",
+  "new_group_name_label": "Название группы",
+  "new_group_name_hint": "Название",
+  "new_group_description_label": "Описание",
+  "new_group_description_hint": "Необязательно",
+  "new_group_members_count": "Участники ({count})",
+  "@new_group_members_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "new_group_add_members_section": "ДОБАВИТЬ УЧАСТНИКОВ",
+  "new_group_empty_no_users": "Нет пользователей для добавления.",
+  "new_group_empty_not_found": "Никого не найдено.",
+  "new_group_error_name_required": "Введите название группы.",
+  "new_group_error_members_required": "Добавьте хотя бы одного участника.",
+  "new_group_action_create": "Создать"
+  ,
+  "auth_brand_tagline": "Безопасный мессенджер",
+  "auth_firebase_not_ready": "Firebase не готов. Проверь `firebase_options.dart` и GoogleService-Info.plist.",
+  "auth_redirecting_to_chats": "Переходим в чаты...",
+  "auth_or": "или",
+  "auth_create_account": "Создать аккаунт",
+  "auth_privacy_policy": "Политика конфиденциальности",
+  "auth_error_open_privacy_policy": "Не удалось открыть политику конфиденциальности"
+  ,
+  "chat_messages_title": "Сообщения",
+  "chat_call_decline": "Отклонить",
+  "chat_call_open": "Открыть",
+  "chat_call_accept": "Принять",
+  "chat_delete_message_title_single": "Удалить сообщение?",
+  "chat_delete_message_title_multi": "Удалить сообщения?",
+  "chat_delete_message_body_single": "Сообщение будет скрыто у всех.",
+  "chat_delete_message_body_multi": "Будет удалено сообщений: {count}",
+  "@chat_delete_message_body_multi": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_delete_file_title": "Удалить файл?",
+  "chat_delete_file_body": "Будет удалён только этот файл из сообщения."
+}

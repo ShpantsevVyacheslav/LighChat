@@ -6,6 +6,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/e2ee_data_type_policy.dart';
+import '../../../l10n/app_localizations.dart';
 
 const double _kHeaderTitleSize = 16;
 const double _kCardTitleSize = 18;
@@ -17,6 +18,7 @@ class ChatPrivacyScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final userAsync = ref.watch(authUserProvider);
     return Scaffold(
       body: AuthBackground(
@@ -65,7 +67,8 @@ class ChatPrivacyScreen extends ConsumerWidget {
                         showReadReceipts: showReadReceipts,
                         e2eeForNewDirectChats: e2eeForNewDirectChats,
                         e2eeEncryptedDataTypes:
-                            e2eeEncryptedDataTypes ?? settings.e2eeEncryptedDataTypes,
+                            e2eeEncryptedDataTypes ??
+                            settings.e2eeEncryptedDataTypes,
                         showEmailToOthers: showEmailToOthers,
                         showPhoneToOthers: showPhoneToOthers,
                         showBioToOthers: showBioToOthers,
@@ -81,7 +84,9 @@ class ChatPrivacyScreen extends ConsumerWidget {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Не удалось сохранить настройки: $e'),
+                      content: Text(
+                        l10n.privacy_error_cannot_save(e.toString()),
+                      ),
                     ),
                   );
                 }
@@ -110,7 +115,7 @@ class ChatPrivacyScreen extends ConsumerWidget {
             error: (e, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Ошибка загрузки конфиденциальности: $e'),
+                child: Text(l10n.privacy_error_load(e.toString())),
               ),
             ),
           ),
@@ -153,6 +158,7 @@ class _PrivacyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final titleColor = dark
@@ -194,7 +200,7 @@ class _PrivacyView extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Конфиденциальность',
+                l10n.privacy_title,
                 style: TextStyle(
                   fontSize: _kHeaderTitleSize,
                   height: 1.1,
@@ -213,18 +219,18 @@ class _PrivacyView extends StatelessWidget {
               children: [
                 const SizedBox(height: 6),
                 _SettingsCard(
-                  title: 'Сквозное шифрование',
+                  title: l10n.privacy_e2ee_section,
                   leadingIcon: Icons.lock_outline_rounded,
                   children: [
                     _SwitchRow(
-                      title: 'Включить шифрование (E2E) для всех чатов',
+                      title: l10n.privacy_e2ee_enable_for_all_chats,
                       value: settings.e2eeForNewDirectChats,
                       onChanged: onE2eeChanged,
                     ),
                     const SizedBox(height: 8),
-                    _SettingsSubheader(text: 'Что шифруем в E2EE чатах'),
+                    _SettingsSubheader(text: l10n.privacy_e2ee_what_encrypt),
                     _SwitchRow(
-                      title: 'Текст сообщений',
+                      title: l10n.privacy_e2ee_text,
                       value: settings.e2eeEncryptedDataTypes.text,
                       onChanged: (v) => onE2eeDataTypesChanged(
                         settings.e2eeEncryptedDataTypes.copyWith(text: v),
@@ -232,7 +238,7 @@ class _PrivacyView extends StatelessWidget {
                       icon: Icons.text_fields_rounded,
                     ),
                     _SwitchRow(
-                      title: 'Вложения (медиа/файлы)',
+                      title: l10n.privacy_e2ee_media,
                       value: settings.e2eeEncryptedDataTypes.media,
                       onChanged: (v) => onE2eeDataTypesChanged(
                         settings.e2eeEncryptedDataTypes.copyWith(media: v),
@@ -242,41 +248,38 @@ class _PrivacyView extends StatelessWidget {
                     // Переход на экран управления устройствами (Phase 5).
                     // Держим как отдельный элемент, не switch — там список и actions.
                     _NavRow(
-                      title: 'Мои устройства',
-                      subtitle:
-                          'Список устройств с опубликованным ключом. Переименовать или отозвать.',
+                      title: l10n.privacy_my_devices_title,
+                      subtitle: l10n.privacy_my_devices_subtitle,
                       onTap: () => context.push('/settings/devices'),
                     ),
                     // Phase 6: recovery — backup ключа паролем + QR-pairing.
                     // Оба пути нужны, если пользователь потеряет все устройства.
                     _NavRow(
-                      title: 'Резервное копирование и передача ключа',
-                      subtitle:
-                          'Создать backup паролем или передать ключ другому устройству по QR.',
+                      title: l10n.privacy_key_backup_title,
+                      subtitle: l10n.privacy_key_backup_subtitle,
                       onTap: () => context.push('/settings/e2ee-recovery'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
                 _SettingsCard(
-                  title: 'Видимость',
+                  title: l10n.privacy_visibility_section,
                   children: [
                     _SwitchRow(
-                      title: 'Статус онлайн',
-                      subtitle: 'Другие пользователи видят, что вы в сети.',
+                      title: l10n.privacy_online_title,
+                      subtitle: l10n.privacy_online_subtitle,
                       value: settings.showOnlineStatus,
                       onChanged: onShowOnlineChanged,
                     ),
                     _SwitchRow(
-                      title: 'Последний визит',
-                      subtitle: 'Показывать время последнего посещения.',
+                      title: l10n.privacy_last_seen_title,
+                      subtitle: l10n.privacy_last_seen_subtitle,
                       value: settings.showLastSeen,
                       onChanged: onShowLastSeenChanged,
                     ),
                     _SwitchRow(
-                      title: 'Индикатор прочтения',
-                      subtitle:
-                          'Показывать отправителям, что вы прочитали сообщение.',
+                      title: l10n.privacy_read_receipts_title,
+                      subtitle: l10n.privacy_read_receipts_subtitle,
                       value: settings.showReadReceipts,
                       onChanged: onShowReadReceiptsChanged,
                     ),
@@ -284,26 +287,26 @@ class _PrivacyView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 _SettingsCard(
-                  title: 'Приглашения в группы',
-                  subtitle: 'Кто может добавлять вас в групповой чат.',
+                  title: l10n.privacy_group_invites_section,
+                  subtitle: l10n.privacy_group_invites_subtitle,
                   leadingIcon: Icons.group_add_outlined,
                   children: [
                     _SwitchRow(
-                      title: 'Все пользователи',
+                      title: l10n.privacy_group_invites_everyone,
                       value: settings.groupInvitePolicy == 'everyone',
                       onChanged: (on) {
                         if (on) onGroupPolicyChange('everyone');
                       },
                     ),
                     _SwitchRow(
-                      title: 'Только контакты',
+                      title: l10n.privacy_group_invites_contacts,
                       value: settings.groupInvitePolicy == 'contacts',
                       onChanged: (on) {
                         if (on) onGroupPolicyChange('contacts');
                       },
                     ),
                     _SwitchRow(
-                      title: 'Никто',
+                      title: l10n.privacy_group_invites_nobody,
                       value: settings.groupInvitePolicy == 'none',
                       onChanged: (on) {
                         if (on) onGroupPolicyChange('none');
@@ -313,14 +316,12 @@ class _PrivacyView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 _SettingsCard(
-                  title: 'Поиск собеседников',
-                  subtitle:
-                      'Кто может найти вас по имени среди всех пользователей приложения.',
+                  title: l10n.privacy_global_search_section,
+                  subtitle: l10n.privacy_global_search_subtitle,
                   children: [
                     _SwitchRow(
-                      title: 'Глобальный поиск',
-                      subtitle:
-                          'Если выключено, вы не отображаетесь в списке «Все пользователи» при создании чата. В блоке «Контакты» вы по-прежнему видны тем, кто добавил вас в контакты.',
+                      title: l10n.privacy_global_search_title,
+                      subtitle: l10n.privacy_global_search_hint,
                       value: settings.showInGlobalUserSearch,
                       onChanged: onGlobalSearchChanged,
                       icon: Icons.search_rounded,
@@ -329,34 +330,33 @@ class _PrivacyView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 _SettingsCard(
-                  title: 'Профиль для других',
-                  subtitle:
-                      'Что показывать в карточке контакта и в профиле из беседы.',
+                  title: l10n.privacy_profile_for_others_section,
+                  subtitle: l10n.privacy_profile_for_others_subtitle,
                   children: [
                     _SwitchRow(
                       title: 'Email',
-                      subtitle: 'Адрес почты в профиле собеседника.',
+                      subtitle: l10n.privacy_email_subtitle,
                       value: settings.showEmailToOthers,
                       onChanged: onShowEmailChanged,
                       icon: Icons.mail_outline_rounded,
                     ),
                     _SwitchRow(
-                      title: 'Номер телефона',
-                      subtitle: 'В профиле и в списке контактов у других.',
+                      title: l10n.privacy_phone_title,
+                      subtitle: l10n.privacy_phone_subtitle,
                       value: settings.showPhoneToOthers,
                       onChanged: onShowPhoneChanged,
                       icon: Icons.phone_android_outlined,
                     ),
                     _SwitchRow(
-                      title: 'Дата рождения',
-                      subtitle: 'Поле «День рождения» в профиле.',
+                      title: l10n.privacy_birthdate_title,
+                      subtitle: l10n.privacy_birthdate_subtitle,
                       value: settings.showDateOfBirthToOthers,
                       onChanged: onShowDobChanged,
                       icon: Icons.cake_outlined,
                     ),
                     _SwitchRow(
-                      title: 'О себе',
-                      subtitle: 'Текст биографии в профиле.',
+                      title: l10n.privacy_about_title,
+                      subtitle: l10n.privacy_about_subtitle,
                       value: settings.showBioToOthers,
                       onChanged: onShowBioChanged,
                       icon: Icons.person_outline_rounded,
@@ -386,7 +386,7 @@ class _PrivacyView extends StatelessWidget {
                       color: Color(0xCCFFFFFF),
                     ),
                     label: Text(
-                      'Сбросить настройки',
+                      l10n.privacy_reset_button,
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,

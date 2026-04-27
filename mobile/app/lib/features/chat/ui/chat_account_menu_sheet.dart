@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'chat_avatar.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ChatAccountMenuSheet extends StatelessWidget {
   const ChatAccountMenuSheet({
@@ -26,6 +27,7 @@ class ChatAccountMenuSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
 
@@ -99,7 +101,7 @@ class ChatAccountMenuSheet extends StatelessWidget {
     void soon() {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Скоро')));
+      ).showSnackBar(SnackBar(content: Text(l10n.common_soon)));
     }
 
     return SafeArea(
@@ -155,33 +157,33 @@ class ChatAccountMenuSheet extends StatelessWidget {
               const SizedBox(height: 14),
               item(
                 icon: Icons.account_circle_outlined,
-                title: 'Профиль',
+                title: l10n.account_menu_profile,
                 onTap: onProfileTap,
               ),
               item(
                 icon: Icons.chat_bubble_outline_rounded,
-                title: 'Настройки чатов',
+                title: l10n.account_menu_chat_settings,
                 onTap: onChatSettingsTap,
               ),
               item(
                 icon: Icons.notifications_none_rounded,
-                title: 'Уведомления',
+                title: l10n.account_menu_notifications,
                 onTap: soon,
               ),
               item(
                 icon: Icons.shield_outlined,
-                title: 'Конфиденциальность',
+                title: l10n.account_menu_privacy,
                 onTap: soon,
               ),
               item(
                 icon: Icons.palette_outlined,
-                title: 'Тема',
+                title: l10n.account_menu_theme,
                 trailing: themeLabel,
                 onTap: onThemeTap,
               ),
               item(
                 icon: Icons.logout_rounded,
-                title: 'Выйти',
+                title: l10n.account_menu_sign_out,
                 onTap: onSignOutTap,
                 warning: true,
               ),

@@ -1,0 +1,277 @@
+{
+  "@@locale": "en",
+  "settings_language_title": "Language",
+  "settings_language_system": "System",
+  "settings_language_ru": "Russian",
+  "settings_language_en": "English",
+  "settings_language_hint_system": "When “System” is selected, the app follows your device language settings.",
+  "account_menu_profile": "Profile",
+  "account_menu_chat_settings": "Chat settings",
+  "account_menu_notifications": "Notifications",
+  "account_menu_privacy": "Privacy",
+  "account_menu_language": "Language",
+  "account_menu_theme": "Theme",
+  "account_menu_sign_out": "Sign out",
+  "common_soon": "Coming soon",
+  "common_theme_prefix": "Theme: {label}",
+  "@common_theme_prefix": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "common_error_cannot_save_theme": "Couldn’t save the theme: {error}",
+  "@common_error_cannot_save_theme": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "common_error_cannot_sign_out": "Couldn’t sign out: {error}",
+  "@common_error_cannot_sign_out": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "account_error_profile": "Profile error: {error}",
+  "@account_error_profile": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_title": "Notifications",
+  "notifications_section_main": "Main",
+  "notifications_mute_all_title": "Turn off all",
+  "notifications_mute_all_subtitle": "Disable all notifications.",
+  "notifications_sound_title": "Sound",
+  "notifications_sound_subtitle": "Play a sound for new messages.",
+  "notifications_preview_title": "Preview",
+  "notifications_preview_subtitle": "Show message text in notifications.",
+  "notifications_section_quiet_hours": "Quiet hours",
+  "notifications_quiet_hours_subtitle": "Notifications won’t bother you during this time window.",
+  "notifications_quiet_hours_enable_title": "Enable quiet hours",
+  "notifications_reset_button": "Reset settings",
+  "notifications_error_cannot_save": "Couldn’t save settings: {error}",
+  "@notifications_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_error_load": "Couldn’t load notifications: {error}",
+  "@notifications_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_title": "Privacy",
+  "privacy_error_cannot_save": "Couldn’t save settings: {error}",
+  "@privacy_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_error_load": "Couldn’t load privacy settings: {error}",
+  "@privacy_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_e2ee_section": "End‑to‑end encryption",
+  "privacy_e2ee_enable_for_all_chats": "Enable E2EE for all chats",
+  "privacy_e2ee_what_encrypt": "What gets encrypted in E2EE chats",
+  "privacy_e2ee_text": "Message text",
+  "privacy_e2ee_media": "Attachments (media/files)",
+  "privacy_my_devices_title": "My devices",
+  "privacy_my_devices_subtitle": "Devices with published keys. Rename or revoke access.",
+  "privacy_key_backup_title": "Backup & key transfer",
+  "privacy_key_backup_subtitle": "Create a password backup or transfer the key via QR.",
+  "privacy_visibility_section": "Visibility",
+  "privacy_online_title": "Online status",
+  "privacy_online_subtitle": "Let others see when you’re online.",
+  "privacy_last_seen_title": "Last seen",
+  "privacy_last_seen_subtitle": "Show your last active time.",
+  "privacy_read_receipts_title": "Read receipts",
+  "privacy_read_receipts_subtitle": "Let senders know you’ve read a message.",
+  "privacy_group_invites_section": "Group invites",
+  "privacy_group_invites_subtitle": "Who can add you to group chats.",
+  "privacy_group_invites_everyone": "Everyone",
+  "privacy_group_invites_contacts": "Contacts only",
+  "privacy_group_invites_nobody": "Nobody",
+  "privacy_global_search_section": "Discoverability",
+  "privacy_global_search_subtitle": "Who can find you by name among all users.",
+  "privacy_global_search_title": "Global search",
+  "privacy_global_search_hint": "If turned off, you won’t appear in “All users” when someone starts a new chat. You’ll still be visible to people who added you as a contact.",
+  "privacy_profile_for_others_section": "Profile for others",
+  "privacy_profile_for_others_subtitle": "What others can see in your profile.",
+  "privacy_email_subtitle": "Your email address in your profile.",
+  "privacy_phone_title": "Phone number",
+  "privacy_phone_subtitle": "Shown in your profile and contacts.",
+  "privacy_birthdate_title": "Date of birth",
+  "privacy_birthdate_subtitle": "Your birthday field in profile.",
+  "privacy_about_title": "About",
+  "privacy_about_subtitle": "Your bio text in profile.",
+  "privacy_reset_button": "Reset settings",
+  "common_cancel": "Cancel",
+  "common_delete": "Delete",
+  "common_choose": "Choose",
+  "common_nothing_found": "Nothing found",
+  "common_retry": "Retry",
+  "settings_chats_title": "Chat settings",
+  "settings_chats_preview": "Preview",
+  "settings_chats_outgoing": "Outgoing messages",
+  "settings_chats_incoming": "Incoming messages",
+  "settings_chats_font_size": "Text size",
+  "settings_chats_font_small": "Small",
+  "settings_chats_font_medium": "Medium",
+  "settings_chats_font_large": "Large",
+  "settings_chats_bubble_shape": "Bubble shape",
+  "settings_chats_bubble_rounded": "Rounded",
+  "settings_chats_bubble_square": "Square",
+  "settings_chats_chat_background": "Chat background",
+  "settings_chats_chat_background_pick_hint": "Pick a photo or fine‑tune the background",
+  "settings_chats_advanced": "Advanced",
+  "settings_chats_show_time": "Show time",
+  "settings_chats_show_time_subtitle": "Show message time under bubbles",
+  "settings_chats_reset": "Reset settings",
+  "settings_chats_error_cannot_save": "Couldn’t save: {error}",
+  "@settings_chats_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_load": "Couldn’t load background: {error}",
+  "@settings_chats_error_wallpaper_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_delete": "Couldn’t delete background: {error}",
+  "@settings_chats_error_wallpaper_delete": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_wallpaper_delete_confirm_title": "Delete background?",
+  "settings_chats_wallpaper_delete_confirm_body": "This background will be removed from your list.",
+  "settings_chats_icon_picker_title": "Icon: “{label}”",
+  "@settings_chats_icon_picker_title": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "settings_chats_icon_picker_search_hint": "Search by name…",
+  "settings_chats_icon_color": "Icon color",
+  "settings_chats_reset_icon_size": "Reset size",
+  "settings_chats_reset_icon_stroke": "Reset stroke",
+  "settings_chats_tile_background": "Tile background",
+  "settings_chats_default_gradient": "Default gradient",
+  "settings_chats_inherit_global": "Use global settings",
+  "settings_chats_no_background": "No background",
+  "settings_chats_no_background_on": "No background (on)"
+  ,
+  "chat_list_title": "Chats",
+  "chat_list_search_hint": "Search…",
+  "chat_list_loading_connecting": "Connecting…",
+  "chat_list_loading_conversations": "Loading conversations…",
+  "chat_list_loading_list": "Loading chat list…",
+  "chat_list_loading_sign_out": "Signing out…",
+  "chat_list_empty_search_title": "No chats found",
+  "chat_list_empty_search_body": "Try a different query. Search works by name and username.",
+  "chat_list_empty_folder_title": "This folder is empty",
+  "chat_list_empty_folder_body": "Switch folders or start a new chat using the button above.",
+  "chat_list_empty_all_title": "No chats yet",
+  "chat_list_empty_all_body": "Start a new chat to begin messaging.",
+  "chat_list_action_new_folder": "New folder",
+  "chat_list_action_new_chat": "New chat",
+  "chat_list_action_create": "Create",
+  "chat_list_action_close": "Close",
+  "chat_list_folders_title": "Folders",
+  "chat_list_folders_subtitle": "Pick folders for this chat.",
+  "chat_list_folders_empty": "No custom folders yet.",
+  "chat_list_create_folder_title": "New folder",
+  "chat_list_create_folder_subtitle": "Create a folder to quickly filter your chats.",
+  "chat_list_create_folder_name_label": "FOLDER NAME",
+  "chat_list_create_folder_chats_label": "CHATS ({count})",
+  "@chat_list_create_folder_chats_label": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_list_create_folder_select_all": "SELECT ALL",
+  "chat_list_create_folder_reset": "RESET",
+  "chat_list_create_folder_search_hint": "Search by name…",
+  "chat_list_create_folder_no_matches": "No matching chats",
+  "chat_list_folder_default_starred": "Starred",
+  "chat_list_folder_default_all": "All",
+  "chat_list_folder_default_new": "New",
+  "chat_list_folder_default_direct": "Direct",
+  "chat_list_folder_default_groups": "Groups",
+  "chat_list_yesterday": "Yesterday",
+  "chat_list_snackbar_history_cleared": "History cleared.",
+  "chat_list_snackbar_marked_read": "Marked as read.",
+  "chat_list_error_generic": "Error: {error}",
+  "@chat_list_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  }
+  ,
+  "new_chat_title": "New chat",
+  "new_chat_subtitle": "Pick someone to start a conversation, or create a group.",
+  "new_chat_search_hint": "Name, username, or @handle…",
+  "new_chat_create_group": "Create a group",
+  "new_chat_section_phone_contacts": "PHONE CONTACTS",
+  "new_chat_section_contacts": "CONTACTS",
+  "new_chat_section_all_users": "ALL USERS",
+  "new_chat_empty_no_users": "No one to start a chat with yet.",
+  "new_chat_empty_not_found": "No matches found.",
+  "new_chat_error_contacts": "Contacts: {error}",
+  "@new_chat_error_contacts": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invite_subject": "Join me on LighChat",
+  "invite_text": "Install LighChat: https://lighchat.online\\nI’m inviting you to LighChat — here’s the install link.",
+  "new_group_title": "Create a group",
+  "new_group_search_hint": "Search users…",
+  "new_group_pick_photo_tooltip": "Tap to pick a group photo. Long‑press to remove it.",
+  "new_group_name_label": "Group name",
+  "new_group_name_hint": "Name",
+  "new_group_description_label": "Description",
+  "new_group_description_hint": "Optional",
+  "new_group_members_count": "Members ({count})",
+  "@new_group_members_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "new_group_add_members_section": "ADD MEMBERS",
+  "new_group_empty_no_users": "No one to add yet.",
+  "new_group_empty_not_found": "No matches found.",
+  "new_group_error_name_required": "Please enter a group name.",
+  "new_group_error_members_required": "Add at least one member.",
+  "new_group_action_create": "Create"
+  ,
+  "auth_brand_tagline": "A safer messenger",
+  "auth_firebase_not_ready": "Firebase isn’t ready. Check `firebase_options.dart` and GoogleService-Info.plist.",
+  "auth_redirecting_to_chats": "Taking you to chats…",
+  "auth_or": "or",
+  "auth_create_account": "Create account",
+  "auth_privacy_policy": "Privacy policy",
+  "auth_error_open_privacy_policy": "Couldn’t open the privacy policy"
+  ,
+  "chat_messages_title": "Messages",
+  "chat_call_decline": "Decline",
+  "chat_call_open": "Open",
+  "chat_call_accept": "Accept",
+  "chat_delete_message_title_single": "Delete message?",
+  "chat_delete_message_title_multi": "Delete messages?",
+  "chat_delete_message_body_single": "This message will be hidden for everyone.",
+  "chat_delete_message_body_multi": "Messages to delete: {count}",
+  "@chat_delete_message_body_multi": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_delete_file_title": "Delete file?",
+  "chat_delete_file_body": "Only this file will be removed from the message."
+}

@@ -20,6 +20,7 @@ import 'chat_shell_backdrop.dart';
 import 'device_contact_invite_row.dart';
 import 'group_chat_avatar_button.dart';
 import 'new_chat_user_picker_row.dart';
+import '../../../l10n/app_localizations.dart';
 
 class NewGroupChatScreen extends ConsumerStatefulWidget {
   const NewGroupChatScreen({super.key});
@@ -213,6 +214,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
   }
 
   Widget _searchField(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fill = dark
@@ -237,7 +239,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
               cursorColor: scheme.primary,
               textAlignVertical: TextAlignVertical.center,
               decoration: InputDecoration(
-                hintText: 'Поиск пользователей...',
+                hintText: l10n.new_group_search_hint,
                 hintStyle: TextStyle(
                   fontSize: 15,
                   color: scheme.onSurface.withValues(alpha: 0.42),
@@ -292,6 +294,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
   }
 
   Widget _header(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
@@ -300,7 +303,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
         children: [
           Expanded(
             child: Text(
-              'Создать группу',
+              l10n.new_group_title,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
@@ -392,6 +395,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
     BuildContext context, {
     required VoidCallback onCreate,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
@@ -400,9 +404,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
         : scheme.surfaceContainerHighest.withValues(alpha: 0.98);
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: barColor,
-      ),
+      decoration: BoxDecoration(color: barColor),
       child: Padding(
         padding: EdgeInsets.fromLTRB(_hPad, 12, _hPad, 12 + bottomInset),
         child: Row(
@@ -420,9 +422,12 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Отмена',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  child: Text(
+                    l10n.common_cancel,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -447,9 +452,12 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                             color: scheme.onPrimary,
                           ),
                         )
-                      : const Text(
-                          'Создать',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      : Text(
+                          l10n.new_group_action_create,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
                         ),
                 ),
               ),
@@ -467,11 +475,19 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
   }) async {
     final name = _name.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Введите название группы.');
+      setState(
+        () => _error = AppLocalizations.of(
+          context,
+        )!.new_group_error_name_required,
+      );
       return;
     }
     if (_selectedIds.isEmpty) {
-      setState(() => _error = 'Добавьте хотя бы одного участника.');
+      setState(
+        () => _error = AppLocalizations.of(
+          context,
+        )!.new_group_error_members_required,
+      );
       return;
     }
 
@@ -539,17 +555,23 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
               child: userAsync.when(
                 data: (u) {
                   if (u == null) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/auth'));
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => context.go('/auth'),
+                    );
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (profilesRepo == null || repo == null || _usersFuture == null) {
+                  if (profilesRepo == null ||
+                      repo == null ||
+                      _usersFuture == null) {
                     return const Padding(
                       padding: EdgeInsets.all(16),
                       child: Text('Firebase не готов.'),
                     );
                   }
 
-                  final contactsAsync = ref.watch(userContactsIndexProvider(u.uid));
+                  final contactsAsync = ref.watch(
+                    userContactsIndexProvider(u.uid),
+                  );
 
                   return contactsAsync.when(
                     data: (contactsIdx) {
@@ -557,7 +579,9 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                         future: _usersFuture,
                         builder: (context, snap) {
                           if (snap.connectionState != ConnectionState.done) {
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
                           }
 
                           final all = snap.data ?? const <UserProfile>[];
@@ -620,14 +644,20 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                             term: term,
                             limit: 12,
                           );
-                          if (term.trim().isNotEmpty && deviceCandidates.isNotEmpty) {
-                            listChildren.add(_sectionHeader(context, 'КОНТАКТЫ ТЕЛЕФОНА'));
+                          if (term.trim().isNotEmpty &&
+                              deviceCandidates.isNotEmpty) {
+                            listChildren.add(
+                              _sectionHeader(context, 'КОНТАКТЫ ТЕЛЕФОНА'),
+                            );
                             for (final c in deviceCandidates) {
                               final uid = _deviceContactIdToUserId[c.contactId];
-                              final registered = uid != null && uid.trim().isNotEmpty;
+                              final registered =
+                                  uid != null && uid.trim().isNotEmpty;
                               listChildren.add(
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: _hPad,
+                                  ),
                                   child: DeviceContactInviteRow(
                                     candidate: c,
                                     registered: registered,
@@ -645,13 +675,15 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                                     onInvite: registered
                                         ? null
                                         : () async {
-                                            final origin = shareOriginForContext(context);
+                                            final origin =
+                                                shareOriginForContext(context);
                                             await SharePlus.instance.share(
                                               ShareParams(
                                                 text:
                                                     'Поставь LighChat: https://lighchat.online\n'
                                                     'Приглашаю тебя в LighChat — вот ссылка на установку.',
-                                                subject: 'Приглашение в LighChat',
+                                                subject:
+                                                    'Приглашение в LighChat',
                                                 sharePositionOrigin: origin,
                                               ),
                                             );
@@ -663,11 +695,15 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                           }
 
                           if (split.fromContacts.isNotEmpty) {
-                            listChildren.add(_sectionHeader(context, 'КОНТАКТЫ'));
+                            listChildren.add(
+                              _sectionHeader(context, 'КОНТАКТЫ'),
+                            );
                             for (final p in split.fromContacts) {
                               listChildren.add(
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: _hPad,
+                                  ),
                                   child: NewChatUserPickerRow(
                                     profile: p,
                                     style: NewChatUserPickerRowStyle.list,
@@ -687,11 +723,15 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                           }
 
                           if (split.fromGlobal.isNotEmpty) {
-                            listChildren.add(_sectionHeader(context, 'ВСЕ ПОЛЬЗОВАТЕЛИ'));
+                            listChildren.add(
+                              _sectionHeader(context, 'ВСЕ ПОЛЬЗОВАТЕЛИ'),
+                            );
                             for (final p in split.fromGlobal) {
                               listChildren.add(
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: _hPad,
+                                  ),
                                   child: NewChatUserPickerRow(
                                     profile: p,
                                     style: NewChatUserPickerRowStyle.list,
@@ -727,60 +767,98 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                                   children: [
                                     const SizedBox(height: 16),
                                     Tooltip(
-                                      message:
-                                          'Нажмите, чтобы выбрать фото группы. Удерживайте, чтобы убрать.',
+                                      message: AppLocalizations.of(
+                                        context,
+                                      )!.new_group_pick_photo_tooltip,
                                       child: GroupChatAvatarButton(
                                         enabled: !_busy,
                                         diameter: 112,
-                                        placeholderIcon: Icons.people_outline_rounded,
+                                        placeholderIcon:
+                                            Icons.people_outline_rounded,
                                         showCaptionRow: false,
-                                        onChanged: (v) => setState(() => _groupPhotoJpeg = v),
+                                        onChanged: (v) =>
+                                            setState(() => _groupPhotoJpeg = v),
                                       ),
                                     ),
                                     const SizedBox(height: 22),
-                                    _fieldLabel(context, 'Название группы'),
+                                    _fieldLabel(
+                                      context,
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.new_group_name_label,
+                                    ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: _hPad,
+                                      ),
                                       child: _filledInput(
                                         context: context,
                                         controller: _name,
-                                        hint: 'Название',
+                                        hint: AppLocalizations.of(
+                                          context,
+                                        )!.new_group_name_hint,
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    _fieldLabel(context, 'Описание'),
+                                    _fieldLabel(
+                                      context,
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.new_group_description_label,
+                                    ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: _hPad,
+                                      ),
                                       child: _filledInput(
                                         context: context,
                                         controller: _description,
-                                        hint: 'Необязательно',
+                                        hint: AppLocalizations.of(
+                                          context,
+                                        )!.new_group_description_hint,
                                         maxLines: 3,
                                         action: TextInputAction.newline,
                                       ),
                                     ),
                                     const SizedBox(height: 22),
                                     Padding(
-                                      padding: const EdgeInsets.fromLTRB(_hPad, 0, _hPad, 10),
+                                      padding: const EdgeInsets.fromLTRB(
+                                        _hPad,
+                                        0,
+                                        _hPad,
+                                        10,
+                                      ),
                                       child: Text(
-                                        'Участники (${1 + selectedProfiles.length})',
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.new_group_members_count(
+                                          1 + selectedProfiles.length,
+                                        ),
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
-                                          color: scheme.onSurface.withValues(alpha: 0.88),
+                                          color: scheme.onSurface.withValues(
+                                            alpha: 0.88,
+                                          ),
                                         ),
                                       ),
                                     ),
                                     _selfParticipantRow(context, self),
                                     ...selectedProfiles.map(
                                       (p) => Padding(
-                                        padding: const EdgeInsets.fromLTRB(_hPad, 10, 4, 0),
+                                        padding: const EdgeInsets.fromLTRB(
+                                          _hPad,
+                                          10,
+                                          4,
+                                          0,
+                                        ),
                                         child: Row(
                                           children: [
                                             Expanded(
                                               child: NewChatUserPickerRow(
                                                 profile: p,
-                                                style: NewChatUserPickerRowStyle.list,
+                                                style: NewChatUserPickerRowStyle
+                                                    .list,
                                                 enabled: true,
                                                 onTap: null,
                                               ),
@@ -788,19 +866,31 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                                             IconButton(
                                               onPressed: _busy
                                                   ? null
-                                                  : () => setState(() => _selectedIds.remove(p.id)),
+                                                  : () => setState(
+                                                      () => _selectedIds.remove(
+                                                        p.id,
+                                                      ),
+                                                    ),
                                               icon: Icon(
                                                 Icons.close_rounded,
-                                                color: scheme.onSurface.withValues(alpha: 0.55),
+                                                color: scheme.onSurface
+                                                    .withValues(alpha: 0.55),
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
                                     ),
-                                    _sectionHeader(context, 'ДОБАВИТЬ УЧАСТНИКОВ'),
+                                    _sectionHeader(
+                                      context,
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.new_group_add_members_section,
+                                    ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: _hPad,
+                                      ),
                                       child: _searchField(context),
                                     ),
                                     const SizedBox(height: 6),
@@ -809,12 +899,18 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                                         padding: const EdgeInsets.all(24),
                                         child: Text(
                                           term.trim().isEmpty
-                                              ? 'Нет пользователей для добавления.'
-                                              : 'Никого не найдено.',
+                                              ? AppLocalizations.of(
+                                                  context,
+                                                )!.new_group_empty_no_users
+                                              : AppLocalizations.of(
+                                                  context,
+                                                )!.new_group_empty_not_found,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: scheme.onSurface.withValues(alpha: 0.55),
+                                            color: scheme.onSurface.withValues(
+                                              alpha: 0.55,
+                                            ),
                                           ),
                                         ),
                                       )
@@ -825,22 +921,32 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                               ),
                               if (_error != null)
                                 Padding(
-                                  padding: const EdgeInsets.fromLTRB(_hPad, 0, _hPad, 6),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    _hPad,
+                                    0,
+                                    _hPad,
+                                    6,
+                                  ),
                                   child: Text(
                                     _error!,
-                                    style: TextStyle(color: scheme.error, fontSize: 13),
+                                    style: TextStyle(
+                                      color: scheme.error,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               _bottomActions(
                                 context,
-                                onCreate: () => _submit(repo: repo, uid: u.uid, me: self),
+                                onCreate: () =>
+                                    _submit(repo: repo, uid: u.uid, me: self),
                               ),
                             ],
                           );
                         },
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text('Контакты: $e'),

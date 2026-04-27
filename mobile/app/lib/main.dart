@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'app_bootstrap.dart';
 import 'app_providers.dart';
 import 'app_router.dart';
 import 'app_theme.dart';
+import 'l10n/app_localizations.dart';
 import 'features/meetings/data/meeting_deep_links.dart';
 import 'features/push/push_messaging_background.dart';
 import 'features/push/in_app_incoming_call_scope.dart';
@@ -20,6 +22,7 @@ import 'features/chat/data/app_theme_preference.dart';
 import 'features/chat/data/chat_auto_theme_mode.dart';
 import 'features/auth/device_session_firestore_sync.dart';
 import 'features/chat/ui/live_location_firestore_sync.dart';
+import 'features/settings/data/app_language_preference.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -121,6 +124,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       );
     }
 
+    final languagePref = ref.watch(appLanguagePreferenceProvider);
+
     return MaterialApp.router(
       title: 'LighChat',
       theme: buildAppTheme(brightness: Brightness.light, seedColor: _seedColor),
@@ -129,6 +134,21 @@ class _MyAppState extends ConsumerState<MyApp> {
         seedColor: _seedColor,
       ),
       themeMode: _themeMode,
+      locale: languagePref.toLocaleOrNull(),
+      localeResolutionCallback: (locale, supportedLocales) {
+        final code = (locale?.languageCode ?? '').toLowerCase();
+        for (final s in supportedLocales) {
+          if (s.languageCode.toLowerCase() == code) return s;
+        }
+        return const Locale('ru');
+      },
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: _router,
       builder: (context, child) => DeviceSessionFirestoreSync(
         child: LiveLocationFirestoreSync(

@@ -6,12 +6,14 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import 'notification_settings_ui.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ChatNotificationsScreen extends ConsumerWidget {
   const ChatNotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final userAsync = ref.watch(authUserProvider);
     return Scaffold(
       body: AuthBackground(
@@ -67,7 +69,9 @@ class ChatNotificationsScreen extends ConsumerWidget {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Не удалось сохранить настройки: $e'),
+                      content: Text(
+                        l10n.notifications_error_cannot_save(e.toString()),
+                      ),
                     ),
                   );
                 }
@@ -117,7 +121,7 @@ class ChatNotificationsScreen extends ConsumerWidget {
             error: (e, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Ошибка загрузки уведомлений: $e'),
+                child: Text(l10n.notifications_error_load(e.toString())),
               ),
             ),
           ),
@@ -150,13 +154,14 @@ class _NotificationsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        const NotificationSettingsPageHeader(title: 'Уведомления'),
+        NotificationSettingsPageHeader(title: l10n.notifications_title),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -166,26 +171,26 @@ class _NotificationsView extends StatelessWidget {
                 const SizedBox(height: 2),
                 const SizedBox(height: 10),
                 NotificationSettingsCard(
-                  title: 'Основные',
+                  title: l10n.notifications_section_main,
                   children: [
                     NotificationSettingsSwitchRow(
-                      title: 'Отключить все',
-                      subtitle: 'Полностью выключить уведомления.',
+                      title: l10n.notifications_mute_all_title,
+                      subtitle: l10n.notifications_mute_all_subtitle,
                       value: settings.muteAll,
                       onChanged: onMuteAllChanged,
                     ),
                     const SizedBox(height: 4),
                     NotificationSettingsSwitchRow(
-                      title: 'Звук',
-                      subtitle: 'Воспроизводить звук при новом сообщении.',
+                      title: l10n.notifications_sound_title,
+                      subtitle: l10n.notifications_sound_subtitle,
                       value: settings.soundEnabled,
                       onChanged: onSoundChanged,
                       disabled: settings.muteAll,
                     ),
                     const SizedBox(height: 4),
                     NotificationSettingsSwitchRow(
-                      title: 'Предпросмотр',
-                      subtitle: 'Показывать текст сообщения в уведомлении.',
+                      title: l10n.notifications_preview_title,
+                      subtitle: l10n.notifications_preview_subtitle,
                       value: settings.showPreview,
                       onChanged: onPreviewChanged,
                       disabled: settings.muteAll,
@@ -195,12 +200,11 @@ class _NotificationsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 NotificationSettingsCard(
-                  title: 'Тихие часы',
-                  subtitle:
-                      'Уведомления не будут беспокоить в указанный период.',
+                  title: l10n.notifications_section_quiet_hours,
+                  subtitle: l10n.notifications_quiet_hours_subtitle,
                   children: [
                     NotificationSettingsSwitchRow(
-                      title: 'Включить тихие часы',
+                      title: l10n.notifications_quiet_hours_enable_title,
                       value: settings.quietHoursEnabled,
                       onChanged: onQuietHoursChanged,
                       disabled: settings.muteAll,
@@ -263,7 +267,7 @@ class _NotificationsView extends StatelessWidget {
                       color: Color(0xCCFFFFFF),
                     ),
                     label: Text(
-                      'Сбросить настройки',
+                      l10n.notifications_reset_button,
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,

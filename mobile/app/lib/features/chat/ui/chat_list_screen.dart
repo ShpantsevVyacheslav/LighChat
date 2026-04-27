@@ -15,6 +15,7 @@ import '../data/saved_messages_chat.dart';
 import '../data/chat_message_draft_storage.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
+import '../../../l10n/app_localizations.dart';
 
 import 'chat_folder_bar.dart';
 import 'chat_list_item.dart';
@@ -39,6 +40,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   Widget _bootLoading(String message, {String? uid}) {
+    final l10n = AppLocalizations.of(context)!;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -69,7 +71,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () => _retryBoot(uid: uid),
-                  child: const Text('Повторить'),
+                  child: Text(l10n.common_retry),
                 ),
               ],
             ),
@@ -97,7 +99,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (context.mounted) context.go('/auth');
                   });
-                  return _bootLoading('Выход…', uid: null);
+                  return _bootLoading(
+                    AppLocalizations.of(context)!.chat_list_loading_sign_out,
+                    uid: null,
+                  );
                 }
 
                 final indexAsync = ref.watch(userChatIndexProvider(user.uid));
@@ -131,23 +136,32 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                           conversations: visibleConversations,
                         );
                       },
-                      loading: () =>
-                          _bootLoading('Загрузка бесед…', uid: user.uid),
+                      loading: () => _bootLoading(
+                        AppLocalizations.of(
+                          context,
+                        )!.chat_list_loading_conversations,
+                        uid: user.uid,
+                      ),
                       error: (e, _) => Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text('Conversations error: $e'),
                       ),
                     );
                   },
-                  loading: () =>
-                      _bootLoading('Загрузка списка чатов…', uid: user.uid),
+                  loading: () => _bootLoading(
+                    AppLocalizations.of(context)!.chat_list_loading_list,
+                    uid: user.uid,
+                  ),
                   error: (e, _) => Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text('userChats error: $e'),
                   ),
                 );
               },
-              loading: () => _bootLoading('Подключение к аккаунту…', uid: null),
+              loading: () => _bootLoading(
+                AppLocalizations.of(context)!.chat_list_loading_connecting,
+                uid: null,
+              ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text('Auth error: $e'),
@@ -163,19 +177,19 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }) {
     final saved = ChatFolder(
       id: 'favorites',
-      name: 'Избранное',
+      name: AppLocalizations.of(context)!.chat_list_folder_default_starred,
       conversationIds: const <String>[],
     );
 
     final all = ChatFolder(
       id: 'all',
-      name: 'Все',
+      name: AppLocalizations.of(context)!.chat_list_folder_default_all,
       conversationIds: conversations.map((c) => c.id).toList(growable: false),
     );
 
     final unread = ChatFolder(
       id: 'unread',
-      name: 'Новые',
+      name: AppLocalizations.of(context)!.chat_list_folder_default_new,
       conversationIds: conversations
           .where((c) {
             final u =
@@ -189,7 +203,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     final personal = ChatFolder(
       id: 'personal',
-      name: 'Личные',
+      name: AppLocalizations.of(context)!.chat_list_folder_default_direct,
       conversationIds: conversations
           .where((c) => !c.data.isGroup)
           .map((c) => c.id)
@@ -198,7 +212,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     final groups = ChatFolder(
       id: 'groups',
-      name: 'Группы',
+      name: AppLocalizations.of(context)!.chat_list_folder_default_groups,
       conversationIds: conversations
           .where((c) => c.data.isGroup)
           .map((c) => c.id)
@@ -1335,10 +1349,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                     padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Чаты',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.chat_list_title,
+                            style: const TextStyle(
                               fontSize: 46 / 2,
                               fontWeight: FontWeight.w700,
                               letterSpacing: -0.2,
@@ -1348,7 +1362,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         _headerIconButton(
                           context: context,
                           icon: Icons.create_new_folder_outlined,
-                          tooltip: 'Новая папка',
+                          tooltip: AppLocalizations.of(
+                            context,
+                          )!.chat_list_action_new_folder,
                           onPressed: () => _openCreateFolderModal(
                             context,
                             profiles: profiles,
@@ -1360,7 +1376,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         _headerIconButton(
                           context: context,
                           icon: Icons.add_rounded,
-                          tooltip: 'Новый чат',
+                          tooltip: AppLocalizations.of(
+                            context,
+                          )!.chat_list_action_new_chat,
                           onPressed: () => context.go('/chats/new'),
                         ),
                       ],
@@ -1423,11 +1441,13 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                 fontWeight: FontWeight.w500,
                               ),
                               textAlignVertical: TextAlignVertical.center,
-                              decoration: const InputDecoration(
-                                hintText: 'Поиск...',
+                              decoration: InputDecoration(
+                                hintText: AppLocalizations.of(
+                                  context,
+                                )!.chat_list_search_hint,
                                 border: InputBorder.none,
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
+                                contentPadding: const EdgeInsets.symmetric(
                                   vertical: 10,
                                 ),
                               ),
@@ -1462,7 +1482,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                     child: hasChatIdsButNotLoadedYet
                         ? Center(
                             child: Text(
-                              'Загрузка списка чатов…',
+                              AppLocalizations.of(
+                                context,
+                              )!.chat_list_loading_list,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1477,15 +1499,27 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             context: context,
                             showCreateButton: !hasAnyChats && !isSearchActive,
                             title: isSearchActive
-                                ? 'Чаты не найдены'
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.chat_list_empty_search_title
                                 : hasAnyChats
-                                ? 'В этой папке пока пусто'
-                                : 'Пока нет чатов',
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.chat_list_empty_folder_title
+                                : AppLocalizations.of(
+                                    context,
+                                  )!.chat_list_empty_all_title,
                             description: isSearchActive
-                                ? 'Попробуйте изменить запрос. Поиск работает по имени пользователя и логину.'
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.chat_list_empty_search_body
                                 : hasAnyChats
-                                ? 'Переключитесь на другую папку или создайте новый чат через кнопку вверху.'
-                                : 'Создайте новый чат, чтобы начать переписку.',
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.chat_list_empty_folder_body
+                                : AppLocalizations.of(
+                                    context,
+                                  )!.chat_list_empty_all_body,
                             onCreateTap: () => context.go('/chats/new'),
                           )
                         : ListView.separated(
@@ -1506,7 +1540,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                 c.data,
                                 widget.currentUserId,
                               )) {
-                                title = 'Избранное';
+                                title = AppLocalizations.of(
+                                  context,
+                                )!.chat_list_folder_default_starred;
                                 avatarUrl =
                                     selfProfile?.avatarThumb ??
                                     selfProfile?.avatar ??
