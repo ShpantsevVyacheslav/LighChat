@@ -128,6 +128,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           content: TextField(
             controller: controller,
             maxLength: 120,
+            textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
               hintText: 'Например, iPhone 15 — Safari',
             ),

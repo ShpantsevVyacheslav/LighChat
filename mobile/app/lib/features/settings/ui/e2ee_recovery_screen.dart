@@ -92,6 +92,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                 TextFormField(
                   controller: c1,
                   obscureText: true,
+                  textCapitalization: TextCapitalization.none,
                   autofocus: true,
                   decoration: const InputDecoration(
                     labelText: 'Пароль',
@@ -108,6 +109,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                   TextFormField(
                     controller: c2,
                     obscureText: true,
+                    textCapitalization: TextCapitalization.none,
                     decoration: const InputDecoration(
                       labelText: 'Повторите пароль',
                     ),

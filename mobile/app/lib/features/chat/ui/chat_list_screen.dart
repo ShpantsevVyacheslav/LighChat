@@ -316,13 +316,13 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     if (existing.isNotEmpty) {
       existing.sort((a, b) {
         final ta =
-            DateTime.tryParse(
-              a.data.lastMessageTimestamp ?? '',
+            _parseIsoAsLocal(
+              a.data.lastMessageTimestamp,
             )?.millisecondsSinceEpoch ??
             0;
         final tb =
-            DateTime.tryParse(
-              b.data.lastMessageTimestamp ?? '',
+            _parseIsoAsLocal(
+              b.data.lastMessageTimestamp,
             )?.millisecondsSinceEpoch ??
             0;
         return tb.compareTo(ta);
@@ -351,7 +351,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
 
   String _formatTimeLabel(String? iso) {
     if (iso == null || iso.trim().isEmpty) return '';
-    final dt = DateTime.tryParse(iso);
+    final dt = _parseIsoAsLocal(iso);
     if (dt == null) return '';
     final now = DateTime.now();
     final d0 = DateTime(now.year, now.month, now.day);
@@ -367,6 +367,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     final mo = dt.month.toString().padLeft(2, '0');
     final yy = (dt.year % 100).toString().padLeft(2, '0');
     return '$dd.$mo.$yy';
+  }
+
+  DateTime? _parseIsoAsLocal(String? raw) {
+    final s = (raw ?? '').trim();
+    if (s.isEmpty) return null;
+    final dt = DateTime.tryParse(s);
+    if (dt == null) return null;
+    return dt.isUtc ? dt.toLocal() : dt;
   }
 
   bool _isDefaultFolderId(String id) {
@@ -1144,9 +1152,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     final term = _search.text.trim().toLowerCase();
     final uniqueByKey = <String, ConversationWithId>{};
     int tsScore(ConversationWithId c) =>
-        DateTime.tryParse(
-          c.data.lastMessageTimestamp ?? '',
-        )?.millisecondsSinceEpoch ??
+        _parseIsoAsLocal(c.data.lastMessageTimestamp)?.millisecondsSinceEpoch ??
         0;
     String keyFor(ConversationWithId c) {
       if (c.data.isGroup) return 'conv:${c.id}';
@@ -1407,6 +1413,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             child: TextField(
                               controller: _search,
                               onChanged: (_) => setState(() {}),
+                              textCapitalization: TextCapitalization.sentences,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -1778,6 +1785,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
               ),
               child: StatefulBuilder(
                 builder: (context, setModalState) {
+                  final modalBg = dark
+                      ? const Color(0xFF0C0D11).withValues(alpha: 0.96)
+                      : scheme.surfaceContainerHigh;
+                  final modalFg = scheme.onSurface;
                   final query = searchController.text.trim().toLowerCase();
                   final filteredChats = selectableChats
                       .where((chat) {
@@ -1819,19 +1830,19 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(30),
-                      color: const Color(
-                        0xFF0C0D11,
-                      ).withValues(alpha: dark ? 0.96 : 0.92),
+                      color: modalBg,
                       border: Border.all(
-                        color: Colors.white.withValues(
-                          alpha: dark ? 0.10 : 0.22,
+                        color: modalFg.withValues(
+                          alpha: dark ? 0.12 : 0.14,
                         ),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.35),
-                          blurRadius: 34,
-                          offset: const Offset(0, 18),
+                          color: Colors.black.withValues(
+                            alpha: dark ? 0.35 : 0.14,
+                          ),
+                          blurRadius: dark ? 34 : 20,
+                          offset: Offset(0, dark ? 18 : 10),
                         ),
                       ],
                     ),
@@ -1938,14 +1949,27 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             autofocus: true,
                             onChanged: (_) => setModalState(() {}),
                             textInputAction: TextInputAction.done,
+                            textCapitalization: TextCapitalization.sentences,
+                            cursorColor: scheme.primary,
+                            cursorHeight: 18,
+                            style: TextStyle(
+                              color: modalFg,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               hintText: 'MoonPath',
                               hintStyle: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.32),
-                                fontSize: 15,
+                                color: modalFg.withValues(alpha: 0.36),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
                               filled: true,
-                              fillColor: Colors.white.withValues(alpha: 0.06),
+                              fillColor: modalFg.withValues(
+                                alpha: dark ? 0.06 : 0.05,
+                              ),
+                              isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 18,
                                 vertical: 14,
@@ -1953,16 +1977,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(18),
                                 borderSide: BorderSide(
-                                  color: scheme.onSurface.withValues(
-                                    alpha: dark ? 0.16 : 0.20,
+                                  color: modalFg.withValues(
+                                    alpha: dark ? 0.16 : 0.18,
                                   ),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(18),
                                 borderSide: BorderSide(
-                                  color: scheme.onSurface.withValues(
-                                    alpha: dark ? 0.16 : 0.20,
+                                  color: modalFg.withValues(
+                                    alpha: dark ? 0.16 : 0.18,
                                   ),
                                 ),
                               ),
@@ -2031,9 +2055,11 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             height: 56,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(18),
-                              color: Colors.white.withValues(alpha: 0.06),
+                              color: modalFg.withValues(alpha: dark ? 0.06 : 0.05),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.10),
+                                color: modalFg.withValues(
+                                  alpha: dark ? 0.10 : 0.12,
+                                ),
                               ),
                             ),
                             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -2042,9 +2068,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                 Icon(
                                   Icons.search_rounded,
                                   size: 27,
-                                  color: scheme.onSurface.withValues(
-                                    alpha: 0.42,
-                                  ),
+                                  color: modalFg.withValues(alpha: 0.42),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -2052,13 +2076,29 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     controller: searchController,
                                     focusNode: searchFocus,
                                     onChanged: (_) => setModalState(() {}),
+                                    textCapitalization:
+                                        TextCapitalization.sentences,
+                                    cursorColor: scheme.primary,
+                                    cursorHeight: 18,
+                                    style: TextStyle(
+                                      color: modalFg,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlignVertical: TextAlignVertical.center,
                                     decoration: InputDecoration(
                                       hintText: 'Поиск по названию...',
                                       border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
                                       hintStyle: TextStyle(
-                                        fontSize: 15,
-                                        color: scheme.onSurface.withValues(
-                                          alpha: 0.34,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: modalFg.withValues(
+                                          alpha: 0.40,
                                         ),
                                       ),
                                     ),
@@ -2074,7 +2114,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     child: Text(
                                       'Подходящие чаты не найдены',
                                       style: TextStyle(
-                                        color: scheme.onSurface.withValues(
+                                        color: modalFg.withValues(
                                           alpha: 0.56,
                                         ),
                                       ),
@@ -2111,8 +2151,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                                 children: [
                                                   CircleAvatar(
                                                     radius: 22,
-                                                    backgroundColor: Colors
-                                                        .white
+                                                    backgroundColor: modalFg
                                                         .withValues(
                                                           alpha: 0.10,
                                                         ),
@@ -2136,12 +2175,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                                             _initials(
                                                               chat.title,
                                                             ),
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w700,
-                                                                ),
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: modalFg,
+                                                            ),
                                                           )
                                                         : null,
                                                   ),
@@ -2160,7 +2199,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                                             ? const Color(
                                                                 0xFF2E86FF,
                                                               )
-                                                            : Colors.white
+                                                            : modalFg
                                                                   .withValues(
                                                                     alpha: 0.12,
                                                                   ),
@@ -2169,10 +2208,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                                               ? const Color(
                                                                   0xFF5DA2FF,
                                                                 )
-                                                              : Colors.white
+                                                              : modalFg
                                                                     .withValues(
                                                                       alpha:
-                                                                          0.08,
+                                                                          0.12,
                                                                     ),
                                                         ),
                                                       ),
@@ -2206,7 +2245,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                                         fontSize: 18,
                                                         fontWeight:
                                                             FontWeight.w500,
-                                                        color: scheme.onSurface,
+                                                        color: modalFg,
                                                       ),
                                                     ),
                                                     if (chat.subtitle != null &&
@@ -2227,8 +2266,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                                             fontSize: 13,
                                                             fontWeight:
                                                                 FontWeight.w500,
-                                                            color: scheme
-                                                                .onSurface
+                                                            color: modalFg
                                                                 .withValues(
                                                                   alpha: 0.46,
                                                                 ),
@@ -2263,19 +2301,20 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(18),
                                     ),
-                                    backgroundColor: Colors.white.withValues(
-                                      alpha: 0.04,
+                                    foregroundColor: modalFg,
+                                    backgroundColor: modalFg.withValues(
+                                      alpha: dark ? 0.04 : 0.06,
                                     ),
                                     side: BorderSide(
-                                      color: scheme.onSurface.withValues(
-                                        alpha: dark ? 0.18 : 0.28,
+                                      color: modalFg.withValues(
+                                        alpha: dark ? 0.22 : 0.20,
                                       ),
                                     ),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'Отмена',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: modalFg,
                                       fontSize: 17,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -2321,11 +2360,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                       padding: EdgeInsets.zero,
                                     ),
                                     onPressed: canCreate ? submit : null,
-                                    child: const Text(
+                                    child: Text(
                                       'Создать',
                                       style: TextStyle(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w700,
+                                        color: canCreate
+                                            ? Colors.white
+                                            : modalFg.withValues(
+                                                alpha: 0.40,
+                                              ),
                                       ),
                                     ),
                                   ),

@@ -77,6 +77,7 @@ class ChatHeader extends StatelessWidget {
                   return TextField(
                     controller: searchController,
                     focusNode: searchFocusNode,
+                    textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(
                       color: fg,
                       fontSize: 15,

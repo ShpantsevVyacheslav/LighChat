@@ -528,6 +528,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
               Expanded(
                 child: TextField(
                   controller: _newOptionCtrl,
+                  textCapitalization: TextCapitalization.sentences,
                   style: const TextStyle(fontSize: 13),
                   decoration: const InputDecoration(
                     hintText: 'Предложить вариант',

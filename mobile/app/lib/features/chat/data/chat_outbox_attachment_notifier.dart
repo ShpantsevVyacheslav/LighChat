@@ -35,6 +35,8 @@ class OutboxAttachmentJob {
     required this.captionHtml,
     this.replyTo,
     required this.convIsE2ee,
+    required this.e2eeEncryptText,
+    required this.e2eeEncryptMedia,
     this.e2eeEpoch,
     required this.effectiveMessageId,
     required this.createdAt,
@@ -51,6 +53,8 @@ class OutboxAttachmentJob {
   final String captionHtml;
   final ReplyContext? replyTo;
   final bool convIsE2ee;
+  final bool e2eeEncryptText;
+  final bool e2eeEncryptMedia;
   final int? e2eeEpoch;
   final String effectiveMessageId;
   final DateTime createdAt;
@@ -73,6 +77,8 @@ class OutboxAttachmentJob {
       captionHtml: captionHtml,
       replyTo: replyTo,
       convIsE2ee: convIsE2ee,
+      e2eeEncryptText: e2eeEncryptText,
+      e2eeEncryptMedia: e2eeEncryptMedia,
       e2eeEpoch: e2eeEpoch,
       effectiveMessageId: effectiveMessageId,
       createdAt: createdAt,
@@ -151,6 +157,8 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
     required String rawCaptionHtml,
     ReplyContext? replyTo,
     required bool convIsE2ee,
+    required bool e2eeEncryptText,
+    required bool e2eeEncryptMedia,
     int? e2eeEpoch,
     String? threadParentMessageId,
   }) async {
@@ -198,6 +206,8 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       captionHtml: rawCaptionHtml,
       replyTo: replyTo,
       convIsE2ee: convIsE2ee,
+      e2eeEncryptText: e2eeEncryptText,
+      e2eeEncryptMedia: e2eeEncryptMedia,
       e2eeEpoch: e2eeEpoch,
       effectiveMessageId: effectiveMessageId,
       createdAt: DateTime.now(),
@@ -298,7 +308,10 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       final epoch = job.e2eeEpoch;
 
       E2eeAttachmentPrepareResult prep;
-      if (job.convIsE2ee && e2eeRuntime != null && epoch != null) {
+      if (job.convIsE2ee &&
+          job.e2eeEncryptMedia &&
+          e2eeRuntime != null &&
+          epoch != null) {
         prep = await prepareE2eeAttachmentsForSend(
           runtime: e2eeRuntime,
           storage: storage,
@@ -350,12 +363,16 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
 
       Map<String, Object?>? outgoingEnvelope;
       String? msgIdOverride;
-      if (job.convIsE2ee && e2eeRuntime != null && epoch != null) {
+      final hasEncryptedMedia = prep.encryptedEnvelopes.isNotEmpty;
+      final shouldUseE2eeEnvelope =
+          job.convIsE2ee && e2eeRuntime != null && epoch != null &&
+          (job.e2eeEncryptText || (job.e2eeEncryptMedia && hasEncryptedMedia));
+      if (shouldUseE2eeEnvelope) {
         final textEnvelope = await e2eeRuntime.encryptOutgoing(
           conversationId: job.conversationId,
           messageId: job.effectiveMessageId,
           epoch: epoch,
-          plaintext: textSave,
+          plaintext: job.e2eeEncryptText ? textSave : '',
         );
         outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
           textEnvelope: textEnvelope,

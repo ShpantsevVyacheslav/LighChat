@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users, Lock } from "lucide-react";
 import { DevicesPanel } from "@/components/settings/DevicesPanel";
 import { E2eeRecoveryPanel } from "@/components/settings/E2eeRecoveryPanel";
+import { DEFAULT_E2EE_ENCRYPTED_DATA_TYPES } from "@/lib/e2ee/e2ee-data-type-policy";
 export default function PrivacySettingsPage() {
   const { user, isLoading } = useAuth();
   const { privacySettings, updatePrivacySettings } = useSettings();
@@ -78,6 +79,78 @@ export default function PrivacySettingsPage() {
               checked={privacySettings.e2eeForNewDirectChats === true}
               onCheckedChange={(v) => handleUpdate({ e2eeForNewDirectChats: v })}
             />
+          </div>
+          <div className="border-t pt-5 space-y-4">
+            {(() => {
+              const cur = privacySettings.e2eeEncryptedDataTypes ?? DEFAULT_E2EE_ENCRYPTED_DATA_TYPES;
+              return (
+                <>
+            <div>
+              <Label className="text-sm font-medium">Что шифруем в E2EE чатах</Label>
+              <p className="text-xs text-muted-foreground">
+                Это не меняет протокол шифрования — только решает, какие типы данных отправлять в зашифрованном виде.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label className="text-sm font-medium">Текст сообщений</Label>
+                <p className="text-xs text-muted-foreground">
+                  `message.e2ee.ciphertext` вместо plaintext `text`.
+                </p>
+              </div>
+              <Switch
+                checked={cur.text}
+                onCheckedChange={(v) =>
+                  handleUpdate({
+                    e2eeEncryptedDataTypes: {
+                      ...cur,
+                      text: v,
+                    },
+                  })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label className="text-sm font-medium">Вложения (медиа/файлы)</Label>
+                <p className="text-xs text-muted-foreground">
+                  `message.e2ee.attachments` + Storage `chat-attachments-enc/...` (стикеры/GIF всегда plaintext).
+                </p>
+              </div>
+              <Switch
+                checked={cur.media}
+                onCheckedChange={(v) =>
+                  handleUpdate({
+                    e2eeEncryptedDataTypes: {
+                      ...cur,
+                      media: v,
+                    },
+                  })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label className="text-sm font-medium">Reply-превью</Label>
+                <p className="text-xs text-muted-foreground">
+                  Если выключить — `replyTo.text`/`mediaPreviewUrl` не пишутся в Firestore (меньше утечек в plaintext).
+                </p>
+              </div>
+              <Switch
+                checked={cur.replyPreview}
+                onCheckedChange={(v) =>
+                  handleUpdate({
+                    e2eeEncryptedDataTypes: {
+                      ...cur,
+                      replyPreview: v,
+                    },
+                  })
+                }
+              />
+            </div>
+                </>
+              );
+            })()}
           </div>
         </CardContent>
       </Card>

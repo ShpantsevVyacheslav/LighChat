@@ -139,6 +139,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               child: TextField(
                 controller: _email,
                 focusNode: _emailFocus,
+                textCapitalization: TextCapitalization.none,
                 keyboardType: TextInputType.emailAddress,
                 style: TextStyle(
                   color: dark ? Colors.white : scheme.onSurface,
@@ -228,6 +229,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               child: TextField(
                 controller: _password,
                 focusNode: _passwordFocus,
+                textCapitalization: TextCapitalization.none,
                 obscureText: _obscurePassword,
                 style: TextStyle(
                   color: dark ? Colors.white : scheme.onSurface,

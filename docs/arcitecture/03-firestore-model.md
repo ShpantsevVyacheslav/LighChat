@@ -5,6 +5,7 @@
 ## Коллекции верхнего уровня
 
 - `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `voipTokens` (массив iOS PushKit token для нативного входящего звонка), `notificationSettings` (глобальная политика push), `profileQrLink` (персональная web-ссылка профиля для QR-кода/шаринга), `blockedUserIds` (массив uid заблокированных пользователей — см. правила и CF `onuserwriteblocksideeffects`).
+  - `outgoingBlocks/{blockedUserId}` — зеркало `blockedUserIds` (пустой маркер-документ на каждого заблокированного). Пишет только Admin SDK (CF при изменении `blockedUserIds`); читать могут владелец `userId` и `blockedUserId` (нужно для правил `userBlocks` через `exists`, без `get(users/{blocker})`, который для заблокированного читателя запрещён правилом профиля).
   - `chatConversationPrefs/{conversationId}` - персональные настройки чата для аккаунта (`notificationsMuted`, `notificationShowPreview`, обои и т.д.).
   - `notifications/{notificationId}`
   - `stickerPacks/{packId}/items/{itemId}`

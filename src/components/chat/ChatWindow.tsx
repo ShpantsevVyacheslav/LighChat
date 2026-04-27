@@ -78,6 +78,10 @@ import { useRouter } from 'next/navigation';
 import { useSettings } from '@/hooks/use-settings';
 import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
 import { ChatDateSeparatorRow } from '@/components/chat/ChatDateSeparatorRow';
+import {
+  parseE2eeEncryptedDataTypes,
+  resolveEffectiveE2eeEncryptedDataTypes,
+} from '@/lib/e2ee/e2ee-data-type-policy';
 import { ChatSystemEventDivider } from '@/components/chat/ChatSystemEventDivider';
 import { buildChatListRows, type ChatListRow } from '@/components/chat/build-chat-message-groups';
 import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
@@ -175,6 +179,11 @@ export function ChatWindow({
   const { starredMessageIds } = useStarredInConversation(currentUser.id, conversation.id);
   const suppressReadReceipts =
     prefs?.suppressReadReceipts === true || privacySettings.showReadReceipts === false;
+  const globalE2eeTypes = parseE2eeEncryptedDataTypes(privacySettings.e2eeEncryptedDataTypes);
+  const effectiveE2eeTypes = resolveEffectiveE2eeEncryptedDataTypes({
+    global: globalE2eeTypes,
+    override: conversation.e2eeEncryptedDataTypesOverride ?? null,
+  });
   const effectiveWallpaper =
     prefs?.chatWallpaper != null && prefs.chatWallpaper !== ''
       ? prefs.chatWallpaper
@@ -1148,7 +1157,7 @@ export function ChatWindow({
       // через useE2eeMediaAttachments.encryptAndUploadForSend (envelopes в
       // message.e2ee.attachments[]); стикеры/GIFs остаются plaintext.
       // Если шифрование выключено — весь набор грузится plaintext как раньше.
-      const encryptAttachments = e2eeConv.e2eeEnabled;
+      const encryptAttachments = e2eeConv.e2eeEnabled && effectiveE2eeTypes.media;
       const plaintextFilesToUpload: File[] = encryptAttachments
         ? files.filter((f) => !isEncryptableMimeV2(f.type))
         : files;
@@ -1197,17 +1206,26 @@ export function ChatWindow({
         ? text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
         : '';
       const useE2eeForText =
-        e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
+        e2eeConv.e2eeEnabled && effectiveE2eeTypes.text && !!text && plainBody.length > 0;
       const hasEncryptedAttachments =
         !!e2eeAttachmentEnvelopes && e2eeAttachmentEnvelopes.length > 0;
       // Если хоть что-то шифруем (текст или медиа) — всё сообщение помечаем
       // как E2EE. Медиа-only получает envelope с пустым plaintext-телом,
       // чтобы push-notification трактовал его как «Зашифрованное сообщение».
       const useE2eeEnvelope = useE2eeForText || hasEncryptedAttachments;
-      const replyForWrite =
-        useE2eeEnvelope && replyContext
-          ? (({ text: _omitted, ...rest }) => rest)(replyContext)
-          : replyContext;
+      const replyForWrite = (() => {
+        if (!replyContext) return null;
+        // 1) При E2EE envelope мы не пишем plaintext текста в replyTo (как раньше).
+        if (useE2eeEnvelope && effectiveE2eeTypes.replyPreview !== false) {
+          return (({ text: _omitted, ...rest }) => rest)(replyContext);
+        }
+        // 2) При выключенном reply-preview — не пишем ни текст, ни url превью.
+        if (effectiveE2eeTypes.replyPreview === false) {
+          const { text: _t, mediaPreviewUrl: _u, ...rest } = replyContext;
+          return rest;
+        }
+        return replyContext;
+      })();
 
       const basePayload: Record<string, unknown> = {
           id: messageId, 

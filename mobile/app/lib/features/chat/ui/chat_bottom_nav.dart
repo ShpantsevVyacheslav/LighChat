@@ -630,7 +630,9 @@ class _LiquidNavSlot extends StatelessWidget {
     final resolvedName = resolveBottomNavIconName(href, iconNames);
     final iconData = iconDataForBottomNavName(resolvedName, fallbackIcon);
     final customIconColor = parseColorFromHex(visual.iconColor);
-    final customTileColor = parseColorFromHex(visual.tileBackground);
+    final noTileFill = bottomNavTileBackgroundIsNone(visual.tileBackground);
+    final customTileColor =
+        noTileFill ? null : parseColorFromHex(visual.tileBackground);
     final iconSize = (visual.size ?? 24.0).clamp(18.0, 30.0);
     final strokeWidth = (visual.strokeWidth ?? (active ? 2.35 : 2.0)).clamp(
       1.0,
@@ -645,12 +647,13 @@ class _LiquidNavSlot extends StatelessWidget {
                     : Colors.black.withValues(alpha: 0.45)))
         : Colors.white;
     final iconColor = customIconColor ?? defaultColor;
-    final useCustomTile = customTileColor != null;
-    final useColorfulTile = appearance != 'minimal' && !useCustomTile;
+    final useCustomSolidTile = customTileColor != null;
+    final useColorfulTile =
+        appearance != 'minimal' && !useCustomSolidTile && !noTileFill;
     final tileGradient = useColorfulTile
         ? defaultBottomNavTileGradient(href)
         : null;
-    final tileColor = useCustomTile ? customTileColor : Colors.transparent;
+    final tileColor = useCustomSolidTile ? customTileColor : Colors.transparent;
 
     return Material(
       color: Colors.transparent,
@@ -667,11 +670,17 @@ class _LiquidNavSlot extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 color: tileGradient == null ? tileColor : null,
                 gradient: tileGradient,
-                border: Border.all(
-                  color: appearance == 'minimal' && !useCustomTile
-                      ? Colors.white.withValues(alpha: dark ? 0.08 : 0.1)
-                      : Colors.white.withValues(alpha: dark ? 0.16 : 0.12),
-                ),
+                border: noTileFill
+                    ? Border.all(color: Colors.transparent, width: 0)
+                    : Border.all(
+                        color: appearance == 'minimal' && !useCustomSolidTile
+                            ? Colors.white.withValues(
+                                alpha: dark ? 0.08 : 0.1,
+                              )
+                            : Colors.white.withValues(
+                                alpha: dark ? 0.16 : 0.12,
+                              ),
+                      ),
               ),
               child: Icon(
                 iconData,
@@ -857,7 +866,9 @@ class _NavTile extends StatelessWidget {
     final iconData = iconDataForBottomNavName(resolvedName, fallbackIcon);
 
     final customIconColor = parseColorFromHex(visual.iconColor);
-    final customTileColor = parseColorFromHex(visual.tileBackground);
+    final noTileFill = bottomNavTileBackgroundIsNone(visual.tileBackground);
+    final customTileColor =
+        noTileFill ? null : parseColorFromHex(visual.tileBackground);
     final iconSize = (visual.size ?? 24.0).clamp(16.0, 34.0);
     final strokeWidth = (visual.strokeWidth ?? (active ? 2.35 : 2.0)).clamp(
       1.0,
@@ -872,8 +883,9 @@ class _NavTile extends StatelessWidget {
         : Colors.white;
     final iconColor = customIconColor ?? defaultColor;
 
-    final useCustomTile = customTileColor != null;
-    final useColorfulTile = appearance != 'minimal' && !useCustomTile;
+    final useCustomSolidTile = customTileColor != null;
+    final useColorfulTile =
+        appearance != 'minimal' && !useCustomSolidTile && !noTileFill;
 
     return Material(
       color: Colors.transparent,
@@ -891,17 +903,19 @@ class _NavTile extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              color: useCustomTile
+              color: useCustomSolidTile
                   ? customTileColor
                   : (useColorfulTile ? null : Colors.transparent),
               gradient: useColorfulTile
                   ? defaultBottomNavTileGradient(href)
                   : null,
-              border: Border.all(
-                color: appearance == 'minimal' && !useCustomTile
-                    ? Colors.white.withValues(alpha: active ? 0.12 : 0)
-                    : Colors.white.withValues(alpha: 0.12),
-              ),
+              border: noTileFill
+                  ? Border.all(color: Colors.transparent, width: 0)
+                  : Border.all(
+                      color: appearance == 'minimal' && !useCustomSolidTile
+                          ? Colors.white.withValues(alpha: active ? 0.12 : 0)
+                          : Colors.white.withValues(alpha: 0.12),
+                    ),
             ),
             child: Icon(
               iconData,

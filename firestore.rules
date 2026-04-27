@@ -120,11 +120,14 @@ service cloud.firestore {
         );
     }
 
-    /** users/{blocker}.blockedUserIds содержит uid заблокированного. */
+    /**
+     * Блокирующий заблокировал blockedUid: маркер `users/{blockerUid}/outgoingBlocks/{blockedUid}`
+     * (синхронизирует CF при изменении `blockedUserIds`). Раньше читали `users/{blocker}` через get —
+     * правило чтения профиля запрещало get заблокированному, из‑за чего в правилах получался
+     * permission-denied вместо корректной проверки блока (в т.ч. на `conversations/.../messages`).
+     */
     function userBlocks(blockerUid, blockedUid) {
-      return exists(/databases/$(database)/documents/users/$(blockerUid))
-        && get(/databases/$(database)/documents/users/$(blockerUid)).data.blockedUserIds is list
-        && blockedUid in get(/databases/$(database)/documents/users/$(blockerUid)).data.blockedUserIds;
+      return exists(/databases/$(database)/documents/users/$(blockerUid)/outgoingBlocks/$(blockedUid));
     }
 
     function isDmTwoPartyConversationData(data) {
@@ -241,6 +244,19 @@ service cloud.firestore {
         (request.auth.uid == userId && !userSensitiveKeysChanged(userId))
       );
       allow delete: if false;
+
+      /**
+       * Маркеры исходящих блокировок (зеркало `blockedUserIds`). Читать может блокирующий или
+       * заблокированный — второму нужен `exists` в правилах без чтения полного `users/{blocker}`.
+       * Запись только через Admin SDK (Cloud Functions).
+       */
+      match /outgoingBlocks/{blockedUserId} {
+        allow read: if isSignedIn() && (
+          request.auth.uid == userId
+          || request.auth.uid == blockedUserId
+        );
+        allow write: if false;
+      }
 
       match /notifications/{notificationId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;

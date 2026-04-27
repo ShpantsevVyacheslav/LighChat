@@ -814,6 +814,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
                           child: TextField(
                             controller: _captionController,
                             maxLines: 1,
+                            textCapitalization: TextCapitalization.sentences,
                             decoration: InputDecoration(
                               hintText: 'Добавить подпись...',
                               hintStyle: TextStyle(

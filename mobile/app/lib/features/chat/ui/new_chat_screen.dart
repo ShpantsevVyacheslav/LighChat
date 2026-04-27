@@ -68,6 +68,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
       dateOfBirth: p.dateOfBirth,
       deletedAt: p.deletedAt,
       privacySettings: p.privacySettings,
+      blockedUserIds: p.blockedUserIds,
     );
   }
 
@@ -107,6 +108,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
             child: TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
+              textCapitalization: TextCapitalization.sentences,
               style: TextStyle(
                 fontSize: 15,
                 color: scheme.onSurface,

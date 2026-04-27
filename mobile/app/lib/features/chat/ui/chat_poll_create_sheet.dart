@@ -187,6 +187,8 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                                     child: TextField(
                                       controller: _optionCtrls[i],
                                       onChanged: (_) => setState(() {}),
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
                                       decoration: InputDecoration(
                                         hintText: 'Вариант ${i + 1}',
                                       ),
@@ -286,6 +288,7 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                             ),
                             TextField(
                               controller: _quizExplCtrl,
+                              textCapitalization: TextCapitalization.sentences,
                               decoration: const InputDecoration(
                                 labelText: 'Пояснение (необязательно)',
                               ),

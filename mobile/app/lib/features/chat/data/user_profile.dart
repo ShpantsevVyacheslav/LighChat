@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'user_block_utils.dart';
+
 /// Соответствует web `PrivacySettings` (флаги видимости полей для других).
 class UserPrivacySettings {
   const UserPrivacySettings({
@@ -73,6 +75,7 @@ class UserProfile {
     this.dateOfBirth,
     this.deletedAt,
     this.privacySettings,
+    this.blockedUserIds = const <String>[],
   });
 
   final String id;
@@ -92,6 +95,9 @@ class UserProfile {
   final String? dateOfBirth;
   final String? deletedAt;
   final UserPrivacySettings? privacySettings;
+
+  /// Web `users.blockedUserIds` — uid, которых этот пользователь заблокировал.
+  final List<String> blockedUserIds;
 
   static DateTime? _parseLastSeen(Object? raw) {
     if (raw == null) return null;
@@ -133,6 +139,7 @@ class UserProfile {
     final privacySettings = UserPrivacySettings.fromJson(
       json['privacySettings'],
     );
+    final blockedUserIds = normalizeBlockedUserIds(json['blockedUserIds']);
 
     return UserProfile(
       id: id,
@@ -150,6 +157,7 @@ class UserProfile {
       dateOfBirth: dateOfBirth,
       deletedAt: deletedAt,
       privacySettings: privacySettings,
+      blockedUserIds: blockedUserIds,
     );
   }
 }

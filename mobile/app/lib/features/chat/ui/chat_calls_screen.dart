@@ -222,6 +222,7 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                             child: TextField(
                               controller: _search,
                               onChanged: (_) => setState(() {}),
+                              textCapitalization: TextCapitalization.sentences,
                               style: TextStyle(color: fg, fontSize: 15),
                               cursorColor: scheme.primary,
                               decoration: InputDecoration(

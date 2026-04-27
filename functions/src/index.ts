@@ -18,6 +18,7 @@ export { createNewUser } from './triggers/http/createNewUser';
 export { signInWithTelegram } from './triggers/http/signInWithTelegram';
 export { updateUserAdmin } from './triggers/http/updateUserAdmin';
 export { backfillConversationMembers } from './triggers/http/backfillConversationMembers';
+export { backfillOutgoingBlocks } from './triggers/http/backfillOutgoingBlocks';
 export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationIndex';
 export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';

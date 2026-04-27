@@ -256,4 +256,37 @@ class UserContactsRepository {
     }
     await Future.wait(writes);
   }
+
+  /// Число ключей из `deviceLookup`, для которых нет документа в `registrationIndex`.
+  /// Используется для кнопки «Пригласить» (параллельные чтения небольшими пачками).
+  Future<int> countDeviceLookupsWithoutRegistration(String ownerId) async {
+    if (ownerId.trim().isEmpty) return 0;
+    final snap = await _firestore
+        .collection('userContacts')
+        .doc(ownerId)
+        .collection('deviceLookup')
+        .get();
+    final keys = snap.docs
+        .map((d) => d.id.trim())
+        .where((k) => k.isNotEmpty)
+        .toList(growable: false);
+    if (keys.isEmpty) return 0;
+    const batchSize = 24;
+    var missing = 0;
+    for (var i = 0; i < keys.length; i += batchSize) {
+      final chunk = keys.sublist(
+        i,
+        i + batchSize > keys.length ? keys.length : i + batchSize,
+      );
+      final results = await Future.wait(
+        chunk.map(
+          (k) => _firestore.collection('registrationIndex').doc(k).get(),
+        ),
+      );
+      for (final d in results) {
+        if (!d.exists) missing++;
+      }
+    }
+    return missing;
+  }
 }

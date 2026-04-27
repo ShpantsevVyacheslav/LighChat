@@ -113,11 +113,15 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="shrink-0"
+                  className="shrink-0 gap-1.5"
                   disabled={busyId !== null}
                   onClick={() => void handleUnblock(id)}
                 >
-                  {busyId === id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="mr-1 h-4 w-4" />}
+                  {busyId === id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <UserX className="h-4 w-4" aria-hidden />
+                  )}
                   Разблокировать
                 </Button>
               </li>

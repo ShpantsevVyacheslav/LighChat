@@ -336,6 +336,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
             const SizedBox(height: 6),
             TextField(
               controller: _title,
+              textCapitalization: TextCapitalization.sentences,
               style: TextStyle(color: fg, fontSize: 15),
               cursorColor: scheme.primary,
               decoration: _fieldDecoration(

@@ -124,6 +124,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
         onChanged: (_) => setState(() {}),
         maxLines: maxLines,
         textInputAction: action,
+        textCapitalization: TextCapitalization.sentences,
         style: TextStyle(fontSize: 15, color: scheme.onSurface),
         cursorColor: scheme.primary,
         decoration: InputDecoration(
@@ -159,6 +160,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
             child: TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
+              textCapitalization: TextCapitalization.sentences,
               style: TextStyle(fontSize: 15, color: scheme.onSurface),
               cursorColor: scheme.primary,
               textAlignVertical: TextAlignVertical.center,

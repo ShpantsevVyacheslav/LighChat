@@ -53,6 +53,10 @@ import {
 import { VideoCircleTailProvider } from '@/components/chat/video-circle-tail-context';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/hooks/use-settings';
+import {
+    parseE2eeEncryptedDataTypes,
+    resolveEffectiveE2eeEncryptedDataTypes,
+} from '@/lib/e2ee/e2ee-data-type-policy';
 import { GEOLOCATION_FIRESTORE_LOG } from '@/lib/geolocation-client';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
 import {
@@ -149,6 +153,11 @@ export function ThreadWindow({
     const router = useRouter();
     const { chatSettings, privacySettings } = useSettings();
     const suppressReadReceipts = privacySettings.showReadReceipts === false;
+    const globalE2eeTypes = parseE2eeEncryptedDataTypes(privacySettings.e2eeEncryptedDataTypes);
+    const effectiveE2eeTypes = resolveEffectiveE2eeEncryptedDataTypes({
+        global: globalE2eeTypes,
+        override: conversation.e2eeEncryptedDataTypesOverride ?? null,
+    });
     const effectiveThreadWallpaper = chatWallpaperProp != null && chatWallpaperProp !== '' ? chatWallpaperProp : chatSettings.chatWallpaper;
     const e2eeConv = useE2eeConversation(firestore, conversation, currentUser.id);
     const e2eeMediaApi = useE2eeMediaAttachments({
@@ -695,7 +704,7 @@ export function ThreadWindow({
         try {
             // E2EE v2 Phase 9: плейнтекст (стикеры/GIF) идёт привычным путём,
             // encryptable-файлы шифруются через useE2eeMediaAttachments.
-            const encryptAttachments = e2eeConv.e2eeEnabled;
+            const encryptAttachments = e2eeConv.e2eeEnabled && effectiveE2eeTypes.media;
             const plaintextFilesToUpload: File[] = encryptAttachments
                 ? files.filter((f) => !isEncryptableMimeV2(f.type))
                 : files;
@@ -736,14 +745,21 @@ export function ThreadWindow({
                 ? text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
                 : '';
             const useE2eeForText =
-                e2eeConv.e2eeEnabled && !!text && plainBody.length > 0;
+                e2eeConv.e2eeEnabled && effectiveE2eeTypes.text && !!text && plainBody.length > 0;
             const hasEncryptedAttachments =
                 !!e2eeAttachmentEnvelopes && e2eeAttachmentEnvelopes.length > 0;
             const useE2eeEnvelope = useE2eeForText || hasEncryptedAttachments;
-            const replyForWrite =
-                useE2eeEnvelope && replyContext
-                    ? (({ text: _omitted, ...rest }) => rest)(replyContext)
-                    : replyContext;
+            const replyForWrite = (() => {
+                if (!replyContext) return null;
+                if (useE2eeEnvelope && effectiveE2eeTypes.replyPreview !== false) {
+                    return (({ text: _omitted, ...rest }) => rest)(replyContext);
+                }
+                if (effectiveE2eeTypes.replyPreview === false) {
+                    const { text: _t, mediaPreviewUrl: _u, ...rest } = replyContext;
+                    return rest;
+                }
+                return replyContext;
+            })();
 
             const messageData: Record<string, unknown> = {
                 id: messageId,

@@ -498,6 +498,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           enabled: !_busy,
                           readOnly: !_editing,
                           hintText: 'Имя',
+                          textCapitalization: TextCapitalization.words,
                         ),
                         const SizedBox(height: 22),
                         _FieldLabel(text: 'Логин', color: fieldLabelColor),
@@ -507,6 +508,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           enabled: !_busy,
                           readOnly: !_editing,
                           hintText: 'username',
+                          textCapitalization: TextCapitalization.none,
                         ),
                         const SizedBox(height: 22),
                         _FieldLabel(text: 'Email', color: fieldLabelColor),
@@ -517,6 +519,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           readOnly: !_editing,
                           keyboardType: TextInputType.emailAddress,
                           hintText: 'name@example.com',
+                          textCapitalization: TextCapitalization.none,
                         ),
                         const SizedBox(height: 22),
                         Row(
@@ -537,6 +540,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     keyboardType: TextInputType.phone,
                                     inputFormatters: [PhoneRuMaskFormatter()],
                                     hintText: '+7900 000-00-00',
+                                    textCapitalization: TextCapitalization.none,
                                   ),
                                 ],
                               ),
@@ -556,6 +560,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     enabled: !_busy,
                                     readOnly: !_editing,
                                     hintText: 'DD.MM.YYYY',
+                                    textCapitalization: TextCapitalization.none,
                                   ),
                                 ],
                               ),
@@ -790,6 +795,7 @@ class _PasswordField extends StatelessWidget {
     return TextField(
       controller: controller,
       enabled: enabled,
+      textCapitalization: TextCapitalization.none,
       obscureText: obscure,
       style: TextStyle(
         fontSize: 16,
@@ -860,6 +866,7 @@ class _ProfileInput extends StatelessWidget {
     this.maxLines = 1,
     this.keyboardType,
     this.inputFormatters,
+    this.textCapitalization = TextCapitalization.sentences,
   });
 
   final TextEditingController controller;
@@ -869,6 +876,7 @@ class _ProfileInput extends StatelessWidget {
   final int maxLines;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
@@ -879,6 +887,7 @@ class _ProfileInput extends StatelessWidget {
       maxLines: maxLines,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      textCapitalization: textCapitalization,
       style: TextStyle(
         fontSize: 16,
         height: 1.25,

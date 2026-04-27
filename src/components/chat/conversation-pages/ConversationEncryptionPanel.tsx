@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useFirestore } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { Conversation } from '@/lib/types';
 import { enableE2eeOnConversationV2 } from '@/lib/e2ee';
 import { disableE2eeOnConversation } from '@/lib/e2ee/disable-conversation-e2ee';
@@ -9,6 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useSettings } from '@/hooks/use-settings';
+import {
+  parseE2eeEncryptedDataTypes,
+  resolveEffectiveE2eeEncryptedDataTypes,
+} from '@/lib/e2ee/e2ee-data-type-policy';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,10 +35,21 @@ type ConversationEncryptionPanelProps = {
 export function ConversationEncryptionPanel({ conversation, currentUserId }: ConversationEncryptionPanelProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { privacySettings } = useSettings();
   const [busy, setBusy] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
+  const [typesBusy, setTypesBusy] = useState(false);
 
   const e2eeOn = !!(conversation.e2eeEnabled && (conversation.e2eeKeyEpoch ?? 0) > 0);
+  const globalTypes = parseE2eeEncryptedDataTypes(privacySettings.e2eeEncryptedDataTypes);
+  const overrideTypes = conversation.e2eeEncryptedDataTypesOverride
+    ? parseE2eeEncryptedDataTypes(conversation.e2eeEncryptedDataTypesOverride)
+    : null;
+  const effectiveTypes = resolveEffectiveE2eeEncryptedDataTypes({
+    global: globalTypes,
+    override: overrideTypes,
+  });
+  const hasOverride = conversation.e2eeEncryptedDataTypesOverride != null;
 
   const handleEnable = useCallback(async () => {
     if (!firestore) return;
@@ -158,6 +175,92 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <div className="mt-6 border-t border-zinc-800 pt-4">
+        <p className="text-sm font-medium text-zinc-200">Типы данных</p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Это не меняет протокол — только управляет тем, что отправлять зашифрованным. Для E2EE-off чатов настройка
+          не применяется.
+        </p>
+
+        <div className="mt-3 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <Label className="text-sm">Переопределить для этого чата</Label>
+            <p className="text-xs text-zinc-500">
+              {hasOverride ? 'Используются чатовые настройки.' : 'Наследуются глобальные настройки.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {typesBusy ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" aria-hidden /> : null}
+            <Switch
+              checked={hasOverride}
+              disabled={!firestore || typesBusy}
+              onCheckedChange={async (on) => {
+                if (!firestore) return;
+                setTypesBusy(true);
+                try {
+                  await updateDoc(doc(firestore, 'conversations', conversation.id), {
+                    e2eeEncryptedDataTypesOverride: on ? effectiveTypes : null,
+                  });
+                } finally {
+                  setTypesBusy(false);
+                }
+              }}
+              aria-label="Переопределить типы данных для этого чата"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/30 p-4">
+          {([
+            {
+              key: 'text' as const,
+              title: 'Текст сообщений',
+              desc: 'Шифровать `message.e2ee.ciphertext` вместо plaintext `text`.',
+            },
+            {
+              key: 'media' as const,
+              title: 'Вложения (медиа/файлы)',
+              desc: 'Шифровать `message.e2ee.attachments` + Storage `chat-attachments-enc/...` (стикеры/GIF всегда plaintext).',
+            },
+            {
+              key: 'replyPreview' as const,
+              title: 'Reply-превью',
+              desc: 'Если выключить — не писать plaintext в `replyTo.text`/`mediaPreviewUrl`.',
+            },
+          ] as const).map((row) => (
+            <div key={row.key} className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <Label className="text-sm">{row.title}</Label>
+                <p className="text-xs text-zinc-500">{row.desc}</p>
+              </div>
+              <Switch
+                checked={effectiveTypes[row.key]}
+                disabled={!firestore || typesBusy || !hasOverride}
+                onCheckedChange={async (v) => {
+                  if (!firestore) return;
+                  if (!hasOverride) return;
+                  setTypesBusy(true);
+                  try {
+                    const next = { ...effectiveTypes, [row.key]: v };
+                    await updateDoc(doc(firestore, 'conversations', conversation.id), {
+                      e2eeEncryptedDataTypesOverride: next,
+                    });
+                  } finally {
+                    setTypesBusy(false);
+                  }
+                }}
+                aria-label={`E2EE: ${row.title}`}
+              />
+            </div>
+          ))}
+          {!hasOverride ? (
+            <p className="text-xs text-zinc-500">
+              Чтобы изменить для конкретного чата, включите «Переопределить».
+            </p>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

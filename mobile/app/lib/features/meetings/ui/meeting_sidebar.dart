@@ -578,6 +578,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
           controller: c,
           maxLines: 5,
           autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
         ),
         actions: [
           TextButton(
@@ -721,6 +722,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
                     controller: _input,
                     minLines: 1,
                     maxLines: 5,
+                    textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
                     style: const TextStyle(color: Colors.white),

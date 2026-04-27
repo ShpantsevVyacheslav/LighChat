@@ -210,7 +210,7 @@ class NotificationSettingsSwitchRow extends StatelessWidget {
                   ),
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 0),
                   Text(
                     subtitle!,
                     style: TextStyle(

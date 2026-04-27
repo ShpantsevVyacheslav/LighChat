@@ -12,6 +12,9 @@ import '../data/chat_call_status.dart';
 import '../data/chat_calls_providers.dart';
 import '../data/contact_display_name.dart';
 import '../data/user_contacts_repository.dart';
+import '../data/user_block_providers.dart';
+import '../data/user_block_utils.dart';
+import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_avatar.dart';
@@ -26,6 +29,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
 
   Future<void> _startCallFromDetail({
     required BuildContext context,
+    required WidgetRef ref,
     required String currentUserId,
     required String currentUserName,
     required String? currentUserAvatarUrl,
@@ -33,7 +37,43 @@ class ChatCallDetailScreen extends ConsumerWidget {
     required String peerUserName,
     required String? peerAvatarUrl,
     required bool isVideo,
+    UserProfile? selfProfile,
+    UserProfile? peerProfile,
   }) async {
+    final myAsync = ref.read(userBlockedUserIdsProvider(currentUserId));
+    final theirAsync = ref.read(userBlockedUserIdsProvider(peerUserId));
+    final self = selfProfile ??
+        UserProfile(
+          id: currentUserId,
+          name: currentUserName.trim().isNotEmpty ? currentUserName : currentUserId,
+        );
+    final peer = peerProfile ??
+        UserProfile(
+          id: peerUserId,
+          name: peerUserName.trim().isNotEmpty ? peerUserName : peerUserId,
+        );
+    if (!canStartDirectChat(
+      self,
+      peer,
+      partnerBlockedIdsSupplement: theirAsync.asData?.value,
+      partnerUserDocDenied: theirAsync.hasError,
+    )) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            directCallBlockedMessageRu(
+              viewerId: currentUserId,
+              viewerBlockedIds: myAsync.value ?? const <String>[],
+              partnerId: peerUserId,
+              partnerBlockedIds: theirAsync.asData?.value ?? peer.blockedUserIds,
+              partnerUserDocDenied: theirAsync.hasError,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => isVideo
@@ -308,6 +348,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                           unawaited(
                                             _startCallFromDetail(
                                               context: context,
+                                              ref: ref,
                                               currentUserId: authUid,
                                               currentUserName: meName,
                                               currentUserAvatarUrl: meAvatar,
@@ -315,6 +356,8 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                               peerUserName: peerName,
                                               peerAvatarUrl: peerAvatar,
                                               isVideo: false,
+                                              selfProfile: self,
+                                              peerProfile: peer,
                                             ),
                                           );
                                         },
@@ -339,6 +382,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                           unawaited(
                                             _startCallFromDetail(
                                               context: context,
+                                              ref: ref,
                                               currentUserId: authUid,
                                               currentUserName: meName,
                                               currentUserAvatarUrl: meAvatar,
@@ -346,6 +390,8 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                               peerUserName: peerName,
                                               peerAvatarUrl: peerAvatar,
                                               isVideo: true,
+                                              selfProfile: self,
+                                              peerProfile: peer,
                                             ),
                                           );
                                         },

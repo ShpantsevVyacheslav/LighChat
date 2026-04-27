@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'chat_outbox_attachment_notifier.dart';
+import 'user_block_utils.dart';
 
 /// Список uid, которых этот пользователь заблокировал (`users.blockedUserIds`).
 final userBlockedUserIdsProvider =
@@ -42,9 +43,16 @@ Widget? dmComposerBlockBanner({
   final theirAsync = ref.watch(userBlockedUserIdsProvider(partnerId));
   final myBlocked = myAsync.value ?? const <String>[];
   final theirBlocked = theirAsync.value ?? const <String>[];
+  final blocked = isEitherBlockingFromUserIds(
+    viewerId: currentUserId,
+    viewerBlockedIds: myBlocked,
+    partnerId: partnerId,
+    partnerBlockedIds: theirBlocked,
+    partnerUserDocDenied: theirAsync.hasError,
+  );
+  if (!blocked) return null;
+
   final iBlocked = myBlocked.contains(partnerId);
-  final theyBlockedMe = theirBlocked.contains(currentUserId);
-  if (!iBlocked && !theyBlockedMe) return null;
 
   final scheme = Theme.of(context).colorScheme;
   final msg = iBlocked

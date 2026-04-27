@@ -557,6 +557,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                       child: TextField(
                         onChanged: (v) => setLocalState(() => query = v),
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(
                           hintText: 'Поиск по названию (англ.)...',
                           prefixIcon: const Icon(Icons.search_rounded),
@@ -701,11 +702,19 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
     return aa == bb;
   }
 
+  /// Только значения `#RRGGBB` для ряда кружков (не `none` и не мусор из старых данных).
+  String? _hexSwatchSelection(String? raw) {
+    final t = raw?.trim();
+    if (t == null || t.isEmpty || !t.startsWith('#')) return null;
+    return t;
+  }
+
   Widget _buildColorSwatches({
     required String? selectedHex,
     required ValueChanged<String> onSelect,
     required VoidCallback onReset,
     required String resetLabel,
+    Widget? betweenSwatchesAndReset,
   }) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
@@ -751,6 +760,10 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
               })
               .toList(growable: false),
         ),
+        if (betweenSwatchesAndReset != null) ...[
+          const SizedBox(height: 6),
+          betweenSwatchesAndReset,
+        ],
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: onReset,
@@ -830,7 +843,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           ),
           const SizedBox(height: 8),
           _buildColorSwatches(
-            selectedHex: iconColor,
+            selectedHex: _hexSwatchSelection(iconColor),
             onSelect: (hex) => onStyleChanged(apply(iconColor: hex)),
             onReset: () => onStyleChanged(apply(resetIconColor: true)),
             resetLabel: 'По умолчанию',
@@ -914,12 +927,27 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           ),
           const SizedBox(height: 8),
           _buildColorSwatches(
-            selectedHex: tileBackground,
+            selectedHex: _hexSwatchSelection(tileBackground),
             onSelect: (hex) => onStyleChanged(apply(tileBackground: hex)),
             onReset: () => onStyleChanged(apply(resetTileBackground: true)),
             resetLabel: isGlobalEditor
                 ? 'Градиент по умолчанию'
                 : 'Наследовать от глобальных',
+            betweenSwatchesAndReset: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () =>
+                    onStyleChanged(apply(tileBackground: 'none')),
+                child: Text(
+                  bottomNavTileBackgroundIsNone(
+                    currentStyle.tileBackground ??
+                        effectiveStyle.tileBackground,
+                  )
+                      ? 'Без фона (вкл.)'
+                      : 'Без фона',
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1879,7 +1907,9 @@ class _BottomNavIconTilePreview extends StatelessWidget {
     final fg = dark ? Colors.white : scheme.onSurface;
     final iconData = iconDataForBottomNavName(iconName, fallbackIcon);
     final customIconColor = parseColorFromHex(style.iconColor);
-    final customTile = parseColorFromHex(style.tileBackground);
+    final noTile = bottomNavTileBackgroundIsNone(style.tileBackground);
+    final customTile =
+        noTile ? null : parseColorFromHex(style.tileBackground);
     final iconColor =
         customIconColor ??
         (appearance == 'minimal'
@@ -1889,16 +1919,19 @@ class _BottomNavIconTilePreview extends StatelessWidget {
     final stroke = (style.strokeWidth ?? 2).clamp(1, 3).toDouble();
     final iconWeight = 200 + ((stroke - 1) / 2 * 500);
     final defaultGradient = defaultBottomNavTileGradient(href);
-    final tileGradient = customTile == null && appearance != 'minimal'
-        ? defaultGradient
-        : null;
-    final tileColor =
-        customTile ??
-        (appearance == 'minimal'
-            ? Colors.transparent
-            : (dark ? Colors.white : scheme.surfaceContainerHighest).withValues(
-                alpha: dark ? 0.08 : 0.86,
-              ));
+    final tileGradient =
+        !noTile && customTile == null && appearance != 'minimal'
+            ? defaultGradient
+            : null;
+    final tileColor = noTile
+        ? Colors.transparent
+        : (customTile ??
+            (appearance == 'minimal'
+                ? Colors.transparent
+                : (dark ? Colors.white : scheme.surfaceContainerHighest)
+                    .withValues(
+                    alpha: dark ? 0.08 : 0.86,
+                  )));
     return Container(
       width: 44,
       height: 44,
@@ -1908,7 +1941,9 @@ class _BottomNavIconTilePreview extends StatelessWidget {
         color: tileGradient == null ? tileColor : null,
         gradient: tileGradient,
         border: Border.all(
-          color: appearance == 'minimal' && customTile == null
+          color: appearance == 'minimal' &&
+                  customTile == null &&
+                  !noTile
               ? fg.withValues(alpha: dark ? 0.16 : 0.14)
               : fg.withValues(alpha: dark ? 0.12 : 0.1),
         ),

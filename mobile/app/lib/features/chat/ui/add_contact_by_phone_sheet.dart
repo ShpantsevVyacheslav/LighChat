@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -62,8 +63,8 @@ class AddContactByPhoneSheet extends ConsumerStatefulWidget {
       _AddContactByPhoneSheetState();
 }
 
-class _AddContactByPhoneSheetState
-    extends ConsumerState<AddContactByPhoneSheet> {
+class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
+    with WidgetsBindingObserver {
   final TextEditingController _nationalPhone = TextEditingController();
   final TextEditingController _countrySearch = TextEditingController();
   bool _busy = false;
@@ -73,7 +74,8 @@ class _AddContactByPhoneSheetState
   String? _info;
   bool _checkedConsent = false;
   bool _hasDeviceConsent = false;
-  bool _syncWithPhone = false;
+  /// Разрешение ОС на чтение контактов (permission_handler), не путать с согласием в Firestore.
+  bool _contactsOsGranted = false;
   bool _isApplyingPhoneMask = false;
   List<String> _matchedIds = const <String>[];
   late _PhoneCountry _selectedCountry;
@@ -81,16 +83,37 @@ class _AddContactByPhoneSheetState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedCountry = _detectDefaultCountry();
     unawaited(_loadConsentOnce());
+    unawaited(_refreshOsContactsPermission());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _nationalPhone.dispose();
     _countrySearch.dispose();
     super.dispose();
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshOsContactsPermission());
+    }
+  }
+
+  Future<void> _refreshOsContactsPermission() async {
+    final st = await Permission.contacts.status;
+    if (!mounted) return;
+    setState(() {
+      _contactsOsGranted = st.isGranted || st.isLimited;
+    });
+  }
+
+  /// Тумблер отражает системное разрешение (как просили: синхронизирован с ОС).
+  bool get _syncSwitchOn => _contactsOsGranted;
 
   _PhoneCountry _detectDefaultCountry() {
     final byPhone = _detectByPhone(widget.viewer.phone);
@@ -138,15 +161,15 @@ class _AddContactByPhoneSheetState
       setState(() {
         _checkedConsent = true;
         _hasDeviceConsent = ok;
-        _syncWithPhone = ok;
       });
+      await _refreshOsContactsPermission();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _checkedConsent = true;
         _hasDeviceConsent = false;
-        _syncWithPhone = false;
       });
+      await _refreshOsContactsPermission();
     }
   }
 
@@ -222,10 +245,7 @@ class _AddContactByPhoneSheetState
   Future<void> _toggleSyncWithPhone(bool next) async {
     if (_syncBusy || _busy) return;
     if (!next) {
-      setState(() {
-        _syncWithPhone = false;
-        _hasDeviceConsent = false;
-      });
+      setState(() => _hasDeviceConsent = false);
       try {
         await widget.contactsRepo.saveDeviceContactsConsent(
           ownerId: widget.ownerId,
@@ -234,11 +254,38 @@ class _AddContactByPhoneSheetState
       } catch (_) {
         // Ignore network issues here: local toggle state is still explicit.
       }
+      if (mounted) {
+        _setInfo(
+          'Синхронизация выключена в приложении. Чтобы запретить доступ к контактам — отключите его в настройках системы.',
+        );
+      }
+      await openAppSettings();
+      await _refreshOsContactsPermission();
       return;
     }
 
-    if (_hasDeviceConsent) {
-      setState(() => _syncWithPhone = true);
+    var st = await Permission.contacts.status;
+    if (st.isDenied) {
+      st = await Permission.contacts.request();
+    }
+    if (!mounted) return;
+    if (st.isPermanentlyDenied) {
+      await openAppSettings();
+      _setError(
+        'Включите доступ к контактам для LighChat в настройках системы.',
+        soft: true,
+      );
+      await _refreshOsContactsPermission();
+      return;
+    }
+    if (!st.isGranted && !st.isLimited) {
+      _setError('Доступ к контактам не предоставлен.', soft: true);
+      await _refreshOsContactsPermission();
+      return;
+    }
+    await _refreshOsContactsPermission();
+
+    if (_hasDeviceConsent && _contactsOsGranted) {
       return;
     }
 
@@ -250,9 +297,9 @@ class _AddContactByPhoneSheetState
       if (mounted) {
         setState(() {
           _syncBusy = false;
-          _syncWithPhone = ok;
           _hasDeviceConsent = ok;
         });
+        await _refreshOsContactsPermission();
         if (ok) {
           _setInfo('Синхронизация включена');
         } else {
@@ -420,6 +467,7 @@ class _AddContactByPhoneSheetState
                       const SizedBox(height: 12),
                       TextField(
                         controller: _countrySearch,
+                        textCapitalization: TextCapitalization.sentences,
                         onChanged: (_) => setModalState(() {}),
                         style: const TextStyle(fontSize: 18),
                         decoration: InputDecoration(
@@ -610,6 +658,7 @@ class _AddContactByPhoneSheetState
                   child: TextField(
                     controller: _nationalPhone,
                     enabled: !_busy,
+                    textCapitalization: TextCapitalization.none,
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.search,
                     onChanged: _handlePhoneChanged,
@@ -678,7 +727,7 @@ class _AddContactByPhoneSheetState
               )
             else
               Switch.adaptive(
-                value: _syncWithPhone,
+                value: _syncSwitchOn,
                 onChanged: (_busy || !_checkedConsent)
                     ? null
                     : (v) => unawaited(_toggleSyncWithPhone(v)),

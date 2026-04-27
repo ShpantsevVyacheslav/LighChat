@@ -188,7 +188,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                                 TextField(
                                   controller: _firstName,
                                   enabled: !_saving,
-                                  textCapitalization: TextCapitalization.words,
+                                  textCapitalization: TextCapitalization.sentences,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -209,7 +209,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                                 TextField(
                                   controller: _lastName,
                                   enabled: !_saving,
-                                  textCapitalization: TextCapitalization.words,
+                                  textCapitalization: TextCapitalization.sentences,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,

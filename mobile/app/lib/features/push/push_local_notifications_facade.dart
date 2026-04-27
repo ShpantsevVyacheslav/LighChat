@@ -16,9 +16,13 @@ class PushLocalNotificationsFacade {
   static bool _mainReady = false;
   static bool _bgReady = false;
 
+  /// Публичные id каналов (Android): см. шторку «типы уведомлений» в настройках.
+  static const String channelSoundId = 'lighchat_chat';
+  static const String channelSilentId = 'lighchat_chat_silent';
+
   static const AndroidNotificationChannel _channelSound =
       AndroidNotificationChannel(
-        'lighchat_chat',
+        channelSoundId,
         'Сообщения',
         description: 'Новые сообщения в чатах',
         importance: Importance.high,
@@ -26,7 +30,7 @@ class PushLocalNotificationsFacade {
 
   static const AndroidNotificationChannel _channelSilent =
       AndroidNotificationChannel(
-        'lighchat_chat_silent',
+        channelSilentId,
         'Сообщения без звука',
         description: 'Push без звука',
         importance: Importance.defaultImportance,

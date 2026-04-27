@@ -217,7 +217,7 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
           conversationId: widget.conversationId,
           messageId: e2eeCtx.messageId,
           epoch: e2eeCtx.epoch,
-          plaintext: widget.captionText,
+          plaintext: e2eeCtx.encryptText ? widget.captionText : '',
         );
         outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
           textEnvelope: textEnvelope,

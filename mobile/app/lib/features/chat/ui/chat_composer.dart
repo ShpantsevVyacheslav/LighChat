@@ -99,7 +99,10 @@ class ChatComposer extends StatefulWidget {
 }
 
 class _ChatComposerState extends State<ChatComposer> {
-  static const double _kComposerControlSize = 38;
+  /// Как строка поиска на экране списка чатов (`chat_list_screen`: высота 40, radius 14).
+  static const double _kComposerControlSize = 40;
+  /// Согласовано с `fontSize: 16` без forceStrut — курсор не растягивается на всю капсулу.
+  static const double _kComposerCursorHeight = 18;
   final GlobalKey _composerColumnKey = GlobalKey();
   OverlayEntry? _attachmentOverlayEntry;
   bool _hasTypedText = false;
@@ -296,10 +299,15 @@ class _ChatComposerState extends State<ChatComposer> {
   }
 
   Widget _buildComposerTextField(bool keyboardOpen) {
+    final scheme = Theme.of(context).colorScheme;
+    final fg = scheme.onSurface;
     final paste = widget.onClipboardToolbarPaste;
     final tf = TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
+      textCapitalization: TextCapitalization.sentences,
+      cursorColor: scheme.primary,
+      cursorHeight: _kComposerCursorHeight,
       selectionControls: paste == null
           ? null
           : ComposerClipboardMaterialSelectionControls(onPaste: paste),
@@ -307,33 +315,21 @@ class _ChatComposerState extends State<ChatComposer> {
       maxLines: 1,
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
-      strutStyle: StrutStyle(
-        forceStrutHeight: true,
-        fontSize: 15.5,
-        height: 1.15,
-        // Небольшой верхний «воздух» — оптически центрирует строку в капсуле
-        // (иначе глифы визуально прилипают к верху при forceStrutHeight).
-        leading: 1.5,
-        leadingDistribution: TextLeadingDistribution.proportional,
-      ),
-      style: const TextStyle(
-        fontSize: 15.5,
-        height: 1.15,
-        color: Colors.white,
+      style: TextStyle(
+        fontSize: 16,
         fontWeight: FontWeight.w500,
+        color: fg,
       ),
       decoration: InputDecoration(
         hintText: 'Введите сообщение...',
         hintStyle: TextStyle(
-          color: Colors.white.withValues(alpha: 0.42),
+          color: fg.withValues(alpha: 0.45),
           fontWeight: FontWeight.w500,
-          fontSize: 15.5,
-          height: 1.15,
+          fontSize: 16,
         ),
         border: InputBorder.none,
-        // Центрируем текст и placeholder по вертикали внутри фиксированной высоты.
         isDense: true,
-        contentPadding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10),
         isCollapsed: false,
         suffixIcon: keyboardOpen
             ? IconButton(
@@ -345,8 +341,8 @@ class _ChatComposerState extends State<ChatComposer> {
                   Icons.emoji_emotions_outlined,
                   size: 20,
                   color: widget.sendBusy
-                      ? Colors.white.withValues(alpha: 0.35)
-                      : Colors.white.withValues(alpha: 0.88),
+                      ? fg.withValues(alpha: 0.35)
+                      : fg.withValues(alpha: 0.88),
                 ),
               )
             : null,
@@ -375,6 +371,7 @@ class _ChatComposerState extends State<ChatComposer> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
+    final fg = scheme.onSurface;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final showSendButton =
         _hasTypedText || widget.pendingAttachments.isNotEmpty;
@@ -451,13 +448,9 @@ class _ChatComposerState extends State<ChatComposer> {
                       height: _kComposerControlSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(
-                          alpha: dark ? 0.09 : 0.16,
-                        ),
+                        color: fg.withValues(alpha: dark ? 0.09 : 0.08),
                         border: Border.all(
-                          color: Colors.white.withValues(
-                            alpha: dark ? 0.16 : 0.24,
-                          ),
+                          color: fg.withValues(alpha: dark ? 0.16 : 0.14),
                         ),
                       ),
                       child: IconButton(
@@ -470,8 +463,8 @@ class _ChatComposerState extends State<ChatComposer> {
                         icon: Icon(
                           Icons.add_rounded,
                           color: widget.attachmentsEnabled && !widget.sendBusy
-                              ? Colors.white.withValues(alpha: 0.90)
-                              : Colors.white.withValues(alpha: 0.35),
+                              ? fg.withValues(alpha: 0.90)
+                              : fg.withValues(alpha: 0.35),
                         ),
                       ),
                     ),
@@ -480,14 +473,10 @@ class _ChatComposerState extends State<ChatComposer> {
                       child: Container(
                         height: _kComposerControlSize,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(22),
-                          color: Colors.white.withValues(
-                            alpha: dark ? 0.07 : 0.14,
-                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          color: fg.withValues(alpha: dark ? 0.07 : 0.08),
                           border: Border.all(
-                            color: Colors.white.withValues(
-                              alpha: dark ? 0.16 : 0.24,
-                            ),
+                            color: fg.withValues(alpha: dark ? 0.14 : 0.12),
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -507,15 +496,11 @@ class _ChatComposerState extends State<ChatComposer> {
                         shape: BoxShape.circle,
                         color: showSendButton
                             ? const Color(0xFF2A79FF)
-                            : Colors.white.withValues(
-                                alpha: dark ? 0.08 : 0.14,
-                              ),
+                            : fg.withValues(alpha: dark ? 0.08 : 0.08),
                         border: showSendButton
                             ? null
                             : Border.all(
-                                color: Colors.white.withValues(
-                                  alpha: dark ? 0.16 : 0.24,
-                                ),
+                                color: fg.withValues(alpha: dark ? 0.16 : 0.14),
                               ),
                         boxShadow: showSendButton
                             ? [
@@ -559,9 +544,7 @@ class _ChatComposerState extends State<ChatComposer> {
                                         iconSize: 20,
                                         icon: Icon(
                                           Icons.mic_rounded,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.92,
-                                          ),
+                                          color: fg.withValues(alpha: 0.92),
                                         ),
                                       );
                                     }
@@ -588,9 +571,7 @@ class _ChatComposerState extends State<ChatComposer> {
                                         child: Icon(
                                           Icons.mic_rounded,
                                           size: 20,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.92,
-                                          ),
+                                          color: fg.withValues(alpha: 0.92),
                                         ),
                                       ),
                                     );

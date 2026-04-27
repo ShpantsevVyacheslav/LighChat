@@ -18,6 +18,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/composer_clipboard_paste.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
+import '../data/e2ee_data_type_policy.dart';
 import '../data/e2ee_runtime.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/composer_html_editing.dart';
@@ -60,6 +61,7 @@ import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/user_block_providers.dart';
+import '../data/user_block_utils.dart';
 import '../data/chat_pending_album_provider.dart';
 import '../data/outgoing_album_e2ee_context.dart';
 import '../data/pending_image_album_send.dart';
@@ -858,6 +860,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             final isSaved =
                 conv != null &&
                 isSavedMessagesConversation(conv.data, user.uid);
+            final myBlockedAsync = ref.watch(
+              userBlockedUserIdsProvider(user.uid),
+            );
+            final partnerBlockedAsync =
+                (dmOtherId != null && dmOtherId.isNotEmpty)
+                ? ref.watch(userBlockedUserIdsProvider(dmOtherId))
+                : null;
+            final dmCallsBlocked =
+                conv?.data.isGroup != true &&
+                dmOtherId != null &&
+                dmOtherId.isNotEmpty &&
+                isEitherBlockingFromUserIds(
+                  viewerId: user.uid,
+                  viewerBlockedIds: myBlockedAsync.value ?? const <String>[],
+                  partnerId: dmOtherId,
+                  partnerBlockedIds: partnerBlockedAsync?.value ?? const <String>[],
+                  partnerUserDocDenied: partnerBlockedAsync?.hasError == true,
+                );
             final profilesRepo = ref.watch(userProfilesRepositoryProvider);
             final profileWatchIds = <String>{user.uid};
             if (conv != null && conv.data.isGroup) {
@@ -920,6 +940,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         dateOfBirth: profile.dateOfBirth,
                         deletedAt: profile.deletedAt,
                         privacySettings: profile.privacySettings,
+                        blockedUserIds: profile.blockedUserIds,
                       );
                 final dmFallbackAvatarThumb =
                     dmOtherId != null && partInfo != null
@@ -944,7 +965,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 final showCalls =
                     conv?.data.isGroup != true &&
                     dmOtherId != null &&
-                    dmOtherId.isNotEmpty;
+                    dmOtherId.isNotEmpty &&
+                    !dmCallsBlocked;
                 final threadsUnread =
                     conv?.data.unreadThreadCounts?[user.uid] ?? 0;
                 final prefsStream = ref
@@ -1774,10 +1796,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     onCancelEdit: _editingMessageId != null
                                         ? _cancelInlineEdit
                                         : null,
-                                    onSend: () =>
-                                        _submitComposer(user.uid, conv?.data),
+                                    onSend: () {
+                                      final globalPolicy =
+                                          E2eeDataTypePolicy.fromFirestore(
+                                        rawPrivacySettings['e2eeEncryptedDataTypes'],
+                                      );
+                                      final convData = conv?.data;
+                                      final overrideRaw =
+                                          convData?.e2eeEncryptedDataTypesOverride;
+                                      final overridePolicy = overrideRaw == null
+                                          ? null
+                                          : E2eeDataTypePolicy.fromFirestore(
+                                              overrideRaw,
+                                            );
+                                      final effectivePolicy =
+                                          resolveE2eeEffectivePolicy(
+                                        global: globalPolicy,
+                                        override: overridePolicy,
+                                      );
+                                      unawaited(
+                                        _submitComposer(
+                                          user.uid,
+                                          conv: convData,
+                                          e2eePolicy: effectivePolicy,
+                                        ),
+                                      );
+                                    },
                                     groupMentionCandidates:
-                                        conv?.data != null && conv!.data.isGroup
+                                        conv != null && conv.data.isGroup
                                         ? buildGroupMentionCandidates(
                                             conversation: conv.data,
                                             currentUserId: user.uid,
@@ -2986,7 +3032,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  Future<void> _submitComposer(String uid, [Conversation? conv]) async {
+  ReplyContext? _stripReplyPreviewByPolicy(
+    ReplyContext? input,
+    E2eeDataTypePolicy policy,
+  ) {
+    if (input == null) return null;
+    if (policy.replyPreview) return input;
+    return ReplyContext(
+      messageId: input.messageId,
+      senderName: input.senderName,
+      mediaType: input.mediaType,
+      // intentionally omit plaintext preview fields
+      text: null,
+      mediaPreviewUrl: null,
+    );
+  }
+
+  Future<void> _submitComposer(
+    String uid, {
+    Conversation? conv,
+    required E2eeDataTypePolicy e2eePolicy,
+  }) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
     // Phase 4: если чат в E2EE, нам нужны (а) заранее известный messageId,
@@ -3024,7 +3090,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (editingId != null) {
       try {
         Map<String, Object?>? editEnvelope;
-        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
+        if (convIsE2ee &&
+            e2eePolicy.text &&
+            e2eeRuntime != null &&
+            e2eeEpoch != null) {
           try {
             editEnvelope = await e2eeRuntime.encryptOutgoing(
               conversationId: widget.conversationId,
@@ -3059,7 +3128,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final pending = List<XFile>.from(_pendingAttachments);
     if (pending.isNotEmpty) {
-      final replySnap = _replyingTo;
+      final replySnap = _stripReplyPreviewByPolicy(_replyingTo, e2eePolicy);
       final textSave = prepared;
       if (pending.every(isOutgoingAlbumLocalImage)) {
         // E2EE v2 Phase 9: для E2EE-active чата заранее резервируем messageId и
@@ -3067,7 +3136,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         // того, чтобы AAD включал тот же messageId, под которым будет записано
         // сообщение в Firestore.
         OutgoingAlbumE2eeContext? albumE2eeContext;
-        if (convIsE2ee && e2eeRuntime != null && e2eeEpoch != null) {
+        if (convIsE2ee &&
+            e2eePolicy.media &&
+            e2eeRuntime != null &&
+            e2eeEpoch != null) {
           final reservedId = FirebaseFirestore.instance
               .collection('conversations')
               .doc(widget.conversationId)
@@ -3078,6 +3150,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             runtime: e2eeRuntime,
             epoch: e2eeEpoch,
             messageId: reservedId,
+            encryptText: e2eePolicy.text,
           );
         }
         ref.read(pendingImageAlbumNotifierProvider.notifier).setFor(
@@ -3115,6 +3188,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             rawCaptionHtml: prepared,
             replyTo: replySnap,
             convIsE2ee: convIsE2ee,
+            e2eeEncryptText: e2eePolicy.text,
+            e2eeEncryptMedia: e2eePolicy.media,
             e2eeEpoch: e2eeEpoch,
           );
       if (mounted) {
@@ -3131,7 +3206,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
 
-    final replySnap = _replyingTo;
+    final replySnap = _stripReplyPreviewByPolicy(_replyingTo, e2eePolicy);
     _controller.clear();
     setState(() => _sendBusy = true);
     await ref
@@ -3143,6 +3218,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           rawCaptionHtml: prepared,
           replyTo: replySnap,
           convIsE2ee: convIsE2ee,
+          e2eeEncryptText: e2eePolicy.text,
+          e2eeEncryptMedia: e2eePolicy.media,
           e2eeEpoch: e2eeEpoch,
         );
     if (mounted) {
@@ -3283,8 +3360,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// `conversationsProvider` и, если чат E2EE-active, возвращает тройку
   /// (runtime, epoch, reservedMessageId) для media-only отправки. Возвращает
   /// null, если E2EE не активирован или данные недоступны.
+  E2eeDataTypePolicy _resolveEffectiveE2eePolicyForChat(String uid) {
+    final userDoc =
+        ref.read(userChatSettingsDocProvider(uid)).asData?.value ??
+            const <String, dynamic>{};
+    final rawPrivacy =
+        userDoc['privacySettings'] as Map? ?? const <String, dynamic>{};
+    final global = E2eeDataTypePolicy.fromFirestore(
+      rawPrivacy['e2eeEncryptedDataTypes'],
+    );
+    final convAsync = ref.read(
+      conversationsProvider((
+        key: conversationIdsCacheKey([widget.conversationId]),
+      )),
+    );
+    final convList = convAsync.asData?.value;
+    final conv = convList != null && convList.isNotEmpty
+        ? convList.first.data
+        : null;
+    final overrideRaw = conv?.e2eeEncryptedDataTypesOverride;
+    final overridePolicy =
+        overrideRaw == null ? null : E2eeDataTypePolicy.fromFirestore(overrideRaw);
+    return resolveE2eeEffectivePolicy(global: global, override: overridePolicy);
+  }
+
   ({MobileE2eeRuntime runtime, int epoch, String messageId})?
-  _resolveMediaOnlyE2eeContext() {
+  _resolveMediaOnlyE2eeContext(String uid) {
     final convAsync = ref.read(
       conversationsProvider((
         key: conversationIdsCacheKey([widget.conversationId]),
@@ -3295,6 +3396,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? convList.first.data
         : null;
     if (!isConversationE2eeActive(conv)) return null;
+    final policy = _resolveEffectiveE2eePolicyForChat(uid);
+    if (!policy.media) return null;
     final runtime = ref.read(mobileE2eeRuntimeProvider);
     final epoch = conv?.e2eeKeyEpoch;
     if (runtime == null || epoch == null) return null;
@@ -3317,11 +3420,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final mime = ext == 'mov' ? 'video/quicktime' : 'video/mp4';
     final name = 'video-circle_${DateTime.now().millisecondsSinceEpoch}.$ext';
     final file = XFile(raw.path, mimeType: mime);
-    final replySnap = _replyingTo;
+    final policy = _resolveEffectiveE2eePolicyForChat(uid);
+    final replySnap = _stripReplyPreviewByPolicy(_replyingTo, policy);
     setState(() => _sendBusy = true);
     try {
       // E2EE v2 Phase 9: кружок шифруется, если чат E2EE-active.
-      final e2ee = _resolveMediaOnlyE2eeContext();
+      final e2ee = _resolveMediaOnlyE2eeContext(uid);
       if (e2ee != null) {
         final bytes = await file.readAsBytes();
         final envelope = await e2ee.runtime.encryptMediaForSend(
@@ -3398,8 +3502,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     try {
       final audioName = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
       final file = XFile(rec.filePath, mimeType: 'audio/m4a');
+      final policy = _resolveEffectiveE2eePolicyForChat(uid);
       // E2EE v2 Phase 9: голосовые также шифруются в E2EE-active чате.
-      final e2ee = _resolveMediaOnlyE2eeContext();
+      final e2ee = _resolveMediaOnlyE2eeContext(uid);
       if (e2ee != null) {
         final bytes = await file.readAsBytes();
         final envelope = await e2ee.runtime.encryptMediaForSend(
@@ -3425,7 +3530,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           conversationId: widget.conversationId,
           senderId: uid,
           text: '',
-          replyTo: _replyingTo,
+          replyTo: _stripReplyPreviewByPolicy(_replyingTo, policy),
           e2eeEnvelope: mergedE2ee,
           messageIdOverride: e2ee.messageId,
         );
@@ -3440,7 +3545,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           conversationId: widget.conversationId,
           senderId: uid,
           text: '',
-          replyTo: _replyingTo,
+          replyTo: _stripReplyPreviewByPolicy(_replyingTo, policy),
           attachments: [uploaded],
         );
       }
@@ -3496,14 +3601,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ChatRepository repo,
     ChatAttachment att,
   ) async {
-    final replySnap = _replyingTo;
+    final policy = _resolveEffectiveE2eePolicyForChat(uid);
+    final replySnap = _stripReplyPreviewByPolicy(_replyingTo, policy);
     setState(() => _sendBusy = true);
     try {
       // E2EE v2 Phase 9: стикеры/GIFs шифровать нельзя (animated/format), но
       // в E2EE-active чате repo требует envelope — отправляем «пустой» text
       // envelope (plaintext='') чтобы push-notification трактовал сообщение
       // как «Зашифрованное сообщение» и не раскрывал вложения через summary.
-      final e2ee = _resolveMediaOnlyE2eeContext();
+      final e2ee = _resolveMediaOnlyE2eeContext(uid);
       Map<String, Object?>? outgoingEnvelope;
       String? msgIdOverride;
       if (e2ee != null) {

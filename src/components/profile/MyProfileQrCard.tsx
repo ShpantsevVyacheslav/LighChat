@@ -1,0 +1,56 @@
+'use client';
+
+import * as React from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Copy, QrCode } from 'lucide-react';
+
+import { buildProfileQrPayload } from '@/lib/profile-qr-link';
+import { Button } from '@/components/ui/button';
+
+export function MyProfileQrCard(props: { userId: string; username?: string | null }) {
+  const payload = React.useMemo(
+    () => buildProfileQrPayload({ userId: props.userId, username: props.username }),
+    [props.userId, props.username]
+  );
+
+  const canShow = payload.trim().length > 0;
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/60 p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <QrCode className="h-5 w-5 text-primary" aria-hidden />
+            <div className="text-base font-semibold">Мой QR‑код</div>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Этот QR ведёт в ваш профиль, чтобы вас могли добавить в контакты.
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-2 rounded-xl"
+          disabled={!canShow}
+          onClick={async () => {
+            if (!canShow) return;
+            await navigator.clipboard.writeText(payload);
+          }}
+        >
+          <Copy className="h-4 w-4" aria-hidden />
+          Скопировать ссылку
+        </Button>
+      </div>
+
+      <div className="mt-4 flex flex-col items-center gap-3">
+        <div className="rounded-2xl border border-border/60 bg-white p-3">
+          <QRCodeCanvas value={payload} size={210} includeMargin />
+        </div>
+        <div className="max-w-full truncate text-center text-xs text-muted-foreground">{payload}</div>
+      </div>
+    </div>
+  );
+}
+

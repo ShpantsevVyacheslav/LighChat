@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { MyProfileQrCard } from '@/components/profile/MyProfileQrCard';
 export default function ProfilePage() {
   const { user, updateUser, resendPendingEmailVerification, isUpdatingUser, isLoading } = useAuth();
   const { toast } = useToast();
@@ -130,6 +131,8 @@ export default function ProfilePage() {
         isProfilePage={true}
         hideCancelButton={false}
       />
+
+      <MyProfileQrCard userId={user.id} username={user.username} />
     </div>
   );
 }

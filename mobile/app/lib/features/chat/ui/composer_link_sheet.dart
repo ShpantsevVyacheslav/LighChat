@@ -55,6 +55,7 @@ Future<String?> showComposerLinkSheet(BuildContext context) async {
                         controller: urlCtrl,
                         style: TextStyle(color: fg, fontSize: 16),
                         cursorColor: fg,
+                        textCapitalization: TextCapitalization.none,
                         keyboardType: TextInputType.url,
                         autofocus: true,
                         decoration: InputDecoration(

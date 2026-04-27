@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../data/device_contact_lookup_keys.dart';
@@ -172,6 +173,28 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
       return false;
     } finally {
       if (mounted) setState(() => _syncBusy = false);
+    }
+  }
+
+  Future<void> _inviteSyncedWithoutApp({
+    required BuildContext context,
+    required String ownerId,
+    required UserContactsRepository repo,
+  }) async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text:
+              'Поставь LighChat: https://lighchat.online\n'
+              'Приглашаю тебя в LighChat — вот ссылка на установку.',
+          subject: 'Приглашение в LighChat',
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось подготовить приглашение: $e')),
+      );
     }
   }
 
@@ -455,6 +478,27 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
+                                  _TopCircleButton(
+                                    icon: Icons.person_add_alt_rounded,
+                                    busy: false,
+                                    onTap: (_syncBusy || me == null)
+                                        ? null
+                                        : () {
+                                            final repo = ref.read(
+                                              userContactsRepositoryProvider,
+                                            );
+                                            if (repo == null) return;
+                                            unawaited(
+                                              _inviteSyncedWithoutApp(
+                                                context: context,
+                                                ownerId: ownerId,
+                                                repo: repo,
+                                              ),
+                                            );
+                                          },
+                                  ),
+                                  const SizedBox(width: 8),
                                   _TopCircleButton(
                                     busy: _syncBusy,
                                     onTap: (_syncBusy || me == null)
@@ -667,6 +711,7 @@ class _ContactsSearchField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        textCapitalization: TextCapitalization.sentences,
         style: TextStyle(
           color: baseFg.withValues(alpha: dark ? 1 : 0.92),
           fontSize: _ChatContactsScreenState._searchFontSize,
@@ -697,10 +742,15 @@ class _ContactsSearchField extends StatelessWidget {
 }
 
 class _TopCircleButton extends StatelessWidget {
-  const _TopCircleButton({required this.onTap, required this.busy});
+  const _TopCircleButton({
+    required this.onTap,
+    required this.busy,
+    this.icon = Icons.person_add_alt_1_rounded,
+  });
 
   final VoidCallback? onTap;
   final bool busy;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -726,7 +776,7 @@ class _TopCircleButton extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(
-                Icons.person_add_alt_1_rounded,
+                icon,
                 color: baseFg.withValues(alpha: dark ? 1 : 0.9),
                 size: _ChatContactsScreenState._topActionIconSize,
               ),

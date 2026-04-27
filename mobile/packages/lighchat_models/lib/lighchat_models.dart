@@ -139,6 +139,7 @@ class Conversation {
     this.legacyPinnedMessage,
     this.e2eeEnabled,
     this.e2eeKeyEpoch,
+    this.e2eeEncryptedDataTypesOverride,
   });
 
   final bool isGroup;
@@ -170,6 +171,7 @@ class Conversation {
   final PinnedMessage? legacyPinnedMessage;
   final bool? e2eeEnabled;
   final int? e2eeKeyEpoch;
+  final Map<String, bool>? e2eeEncryptedDataTypesOverride;
 
   static Conversation fromJson(JsonMap json) {
     final rawParticipants = json['participantIds'];
@@ -189,6 +191,18 @@ class Conversation {
       if (raw is int) return raw;
       if (raw is num) return raw.toInt();
       return null;
+    }
+
+    Map<String, bool>? parseBoolMap(Object? raw) {
+      if (raw is! Map) return null;
+      final out = <String, bool>{};
+      for (final e in raw.entries) {
+        final k = e.key.toString().trim();
+        final v = e.value;
+        if (k.isEmpty || v is! bool) continue;
+        out[k] = v;
+      }
+      return out.isEmpty ? null : out;
     }
 
     Map<String, int>? parseCounts(Object? raw) {
@@ -294,6 +308,9 @@ class Conversation {
           ? true
           : (json['e2eeEnabled'] == false ? false : null),
       e2eeKeyEpoch: parseEpoch(json['e2eeKeyEpoch']),
+      e2eeEncryptedDataTypesOverride: parseBoolMap(
+        json['e2eeEncryptedDataTypesOverride'],
+      ),
     );
   }
 }

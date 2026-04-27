@@ -6,9 +6,11 @@ class OutgoingAlbumE2eeContext {
     required this.runtime,
     required this.epoch,
     required this.messageId,
+    required this.encryptText,
   });
 
   final MobileE2eeRuntime runtime;
   final int epoch;
   final String messageId;
+  final bool encryptText;
 }

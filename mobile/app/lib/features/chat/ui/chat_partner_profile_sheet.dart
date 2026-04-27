@@ -20,6 +20,7 @@ import '../data/profile_attachment_stats.dart';
 import '../data/profile_field_visibility.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/user_chat_policy.dart';
+import '../data/user_block_utils.dart';
 import '../data/contact_display_name.dart';
 import '../data/e2ee_auto_enable_helper.dart';
 import '../data/user_contacts_repository.dart';
@@ -217,8 +218,10 @@ class _ChatPartnerProfileSheetState
   bool _canShowAddToContacts(
     UserProfile? target,
     String? partnerId,
-    List<String> contactIds,
-  ) {
+    List<String> contactIds, {
+    List<String>? partnerBlockedSupplement,
+    required bool partnerUserDocDenied,
+  }) {
     if (partnerId == null || partnerId == widget.currentUserId || _isSaved) {
       return false;
     }
@@ -231,7 +234,12 @@ class _ChatPartnerProfileSheetState
     if (self == null) return false;
     final isContact = contactIds.contains(partnerId);
     if (isContact) return true;
-    return canStartDirectChat(self, target);
+    return canStartDirectChat(
+      self,
+      target,
+      partnerBlockedIdsSupplement: partnerBlockedSupplement,
+      partnerUserDocDenied: partnerUserDocDenied,
+    );
   }
 
   bool _isGroupAdmin() {
@@ -254,16 +262,24 @@ class _ChatPartnerProfileSheetState
     if (_chatActionBusy) return;
     final self = widget.selfProfile;
     final partner = widget.partnerProfile;
-    if (self != null && partner != null && !canStartDirectChat(self, partner)) {
+    final target = partner ?? _contactTarget(partnerId);
+    final their = ref.read(userBlockedUserIdsProvider(partnerId));
+    if (self == null ||
+        target == null ||
+        !canStartDirectChat(
+          self,
+          target,
+          partnerBlockedIdsSupplement: their.asData?.value,
+          partnerUserDocDenied: their.hasError,
+        )) {
       _toast('С этим пользователем нельзя связаться.');
       return;
     }
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
 
-    final selfName = (self?.name ?? widget.currentUserId).trim().isNotEmpty
-        ? (self?.name ?? widget.currentUserId).trim()
-        : widget.currentUserId;
+    final selfNameTrimmed = self.name.trim();
+    final selfName = selfNameTrimmed.isNotEmpty ? selfNameTrimmed : widget.currentUserId;
     final peerName =
         (partner?.name ??
                 widget.conversation.participantInfo?[partnerId]?.name ??
@@ -289,8 +305,8 @@ class _ChatPartnerProfileSheetState
         otherUserId: partnerId,
         currentUserInfo: (
           name: selfName,
-          avatar: self?.avatar,
-          avatarThumb: self?.avatarThumb,
+          avatar: self.avatar,
+          avatarThumb: self.avatarThumb,
         ),
         otherUserInfo: (
           name: peerName,
@@ -321,13 +337,33 @@ class _ChatPartnerProfileSheetState
     if (_callScreenOpening) return;
     final self = widget.selfProfile;
     final partner = widget.partnerProfile;
-    if (self != null && partner != null && !canStartDirectChat(self, partner)) {
-      _toast('С этим пользователем нельзя связаться.');
+    final target = partner ?? _contactTarget(partnerId);
+    final their = ref.read(userBlockedUserIdsProvider(partnerId));
+    if (self == null ||
+        target == null ||
+        !canStartDirectChat(
+          self,
+          target,
+          partnerBlockedIdsSupplement: their.asData?.value,
+          partnerUserDocDenied: their.hasError,
+        )) {
+      _toast(
+        self != null && target != null
+            ? directCallBlockedMessageRu(
+                viewerId: self.id,
+                viewerBlockedIds: self.blockedUserIds,
+                partnerId: target.id,
+                partnerBlockedIds: their.asData?.value ?? target.blockedUserIds,
+                partnerUserDocDenied: their.hasError,
+              )
+            : 'С этим пользователем нельзя связаться.',
+      );
       return;
     }
 
-    final selfName = (self?.name ?? widget.currentUserId).trim().isNotEmpty
-        ? (self?.name ?? widget.currentUserId).trim()
+    final selfNameTrimmedCall = self.name.trim();
+    final selfName = selfNameTrimmedCall.isNotEmpty
+        ? selfNameTrimmedCall
         : widget.currentUserId;
     final peerName =
         (partner?.name ??
@@ -356,7 +392,7 @@ class _ChatPartnerProfileSheetState
               ? ChatVideoCallScreen(
                   currentUserId: widget.currentUserId,
                   currentUserName: selfName,
-                  currentUserAvatarUrl: self?.avatarThumb ?? self?.avatar,
+                  currentUserAvatarUrl: self.avatarThumb ?? self.avatar,
                   peerUserId: partnerId,
                   peerUserName: peerName,
                   peerAvatarUrl: peerAvatar,
@@ -364,7 +400,7 @@ class _ChatPartnerProfileSheetState
               : ChatAudioCallScreen(
                   currentUserId: widget.currentUserId,
                   currentUserName: selfName,
-                  currentUserAvatarUrl: self?.avatarThumb ?? self?.avatar,
+                  currentUserAvatarUrl: self.avatarThumb ?? self.avatar,
                   peerUserId: partnerId,
                   peerUserName: peerName,
                   peerAvatarUrl: peerAvatar,
@@ -699,9 +735,21 @@ class _ChatPartnerProfileSheetState
         contactsAsync.value?.contactProfiles ??
         const <String, ContactLocalProfile>{};
     final target = _contactTarget(partnerId);
+    final myBlockedAsync = ref.watch(
+      userBlockedUserIdsProvider(widget.currentUserId),
+    );
+    final theirBlockedAsync = partnerId != null
+        ? ref.watch(userBlockedUserIdsProvider(partnerId))
+        : null;
     final showAdd =
         partnerId != null &&
-        _canShowAddToContacts(target, partnerId, contactIds);
+        _canShowAddToContacts(
+          target,
+          partnerId,
+          contactIds,
+          partnerBlockedSupplement: theirBlockedAsync?.asData?.value,
+          partnerUserDocDenied: theirBlockedAsync?.hasError == true,
+        );
     final isContact = partnerId != null && contactIds.contains(partnerId);
     final displayTitle = !_isGroup && !_isSaved && partnerId != null
         ? resolveContactDisplayName(
@@ -758,12 +806,18 @@ class _ChatPartnerProfileSheetState
         ? 'Сквозное шифрование включено. Нажмите для подробностей.'
         : 'Сквозное шифрование выключено. Нажмите, чтобы включить.';
 
-    final myBlockedAsync = ref.watch(
-      userBlockedUserIdsProvider(widget.currentUserId),
-    );
     final myBlocked = myBlockedAsync.value ?? const <String>[];
     final partnerIsBlocked =
         partnerId != null && myBlocked.contains(partnerId);
+    final selfPr = widget.selfProfile;
+    final canDirectInteract = selfPr != null &&
+        target != null &&
+        canStartDirectChat(
+          selfPr,
+          target,
+          partnerBlockedIdsSupplement: theirBlockedAsync?.asData?.value,
+          partnerUserDocDenied: theirBlockedAsync?.hasError == true,
+        );
 
     List<Widget> buildScrollChildren() {
       return [
@@ -884,7 +938,7 @@ class _ChatPartnerProfileSheetState
                           icon: Icons.chat_bubble_outline_rounded,
                           label: 'Чаты',
                           busy: _chatActionBusy,
-                          onTap: _chatActionBusy
+                          onTap: _chatActionBusy || !canDirectInteract
                               ? null
                               : () => _openChatFromActions(
                                   partnerId: partnerId,
@@ -895,7 +949,7 @@ class _ChatPartnerProfileSheetState
                         icon: Icons.call_rounded,
                         label: 'Звонок',
                         busy: _callScreenOpening,
-                        onTap: _callScreenOpening
+                        onTap: _callScreenOpening || !canDirectInteract
                             ? null
                             : () => _openCallFromActions(
                                 partnerId: partnerId,
@@ -907,7 +961,7 @@ class _ChatPartnerProfileSheetState
                         icon: Icons.videocam_rounded,
                         label: 'Видео',
                         busy: _callScreenOpening,
-                        onTap: _callScreenOpening
+                        onTap: _callScreenOpening || !canDirectInteract
                             ? null
                             : () => _openCallFromActions(
                                 partnerId: partnerId,

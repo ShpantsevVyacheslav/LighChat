@@ -553,6 +553,12 @@ LinearGradient defaultBottomNavTileGradient(String href) {
   }
 }
 
+/// Явный отказ от заливки/градиента плитки под иконкой нижнего меню (см. настройки чатов).
+bool bottomNavTileBackgroundIsNone(String? raw) {
+  final t = raw?.trim().toLowerCase();
+  return t == 'none' || t == 'transparent' || t == 'off';
+}
+
 Color? parseColorFromHex(String? raw) {
   if (raw == null) return null;
   final value = raw.trim();
@@ -572,8 +578,10 @@ Color? parseColorFromHex(String? raw) {
 }
 
 String colorToHex(Color color) {
-  final r = color.r.round().toRadixString(16).padLeft(2, '0').toUpperCase();
-  final g = color.g.round().toRadixString(16).padLeft(2, '0').toUpperCase();
-  final b = color.b.round().toRadixString(16).padLeft(2, '0').toUpperCase();
+  // Компоненты sRGB 0..1 → байты; не смешивать с устаревшими .red/.green/.blue.
+  int comp(double v) => (v * 255.0).round().clamp(0, 255);
+  final r = comp(color.r).toRadixString(16).padLeft(2, '0').toUpperCase();
+  final g = comp(color.g).toRadixString(16).padLeft(2, '0').toUpperCase();
+  final b = comp(color.b).toRadixString(16).padLeft(2, '0').toUpperCase();
   return '#$r$g$b';
 }

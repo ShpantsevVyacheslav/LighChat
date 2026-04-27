@@ -128,6 +128,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
         title: const Text('Новый стикерпак'),
         content: TextField(
           controller: ctrl,
+          textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(labelText: 'Название'),
           autofocus: true,
         ),
@@ -817,6 +818,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
         const SizedBox(height: 10),
         TextField(
           controller: _gifQueryController,
+          textCapitalization: TextCapitalization.sentences,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Поиск GIF…',

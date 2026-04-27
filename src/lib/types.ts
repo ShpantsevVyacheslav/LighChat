@@ -255,6 +255,11 @@ export type Conversation = {
   e2eeKeyEpoch?: number;
   /** ISO: с этого момента новые сообщения в E2E-формате (гибрид со старым plaintext). */
   e2eeEnabledAt?: string | null;
+  /**
+   * Переопределение E2EE-политики по типам данных для этого чата.
+   * Если отсутствует — используется глобальная политика пользователя.
+   */
+  e2eeEncryptedDataTypesOverride?: E2eeEncryptedDataTypes | null;
 };
 
 /** Документ Firestore: platformSettings/main */
@@ -717,6 +722,12 @@ export type NotificationSettings = {
  */
 export type GroupInvitePolicy = "everyone" | "contacts" | "none";
 
+export type E2eeEncryptedDataTypes = {
+  text: boolean;
+  media: boolean;
+  replyPreview: boolean;
+};
+
 export type PrivacySettings = {
   showOnlineStatus: boolean;
   showLastSeen: boolean;
@@ -726,6 +737,11 @@ export type PrivacySettings = {
    * Не гарантирует E2E без ключа у второй стороны.
    */
   e2eeForNewDirectChats?: boolean;
+  /**
+   * Какие типы данных шифруются в E2EE-чатах.
+   * Важно: это только политика вызова шифрования, не меняет протокол/формат.
+   */
+  e2eeEncryptedDataTypes?: E2eeEncryptedDataTypes;
   /** Показывать другим в карточке профиля / списках (по умолчанию true, если не задано). */
   showEmailToOthers?: boolean;
   showPhoneToOthers?: boolean;

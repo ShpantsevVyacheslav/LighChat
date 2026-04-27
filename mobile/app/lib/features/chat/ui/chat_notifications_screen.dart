@@ -164,13 +164,7 @@ class _NotificationsView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 2),
-                const SizedBox(height: 4),
-                NotificationSettingsMutedBanner(
-                  text:
-                      'Push на устройство: после входа приложение запросит разрешение; '
-                      'при отказе включите уведомления для LighChat в настройках системы.',
-                ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 10),
                 NotificationSettingsCard(
                   title: 'Основные',
                   children: [
@@ -196,6 +190,7 @@ class _NotificationsView extends StatelessWidget {
                       onChanged: onPreviewChanged,
                       disabled: settings.muteAll,
                     ),
+                    const SizedBox(height: 10),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -241,7 +236,7 @@ class _NotificationsView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
                     ],
                   ],
                 ),
@@ -326,13 +321,13 @@ class _TimeButton extends StatelessWidget {
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
               alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               side: BorderSide(color: fg.withValues(alpha: dark ? 0.18 : 0.14)),
               backgroundColor:
                   (dark ? Colors.white : scheme.surfaceContainerHighest)
                       .withValues(alpha: dark ? 0.04 : 0.86),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
             child: Row(

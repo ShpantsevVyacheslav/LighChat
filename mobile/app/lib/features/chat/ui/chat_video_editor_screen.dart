@@ -1226,6 +1226,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
                     child: TextField(
                       controller: _captionController,
                       maxLines: 1,
+                      textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         hintText: 'Добавить подпись...',
                         hintStyle: TextStyle(

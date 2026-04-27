@@ -218,6 +218,7 @@ class _GoogleCompleteProfileScreenState
                         const SizedBox(height: 12),
                         TextField(
                           controller: _name,
+                          textCapitalization: TextCapitalization.words,
                           decoration: authGlassInputDecoration(
                             context,
                             label: 'Имя',
@@ -227,6 +228,7 @@ class _GoogleCompleteProfileScreenState
                         const SizedBox(height: 12),
                         TextField(
                           controller: _username,
+                          textCapitalization: TextCapitalization.none,
                           decoration: authGlassInputDecoration(
                             context,
                             label: 'Логин (@username)',
@@ -236,6 +238,7 @@ class _GoogleCompleteProfileScreenState
                         const SizedBox(height: 12),
                         TextField(
                           controller: _phone,
+                          textCapitalization: TextCapitalization.none,
                           keyboardType: TextInputType.phone,
                           inputFormatters: [PhoneRuMaskFormatter()],
                           decoration: authGlassInputDecoration(
@@ -247,6 +250,7 @@ class _GoogleCompleteProfileScreenState
                         const SizedBox(height: 12),
                         TextField(
                           controller: _email,
+                          textCapitalization: TextCapitalization.none,
                           keyboardType: TextInputType.emailAddress,
                           decoration: authGlassInputDecoration(
                             context,
@@ -258,6 +262,7 @@ class _GoogleCompleteProfileScreenState
                         const SizedBox(height: 12),
                         TextField(
                           controller: _dob,
+                          textCapitalization: TextCapitalization.none,
                           decoration: authGlassInputDecoration(
                             context,
                             label: 'Дата рождения (YYYY-MM-DD, опционально)',
@@ -268,6 +273,7 @@ class _GoogleCompleteProfileScreenState
                         TextField(
                           controller: _bio,
                           maxLines: 3,
+                          textCapitalization: TextCapitalization.sentences,
                           decoration: authGlassInputDecoration(
                             context,
                             label: 'О себе (до 200 символов, опционально)',

@@ -81,6 +81,7 @@ dependencies:
   http: ^1.6.0
   html: ^0.15.6
   share_plus: ^11.0.0
+  permission_handler: ^11.3.1
   gal: ^2.3.2
   shared_preferences: ^2.5.3
   flutter_contacts: ^2.0.2

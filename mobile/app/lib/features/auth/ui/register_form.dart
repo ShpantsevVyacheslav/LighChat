@@ -259,6 +259,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             child: TextField(
               controller: _name,
               focusNode: _nameFocus,
+              textCapitalization: TextCapitalization.words,
               onChanged: (_) => setState(() {}),
               decoration: _registerInputDecoration(
                 context,
@@ -279,6 +280,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             child: TextField(
               controller: _username,
               focusNode: _usernameFocus,
+              textCapitalization: TextCapitalization.none,
               onChanged: (_) => setState(() {}),
               decoration: _registerInputDecoration(
                 context,
@@ -326,6 +328,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                 TextField(
                   controller: _phone,
                   focusNode: _phoneFocus,
+                  textCapitalization: TextCapitalization.none,
                   onChanged: (_) => setState(() {}),
                   keyboardType: TextInputType.phone,
                   inputFormatters: [
@@ -356,6 +359,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             child: TextField(
               controller: _email,
               focusNode: _emailFocus,
+              textCapitalization: TextCapitalization.none,
               onChanged: (_) => setState(() {}),
               keyboardType: TextInputType.emailAddress,
               decoration: _registerInputDecoration(
@@ -377,6 +381,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             child: TextField(
               controller: _password,
               focusNode: _passwordFocus,
+              textCapitalization: TextCapitalization.none,
               onChanged: (_) => setState(() {}),
               obscureText: true,
               decoration: _registerInputDecoration(
@@ -397,6 +402,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             child: TextField(
               controller: _confirm,
               focusNode: _confirmFocus,
+              textCapitalization: TextCapitalization.none,
               onChanged: (_) => setState(() {}),
               obscureText: true,
               decoration: _registerInputDecoration(
@@ -417,6 +423,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             child: TextField(
               controller: _dob,
               focusNode: _dobFocus,
+              textCapitalization: TextCapitalization.none,
               onChanged: (_) => setState(() {}),
               keyboardType: TextInputType.number,
               inputFormatters: [DateDdMmYyyyFormatter()],
@@ -447,6 +454,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             child: TextField(
               controller: _bio,
               focusNode: _bioFocus,
+              textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => setState(() {}),
               maxLines: 4,
               decoration: _registerInputDecoration(
@@ -729,6 +737,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _countrySearch,
+                        textCapitalization: TextCapitalization.sentences,
                         onChanged: (_) => setModalState(() {}),
                         style: const TextStyle(fontSize: 18),
                         decoration: const InputDecoration(

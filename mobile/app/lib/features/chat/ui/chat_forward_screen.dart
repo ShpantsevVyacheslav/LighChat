@@ -151,6 +151,8 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                         controller: _search,
                                         textAlignVertical:
                                             TextAlignVertical.center,
+                                        textCapitalization:
+                                            TextCapitalization.sentences,
                                         minLines: 1,
                                         maxLines: 1,
                                         style: TextStyle(

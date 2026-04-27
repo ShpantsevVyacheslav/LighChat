@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
+import '../data/e2ee_data_type_policy.dart';
 
 const double _kHeaderTitleSize = 16;
 const double _kCardTitleSize = 18;
@@ -46,6 +47,7 @@ class ChatPrivacyScreen extends ConsumerWidget {
                 bool? showLastSeen,
                 bool? showReadReceipts,
                 bool? e2eeForNewDirectChats,
+                E2eeDataTypePolicy? e2eeEncryptedDataTypes,
                 bool? showEmailToOthers,
                 bool? showPhoneToOthers,
                 bool? showBioToOthers,
@@ -62,6 +64,8 @@ class ChatPrivacyScreen extends ConsumerWidget {
                         showLastSeen: showLastSeen,
                         showReadReceipts: showReadReceipts,
                         e2eeForNewDirectChats: e2eeForNewDirectChats,
+                        e2eeEncryptedDataTypes:
+                            e2eeEncryptedDataTypes ?? settings.e2eeEncryptedDataTypes,
                         showEmailToOthers: showEmailToOthers,
                         showPhoneToOthers: showPhoneToOthers,
                         showBioToOthers: showBioToOthers,
@@ -86,6 +90,8 @@ class ChatPrivacyScreen extends ConsumerWidget {
               return _PrivacyView(
                 settings: settings,
                 onE2eeChanged: (v) => savePatch(e2eeForNewDirectChats: v),
+                onE2eeDataTypesChanged: (p) =>
+                    savePatch(e2eeEncryptedDataTypes: p),
                 onShowOnlineChanged: (v) => savePatch(showOnlineStatus: v),
                 onShowLastSeenChanged: (v) => savePatch(showLastSeen: v),
                 onShowReadReceiptsChanged: (v) =>
@@ -118,6 +124,7 @@ class _PrivacyView extends StatelessWidget {
   const _PrivacyView({
     required this.settings,
     required this.onE2eeChanged,
+    required this.onE2eeDataTypesChanged,
     required this.onShowOnlineChanged,
     required this.onShowLastSeenChanged,
     required this.onShowReadReceiptsChanged,
@@ -132,6 +139,7 @@ class _PrivacyView extends StatelessWidget {
 
   final _PrivacySettingsState settings;
   final ValueChanged<bool> onE2eeChanged;
+  final ValueChanged<E2eeDataTypePolicy> onE2eeDataTypesChanged;
   final ValueChanged<bool> onShowOnlineChanged;
   final ValueChanged<bool> onShowLastSeenChanged;
   final ValueChanged<bool> onShowReadReceiptsChanged;
@@ -212,6 +220,39 @@ class _PrivacyView extends StatelessWidget {
                       title: 'Включить шифрование (E2E) для всех чатов',
                       value: settings.e2eeForNewDirectChats,
                       onChanged: onE2eeChanged,
+                    ),
+                    const SizedBox(height: 8),
+                    _SettingsSubheader(text: 'Что шифруем в E2EE чатах'),
+                    _SwitchRow(
+                      title: 'Текст сообщений',
+                      subtitle: 'Шифровать `message.e2ee.ciphertext`.',
+                      value: settings.e2eeEncryptedDataTypes.text,
+                      onChanged: (v) => onE2eeDataTypesChanged(
+                        settings.e2eeEncryptedDataTypes.copyWith(text: v),
+                      ),
+                      icon: Icons.text_fields_rounded,
+                    ),
+                    _SwitchRow(
+                      title: 'Вложения (медиа/файлы)',
+                      subtitle:
+                          'Шифровать `message.e2ee.attachments` (стикеры/GIF — всегда без шифрования).',
+                      value: settings.e2eeEncryptedDataTypes.media,
+                      onChanged: (v) => onE2eeDataTypesChanged(
+                        settings.e2eeEncryptedDataTypes.copyWith(media: v),
+                      ),
+                      icon: Icons.attachment_rounded,
+                    ),
+                    _SwitchRow(
+                      title: 'Reply-превью',
+                      subtitle:
+                          'Если выключить — не писать plaintext в `replyTo.text` и `mediaPreviewUrl`.',
+                      value: settings.e2eeEncryptedDataTypes.replyPreview,
+                      onChanged: (v) => onE2eeDataTypesChanged(
+                        settings.e2eeEncryptedDataTypes.copyWith(
+                          replyPreview: v,
+                        ),
+                      ),
+                      icon: Icons.reply_rounded,
                     ),
                     // Переход на экран управления устройствами (Phase 5).
                     // Держим как отдельный элемент, не switch — там список и actions.
@@ -454,6 +495,30 @@ class _SettingsCard extends StatelessWidget {
   }
 }
 
+class _SettingsSubheader extends StatelessWidget {
+  const _SettingsSubheader({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final fg = dark ? Colors.white : scheme.onSurface;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 2, 2, 6),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: fg.withValues(alpha: dark ? 0.82 : 0.76),
+        ),
+      ),
+    );
+  }
+}
+
 class _SwitchRow extends StatelessWidget {
   const _SwitchRow({
     required this.title,
@@ -611,6 +676,7 @@ class _PrivacySettingsState {
     required this.showLastSeen,
     required this.showReadReceipts,
     required this.e2eeForNewDirectChats,
+    required this.e2eeEncryptedDataTypes,
     required this.showEmailToOthers,
     required this.showPhoneToOthers,
     required this.showBioToOthers,
@@ -623,6 +689,7 @@ class _PrivacySettingsState {
   final bool showLastSeen;
   final bool showReadReceipts;
   final bool e2eeForNewDirectChats;
+  final E2eeDataTypePolicy e2eeEncryptedDataTypes;
   final bool showEmailToOthers;
   final bool showPhoneToOthers;
   final bool showBioToOthers;
@@ -636,6 +703,7 @@ class _PrivacySettingsState {
       showLastSeen: true,
       showReadReceipts: true,
       e2eeForNewDirectChats: false,
+      e2eeEncryptedDataTypes: E2eeDataTypePolicy.defaults,
       showEmailToOthers: true,
       showPhoneToOthers: true,
       showBioToOthers: true,
@@ -658,6 +726,9 @@ class _PrivacySettingsState {
       showLastSeen: raw['showLastSeen'] != false,
       showReadReceipts: raw['showReadReceipts'] != false,
       e2eeForNewDirectChats: raw['e2eeForNewDirectChats'] == true,
+      e2eeEncryptedDataTypes: E2eeDataTypePolicy.fromFirestore(
+        raw['e2eeEncryptedDataTypes'],
+      ),
       showEmailToOthers: raw['showEmailToOthers'] != false,
       showPhoneToOthers: raw['showPhoneToOthers'] != false,
       showBioToOthers: raw['showBioToOthers'] != false,
@@ -672,6 +743,7 @@ class _PrivacySettingsState {
     bool? showLastSeen,
     bool? showReadReceipts,
     bool? e2eeForNewDirectChats,
+    E2eeDataTypePolicy? e2eeEncryptedDataTypes,
     bool? showEmailToOthers,
     bool? showPhoneToOthers,
     bool? showBioToOthers,
@@ -685,6 +757,8 @@ class _PrivacySettingsState {
       showReadReceipts: showReadReceipts ?? this.showReadReceipts,
       e2eeForNewDirectChats:
           e2eeForNewDirectChats ?? this.e2eeForNewDirectChats,
+      e2eeEncryptedDataTypes:
+          e2eeEncryptedDataTypes ?? this.e2eeEncryptedDataTypes,
       showEmailToOthers: showEmailToOthers ?? this.showEmailToOthers,
       showPhoneToOthers: showPhoneToOthers ?? this.showPhoneToOthers,
       showBioToOthers: showBioToOthers ?? this.showBioToOthers,
@@ -701,6 +775,7 @@ class _PrivacySettingsState {
     'showLastSeen': showLastSeen,
     'showReadReceipts': showReadReceipts,
     'e2eeForNewDirectChats': e2eeForNewDirectChats,
+    'e2eeEncryptedDataTypes': e2eeEncryptedDataTypes.toFirestoreMap(),
     'showEmailToOthers': showEmailToOthers,
     'showPhoneToOthers': showPhoneToOthers,
     'showBioToOthers': showBioToOthers,

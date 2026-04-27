@@ -17,6 +17,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/chat_media_gallery.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
+import '../data/e2ee_data_type_policy.dart';
 
 import '../data/chat_emoji_only.dart';
 import '../data/chat_location_share_factory.dart';
@@ -1035,7 +1036,36 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     final pending = List<XFile>.from(_pendingAttachments);
     if (plain.isEmpty && pending.isEmpty) return;
 
-    final replySnap = _replyingTo;
+    final userDoc =
+        ref.read(userChatSettingsDocProvider(uid)).asData?.value ??
+            const <String, dynamic>{};
+    final rawPrivacy =
+        userDoc['privacySettings'] as Map? ?? const <String, dynamic>{};
+    final globalPolicy = E2eeDataTypePolicy.fromFirestore(
+      rawPrivacy['e2eeEncryptedDataTypes'],
+    );
+    final overrideRaw = conv?.e2eeEncryptedDataTypesOverride;
+    final overridePolicy = overrideRaw == null
+        ? null
+        : E2eeDataTypePolicy.fromFirestore(overrideRaw);
+    final e2eePolicy = resolveE2eeEffectivePolicy(
+      global: globalPolicy,
+      override: overridePolicy,
+    );
+
+    ReplyContext? stripReply(ReplyContext? input) {
+      if (input == null) return null;
+      if (e2eePolicy.replyPreview) return input;
+      return ReplyContext(
+        messageId: input.messageId,
+        senderName: input.senderName,
+        mediaType: input.mediaType,
+        text: null,
+        mediaPreviewUrl: null,
+      );
+    }
+
+    final replySnap = stripReply(_replyingTo);
     setState(() => _sendBusy = true);
     await ref
         .read(chatOutboxAttachmentNotifierProvider.notifier)
@@ -1046,6 +1076,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
           rawCaptionHtml: prepared,
           replyTo: replySnap,
           convIsE2ee: isConversationE2eeActive(conv),
+          e2eeEncryptText: e2eePolicy.text,
+          e2eeEncryptMedia: e2eePolicy.media,
           e2eeEpoch: conv?.e2eeKeyEpoch,
           threadParentMessageId: widget.parentMessageId,
         );

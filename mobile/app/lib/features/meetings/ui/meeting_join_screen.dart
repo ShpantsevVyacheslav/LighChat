@@ -202,6 +202,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
         const SizedBox(height: 20),
         TextField(
           controller: _nameCtrl,
+          textCapitalization: TextCapitalization.words,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             labelText: 'Ваше имя',

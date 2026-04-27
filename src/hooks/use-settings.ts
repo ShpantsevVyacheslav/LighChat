@@ -5,6 +5,10 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useAuth } from "@/hooks/use-auth";
 import type { ChatSettings, NotificationSettings, PrivacySettings } from "@/lib/types";
+import {
+  DEFAULT_E2EE_ENCRYPTED_DATA_TYPES,
+  parseE2eeEncryptedDataTypes,
+} from "@/lib/e2ee/e2ee-data-type-policy";
 import { normalizeBubbleRadius } from "@/lib/chat-bubble-radius";
 
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
@@ -40,6 +44,7 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   showInGlobalUserSearch: true,
   groupInvitePolicy: "everyone",
   e2eeForNewDirectChats: false,
+  e2eeEncryptedDataTypes: DEFAULT_E2EE_ENCRYPTED_DATA_TYPES,
 };
 
 /** Строка фона или null; пустые значения из БД не ломают тему «Авто» и слой обоев. */
@@ -83,7 +88,15 @@ export function useSettings() {
   );
 
   const privacySettings = useMemo<PrivacySettings>(
-    () => ({ ...DEFAULT_PRIVACY_SETTINGS, ...user?.privacySettings }),
+    () => {
+      const merged = { ...DEFAULT_PRIVACY_SETTINGS, ...user?.privacySettings } as PrivacySettings;
+      return {
+        ...merged,
+        e2eeEncryptedDataTypes: parseE2eeEncryptedDataTypes(
+          (user?.privacySettings as Record<string, unknown> | undefined)?.e2eeEncryptedDataTypes
+        ),
+      };
+    },
     [user?.privacySettings]
   );
 

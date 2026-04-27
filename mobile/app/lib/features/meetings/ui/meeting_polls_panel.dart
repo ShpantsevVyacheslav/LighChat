@@ -201,6 +201,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
       children: [
         TextField(
           controller: _question,
+          textCapitalization: TextCapitalization.sentences,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             labelText: 'Вопрос',
@@ -228,6 +229,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
                 Expanded(
                   child: TextField(
                     controller: _optionCtrls[i],
+                    textCapitalization: TextCapitalization.sentences,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Вариант ${i + 1}',
