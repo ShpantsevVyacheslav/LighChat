@@ -1547,11 +1547,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   .trim();
                               final clearedAtIso =
                                   c.data.clearedAt?[widget.currentUserId];
-                              final clearedAt = DateTime.tryParse(
-                                clearedAtIso ?? '',
-                              );
-                              final lastAt = DateTime.tryParse(
-                                c.data.lastMessageTimestamp ?? '',
+                              final clearedAt = _parseIsoAsLocal(clearedAtIso);
+                              final lastAt = _parseIsoAsLocal(
+                                c.data.lastMessageTimestamp,
                               );
                               final isClearedForCurrentUser =
                                   clearedAt != null &&
@@ -1563,14 +1561,18 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   : chatMainDraftPreviewLine(draft);
                               final isEmptyConversation =
                                   lastAt == null && rawLast.isEmpty;
+                              final isNewlyCreatedAfterClear =
+                                  isEmptyConversation && clearedAt != null;
                               final subtitle =
                                   (draftLine != null && draftLine.isNotEmpty)
                                   ? 'Черновик · $draftLine'
-                                  : (isEmptyConversation
-                                        ? 'Пока нет сообщений'
-                                        : isClearedForCurrentUser
-                                        ? 'История очищена'
-                                        : rawLast);
+                                  : (isNewlyCreatedAfterClear
+                                        ? 'Чат создан'
+                                        : (isEmptyConversation
+                                              ? 'Пока нет сообщений'
+                                              : isClearedForCurrentUser
+                                                    ? 'История очищена'
+                                                    : rawLast));
                               final unreadCount =
                                   (c.data.unreadCounts?[widget.currentUserId] ??
                                       0) +
