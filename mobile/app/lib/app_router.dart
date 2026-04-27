@@ -21,6 +21,7 @@ import 'features/chat/ui/chat_meetings_screen.dart';
 import 'features/meetings/ui/meeting_entry_screen.dart';
 import 'features/chat/ui/chat_notifications_screen.dart';
 import 'features/chat/ui/chat_privacy_screen.dart';
+import 'features/chat/ui/chat_advanced_privacy_screen.dart';
 import 'features/chat/ui/chat_settings_screen.dart';
 import 'features/chat/ui/chat_screen.dart';
 import 'features/chat/ui/conversation_threads_screen.dart';
@@ -210,6 +211,13 @@ GoRouter createRouter() {
         builder: (context, state) {
           final conversationId = state.pathParameters['conversationId'] ?? '';
           return ConversationThreadsScreen(conversationId: conversationId);
+        },
+      ),
+      GoRoute(
+        path: '/chats/:conversationId/privacy-advanced',
+        builder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          return ChatAdvancedPrivacyScreen(conversationId: conversationId);
         },
       ),
       GoRoute(

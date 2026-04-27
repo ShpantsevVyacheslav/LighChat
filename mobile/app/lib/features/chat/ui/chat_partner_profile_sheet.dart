@@ -1111,7 +1111,14 @@ class _ChatPartnerProfileSheetState
                 icon: Icons.shield_rounded,
                 title: 'Расширенная приватность чата',
                 trailing: 'По умолчанию',
-                onTap: () => _toast('Приватность: скоро'),
+                onTap: () {
+                  if (!widget.fullScreen) {
+                    Navigator.of(context).pop();
+                  }
+                  context.push(
+                    '/chats/${widget.conversationId}/privacy-advanced',
+                  );
+                },
               ),
               if (showEncryptionRow)
                 _menuButton(
