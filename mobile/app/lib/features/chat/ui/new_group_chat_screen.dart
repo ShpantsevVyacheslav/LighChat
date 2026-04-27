@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/device_contacts_suggestions.dart';
+import '../data/contact_display_name.dart';
 import '../data/new_chat_user_search.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
@@ -582,15 +583,34 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                               .where((p) => !_selectedIds.contains(p.id))
                               .toList(growable: false);
 
+                          final displayNameById = <String, String>{};
+                          for (final p in pool) {
+                            final fallback = p.name.trim().isNotEmpty
+                                ? p.name.trim()
+                                : 'Пользователь';
+                            displayNameById[p.id] = resolveContactDisplayName(
+                              contactProfiles: contactsIdx.contactProfiles,
+                              contactUserId: p.id,
+                              fallbackName: fallback,
+                            );
+                          }
+
                           final term = _search.text;
                           final matched = pool
-                              .where((p) => userMatchesChatSearchQuery(p, term))
+                              .where(
+                                (p) => userMatchesChatSearchQuery(
+                                  p,
+                                  term,
+                                  displayNameOverride: displayNameById[p.id],
+                                ),
+                              )
                               .toList(growable: false);
 
                           final split = splitUsersByContactsAndGlobalVisibility(
                             matched: matched,
                             viewer: self,
                             contactIds: contactsIdx.contactIds,
+                            displayNameById: displayNameById,
                           );
 
                           final listChildren = <Widget>[];
