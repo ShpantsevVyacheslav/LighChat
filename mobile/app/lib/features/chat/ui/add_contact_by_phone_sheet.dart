@@ -256,10 +256,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
       }
       if (mounted) {
         _setInfo(
-          'Синхронизация выключена в приложении. Чтобы запретить доступ к контактам — отключите его в настройках системы.',
+          'Синхронизация выключена в приложении.',
         );
       }
-      await openAppSettings();
       await _refreshOsContactsPermission();
       return;
     }

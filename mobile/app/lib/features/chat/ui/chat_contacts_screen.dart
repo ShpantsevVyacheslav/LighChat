@@ -182,12 +182,23 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     required UserContactsRepository repo,
   }) async {
     try {
+      final mq = MediaQuery.maybeOf(context);
+      final size = mq?.size;
+      final origin =
+          size == null
+              ? const Rect.fromLTWH(0, 0, 1, 1)
+              : Rect.fromCenter(
+                  center: Offset(size.width / 2, size.height / 2),
+                  width: 1,
+                  height: 1,
+                );
       await SharePlus.instance.share(
         ShareParams(
           text:
               'Поставь LighChat: https://lighchat.online\n'
               'Приглашаю тебя в LighChat — вот ссылка на установку.',
           subject: 'Приглашение в LighChat',
+          sharePositionOrigin: origin,
         ),
       );
     } catch (e) {
@@ -480,7 +491,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   _TopCircleButton(
-                                    icon: Icons.person_add_alt_rounded,
+                                    icon: Icons.send_rounded,
                                     busy: false,
                                     onTap: (_syncBusy || me == null)
                                         ? null
