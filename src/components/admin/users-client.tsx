@@ -51,6 +51,7 @@ import { UserBlockDialog } from "@/components/admin/user-block-dialog";
 import { AdminResetPasswordDialog } from "@/components/admin/admin-reset-password-dialog";
 import { isAccountBlocked } from "@/lib/account-block-utils";
 import { useToast } from "@/hooks/use-toast";
+import { ruEnSubstringMatch } from "@/lib/ru-latin-search-normalize";
 
 interface UsersClientProps {
   /** Скрыть верхний заголовок страницы (вкладка админки). */
@@ -119,8 +120,8 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
   const filteredUsers = useMemo(() => (users || [])
     .filter(user => !user.deletedAt)
     .filter((user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ruEnSubstringMatch(user.name ?? "", searchTerm) ||
+        ruEnSubstringMatch(user.email ?? "", searchTerm) ||
         (user.phone && user.phone.includes(searchTerm))
   ), [users, searchTerm]);
 

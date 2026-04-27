@@ -7,13 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_contacts/flutter_contacts.dart' as flutter_contacts;
-import 'package:permission_handler/permission_handler.dart' show openAppSettings;
+import 'package:permission_handler/permission_handler.dart'
+    show openAppSettings;
 
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/add_contact_profile_providers.dart';
 import '../data/device_contact_lookup_keys.dart';
 import '../data/profile_qr_link.dart';
+import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../data/user_chat_policy.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
@@ -75,6 +77,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
   String? _info;
   bool _checkedConsent = false;
   bool _hasDeviceConsent = false;
+
   /// Разрешение ОС на чтение контактов (permission_handler), не путать с согласием в Firestore.
   bool _contactsOsGranted = false;
   bool _isApplyingPhoneMask = false;
@@ -261,9 +264,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
         // Ignore network issues here: local toggle state is still explicit.
       }
       if (mounted) {
-        _setInfo(
-          'Синхронизация выключена в приложении.',
-        );
+        _setInfo('Синхронизация выключена в приложении.');
       }
       await _refreshOsContactsPermission();
       return;
@@ -446,9 +447,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                     : _phoneCountries
                           .where((c) {
                             final q = query;
-                            return c.name.toLowerCase().contains(q) ||
+                            return ruEnSubstringMatch(c.name, q) ||
                                 c.dialCode.contains(q) ||
-                                c.isoCode.toLowerCase().contains(q);
+                                ruEnSubstringMatch(c.isoCode, q);
                           })
                           .toList(growable: false);
 
@@ -916,9 +917,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
                                                   color: Colors.white
-                                                      .withValues(
-                                                    alpha: 0.68,
-                                                  ),
+                                                      .withValues(alpha: 0.68),
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w500,
                                                 ),

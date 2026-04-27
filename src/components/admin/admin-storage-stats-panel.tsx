@@ -30,6 +30,7 @@ import { fetchChatStorageStatsAction } from '@/actions/storage-stats-actions';
 import { listAdminConversationsAction } from '@/actions/admin-conversations-list-action';
 import type { AdminChatStorageStatsResult, Conversation, PlatformSettingsDoc } from '@/lib/types';
 import { formatStorageBytes, bytesToGiB } from '@/lib/format-storage';
+import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import { BarChart3, Loader2, RefreshCw } from 'lucide-react';
 
 const MAIN_DOC = 'main';
@@ -147,7 +148,9 @@ export function AdminStorageStatsPanel() {
     const q = convSearch.trim().toLowerCase();
     if (!q) return conversations;
     return conversations.filter(
-      (c) => c.id.toLowerCase().includes(q) || (c.name && c.name.toLowerCase().includes(q)),
+      (c) =>
+        c.id.toLowerCase().includes(q) ||
+        (c.name && ruEnSubstringMatch(c.name, q)),
     );
   }, [conversations, convSearch]);
 

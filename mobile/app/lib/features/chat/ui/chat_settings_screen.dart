@@ -12,6 +12,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/bottom_nav_icon_settings.dart';
+import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 
 class ChatSettingsScreen extends ConsumerStatefulWidget {
   const ChatSettingsScreen({super.key});
@@ -498,9 +499,9 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                 : bottomNavIconLibrary
                       .where((entry) {
                         if (entry.name.contains(q)) return true;
-                        if (entry.label.toLowerCase().contains(q)) return true;
+                        if (ruEnSubstringMatch(entry.label, q)) return true;
                         return entry.searchKeywords.any(
-                          (k) => k.toLowerCase().contains(q),
+                          (k) => ruEnSubstringMatch(k, q),
                         );
                       })
                       .toList(growable: false);
@@ -936,13 +937,12 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
             betweenSwatchesAndReset: Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
-                onPressed: () =>
-                    onStyleChanged(apply(tileBackground: 'none')),
+                onPressed: () => onStyleChanged(apply(tileBackground: 'none')),
                 child: Text(
                   bottomNavTileBackgroundIsNone(
-                    currentStyle.tileBackground ??
-                        effectiveStyle.tileBackground,
-                  )
+                        currentStyle.tileBackground ??
+                            effectiveStyle.tileBackground,
+                      )
                       ? 'Без фона (вкл.)'
                       : 'Без фона',
                 ),
@@ -1908,8 +1908,7 @@ class _BottomNavIconTilePreview extends StatelessWidget {
     final iconData = iconDataForBottomNavName(iconName, fallbackIcon);
     final customIconColor = parseColorFromHex(style.iconColor);
     final noTile = bottomNavTileBackgroundIsNone(style.tileBackground);
-    final customTile =
-        noTile ? null : parseColorFromHex(style.tileBackground);
+    final customTile = noTile ? null : parseColorFromHex(style.tileBackground);
     final iconColor =
         customIconColor ??
         (appearance == 'minimal'
@@ -1921,17 +1920,15 @@ class _BottomNavIconTilePreview extends StatelessWidget {
     final defaultGradient = defaultBottomNavTileGradient(href);
     final tileGradient =
         !noTile && customTile == null && appearance != 'minimal'
-            ? defaultGradient
-            : null;
+        ? defaultGradient
+        : null;
     final tileColor = noTile
         ? Colors.transparent
         : (customTile ??
-            (appearance == 'minimal'
-                ? Colors.transparent
-                : (dark ? Colors.white : scheme.surfaceContainerHighest)
-                    .withValues(
-                    alpha: dark ? 0.08 : 0.86,
-                  )));
+              (appearance == 'minimal'
+                  ? Colors.transparent
+                  : (dark ? Colors.white : scheme.surfaceContainerHighest)
+                        .withValues(alpha: dark ? 0.08 : 0.86)));
     return Container(
       width: 44,
       height: 44,
@@ -1941,9 +1938,7 @@ class _BottomNavIconTilePreview extends StatelessWidget {
         color: tileGradient == null ? tileColor : null,
         gradient: tileGradient,
         border: Border.all(
-          color: appearance == 'minimal' &&
-                  customTile == null &&
-                  !noTile
+          color: appearance == 'minimal' && customTile == null && !noTile
               ? fg.withValues(alpha: dark ? 0.16 : 0.14)
               : fg.withValues(alpha: dark ? 0.12 : 0.1),
         ),

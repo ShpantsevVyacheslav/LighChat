@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import 'device_contact_lookup_keys.dart';
+import 'new_chat_user_search.dart' show ruEnSubstringMatch;
 import 'user_contacts_repository.dart';
 
 class DeviceContactCandidate {
@@ -21,10 +22,7 @@ class DeviceContactCandidate {
 }
 
 class DeviceContactResolved {
-  const DeviceContactResolved({
-    required this.candidate,
-    required this.userId,
-  });
+  const DeviceContactResolved({required this.candidate, required this.userId});
 
   final DeviceContactCandidate candidate;
   final String userId;
@@ -37,15 +35,17 @@ String _normalizeSearch(String input) {
 bool deviceContactMatchesQuery(Contact c, String rawTerm) {
   final term = _normalizeSearch(rawTerm);
   if (term.isEmpty) return false;
-  final name = _normalizeSearch(c.displayName ?? '');
-  if (name.contains(term)) return true;
+  final displayName = (c.displayName ?? '').trim();
+  if (displayName.isNotEmpty && ruEnSubstringMatch(displayName, term)) {
+    return true;
+  }
   for (final p in c.phones) {
     final digits = normalizePhoneDigits(p.number);
     if (digits.contains(term.replaceAll(RegExp(r'\D'), ''))) return true;
   }
   for (final e in c.emails) {
-    final addr = _normalizeSearch(e.address);
-    if (addr.contains(term)) return true;
+    final addr = (e.address).trim();
+    if (addr.isNotEmpty && ruEnSubstringMatch(addr, term)) return true;
   }
   return false;
 }
@@ -111,7 +111,9 @@ Future<Map<String, String>> resolveCandidatesToUserIds({
   // This stays small because candidates are already limited.
   final out = <String, String>{};
   for (final cand in candidates) {
-    final hit = await repo.resolveUserIdsByRegistrationLookupKeys(cand.lookupKeys);
+    final hit = await repo.resolveUserIdsByRegistrationLookupKeys(
+      cand.lookupKeys,
+    );
     if (hit.isNotEmpty) {
       out[cand.contactId] = hit.first;
     }
@@ -129,4 +131,3 @@ Rect shareOriginForContext(BuildContext context) {
     height: 1,
   );
 }
-

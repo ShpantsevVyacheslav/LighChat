@@ -14,6 +14,7 @@ import '../data/dm_display_title.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/chat_message_draft_storage.dart';
 import '../data/bottom_nav_icon_settings.dart';
+import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 
 import 'chat_folder_bar.dart';
 import 'chat_list_item.dart';
@@ -1297,13 +1298,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
               : chatDraftPlainFromHtml(draft.html);
           if (draftPlain.trim().isNotEmpty) parts.add(draftPlain.trim());
 
-          return parts.join('\n').toLowerCase();
+          return parts.join('\n');
         }
 
         final convs = folderConversations
             .where((conversation) {
               if (term.isEmpty) return true;
-              return conversationSearchText(conversation).contains(term);
+              return ruEnSubstringMatch(
+                conversationSearchText(conversation),
+                term,
+              );
             })
             .toList(growable: false);
 
@@ -1571,8 +1575,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                         : (isEmptyConversation
                                               ? 'Пока нет сообщений'
                                               : isClearedForCurrentUser
-                                                    ? 'История очищена'
-                                                    : rawLast));
+                                              ? 'История очищена'
+                                              : rawLast));
                               final unreadCount =
                                   (c.data.unreadCounts?[widget.currentUserId] ??
                                       0) +
@@ -1795,7 +1799,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                   final filteredChats = selectableChats
                       .where((chat) {
                         if (query.isEmpty) return true;
-                        return chat.title.toLowerCase().contains(query);
+                        return ruEnSubstringMatch(chat.title, query);
                       })
                       .toList(growable: false);
                   final canCreate =
@@ -1834,9 +1838,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       borderRadius: BorderRadius.circular(30),
                       color: modalBg,
                       border: Border.all(
-                        color: modalFg.withValues(
-                          alpha: dark ? 0.12 : 0.14,
-                        ),
+                        color: modalFg.withValues(alpha: dark ? 0.12 : 0.14),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -2057,7 +2059,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             height: 56,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(18),
-                              color: modalFg.withValues(alpha: dark ? 0.06 : 0.05),
+                              color: modalFg.withValues(
+                                alpha: dark ? 0.06 : 0.05,
+                              ),
                               border: Border.all(
                                 color: modalFg.withValues(
                                   alpha: dark ? 0.10 : 0.12,
@@ -2094,14 +2098,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                       isDense: true,
                                       contentPadding:
                                           const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                      ),
+                                            vertical: 10,
+                                          ),
                                       hintStyle: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w500,
-                                        color: modalFg.withValues(
-                                          alpha: 0.40,
-                                        ),
+                                        color: modalFg.withValues(alpha: 0.40),
                                       ),
                                     ),
                                   ),
@@ -2116,9 +2118,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     child: Text(
                                       'Подходящие чаты не найдены',
                                       style: TextStyle(
-                                        color: modalFg.withValues(
-                                          alpha: 0.56,
-                                        ),
+                                        color: modalFg.withValues(alpha: 0.56),
                                       ),
                                     ),
                                   )
@@ -2369,9 +2369,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                         fontWeight: FontWeight.w700,
                                         color: canCreate
                                             ? Colors.white
-                                            : modalFg.withValues(
-                                                alpha: 0.40,
-                                              ),
+                                            : modalFg.withValues(alpha: 0.40),
                                       ),
                                     ),
                                   ),

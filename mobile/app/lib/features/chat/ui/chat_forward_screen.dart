@@ -11,6 +11,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../data/e2ee_auto_enable_helper.dart';
 import '../data/forward_recipients.dart';
+import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
 
@@ -124,11 +125,9 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                             filtered = rows
                                 .where(
                                   (r) =>
-                                      r.displayName.toLowerCase().contains(q) ||
-                                      r.subtitle.toLowerCase().contains(q) ||
-                                      ((r.username ?? '')
-                                          .toLowerCase()
-                                          .contains(q)),
+                                      ruEnSubstringMatch(r.displayName, q) ||
+                                      ruEnSubstringMatch(r.subtitle, q) ||
+                                      ruEnSubstringMatch((r.username ?? ''), q),
                                 )
                                 .toList();
                           }

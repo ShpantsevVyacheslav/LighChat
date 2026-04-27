@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../chat/data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import 'auth_validators.dart';
 import 'avatar_picker_cropper.dart';
 
@@ -591,12 +592,12 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                       ),
               ),
             ),
-           ),
-           const SizedBox(height: 18),
-         ],
-       ),
-  );
-}
+          ),
+          const SizedBox(height: 18),
+        ],
+      ),
+    );
+  }
 
   InputDecoration _registerInputDecoration(
     BuildContext context, {
@@ -718,7 +719,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                     ? _phoneCountries
                     : _phoneCountries.where((c) {
                         final q = query;
-                        return c.name.toLowerCase().contains(q) ||
+                        return ruEnSubstringMatch(c.name, q) ||
                             c.dialCode.contains(q);
                       }).toList();
 
@@ -1047,10 +1048,7 @@ const List<_PhoneCountry> _phoneCountries = [
 ];
 
 class _PhoneMaskFormatter extends TextInputFormatter {
-  const _PhoneMaskFormatter({
-    required this.phoneHint,
-    required this.maxDigits,
-  });
+  const _PhoneMaskFormatter({required this.phoneHint, required this.maxDigits});
 
   final String phoneHint;
   final int maxDigits;
@@ -1110,10 +1108,7 @@ class _PhoneMaskFormatter extends TextInputFormatter {
         ? cleaned.substring(0, effectiveMaxDigits)
         : cleaned;
 
-    final formatted = formatDigits(
-      clipped,
-      phoneHint: phoneHint,
-    );
+    final formatted = formatDigits(clipped, phoneHint: phoneHint);
 
     return TextEditingValue(
       text: formatted,
