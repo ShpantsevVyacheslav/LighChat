@@ -820,6 +820,7 @@ class ChatMessage {
     this.mediaNorm,
     this.emojiBurst,
     this.systemEvent,
+    this.voiceTranscript,
   });
 
   final String id;
@@ -875,6 +876,10 @@ class ChatMessage {
   /// Если присутствует — UI рендерит divider вместо bubble.
   final ChatSystemEvent? systemEvent;
 
+  /// On-demand transcription for voice messages (plaintext chats only).
+  /// Stored in Firestore as `voiceTranscript.text` (map) or legacy string.
+  final String? voiceTranscript;
+
   static ChatMessage? fromDoc(DocumentSnapshot<Map<String, Object?>> doc) {
     if (!doc.exists) return null;
     final data = doc.data();
@@ -902,6 +907,14 @@ class ChatMessage {
     final e2eePayload = ChatMessageE2eePayload.fromJson(data['e2ee']);
     final hasE2eeCiphertext = e2eePayload != null;
     final systemEvent = ChatSystemEvent.fromJson(data['systemEvent']);
+    final vtRaw = data['voiceTranscript'];
+    String? voiceTranscript;
+    if (vtRaw is String && vtRaw.trim().isNotEmpty) {
+      voiceTranscript = vtRaw.trim();
+    } else if (vtRaw is Map) {
+      final t = vtRaw['text'];
+      if (t is String && t.trim().isNotEmpty) voiceTranscript = t.trim();
+    }
 
     int? threadCount;
     final threadCountRaw = data['threadCount'];
@@ -1003,6 +1016,7 @@ class ChatMessage {
       mediaNorm: mediaNorm,
       emojiBurst: emojiBurst,
       systemEvent: systemEvent,
+      voiceTranscript: voiceTranscript,
     );
   }
 }

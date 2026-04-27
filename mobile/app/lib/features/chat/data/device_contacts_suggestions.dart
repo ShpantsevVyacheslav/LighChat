@@ -39,9 +39,10 @@ bool deviceContactMatchesQuery(Contact c, String rawTerm) {
   if (displayName.isNotEmpty && ruEnSubstringMatch(displayName, term)) {
     return true;
   }
+  final termDigits = term.replaceAll(RegExp(r'\D'), '');
   for (final p in c.phones) {
     final digits = normalizePhoneDigits(p.number);
-    if (digits.contains(term.replaceAll(RegExp(r'\D'), ''))) return true;
+    if (termDigits.isNotEmpty && digits.contains(termDigits)) return true;
   }
   for (final e in c.emails) {
     final addr = (e.address).trim();

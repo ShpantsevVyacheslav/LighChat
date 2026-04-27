@@ -645,7 +645,15 @@ class _LiquidNavSlot extends StatelessWidget {
               : (dark
                     ? Colors.white.withValues(alpha: 0.52)
                     : Colors.black.withValues(alpha: 0.45)))
-        : Colors.white;
+        : (noTileFill
+              ? (active
+                    ? (dark
+                          ? Colors.white.withValues(alpha: 0.92)
+                          : Colors.black.withValues(alpha: 0.92))
+                    : (dark
+                          ? Colors.white.withValues(alpha: 0.62)
+                          : Colors.black.withValues(alpha: 0.55)))
+              : Colors.white);
     final iconColor = customIconColor ?? defaultColor;
     final useCustomSolidTile = customTileColor != null;
     final useColorfulTile =
@@ -880,7 +888,15 @@ class _NavTile extends StatelessWidget {
         ? (active
               ? const Color(0xFF2A79FF)
               : (dark ? const Color(0xFF8D93A4) : const Color(0xFF6B7280)))
-        : Colors.white;
+        : (noTileFill
+              ? (active
+                    ? (dark
+                          ? Colors.white.withValues(alpha: 0.92)
+                          : Colors.black.withValues(alpha: 0.92))
+                    : (dark
+                          ? Colors.white.withValues(alpha: 0.62)
+                          : Colors.black.withValues(alpha: 0.55)))
+              : Colors.white);
     final iconColor = customIconColor ?? defaultColor;
 
     final useCustomSolidTile = customTileColor != null;

@@ -6,38 +6,26 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:http/http.dart' as http;
 import 'package:gal/gal.dart';
 import 'package:lighchat_models/lighchat_models.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../data/chat_media_gallery.dart';
 import 'chat_gallery_video_local_cache.dart';
 import 'chat_media_viewer_photo_page.dart';
 import 'chat_vlc_network_media.dart';
+import '../../../l10n/app_localizations.dart';
 
-const _ruMonthsGenitive = <String>[
-  '',
-  'января',
-  'февраля',
-  'марта',
-  'апреля',
-  'мая',
-  'июня',
-  'июля',
-  'августа',
-  'сентября',
-  'октября',
-  'ноября',
-  'декабря',
-];
-
-String formatChatMediaViewerDateRu(DateTime utcOrLocal) {
+String formatChatMediaViewerDate(BuildContext context, DateTime utcOrLocal) {
   final d = utcOrLocal.toLocal();
-  final m = _ruMonthsGenitive[d.month.clamp(1, 12)];
-  final hh = d.hour.toString().padLeft(2, '0');
-  final mm = d.minute.toString().padLeft(2, '0');
-  return '${d.day} ${m.toUpperCase()} ${d.year}, $hh:$mm';
+  final l10n = AppLocalizations.of(context);
+  final localeName = l10n?.localeName ?? Localizations.localeOf(context).toString();
+  // Example: "27 April 2026, 16:23" / "27 апреля 2026, 16:23"
+  final f = intl.DateFormat('d MMMM yyyy, HH:mm', localeName);
+  return f.format(d);
 }
 
 /// Маршрут без [MaterialPageRoute.fullscreenDialog]: при закрытии экран уезжает
@@ -241,9 +229,13 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
         final granted = await Gal.requestAccess(toAlbum: true);
         if (!granted) {
           if (mounted) {
+            final l10n = AppLocalizations.of(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Нет доступа к сохранению в галерею'),
+              SnackBar(
+                content: Text(
+                  l10n?.media_viewer_error_no_gallery_access ??
+                      'Нет доступа к сохранению в галерею',
+                ),
               ),
             );
           }
@@ -277,16 +269,123 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
       } else {
         await Gal.putImage(f.path);
       }
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Сохранено в галерею')));
-      }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Не удалось сохранить: $e')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.media_viewer_error_save_failed(e) ??
+                  'Не удалось сохранить: $e',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  String _shareExtFromAttachment(ChatAttachment att) {
+    final mime = (att.type ?? '').toLowerCase();
+    if (mime.contains('png')) return 'png';
+    if (mime.contains('webp')) return 'webp';
+    if (mime.contains('gif')) return 'gif';
+    if (mime.contains('heic')) return 'heic';
+    if (mime.contains('heif')) return 'heif';
+    if (mime.contains('jpeg') || mime.contains('jpg')) return 'jpg';
+    if (mime.contains('mp4')) return 'mp4';
+    if (mime.contains('quicktime') || mime.contains('mov')) return 'mov';
+    if (mime.contains('mpeg')) return 'mpeg';
+
+    final uri = Uri.tryParse(att.url);
+    final path = (uri?.path ?? att.url).toLowerCase();
+    final m = RegExp(r'\.([a-z0-9]{2,5})$').firstMatch(path);
+    final ext = m?.group(1);
+    if (ext != null && ext.isNotEmpty) return ext;
+    return isChatGridGalleryVideo(att) ? 'mp4' : 'jpg';
+  }
+
+  Future<void> _shareCurrentExternal() async {
+    final item = _current;
+    if (item == null) return;
+    if (kIsWeb) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.media_viewer_error_share_unavailable_web ??
+                  'Шаринг недоступен в веб-версии',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    Rect? shareRect;
+    final ro = context.findRenderObject();
+    if (ro is RenderBox && ro.hasSize) {
+      final origin = ro.localToGlobal(Offset.zero);
+      shareRect = origin & ro.size;
+    }
+
+    final url = item.attachment.url;
+    final uri = Uri.tryParse(url);
+    final rawName = item.attachment.name.trim();
+    final safeBaseName = rawName.isNotEmpty
+        ? rawName.replaceAll(RegExp(r'[/\\]'), '_')
+        : 'media';
+    final ext = _shareExtFromAttachment(item.attachment);
+    final video = isChatGridGalleryVideo(item.attachment);
+    final fallbackName = video ? '$safeBaseName.$ext' : '$safeBaseName.$ext';
+    final mimeType =
+        (item.attachment.type ?? '').trim().isEmpty ? null : item.attachment.type;
+
+    File? f;
+    try {
+      if (uri == null || uri.scheme.isEmpty) {
+        throw const FormatException('Bad media URL');
+      }
+      f = File(
+        '${Directory.systemTemp.path}/lighchat_share_${DateTime.now().millisecondsSinceEpoch}_$fallbackName',
+      );
+      if (uri.scheme == 'file') {
+        final src = File(uri.toFilePath());
+        if (!await src.exists()) {
+          throw const FileSystemException('Файл не найден');
+        }
+        await src.copy(f.path);
+      } else if (uri.scheme == 'http' || uri.scheme == 'https') {
+        final res = await http.get(uri);
+        if (res.statusCode != 200) {
+          throw HttpException('HTTP ${res.statusCode}');
+        }
+        await f.writeAsBytes(res.bodyBytes, flush: true);
+      } else {
+        throw FormatException('Unsupported media scheme: ${uri.scheme}');
+      }
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(f.path, name: fallbackName, mimeType: mimeType)],
+          subject: 'LighChat',
+          sharePositionOrigin: shareRect,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.media_viewer_error_send_failed(e) ?? 'Не удалось отправить: $e',
+            ),
+          ),
+        );
       }
     }
   }
@@ -565,7 +664,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          formatChatMediaViewerDateRu(
+                                          formatChatMediaViewerDate(
+                                            context,
                                             cur.message.createdAt,
                                           ),
                                           style: TextStyle(
@@ -594,6 +694,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                   case 'forward':
                                     _forward();
                                     return;
+                                  case 'share_external':
+                                    unawaited(_shareCurrentExternal());
+                                    return;
                                   case 'save':
                                     unawaited(_saveCurrent());
                                     return;
@@ -609,6 +712,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                               },
                               itemBuilder: (ctx) {
                                 final hi = Colors.white.withValues(alpha: 0.92);
+                                final l10n = AppLocalizations.of(context);
                                 return [
                                   if (showReply)
                                     PopupMenuItem(
@@ -618,7 +722,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                           Icon(Icons.reply_rounded, color: hi),
                                           const SizedBox(width: 12),
                                           Text(
-                                            'Ответить',
+                                            l10n?.media_viewer_action_reply ??
+                                                'Ответить',
                                             style: TextStyle(
                                               color: hi,
                                               fontWeight: FontWeight.w600,
@@ -634,7 +739,25 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                         Icon(Icons.forward_rounded, color: hi),
                                         const SizedBox(width: 12),
                                         Text(
-                                          'Переслать',
+                                          l10n?.media_viewer_action_forward ??
+                                              'Переслать',
+                                          style: TextStyle(
+                                            color: hi,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'share_external',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.share_outlined, color: hi),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          l10n?.media_viewer_action_send ??
+                                              'Отправить',
                                           style: TextStyle(
                                             color: hi,
                                             fontWeight: FontWeight.w600,
@@ -650,7 +773,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                         Icon(Icons.download_rounded, color: hi),
                                         const SizedBox(width: 12),
                                         Text(
-                                          'Сохранить',
+                                          l10n?.media_viewer_action_save ??
+                                              'Сохранить',
                                           style: TextStyle(
                                             color: hi,
                                             fontWeight: FontWeight.w600,
@@ -667,7 +791,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                           Icon(Icons.chat_rounded, color: hi),
                                           const SizedBox(width: 12),
                                           Text(
-                                            'Показать в чате',
+                                            l10n?.media_viewer_action_show_in_chat ??
+                                                'Показать в чате',
                                             style: TextStyle(
                                               color: hi,
                                               fontWeight: FontWeight.w600,
@@ -686,9 +811,10 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                             color: Colors.redAccent,
                                           ),
                                           const SizedBox(width: 12),
-                                          const Text(
-                                            'Удалить',
-                                            style: TextStyle(
+                                          Text(
+                                            l10n?.media_viewer_action_delete ??
+                                                'Удалить',
+                                            style: const TextStyle(
                                               color: Colors.redAccent,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -1105,6 +1231,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       context: context,
       backgroundColor: const Color(0xFF1A1A1C),
       builder: (context) {
+        final l10n = AppLocalizations.of(context);
         const options = <double>[1.0, 1.25, 1.5, 1.75, 2.0];
         return SafeArea(
           child: Column(
@@ -1112,7 +1239,8 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
             children: [
               const SizedBox(height: 8),
               Text(
-                'Скорость воспроизведения',
+                l10n?.media_viewer_video_playback_speed ??
+                    'Скорость воспроизведения',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.92),
                   fontWeight: FontWeight.w700,
@@ -1164,6 +1292,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       context: context,
       backgroundColor: const Color(0xFF1A1A1C),
       builder: (context) {
+        final l10n = AppLocalizations.of(context);
         const options = <_ViewerVideoQuality>[
           _ViewerVideoQuality.auto,
           _ViewerVideoQuality.p1080,
@@ -1176,7 +1305,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
             children: [
               const SizedBox(height: 8),
               Text(
-                'Качество',
+                l10n?.media_viewer_video_quality ?? 'Качество',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.92),
                   fontWeight: FontWeight.w700,
@@ -1276,8 +1405,14 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       _showControlsTemporarily(force: true);
     } catch (_) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось переключить качество')),
+        SnackBar(
+          content: Text(
+            l10n?.media_viewer_error_quality_switch_failed ??
+                'Не удалось переключить качество',
+          ),
+        ),
       );
     } finally {
       await replacement?.dispose();
@@ -1321,8 +1456,14 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
           _pipResumeTarget = null;
         }
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Не удалось открыть PiP')),
+            SnackBar(
+              content: Text(
+                l10n?.media_viewer_error_pip_open_failed ??
+                    'Не удалось открыть PiP',
+              ),
+            ),
           );
         }
       }
@@ -1333,9 +1474,16 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
     }
     final ok = await _PictureInPictureBridge.enter(aspectW: w, aspectH: h);
     if (!ok && mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Не удалось открыть PiP')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n?.media_viewer_error_pip_open_failed ?? 'Не удалось открыть PiP',
+          ),
+        ),
+      );
     }
   }
 
@@ -1396,26 +1544,30 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       mimeType: widget.mimeType,
     );
     if (unsupported) {
+      final l10n = AppLocalizations.of(context);
       return _wrapWithEdgeNav(
-        const Center(
+        Center(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              'Видео обрабатывается на сервере и скоро станет доступно.',
+              l10n?.media_viewer_video_processing ??
+                  'Видео обрабатывается на сервере и скоро станет доступно.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ),
         ),
       );
     }
     if (_failed) {
+      final l10n = AppLocalizations.of(context);
       return _wrapWithEdgeNav(
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              'Не удалось воспроизвести видео.',
+              l10n?.media_viewer_video_playback_failed ??
+                  'Не удалось воспроизвести видео.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.88),
@@ -1712,7 +1864,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
 }
 
 enum _ViewerVideoQuality {
-  auto(label: 'Авто', targetHeight: null),
+  auto(label: 'Auto', targetHeight: null),
   p1080(label: '1080p', targetHeight: 1080),
   p720(label: '720p', targetHeight: 720),
   p480(label: '480p', targetHeight: 480);

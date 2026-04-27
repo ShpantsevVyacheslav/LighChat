@@ -49,6 +49,11 @@ export const onthreadmessagecreated = onDocumentCreated(
     const senderDoc = senderSnap.exists ? senderSnap.data() : undefined;
     const senderName = senderDoc?.name ?? "Участник";
     const senderIcon = senderListAvatarForPush(senderDoc as Record<string, unknown> | undefined);
+    const senderFcmTokenSet = new Set<string>(
+      (senderDoc?.fcmTokens as unknown[] | undefined)?.filter(
+        (t): t is string => typeof t === "string" && t.length > 0
+      ) ?? []
+    );
 
     let bodyPlain = (messageData.text || "Новый ответ в ветке").replace(/<[^>]*>/g, "");
     if (messageData.e2ee?.ciphertext) {
@@ -73,7 +78,7 @@ export const onthreadmessagecreated = onDocumentCreated(
         const userData = userSnap.data() as Record<string, unknown>;
         const tokens = (userData.fcmTokens as unknown[] | undefined)?.filter(
           (t): t is string => typeof t === "string" && t.length > 0
-        );
+        )?.filter((t) => !senderFcmTokenSet.has(t));
         if (!tokens?.length) continue;
 
         const prefSnap = await db.doc(`users/${userId}/chatConversationPrefs/${conversationId}`).get();

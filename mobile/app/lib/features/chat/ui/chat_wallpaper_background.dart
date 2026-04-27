@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'chat_cached_network_image.dart';
+import 'chat_wallpaper_scope.dart';
 
 /// Фон чата по `users/*/chatSettings.chatWallpaper` — тот же слой, что в [ChatScreen].
 class ChatWallpaperBackground extends StatelessWidget {
@@ -54,30 +55,33 @@ class ChatWallpaperBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final raw = wallpaper?.trim();
     if (raw == null || raw.isEmpty) {
-      return _DefaultChatBackdrop(child: child);
+      return ChatWallpaperScope(wallpaper: null, child: _DefaultChatBackdrop(child: child));
     }
 
     final gradient = _gradients[raw];
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (raw.startsWith('http'))
-          Positioned.fill(
-            child: ChatCachedNetworkImage(
-              url: raw,
-              fit: BoxFit.cover,
-              showProgressIndicator: false,
-              errorOverride: const SizedBox.shrink(),
-            ),
-          )
-        else if (gradient != null)
-          DecoratedBox(decoration: BoxDecoration(gradient: gradient))
-        else
-          const _DefaultChatBackdrop(child: SizedBox.expand()),
-        if (raw.startsWith('http'))
-          Container(color: Colors.black.withValues(alpha: 0.35)),
-        child,
-      ],
+    return ChatWallpaperScope(
+      wallpaper: raw,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (raw.startsWith('http'))
+            Positioned.fill(
+              child: ChatCachedNetworkImage(
+                url: raw,
+                fit: BoxFit.cover,
+                showProgressIndicator: false,
+                errorOverride: const SizedBox.shrink(),
+              ),
+            )
+          else if (gradient != null)
+            DecoratedBox(decoration: BoxDecoration(gradient: gradient))
+          else
+            const _DefaultChatBackdrop(child: SizedBox.expand()),
+          if (raw.startsWith('http'))
+            Container(color: Colors.black.withValues(alpha: 0.35)),
+          child,
+        ],
+      ),
     );
   }
 }

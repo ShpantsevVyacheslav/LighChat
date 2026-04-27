@@ -17,6 +17,8 @@ import '../data/mention_editor_query.dart';
 import 'group_mention_suggestions.dart';
 import 'hold_to_record_mic_button.dart';
 import 'voice_message_record_sheet.dart';
+import 'chat_wallpaper_scope.dart';
+import 'chat_wallpaper_tone.dart';
 
 /// Shared chat composer used by both `ChatScreen` and `ThreadScreen`.
 ///
@@ -300,7 +302,15 @@ class _ChatComposerState extends State<ChatComposer> {
 
   Widget _buildComposerTextField(bool keyboardOpen) {
     final scheme = Theme.of(context).colorScheme;
-    final fg = scheme.onSurface;
+    final wallpaper = ChatWallpaperScope.of(context);
+    final fg = chatWallpaperAdaptivePrimaryTextColor(
+      context: context,
+      wallpaper: wallpaper,
+    );
+    final hintFg = chatWallpaperAdaptiveSecondaryTextColor(
+      context: context,
+      wallpaper: wallpaper,
+    );
     final paste = widget.onClipboardToolbarPaste;
     final tf = TextField(
       controller: widget.controller,
@@ -323,7 +333,7 @@ class _ChatComposerState extends State<ChatComposer> {
       decoration: InputDecoration(
         hintText: 'Введите сообщение...',
         hintStyle: TextStyle(
-          color: fg.withValues(alpha: 0.45),
+          color: hintFg,
           fontWeight: FontWeight.w500,
           fontSize: 16,
         ),
@@ -341,7 +351,7 @@ class _ChatComposerState extends State<ChatComposer> {
                   Icons.emoji_emotions_outlined,
                   size: 20,
                   color: widget.sendBusy
-                      ? fg.withValues(alpha: 0.35)
+                      ? hintFg.withValues(alpha: 0.65)
                       : fg.withValues(alpha: 0.88),
                 ),
               )
@@ -371,7 +381,15 @@ class _ChatComposerState extends State<ChatComposer> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-    final fg = scheme.onSurface;
+    final wallpaper = ChatWallpaperScope.of(context);
+    final fg = chatWallpaperAdaptivePrimaryTextColor(
+      context: context,
+      wallpaper: wallpaper,
+    );
+    final muted = chatWallpaperAdaptiveSecondaryTextColor(
+      context: context,
+      wallpaper: wallpaper,
+    );
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final showSendButton =
         _hasTypedText || widget.pendingAttachments.isNotEmpty;
@@ -448,9 +466,13 @@ class _ChatComposerState extends State<ChatComposer> {
                       height: _kComposerControlSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: fg.withValues(alpha: dark ? 0.09 : 0.08),
+                        color: Colors.black.withValues(
+                          alpha: chatWallpaperPrefersLightForeground(wallpaper)
+                              ? (dark ? 0.18 : 0.16)
+                              : (dark ? 0.06 : 0.08),
+                        ),
                         border: Border.all(
-                          color: fg.withValues(alpha: dark ? 0.16 : 0.14),
+                          color: fg.withValues(alpha: 0.18),
                         ),
                       ),
                       child: IconButton(
@@ -463,8 +485,8 @@ class _ChatComposerState extends State<ChatComposer> {
                         icon: Icon(
                           Icons.add_rounded,
                           color: widget.attachmentsEnabled && !widget.sendBusy
-                              ? fg.withValues(alpha: 0.90)
-                              : fg.withValues(alpha: 0.35),
+                              ? fg.withValues(alpha: 0.92)
+                              : muted.withValues(alpha: 0.75),
                         ),
                       ),
                     ),
@@ -474,9 +496,13 @@ class _ChatComposerState extends State<ChatComposer> {
                         height: _kComposerControlSize,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(14),
-                          color: fg.withValues(alpha: dark ? 0.07 : 0.08),
+                          color: Colors.black.withValues(
+                            alpha: chatWallpaperPrefersLightForeground(wallpaper)
+                                ? (dark ? 0.18 : 0.16)
+                                : (dark ? 0.06 : 0.08),
+                          ),
                           border: Border.all(
-                            color: fg.withValues(alpha: dark ? 0.14 : 0.12),
+                            color: fg.withValues(alpha: 0.18),
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -496,11 +522,17 @@ class _ChatComposerState extends State<ChatComposer> {
                         shape: BoxShape.circle,
                         color: showSendButton
                             ? const Color(0xFF2A79FF)
-                            : fg.withValues(alpha: dark ? 0.08 : 0.08),
+                            : Colors.black.withValues(
+                                alpha: chatWallpaperPrefersLightForeground(
+                                  wallpaper,
+                                )
+                                    ? (dark ? 0.18 : 0.16)
+                                    : (dark ? 0.06 : 0.08),
+                              ),
                         border: showSendButton
                             ? null
                             : Border.all(
-                                color: fg.withValues(alpha: dark ? 0.16 : 0.14),
+                                color: fg.withValues(alpha: 0.18),
                               ),
                         boxShadow: showSendButton
                             ? [

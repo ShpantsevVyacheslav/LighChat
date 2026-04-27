@@ -110,9 +110,7 @@ class _BlockedUserTileState extends ConsumerState<_BlockedUserTile> {
         SetOptions(merge: true),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Пользователь разблокирован')),
-        );
+        // Success SnackBars are intentionally suppressed (errors only).
       }
     } catch (e) {
       if (mounted) {

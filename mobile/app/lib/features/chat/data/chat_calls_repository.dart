@@ -20,7 +20,10 @@ class ChatCallsHistorySnapshot {
   final String? error;
 }
 
-/// Подписка на `userCalls/{uid}` и батчи `calls` через `whereIn` (до 30 id, как на вебе).
+/// Подписка на `userCalls/{uid}` и документы `calls/{callId}`.
+///
+/// Важно: `whereIn(documentId, [...])` падает целиком с permission-denied, если хотя бы один
+/// callId не читается правилами (например, устаревший id в `userCalls`). Поэтому читаем по doc.
 class ChatCallsRepository {
   ChatCallsRepository(this._firestore);
 
@@ -31,8 +34,7 @@ class ChatCallsRepository {
   Stream<ChatCallsHistorySnapshot> watchHistory(String uid) {
     return Stream<ChatCallsHistorySnapshot>.multi((listener) {
       StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? userSub;
-      final callSubs =
-          <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
+      final callSubs = <StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>[];
 
       Future<void> cancelCallSubs() async {
         for (final s in callSubs) {
@@ -58,27 +60,27 @@ class ChatCallsRepository {
           return;
         }
 
+        // Keep chunk constant for future parity, but subscribe per-document to avoid
+        // query-level permission failures.
         final batches = <List<String>>[];
         for (var i = 0; i < unique.length; i += _whereInChunk) {
           batches.add(unique.sublist(i, min(i + _whereInChunk, unique.length)));
         }
 
-        final perBatch = <int, Map<String, ChatCallRecord>>{};
-        final batchReady = List<bool>.filled(batches.length, false);
+        final byId = <String, ChatCallRecord>{};
+        final ready = <String, bool>{for (final id in unique) id: false};
 
         void publish() {
-          final allReady = batchReady.every((e) => e);
-          final merged = <String, ChatCallRecord>{};
-          for (final m in perBatch.values) {
-            merged.addAll(m);
-          }
           final list =
-              merged.values
+              byId.values
                   .where((c) => isTerminalCallStatus(c.status))
                   .toList(growable: false)
                 ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           listener.add(
-            ChatCallsHistorySnapshot(calls: list, loading: !allReady),
+            ChatCallsHistorySnapshot(
+              calls: list,
+              loading: ready.values.any((v) => v == false),
+            ),
           );
         }
 
@@ -89,37 +91,46 @@ class ChatCallsRepository {
           ),
         );
 
-        for (var bi = 0; bi < batches.length; bi++) {
-          final batch = batches[bi];
-          final sub = _firestore
-              .collection('calls')
-              .where(FieldPath.documentId, whereIn: batch)
-              .snapshots()
-              .listen(
-                (snap) {
-                  final m = <String, ChatCallRecord>{};
-                  for (final d in snap.docs) {
-                    final parsed = ChatCallRecord.fromFirestore(d.id, d.data());
-                    if (parsed != null) m[d.id] = parsed;
-                  }
-                  perBatch[bi] = m;
-                  batchReady[bi] = true;
-                  publish();
-                },
-                onError: (Object e, StackTrace st) {
-                  debugPrint(
-                    '[ChatCallsRepository] calls batch listen: $e $st',
-                  );
-                  listener.add(
-                    ChatCallsHistorySnapshot(
-                      calls: const <ChatCallRecord>[],
-                      loading: false,
-                      error: e.toString(),
-                    ),
-                  );
-                },
-              );
-          callSubs.add(sub);
+        for (final batch in batches) {
+          for (final id in batch) {
+            final sub = _firestore
+                .collection('calls')
+                .doc(id)
+                .snapshots()
+                .listen(
+                  (snap) {
+                    ready[id] = true;
+                    if (!snap.exists) {
+                      byId.remove(id);
+                      publish();
+                      return;
+                    }
+                    final data = snap.data();
+                    if (data == null) {
+                      byId.remove(id);
+                      publish();
+                      return;
+                    }
+                    final parsed = ChatCallRecord.fromFirestore(snap.id, data);
+                    if (parsed == null) {
+                      byId.remove(id);
+                      publish();
+                      return;
+                    }
+                    byId[id] = parsed;
+                    publish();
+                  },
+                  onError: (Object e, StackTrace st) {
+                    // If a single call doc is not readable (permission-denied),
+                    // skip it instead of failing the whole history view.
+                    debugPrint('[ChatCallsRepository] call doc listen $id: $e $st');
+                    ready[id] = true;
+                    byId.remove(id);
+                    publish();
+                  },
+                );
+            callSubs.add(sub);
+          }
         }
       }
 

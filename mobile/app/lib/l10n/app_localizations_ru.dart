@@ -37,6 +37,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get account_menu_privacy => 'Конфиденциальность';
 
   @override
+  String get account_menu_blacklist => 'Черный список';
+
+  @override
   String get account_menu_language => 'Язык';
 
   @override
@@ -44,6 +47,50 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get account_menu_sign_out => 'Выйти';
+
+  @override
+  String get profile_delete_account => 'Удалить аккаунт';
+
+  @override
+  String get profile_delete_account_confirm_title =>
+      'Удалить аккаунт безвозвратно?';
+
+  @override
+  String get profile_delete_account_confirm_body =>
+      'Ваш аккаунт будет удалён из Firebase Auth и все ваши документы в Firestore будут удалены без возможности восстановления. У собеседников останутся ваши чаты в режиме только чтение.';
+
+  @override
+  String get profile_delete_account_confirm_action => 'Удалить аккаунт';
+
+  @override
+  String profile_delete_account_error(Object error) {
+    return 'Не удалось удалить аккаунт: $error';
+  }
+
+  @override
+  String get chat_readonly_deleted_user =>
+      'Аккаунт удалён. Чат доступен только для чтения.';
+
+  @override
+  String get blacklist_empty => 'Нет заблокированных пользователей';
+
+  @override
+  String get blacklist_action_unblock => 'Разблокировать';
+
+  @override
+  String get blacklist_unblock_confirm_title => 'Разблокировать?';
+
+  @override
+  String get blacklist_unblock_confirm_body =>
+      'Пользователь снова сможет писать вам (если политика контактов позволит) и видеть ваш профиль в поиске.';
+
+  @override
+  String get blacklist_unblock_success => 'Пользователь разблокирован';
+
+  @override
+  String blacklist_unblock_error(Object error) {
+    return 'Не удалось разблокировать: $error';
+  }
 
   @override
   String get common_soon => 'Скоро';
@@ -258,10 +305,80 @@ class AppLocalizationsRu extends AppLocalizations {
   String get common_choose => 'Выбрать';
 
   @override
+  String get common_save => 'Сохранить';
+
+  @override
   String get common_nothing_found => 'Ничего не найдено';
 
   @override
   String get common_retry => 'Повторить';
+
+  @override
+  String get auth_login_email_label => 'Email';
+
+  @override
+  String get auth_login_password_label => 'Пароль';
+
+  @override
+  String get auth_login_password_hint => 'Пароль';
+
+  @override
+  String get auth_login_sign_in => 'Войти';
+
+  @override
+  String get auth_login_forgot_password => 'Забыли пароль?';
+
+  @override
+  String get auth_login_error_enter_email_for_reset =>
+      'Введите email для восстановления пароля';
+
+  @override
+  String get profile_title => 'Профиль';
+
+  @override
+  String get profile_edit_tooltip => 'Редактировать';
+
+  @override
+  String get profile_full_name_label => 'ФИО';
+
+  @override
+  String get profile_full_name_hint => 'Имя';
+
+  @override
+  String get profile_username_label => 'Логин';
+
+  @override
+  String get profile_email_label => 'Email';
+
+  @override
+  String get profile_phone_label => 'Телефон';
+
+  @override
+  String get profile_birthdate_label => 'Дата рождения';
+
+  @override
+  String get profile_about_label => 'О себе';
+
+  @override
+  String get profile_about_hint => 'Кратко о себе';
+
+  @override
+  String get profile_password_toggle_show => 'Изменить пароль';
+
+  @override
+  String get profile_password_toggle_hide => 'Скрыть смену пароля';
+
+  @override
+  String get profile_password_new_label => 'Новый пароль';
+
+  @override
+  String get profile_password_confirm_label => 'Повторите пароль';
+
+  @override
+  String get profile_password_tooltip_show => 'Показать пароль';
+
+  @override
+  String get profile_password_tooltip_hide => 'Скрыть';
 
   @override
   String get settings_chats_title => 'Настройки чатов';
@@ -476,6 +593,104 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chat_list_yesterday => 'Вчера';
 
   @override
+  String get chat_list_folder_delete_action => 'Удалить';
+
+  @override
+  String get chat_list_folder_delete_title => 'Удалить папку?';
+
+  @override
+  String chat_list_folder_delete_body(Object name) {
+    return 'Папка \"$name\" будет удалена. Чаты останутся на месте.';
+  }
+
+  @override
+  String chat_list_error_open_starred(Object error) {
+    return 'Не удалось открыть Избранное: $error';
+  }
+
+  @override
+  String chat_list_error_delete_folder(Object error) {
+    return 'Не удалось удалить папку: $error';
+  }
+
+  @override
+  String get chat_list_pin_not_available =>
+      'В этой папке закрепление недоступно.';
+
+  @override
+  String chat_list_pin_pinned_in_folder(Object name) {
+    return 'Чат закреплен в папке \"$name\"';
+  }
+
+  @override
+  String chat_list_pin_unpinned_in_folder(Object name) {
+    return 'Чат откреплен из папки \"$name\"';
+  }
+
+  @override
+  String chat_list_error_toggle_pin(Object error) {
+    return 'Не удалось изменить закрепление: $error';
+  }
+
+  @override
+  String chat_list_error_update_folder(Object error) {
+    return 'Не удалось обновить папку: $error';
+  }
+
+  @override
+  String get chat_list_clear_history_title => 'Очистить историю?';
+
+  @override
+  String get chat_list_clear_history_body =>
+      'Сообщения исчезнут только из вашего окна чата. У собеседника история останется.';
+
+  @override
+  String get chat_list_clear_history_confirm => 'Очистить';
+
+  @override
+  String chat_list_error_clear_history(Object error) {
+    return 'Не удалось очистить историю: $error';
+  }
+
+  @override
+  String chat_list_error_mark_read(Object error) {
+    return 'Не удалось пометить чат как прочитанный: $error';
+  }
+
+  @override
+  String get chat_list_delete_chat_title => 'Удалить чат?';
+
+  @override
+  String get chat_list_delete_chat_body =>
+      'Переписка будет безвозвратно удалена для всех участников. Это действие нельзя отменить.';
+
+  @override
+  String get chat_list_delete_chat_confirm => 'Удалить';
+
+  @override
+  String chat_list_error_delete_chat(Object error) {
+    return 'Не удалось удалить чат: $error';
+  }
+
+  @override
+  String get chat_list_context_folders => 'Папки';
+
+  @override
+  String get chat_list_context_unpin => 'Открепить чат';
+
+  @override
+  String get chat_list_context_pin => 'Закрепить чат';
+
+  @override
+  String get chat_list_context_mark_all_read => 'Прочитать все';
+
+  @override
+  String get chat_list_context_clear_history => 'Очистить историю';
+
+  @override
+  String get chat_list_context_delete_chat => 'Удалить чат';
+
+  @override
   String get chat_list_snackbar_history_cleared => 'История очищена.';
 
   @override
@@ -597,6 +812,21 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось открыть политику конфиденциальности';
 
   @override
+  String get voice_transcript_show => 'Показать текст';
+
+  @override
+  String get voice_transcript_hide => 'Скрыть текст';
+
+  @override
+  String get voice_transcript_copy => 'Копировать';
+
+  @override
+  String get voice_transcript_loading => 'Транскрибация…';
+
+  @override
+  String get voice_transcript_failed => 'Не удалось получить текст.';
+
+  @override
   String get chat_messages_title => 'Сообщения';
 
   @override
@@ -629,4 +859,255 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get chat_delete_file_body =>
       'Будет удалён только этот файл из сообщения.';
+
+  @override
+  String get forward_title => 'Переслать';
+
+  @override
+  String get forward_empty_no_messages => 'Нет сообщений для пересылки';
+
+  @override
+  String get forward_error_not_authorized => 'Не авторизован';
+
+  @override
+  String get forward_empty_no_recipients =>
+      'Нет контактов и чатов для пересылки';
+
+  @override
+  String get forward_search_hint => 'Поиск контактов…';
+
+  @override
+  String get forward_empty_no_available_recipients =>
+      'Доступных получателей нет.\nМожно пересылать только контактам и в ваши активные чаты.';
+
+  @override
+  String get forward_empty_not_found => 'Ничего не найдено';
+
+  @override
+  String get forward_action_pick_recipients => 'Выберите получателей';
+
+  @override
+  String get forward_action_send => 'Отправить';
+
+  @override
+  String forward_error_generic(Object error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get forward_sender_fallback => 'Участник';
+
+  @override
+  String get forward_error_profiles_load =>
+      'Не удалось загрузить профили для открытия чата';
+
+  @override
+  String get forward_error_send_no_permissions =>
+      'Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.';
+
+  @override
+  String get forward_error_send_forbidden_chat =>
+      'Не удалось переслать: доступ к одному из чатов запрещён.';
+
+  @override
+  String get devices_title => 'Мои устройства';
+
+  @override
+  String get devices_subtitle =>
+      'Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.';
+
+  @override
+  String get devices_empty => 'Устройств пока нет.';
+
+  @override
+  String devices_progress_rekeying(Object done, Object total) {
+    return 'Обновление чатов: $done / $total';
+  }
+
+  @override
+  String get devices_chip_current => 'Это устройство';
+
+  @override
+  String get devices_chip_revoked => 'Отозвано';
+
+  @override
+  String devices_meta_created_activity(Object createdAt, Object lastSeenAt) {
+    return 'Создано: $createdAt  •  Активность: $lastSeenAt';
+  }
+
+  @override
+  String devices_meta_revoked_at(Object revokedAt) {
+    return 'Отозвано: $revokedAt';
+  }
+
+  @override
+  String get devices_action_rename => 'Переименовать';
+
+  @override
+  String get devices_action_revoke => 'Отозвать';
+
+  @override
+  String get devices_dialog_rename_title => 'Переименовать устройство';
+
+  @override
+  String get devices_dialog_rename_hint => 'Например, iPhone 15 — Safari';
+
+  @override
+  String devices_error_rename_failed(Object error) {
+    return 'Не удалось переименовать: $error';
+  }
+
+  @override
+  String get devices_dialog_revoke_title => 'Отозвать устройство?';
+
+  @override
+  String get devices_dialog_revoke_body_current =>
+      'Вы собираетесь отозвать ТЕКУЩЕЕ устройство. После этого вы не сможете читать новые сообщения в зашифрованных чатах с этого клиента.';
+
+  @override
+  String get devices_dialog_revoke_body_other =>
+      'Устройство больше не сможет читать новые сообщения в зашифрованных чатах. Старые сообщения останутся доступны на нём.';
+
+  @override
+  String devices_snackbar_revoked(Object rekeyed, Object suffix) {
+    return 'Устройство отозвано. Обновлено чатов: $rekeyed$suffix';
+  }
+
+  @override
+  String devices_error_revoke_failed(Object error) {
+    return 'Ошибка revoke: $error';
+  }
+
+  @override
+  String get e2ee_recovery_title => 'E2EE — резервирование';
+
+  @override
+  String get e2ee_password_label => 'Пароль';
+
+  @override
+  String get e2ee_password_confirm_label => 'Повторите пароль';
+
+  @override
+  String e2ee_password_min_length(Object count) {
+    return 'Минимум $count символов';
+  }
+
+  @override
+  String get e2ee_password_mismatch => 'Пароли не совпадают';
+
+  @override
+  String get e2ee_backup_create_title => 'Создать backup ключа';
+
+  @override
+  String get e2ee_backup_restore_title => 'Восстановить по паролю';
+
+  @override
+  String get e2ee_backup_restore_action => 'Восстановить';
+
+  @override
+  String e2ee_backup_create_error(Object error) {
+    return 'Не удалось создать backup: $error';
+  }
+
+  @override
+  String e2ee_backup_restore_error(Object error) {
+    return 'Не удалось восстановить: $error';
+  }
+
+  @override
+  String get e2ee_backup_wrong_password => 'Неверный пароль';
+
+  @override
+  String get e2ee_backup_not_found => 'Backup не найден';
+
+  @override
+  String e2ee_recovery_error_generic(Object error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get e2ee_backup_password_card_title => 'Backup паролем';
+
+  @override
+  String get e2ee_backup_password_card_description =>
+      'Создайте зашифрованный backup приватного ключа. Если потеряете все устройства, сможете восстановить его на новом, зная только пароль. Пароль нельзя восстановить — записывайте надёжно.';
+
+  @override
+  String get e2ee_backup_overwrite => 'Перезаписать backup';
+
+  @override
+  String get e2ee_backup_create => 'Создать backup';
+
+  @override
+  String get e2ee_backup_restore => 'Восстановить из backup';
+
+  @override
+  String get e2ee_backup_already_have => 'У меня уже есть backup';
+
+  @override
+  String get e2ee_qr_transfer_title => 'Передача ключа по QR';
+
+  @override
+  String get e2ee_qr_transfer_description =>
+      'На новом устройстве показываем QR, на старом сканируем камерой. Сверяете 6-значный код — приватный ключ переносится безопасно.';
+
+  @override
+  String get e2ee_qr_transfer_open => 'Открыть QR-pairing';
+
+  @override
+  String get media_viewer_action_reply => 'Ответить';
+
+  @override
+  String get media_viewer_action_forward => 'Переслать';
+
+  @override
+  String get media_viewer_action_send => 'Отправить';
+
+  @override
+  String get media_viewer_action_save => 'Сохранить';
+
+  @override
+  String get media_viewer_action_show_in_chat => 'Показать в чате';
+
+  @override
+  String get media_viewer_action_delete => 'Удалить';
+
+  @override
+  String get media_viewer_error_no_gallery_access =>
+      'Нет доступа к сохранению в галерею';
+
+  @override
+  String get media_viewer_error_share_unavailable_web =>
+      'Шаринг недоступен в веб-версии';
+
+  @override
+  String media_viewer_error_save_failed(Object error) {
+    return 'Не удалось сохранить: $error';
+  }
+
+  @override
+  String media_viewer_error_send_failed(Object error) {
+    return 'Не удалось отправить: $error';
+  }
+
+  @override
+  String get media_viewer_video_playback_speed => 'Скорость воспроизведения';
+
+  @override
+  String get media_viewer_video_quality => 'Качество';
+
+  @override
+  String get media_viewer_error_quality_switch_failed =>
+      'Не удалось переключить качество';
+
+  @override
+  String get media_viewer_error_pip_open_failed => 'Не удалось открыть PiP';
+
+  @override
+  String get media_viewer_video_processing =>
+      'Видео обрабатывается на сервере и скоро станет доступно.';
+
+  @override
+  String get media_viewer_video_playback_failed =>
+      'Не удалось воспроизвести видео.';
 }

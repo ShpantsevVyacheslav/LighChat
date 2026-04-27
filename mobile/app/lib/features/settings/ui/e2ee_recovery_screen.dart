@@ -27,6 +27,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../../shared/ui/app_back_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class E2eeRecoveryScreen extends ConsumerStatefulWidget {
   const E2eeRecoveryScreen({super.key});
@@ -82,6 +83,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
         return AlertDialog(
           title: Text(title),
           content: Form(
@@ -94,12 +96,15 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                   obscureText: true,
                   textCapitalization: TextCapitalization.none,
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Пароль',
+                  decoration: InputDecoration(
+                    labelText: l10n?.e2ee_password_label ?? 'Пароль',
                   ),
                   validator: (v) {
                     if ((v ?? '').length < e2eeBackupMinPasswordLength) {
-                      return 'Минимум $e2eeBackupMinPasswordLength символов';
+                      return l10n?.e2ee_password_min_length(
+                            e2eeBackupMinPasswordLength,
+                          ) ??
+                          'Минимум $e2eeBackupMinPasswordLength символов';
                     }
                     return null;
                   },
@@ -110,11 +115,15 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                     controller: c2,
                     obscureText: true,
                     textCapitalization: TextCapitalization.none,
-                    decoration: const InputDecoration(
-                      labelText: 'Повторите пароль',
+                    decoration: InputDecoration(
+                      labelText: l10n?.e2ee_password_confirm_label ??
+                          'Повторите пароль',
                     ),
                     validator: (v) {
-                      if (v != c1.text) return 'Пароли не совпадают';
+                      if (v != c1.text) {
+                        return l10n?.e2ee_password_mismatch ??
+                            'Пароли не совпадают';
+                      }
                       return null;
                     },
                   ),
@@ -125,7 +134,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('Отмена'),
+              child: Text(l10n?.common_cancel ?? 'Отмена'),
             ),
             FilledButton(
               onPressed: () {
@@ -148,9 +157,10 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
     final identity = _identity;
     if (identity == null) return;
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final pwd = await _promptPassword(
-      title: 'Создать backup ключа',
-      confirmLabel: 'Сохранить',
+      title: l10n?.e2ee_backup_create_title ?? 'Создать backup ключа',
+      confirmLabel: l10n?.common_save ?? 'Сохранить',
       requireConfirmation: true,
     );
     if (pwd == null || pwd.isEmpty) return;
@@ -167,13 +177,15 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
       );
       if (!mounted) return;
       setState(() => _hasBackup = true);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Backup создан')),
-      );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       messenger.showSnackBar(
-        SnackBar(content: Text('Не удалось создать backup: $e')),
+        SnackBar(
+          content: Text(
+            l10n?.e2ee_backup_create_error(e) ?? 'Не удалось создать backup: $e',
+          ),
+        ),
       );
     }
   }
@@ -182,9 +194,10 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
     final user = await ref.read(authUserProvider.future);
     if (user == null) return;
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final pwd = await _promptPassword(
-      title: 'Восстановить по паролю',
-      confirmLabel: 'Восстановить',
+      title: l10n?.e2ee_backup_restore_title ?? 'Восстановить по паролю',
+      confirmLabel: l10n?.e2ee_backup_restore_action ?? 'Восстановить',
     );
     if (pwd == null || pwd.isEmpty) return;
     if (!mounted) return;
@@ -202,19 +215,18 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
         privateKeyPkcs8: restored.privateKeyPkcs8,
       );
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Ключ восстановлен. Перезайдите в чаты для проверки.')),
-      );
       // Rebootstrap — подтягиваем новую identity.
       await _bootstrap();
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       final msg = e.toString();
       final user = msg.contains('E2EE_BACKUP_WRONG_PASSWORD')
-          ? 'Неверный пароль'
+          ? (l10n?.e2ee_backup_wrong_password ?? 'Неверный пароль')
           : msg.contains('E2EE_BACKUP_NOT_FOUND')
-              ? 'Backup не найден'
-              : 'Не удалось восстановить: $e';
+              ? (l10n?.e2ee_backup_not_found ?? 'Backup не найден')
+              : (l10n?.e2ee_backup_restore_error(e) ??
+                  'Не удалось восстановить: $e');
       messenger.showSnackBar(SnackBar(content: Text(user)));
     }
   }
@@ -241,6 +253,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: AuthBackground(
         child: SafeArea(
@@ -251,7 +264,7 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                 elevation: 0,
                 pinned: true,
                 leading: const AppBackButton(fallbackLocation: '/settings/privacy'),
-                title: const Text('E2EE — резервирование'),
+                title: Text(l10n?.e2ee_recovery_title ?? 'E2EE — резервирование'),
               ),
               if (_loading)
                 const SliverFillRemaining(
@@ -264,7 +277,10 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Text('Ошибка: $_loadError'),
+                      child: Text(
+                        l10n?.e2ee_recovery_error_generic(_loadError!) ??
+                            'Ошибка: $_loadError',
+                      ),
                     ),
                   ),
                 )
@@ -273,18 +289,22 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                   delegate: SliverChildListDelegate([
                     const SizedBox(height: 12),
                     _Card(
-                      title: 'Backup паролем',
-                      description:
+                      title: l10n?.e2ee_backup_password_card_title ??
+                          'Backup паролем',
+                      description: l10n?.e2ee_backup_password_card_description ??
                           'Создайте зашифрованный backup приватного ключа. '
-                          'Если потеряете все устройства, сможете восстановить '
-                          'его на новом, зная только пароль. '
-                          'Пароль нельзя восстановить — записывайте надёжно.',
+                              'Если потеряете все устройства, сможете восстановить '
+                              'его на новом, зная только пароль. '
+                              'Пароль нельзя восстановить — записывайте надёжно.',
                       children: [
                         FilledButton.icon(
                           onPressed: _onCreateBackup,
                           icon: const Icon(Icons.lock_outline_rounded),
                           label: Text(
-                            _hasBackup ? 'Перезаписать backup' : 'Создать backup',
+                            _hasBackup
+                                ? (l10n?.e2ee_backup_overwrite ??
+                                    'Перезаписать backup')
+                                : (l10n?.e2ee_backup_create ?? 'Создать backup'),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -292,27 +312,37 @@ class _E2eeRecoveryScreenState extends ConsumerState<E2eeRecoveryScreen> {
                           OutlinedButton.icon(
                             onPressed: _onRestoreBackup,
                             icon: const Icon(Icons.restore_rounded),
-                            label: const Text('Восстановить из backup'),
+                            label: Text(
+                              l10n?.e2ee_backup_restore ??
+                                  'Восстановить из backup',
+                            ),
                           ),
                         if (!_hasBackup)
                           OutlinedButton.icon(
                             onPressed: _onRestoreBackup,
                             icon: const Icon(Icons.restore_rounded),
-                            label: const Text('У меня уже есть backup'),
+                            label: Text(
+                              l10n?.e2ee_backup_already_have ??
+                                  'У меня уже есть backup',
+                            ),
                           ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     _Card(
-                      title: 'Передача ключа по QR',
-                      description:
+                      title: l10n?.e2ee_qr_transfer_title ??
+                          'Передача ключа по QR',
+                      description: l10n?.e2ee_qr_transfer_description ??
                           'На новом устройстве показываем QR, на старом сканируем камерой. '
-                          'Сверяете 6-значный код — приватный ключ переносится безопасно.',
+                              'Сверяете 6-значный код — приватный ключ переносится безопасно.',
                       children: [
                         FilledButton.icon(
                           onPressed: () => context.push('/settings/e2ee-qr-pairing'),
                           icon: const Icon(Icons.qr_code_scanner_rounded),
-                          label: const Text('Открыть QR-pairing'),
+                          label: Text(
+                            l10n?.e2ee_qr_transfer_open ??
+                                'Открыть QR-pairing',
+                          ),
                         ),
                       ],
                     ),

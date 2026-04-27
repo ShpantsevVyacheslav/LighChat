@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import '../../../l10n/app_localizations.dart';
 
 class LoginForm extends ConsumerStatefulWidget {
   const LoginForm({super.key, required this.onDone});
@@ -80,15 +81,17 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   Future<void> _forgotPassword() async {
     final email = _email.text.trim();
     if (email.isEmpty) {
-      setState(() => _error = 'Введите email для восстановления пароля');
+      final l10n = AppLocalizations.of(context);
+      setState(
+        () => _error =
+            l10n?.auth_login_error_enter_email_for_reset ??
+            'Введите email для восстановления пароля',
+      );
       return;
     }
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Письмо для восстановления отправлено')),
-      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = friendlyAuthError(e));
@@ -97,6 +100,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final enabled = !_busy;
@@ -107,7 +111,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Email',
+            l10n?.auth_login_email_label ?? 'Email',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -197,7 +201,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Пароль',
+            l10n?.auth_login_password_label ?? 'Пароль',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -236,7 +240,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Пароль',
+                  hintText: l10n?.auth_login_password_hint ?? 'Пароль',
                   hintStyle: TextStyle(
                     fontSize: 13,
                     color: (dark ? Colors.white : scheme.onSurface).withValues(
@@ -251,8 +255,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   ),
                   suffixIcon: IconButton(
                     tooltip: _obscurePassword
-                        ? 'Показать пароль'
-                        : 'Скрыть пароль',
+                        ? (l10n?.profile_password_tooltip_show ??
+                            'Показать пароль')
+                        : (l10n?.profile_password_tooltip_hide ?? 'Скрыть'),
                     onPressed: enabled
                         ? () => setState(
                             () => _obscurePassword = !_obscurePassword,
@@ -311,7 +316,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF38A3FF),
               ),
-              child: const Text('Забыли пароль?'),
+              child: Text(
+                l10n?.auth_login_forgot_password ?? 'Забыли пароль?',
+              ),
             ),
           ),
           const SizedBox(height: 6),
@@ -359,9 +366,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Войти',
-                        style: TextStyle(
+                    : Text(
+                        l10n?.auth_login_sign_in ?? 'Войти',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),

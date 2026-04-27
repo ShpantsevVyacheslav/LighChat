@@ -52,6 +52,10 @@ export const oncallcreated = onDocumentCreated(
       logger.error("Call document is missing participants.", { callId });
       return;
     }
+    if (receiverId === callerId) {
+      logger.warn("Call push skipped: receiverId equals callerId.", { callId, callerId });
+      return;
+    }
 
     // 1. Update call history indices for both participants
     const batch = db.batch();
@@ -90,7 +94,13 @@ export const oncallcreated = onDocumentCreated(
         return;
       }
 
-      const fcmTokens = [...new Set(stringList(userData?.fcmTokens))];
+      const callerSnap = await db.doc(`users/${callerId}`).get();
+      const callerData = callerSnap.exists ? callerSnap.data() : undefined;
+      const callerTokenSet = new Set<string>(stringList(callerData?.fcmTokens));
+
+      const fcmTokens = [
+        ...new Set(stringList(userData?.fcmTokens).filter((t) => !callerTokenSet.has(t))),
+      ];
       const voipTokens = [...new Set(stringList(userData?.voipTokens))];
       if (!fcmTokens.length && !voipTokens.length) {
         logger.log("Receiver has no call push tokens.", { receiverId });

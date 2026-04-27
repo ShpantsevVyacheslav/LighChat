@@ -574,10 +574,6 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
               onPressed: () async {
                 final link = meetingWebJoinLink(widget.meetingId);
                 await Clipboard.setData(ClipboardData(text: link));
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Ссылка для браузера скопирована')),
-                );
               },
               icon: const Icon(Icons.link_rounded, color: Colors.white),
             ),

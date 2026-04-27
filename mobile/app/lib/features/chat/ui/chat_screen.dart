@@ -53,6 +53,7 @@ import 'composer_attachment_menu.dart';
 import 'composer_sticker_gif_sheet.dart';
 import 'composer_sticker_suggestion_row.dart';
 import 'e2ee_mobile_block_banner.dart';
+import 'deleted_account_readonly_banner.dart';
 import 'chat_image_editor_screen.dart';
 import 'chat_video_editor_screen.dart';
 import 'photo_video_source_sheet.dart';
@@ -1771,12 +1772,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ChatComposer(
                                     controller: _controller,
                                     focusNode: _composerFocusNode,
-                                    e2eeDisabledBanner: dmComposerBlockBanner(
-                                      context: context,
-                                      ref: ref,
-                                      currentUserId: user.uid,
-                                      conv: conv?.data,
-                                    ),
+                                    e2eeDisabledBanner:
+                                        (conv != null &&
+                                                conv.data.isGroup != true &&
+                                                dmOtherId != null &&
+                                                dmOtherId.isNotEmpty &&
+                                                profile == null)
+                                            ? const DeletedAccountReadOnlyBanner()
+                                            : dmComposerBlockBanner(
+                                                context: context,
+                                                ref: ref,
+                                                currentUserId: user.uid,
+                                                conv: conv?.data,
+                                              ),
                                     // Phase 4: в E2EE-чатах текст отправляется
                                     // зашифрованным через [MobileE2eeRuntime].
                                     // Баннер оставляем только когда runtime ещё

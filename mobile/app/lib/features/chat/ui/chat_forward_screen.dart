@@ -14,6 +14,7 @@ import '../data/forward_recipients.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Экран пересылки: только контакты + группы, без «Избранного».
 class ChatForwardScreen extends ConsumerStatefulWidget {
@@ -38,12 +39,17 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final userAsync = ref.watch(authUserProvider);
 
     if (widget.messages.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Переслать')),
-        body: const Center(child: Text('Нет сообщений для пересылки')),
+        appBar: AppBar(title: Text(l10n?.forward_title ?? 'Переслать')),
+        body: Center(
+          child: Text(
+            l10n?.forward_empty_no_messages ?? 'Нет сообщений для пересылки',
+          ),
+        ),
       );
     }
 
@@ -53,7 +59,9 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
       body: userAsync.when(
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('Не авторизован'));
+            return Center(
+              child: Text(l10n?.forward_error_not_authorized ?? 'Не авторизован'),
+            );
           }
           final uid = user.uid;
 
@@ -72,10 +80,13 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                 data: (idx) {
                   final ids = idx?.conversationIds ?? const <String>[];
                   if (ids.isEmpty && allowedPeers.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Padding(
                         padding: EdgeInsets.all(24),
-                        child: Text('Нет контактов и чатов для пересылки'),
+                        child: Text(
+                          l10n?.forward_empty_no_recipients ??
+                              'Нет контактов и чатов для пересылки',
+                        ),
                       ),
                     );
                   }
@@ -168,7 +179,9 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                               alpha: 0.78,
                                             ),
                                           ),
-                                          hintText: 'Поиск контактов…',
+                                          hintText:
+                                              l10n?.forward_search_hint ??
+                                              'Поиск контактов…',
                                           hintStyle: TextStyle(
                                             color: Colors.white.withValues(
                                               alpha: 0.55,
@@ -197,8 +210,10 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                             ),
                                             child: Text(
                                               rows.isEmpty
-                                                  ? 'Доступных получателей нет.\nМожно пересылать только контактам и в ваши активные чаты.'
-                                                  : 'Ничего не найдено',
+                                                  ? (l10n?.forward_empty_no_available_recipients ??
+                                                      'Доступных получателей нет.\nМожно пересылать только контактам и в ваши активные чаты.')
+                                                  : (l10n?.forward_empty_not_found ??
+                                                      'Ничего не найдено'),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 color: Colors.white.withValues(
@@ -321,8 +336,10 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                                                       const SizedBox(width: 7),
                                                       Text(
                                                         _selectedKeys.isEmpty
-                                                            ? 'Выберите получателей'
-                                                            : 'Отправить',
+                                                            ? (l10n?.forward_action_pick_recipients ??
+                                                                'Выберите получателей')
+                                                            : (l10n?.forward_action_send ??
+                                                                'Отправить'),
                                                         style: const TextStyle(
                                                           fontSize: 16,
                                                           fontWeight:
@@ -345,24 +362,35 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                     },
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Ошибка: $e')),
+                    error: (e, _) => Center(
+                      child: Text(
+                        l10n?.forward_error_generic(e) ?? 'Ошибка: $e',
+                      ),
+                    ),
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Ошибка: $e')),
+                error: (e, _) => Center(
+                  child: Text(l10n?.forward_error_generic(e) ?? 'Ошибка: $e'),
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Ошибка: $e')),
+            error: (e, _) => Center(
+              child: Text(l10n?.forward_error_generic(e) ?? 'Ошибка: $e'),
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => Center(
+          child: Text(l10n?.forward_error_generic(e) ?? 'Ошибка: $e'),
+        ),
       ),
     );
   }
 
   Widget _topBar() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 2, 12, 0),
       child: _glassPanel(
@@ -379,7 +407,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
               ),
               Expanded(
                 child: Text(
-                  'Переслать',
+                  l10n?.forward_title ?? 'Переслать',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -496,6 +524,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
     Map<String, UserProfile> profiles,
     Set<String> allowedSelectionKeys,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
     setState(() => _busy = true);
@@ -503,7 +532,10 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
       for (final e in profiles.entries) e.key: e.value.name,
     };
     for (final m in widget.messages) {
-      nameMap.putIfAbsent(m.senderId, () => 'Участник');
+      nameMap.putIfAbsent(
+        m.senderId,
+        () => l10n?.forward_sender_fallback ?? 'Участник',
+      );
     }
     try {
       final targetIds = <String>[];
@@ -516,9 +548,10 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
           if (me == null || other == null) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                SnackBar(
                   content: Text(
-                    'Не удалось загрузить профили для открытия чата',
+                    l10n?.forward_error_profiles_load ??
+                        'Не удалось загрузить профили для открытия чата',
                   ),
                 ),
               );
@@ -556,9 +589,10 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
       if (targetIds.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Нет доступных получателей. Можно пересылать только контактам и в ваши активные чаты.',
+                l10n?.forward_empty_no_available_recipients ??
+                    'Нет доступных получателей. Можно пересылать только контактам и в ваши активные чаты.',
               ),
             ),
           );
@@ -574,18 +608,17 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
       );
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Сообщения пересланы')));
       context.pop();
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString();
       final friendly = msg.contains('forward_failed_permission_or_membership')
-          ? 'Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.'
+          ? (l10n?.forward_error_send_no_permissions ??
+              'Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.')
           : (msg.contains('permission-denied')
-                ? 'Не удалось переслать: доступ к одному из чатов запрещён.'
-                : 'Ошибка: $e');
+                ? (l10n?.forward_error_send_forbidden_chat ??
+                    'Не удалось переслать: доступ к одному из чатов запрещён.')
+                : (l10n?.forward_error_generic(e) ?? 'Ошибка: $e'));
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(friendly)));

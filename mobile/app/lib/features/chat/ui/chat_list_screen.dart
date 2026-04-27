@@ -87,6 +87,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     final userAsync = ref.watch(authUserProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: !firebaseReady
           ? const Padding(
               padding: EdgeInsets.all(16),
@@ -358,8 +359,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       context.push('/chats/$id');
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось открыть Избранное: $e')),
+        SnackBar(
+          content: Text(
+            l10n?.chat_list_error_open_starred(e) ??
+                'Не удалось открыть Избранное: $e',
+          ),
+        ),
       );
     }
   }
@@ -377,7 +384,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       final mm = dt.minute.toString().padLeft(2, '0');
       return '$hh:$mm';
     }
-    if (diffDays == 1) return 'Вчера';
+    if (diffDays == 1) {
+      final l10n = AppLocalizations.of(context);
+      return l10n?.chat_list_yesterday ?? 'Вчера';
+    }
     final dd = dt.day.toString().padLeft(2, '0');
     final mo = dt.month.toString().padLeft(2, '0');
     final yy = (dt.year % 100).toString().padLeft(2, '0');
@@ -410,6 +420,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
         final scheme = Theme.of(ctx).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
         return SafeArea(
@@ -455,7 +466,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             color: Colors.red.withValues(alpha: 0.20),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(
                               Icons.delete_outline_rounded,
@@ -463,8 +474,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             ),
                             SizedBox(width: 12),
                             Text(
-                              'Удалить',
-                              style: TextStyle(
+                              l10n?.chat_list_folder_delete_action ?? 'Удалить',
+                              style: const TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFFFF6B6B),
@@ -500,9 +511,17 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       }
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось удалить папку: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n?.chat_list_error_delete_folder(e) ??
+                'Не удалось удалить папку: $e',
+          ),
+        ),
+      );
     }
   }
 
@@ -514,6 +533,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       context: context,
       barrierDismissible: true,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
         final scheme = Theme.of(ctx).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
         return Dialog(
@@ -534,16 +554,17 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Удалить папку?',
-                  style: TextStyle(
+                Text(
+                  l10n?.chat_list_folder_delete_title ?? 'Удалить папку?',
+                  style: const TextStyle(
                     fontSize: 22 / 2,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Папка "${folder.name}" будет удалена. Чаты останутся на месте.',
+                  l10n?.chat_list_folder_delete_body(folder.name) ??
+                      'Папка "${folder.name}" будет удалена. Чаты останутся на месте.',
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.35,
@@ -565,7 +586,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             color: scheme.onSurface.withValues(alpha: 0.20),
                           ),
                         ),
-                        child: const Text('Отмена'),
+                        child: Text(l10n?.common_cancel ?? 'Отмена'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -580,9 +601,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                         ),
-                        child: const Text(
-                          'Удалить',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        child: Text(
+                          l10n?.chat_list_folder_delete_action ?? 'Удалить',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -617,8 +638,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   ) async {
     if (!_hasPinnedSupportInActiveFolder()) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('В этой папке закрепление недоступно.')),
+        SnackBar(
+          content: Text(
+            l10n?.chat_list_pin_not_available ??
+                'В этой папке закрепление недоступно.',
+          ),
+        ),
       );
       return;
     }
@@ -641,15 +668,26 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         SnackBar(
           content: Text(
             pinned
-                ? 'Чат закреплен в папке "$folderName"'
-                : 'Чат откреплен из папки "$folderName"',
+                ? (AppLocalizations.of(context)?.chat_list_pin_pinned_in_folder(
+                      folderName,
+                    ) ??
+                    'Чат закреплен в папке "$folderName"')
+                : (AppLocalizations.of(context)
+                        ?.chat_list_pin_unpinned_in_folder(folderName) ??
+                    'Чат откреплен из папки "$folderName"'),
           ),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось изменить закрепление: $e')),
+        SnackBar(
+          content: Text(
+            l10n?.chat_list_error_toggle_pin(e) ??
+                'Не удалось изменить закрепление: $e',
+          ),
+        ),
       );
     }
   }
@@ -683,8 +721,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                 );
               } catch (e) {
                 if (!ctx.mounted) return;
+                final l10n = AppLocalizations.of(ctx);
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text('Не удалось обновить папку: $e')),
+                  SnackBar(
+                    content: Text(
+                      l10n?.chat_list_error_update_folder(e) ??
+                          'Не удалось обновить папку: $e',
+                    ),
+                  ),
                 );
               } finally {
                 if (ctx.mounted) setModalState(() => busy = false);
@@ -805,7 +849,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-                      child: const Text('Закрыть'),
+                      child: Text(
+                        AppLocalizations.of(ctx)?.chat_list_action_close ??
+                            'Закрыть',
+                      ),
                     ),
                   ],
                 ),
@@ -823,12 +870,13 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   ) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
+    final l10n = AppLocalizations.of(context);
     final confirmed = await _confirmChatAction(
       context: context,
-      title: 'Очистить историю?',
-      description:
+      title: l10n?.chat_list_clear_history_title ?? 'Очистить историю?',
+      description: l10n?.chat_list_clear_history_body ??
           'Сообщения исчезнут только из вашего окна чата. У собеседника история останется.',
-      confirmLabel: 'Очистить',
+      confirmLabel: l10n?.chat_list_clear_history_confirm ?? 'Очистить',
       destructive: false,
     );
     if (!confirmed) return;
@@ -837,14 +885,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         conversationId: conversation.id,
         userId: widget.currentUserId,
       );
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('История очищена.')));
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось очистить историю: $e')),
+        SnackBar(
+          content: Text(
+            l10n?.chat_list_error_clear_history(e) ??
+                'Не удалось очистить историю: $e',
+          ),
+        ),
       );
     }
   }
@@ -860,14 +910,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
         conversationId: conversation.id,
         userId: widget.currentUserId,
       );
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Чат помечен как прочитанный.')),
-      );
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось пометить чат как прочитанный: $e')),
+        SnackBar(
+          content: Text(
+            l10n?.chat_list_error_mark_read(e) ??
+                'Не удалось пометить чат как прочитанный: $e',
+          ),
+        ),
       );
     }
   }
@@ -878,12 +930,13 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   ) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
+    final l10n = AppLocalizations.of(context);
     final confirmed = await _confirmChatAction(
       context: context,
-      title: 'Удалить чат?',
-      description:
+      title: l10n?.chat_list_delete_chat_title ?? 'Удалить чат?',
+      description: l10n?.chat_list_delete_chat_body ??
           'Переписка будет безвозвратно удалена для всех участников. Это действие нельзя отменить.',
-      confirmLabel: 'Удалить',
+      confirmLabel: l10n?.chat_list_delete_chat_confirm ?? 'Удалить',
       destructive: true,
     );
     if (!confirmed) return;
@@ -894,9 +947,17 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       );
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось удалить чат: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n?.chat_list_error_delete_chat(e) ??
+                'Не удалось удалить чат: $e',
+          ),
+        ),
+      );
     }
   }
 
@@ -1062,7 +1123,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         _ChatMenuButton(
                           icon: Icons.folder_open_rounded,
                           iconColor: const Color(0xFF45C7D7),
-                          label: 'Папки',
+                          label:
+                              l10n?.chat_list_context_folders ?? 'Папки',
                           onTap: () {
                             Navigator.of(ctx).pop();
                             _openChatFoldersDialog(context, conversation);
@@ -1076,8 +1138,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             ? const Color(0xFFF0AA3C)
                             : Colors.white.withValues(alpha: 0.32),
                         label: _isPinnedInActiveFolder(conversation.id)
-                            ? 'Открепить чат'
-                            : 'Закрепить чат',
+                            ? (l10n?.chat_list_context_unpin ?? 'Открепить чат')
+                            : (l10n?.chat_list_context_pin ?? 'Закрепить чат'),
                         labelColor: canPin
                             ? null
                             : Colors.white.withValues(alpha: 0.38),
@@ -1091,7 +1153,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         iconColor: canMarkAllRead
                             ? const Color(0xFF58C08A)
                             : Colors.white.withValues(alpha: 0.32),
-                        label: 'Прочитать все',
+                        label: l10n?.chat_list_context_mark_all_read ??
+                            'Прочитать все',
                         labelColor: canMarkAllRead
                             ? null
                             : Colors.white.withValues(alpha: 0.38),
@@ -1104,7 +1167,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       _ChatMenuButton(
                         icon: Icons.auto_fix_high_rounded,
                         iconColor: Colors.white.withValues(alpha: 0.78),
-                        label: 'Очистить историю',
+                        label: l10n?.chat_list_context_clear_history ??
+                            'Очистить историю',
                         onTap: () {
                           Navigator.of(ctx).pop();
                           _clearChatHistory(context, conversation);
@@ -1114,7 +1178,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         _ChatMenuButton(
                           icon: Icons.delete_outline_rounded,
                           iconColor: const Color(0xFFC53A34),
-                          label: 'Удалить чат',
+                          label: l10n?.chat_list_context_delete_chat ??
+                              'Удалить чат',
                           labelColor: const Color(0xFFC53A34),
                           onTap: () {
                             Navigator.of(ctx).pop();

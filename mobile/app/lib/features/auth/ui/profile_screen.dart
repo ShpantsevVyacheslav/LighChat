@@ -7,12 +7,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
+import '../../../l10n/app_localizations.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../chat/ui/chat_cached_network_image.dart';
 import '../../chat/ui/user_avatar_fullscreen_viewer.dart';
-import '../../chat/ui/blocked_users_screen.dart';
+import '../data/account_callables.dart';
+import '../data/profile_update_service.dart';
 import 'auth_validators.dart';
 import 'auth_glass.dart';
 import 'avatar_picker_cropper.dart';
@@ -49,6 +51,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _showPasswordSection = false;
   String? _error;
   AvatarResult? _avatar;
+  bool _canChangePassword = false;
 
   /// Круглое превью в списках (как `avatarThumb` на вебе).
   String? _initialAvatarThumbUrl;
@@ -135,6 +138,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final u = FirebaseAuth.instance.currentUser;
     if (u == null) return;
 
+    _canChangePassword = u.providerData.any((p) => p.providerId == 'password');
     _email.text = u.email?.trim() ?? '';
     _name.text = u.displayName?.trim() ?? '';
     if (_username.text.isEmpty && u.email != null) {
@@ -221,12 +225,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _obscureConfirm = true;
       _error = null;
     });
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> _save() async {
-    final svc = ref.read(registrationServiceProvider);
     final u = FirebaseAuth.instance.currentUser;
-    if (svc == null || u == null) return;
+    if (u == null) return;
 
     final pwdErr = _validatePasswordIfChanging();
     if (pwdErr != null) {
@@ -249,23 +253,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _showPasswordSection &&
           _newPassword.text.isNotEmpty &&
           _confirmPassword.text.isNotEmpty;
-      if (changePwd) {
+      if (changePwd && _canChangePassword) {
         await u.updatePassword(_newPassword.text.trim());
       }
 
-      await svc.completeGoogleProfile(
+      final initial = _initial;
+      if (initial == null) return;
+      final normalizedDob = _normalizeDateForSave(_dob.text).trim();
+      await updateUserProfile(
         uid: u.uid,
-        data: GoogleProfileCompletionData(
+        data: ProfileUpdateData(
           name: _name.text,
           username: _username.text,
-          phone: normalizePhoneRuToE164(_phone.text),
+          phoneE164: normalizePhoneRuToE164(_phone.text),
           email: _email.text,
-          dateOfBirth: _normalizeDateForSave(_dob.text).trim().isEmpty
-              ? null
-              : _normalizeDateForSave(_dob.text).trim(),
+          dateOfBirth: normalizedDob.isEmpty ? null : normalizedDob,
           bio: _bio.text.trim().isEmpty ? null : _bio.text.trim(),
           avatarFullJpeg: _avatar?.fullJpeg,
           avatarThumbPng: _avatar?.thumbPng,
+        ),
+        initial: ProfileUpdateData(
+          name: initial.name,
+          username: initial.username,
+          phoneE164: normalizePhoneRuToE164(initial.phone),
+          email: initial.email,
+          dateOfBirth: _normalizeDateForSave(initial.dateOfBirth).trim().isEmpty
+              ? null
+              : _normalizeDateForSave(initial.dateOfBirth).trim(),
+          bio: initial.bio.trim().isEmpty ? null : initial.bio.trim(),
+          avatarFullJpeg: null,
+          avatarThumbPng: null,
         ),
       );
 
@@ -298,9 +315,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _initialAvatarFullUrl = fullAfter.isNotEmpty ? fullAfter : null;
         _initialAvatarThumbUrl = thumbAfter.isNotEmpty ? thumbAfter : null;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Профиль сохранен')));
+      FocusManager.instance.primaryFocus?.unfocus();
     } catch (e) {
       if (!mounted) return;
       if (e is RegistrationConflict) {
@@ -308,6 +323,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       } else {
         setState(() => _error = friendlyAuthError(e));
       }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.profile_delete_account_confirm_title),
+        content: Text(l10n.profile_delete_account_confirm_body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.common_cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.profile_delete_account_confirm_action),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await AccountCallables().deleteAccount();
+      await FirebaseAuth.instance.signOut();
+      if (!mounted) return;
+      context.go('/auth');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = l10n.profile_delete_account_error(e.toString()));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -408,6 +460,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final enabled = firebaseReady && !_busy;
     final scheme = Theme.of(context).colorScheme;
@@ -417,7 +470,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return FutureBuilder<void>(
       future: _bootstrap,
       builder: (context, snapshot) {
-        return Scaffold(
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: Scaffold(
           backgroundColor: Colors.transparent,
           extendBodyBehindAppBar: true,
           appBar: AppBar(
@@ -451,9 +507,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
             ),
-            title: const Text(
-              'Профиль',
-              style: TextStyle(
+            title: Text(
+              l10n?.profile_title ?? 'Профиль',
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -462,7 +518,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             actions: [
               if (!_editing)
                 IconButton(
-                  tooltip: 'Редактировать',
+                  tooltip: l10n?.profile_edit_tooltip ?? 'Редактировать',
                   icon: const Icon(Icons.edit_outlined),
                   color: const Color(0xFFEAF2FF),
                   onPressed: () => setState(() => _editing = true),
@@ -475,6 +531,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 : SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: EdgeInsets.fromLTRB(
                       16,
                       MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
@@ -491,17 +549,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 28),
-                        _FieldLabel(text: 'ФИО', color: fieldLabelColor),
+                        _FieldLabel(
+                          text: l10n?.profile_full_name_label ?? 'ФИО',
+                          color: fieldLabelColor,
+                        ),
                         const SizedBox(height: 10),
                         _ProfileInput(
                           controller: _name,
                           enabled: !_busy,
                           readOnly: !_editing,
-                          hintText: 'Имя',
+                          hintText:
+                              l10n?.profile_full_name_hint ?? 'Имя',
                           textCapitalization: TextCapitalization.words,
                         ),
                         const SizedBox(height: 22),
-                        _FieldLabel(text: 'Логин', color: fieldLabelColor),
+                        _FieldLabel(
+                          text: l10n?.profile_username_label ?? 'Логин',
+                          color: fieldLabelColor,
+                        ),
                         const SizedBox(height: 10),
                         _ProfileInput(
                           controller: _username,
@@ -511,7 +576,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           textCapitalization: TextCapitalization.none,
                         ),
                         const SizedBox(height: 22),
-                        _FieldLabel(text: 'Email', color: fieldLabelColor),
+                        _FieldLabel(
+                          text: l10n?.profile_email_label ?? 'Email',
+                          color: fieldLabelColor,
+                        ),
                         const SizedBox(height: 10),
                         _ProfileInput(
                           controller: _email,
@@ -529,7 +597,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _FieldLabel(
-                                    text: 'Телефон',
+                                    text: l10n?.profile_phone_label ?? 'Телефон',
                                     color: fieldLabelColor,
                                   ),
                                   const SizedBox(height: 10),
@@ -551,7 +619,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _FieldLabel(
-                                    text: 'Дата рождения',
+                                    text: l10n?.profile_birthdate_label ??
+                                        'Дата рождения',
                                     color: fieldLabelColor,
                                   ),
                                   const SizedBox(height: 10),
@@ -568,98 +637,108 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ],
                         ),
                         const SizedBox(height: 22),
-                        _FieldLabel(text: 'О себе', color: fieldLabelColor),
+                        _FieldLabel(
+                          text: l10n?.profile_about_label ?? 'О себе',
+                          color: fieldLabelColor,
+                        ),
                         const SizedBox(height: 10),
                         _ProfileInput(
                           controller: _bio,
                           enabled: !_busy,
                           readOnly: !_editing,
-                          hintText: 'Кратко о себе',
+                          hintText: l10n?.profile_about_hint ?? 'Кратко о себе',
                           maxLines: 4,
                         ),
-                        const SizedBox(height: 14),
-                        Material(
-                          color: Colors.white.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(16),
-                          child: ListTile(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            leading: const Icon(
-                              Icons.block_rounded,
-                              color: Color(0xFFEAF2FF),
-                            ),
-                            title: Text(
-                              'Заблокированные',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: titleColor,
+                        if (!_editing) ...[
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: 54,
+                            child: OutlinedButton(
+                              onPressed: enabled ? _deleteAccount : null,
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: scheme.error.withValues(alpha: 0.55),
+                                ),
+                                backgroundColor: scheme.error.withValues(
+                                  alpha: 0.08,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                              child: Text(
+                                AppLocalizations.of(context)!
+                                    .profile_delete_account,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: scheme.error.withValues(alpha: 0.95),
+                                ),
                               ),
                             ),
-                            trailing: Icon(
-                              Icons.chevron_right_rounded,
-                              color: titleColor.withValues(alpha: 0.72),
-                            ),
-                            onTap: () {
-                              Navigator.of(context).push<void>(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const BlockedUsersScreen(),
-                                ),
-                              );
-                            },
                           ),
-                        ),
+                        ],
                         if (_editing) ...[
                           const SizedBox(height: 22),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: enabled
-                                  ? () => setState(
-                                      () => _showPasswordSection =
-                                          !_showPasswordSection,
-                                    )
-                                  : null,
-                              child: Text(
-                                _showPasswordSection
-                                    ? 'Скрыть смену пароля'
-                                    : 'Изменить пароль',
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF4DA2FF),
+                          if (_canChangePassword) ...[
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: enabled
+                                    ? () => setState(
+                                          () => _showPasswordSection =
+                                              !_showPasswordSection,
+                                        )
+                                    : null,
+                                child: Text(
+                                  _showPasswordSection
+                                      ? (l10n?.profile_password_toggle_hide ??
+                                          'Скрыть смену пароля')
+                                      : (l10n?.profile_password_toggle_show ??
+                                          'Изменить пароль'),
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF4DA2FF),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          if (_showPasswordSection) ...[
-                            const SizedBox(height: 8),
-                            _FieldLabel(
-                              text: 'Новый пароль',
-                              color: fieldLabelColor,
-                            ),
-                            const SizedBox(height: 8),
-                            _PasswordField(
-                              controller: _newPassword,
-                              enabled: enabled,
-                              obscure: _obscureNew,
-                              onToggleObscure: () =>
-                                  setState(() => _obscureNew = !_obscureNew),
-                            ),
-                            const SizedBox(height: 16),
-                            _FieldLabel(
-                              text: 'Повторите пароль',
-                              color: fieldLabelColor,
-                            ),
-                            const SizedBox(height: 8),
-                            _PasswordField(
-                              controller: _confirmPassword,
-                              enabled: enabled,
-                              obscure: _obscureConfirm,
-                              onToggleObscure: () => setState(
-                                () => _obscureConfirm = !_obscureConfirm,
+                            if (_showPasswordSection) ...[
+                              const SizedBox(height: 8),
+                              _FieldLabel(
+                                text: l10n?.profile_password_new_label ??
+                                    'Новый пароль',
+                                color: fieldLabelColor,
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              _PasswordField(
+                                controller: _newPassword,
+                                enabled: enabled,
+                                obscure: _obscureNew,
+                                onToggleObscure: () => setState(
+                                  () => _obscureNew = !_obscureNew,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _FieldLabel(
+                                text: l10n?.profile_password_confirm_label ??
+                                    'Повторите пароль',
+                                color: fieldLabelColor,
+                              ),
+                              const SizedBox(height: 8),
+                              _PasswordField(
+                                controller: _confirmPassword,
+                                enabled: enabled,
+                                obscure: _obscureConfirm,
+                                onToggleObscure: () => setState(
+                                  () => _obscureConfirm = !_obscureConfirm,
+                                ),
+                              ),
+                            ],
+                          ] else ...[
+                            if (_showPasswordSection)
+                              const SizedBox.shrink(),
                           ],
                         ],
                         if (_error != null) ...[
@@ -696,7 +775,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       ),
                                     ),
                                     child: Text(
-                                      'Отмена',
+                                      l10n?.common_cancel ?? 'Отмена',
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
@@ -753,9 +832,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                 color: Colors.white,
                                               ),
                                             )
-                                          : const Text(
-                                              'Сохранить',
-                                              style: TextStyle(
+                                          : Text(
+                                              l10n?.common_save ?? 'Сохранить',
+                                              style: const TextStyle(
                                                 fontSize: 15,
                                                 fontWeight: FontWeight.w700,
                                               ),
@@ -771,6 +850,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
           ),
+        ),
         );
       },
     );
@@ -830,7 +910,11 @@ class _PasswordField extends StatelessWidget {
           vertical: 16,
         ),
         suffixIcon: IconButton(
-          tooltip: obscure ? 'Показать пароль' : 'Скрыть',
+          tooltip: obscure
+              ? (AppLocalizations.of(context)?.profile_password_tooltip_show ??
+                  'Показать пароль')
+              : (AppLocalizations.of(context)?.profile_password_tooltip_hide ??
+                  'Скрыть'),
           onPressed: enabled ? onToggleObscure : null,
           icon: Icon(
             obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,

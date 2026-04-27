@@ -23,6 +23,8 @@ export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationI
 export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
 export { retryChatMediaTranscode } from './triggers/http/retryChatMediaTranscode';
+export { deleteAccount } from './triggers/http/deleteAccount';
+export { transcribeVoiceMessage } from './triggers/http/transcribeVoiceMessage';
 
 // Firestore Triggers
 export { onconversationcreated } from './triggers/firestore/onConversationCreated';

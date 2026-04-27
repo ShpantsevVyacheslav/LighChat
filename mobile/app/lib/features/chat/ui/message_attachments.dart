@@ -86,12 +86,14 @@ class MessageAttachments extends StatefulWidget {
     super.key,
     required this.attachments,
     this.alignRight = false,
+    this.conversationId,
     this.messageId,
     this.messageCreatedAt,
     this.isMine,
     this.deliveryStatus,
     this.readAt,
     this.showTimestamps = true,
+    this.voiceTranscript,
     this.videoCirclePlayingSlotId,
     this.onOpenGridGallery,
     this.mediaNorm,
@@ -100,12 +102,14 @@ class MessageAttachments extends StatefulWidget {
 
   final List<ChatAttachment> attachments;
   final bool alignRight;
+  final String? conversationId;
   final String? messageId;
   final DateTime? messageCreatedAt;
   final bool? isMine;
   final String? deliveryStatus;
   final DateTime? readAt;
   final bool showTimestamps;
+  final String? voiceTranscript;
   final ValueNotifier<String?>? videoCirclePlayingSlotId;
 
   /// Тап по фото/видео из сетки галереи — полноэкранный просмотр (паритет веба).
@@ -230,6 +234,9 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                         attachment: v.attachment,
                         attachmentIndex: v.index,
                         alignRight: alignRight,
+                        conversationId: widget.conversationId,
+                        messageId: widget.messageId,
+                        transcript: widget.voiceTranscript,
                         mediaNorm: widget.mediaNorm,
                         onRetryNorm: widget.onRetryMediaNorm,
                       ),

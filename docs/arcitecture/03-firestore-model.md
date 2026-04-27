@@ -62,6 +62,7 @@
 - Создание участника встречи синхронизирует `userMeetings`.
 - Изменения `users` синхронизируют `registrationIndex`.
 - Изменения `users` (phone/email) дополнительно проверяют совпадения в `userContacts/*/deviceLookup/*` (collectionGroup `deviceLookup`) и автоматически добавляют зарегистрировавшегося пользователя в `userContacts/{ownerId}.contactIds` у владельцев совпавших ключей.
+- Callable `deleteAccount` удаляет все user-scoped документы (`users/{uid}` рекурсивно + `userChats/userContacts/userCalls/userMeetings`), hosted `meetings` (по `hostId`) и `registrationIndex` записи для uid, затем удаляет пользователя из Firebase Auth (irreversible).
 
 ## Критичные заметки для изменений
 

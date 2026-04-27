@@ -29,6 +29,7 @@ import 'features/settings/ui/devices_screen.dart';
 import 'features/settings/ui/e2ee_recovery_screen.dart';
 import 'features/settings/ui/e2ee_qr_pairing_screen.dart';
 import 'features/settings/ui/language_screen.dart';
+import 'features/settings/ui/blacklist_screen.dart';
 import 'features/chat/ui/new_chat_screen.dart';
 import 'features/chat/ui/new_group_chat_screen.dart';
 import 'features/chat/ui/thread_screen.dart';
@@ -185,6 +186,10 @@ GoRouter createRouter() {
       GoRoute(
         path: '/settings/language',
         builder: (context, state) => const LanguageScreen(),
+      ),
+      GoRoute(
+        path: '/settings/blacklist',
+        builder: (context, state) => const BlacklistScreen(),
       ),
       // Phase 6: recovery (password backup + QR pairing entry point).
       GoRoute(

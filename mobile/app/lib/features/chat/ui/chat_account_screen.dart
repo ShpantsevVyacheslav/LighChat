@@ -105,21 +105,17 @@ class ChatAccountScreen extends ConsumerWidget {
                     onNotificationsTap: () =>
                         context.push('/settings/notifications'),
                     onPrivacyTap: () => context.push('/settings/privacy'),
+                    onBlacklistTap: () => context.push('/settings/blacklist'),
                     onLanguageTap: () => context.push('/settings/language'),
                     onThemeTap: () async {
                       final repo = ref.read(chatSettingsRepositoryProvider);
                       if (repo == null) return;
                       final next = nextAppThemePreference(appThemePref);
                       final nextRaw = appThemePreferenceToRaw(next);
-                      final label = appThemePreferenceLabel(next);
                       try {
                         await repo.patchUserDoc(user.uid, <String, Object?>{
                           'appTheme': nextRaw,
                         });
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('Тема: $label')));
                       } catch (e) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -184,6 +180,7 @@ class _AccountView extends StatelessWidget {
     required this.onChatSettingsTap,
     required this.onNotificationsTap,
     required this.onPrivacyTap,
+    required this.onBlacklistTap,
     required this.onLanguageTap,
     required this.onThemeTap,
     required this.onSignOutTap,
@@ -200,6 +197,7 @@ class _AccountView extends StatelessWidget {
   final VoidCallback onChatSettingsTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onPrivacyTap;
+  final VoidCallback onBlacklistTap;
   final VoidCallback onLanguageTap;
   final VoidCallback onThemeTap;
   final VoidCallback onSignOutTap;
@@ -327,6 +325,11 @@ class _AccountView extends StatelessWidget {
                         icon: Icons.access_time_rounded,
                         title: l10n.account_menu_privacy,
                         onTap: onPrivacyTap,
+                      ),
+                      _MenuItem(
+                        icon: Icons.block_rounded,
+                        title: l10n.account_menu_blacklist,
+                        onTap: onBlacklistTap,
                       ),
                       _MenuItem(
                         icon: Icons.language_rounded,

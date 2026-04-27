@@ -9,9 +9,32 @@
   "account_menu_chat_settings": "Chat settings",
   "account_menu_notifications": "Notifications",
   "account_menu_privacy": "Privacy",
+  "account_menu_blacklist": "Blacklist",
   "account_menu_language": "Language",
   "account_menu_theme": "Theme",
   "account_menu_sign_out": "Sign out",
+  "profile_delete_account": "Delete account",
+  "profile_delete_account_confirm_title": "Delete your account permanently?",
+  "profile_delete_account_confirm_body": "Your account will be removed from Firebase Auth and all your Firestore documents will be deleted permanently. Your chats will remain visible to others in read-only mode.",
+  "profile_delete_account_confirm_action": "Delete account",
+  "profile_delete_account_error": "Couldn’t delete the account: {error}",
+  "@profile_delete_account_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_readonly_deleted_user": "Account deleted. This chat is read-only.",
+  "blacklist_empty": "No blocked users",
+  "blacklist_action_unblock": "Unblock",
+  "blacklist_unblock_confirm_title": "Unblock?",
+  "blacklist_unblock_confirm_body": "This user will be able to message you again (if contact policy allows) and see your profile in search.",
+  "blacklist_unblock_success": "User unblocked",
+  "blacklist_unblock_error": "Couldn’t unblock: {error}",
+  "@blacklist_unblock_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "common_soon": "Coming soon",
   "common_theme_prefix": "Theme: {label}",
   "@common_theme_prefix": {
@@ -112,8 +135,33 @@
   "common_cancel": "Cancel",
   "common_delete": "Delete",
   "common_choose": "Choose",
+  "common_save": "Save",
   "common_nothing_found": "Nothing found",
   "common_retry": "Retry",
+
+  "auth_login_email_label": "Email",
+  "auth_login_password_label": "Password",
+  "auth_login_password_hint": "Password",
+  "auth_login_sign_in": "Sign in",
+  "auth_login_forgot_password": "Forgot password?",
+  "auth_login_error_enter_email_for_reset": "Enter your email to reset your password",
+
+  "profile_title": "Profile",
+  "profile_edit_tooltip": "Edit",
+  "profile_full_name_label": "Full name",
+  "profile_full_name_hint": "Name",
+  "profile_username_label": "Username",
+  "profile_email_label": "Email",
+  "profile_phone_label": "Phone",
+  "profile_birthdate_label": "Date of birth",
+  "profile_about_label": "About",
+  "profile_about_hint": "A short bio",
+  "profile_password_toggle_show": "Change password",
+  "profile_password_toggle_hide": "Hide password change",
+  "profile_password_new_label": "New password",
+  "profile_password_confirm_label": "Confirm password",
+  "profile_password_tooltip_show": "Show password",
+  "profile_password_tooltip_hide": "Hide",
   "settings_chats_title": "Chat settings",
   "settings_chats_preview": "Preview",
   "settings_chats_outgoing": "Outgoing messages",
@@ -205,6 +253,81 @@
   "chat_list_folder_default_direct": "Direct",
   "chat_list_folder_default_groups": "Groups",
   "chat_list_yesterday": "Yesterday",
+  "chat_list_folder_delete_action": "Delete",
+  "chat_list_folder_delete_title": "Delete folder?",
+  "chat_list_folder_delete_body": "Folder \"{name}\" will be deleted. Chats will remain intact.",
+  "@chat_list_folder_delete_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_open_starred": "Couldn’t open Starred: {error}",
+  "@chat_list_error_open_starred": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_delete_folder": "Couldn’t delete folder: {error}",
+  "@chat_list_error_delete_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_pin_not_available": "Pinning isn’t available in this folder.",
+  "chat_list_pin_pinned_in_folder": "Chat pinned in \"{name}\"",
+  "@chat_list_pin_pinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_pin_unpinned_in_folder": "Chat unpinned from \"{name}\"",
+  "@chat_list_pin_unpinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_toggle_pin": "Couldn’t change pin: {error}",
+  "@chat_list_error_toggle_pin": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_update_folder": "Couldn’t update folder: {error}",
+  "@chat_list_error_update_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_clear_history_title": "Clear history?",
+  "chat_list_clear_history_body": "Messages will disappear only from your chat view. The other participant will keep the history.",
+  "chat_list_clear_history_confirm": "Clear",
+  "chat_list_error_clear_history": "Couldn’t clear history: {error}",
+  "@chat_list_error_clear_history": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_mark_read": "Couldn’t mark chat as read: {error}",
+  "@chat_list_error_mark_read": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_delete_chat_title": "Delete chat?",
+  "chat_list_delete_chat_body": "The conversation will be permanently deleted for all participants. This can’t be undone.",
+  "chat_list_delete_chat_confirm": "Delete",
+  "chat_list_error_delete_chat": "Couldn’t delete chat: {error}",
+  "@chat_list_error_delete_chat": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_context_folders": "Folders",
+  "chat_list_context_unpin": "Unpin chat",
+  "chat_list_context_pin": "Pin chat",
+  "chat_list_context_mark_all_read": "Mark all as read",
+  "chat_list_context_clear_history": "Clear history",
+  "chat_list_context_delete_chat": "Delete chat",
   "chat_list_snackbar_history_cleared": "History cleared.",
   "chat_list_snackbar_marked_read": "Marked as read.",
   "chat_list_error_generic": "Error: {error}",
@@ -259,6 +382,11 @@
   "auth_privacy_policy": "Privacy policy",
   "auth_error_open_privacy_policy": "Couldn’t open the privacy policy"
   ,
+  "voice_transcript_show": "Show text",
+  "voice_transcript_hide": "Hide text",
+  "voice_transcript_copy": "Copy",
+  "voice_transcript_loading": "Transcribing…",
+  "voice_transcript_failed": "Couldn’t get the text.",
   "chat_messages_title": "Messages",
   "chat_call_decline": "Decline",
   "chat_call_open": "Open",
@@ -273,5 +401,147 @@
     }
   },
   "chat_delete_file_title": "Delete file?",
-  "chat_delete_file_body": "Only this file will be removed from the message."
+  "chat_delete_file_body": "Only this file will be removed from the message.",
+
+  "forward_title": "Forward",
+  "forward_empty_no_messages": "No messages to forward",
+  "forward_error_not_authorized": "Not signed in",
+  "forward_empty_no_recipients": "No contacts or chats to forward to",
+  "forward_search_hint": "Search contacts…",
+  "forward_empty_no_available_recipients": "No available recipients.\nYou can only forward to contacts and your active chats.",
+  "forward_empty_not_found": "Nothing found",
+  "forward_action_pick_recipients": "Pick recipients",
+  "forward_action_send": "Send",
+  "forward_error_generic": "Error: {error}",
+  "@forward_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "forward_sender_fallback": "Participant",
+  "forward_error_profiles_load": "Couldn’t load profiles to open chat",
+  "forward_error_send_no_permissions": "Couldn’t forward: you don’t have access to one of the selected chats or the chat is no longer available.",
+  "forward_error_send_forbidden_chat": "Couldn’t forward: access to one of the chats is denied.",
+
+  "devices_title": "My devices",
+  "devices_subtitle": "Devices where your encryption public key is published. Revoking creates a new key epoch for all encrypted chats — the revoked device won’t be able to read new messages.",
+  "devices_empty": "No devices yet.",
+  "devices_progress_rekeying": "Updating chats: {done} / {total}",
+  "@devices_progress_rekeying": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
+  "devices_chip_current": "This device",
+  "devices_chip_revoked": "Revoked",
+  "devices_meta_created_activity": "Created: {createdAt}  •  Activity: {lastSeenAt}",
+  "@devices_meta_created_activity": {
+    "placeholders": {
+      "createdAt": {},
+      "lastSeenAt": {}
+    }
+  },
+  "devices_meta_revoked_at": "Revoked: {revokedAt}",
+  "@devices_meta_revoked_at": {
+    "placeholders": {
+      "revokedAt": {}
+    }
+  },
+  "devices_action_rename": "Rename",
+  "devices_action_revoke": "Revoke",
+  "devices_dialog_rename_title": "Rename device",
+  "devices_dialog_rename_hint": "e.g. iPhone 15 — Safari",
+  "devices_error_rename_failed": "Couldn’t rename: {error}",
+  "@devices_error_rename_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "devices_dialog_revoke_title": "Revoke device?",
+  "devices_dialog_revoke_body_current": "You’re about to revoke THIS device. After that, you won’t be able to read new messages in end‑to‑end encrypted chats from this client.",
+  "devices_dialog_revoke_body_other": "This device won’t be able to read new messages in end‑to‑end encrypted chats. Old messages will remain available on it.",
+  "devices_snackbar_revoked": "Device revoked. Chats updated: {rekeyed}{suffix}",
+  "@devices_snackbar_revoked": {
+    "placeholders": {
+      "rekeyed": {},
+      "suffix": {}
+    }
+  },
+  "devices_error_revoke_failed": "Revoke error: {error}",
+  "@devices_error_revoke_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+
+  "e2ee_recovery_title": "E2EE — backup",
+  "e2ee_password_label": "Password",
+  "e2ee_password_confirm_label": "Confirm password",
+  "e2ee_password_min_length": "At least {count} characters",
+  "@e2ee_password_min_length": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "e2ee_password_mismatch": "Passwords don’t match",
+  "e2ee_backup_create_title": "Create key backup",
+  "e2ee_backup_restore_title": "Restore with password",
+  "e2ee_backup_restore_action": "Restore",
+  "e2ee_backup_create_error": "Couldn’t create backup: {error}",
+  "@e2ee_backup_create_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_restore_error": "Couldn’t restore: {error}",
+  "@e2ee_backup_restore_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_wrong_password": "Wrong password",
+  "e2ee_backup_not_found": "Backup not found",
+  "e2ee_recovery_error_generic": "Error: {error}",
+  "@e2ee_recovery_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_password_card_title": "Password backup",
+  "e2ee_backup_password_card_description": "Create an encrypted backup of your private key. If you lose all devices, you can restore it on a new one using only the password. The password can’t be recovered — store it safely.",
+  "e2ee_backup_overwrite": "Overwrite backup",
+  "e2ee_backup_create": "Create backup",
+  "e2ee_backup_restore": "Restore from backup",
+  "e2ee_backup_already_have": "I already have a backup",
+  "e2ee_qr_transfer_title": "Transfer key via QR",
+  "e2ee_qr_transfer_description": "On the new device you show a QR, on the old one you scan it. Verify a 6‑digit code — the private key is transferred securely.",
+  "e2ee_qr_transfer_open": "Open QR pairing",
+
+  "media_viewer_action_reply": "Reply",
+  "media_viewer_action_forward": "Forward",
+  "media_viewer_action_send": "Send",
+  "media_viewer_action_save": "Save",
+  "media_viewer_action_show_in_chat": "Show in chat",
+  "media_viewer_action_delete": "Delete",
+  "media_viewer_error_no_gallery_access": "No permission to save to gallery",
+  "media_viewer_error_share_unavailable_web": "Sharing isn’t available on web",
+  "media_viewer_error_save_failed": "Couldn’t save: {error}",
+  "@media_viewer_error_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_error_send_failed": "Couldn’t send: {error}",
+  "@media_viewer_error_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_video_playback_speed": "Playback speed",
+  "media_viewer_video_quality": "Quality",
+  "media_viewer_error_quality_switch_failed": "Couldn’t switch quality",
+  "media_viewer_error_pip_open_failed": "Couldn’t open PiP",
+  "media_viewer_video_processing": "This video is being processed on the server and will be available soon.",
+  "media_viewer_video_playback_failed": "Couldn’t play the video."
 }

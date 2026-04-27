@@ -23,6 +23,7 @@ import 'features/chat/data/chat_auto_theme_mode.dart';
 import 'features/auth/device_session_firestore_sync.dart';
 import 'features/chat/ui/live_location_firestore_sync.dart';
 import 'features/settings/data/app_language_preference.dart';
+import 'features/chat/ui/in_app_call_mini_window_host.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -153,7 +154,9 @@ class _MyAppState extends ConsumerState<MyApp> {
       builder: (context, child) => DeviceSessionFirestoreSync(
         child: LiveLocationFirestoreSync(
           child: InAppIncomingCallScope(
-            child: PushMessagingScope(child: child ?? const SizedBox.shrink()),
+            child: InAppCallMiniWindowHost(
+              child: PushMessagingScope(child: child ?? const SizedBox.shrink()),
+            ),
           ),
         ),
       ),

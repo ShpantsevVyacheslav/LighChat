@@ -8,6 +8,8 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../data/chat_call_tones.dart';
 import '../data/chat_call_status.dart';
 import 'chat_avatar.dart';
+import 'in_app_call_mini_window_controller.dart';
+import 'picture_in_picture_bridge.dart';
 
 class ChatVideoCallScreen extends StatefulWidget {
   const ChatVideoCallScreen({
@@ -61,11 +63,89 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
   bool _closedByUser = false;
   final ChatCallToneController _callTones = ChatCallToneController();
   Timer? _outgoingCallTimeoutTimer;
+  bool _pipBusy = false;
+
+  /// Local preview draggable + resizable state.
+  Offset _localPreviewOffset = const Offset(14, 180);
+  double _localPreviewScale = 1.0;
+  Offset? _localPreviewDragStart;
+  Offset? _localPreviewOffsetAtDragStart;
+  double? _localPreviewScaleAtStart;
+
+  late final AppLifecycleListener _lifecycle;
 
   @override
   void initState() {
     super.initState();
+    _lifecycle = AppLifecycleListener(
+      onPause: _handleAppPaused,
+      onInactive: _handleAppPaused,
+    );
     _init();
+  }
+
+  void _handleAppPaused() {
+    // Android: auto-enter PiP when an ongoing video call is backgrounded.
+    if (_status != 'ongoing') return;
+    unawaited(_enterPip(auto: true));
+  }
+
+  Future<void> _enterPip({required bool auto}) async {
+    if (_pipBusy) return;
+    // Only Android uses this bridge right now.
+    final supported = await ChatPictureInPictureBridge.isSupported();
+    if (!supported) return;
+
+    // Use a sane aspect ratio for a remote video surface.
+    const aspectW = 16;
+    const aspectH = 9;
+    _pipBusy = true;
+    try {
+      final ok = await ChatPictureInPictureBridge.enterAndroid(
+        aspectW: aspectW,
+        aspectH: aspectH,
+      );
+      if (!ok || !mounted) return;
+      if (!auto) {
+        // Non-blocking navigation: once PiP is active, return to the app.
+        final nav = Navigator.of(context);
+        if (nav.canPop()) {
+          nav.pop();
+        } else {
+          context.go('/calls');
+        }
+      }
+    } finally {
+      _pipBusy = false;
+    }
+  }
+
+  Future<void> _enterInAppMiniWindow() async {
+    if (!mounted) return;
+    if (_status != 'ongoing') return;
+    if (_remoteRenderer.srcObject == null) return;
+
+    InAppCallMiniWindowController.show(
+      InAppCallMiniWindowPayload(
+        remoteRenderer: _remoteRenderer,
+        localRenderer: _localRenderer,
+        title: widget.peerUserName,
+        onReturnToCall: () {
+          InAppCallMiniWindowController.hide();
+          if (!mounted) return;
+          final nav = Navigator.of(context);
+          if (nav.canPop()) nav.pop();
+        },
+        onHangUp: () {
+          InAppCallMiniWindowController.hide();
+          _endCall();
+        },
+      ),
+    );
+
+    // Push a normal screen above the call so the user can navigate.
+    if (!mounted) return;
+    context.push('/calls');
   }
 
   Future<void> _init() async {
@@ -431,6 +511,7 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
   }
 
   Future<void> _endCall() async {
+    InAppCallMiniWindowController.hide();
     final callId = _callId;
     if (callId != null) {
       final nextStatus = _status == 'ongoing'
@@ -530,14 +611,31 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     unawaited(_disposeRtc());
     super.dispose();
+  }
+
+  Offset _clampLocalPreviewOffset({
+    required Offset candidate,
+    required Size screen,
+    required Size preview,
+  }) {
+    final left = 10.0;
+    final top = 10.0;
+    final right = screen.width - preview.width - 10.0;
+    final bottom = screen.height - preview.height - 90.0; // avoid controls row
+    return Offset(
+      candidate.dx.clamp(left, right),
+      candidate.dy.clamp(top, bottom),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isIncomingRinging = _incoming && _status == 'ringing';
     final hasRemote = _remoteRenderer.srcObject != null;
+    final screen = MediaQuery.sizeOf(context);
     return Scaffold(
       backgroundColor: const Color(0xFF050A14),
       body: SafeArea(
@@ -604,6 +702,20 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
                       ),
                       color: Colors.white.withValues(alpha: 0.94),
                     ),
+                  if (!isIncomingRinging)
+                    IconButton(
+                      onPressed: _status == 'ongoing' ? () => _enterPip(auto: false) : null,
+                      icon: const Icon(Icons.picture_in_picture_alt_rounded),
+                      color: Colors.white.withValues(alpha: 0.94),
+                      tooltip: 'PiP',
+                    ),
+                  if (!isIncomingRinging)
+                    IconButton(
+                      onPressed: _status == 'ongoing' ? _enterInAppMiniWindow : null,
+                      icon: const Icon(Icons.open_in_new_rounded),
+                      color: Colors.white.withValues(alpha: 0.94),
+                      tooltip: 'Mini window',
+                    ),
                 ],
               ),
             ),
@@ -641,37 +753,80 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
             ),
             if (_localRenderer.srcObject != null)
               Positioned(
-                right: 14,
-                bottom: 180,
+                left: _localPreviewOffset.dx,
+                top: _localPreviewOffset.dy,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    width: 116,
-                    height: 172,
+                    width: 116 * _localPreviewScale,
+                    height: 172 * _localPreviewScale,
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.25),
                         width: 1.2,
                       ),
                     ),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        RTCVideoView(
-                          _localRenderer,
-                          mirror: _frontCamera,
-                          objectFit:
-                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        ),
-                        if (_videoMuted)
-                          Container(
-                            color: Colors.black.withValues(alpha: 0.55),
-                            child: const Icon(
-                              Icons.videocam_off_rounded,
-                              color: Colors.white,
-                            ),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onScaleStart: (d) {
+                        _localPreviewDragStart = d.focalPoint;
+                        _localPreviewOffsetAtDragStart = _localPreviewOffset;
+                        _localPreviewScaleAtStart = _localPreviewScale;
+                      },
+                      onScaleUpdate: (d) {
+                        final start = _localPreviewDragStart;
+                        final baseOffset = _localPreviewOffsetAtDragStart;
+                        final baseScale = _localPreviewScaleAtStart;
+                        if (start == null || baseOffset == null || baseScale == null) return;
+                        final delta = d.focalPoint - start;
+                        final nextScale = (baseScale * d.scale).clamp(0.75, 2.1);
+                        final previewSize = Size(116 * nextScale, 172 * nextScale);
+                        final candidate = baseOffset + delta;
+                        final clamped = _clampLocalPreviewOffset(
+                          candidate: candidate,
+                          screen: screen,
+                          preview: previewSize,
+                        );
+                        setState(() {
+                          _localPreviewScale = nextScale;
+                          _localPreviewOffset = clamped;
+                        });
+                      },
+                      onDoubleTap: () {
+                        // Quick size cycle.
+                        final next = _localPreviewScale < 1.05
+                            ? 1.35
+                            : (_localPreviewScale < 1.45 ? 1.8 : 1.0);
+                        final previewSize = Size(116 * next, 172 * next);
+                        final clamped = _clampLocalPreviewOffset(
+                          candidate: _localPreviewOffset,
+                          screen: screen,
+                          preview: previewSize,
+                        );
+                        setState(() {
+                          _localPreviewScale = next;
+                          _localPreviewOffset = clamped;
+                        });
+                      },
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          RTCVideoView(
+                            _localRenderer,
+                            mirror: _frontCamera,
+                            objectFit: RTCVideoViewObjectFit
+                                .RTCVideoViewObjectFitCover,
                           ),
-                      ],
+                          if (_videoMuted)
+                            Container(
+                              color: Colors.black.withValues(alpha: 0.55),
+                              child: const Icon(
+                                Icons.videocam_off_rounded,
+                                color: Colors.white,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -9,9 +9,32 @@
   "account_menu_chat_settings": "Настройки чатов",
   "account_menu_notifications": "Уведомления",
   "account_menu_privacy": "Конфиденциальность",
+  "account_menu_blacklist": "Черный список",
   "account_menu_language": "Язык",
   "account_menu_theme": "Тема",
   "account_menu_sign_out": "Выйти",
+  "profile_delete_account": "Удалить аккаунт",
+  "profile_delete_account_confirm_title": "Удалить аккаунт безвозвратно?",
+  "profile_delete_account_confirm_body": "Ваш аккаунт будет удалён из Firebase Auth и все ваши документы в Firestore будут удалены без возможности восстановления. У собеседников останутся ваши чаты в режиме только чтение.",
+  "profile_delete_account_confirm_action": "Удалить аккаунт",
+  "profile_delete_account_error": "Не удалось удалить аккаунт: {error}",
+  "@profile_delete_account_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_readonly_deleted_user": "Аккаунт удалён. Чат доступен только для чтения.",
+  "blacklist_empty": "Нет заблокированных пользователей",
+  "blacklist_action_unblock": "Разблокировать",
+  "blacklist_unblock_confirm_title": "Разблокировать?",
+  "blacklist_unblock_confirm_body": "Пользователь снова сможет писать вам (если политика контактов позволит) и видеть ваш профиль в поиске.",
+  "blacklist_unblock_success": "Пользователь разблокирован",
+  "blacklist_unblock_error": "Не удалось разблокировать: {error}",
+  "@blacklist_unblock_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "common_soon": "Скоро",
   "common_theme_prefix": "Тема: {label}",
   "@common_theme_prefix": {
@@ -112,8 +135,33 @@
   "common_cancel": "Отмена",
   "common_delete": "Удалить",
   "common_choose": "Выбрать",
+  "common_save": "Сохранить",
   "common_nothing_found": "Ничего не найдено",
   "common_retry": "Повторить",
+
+  "auth_login_email_label": "Email",
+  "auth_login_password_label": "Пароль",
+  "auth_login_password_hint": "Пароль",
+  "auth_login_sign_in": "Войти",
+  "auth_login_forgot_password": "Забыли пароль?",
+  "auth_login_error_enter_email_for_reset": "Введите email для восстановления пароля",
+
+  "profile_title": "Профиль",
+  "profile_edit_tooltip": "Редактировать",
+  "profile_full_name_label": "ФИО",
+  "profile_full_name_hint": "Имя",
+  "profile_username_label": "Логин",
+  "profile_email_label": "Email",
+  "profile_phone_label": "Телефон",
+  "profile_birthdate_label": "Дата рождения",
+  "profile_about_label": "О себе",
+  "profile_about_hint": "Кратко о себе",
+  "profile_password_toggle_show": "Изменить пароль",
+  "profile_password_toggle_hide": "Скрыть смену пароля",
+  "profile_password_new_label": "Новый пароль",
+  "profile_password_confirm_label": "Повторите пароль",
+  "profile_password_tooltip_show": "Показать пароль",
+  "profile_password_tooltip_hide": "Скрыть",
   "settings_chats_title": "Настройки чатов",
   "settings_chats_preview": "Предпросмотр",
   "settings_chats_outgoing": "Исходящие сообщения",
@@ -205,6 +253,81 @@
   "chat_list_folder_default_direct": "Личные",
   "chat_list_folder_default_groups": "Группы",
   "chat_list_yesterday": "Вчера",
+  "chat_list_folder_delete_action": "Удалить",
+  "chat_list_folder_delete_title": "Удалить папку?",
+  "chat_list_folder_delete_body": "Папка \"{name}\" будет удалена. Чаты останутся на месте.",
+  "@chat_list_folder_delete_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_open_starred": "Не удалось открыть Избранное: {error}",
+  "@chat_list_error_open_starred": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_delete_folder": "Не удалось удалить папку: {error}",
+  "@chat_list_error_delete_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_pin_not_available": "В этой папке закрепление недоступно.",
+  "chat_list_pin_pinned_in_folder": "Чат закреплен в папке \"{name}\"",
+  "@chat_list_pin_pinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_pin_unpinned_in_folder": "Чат откреплен из папки \"{name}\"",
+  "@chat_list_pin_unpinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_toggle_pin": "Не удалось изменить закрепление: {error}",
+  "@chat_list_error_toggle_pin": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_update_folder": "Не удалось обновить папку: {error}",
+  "@chat_list_error_update_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_clear_history_title": "Очистить историю?",
+  "chat_list_clear_history_body": "Сообщения исчезнут только из вашего окна чата. У собеседника история останется.",
+  "chat_list_clear_history_confirm": "Очистить",
+  "chat_list_error_clear_history": "Не удалось очистить историю: {error}",
+  "@chat_list_error_clear_history": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_mark_read": "Не удалось пометить чат как прочитанный: {error}",
+  "@chat_list_error_mark_read": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_delete_chat_title": "Удалить чат?",
+  "chat_list_delete_chat_body": "Переписка будет безвозвратно удалена для всех участников. Это действие нельзя отменить.",
+  "chat_list_delete_chat_confirm": "Удалить",
+  "chat_list_error_delete_chat": "Не удалось удалить чат: {error}",
+  "@chat_list_error_delete_chat": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_context_folders": "Папки",
+  "chat_list_context_unpin": "Открепить чат",
+  "chat_list_context_pin": "Закрепить чат",
+  "chat_list_context_mark_all_read": "Прочитать все",
+  "chat_list_context_clear_history": "Очистить историю",
+  "chat_list_context_delete_chat": "Удалить чат",
   "chat_list_snackbar_history_cleared": "История очищена.",
   "chat_list_snackbar_marked_read": "Чат помечен как прочитанный.",
   "chat_list_error_generic": "Ошибка: {error}",
@@ -259,6 +382,11 @@
   "auth_privacy_policy": "Политика конфиденциальности",
   "auth_error_open_privacy_policy": "Не удалось открыть политику конфиденциальности"
   ,
+  "voice_transcript_show": "Показать текст",
+  "voice_transcript_hide": "Скрыть текст",
+  "voice_transcript_copy": "Копировать",
+  "voice_transcript_loading": "Транскрибация…",
+  "voice_transcript_failed": "Не удалось получить текст.",
   "chat_messages_title": "Сообщения",
   "chat_call_decline": "Отклонить",
   "chat_call_open": "Открыть",
@@ -273,5 +401,147 @@
     }
   },
   "chat_delete_file_title": "Удалить файл?",
-  "chat_delete_file_body": "Будет удалён только этот файл из сообщения."
+  "chat_delete_file_body": "Будет удалён только этот файл из сообщения.",
+
+  "forward_title": "Переслать",
+  "forward_empty_no_messages": "Нет сообщений для пересылки",
+  "forward_error_not_authorized": "Не авторизован",
+  "forward_empty_no_recipients": "Нет контактов и чатов для пересылки",
+  "forward_search_hint": "Поиск контактов…",
+  "forward_empty_no_available_recipients": "Доступных получателей нет.\nМожно пересылать только контактам и в ваши активные чаты.",
+  "forward_empty_not_found": "Ничего не найдено",
+  "forward_action_pick_recipients": "Выберите получателей",
+  "forward_action_send": "Отправить",
+  "forward_error_generic": "Ошибка: {error}",
+  "@forward_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "forward_sender_fallback": "Участник",
+  "forward_error_profiles_load": "Не удалось загрузить профили для открытия чата",
+  "forward_error_send_no_permissions": "Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.",
+  "forward_error_send_forbidden_chat": "Не удалось переслать: доступ к одному из чатов запрещён.",
+
+  "devices_title": "Мои устройства",
+  "devices_subtitle": "Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.",
+  "devices_empty": "Устройств пока нет.",
+  "devices_progress_rekeying": "Обновление чатов: {done} / {total}",
+  "@devices_progress_rekeying": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
+  "devices_chip_current": "Это устройство",
+  "devices_chip_revoked": "Отозвано",
+  "devices_meta_created_activity": "Создано: {createdAt}  •  Активность: {lastSeenAt}",
+  "@devices_meta_created_activity": {
+    "placeholders": {
+      "createdAt": {},
+      "lastSeenAt": {}
+    }
+  },
+  "devices_meta_revoked_at": "Отозвано: {revokedAt}",
+  "@devices_meta_revoked_at": {
+    "placeholders": {
+      "revokedAt": {}
+    }
+  },
+  "devices_action_rename": "Переименовать",
+  "devices_action_revoke": "Отозвать",
+  "devices_dialog_rename_title": "Переименовать устройство",
+  "devices_dialog_rename_hint": "Например, iPhone 15 — Safari",
+  "devices_error_rename_failed": "Не удалось переименовать: {error}",
+  "@devices_error_rename_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "devices_dialog_revoke_title": "Отозвать устройство?",
+  "devices_dialog_revoke_body_current": "Вы собираетесь отозвать ТЕКУЩЕЕ устройство. После этого вы не сможете читать новые сообщения в зашифрованных чатах с этого клиента.",
+  "devices_dialog_revoke_body_other": "Устройство больше не сможет читать новые сообщения в зашифрованных чатах. Старые сообщения останутся доступны на нём.",
+  "devices_snackbar_revoked": "Устройство отозвано. Обновлено чатов: {rekeyed}{suffix}",
+  "@devices_snackbar_revoked": {
+    "placeholders": {
+      "rekeyed": {},
+      "suffix": {}
+    }
+  },
+  "devices_error_revoke_failed": "Ошибка revoke: {error}",
+  "@devices_error_revoke_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+
+  "e2ee_recovery_title": "E2EE — резервирование",
+  "e2ee_password_label": "Пароль",
+  "e2ee_password_confirm_label": "Повторите пароль",
+  "e2ee_password_min_length": "Минимум {count} символов",
+  "@e2ee_password_min_length": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "e2ee_password_mismatch": "Пароли не совпадают",
+  "e2ee_backup_create_title": "Создать backup ключа",
+  "e2ee_backup_restore_title": "Восстановить по паролю",
+  "e2ee_backup_restore_action": "Восстановить",
+  "e2ee_backup_create_error": "Не удалось создать backup: {error}",
+  "@e2ee_backup_create_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_restore_error": "Не удалось восстановить: {error}",
+  "@e2ee_backup_restore_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_wrong_password": "Неверный пароль",
+  "e2ee_backup_not_found": "Backup не найден",
+  "e2ee_recovery_error_generic": "Ошибка: {error}",
+  "@e2ee_recovery_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_password_card_title": "Backup паролем",
+  "e2ee_backup_password_card_description": "Создайте зашифрованный backup приватного ключа. Если потеряете все устройства, сможете восстановить его на новом, зная только пароль. Пароль нельзя восстановить — записывайте надёжно.",
+  "e2ee_backup_overwrite": "Перезаписать backup",
+  "e2ee_backup_create": "Создать backup",
+  "e2ee_backup_restore": "Восстановить из backup",
+  "e2ee_backup_already_have": "У меня уже есть backup",
+  "e2ee_qr_transfer_title": "Передача ключа по QR",
+  "e2ee_qr_transfer_description": "На новом устройстве показываем QR, на старом сканируем камерой. Сверяете 6-значный код — приватный ключ переносится безопасно.",
+  "e2ee_qr_transfer_open": "Открыть QR-pairing",
+
+  "media_viewer_action_reply": "Ответить",
+  "media_viewer_action_forward": "Переслать",
+  "media_viewer_action_send": "Отправить",
+  "media_viewer_action_save": "Сохранить",
+  "media_viewer_action_show_in_chat": "Показать в чате",
+  "media_viewer_action_delete": "Удалить",
+  "media_viewer_error_no_gallery_access": "Нет доступа к сохранению в галерею",
+  "media_viewer_error_share_unavailable_web": "Шаринг недоступен в веб-версии",
+  "media_viewer_error_save_failed": "Не удалось сохранить: {error}",
+  "@media_viewer_error_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_error_send_failed": "Не удалось отправить: {error}",
+  "@media_viewer_error_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_video_playback_speed": "Скорость воспроизведения",
+  "media_viewer_video_quality": "Качество",
+  "media_viewer_error_quality_switch_failed": "Не удалось переключить качество",
+  "media_viewer_error_pip_open_failed": "Не удалось открыть PiP",
+  "media_viewer_video_processing": "Видео обрабатывается на сервере и скоро станет доступно.",
+  "media_viewer_video_playback_failed": "Не удалось воспроизвести видео."
 }

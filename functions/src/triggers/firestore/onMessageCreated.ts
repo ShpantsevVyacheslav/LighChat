@@ -49,6 +49,11 @@ export const onmessagecreated = onDocumentCreated(
     const senderDoc = senderSnap.exists ? senderSnap.data() : undefined;
     const senderName = senderDoc?.name ?? "Новое сообщение";
     const senderIcon = senderListAvatarForPush(senderDoc as Record<string, unknown> | undefined);
+    const senderFcmTokenSet = new Set<string>(
+      (senderDoc?.fcmTokens as unknown[] | undefined)?.filter(
+        (t): t is string => typeof t === "string" && t.length > 0
+      ) ?? []
+    );
 
     let messageBody = "Вам сообщение";
     if (messageData.e2ee?.ciphertext) {
@@ -87,7 +92,7 @@ export const onmessagecreated = onDocumentCreated(
         const userData = userSnap.data() as Record<string, unknown>;
         const tokens = (userData.fcmTokens as unknown[] | undefined)?.filter(
           (t): t is string => typeof t === "string" && t.length > 0
-        );
+        )?.filter((t) => !senderFcmTokenSet.has(t));
         if (!tokens?.length) continue;
 
         const prefSnap = await db.doc(`users/${userId}/chatConversationPrefs/${conversationId}`).get();

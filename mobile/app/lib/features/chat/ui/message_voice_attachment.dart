@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'message_audio_waveform.dart';
 import 'chat_vlc_network_media.dart';
+import '../../../l10n/app_localizations.dart';
+import '../data/voice_transcription_callables.dart';
 
 /// Один активный голосовой плеер (паритет с вебом: остальные ставятся на паузу).
 final class _VoicePlaybackExclusive {
@@ -41,6 +44,9 @@ class MessageVoiceAttachment extends StatelessWidget {
     required this.attachment,
     required this.attachmentIndex,
     required this.alignRight,
+    this.conversationId,
+    this.messageId,
+    this.transcript,
     this.mediaNorm,
     this.onRetryNorm,
   });
@@ -48,6 +54,9 @@ class MessageVoiceAttachment extends StatelessWidget {
   final ChatAttachment attachment;
   final int attachmentIndex;
   final bool alignRight;
+  final String? conversationId;
+  final String? messageId;
+  final String? transcript;
   final ChatMediaNorm? mediaNorm;
   final Future<void> Function()? onRetryNorm;
 
@@ -69,6 +78,9 @@ class MessageVoiceAttachment extends StatelessWidget {
       key: ValueKey<String>('ja-voice-${attachment.url}'),
       attachment: attachment,
       alignRight: alignRight,
+      conversationId: conversationId,
+      messageId: messageId,
+      transcript: transcript,
     );
   }
 }
@@ -257,15 +269,194 @@ class _WebStyleVoiceRow extends StatelessWidget {
   }
 }
 
+class _TranscriptControls extends StatefulWidget {
+  const _TranscriptControls({
+    required this.conversationId,
+    required this.messageId,
+    required this.isMine,
+    required this.transcript,
+  });
+
+  final String conversationId;
+  final String messageId;
+  final bool isMine;
+  final String? transcript;
+
+  @override
+  State<_TranscriptControls> createState() => _TranscriptControlsState();
+}
+
+class _TranscriptControlsState extends State<_TranscriptControls> {
+  bool _open = false;
+  bool _busy = false;
+  String? _localTranscript;
+
+  AppLocalizations? _l10n(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations);
+  }
+
+  Future<void> _ensureTranscript() async {
+    if (_busy) return;
+    final existing = (widget.transcript ?? _localTranscript ?? '').trim();
+    if (existing.isNotEmpty) return;
+    setState(() => _busy = true);
+    try {
+      final lang = Localizations.localeOf(context).languageCode.toLowerCase();
+      final res = await VoiceTranscriptionCallables().transcribeVoiceMessage(
+        conversationId: widget.conversationId,
+        messageId: widget.messageId,
+        languageCode: (lang == 'en' || lang == 'ru') ? lang : 'ru',
+      );
+      if (!mounted) return;
+      setState(() => _localTranscript = res.transcript);
+    } catch (e) {
+      if (!mounted) return;
+      // Errors-only UX: surface failure as a SnackBar.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось сделать транскрибацию: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isMine = widget.isMine;
+    final metaColor = isMine
+        ? scheme.onPrimary.withValues(alpha: 0.8)
+        : scheme.onSurface.withValues(alpha: 0.62);
+    final textColor = isMine
+        ? scheme.onPrimary.withValues(alpha: 0.95)
+        : scheme.onSurface.withValues(alpha: 0.92);
+
+    final current = (widget.transcript ?? _localTranscript ?? '').trim();
+
+    final l10n = _l10n(context);
+    final showLabel = l10n?.voice_transcript_show ?? 'Показать текст';
+    final hideLabel = l10n?.voice_transcript_hide ?? 'Скрыть текст';
+    final copyLabel = l10n?.voice_transcript_copy ?? 'Копировать';
+    final loadingLabel = l10n?.voice_transcript_loading ?? 'Транскрибация…';
+    final failedLabel = l10n?.voice_transcript_failed ?? 'Не удалось получить текст.';
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 2, right: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              TextButton(
+                onPressed: () async {
+                  setState(() => _open = !_open);
+                  if (_open) {
+                    await _ensureTranscript();
+                  }
+                },
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(44, 32),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  _open ? hideLabel : showLabel,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: metaColor,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: copyLabel,
+                onPressed: current.isEmpty
+                    ? null
+                    : () async {
+                        await Clipboard.setData(ClipboardData(text: current));
+                      },
+                iconSize: 18,
+                color: metaColor,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                icon: const Icon(Icons.copy_all_outlined),
+              ),
+            ],
+          ),
+          if (_open)
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _busy
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: metaColor,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            loadingLabel,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: metaColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : (current.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            failedLabel,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: metaColor,
+                            ),
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            current,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              height: 1.3,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        )),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _VoiceJustAudioBar extends StatefulWidget {
   const _VoiceJustAudioBar({
     super.key,
     required this.attachment,
     required this.alignRight,
+    this.conversationId,
+    this.messageId,
+    this.transcript,
   });
 
   final ChatAttachment attachment;
   final bool alignRight;
+  final String? conversationId;
+  final String? messageId;
+  final String? transcript;
 
   @override
   State<_VoiceJustAudioBar> createState() => _VoiceJustAudioBarState();
@@ -382,7 +573,7 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
         : 0.0;
     final displayTime = _playing ? _position : _duration;
 
-    return _WebStyleVoiceRow(
+    final row = _WebStyleVoiceRow(
       isMine: mine,
       failed: _failed,
       ready: _ready,
@@ -397,6 +588,23 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       },
       onCycleRate: _cycleRate,
       onWaveformSeekFromLocal: _seekFromWaveformLocal,
+    );
+
+    final cid = (widget.conversationId ?? '').trim();
+    final mid = (widget.messageId ?? '').trim();
+    if (cid.isEmpty || mid.isEmpty) return row;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row,
+        _TranscriptControls(
+          conversationId: cid,
+          messageId: mid,
+          isMine: mine,
+          transcript: widget.transcript,
+        ),
+      ],
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -43,6 +44,7 @@ import 'message_attachments.dart';
 import 'message_bubble_delivery_icons.dart';
 import 'message_chat_poll.dart';
 import 'message_deleted_stub.dart';
+import 'deleted_account_readonly_banner.dart';
 import '../data/composer_html_editing.dart';
 import 'message_html_text.dart';
 import 'message_location_card.dart';
@@ -1619,12 +1621,52 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                             ChatComposer(
                               controller: _composerController,
                               focusNode: _composerFocus,
-                              e2eeDisabledBanner: dmComposerBlockBanner(
-                                context: context,
-                                ref: ref,
-                                currentUserId: user.uid,
-                                conv: conv,
-                              ),
+                              e2eeDisabledBanner: () {
+                                final c = conv;
+                                if (c != null && c.isGroup != true) {
+                                  final others =
+                                      c.participantIds.where((id) => id != user.uid).toList();
+                                  final otherId =
+                                      others.isEmpty ? null : others.first.trim();
+                                  if (otherId != null && otherId.isNotEmpty) {
+                                    return StreamBuilder<
+                                        DocumentSnapshot<Map<String, dynamic>>>(
+                                      stream: FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(otherId)
+                                          .snapshots(),
+                                      builder: (context, snap) {
+                                        if (snap.hasError) {
+                                          return dmComposerBlockBanner(
+                                            context: context,
+                                            ref: ref,
+                                            currentUserId: user.uid,
+                                            conv: conv,
+                                          ) ??
+                                              const SizedBox.shrink();
+                                        }
+                                        final exists = snap.data?.exists;
+                                        if (exists == false) {
+                                          return const DeletedAccountReadOnlyBanner();
+                                        }
+                                        return dmComposerBlockBanner(
+                                          context: context,
+                                          ref: ref,
+                                          currentUserId: user.uid,
+                                          conv: conv,
+                                        ) ??
+                                            const SizedBox.shrink();
+                                      },
+                                    );
+                                  }
+                                }
+                                return dmComposerBlockBanner(
+                                  context: context,
+                                  ref: ref,
+                                  currentUserId: user.uid,
+                                  conv: conv,
+                                );
+                              }(),
                               // Phase 4: текст в E2EE-threads уходит
                               // зашифрованным; attachments по-прежнему
                               // блокируются Phase 0 guard'ом репозитория
@@ -1855,12 +1897,14 @@ class _ThreadRootPanel extends StatelessWidget {
           MessageAttachments(
             attachments: message.attachments,
             alignRight: isMine,
+            conversationId: conversationId,
             messageId: message.id,
             messageCreatedAt: message.createdAt,
             isMine: isMine,
             deliveryStatus: message.deliveryStatus,
             readAt: message.readAt,
             showTimestamps: false,
+            voiceTranscript: message.voiceTranscript,
             onOpenGridGallery: onOpenMediaGallery,
             mediaNorm: message.mediaNorm,
           ),

@@ -152,6 +152,12 @@ abstract class AppLocalizations {
   /// **'Конфиденциальность'**
   String get account_menu_privacy;
 
+  /// No description provided for @account_menu_blacklist.
+  ///
+  /// In ru, this message translates to:
+  /// **'Черный список'**
+  String get account_menu_blacklist;
+
   /// No description provided for @account_menu_language.
   ///
   /// In ru, this message translates to:
@@ -169,6 +175,78 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выйти'**
   String get account_menu_sign_out;
+
+  /// No description provided for @profile_delete_account.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить аккаунт'**
+  String get profile_delete_account;
+
+  /// No description provided for @profile_delete_account_confirm_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить аккаунт безвозвратно?'**
+  String get profile_delete_account_confirm_title;
+
+  /// No description provided for @profile_delete_account_confirm_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш аккаунт будет удалён из Firebase Auth и все ваши документы в Firestore будут удалены без возможности восстановления. У собеседников останутся ваши чаты в режиме только чтение.'**
+  String get profile_delete_account_confirm_body;
+
+  /// No description provided for @profile_delete_account_confirm_action.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить аккаунт'**
+  String get profile_delete_account_confirm_action;
+
+  /// No description provided for @profile_delete_account_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить аккаунт: {error}'**
+  String profile_delete_account_error(Object error);
+
+  /// No description provided for @chat_readonly_deleted_user.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аккаунт удалён. Чат доступен только для чтения.'**
+  String get chat_readonly_deleted_user;
+
+  /// No description provided for @blacklist_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет заблокированных пользователей'**
+  String get blacklist_empty;
+
+  /// No description provided for @blacklist_action_unblock.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разблокировать'**
+  String get blacklist_action_unblock;
+
+  /// No description provided for @blacklist_unblock_confirm_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разблокировать?'**
+  String get blacklist_unblock_confirm_title;
+
+  /// No description provided for @blacklist_unblock_confirm_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь снова сможет писать вам (если политика контактов позволит) и видеть ваш профиль в поиске.'**
+  String get blacklist_unblock_confirm_body;
+
+  /// No description provided for @blacklist_unblock_success.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь разблокирован'**
+  String get blacklist_unblock_success;
+
+  /// No description provided for @blacklist_unblock_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось разблокировать: {error}'**
+  String blacklist_unblock_error(Object error);
 
   /// No description provided for @common_soon.
   ///
@@ -530,6 +608,12 @@ abstract class AppLocalizations {
   /// **'Выбрать'**
   String get common_choose;
 
+  /// No description provided for @common_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get common_save;
+
   /// No description provided for @common_nothing_found.
   ///
   /// In ru, this message translates to:
@@ -541,6 +625,138 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Повторить'**
   String get common_retry;
+
+  /// No description provided for @auth_login_email_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Email'**
+  String get auth_login_email_label;
+
+  /// No description provided for @auth_login_password_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль'**
+  String get auth_login_password_label;
+
+  /// No description provided for @auth_login_password_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль'**
+  String get auth_login_password_hint;
+
+  /// No description provided for @auth_login_sign_in.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти'**
+  String get auth_login_sign_in;
+
+  /// No description provided for @auth_login_forgot_password.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забыли пароль?'**
+  String get auth_login_forgot_password;
+
+  /// No description provided for @auth_login_error_enter_email_for_reset.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите email для восстановления пароля'**
+  String get auth_login_error_enter_email_for_reset;
+
+  /// No description provided for @profile_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Профиль'**
+  String get profile_title;
+
+  /// No description provided for @profile_edit_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактировать'**
+  String get profile_edit_tooltip;
+
+  /// No description provided for @profile_full_name_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'ФИО'**
+  String get profile_full_name_label;
+
+  /// No description provided for @profile_full_name_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя'**
+  String get profile_full_name_hint;
+
+  /// No description provided for @profile_username_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Логин'**
+  String get profile_username_label;
+
+  /// No description provided for @profile_email_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Email'**
+  String get profile_email_label;
+
+  /// No description provided for @profile_phone_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Телефон'**
+  String get profile_phone_label;
+
+  /// No description provided for @profile_birthdate_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дата рождения'**
+  String get profile_birthdate_label;
+
+  /// No description provided for @profile_about_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'О себе'**
+  String get profile_about_label;
+
+  /// No description provided for @profile_about_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кратко о себе'**
+  String get profile_about_hint;
+
+  /// No description provided for @profile_password_toggle_show.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить пароль'**
+  String get profile_password_toggle_show;
+
+  /// No description provided for @profile_password_toggle_hide.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыть смену пароля'**
+  String get profile_password_toggle_hide;
+
+  /// No description provided for @profile_password_new_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый пароль'**
+  String get profile_password_new_label;
+
+  /// No description provided for @profile_password_confirm_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторите пароль'**
+  String get profile_password_confirm_label;
+
+  /// No description provided for @profile_password_tooltip_show.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать пароль'**
+  String get profile_password_tooltip_show;
+
+  /// No description provided for @profile_password_tooltip_hide.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыть'**
+  String get profile_password_tooltip_hide;
 
   /// No description provided for @settings_chats_title.
   ///
@@ -932,6 +1148,156 @@ abstract class AppLocalizations {
   /// **'Вчера'**
   String get chat_list_yesterday;
 
+  /// No description provided for @chat_list_folder_delete_action.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get chat_list_folder_delete_action;
+
+  /// No description provided for @chat_list_folder_delete_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить папку?'**
+  String get chat_list_folder_delete_title;
+
+  /// No description provided for @chat_list_folder_delete_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Папка \"{name}\" будет удалена. Чаты останутся на месте.'**
+  String chat_list_folder_delete_body(Object name);
+
+  /// No description provided for @chat_list_error_open_starred.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть Избранное: {error}'**
+  String chat_list_error_open_starred(Object error);
+
+  /// No description provided for @chat_list_error_delete_folder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить папку: {error}'**
+  String chat_list_error_delete_folder(Object error);
+
+  /// No description provided for @chat_list_pin_not_available.
+  ///
+  /// In ru, this message translates to:
+  /// **'В этой папке закрепление недоступно.'**
+  String get chat_list_pin_not_available;
+
+  /// No description provided for @chat_list_pin_pinned_in_folder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат закреплен в папке \"{name}\"'**
+  String chat_list_pin_pinned_in_folder(Object name);
+
+  /// No description provided for @chat_list_pin_unpinned_in_folder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат откреплен из папки \"{name}\"'**
+  String chat_list_pin_unpinned_in_folder(Object name);
+
+  /// No description provided for @chat_list_error_toggle_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось изменить закрепление: {error}'**
+  String chat_list_error_toggle_pin(Object error);
+
+  /// No description provided for @chat_list_error_update_folder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось обновить папку: {error}'**
+  String chat_list_error_update_folder(Object error);
+
+  /// No description provided for @chat_list_clear_history_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить историю?'**
+  String get chat_list_clear_history_title;
+
+  /// No description provided for @chat_list_clear_history_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения исчезнут только из вашего окна чата. У собеседника история останется.'**
+  String get chat_list_clear_history_body;
+
+  /// No description provided for @chat_list_clear_history_confirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить'**
+  String get chat_list_clear_history_confirm;
+
+  /// No description provided for @chat_list_error_clear_history.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось очистить историю: {error}'**
+  String chat_list_error_clear_history(Object error);
+
+  /// No description provided for @chat_list_error_mark_read.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось пометить чат как прочитанный: {error}'**
+  String chat_list_error_mark_read(Object error);
+
+  /// No description provided for @chat_list_delete_chat_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить чат?'**
+  String get chat_list_delete_chat_title;
+
+  /// No description provided for @chat_list_delete_chat_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переписка будет безвозвратно удалена для всех участников. Это действие нельзя отменить.'**
+  String get chat_list_delete_chat_body;
+
+  /// No description provided for @chat_list_delete_chat_confirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get chat_list_delete_chat_confirm;
+
+  /// No description provided for @chat_list_error_delete_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить чат: {error}'**
+  String chat_list_error_delete_chat(Object error);
+
+  /// No description provided for @chat_list_context_folders.
+  ///
+  /// In ru, this message translates to:
+  /// **'Папки'**
+  String get chat_list_context_folders;
+
+  /// No description provided for @chat_list_context_unpin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открепить чат'**
+  String get chat_list_context_unpin;
+
+  /// No description provided for @chat_list_context_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрепить чат'**
+  String get chat_list_context_pin;
+
+  /// No description provided for @chat_list_context_mark_all_read.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прочитать все'**
+  String get chat_list_context_mark_all_read;
+
+  /// No description provided for @chat_list_context_clear_history.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить историю'**
+  String get chat_list_context_clear_history;
+
+  /// No description provided for @chat_list_context_delete_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить чат'**
+  String get chat_list_context_delete_chat;
+
   /// No description provided for @chat_list_snackbar_history_cleared.
   ///
   /// In ru, this message translates to:
@@ -1148,6 +1514,36 @@ abstract class AppLocalizations {
   /// **'Не удалось открыть политику конфиденциальности'**
   String get auth_error_open_privacy_policy;
 
+  /// No description provided for @voice_transcript_show.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать текст'**
+  String get voice_transcript_show;
+
+  /// No description provided for @voice_transcript_hide.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыть текст'**
+  String get voice_transcript_hide;
+
+  /// No description provided for @voice_transcript_copy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Копировать'**
+  String get voice_transcript_copy;
+
+  /// No description provided for @voice_transcript_loading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Транскрибация…'**
+  String get voice_transcript_loading;
+
+  /// No description provided for @voice_transcript_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось получить текст.'**
+  String get voice_transcript_failed;
+
   /// No description provided for @chat_messages_title.
   ///
   /// In ru, this message translates to:
@@ -1207,6 +1603,426 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Будет удалён только этот файл из сообщения.'**
   String get chat_delete_file_body;
+
+  /// No description provided for @forward_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переслать'**
+  String get forward_title;
+
+  /// No description provided for @forward_empty_no_messages.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет сообщений для пересылки'**
+  String get forward_empty_no_messages;
+
+  /// No description provided for @forward_error_not_authorized.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не авторизован'**
+  String get forward_error_not_authorized;
+
+  /// No description provided for @forward_empty_no_recipients.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет контактов и чатов для пересылки'**
+  String get forward_empty_no_recipients;
+
+  /// No description provided for @forward_search_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск контактов…'**
+  String get forward_search_hint;
+
+  /// No description provided for @forward_empty_no_available_recipients.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступных получателей нет.\nМожно пересылать только контактам и в ваши активные чаты.'**
+  String get forward_empty_no_available_recipients;
+
+  /// No description provided for @forward_empty_not_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ничего не найдено'**
+  String get forward_empty_not_found;
+
+  /// No description provided for @forward_action_pick_recipients.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите получателей'**
+  String get forward_action_pick_recipients;
+
+  /// No description provided for @forward_action_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get forward_action_send;
+
+  /// No description provided for @forward_error_generic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка: {error}'**
+  String forward_error_generic(Object error);
+
+  /// No description provided for @forward_sender_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get forward_sender_fallback;
+
+  /// No description provided for @forward_error_profiles_load.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить профили для открытия чата'**
+  String get forward_error_profiles_load;
+
+  /// No description provided for @forward_error_send_no_permissions.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.'**
+  String get forward_error_send_no_permissions;
+
+  /// No description provided for @forward_error_send_forbidden_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось переслать: доступ к одному из чатов запрещён.'**
+  String get forward_error_send_forbidden_chat;
+
+  /// No description provided for @devices_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мои устройства'**
+  String get devices_title;
+
+  /// No description provided for @devices_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.'**
+  String get devices_subtitle;
+
+  /// No description provided for @devices_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройств пока нет.'**
+  String get devices_empty;
+
+  /// No description provided for @devices_progress_rekeying.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновление чатов: {done} / {total}'**
+  String devices_progress_rekeying(Object done, Object total);
+
+  /// No description provided for @devices_chip_current.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это устройство'**
+  String get devices_chip_current;
+
+  /// No description provided for @devices_chip_revoked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отозвано'**
+  String get devices_chip_revoked;
+
+  /// No description provided for @devices_meta_created_activity.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создано: {createdAt}  •  Активность: {lastSeenAt}'**
+  String devices_meta_created_activity(Object createdAt, Object lastSeenAt);
+
+  /// No description provided for @devices_meta_revoked_at.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отозвано: {revokedAt}'**
+  String devices_meta_revoked_at(Object revokedAt);
+
+  /// No description provided for @devices_action_rename.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переименовать'**
+  String get devices_action_rename;
+
+  /// No description provided for @devices_action_revoke.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отозвать'**
+  String get devices_action_revoke;
+
+  /// No description provided for @devices_dialog_rename_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переименовать устройство'**
+  String get devices_dialog_rename_title;
+
+  /// No description provided for @devices_dialog_rename_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например, iPhone 15 — Safari'**
+  String get devices_dialog_rename_hint;
+
+  /// No description provided for @devices_error_rename_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось переименовать: {error}'**
+  String devices_error_rename_failed(Object error);
+
+  /// No description provided for @devices_dialog_revoke_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отозвать устройство?'**
+  String get devices_dialog_revoke_title;
+
+  /// No description provided for @devices_dialog_revoke_body_current.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы собираетесь отозвать ТЕКУЩЕЕ устройство. После этого вы не сможете читать новые сообщения в зашифрованных чатах с этого клиента.'**
+  String get devices_dialog_revoke_body_current;
+
+  /// No description provided for @devices_dialog_revoke_body_other.
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройство больше не сможет читать новые сообщения в зашифрованных чатах. Старые сообщения останутся доступны на нём.'**
+  String get devices_dialog_revoke_body_other;
+
+  /// No description provided for @devices_snackbar_revoked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройство отозвано. Обновлено чатов: {rekeyed}{suffix}'**
+  String devices_snackbar_revoked(Object rekeyed, Object suffix);
+
+  /// No description provided for @devices_error_revoke_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка revoke: {error}'**
+  String devices_error_revoke_failed(Object error);
+
+  /// No description provided for @e2ee_recovery_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'E2EE — резервирование'**
+  String get e2ee_recovery_title;
+
+  /// No description provided for @e2ee_password_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль'**
+  String get e2ee_password_label;
+
+  /// No description provided for @e2ee_password_confirm_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторите пароль'**
+  String get e2ee_password_confirm_label;
+
+  /// No description provided for @e2ee_password_min_length.
+  ///
+  /// In ru, this message translates to:
+  /// **'Минимум {count} символов'**
+  String e2ee_password_min_length(Object count);
+
+  /// No description provided for @e2ee_password_mismatch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароли не совпадают'**
+  String get e2ee_password_mismatch;
+
+  /// No description provided for @e2ee_backup_create_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать backup ключа'**
+  String get e2ee_backup_create_title;
+
+  /// No description provided for @e2ee_backup_restore_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановить по паролю'**
+  String get e2ee_backup_restore_title;
+
+  /// No description provided for @e2ee_backup_restore_action.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановить'**
+  String get e2ee_backup_restore_action;
+
+  /// No description provided for @e2ee_backup_create_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось создать backup: {error}'**
+  String e2ee_backup_create_error(Object error);
+
+  /// No description provided for @e2ee_backup_restore_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось восстановить: {error}'**
+  String e2ee_backup_restore_error(Object error);
+
+  /// No description provided for @e2ee_backup_wrong_password.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неверный пароль'**
+  String get e2ee_backup_wrong_password;
+
+  /// No description provided for @e2ee_backup_not_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'Backup не найден'**
+  String get e2ee_backup_not_found;
+
+  /// No description provided for @e2ee_recovery_error_generic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка: {error}'**
+  String e2ee_recovery_error_generic(Object error);
+
+  /// No description provided for @e2ee_backup_password_card_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Backup паролем'**
+  String get e2ee_backup_password_card_title;
+
+  /// No description provided for @e2ee_backup_password_card_description.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создайте зашифрованный backup приватного ключа. Если потеряете все устройства, сможете восстановить его на новом, зная только пароль. Пароль нельзя восстановить — записывайте надёжно.'**
+  String get e2ee_backup_password_card_description;
+
+  /// No description provided for @e2ee_backup_overwrite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перезаписать backup'**
+  String get e2ee_backup_overwrite;
+
+  /// No description provided for @e2ee_backup_create.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать backup'**
+  String get e2ee_backup_create;
+
+  /// No description provided for @e2ee_backup_restore.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановить из backup'**
+  String get e2ee_backup_restore;
+
+  /// No description provided for @e2ee_backup_already_have.
+  ///
+  /// In ru, this message translates to:
+  /// **'У меня уже есть backup'**
+  String get e2ee_backup_already_have;
+
+  /// No description provided for @e2ee_qr_transfer_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Передача ключа по QR'**
+  String get e2ee_qr_transfer_title;
+
+  /// No description provided for @e2ee_qr_transfer_description.
+  ///
+  /// In ru, this message translates to:
+  /// **'На новом устройстве показываем QR, на старом сканируем камерой. Сверяете 6-значный код — приватный ключ переносится безопасно.'**
+  String get e2ee_qr_transfer_description;
+
+  /// No description provided for @e2ee_qr_transfer_open.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть QR-pairing'**
+  String get e2ee_qr_transfer_open;
+
+  /// No description provided for @media_viewer_action_reply.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответить'**
+  String get media_viewer_action_reply;
+
+  /// No description provided for @media_viewer_action_forward.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переслать'**
+  String get media_viewer_action_forward;
+
+  /// No description provided for @media_viewer_action_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get media_viewer_action_send;
+
+  /// No description provided for @media_viewer_action_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get media_viewer_action_save;
+
+  /// No description provided for @media_viewer_action_show_in_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать в чате'**
+  String get media_viewer_action_show_in_chat;
+
+  /// No description provided for @media_viewer_action_delete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get media_viewer_action_delete;
+
+  /// No description provided for @media_viewer_error_no_gallery_access.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет доступа к сохранению в галерею'**
+  String get media_viewer_error_no_gallery_access;
+
+  /// No description provided for @media_viewer_error_share_unavailable_web.
+  ///
+  /// In ru, this message translates to:
+  /// **'Шаринг недоступен в веб-версии'**
+  String get media_viewer_error_share_unavailable_web;
+
+  /// No description provided for @media_viewer_error_save_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось сохранить: {error}'**
+  String media_viewer_error_save_failed(Object error);
+
+  /// No description provided for @media_viewer_error_send_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось отправить: {error}'**
+  String media_viewer_error_send_failed(Object error);
+
+  /// No description provided for @media_viewer_video_playback_speed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скорость воспроизведения'**
+  String get media_viewer_video_playback_speed;
+
+  /// No description provided for @media_viewer_video_quality.
+  ///
+  /// In ru, this message translates to:
+  /// **'Качество'**
+  String get media_viewer_video_quality;
+
+  /// No description provided for @media_viewer_error_quality_switch_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось переключить качество'**
+  String get media_viewer_error_quality_switch_failed;
+
+  /// No description provided for @media_viewer_error_pip_open_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть PiP'**
+  String get media_viewer_error_pip_open_failed;
+
+  /// No description provided for @media_viewer_video_processing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео обрабатывается на сервере и скоро станет доступно.'**
+  String get media_viewer_video_processing;
+
+  /// No description provided for @media_viewer_video_playback_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось воспроизвести видео.'**
+  String get media_viewer_video_playback_failed;
 }
 
 class _AppLocalizationsDelegate

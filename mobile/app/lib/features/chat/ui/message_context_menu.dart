@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/chat_emoji_only.dart';
+import 'chat_wallpaper_scope.dart';
+import 'chat_wallpaper_tone.dart';
 import 'message_attachments.dart';
 import 'message_html_text.dart';
 
@@ -372,6 +374,11 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     if (message.isDeleted) {
+      final wallpaper = ChatWallpaperScope.of(context);
+      final fg = chatWallpaperAdaptivePrimaryTextColor(
+        context: context,
+        wallpaper: wallpaper,
+      );
       return Align(
         alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
@@ -387,7 +394,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: scheme.onSurface.withValues(alpha: 0.75),
+              color: fg.withValues(alpha: 0.78),
             ),
           ),
         ),

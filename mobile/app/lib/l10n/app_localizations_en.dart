@@ -37,6 +37,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account_menu_privacy => 'Privacy';
 
   @override
+  String get account_menu_blacklist => 'Blacklist';
+
+  @override
   String get account_menu_language => 'Language';
 
   @override
@@ -44,6 +47,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get account_menu_sign_out => 'Sign out';
+
+  @override
+  String get profile_delete_account => 'Delete account';
+
+  @override
+  String get profile_delete_account_confirm_title =>
+      'Delete your account permanently?';
+
+  @override
+  String get profile_delete_account_confirm_body =>
+      'Your account will be removed from Firebase Auth and all your Firestore documents will be deleted permanently. Your chats will remain visible to others in read-only mode.';
+
+  @override
+  String get profile_delete_account_confirm_action => 'Delete account';
+
+  @override
+  String profile_delete_account_error(Object error) {
+    return 'Couldn’t delete the account: $error';
+  }
+
+  @override
+  String get chat_readonly_deleted_user =>
+      'Account deleted. This chat is read-only.';
+
+  @override
+  String get blacklist_empty => 'No blocked users';
+
+  @override
+  String get blacklist_action_unblock => 'Unblock';
+
+  @override
+  String get blacklist_unblock_confirm_title => 'Unblock?';
+
+  @override
+  String get blacklist_unblock_confirm_body =>
+      'This user will be able to message you again (if contact policy allows) and see your profile in search.';
+
+  @override
+  String get blacklist_unblock_success => 'User unblocked';
+
+  @override
+  String blacklist_unblock_error(Object error) {
+    return 'Couldn’t unblock: $error';
+  }
 
   @override
   String get common_soon => 'Coming soon';
@@ -251,10 +298,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get common_choose => 'Choose';
 
   @override
+  String get common_save => 'Save';
+
+  @override
   String get common_nothing_found => 'Nothing found';
 
   @override
   String get common_retry => 'Retry';
+
+  @override
+  String get auth_login_email_label => 'Email';
+
+  @override
+  String get auth_login_password_label => 'Password';
+
+  @override
+  String get auth_login_password_hint => 'Password';
+
+  @override
+  String get auth_login_sign_in => 'Sign in';
+
+  @override
+  String get auth_login_forgot_password => 'Forgot password?';
+
+  @override
+  String get auth_login_error_enter_email_for_reset =>
+      'Enter your email to reset your password';
+
+  @override
+  String get profile_title => 'Profile';
+
+  @override
+  String get profile_edit_tooltip => 'Edit';
+
+  @override
+  String get profile_full_name_label => 'Full name';
+
+  @override
+  String get profile_full_name_hint => 'Name';
+
+  @override
+  String get profile_username_label => 'Username';
+
+  @override
+  String get profile_email_label => 'Email';
+
+  @override
+  String get profile_phone_label => 'Phone';
+
+  @override
+  String get profile_birthdate_label => 'Date of birth';
+
+  @override
+  String get profile_about_label => 'About';
+
+  @override
+  String get profile_about_hint => 'A short bio';
+
+  @override
+  String get profile_password_toggle_show => 'Change password';
+
+  @override
+  String get profile_password_toggle_hide => 'Hide password change';
+
+  @override
+  String get profile_password_new_label => 'New password';
+
+  @override
+  String get profile_password_confirm_label => 'Confirm password';
+
+  @override
+  String get profile_password_tooltip_show => 'Show password';
+
+  @override
+  String get profile_password_tooltip_hide => 'Hide';
 
   @override
   String get settings_chats_title => 'Chat settings';
@@ -469,6 +586,104 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chat_list_yesterday => 'Yesterday';
 
   @override
+  String get chat_list_folder_delete_action => 'Delete';
+
+  @override
+  String get chat_list_folder_delete_title => 'Delete folder?';
+
+  @override
+  String chat_list_folder_delete_body(Object name) {
+    return 'Folder \"$name\" will be deleted. Chats will remain intact.';
+  }
+
+  @override
+  String chat_list_error_open_starred(Object error) {
+    return 'Couldn’t open Starred: $error';
+  }
+
+  @override
+  String chat_list_error_delete_folder(Object error) {
+    return 'Couldn’t delete folder: $error';
+  }
+
+  @override
+  String get chat_list_pin_not_available =>
+      'Pinning isn’t available in this folder.';
+
+  @override
+  String chat_list_pin_pinned_in_folder(Object name) {
+    return 'Chat pinned in \"$name\"';
+  }
+
+  @override
+  String chat_list_pin_unpinned_in_folder(Object name) {
+    return 'Chat unpinned from \"$name\"';
+  }
+
+  @override
+  String chat_list_error_toggle_pin(Object error) {
+    return 'Couldn’t change pin: $error';
+  }
+
+  @override
+  String chat_list_error_update_folder(Object error) {
+    return 'Couldn’t update folder: $error';
+  }
+
+  @override
+  String get chat_list_clear_history_title => 'Clear history?';
+
+  @override
+  String get chat_list_clear_history_body =>
+      'Messages will disappear only from your chat view. The other participant will keep the history.';
+
+  @override
+  String get chat_list_clear_history_confirm => 'Clear';
+
+  @override
+  String chat_list_error_clear_history(Object error) {
+    return 'Couldn’t clear history: $error';
+  }
+
+  @override
+  String chat_list_error_mark_read(Object error) {
+    return 'Couldn’t mark chat as read: $error';
+  }
+
+  @override
+  String get chat_list_delete_chat_title => 'Delete chat?';
+
+  @override
+  String get chat_list_delete_chat_body =>
+      'The conversation will be permanently deleted for all participants. This can’t be undone.';
+
+  @override
+  String get chat_list_delete_chat_confirm => 'Delete';
+
+  @override
+  String chat_list_error_delete_chat(Object error) {
+    return 'Couldn’t delete chat: $error';
+  }
+
+  @override
+  String get chat_list_context_folders => 'Folders';
+
+  @override
+  String get chat_list_context_unpin => 'Unpin chat';
+
+  @override
+  String get chat_list_context_pin => 'Pin chat';
+
+  @override
+  String get chat_list_context_mark_all_read => 'Mark all as read';
+
+  @override
+  String get chat_list_context_clear_history => 'Clear history';
+
+  @override
+  String get chat_list_context_delete_chat => 'Delete chat';
+
+  @override
   String get chat_list_snackbar_history_cleared => 'History cleared.';
 
   @override
@@ -588,6 +803,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn’t open the privacy policy';
 
   @override
+  String get voice_transcript_show => 'Show text';
+
+  @override
+  String get voice_transcript_hide => 'Hide text';
+
+  @override
+  String get voice_transcript_copy => 'Copy';
+
+  @override
+  String get voice_transcript_loading => 'Transcribing…';
+
+  @override
+  String get voice_transcript_failed => 'Couldn’t get the text.';
+
+  @override
   String get chat_messages_title => 'Messages';
 
   @override
@@ -620,4 +850,254 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chat_delete_file_body =>
       'Only this file will be removed from the message.';
+
+  @override
+  String get forward_title => 'Forward';
+
+  @override
+  String get forward_empty_no_messages => 'No messages to forward';
+
+  @override
+  String get forward_error_not_authorized => 'Not signed in';
+
+  @override
+  String get forward_empty_no_recipients =>
+      'No contacts or chats to forward to';
+
+  @override
+  String get forward_search_hint => 'Search contacts…';
+
+  @override
+  String get forward_empty_no_available_recipients =>
+      'No available recipients.\nYou can only forward to contacts and your active chats.';
+
+  @override
+  String get forward_empty_not_found => 'Nothing found';
+
+  @override
+  String get forward_action_pick_recipients => 'Pick recipients';
+
+  @override
+  String get forward_action_send => 'Send';
+
+  @override
+  String forward_error_generic(Object error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get forward_sender_fallback => 'Participant';
+
+  @override
+  String get forward_error_profiles_load =>
+      'Couldn’t load profiles to open chat';
+
+  @override
+  String get forward_error_send_no_permissions =>
+      'Couldn’t forward: you don’t have access to one of the selected chats or the chat is no longer available.';
+
+  @override
+  String get forward_error_send_forbidden_chat =>
+      'Couldn’t forward: access to one of the chats is denied.';
+
+  @override
+  String get devices_title => 'My devices';
+
+  @override
+  String get devices_subtitle =>
+      'Devices where your encryption public key is published. Revoking creates a new key epoch for all encrypted chats — the revoked device won’t be able to read new messages.';
+
+  @override
+  String get devices_empty => 'No devices yet.';
+
+  @override
+  String devices_progress_rekeying(Object done, Object total) {
+    return 'Updating chats: $done / $total';
+  }
+
+  @override
+  String get devices_chip_current => 'This device';
+
+  @override
+  String get devices_chip_revoked => 'Revoked';
+
+  @override
+  String devices_meta_created_activity(Object createdAt, Object lastSeenAt) {
+    return 'Created: $createdAt  •  Activity: $lastSeenAt';
+  }
+
+  @override
+  String devices_meta_revoked_at(Object revokedAt) {
+    return 'Revoked: $revokedAt';
+  }
+
+  @override
+  String get devices_action_rename => 'Rename';
+
+  @override
+  String get devices_action_revoke => 'Revoke';
+
+  @override
+  String get devices_dialog_rename_title => 'Rename device';
+
+  @override
+  String get devices_dialog_rename_hint => 'e.g. iPhone 15 — Safari';
+
+  @override
+  String devices_error_rename_failed(Object error) {
+    return 'Couldn’t rename: $error';
+  }
+
+  @override
+  String get devices_dialog_revoke_title => 'Revoke device?';
+
+  @override
+  String get devices_dialog_revoke_body_current =>
+      'You’re about to revoke THIS device. After that, you won’t be able to read new messages in end‑to‑end encrypted chats from this client.';
+
+  @override
+  String get devices_dialog_revoke_body_other =>
+      'This device won’t be able to read new messages in end‑to‑end encrypted chats. Old messages will remain available on it.';
+
+  @override
+  String devices_snackbar_revoked(Object rekeyed, Object suffix) {
+    return 'Device revoked. Chats updated: $rekeyed$suffix';
+  }
+
+  @override
+  String devices_error_revoke_failed(Object error) {
+    return 'Revoke error: $error';
+  }
+
+  @override
+  String get e2ee_recovery_title => 'E2EE — backup';
+
+  @override
+  String get e2ee_password_label => 'Password';
+
+  @override
+  String get e2ee_password_confirm_label => 'Confirm password';
+
+  @override
+  String e2ee_password_min_length(Object count) {
+    return 'At least $count characters';
+  }
+
+  @override
+  String get e2ee_password_mismatch => 'Passwords don’t match';
+
+  @override
+  String get e2ee_backup_create_title => 'Create key backup';
+
+  @override
+  String get e2ee_backup_restore_title => 'Restore with password';
+
+  @override
+  String get e2ee_backup_restore_action => 'Restore';
+
+  @override
+  String e2ee_backup_create_error(Object error) {
+    return 'Couldn’t create backup: $error';
+  }
+
+  @override
+  String e2ee_backup_restore_error(Object error) {
+    return 'Couldn’t restore: $error';
+  }
+
+  @override
+  String get e2ee_backup_wrong_password => 'Wrong password';
+
+  @override
+  String get e2ee_backup_not_found => 'Backup not found';
+
+  @override
+  String e2ee_recovery_error_generic(Object error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get e2ee_backup_password_card_title => 'Password backup';
+
+  @override
+  String get e2ee_backup_password_card_description =>
+      'Create an encrypted backup of your private key. If you lose all devices, you can restore it on a new one using only the password. The password can’t be recovered — store it safely.';
+
+  @override
+  String get e2ee_backup_overwrite => 'Overwrite backup';
+
+  @override
+  String get e2ee_backup_create => 'Create backup';
+
+  @override
+  String get e2ee_backup_restore => 'Restore from backup';
+
+  @override
+  String get e2ee_backup_already_have => 'I already have a backup';
+
+  @override
+  String get e2ee_qr_transfer_title => 'Transfer key via QR';
+
+  @override
+  String get e2ee_qr_transfer_description =>
+      'On the new device you show a QR, on the old one you scan it. Verify a 6‑digit code — the private key is transferred securely.';
+
+  @override
+  String get e2ee_qr_transfer_open => 'Open QR pairing';
+
+  @override
+  String get media_viewer_action_reply => 'Reply';
+
+  @override
+  String get media_viewer_action_forward => 'Forward';
+
+  @override
+  String get media_viewer_action_send => 'Send';
+
+  @override
+  String get media_viewer_action_save => 'Save';
+
+  @override
+  String get media_viewer_action_show_in_chat => 'Show in chat';
+
+  @override
+  String get media_viewer_action_delete => 'Delete';
+
+  @override
+  String get media_viewer_error_no_gallery_access =>
+      'No permission to save to gallery';
+
+  @override
+  String get media_viewer_error_share_unavailable_web =>
+      'Sharing isn’t available on web';
+
+  @override
+  String media_viewer_error_save_failed(Object error) {
+    return 'Couldn’t save: $error';
+  }
+
+  @override
+  String media_viewer_error_send_failed(Object error) {
+    return 'Couldn’t send: $error';
+  }
+
+  @override
+  String get media_viewer_video_playback_speed => 'Playback speed';
+
+  @override
+  String get media_viewer_video_quality => 'Quality';
+
+  @override
+  String get media_viewer_error_quality_switch_failed =>
+      'Couldn’t switch quality';
+
+  @override
+  String get media_viewer_error_pip_open_failed => 'Couldn’t open PiP';
+
+  @override
+  String get media_viewer_video_processing =>
+      'This video is being processed on the server and will be available soon.';
+
+  @override
+  String get media_viewer_video_playback_failed => 'Couldn’t play the video.';
 }

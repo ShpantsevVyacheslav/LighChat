@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'chat_wallpaper_contrast.dart';
+import 'chat_wallpaper_scope.dart';
+import 'chat_wallpaper_tone.dart';
 
 class MessageDeletedStub extends StatelessWidget {
   const MessageDeletedStub({super.key, required this.alignRight});
@@ -9,6 +11,7 @@ class MessageDeletedStub extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final wallpaper = ChatWallpaperScope.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Align(
@@ -22,14 +25,20 @@ class MessageDeletedStub extends StatelessWidget {
               Icon(
                 Icons.delete_outline_rounded,
                 size: 16,
-                color: chatWallpaperSafeSecondaryIconColor(context),
+                color: chatWallpaperAdaptiveSecondaryTextColor(
+                  context: context,
+                  wallpaper: wallpaper,
+                ),
               ),
               const SizedBox(width: 6),
               Text(
                 'Сообщение удалено',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: chatWallpaperSafePrimaryTextColor(context),
+                  color: chatWallpaperAdaptivePrimaryTextColor(
+                    context: context,
+                    wallpaper: wallpaper,
+                  ),
                 ),
               ),
             ],
