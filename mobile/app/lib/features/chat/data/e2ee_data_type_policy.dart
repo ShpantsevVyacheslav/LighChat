@@ -39,17 +39,20 @@ class E2eeDataTypePolicy {
       return fallback;
     }
 
+    final text = readBool('text', defaults.text);
     return E2eeDataTypePolicy(
-      text: readBool('text', defaults.text),
+      text: text,
       media: readBool('media', defaults.media),
-      replyPreview: readBool('replyPreview', defaults.replyPreview),
+      // Reply preview follows text encryption automatically.
+      replyPreview: text,
     );
   }
 
   Map<String, Object?> toFirestoreMap() => <String, Object?>{
     'text': text,
     'media': media,
-    'replyPreview': replyPreview,
+    // Keep field for backward compatibility, but enforce invariant.
+    'replyPreview': text,
   };
 
   E2eeDataTypePolicy copyWith({
@@ -57,10 +60,12 @@ class E2eeDataTypePolicy {
     bool? media,
     bool? replyPreview,
   }) {
+    final nextText = text ?? this.text;
     return E2eeDataTypePolicy(
-      text: text ?? this.text,
+      text: nextText,
       media: media ?? this.media,
-      replyPreview: replyPreview ?? this.replyPreview,
+      // Reply preview follows text encryption automatically.
+      replyPreview: nextText,
     );
   }
 }

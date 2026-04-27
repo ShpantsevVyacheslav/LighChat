@@ -185,10 +185,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
 
         <div className="mt-3 flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <Label className="text-sm">Переопределить для этого чата</Label>
-            <p className="text-xs text-zinc-500">
-              {hasOverride ? 'Используются чатовые настройки.' : 'Наследуются глобальные настройки.'}
-            </p>
+            <Label className="text-sm">Настройки шифрования для этого чата</Label>
           </div>
           <div className="flex items-center gap-2">
             {typesBusy ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" aria-hidden /> : null}
@@ -200,7 +197,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
                 setTypesBusy(true);
                 try {
                   await updateDoc(doc(firestore, 'conversations', conversation.id), {
-                    e2eeEncryptedDataTypesOverride: on ? effectiveTypes : null,
+                    e2eeEncryptedDataTypesOverride: on ? { ...effectiveTypes, replyPreview: effectiveTypes.text } : null,
                   });
                 } finally {
                   setTypesBusy(false);
@@ -211,28 +208,20 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
           </div>
         </div>
 
-        <div className="mt-4 space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/30 p-4">
+        <div className={`mt-4 space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/30 p-4 ${!hasOverride ? 'opacity-60' : ''}`}>
           {([
             {
               key: 'text' as const,
               title: 'Текст сообщений',
-              desc: 'Шифровать `message.e2ee.ciphertext` вместо plaintext `text`.',
             },
             {
               key: 'media' as const,
               title: 'Вложения (медиа/файлы)',
-              desc: 'Шифровать `message.e2ee.attachments` + Storage `chat-attachments-enc/...` (стикеры/GIF всегда plaintext).',
-            },
-            {
-              key: 'replyPreview' as const,
-              title: 'Reply-превью',
-              desc: 'Если выключить — не писать plaintext в `replyTo.text`/`mediaPreviewUrl`.',
             },
           ] as const).map((row) => (
             <div key={row.key} className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <Label className="text-sm">{row.title}</Label>
-                <p className="text-xs text-zinc-500">{row.desc}</p>
               </div>
               <Switch
                 checked={effectiveTypes[row.key]}
@@ -242,7 +231,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
                   if (!hasOverride) return;
                   setTypesBusy(true);
                   try {
-                    const next = { ...effectiveTypes, [row.key]: v };
+                    const next = { ...effectiveTypes, [row.key]: v, replyPreview: (row.key === 'text' ? v : effectiveTypes.text) };
                     await updateDoc(doc(firestore, 'conversations', conversation.id), {
                       e2eeEncryptedDataTypesOverride: next,
                     });

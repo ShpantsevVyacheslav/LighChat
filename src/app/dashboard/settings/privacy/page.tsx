@@ -83,6 +83,7 @@ export default function PrivacySettingsPage() {
           <div className="border-t pt-5 space-y-4">
             {(() => {
               const cur = privacySettings.e2eeEncryptedDataTypes ?? DEFAULT_E2EE_ENCRYPTED_DATA_TYPES;
+              const effective = { ...cur, replyPreview: cur.text };
               return (
                 <>
             <div>
@@ -94,17 +95,15 @@ export default function PrivacySettingsPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <Label className="text-sm font-medium">Текст сообщений</Label>
-                <p className="text-xs text-muted-foreground">
-                  `message.e2ee.ciphertext` вместо plaintext `text`.
-                </p>
               </div>
               <Switch
-                checked={cur.text}
+                checked={effective.text}
                 onCheckedChange={(v) =>
                   handleUpdate({
                     e2eeEncryptedDataTypes: {
-                      ...cur,
+                      ...effective,
                       text: v,
+                      replyPreview: v,
                     },
                   })
                 }
@@ -113,36 +112,14 @@ export default function PrivacySettingsPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <Label className="text-sm font-medium">Вложения (медиа/файлы)</Label>
-                <p className="text-xs text-muted-foreground">
-                  `message.e2ee.attachments` + Storage `chat-attachments-enc/...` (стикеры/GIF всегда plaintext).
-                </p>
               </div>
               <Switch
-                checked={cur.media}
+                checked={effective.media}
                 onCheckedChange={(v) =>
                   handleUpdate({
                     e2eeEncryptedDataTypes: {
-                      ...cur,
+                      ...effective,
                       media: v,
-                    },
-                  })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label className="text-sm font-medium">Reply-превью</Label>
-                <p className="text-xs text-muted-foreground">
-                  Если выключить — `replyTo.text`/`mediaPreviewUrl` не пишутся в Firestore (меньше утечек в plaintext).
-                </p>
-              </div>
-              <Switch
-                checked={cur.replyPreview}
-                onCheckedChange={(v) =>
-                  handleUpdate({
-                    e2eeEncryptedDataTypes: {
-                      ...cur,
-                      replyPreview: v,
                     },
                   })
                 }

@@ -1,17 +1,23 @@
+import 'dart:async' show Timer, unawaited;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/e2ee_auto_enable_helper.dart';
 import '../data/contact_display_name.dart';
+import '../data/device_contacts_suggestions.dart';
 import '../data/new_chat_user_search.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
 import 'chat_shell_backdrop.dart';
+import 'device_contact_invite_row.dart';
 import 'new_chat_user_picker_row.dart';
 
 class NewChatScreen extends ConsumerStatefulWidget {
@@ -26,13 +32,77 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   Future<List<UserProfile>>? _usersFuture;
   bool _busy = false;
   String? _error;
+  Timer? _deviceDebounce;
+  List<Contact> _deviceContacts = const <Contact>[];
+  bool _deviceContactsLoaded = false;
+  Map<String, String> _deviceContactIdToUserId = const <String, String>{};
+  String _deviceResolveKey = '';
 
   static const _horizontalPad = 18.0;
 
   @override
+  void initState() {
+    super.initState();
+    _search.addListener(_onSearchChanged);
+  }
+
+  @override
   void dispose() {
+    _deviceDebounce?.cancel();
+    _search.removeListener(_onSearchChanged);
     _search.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _deviceDebounce?.cancel();
+    _deviceDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      unawaited(_refreshDeviceContactMatches());
+    });
+  }
+
+  Future<void> _ensureDeviceContactsLoaded() async {
+    if (_deviceContactsLoaded) return;
+    _deviceContactsLoaded = true;
+    final loaded = await loadDeviceContactsIfGranted();
+    if (!mounted) return;
+    setState(() {
+      _deviceContacts = loaded;
+    });
+  }
+
+  Future<void> _refreshDeviceContactMatches() async {
+    final term = _search.text.trim();
+    if (term.isEmpty) {
+      if (_deviceResolveKey.isNotEmpty && mounted) {
+        setState(() {
+          _deviceResolveKey = '';
+          _deviceContactIdToUserId = const <String, String>{};
+        });
+      }
+      return;
+    }
+    await _ensureDeviceContactsLoaded();
+    final repo = ref.read(userContactsRepositoryProvider);
+    if (repo == null) return;
+
+    final candidates = buildDeviceContactCandidates(
+      contacts: _deviceContacts,
+      term: term,
+      limit: 24,
+    );
+    final key =
+        '${term.toLowerCase()}|${candidates.map((c) => c.contactId).join('\u001f')}';
+    if (key == _deviceResolveKey) return;
+    _deviceResolveKey = key;
+    final resolved = await resolveCandidatesToUserIds(
+      repo: repo,
+      candidates: candidates,
+    );
+    if (!mounted) return;
+    if (_deviceResolveKey != key) return;
+    setState(() => _deviceContactIdToUserId = resolved);
   }
 
   @override
@@ -42,6 +112,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     if (repo != null && _usersFuture == null) {
       _usersFuture = repo.listAllUsers();
     }
+    unawaited(_ensureDeviceContactsLoaded());
   }
 
   void _closeScreen() {
@@ -307,6 +378,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                             .where(isEligibleRegisteredChatUser)
                             .where((p) => canStartDirectChat(self, p))
                             .toList(growable: false);
+                        final othersById = {for (final p in others) p.id: p};
                         final displayNameById = <String, String>{};
                         for (final p in others) {
                           final fallback = p.name.trim().isNotEmpty
@@ -339,6 +411,56 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
 
                         final scheme = Theme.of(context).colorScheme;
                         final listChildren = <Widget>[];
+
+                        final deviceCandidates = buildDeviceContactCandidates(
+                          contacts: _deviceContacts,
+                          term: term,
+                          limit: 12,
+                        );
+                        if (term.trim().isNotEmpty && deviceCandidates.isNotEmpty) {
+                          listChildren.add(_sectionHeader(context, 'КОНТАКТЫ ТЕЛЕФОНА'));
+                          for (final c in deviceCandidates) {
+                            final uid = _deviceContactIdToUserId[c.contactId];
+                            final registered = uid != null && uid.trim().isNotEmpty;
+                            listChildren.add(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: _horizontalPad),
+                                child: DeviceContactInviteRow(
+                                  candidate: c,
+                                  registered: registered,
+                                  enabled: !_busy,
+                                  onOpenChat: registered
+                                      ? () {
+                                          final p = othersById[uid];
+                                          if (p == null) return;
+                                          _openDirect(
+                                            repo: repo,
+                                            uid: u.uid,
+                                            me: self,
+                                            peer: p,
+                                            allProfiles: all,
+                                          );
+                                        }
+                                      : null,
+                                  onInvite: registered
+                                      ? null
+                                      : () async {
+                                          final origin = shareOriginForContext(context);
+                                          await SharePlus.instance.share(
+                                            ShareParams(
+                                              text:
+                                                  'Поставь LighChat: https://lighchat.online\n'
+                                                  'Приглашаю тебя в LighChat — вот ссылка на установку.',
+                                              subject: 'Приглашение в LighChat',
+                                              sharePositionOrigin: origin,
+                                            ),
+                                          );
+                                        },
+                                ),
+                              ),
+                            );
+                          }
+                        }
 
                         if (split.fromContacts.isNotEmpty) {
                           listChildren.add(_sectionHeader(context, 'КОНТАКТЫ'));

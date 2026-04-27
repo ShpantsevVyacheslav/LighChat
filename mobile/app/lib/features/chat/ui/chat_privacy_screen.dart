@@ -225,7 +225,6 @@ class _PrivacyView extends StatelessWidget {
                     _SettingsSubheader(text: 'Что шифруем в E2EE чатах'),
                     _SwitchRow(
                       title: 'Текст сообщений',
-                      subtitle: 'Шифровать `message.e2ee.ciphertext`.',
                       value: settings.e2eeEncryptedDataTypes.text,
                       onChanged: (v) => onE2eeDataTypesChanged(
                         settings.e2eeEncryptedDataTypes.copyWith(text: v),
@@ -234,25 +233,11 @@ class _PrivacyView extends StatelessWidget {
                     ),
                     _SwitchRow(
                       title: 'Вложения (медиа/файлы)',
-                      subtitle:
-                          'Шифровать `message.e2ee.attachments` (стикеры/GIF — всегда без шифрования).',
                       value: settings.e2eeEncryptedDataTypes.media,
                       onChanged: (v) => onE2eeDataTypesChanged(
                         settings.e2eeEncryptedDataTypes.copyWith(media: v),
                       ),
                       icon: Icons.attachment_rounded,
-                    ),
-                    _SwitchRow(
-                      title: 'Reply-превью',
-                      subtitle:
-                          'Если выключить — не писать plaintext в `replyTo.text` и `mediaPreviewUrl`.',
-                      value: settings.e2eeEncryptedDataTypes.replyPreview,
-                      onChanged: (v) => onE2eeDataTypesChanged(
-                        settings.e2eeEncryptedDataTypes.copyWith(
-                          replyPreview: v,
-                        ),
-                      ),
-                      icon: Icons.reply_rounded,
                     ),
                     // Переход на экран управления устройствами (Phase 5).
                     // Держим как отдельный элемент, не switch — там список и actions.

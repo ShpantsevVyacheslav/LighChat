@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
@@ -192,12 +194,44 @@ class _ConversationEncryptionScreenState
     final scheme = Theme.of(context).colorScheme;
     final on = _e2eeOn;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Шифрование'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        children: [
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  Material(
+                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => Navigator.of(context).maybePop(),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Icon(
+                          Icons.chevron_left_rounded,
+                          size: 30,
+                          color: scheme.onSurface.withValues(alpha: 0.92),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Шифрование',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurface.withValues(alpha: 0.94),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
           Text(
             on
                 ? 'Сквозное шифрование включено для этого чата.'
@@ -221,29 +255,33 @@ class _ConversationEncryptionScreenState
             ),
           ),
           const SizedBox(height: 28),
-          if (_busy)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (on)
-            FilledButton.tonal(
-              onPressed: _disable,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text('Отключить шифрование'),
-              ),
-            )
-          else
-            FilledButton(
-              onPressed: _enable,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text('Включить шифрование'),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+              border: Border.all(
+                color: scheme.onSurface.withValues(alpha: 0.10),
               ),
             ),
+            child: SwitchListTile.adaptive(
+              title: const Text('Включить шифрование'),
+              subtitle: Text(
+                on
+                    ? 'Включено (эпоха ключа: ${widget.conversation.e2eeKeyEpoch ?? 0})'
+                    : 'Выключено',
+              ),
+              value: on,
+              onChanged: _busy
+                  ? null
+                  : (v) {
+                      if (v) {
+                        unawaited(_enable());
+                      } else {
+                        unawaited(_disable());
+                      }
+                    },
+            ),
+          ),
           const SizedBox(height: 18),
           _E2eeDataTypesCard(
             conversationId: widget.conversationId,
@@ -252,6 +290,7 @@ class _ConversationEncryptionScreenState
             onBusyChanged: (v) => setState(() => _typesBusy = v),
           ),
         ],
+        ),
       ),
     );
   }
@@ -329,7 +368,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
               required String title,
               required String subtitle,
               required bool value,
-              required ValueChanged<bool> onChanged,
+              ValueChanged<bool>? onChanged,
             }) {
               return SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
@@ -338,17 +377,23 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: fg.withValues(alpha: 0.92),
+                    color: (onChanged == null)
+                        ? fg.withValues(alpha: 0.55)
+                        : fg.withValues(alpha: 0.92),
                   ),
                 ),
-                subtitle: Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.25,
-                    color: fg.withValues(alpha: 0.62),
-                  ),
-                ),
+                subtitle: subtitle.trim().isEmpty
+                    ? null
+                    : Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.25,
+                          color: (onChanged == null)
+                              ? fg.withValues(alpha: 0.40)
+                              : fg.withValues(alpha: 0.62),
+                        ),
+                      ),
                 value: value,
                 onChanged: widget.busy ? null : onChanged,
               );
@@ -387,7 +432,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   ),
                   const SizedBox(height: 10),
                   row(
-                    title: 'Переопределить для этого чата',
+                    title: 'Настройки шифрования для этого чата',
                     subtitle: hasOverride
                         ? 'Используются чатовые настройки.'
                         : 'Наследуются глобальные настройки.',
@@ -408,10 +453,11 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   const Divider(height: 18),
                   row(
                     title: 'Текст сообщений',
-                    subtitle: 'Шифровать `message.e2ee.ciphertext`.',
+                    subtitle: '',
                     value: effective.text,
-                    onChanged: (v) async {
-                      if (!hasOverride) return;
+                    onChanged: !hasOverride
+                        ? null
+                        : (v) async {
                       final next = effective.copyWith(text: v);
                       await _setOverride(<String, Object?>{
                         'e2eeEncryptedDataTypesOverride': next.toFirestoreMap(),
@@ -420,25 +466,12 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   ),
                   row(
                     title: 'Вложения (медиа/файлы)',
-                    subtitle:
-                        'Шифровать `message.e2ee.attachments` (стикеры/GIF — всегда plaintext).',
+                    subtitle: '',
                     value: effective.media,
-                    onChanged: (v) async {
-                      if (!hasOverride) return;
+                    onChanged: !hasOverride
+                        ? null
+                        : (v) async {
                       final next = effective.copyWith(media: v);
-                      await _setOverride(<String, Object?>{
-                        'e2eeEncryptedDataTypesOverride': next.toFirestoreMap(),
-                      });
-                    },
-                  ),
-                  row(
-                    title: 'Reply-превью',
-                    subtitle:
-                        'Если выключить — не писать plaintext в `replyTo.text` и `mediaPreviewUrl`.',
-                    value: effective.replyPreview,
-                    onChanged: (v) async {
-                      if (!hasOverride) return;
-                      final next = effective.copyWith(replyPreview: v);
                       await _setOverride(<String, Object?>{
                         'e2eeEncryptedDataTypesOverride': next.toFirestoreMap(),
                       });
