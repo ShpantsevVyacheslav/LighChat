@@ -2,6 +2,9 @@ import { onCall, HttpsError, type CallableRequest } from "firebase-functions/v2/
 import { logger } from "firebase-functions";
 import * as admin from "firebase-admin";
 
+import { normalizeDurakSettings } from "../../lib/games/gameSettings";
+import { buildInitialState, derivePhase } from "../../lib/games/durak/engine";
+
 type RequestData = {
   gameId?: unknown;
 };
@@ -53,7 +56,7 @@ export const joinGameLobby = onCall(
         return; // idempotent join
       }
 
-      const settings = (g.settings && typeof g.settings === "object") ? (g.settings as any) : {};
+      const settings = normalizeDurakSettings(g.settings);
       const maxPlayers = typeof settings.maxPlayers === "number" ? settings.maxPlayers : 6;
       if (playerIds.length >= maxPlayers) {
         throw new HttpsError("failed-precondition", "LOBBY_FULL");
@@ -64,12 +67,73 @@ export const joinGameLobby = onCall(
         ...players,
         { uid, joinedAt: nowIso, isOwner: false },
       ];
+      const newPlayerIds = [...playerIds, uid];
 
-      tx.update(gameRef, {
-        playerIds: [...playerIds, uid],
-        players: newPlayers,
-        lastUpdatedAt: nowIso,
-      });
+      // Auto-start for DM (maxPlayers=2) once the second player joins.
+      const shouldAutoStart = maxPlayers === 2 && newPlayerIds.length === 2;
+      if (shouldAutoStart) {
+        // randInt with crypto, deterministic-free.
+        const randInt = (maxExclusive: number): number => {
+          if (maxExclusive <= 1) return 0;
+          const buf = new Uint32Array(1);
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const crypto = require("crypto") as typeof import("crypto");
+          crypto.randomFillSync(buf);
+          return buf[0] % maxExclusive;
+        };
+
+        const { state, handsByUid } = buildInitialState({
+          playerIds: newPlayerIds,
+          settings,
+          nowIso,
+          randInt,
+        });
+
+        tx.update(gameRef, {
+          status: "active",
+          startedAt: nowIso,
+          settings,
+          playerIds: newPlayerIds,
+          players: newPlayers,
+          serverState: state,
+          publicView: {
+            revision: state.revision,
+            phase: derivePhase(state),
+            trumpSuit: state.trumpSuit,
+            deckCount: state.deck.length,
+            discardCount: state.discard.length,
+            seats: state.seats ?? newPlayerIds,
+            attackerUid: state.attackerUid,
+            defenderUid: state.defenderUid,
+            table: state.table,
+            handCounts: Object.fromEntries(
+              Object.entries(handsByUid).map(([u, cards]) => [u, cards.length]),
+            ),
+            lastMoveAt: nowIso,
+            throwerUids: state.throwerUids ?? [],
+            passedUids: state.passedUids ?? [],
+            shuler: {
+              enabled: settings.shulerEnabled === true,
+              lastCheatUid: null,
+            },
+          },
+          lastUpdatedAt: nowIso,
+        });
+
+        for (const [u, cards] of Object.entries(handsByUid)) {
+          tx.set(db.doc(`games/${gameId}/privateHands/${u}`), {
+            uid: u,
+            cards,
+            updatedAt: nowIso,
+          });
+        }
+      } else {
+        tx.update(gameRef, {
+          playerIds: newPlayerIds,
+          players: newPlayers,
+          lastUpdatedAt: nowIso,
+        });
+      }
 
       const lobbyRef = db.doc(`conversations/${conversationId}/gameLobbies/${gameId}`);
       tx.set(
@@ -77,7 +141,7 @@ export const joinGameLobby = onCall(
         {
           gameId,
           type: "durak",
-          status: "lobby",
+          status: shouldAutoStart ? "active" : "lobby",
           conversationId,
           playerCount: playerIds.length + 1,
           maxPlayers,
@@ -91,10 +155,29 @@ export const joinGameLobby = onCall(
         tx.set(
           db.doc(`tournaments/${tournamentId}/games/${gameId}`),
           {
-            status: "lobby",
-            playerIds: [...playerIds, uid],
+            status: shouldAutoStart ? "active" : "lobby",
+            playerIds: newPlayerIds,
             playerCount: playerIds.length + 1,
             lastUpdatedAt: nowIso,
+          },
+          { merge: true },
+        );
+      }
+
+      if (shouldAutoStart) {
+        // Idempotent system message to notify both participants (and push).
+        const msgRef = db.doc(`conversations/${conversationId}/messages/sys_game_started_${gameId}`);
+        tx.set(
+          msgRef,
+          {
+            id: `sys_game_started_${gameId}`,
+            senderId: "__system__",
+            createdAt: nowIso,
+            text: "🎮 Партия «Дурак» началась.",
+            systemEvent: {
+              type: "gameStarted",
+              data: { gameId, gameType: "durak" },
+            },
           },
           { merge: true },
         );

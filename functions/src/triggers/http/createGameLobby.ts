@@ -85,23 +85,31 @@ export const createGameLobby = onCall(
       lastUpdatedAt: nowIso,
     };
 
-    const batch = db.batch();
-    batch.create(gameRef, gameDoc);
-    batch.create(lobbyRef, lobbyDoc);
+    await db.runTransaction(async (tx) => {
+      // Enforce: at most one active game per conversation.
+      const existingLobbyQuery = db
+        .collection(`conversations/${conversationId}/gameLobbies`)
+        .where("status", "in", ["lobby", "active"])
+        .limit(1);
+      const existing = await tx.get(existingLobbyQuery);
+      if (!existing.empty) throw new HttpsError("failed-precondition", "ACTIVE_GAME_ALREADY_EXISTS");
 
-    // System message so the other participant sees a banner / gets a push.
-    const msgRef = db.collection(`conversations/${conversationId}/messages`).doc();
-    batch.create(msgRef, {
-      id: msgRef.id,
-      senderId: "__system__",
-      createdAt: nowIso,
-      text: "🎮 Создано лобби «Дурак». Откройте «Игры», чтобы присоединиться.",
-      systemEvent: {
-        type: "gameLobbyCreated",
-        data: { gameId, gameType: "durak" },
-      },
+      tx.create(gameRef, gameDoc);
+      tx.create(lobbyRef, lobbyDoc);
+
+      // System message so the other participant sees a banner / gets a push.
+      const msgRef = db.collection(`conversations/${conversationId}/messages`).doc();
+      tx.create(msgRef, {
+        id: msgRef.id,
+        senderId: "__system__",
+        createdAt: nowIso,
+        text: "🎮 Создано лобби «Дурак». Откройте «Игры», чтобы присоединиться.",
+        systemEvent: {
+          type: "gameLobbyCreated",
+          data: { gameId, gameType: "durak" },
+        },
+      });
     });
-    await batch.commit();
 
     logger.info("[createGameLobby] created", {
       gameId,

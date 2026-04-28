@@ -501,7 +501,7 @@ service cloud.firestore {
           resource.data.playerIds is list
           && resource.data.playerIds.hasAny([request.auth.uid])
         ) || (
-          resource.data.status == 'lobby'
+          (resource.data.status == 'lobby' || resource.data.status == 'active')
           && resource.data.conversationId is string
           && isConversationMember(resource.data.conversationId)
           && canReadSecretChat(resource.data.conversationId, conversationData(resource.data.conversationId))

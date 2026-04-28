@@ -84,6 +84,14 @@ export const createTournamentGameLobby = onCall(
     };
 
     await db.runTransaction(async (tx) => {
+      // Enforce: at most one active game per conversation (including tournament games).
+      const existingLobbyQuery = db
+        .collection(`conversations/${conversationId}/gameLobbies`)
+        .where("status", "in", ["lobby", "active"])
+        .limit(1);
+      const existing = await tx.get(existingLobbyQuery);
+      if (!existing.empty) throw new HttpsError("failed-precondition", "ACTIVE_GAME_ALREADY_EXISTS");
+
       tx.create(gameRef, gameDoc);
       tx.create(lobbyRef, lobbyDoc);
 

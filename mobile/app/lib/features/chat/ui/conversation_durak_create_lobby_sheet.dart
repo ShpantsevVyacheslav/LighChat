@@ -11,9 +11,11 @@ class ConversationDurakCreateLobbySheet extends StatefulWidget {
   const ConversationDurakCreateLobbySheet({
     super.key,
     required this.initial,
+    required this.isGroup,
   });
 
   final Map<String, dynamic> initial;
+  final bool isGroup;
 
   @override
   State<ConversationDurakCreateLobbySheet> createState() =>
@@ -37,6 +39,7 @@ class _ConversationDurakCreateLobbySheetState
     _maxPlayers = (widget.initial['maxPlayers'] is int)
         ? widget.initial['maxPlayers'] as int
         : 6;
+    if (!widget.isGroup) _maxPlayers = 2;
     _deckSize = (widget.initial['deckSize'] is int)
         ? widget.initial['deckSize'] as int
         : 36;
@@ -53,121 +56,219 @@ class _ConversationDurakCreateLobbySheetState
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(l10n.durak_settings_mode),
-              trailing: DropdownButton<String>(
-                value: _mode,
-                onChanged: (v) => setState(() => _mode = v ?? _mode),
-                items: [
-                  DropdownMenuItem(
-                    value: 'podkidnoy',
-                    child: Text(l10n.durak_mode_podkidnoy),
-                  ),
-                  DropdownMenuItem(
-                    value: 'perevodnoy',
-                    child: Text(l10n.durak_mode_perevodnoy),
-                  ),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.70,
+        minChildSize: 0.40,
+        maxChildSize: 0.92,
+        builder: (context, controller) {
+          final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              );
+          final sectionStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.2,
+              );
+
+          Widget section(String title, Widget child) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              ),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: sectionStyle),
+                  const SizedBox(height: 8),
+                  child,
                 ],
               ),
-            ),
-            ListTile(
-              title: Text(l10n.durak_settings_max_players),
-              trailing: DropdownButton<int>(
-                value: _maxPlayers,
-                onChanged: (v) => setState(() => _maxPlayers = v ?? _maxPlayers),
-                items: const [
-                  DropdownMenuItem(value: 2, child: Text('2')),
-                  DropdownMenuItem(value: 3, child: Text('3')),
-                  DropdownMenuItem(value: 4, child: Text('4')),
-                  DropdownMenuItem(value: 5, child: Text('5')),
-                  DropdownMenuItem(value: 6, child: Text('6')),
-                ],
-              ),
-            ),
-            ListTile(
-              title: Text(l10n.durak_settings_deck),
-              trailing: DropdownButton<int>(
-                value: _deckSize,
-                onChanged: (v) => setState(() => _deckSize = v ?? _deckSize),
-                items: [
-                  DropdownMenuItem(value: 36, child: Text(l10n.durak_deck_36)),
-                  DropdownMenuItem(value: 52, child: Text(l10n.durak_deck_52)),
-                ],
-              ),
-            ),
-            SwitchListTile(
-              title: Text(l10n.durak_settings_with_jokers),
-              value: _withJokers,
-              onChanged: (v) => setState(() => _withJokers = v),
-            ),
-            ListTile(
-              title: Text(l10n.durak_settings_throw_in_policy),
-              trailing: DropdownButton<String>(
-                value: _throwInPolicy,
-                onChanged: (v) =>
-                    setState(() => _throwInPolicy = v ?? _throwInPolicy),
-                items: [
-                  DropdownMenuItem(
-                    value: 'all',
-                    child: Text(l10n.durak_throw_in_policy_all),
+            );
+          }
+
+          Widget segmented<T>({
+            required T value,
+            required List<(T, String)> items,
+            required void Function(T v) onChanged,
+          }) {
+            return LayoutBuilder(
+              builder: (context, c) {
+                return SegmentedButton<T>(
+                  segments: [
+                    for (final it in items) ButtonSegment<T>(value: it.$1, label: Text(it.$2)),
+                  ],
+                  selected: {value},
+                  onSelectionChanged: (s) => onChanged(s.first),
+                  showSelectedIcon: false,
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.comfortable,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  DropdownMenuItem(
-                    value: 'neighbors',
-                    child: Text(l10n.durak_throw_in_policy_neighbors),
+                );
+              },
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: ListView(
+              controller: controller,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                   ),
-                ],
-              ),
-            ),
-            SwitchListTile(
-              title: Text(l10n.durak_settings_shuler),
-              subtitle: Text(l10n.durak_settings_shuler_subtitle),
-              value: _shulerEnabled,
-              onChanged: (v) => setState(() => _shulerEnabled = v),
-            ),
-            ListTile(
-              title: Text(l10n.durak_settings_turn_timer),
-              trailing: DropdownButton<int?>(
-                value: _turnTimeSec,
-                onChanged: (v) => setState(() => _turnTimeSec = v),
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(l10n.durak_turn_timer_off),
+                ),
+                const SizedBox(height: 12),
+                Text(l10n.conversation_games_durak, style: titleStyle),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.conversation_games_durak_subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.65),
+                      ),
+                ),
+                const SizedBox(height: 12),
+
+                section(
+                  l10n.durak_settings_mode,
+                  segmented<String>(
+                    value: _mode,
+                    items: [
+                      ('podkidnoy', l10n.durak_mode_podkidnoy),
+                      ('perevodnoy', l10n.durak_mode_perevodnoy),
+                    ],
+                    onChanged: (v) => setState(() => _mode = v),
                   ),
-                  const DropdownMenuItem(value: 30, child: Text('30s')),
-                  const DropdownMenuItem(value: 60, child: Text('60s')),
-                  const DropdownMenuItem(value: 90, child: Text('90s')),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+
+                section(
+                  l10n.durak_settings_deck,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      segmented<int>(
+                        value: _deckSize,
+                        items: [
+                          (36, l10n.durak_deck_36),
+                          (52, l10n.durak_deck_52),
+                        ],
+                        onChanged: (v) => setState(() => _deckSize = v),
+                      ),
+                      const SizedBox(height: 10),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l10n.durak_settings_with_jokers),
+                        value: _withJokers,
+                        onChanged: (v) => setState(() => _withJokers = v),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                section(
+                  l10n.durak_settings_throw_in_policy,
+                  segmented<String>(
+                    value: _throwInPolicy,
+                    items: [
+                      ('all', l10n.durak_throw_in_policy_all),
+                      ('neighbors', l10n.durak_throw_in_policy_neighbors),
+                    ],
+                    onChanged: (v) => setState(() => _throwInPolicy = v),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                section(
+                  l10n.durak_settings_shuler,
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.durak_settings_shuler),
+                    subtitle: Text(l10n.durak_settings_shuler_subtitle),
+                    value: _shulerEnabled,
+                    onChanged: (v) => setState(() => _shulerEnabled = v),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                section(
+                  l10n.durak_settings_max_players,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!widget.isGroup)
+                        Text(
+                          'DM: только 2 игрока',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.65),
+                              ),
+                        ),
+                      const SizedBox(height: 8),
+                      segmented<int>(
+                        value: _maxPlayers,
+                        items: const [
+                          (2, '2'),
+                          (3, '3'),
+                          (4, '4'),
+                          (5, '5'),
+                          (6, '6'),
+                        ],
+                        onChanged: (v) => setState(() => _maxPlayers = widget.isGroup ? v : 2),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                section(
+                  l10n.durak_settings_turn_timer,
+                  segmented<int?>(
+                    value: _turnTimeSec,
+                    items: [
+                      (null, l10n.durak_turn_timer_off),
+                      (30, '30s'),
+                      (60, '60s'),
+                      (90, '90s'),
+                    ],
+                    onChanged: (v) => setState(() => _turnTimeSec = v),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(
+                        DurakLobbySettingsResult(<String, dynamic>{
+                          'mode': _mode,
+                          'maxPlayers': _maxPlayers,
+                          'deckSize': _deckSize,
+                          'withJokers': _withJokers,
+                          'turnTimeSec': _turnTimeSec,
+                          'throwInPolicy': _throwInPolicy,
+                          'shulerEnabled': _shulerEnabled,
+                        }),
+                      );
+                    },
+                    child: Text(l10n.common_save),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                onPressed: () {
-                  Navigator.of(context).pop(
-                    DurakLobbySettingsResult(<String, dynamic>{
-                      'mode': _mode,
-                      'maxPlayers': _maxPlayers,
-                      'deckSize': _deckSize,
-                      'withJokers': _withJokers,
-                      'turnTimeSec': _turnTimeSec,
-                      'throwInPolicy': _throwInPolicy,
-                      'shulerEnabled': _shulerEnabled,
-                    }),
-                  );
-                },
-                child: Text(l10n.common_save),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -65,10 +65,18 @@ export const createDurakTournament = onCall(
       lastUpdatedAt: nowIso,
     };
 
-    const batch = db.batch();
-    batch.create(tournamentRef, tournamentDoc);
-    batch.create(convIndexRef, convIndexDoc);
-    await batch.commit();
+    await db.runTransaction(async (tx) => {
+      // Enforce: at most one active tournament per conversation.
+      const existingQuery = db
+        .collection(`conversations/${conversationId}/tournaments`)
+        .where("status", "==", "active")
+        .limit(1);
+      const existing = await tx.get(existingQuery);
+      if (!existing.empty) throw new HttpsError("failed-precondition", "ACTIVE_TOURNAMENT_ALREADY_EXISTS");
+
+      tx.create(tournamentRef, tournamentDoc);
+      tx.create(convIndexRef, convIndexDoc);
+    });
 
     logger.info("[createDurakTournament] created", { tournamentId, conversationId, uid });
     return { tournamentId };

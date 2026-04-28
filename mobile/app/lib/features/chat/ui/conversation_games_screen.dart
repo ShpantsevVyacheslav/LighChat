@@ -39,6 +39,7 @@ class ConversationGamesScreen extends StatelessWidget {
             'throwInPolicy': 'all',
             'shulerEnabled': false,
           },
+          isGroup: isGroup,
         ),
       );
       if (settingsRes == null) return;
