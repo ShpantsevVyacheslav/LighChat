@@ -4,8 +4,6 @@ import * as admin from "firebase-admin";
 
 import { cardKey, parseCard } from "../../lib/games/durak/cards";
 import {
-  allDefended,
-  allThrowersPassed,
   applyAttack,
   applyAttackRelaxed,
   applyDefense,
@@ -14,11 +12,9 @@ import {
   applyTransferRelaxed,
   computeAndApplyGameResult,
   derivePhase,
-  discardTable,
   drawUpToSix,
   markTaking,
   passThrowIn,
-  rotateAfterSuccessfulDefense,
   rotateAfterTake,
   shouldResolveTakingRound,
   takeTable,
