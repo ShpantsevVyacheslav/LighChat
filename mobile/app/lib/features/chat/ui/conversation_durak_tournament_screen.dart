@@ -24,6 +24,17 @@ class ConversationDurakTournamentScreen extends StatelessWidget {
   Future<void> _newGame(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     try {
+      final tSnap =
+          await FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).get();
+      final t = tSnap.data() ?? const <String, dynamic>{};
+      final conversationId = (t['conversationId'] ?? '').toString();
+      final isGroup = conversationId.isEmpty
+          ? true
+          : (await FirebaseFirestore.instance.collection('conversations').doc(conversationId).get())
+                  .data()?['isGroup'] ==
+              true;
+      if (!context.mounted) return;
+
       final settingsRes = await showModalBottomSheet<DurakLobbySettingsResult>(
         context: context,
         isScrollControlled: true,
@@ -37,6 +48,7 @@ class ConversationDurakTournamentScreen extends StatelessWidget {
             'throwInPolicy': 'all',
             'shulerEnabled': false,
           },
+          isGroup: isGroup,
         ),
       );
       if (settingsRes == null) return;
