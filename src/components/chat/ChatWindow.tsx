@@ -75,7 +75,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettings } from '@/hooks/use-settings';
 import { DASHBOARD_GAME_ID_QUERY } from '@/lib/dashboard-conversation-url';
 import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
@@ -176,14 +176,14 @@ export function ChatWindow({
   const storage = useStorage();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [openGameId, setOpenGameId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const p = new URLSearchParams(window.location.search || '');
-    const gid = p.get(DASHBOARD_GAME_ID_QUERY);
-    if (gid && gid.trim()) setOpenGameId(gid.trim());
-  }, [conversation.id]);
+    const gid = searchParams?.get(DASHBOARD_GAME_ID_QUERY);
+    const trimmed = (gid ?? '').trim();
+    setOpenGameId(trimmed ? trimmed : null);
+  }, [conversation.id, searchParams]);
 
   const closeGameDialog = useCallback(() => {
     setOpenGameId(null);

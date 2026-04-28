@@ -99,7 +99,12 @@ class ConversationGamesScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: lobbiesQuery.snapshots(),
         builder: (context, snap) {
-          final docs = snap.data?.docs ?? const [];
+          final docs = (snap.data?.docs ?? const [])
+              .where((d) {
+                final s = (d.data()['status'] ?? '').toString();
+                return s == 'lobby' || s == 'active';
+              })
+              .toList(growable: false);
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             children: [
