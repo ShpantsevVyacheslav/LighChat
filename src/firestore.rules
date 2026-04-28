@@ -492,12 +492,22 @@ service cloud.firestore {
     /**
      * Games (in-chat mini apps):
      * - Документы создаются/обновляются только через Cloud Functions (Admin SDK).
-     * - Клиенты читают только свои игры (uid ∈ playerIds).
+     * - Клиенты читают свои игры (uid ∈ playerIds).
+     * - Для лобби разрешаем read участникам conversation, чтобы можно было открыть/вступить до joinGameLobby.
      */
     match /games/{gameId} {
-      allow read: if isSignedIn()
-        && resource.data.playerIds is list
-        && resource.data.playerIds.hasAny([request.auth.uid]);
+      allow read: if isSignedIn() && (
+        (
+          resource.data.playerIds is list
+          && resource.data.playerIds.hasAny([request.auth.uid])
+        ) || (
+          resource.data.status == 'lobby'
+          && resource.data.conversationId is string
+          && isConversationMember(resource.data.conversationId)
+          && canReadSecretChat(resource.data.conversationId, conversationData(resource.data.conversationId))
+          && !isDmHiddenForViewerFromConvData(conversationData(resource.data.conversationId))
+        )
+      );
       allow write: if false;
 
       /** Private hands: only the owner reads. */
