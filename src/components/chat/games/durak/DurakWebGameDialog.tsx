@@ -48,9 +48,15 @@ export function DurakWebGameDialog({
   );
   const { data: game, error: gameError, isLoading: gameLoading } = useDoc<GameDoc>(gameRef);
 
+  const gamePlayerIds = game?.playerIds ?? [];
+  const inGame = gamePlayerIds.includes(currentUser.id);
+
   const handRef = useMemoFirebase(
-    () => (firestore && gameId ? doc(firestore, `games/${gameId}/privateHands/${currentUser.id}`) : null),
-    [firestore, gameId, currentUser.id]
+    () =>
+      firestore && gameId && inGame
+        ? doc(firestore, `games/${gameId}/privateHands/${currentUser.id}`)
+        : null,
+    [firestore, gameId, currentUser.id, inGame]
   );
   const { data: hand } = useDoc<HandDoc>(handRef);
 
@@ -90,8 +96,7 @@ export function DurakWebGameDialog({
 
   const publicView = game?.publicView ?? null;
   const status = game?.status ?? '';
-  const playerIds = game?.playerIds ?? [];
-  const inGame = playerIds.includes(currentUser.id);
+  const playerIds = gamePlayerIds;
   const isOwner = game?.createdBy === currentUser.id;
 
   const attacks = (publicView?.table?.attacks ?? []) as Card[];
@@ -130,10 +135,18 @@ export function DurakWebGameDialog({
               <Badge variant="secondary">players: {playerIds.length}</Badge>
               <Badge variant="secondary">trump: {trumpSuit || '—'}</Badge>
               <div className="ml-auto flex items-center gap-2">
-                <Button onClick={joinLobby} disabled={busy != null}>
-                  Присоединиться
-                </Button>
-                <Button onClick={startGame} disabled={busy != null || status !== 'lobby' || !inGame}>
+                {!inGame ? (
+                  <Button onClick={joinLobby} disabled={busy != null || status !== 'lobby'}>
+                    Присоединиться
+                  </Button>
+                ) : (
+                  <Badge variant="secondary">Ты в игре</Badge>
+                )}
+                <Button
+                  onClick={startGame}
+                  disabled={busy != null || status !== 'lobby' || !inGame || !isOwner || playerIds.length < 2}
+                  title={!isOwner ? 'Старт может нажать только создатель лобби' : undefined}
+                >
                   Старт
                 </Button>
                 <Button
