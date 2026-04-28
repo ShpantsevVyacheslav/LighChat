@@ -113,11 +113,12 @@ service cloud.firestore {
      * Fallback: participantIds на parent — только если индекса ещё нет.
      */
     function isConversationMember(conversationId) {
+      // IMPORTANT: For subcollection list queries (messages/e2eeSessions/etc),
+      // relying on `exists(conversations/{id}/members/{uid})` has proven brittle
+      // across SDK/query shapes. Use parent conversation `participantIds` as
+      // the source of truth for membership checks.
       return isSignedIn()
-        && (
-          exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
-          || conversationMemberFallbackFromParent(conversationId)
-        );
+        && uidIsConversationParticipantFromData(conversationData(conversationId));
     }
 
     /**
@@ -171,7 +172,10 @@ service cloud.firestore {
     }
 
     function isSecretChatConversationData(data) {
-      return data.secretChat is map && data.secretChat.enabled == true;
+      // Defensive: absent fields can trigger evaluation errors in some rule paths.
+      return data.keys().hasAny(['secretChat'])
+        && data.secretChat is map
+        && data.secretChat.enabled == true;
     }
 
     function hasActiveSecretChatAccess(conversationId) {
