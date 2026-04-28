@@ -1621,8 +1621,9 @@ class _ChatPartnerProfileSheetState
     required String title,
     String? subtitle,
     String? trailing,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
   }) {
+    final enabled = onTap != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
@@ -1637,7 +1638,7 @@ class _ChatPartnerProfileSheetState
                 Icon(
                   icon,
                   size: 22,
-                  color: Colors.white.withValues(alpha: 0.86),
+                  color: Colors.white.withValues(alpha: enabled ? 0.86 : 0.42),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1664,7 +1665,7 @@ class _ChatPartnerProfileSheetState
                             style: TextStyle(
                               fontSize: 12,
                               height: 1.25,
-                              color: Colors.white.withValues(alpha: 0.52),
+                              color: Colors.white.withValues(alpha: enabled ? 0.52 : 0.30),
                             ),
                           ),
                         ),
@@ -1677,7 +1678,7 @@ class _ChatPartnerProfileSheetState
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withValues(alpha: 0.45),
+                      color: Colors.white.withValues(alpha: enabled ? 0.45 : 0.28),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -1685,7 +1686,7 @@ class _ChatPartnerProfileSheetState
                 Icon(
                   Icons.chevron_right_rounded,
                   size: 22,
-                  color: Colors.white.withValues(alpha: 0.38),
+                  color: Colors.white.withValues(alpha: enabled ? 0.38 : 0.22),
                 ),
               ],
             ),
