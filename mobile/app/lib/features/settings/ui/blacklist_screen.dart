@@ -19,7 +19,7 @@ class BlacklistScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.trim().isEmpty) {
-      return const Scaffold(body: Center(child: Text('Not signed in.')));
+      return Scaffold(body: Center(child: Text(l10n.forward_error_not_authorized)));
     }
 
     final blockedAsync = ref.watch(userBlockedUserIdsProvider(uid));
@@ -86,7 +86,10 @@ class BlacklistScreen extends ConsumerWidget {
                     error: (e, _) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text('Ошибка: $e', textAlign: TextAlign.center),
+                        child: Text(
+                          l10n.chat_list_error_generic(e),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                     data: (ids) {
@@ -214,7 +217,9 @@ class _BlacklistTileState extends ConsumerState<_BlacklistTile> {
     final fg = dark ? Colors.white : scheme.onSurface;
 
     final rawName = (widget.profile?.name ?? '').trim();
-    final title = rawName.isNotEmpty ? rawName : 'User';
+    final l10n = AppLocalizations.of(context)!;
+    final title =
+        rawName.isNotEmpty ? rawName : l10n.new_chat_fallback_user_display_name;
     final rawUsername = (widget.profile?.username ?? '').trim();
     final username = rawUsername.isNotEmpty
         ? '@${rawUsername.replaceFirst(RegExp(r'^@'), '')}'

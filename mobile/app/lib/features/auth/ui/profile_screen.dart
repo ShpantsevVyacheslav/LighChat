@@ -199,7 +199,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final b = _confirmPassword.text;
     if (a.isEmpty && b.isEmpty) return null;
     if (a.isEmpty || b.isEmpty) {
-      return 'Заполните новый пароль и повтор.';
+      return AppLocalizations.of(context)!.profile_password_error_fill_both;
     }
     final e = validatePassword(a);
     if (e != null) return e;
@@ -392,7 +392,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     if (bytes == null && (url == null || url.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нет фото профиля для просмотра.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.profile_no_photo_to_view),
+        ),
       );
       return;
     }
@@ -571,7 +573,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           controller: _username,
                           enabled: !_busy,
                           readOnly: !_editing,
-                          hintText: 'username',
+                          hintText: l10n.profile_placeholder_username,
                           textCapitalization: TextCapitalization.none,
                         ),
                         const SizedBox(height: 22),
@@ -585,7 +587,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           enabled: !_busy,
                           readOnly: !_editing,
                           keyboardType: TextInputType.emailAddress,
-                          hintText: 'name@example.com',
+                          hintText: l10n.profile_placeholder_email,
                           textCapitalization: TextCapitalization.none,
                         ),
                         const SizedBox(height: 22),
@@ -606,7 +608,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     readOnly: !_editing,
                                     keyboardType: TextInputType.phone,
                                     inputFormatters: [PhoneRuMaskFormatter()],
-                                    hintText: '+7900 000-00-00',
+                                    hintText: l10n.profile_placeholder_phone,
                                     textCapitalization: TextCapitalization.none,
                                   ),
                                 ],
@@ -626,7 +628,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     controller: _dob,
                                     enabled: !_busy,
                                     readOnly: !_editing,
-                                    hintText: 'DD.MM.YYYY',
+                                    hintText: l10n.profile_placeholder_birthdate,
                                     textCapitalization: TextCapitalization.none,
                                   ),
                                 ],
@@ -866,6 +868,7 @@ class _PasswordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return TextField(
       controller: controller,
       enabled: enabled,
@@ -877,7 +880,7 @@ class _PasswordField extends StatelessWidget {
         color: Colors.white.withValues(alpha: 0.95),
       ),
       decoration: InputDecoration(
-        hintText: '••••••••',
+        hintText: l10n.profile_placeholder_password_dots,
         hintStyle: TextStyle(
           fontSize: 16,
           color: Colors.white.withValues(alpha: 0.34),

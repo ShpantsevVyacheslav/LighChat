@@ -28,19 +28,21 @@ import '../data/user_block_providers.dart';
 import '../data/user_profile.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_avatar.dart';
+import 'conversation_games_screen.dart';
 import 'e2ee_fingerprint_badge.dart';
 import 'chat_conversation_notifications_screen.dart';
 import 'chat_conversation_theme_screen.dart';
 import 'conversation_encryption_screen.dart';
 import 'conversation_disappearing_screen.dart';
 import '../data/disappearing_messages_label.dart';
+import '../data/secret_chat_create.dart';
 import 'conversation_media_links_files_screen.dart';
 import 'conversation_starred_screen.dart';
 import 'chat_shell_backdrop.dart';
 import 'chat_video_call_screen.dart';
 import 'user_avatar_fullscreen_viewer.dart';
-
-const _kRoleLabels = {'admin': 'Администратор', 'worker': 'Участник'};
+import 'secret_chat_ttl_sheet.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
   const ChatPartnerProfileSheet({
@@ -89,15 +91,23 @@ class _ChatPartnerProfileSheetState
     return others.isEmpty ? null : others.first;
   }
 
-  String get _displayTitle {
-    if (_isGroup) return widget.conversation.name ?? 'Групповой чат';
-    if (_isSaved) return widget.conversation.name ?? 'Избранное';
+  String _displayTitleFor(AppLocalizations l10n) {
+    if (_isGroup) {
+      return widget.conversation.name ??
+          l10n.partner_profile_title_fallback_group;
+    }
+    if (_isSaved) {
+      return widget.conversation.name ??
+          l10n.partner_profile_title_fallback_saved;
+    }
     final pid = _dmPartnerId;
     if (pid != null) {
       final fromConv = widget.conversation.participantInfo?[pid]?.name;
-      return widget.partnerProfile?.name ?? fromConv ?? 'Чат';
+      return widget.partnerProfile?.name ??
+          fromConv ??
+          l10n.partner_profile_title_fallback_chat;
     }
-    return 'Чат';
+    return l10n.partner_profile_title_fallback_chat;
   }
 
   String? get _displayAvatarUrl {
@@ -160,13 +170,23 @@ class _ChatPartnerProfileSheetState
   }
 
   /// При username раньше терялась строка «последний вход».
-  (String, String?) _profileHeaderSubtitles(String statusForDm) {
+  (String, String?) _profileHeaderSubtitles(
+    AppLocalizations l10n,
+    String statusForDm,
+  ) {
     if (_isGroup) {
       final d = widget.conversation.description?.trim();
       if (d != null && d.isNotEmpty) return (d, null);
-      return ('${widget.conversation.participantIds.length} участников', null);
+      return (
+        l10n.partner_profile_subtitle_group_member_count(
+          widget.conversation.participantIds.length,
+        ),
+        null,
+      );
     }
-    if (_isSaved) return ('Сообщения и заметки только для вас', null);
+    if (_isSaved) {
+      return (l10n.partner_profile_subtitle_saved_messages, null);
+    }
     final u = widget.partnerProfile?.username?.trim();
     if (u != null && u.isNotEmpty) {
       final second = statusForDm.trim().isEmpty ? null : statusForDm;
@@ -262,6 +282,7 @@ class _ChatPartnerProfileSheetState
     required String displayTitle,
   }) async {
     if (_chatActionBusy) return;
+    final l10n = AppLocalizations.of(context)!;
     final self = widget.selfProfile;
     final partner = widget.partnerProfile;
     final target = partner ?? _contactTarget(partnerId);
@@ -274,7 +295,7 @@ class _ChatPartnerProfileSheetState
           partnerBlockedIdsSupplement: their.asData?.value,
           partnerUserDocDenied: their.hasError,
         )) {
-      _toast('С этим пользователем нельзя связаться.');
+      _toast(l10n.partner_profile_error_cannot_contact_user);
       return;
     }
     final repo = ref.read(chatRepositoryProvider);
@@ -292,7 +313,7 @@ class _ChatPartnerProfileSheetState
                   widget.conversation.participantInfo?[partnerId]?.name ??
                   displayTitle)
               .trim()
-        : 'Пользователь';
+        : l10n.new_chat_fallback_user_display_name;
     final peerAvatar =
         partner?.avatar ??
         widget.conversation.participantInfo?[partnerId]?.avatar;
@@ -325,7 +346,54 @@ class _ChatPartnerProfileSheetState
       context.push('/chats/$id');
     } catch (e) {
       if (!mounted) return;
-      _toast('Не удалось открыть чат: $e');
+      _toast(l10n.partner_profile_error_open_chat(e));
+    } finally {
+      if (mounted) setState(() => _chatActionBusy = false);
+    }
+  }
+
+  Future<void> _openSecretChatFromActions({
+    required String partnerId,
+    required String displayTitle,
+  }) async {
+    if (_chatActionBusy) return;
+    final l10n = AppLocalizations.of(context)!;
+    final self = widget.selfProfile;
+    final partner = widget.partnerProfile;
+    if (self == null || partnerId.trim().isEmpty) {
+      _toast(l10n.partner_profile_error_open_chat('missing self/partner'));
+      return;
+    }
+    final ttlSec = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const SecretChatTtlSheet(),
+    );
+    if (ttlSec == null || !mounted) return;
+    setState(() => _chatActionBusy = true);
+    try {
+      final id = await createOrOpenSecretDirectChat(
+        firestore: FirebaseFirestore.instance,
+        currentUserId: widget.currentUserId,
+        otherUserId: partnerId,
+        currentUserInfo: (
+          name: self.name.trim().isNotEmpty ? self.name.trim() : widget.currentUserId,
+          avatar: self.avatar,
+          avatarThumb: self.avatarThumb,
+        ),
+        otherUserInfo: (
+          name: (partner?.name ?? displayTitle).trim().isNotEmpty
+              ? (partner?.name ?? displayTitle).trim()
+              : l10n.new_chat_fallback_user_display_name,
+          avatar: partner?.avatar,
+          avatarThumb: partner?.avatarThumb,
+        ),
+        ttlPresetSec: ttlSec,
+      );
+      if (!mounted) return;
+      context.push('/chats/$id');
+    } catch (e) {
+      if (mounted) _toast(l10n.partner_profile_error_open_chat(e));
     } finally {
       if (mounted) setState(() => _chatActionBusy = false);
     }
@@ -337,6 +405,7 @@ class _ChatPartnerProfileSheetState
     required bool isVideo,
   }) async {
     if (_callScreenOpening) return;
+    final l10n = AppLocalizations.of(context)!;
     final self = widget.selfProfile;
     final partner = widget.partnerProfile;
     final target = partner ?? _contactTarget(partnerId);
@@ -358,7 +427,7 @@ class _ChatPartnerProfileSheetState
                 partnerBlockedIds: their.asData?.value ?? target.blockedUserIds,
                 partnerUserDocDenied: their.hasError,
               )
-            : 'С этим пользователем нельзя связаться.',
+            : l10n.partner_profile_error_cannot_contact_user,
       );
       return;
     }
@@ -377,7 +446,7 @@ class _ChatPartnerProfileSheetState
                   widget.conversation.participantInfo?[partnerId]?.name ??
                   displayTitle)
               .trim()
-        : 'Собеседник';
+        : l10n.partner_profile_call_peer_fallback;
     final peerAvatar =
         partner?.avatarThumb ??
         partner?.avatar ??
@@ -420,6 +489,7 @@ class _ChatPartnerProfileSheetState
     required String partnerId,
     required String displayTitle,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final p = widget.partnerProfile;
     final username = (p?.username ?? '').trim();
     final phone = (p?.phone ?? '').trim();
@@ -442,31 +512,31 @@ class _ChatPartnerProfileSheetState
       sharedFiles.add(avatarFile);
     }
     final lines = <String>[
-      'Контакт в LighChat',
+      l10n.partner_profile_share_contact_header,
       displayTitle,
       if (username.isNotEmpty)
         username.startsWith('@') ? username : '@$username',
       if (phone.isNotEmpty) formatPhoneNumberForDisplay(phone),
-      if (avatarUrl.isNotEmpty) 'Аватар: $avatarUrl',
-      'Профиль: $profileUrl',
+      if (avatarUrl.isNotEmpty) l10n.partner_profile_share_avatar_line(avatarUrl),
+      l10n.partner_profile_share_profile_line(profileUrl),
     ];
     try {
       await SharePlus.instance.share(
         ShareParams(
           text: lines.join('\n'),
-          subject: 'Контакт LighChat: $displayTitle',
+          subject: l10n.partner_profile_share_contact_subject(displayTitle),
           files: sharedFiles,
           sharePositionOrigin: shareRect,
         ),
       );
       if (!mounted) return;
-      _toast('Контакт отправлен');
+      _toast(l10n.partner_profile_contact_sent);
     } catch (e) {
       if (!mounted) return;
       final fallback = lines.join('\n');
       await Clipboard.setData(ClipboardData(text: fallback));
       if (!mounted) return;
-      _toast('Не удалось открыть шаринг. Текст контакта скопирован.');
+      _toast(l10n.partner_profile_share_failed_copied);
     }
   }
 
@@ -553,11 +623,12 @@ class _ChatPartnerProfileSheetState
 
   Future<void> _setConversationMuted(bool muted) async {
     if (_muteToggleBusy) return;
+    final l10n = AppLocalizations.of(context)!;
     final repo = ref.read(chatSettingsRepositoryProvider);
     if (repo == null) return;
     final convId = widget.conversationId.trim();
     if (convId.isEmpty) {
-      _toast('Чат ещё не создан');
+      _toast(l10n.partner_profile_chat_not_created);
       return;
     }
     setState(() => _muteToggleBusy = true);
@@ -568,10 +639,14 @@ class _ChatPartnerProfileSheetState
         patch: <String, Object?>{'notificationsMuted': muted},
       );
       if (!mounted) return;
-      _toast(muted ? 'Уведомления отключены' : 'Уведомления включены');
+      _toast(
+        muted
+            ? l10n.partner_profile_notifications_muted
+            : l10n.partner_profile_notifications_unmuted,
+      );
     } catch (e) {
       if (!mounted) return;
-      _toast('Не удалось изменить уведомления');
+      _toast(l10n.partner_profile_notifications_change_failed);
     } finally {
       if (mounted) setState(() => _muteToggleBusy = false);
     }
@@ -606,14 +681,15 @@ class _ChatPartnerProfileSheetState
   }
 
   Future<void> _onRemoveContact(String partnerId) async {
+    final l10n = AppLocalizations.of(context)!;
     final repo = ref.read(userContactsRepositoryProvider);
     if (repo == null) return;
     setState(() => _addContactBusy = true);
     try {
       await repo.removeContactId(widget.currentUserId, partnerId);
-      if (mounted) _toast('Удалено из контактов');
+      if (mounted) _toast(l10n.partner_profile_removed_from_contacts);
     } catch (e) {
-      if (mounted) _toast('Не удалось удалить из контактов');
+      if (mounted) _toast(l10n.partner_profile_remove_contact_failed);
     } finally {
       if (mounted) setState(() => _addContactBusy = false);
     }
@@ -621,7 +697,9 @@ class _ChatPartnerProfileSheetState
 
   Future<void> _copyChatId() async {
     await Clipboard.setData(ClipboardData(text: widget.conversationId));
-    if (mounted) _toast('Идентификатор чата скопирован');
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    _toast(l10n.profile_chat_id_copied_toast);
   }
 
   Future<void> _openStarredMessages() async {
@@ -656,22 +734,21 @@ class _ChatPartnerProfileSheetState
     String partnerId,
     bool currentlyBlocked,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     if (currentlyBlocked) {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Разблокировать пользователя?'),
-          content: const Text(
-            'Пользователь снова сможет писать вам и видеть ваш профиль в поиске (в пределах правил приватности).',
-          ),
+          title: Text(l10n.blacklist_unblock_confirm_title),
+          content: Text(l10n.blacklist_unblock_confirm_body),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Отмена'),
+              child: Text(l10n.common_cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Разблокировать'),
+              child: Text(l10n.blacklist_action_unblock),
             ),
           ],
         ),
@@ -687,9 +764,9 @@ class _ChatPartnerProfileSheetState
           },
           SetOptions(merge: true),
         );
-        if (mounted) _toast('Пользователь разблокирован');
+        if (mounted) _toast(l10n.blacklist_unblock_success);
       } catch (e) {
-        if (mounted) _toast('Не удалось разблокировать: $e');
+        if (mounted) _toast(l10n.blacklist_unblock_error(e));
       }
       return;
     }
@@ -697,20 +774,16 @@ class _ChatPartnerProfileSheetState
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Заблокировать пользователя?'),
-        content: const Text(
-          'Он не увидит чат с вами, не сможет найти вас в поиске и добавить в контакты. '
-          'У него вы пропадёте из контактов. Вы сохраните переписку, но не сможете писать ему, '
-          'пока он в списке заблокированных.',
-        ),
+        title: Text(l10n.partner_profile_block_confirm_title),
+        content: Text(l10n.partner_profile_block_confirm_body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(l10n.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Заблокировать'),
+            child: Text(l10n.partner_profile_block_action),
           ),
         ],
       ),
@@ -726,18 +799,20 @@ class _ChatPartnerProfileSheetState
         },
         SetOptions(merge: true),
       );
-      if (mounted) _toast('Пользователь заблокирован');
+      if (mounted) _toast(l10n.partner_profile_block_success);
     } catch (e) {
-      if (mounted) _toast('Не удалось заблокировать: $e');
+      if (mounted) _toast(l10n.partner_profile_block_error(e));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final partnerId = _dmPartnerId;
     final fresh = widget.partnerProfile;
     final statusDm = partnerPresenceLine(fresh);
-    final (subtitleLine1, subtitleLine2) = _profileHeaderSubtitles(statusDm);
+    final (subtitleLine1, subtitleLine2) =
+        _profileHeaderSubtitles(l10n, statusDm);
 
     final contactsAsync = ref.watch(
       userContactsIndexProvider(widget.currentUserId),
@@ -763,13 +838,14 @@ class _ChatPartnerProfileSheetState
           partnerUserDocDenied: theirBlockedAsync?.hasError == true,
         );
     final isContact = partnerId != null && contactIds.contains(partnerId);
+    final baseTitle = _displayTitleFor(l10n);
     final displayTitle = !_isGroup && !_isSaved && partnerId != null
         ? resolveContactDisplayName(
             contactProfiles: contactProfiles,
             contactUserId: partnerId,
-            fallbackName: _displayTitle,
+            fallbackName: baseTitle,
           )
-        : _displayTitle;
+        : baseTitle;
     final hasDetailRows = _hasContactDetailRows(fresh, partnerId);
     final settingsRepo = ref.watch(chatSettingsRepositoryProvider);
 
@@ -781,7 +857,7 @@ class _ChatPartnerProfileSheetState
       loading: () => 0,
       error: (_, _) => 0,
     );
-    final mediaLabel = mediaCount == 0 ? 'Нет' : '$mediaCount';
+    final mediaLabel = mediaCount == 0 ? l10n.common_none : '$mediaCount';
     final starredIdsAsync = ref.watch(
       starredMessageIdsInConversationProvider((
         userId: widget.currentUserId,
@@ -789,7 +865,7 @@ class _ChatPartnerProfileSheetState
       )),
     );
     final starredCount = starredIdsAsync.value?.length ?? 0;
-    final starredLabel = starredCount == 0 ? 'Нет' : '$starredCount';
+    final starredLabel = starredCount == 0 ? l10n.common_none : '$starredCount';
 
     final threadsCount = msgsAsync.when(
       data: (m) =>
@@ -797,29 +873,36 @@ class _ChatPartnerProfileSheetState
       loading: () => 0,
       error: (_, _) => 0,
     );
-    final threadsLabel = threadsCount == 0 ? 'Нет' : '$threadsCount';
+    final threadsLabel = threadsCount == 0 ? l10n.common_none : '$threadsCount';
 
     final showEncryptionRow = !_isGroup && !_isSaved;
     final showDisappearingMessagesRow = !_isSaved;
-    final disappearingTrailing =
-        formatDisappearingTtlSummary(widget.conversation.disappearingMessageTtlSec);
+    final disappearingTrailing = formatDisappearingTtlSummaryForLocale(
+      l10n,
+      widget.conversation.disappearingMessageTtlSec,
+    );
     final e2eeOn =
         widget.conversation.e2eeEnabled == true &&
         (widget.conversation.e2eeKeyEpoch ?? 0) > 0;
-    final encryptionLabel = e2eeOn ? 'Вкл' : 'Выкл';
+    final encryptionLabel =
+        e2eeOn ? l10n.conversation_profile_e2ee_on : l10n.conversation_profile_e2ee_off;
 
     final roleLabel = fresh?.role;
     final roleDisplay = roleLabel == null || roleLabel.isEmpty
         ? null
-        : (_kRoleLabels[roleLabel] ?? roleLabel);
+        : (roleLabel == 'admin'
+            ? l10n.group_member_role_admin
+            : roleLabel == 'worker'
+                ? l10n.group_member_role_worker
+                : roleLabel);
 
     const hiPrimary = Color(0xFFF2F4FA);
     const hiMuted = Color(0xFFB4BDD1);
     const hiFaint = Color(0xFF8B95AD);
 
     final encryptionSubtitle = e2eeOn
-        ? 'Сквозное шифрование включено. Нажмите для подробностей.'
-        : 'Сквозное шифрование выключено. Нажмите, чтобы включить.';
+        ? l10n.conversation_profile_e2ee_subtitle_on
+        : l10n.conversation_profile_e2ee_subtitle_off;
 
     final myBlocked = myBlockedAsync.value ?? const <String>[];
     final partnerIsBlocked =
@@ -857,14 +940,16 @@ class _ChatPartnerProfileSheetState
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
                 color: hiPrimary.withValues(alpha: 0.94),
                 onPressed: _onLeadingAppBarBack,
-                tooltip: widget.fullScreen ? 'Назад' : 'Закрыть',
+                tooltip: widget.fullScreen
+                    ? l10n.partner_profile_tooltip_back
+                    : l10n.partner_profile_tooltip_close,
               ),
               const Spacer(),
               if (!_isGroup && !_isSaved && partnerId != null)
                 TextButton(
                   onPressed: () => _onAddContact(partnerId),
                   child: Text(
-                    'Изм.',
+                    l10n.partner_profile_edit_contact_short,
                     style: TextStyle(
                       color: hiPrimary.withValues(alpha: 0.94),
                       fontWeight: FontWeight.w700,
@@ -877,7 +962,7 @@ class _ChatPartnerProfileSheetState
                   icon: const Icon(Icons.share_rounded, size: 22),
                   color: hiPrimary.withValues(alpha: 0.94),
                   onPressed: _copyChatId,
-                  tooltip: 'Скопировать ID чата',
+                  tooltip: l10n.partner_profile_tooltip_copy_chat_id,
                 ),
             ],
           ),
@@ -951,7 +1036,7 @@ class _ChatPartnerProfileSheetState
                       if (widget.showChatsAction)
                         _ProfileQuickAction(
                           icon: Icons.chat_bubble_outline_rounded,
-                          label: 'Чаты',
+                          label: l10n.partner_profile_action_chats,
                           busy: _chatActionBusy,
                           onTap: _chatActionBusy || !canDirectInteract
                               ? null
@@ -961,8 +1046,19 @@ class _ChatPartnerProfileSheetState
                                 ),
                         ),
                       _ProfileQuickAction(
+                        icon: Icons.lock_rounded,
+                        label: l10n.secret_chat_title,
+                        busy: _chatActionBusy,
+                        onTap: _chatActionBusy || !canDirectInteract
+                            ? null
+                            : () => _openSecretChatFromActions(
+                                partnerId: partnerId,
+                                displayTitle: displayTitle,
+                              ),
+                      ),
+                      _ProfileQuickAction(
                         icon: Icons.call_rounded,
-                        label: 'Звонок',
+                        label: l10n.partner_profile_action_voice_call,
                         busy: _callScreenOpening,
                         onTap: _callScreenOpening || !canDirectInteract
                             ? null
@@ -974,7 +1070,7 @@ class _ChatPartnerProfileSheetState
                       ),
                       _ProfileQuickAction(
                         icon: Icons.videocam_rounded,
-                        label: 'Видео',
+                        label: l10n.partner_profile_action_video,
                         busy: _callScreenOpening,
                         onTap: _callScreenOpening || !canDirectInteract
                             ? null
@@ -986,7 +1082,7 @@ class _ChatPartnerProfileSheetState
                       ),
                       _ProfileQuickAction(
                         icon: Icons.share_outlined,
-                        label: 'Поделиться',
+                        label: l10n.partner_profile_action_share,
                         onTap: () => _shareProfileFromActions(
                           partnerId: partnerId,
                           displayTitle: displayTitle,
@@ -996,7 +1092,7 @@ class _ChatPartnerProfileSheetState
                         icon: muted
                             ? Icons.notifications_off_rounded
                             : Icons.notifications_rounded,
-                        label: 'Звук',
+                        label: l10n.partner_profile_action_notifications,
                         busy: _muteToggleBusy,
                         onTap: _muteToggleBusy
                             ? null
@@ -1016,6 +1112,9 @@ class _ChatPartnerProfileSheetState
                 _ContactPill(
                   isContact: false,
                   busy: _addContactBusy,
+                  addToContactsLabel: l10n.partner_profile_add_to_contacts,
+                  removeFromContactsLabel:
+                      l10n.partner_profile_remove_from_contacts,
                   onPressed: _addContactBusy
                       ? null
                       : () => _onAddContact(partnerId),
@@ -1025,6 +1124,7 @@ class _ChatPartnerProfileSheetState
               if (hasDetailRows && fresh != null && partnerId != null)
                 _buildContactDataExpansion(
                   context,
+                  l10n: l10n,
                   fresh: fresh,
                   roleDisplay: roleDisplay,
                 ),
@@ -1032,37 +1132,37 @@ class _ChatPartnerProfileSheetState
                 _menuButton(
                   context,
                   icon: Icons.group_rounded,
-                  title: 'Участники',
+                  title: l10n.partner_profile_menu_members,
                   trailing: '${widget.conversation.participantIds.length}',
-                  onTap: () => _toast('Участники: скоро'),
+                  onTap: () => _toast(l10n.common_soon),
                 ),
                 if (_isGroupAdmin())
                   _menuButton(
                     context,
                     icon: Icons.edit_rounded,
-                    title: 'Редактировать группу',
-                    onTap: () => _toast('Редактирование группы: скоро'),
+                    title: l10n.partner_profile_menu_edit_group,
+                    onTap: () => _toast(l10n.common_soon),
                   ),
                 _sectionDivider(),
               ],
               _menuButton(
                 context,
                 icon: Icons.perm_media_rounded,
-                title: 'Медиа, ссылки и файлы',
+                title: l10n.partner_profile_menu_media_links_files,
                 trailing: mediaLabel,
                 onTap: _openMediaLinksFiles,
               ),
               _menuButton(
                 context,
                 icon: Icons.star_rounded,
-                title: 'Избранное',
+                title: l10n.partner_profile_menu_starred,
                 trailing: starredLabel,
                 onTap: _openStarredMessages,
               ),
               _menuButton(
                 context,
                 icon: Icons.forum_rounded,
-                title: 'Обсуждения',
+                title: l10n.partner_profile_menu_threads,
                 trailing: threadsLabel,
                 onTap: () {
                   if (!widget.fullScreen) {
@@ -1071,14 +1171,36 @@ class _ChatPartnerProfileSheetState
                   context.push('/chats/${widget.conversationId}/threads');
                 },
               ),
+              _menuButton(
+                context,
+                icon: Icons.sports_esports_rounded,
+                title: l10n.partner_profile_menu_games,
+                onTap: () {
+                  final rootNav = Navigator.of(context, rootNavigator: true);
+                  if (!widget.fullScreen) {
+                    Navigator.of(context).pop();
+                  }
+                  unawaited(
+                    rootNav.push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ConversationGamesScreen(
+                          conversationId: widget.conversationId,
+                          isGroup: _isGroup,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
               if (!_isGroup && !_isSaved && partnerId != null)
                 _menuButton(
                   context,
                   icon: partnerIsBlocked
                       ? Icons.lock_open_rounded
                       : Icons.block_rounded,
-                  title:
-                      partnerIsBlocked ? 'Разблокировать' : 'Заблокировать',
+                  title: partnerIsBlocked
+                      ? l10n.partner_profile_menu_unblock
+                      : l10n.partner_profile_menu_block,
                   onTap: () => unawaited(
                     _toggleBlockPartner(partnerId, partnerIsBlocked),
                   ),
@@ -1087,7 +1209,7 @@ class _ChatPartnerProfileSheetState
               _menuButton(
                 context,
                 icon: Icons.notifications_rounded,
-                title: 'Уведомления',
+                title: l10n.partner_profile_menu_notifications,
                 onTap: () async {
                   await Navigator.of(context).push<void>(
                     CupertinoPageRoute(
@@ -1102,7 +1224,7 @@ class _ChatPartnerProfileSheetState
               _menuButton(
                 context,
                 icon: Icons.palette_rounded,
-                title: 'Тема чата',
+                title: l10n.partner_profile_menu_chat_theme,
                 onTap: () async {
                   await Navigator.of(context).push<void>(
                     CupertinoPageRoute(
@@ -1118,7 +1240,7 @@ class _ChatPartnerProfileSheetState
                 _menuButton(
                   context,
                   icon: Icons.timer_rounded,
-                  title: 'Исчезающие сообщения',
+                  title: l10n.disappearing_messages_title,
                   trailing: disappearingTrailing,
                   onTap: () async {
                     await Navigator.of(context).push<void>(
@@ -1132,11 +1254,24 @@ class _ChatPartnerProfileSheetState
                     );
                   },
                 ),
+              if (widget.conversation.secretChat?.enabled == true)
+                _menuButton(
+                  context,
+                  icon: Icons.lock_clock_rounded,
+                  title: l10n.secret_chat_settings_title,
+                  subtitle: l10n.secret_chat_settings_subtitle,
+                  onTap: () {
+                    if (!widget.fullScreen) {
+                      Navigator.of(context).pop();
+                    }
+                    context.push('/chats/${widget.conversationId}/secret-settings');
+                  },
+                ),
               _menuButton(
                 context,
                 icon: Icons.shield_rounded,
-                title: 'Расширенная приватность чата',
-                trailing: 'По умолчанию',
+                title: l10n.partner_profile_menu_advanced_privacy,
+                trailing: l10n.partner_profile_privacy_trailing_default,
                 onTap: () {
                   if (!widget.fullScreen) {
                     Navigator.of(context).pop();
@@ -1150,7 +1285,7 @@ class _ChatPartnerProfileSheetState
                 _menuButton(
                   context,
                   icon: Icons.lock_rounded,
-                  title: 'Шифрование',
+                  title: l10n.partner_profile_menu_encryption,
                   subtitle: encryptionSubtitle,
                   trailing: encryptionLabel,
                   onTap: () async {
@@ -1174,14 +1309,14 @@ class _ChatPartnerProfileSheetState
                   child: E2eeFingerprintBadge(
                     firestore: FirebaseFirestore.instance,
                     userId: partnerId,
-                    userLabel: fresh?.name ?? _displayTitle,
+                    userLabel: fresh?.name ?? displayTitle,
                   ),
                 ),
               ],
               if (!_isSaved && !_isGroup && partnerId != null) ...[
                 const SizedBox(height: 18),
                 Text(
-                  'НЕТ ОБЩИХ ГРУПП',
+                  l10n.partner_profile_no_common_groups,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 11,
@@ -1194,8 +1329,10 @@ class _ChatPartnerProfileSheetState
                 _menuButton(
                   context,
                   icon: Icons.group_add_rounded,
-                  title: 'Создать группу с ${fresh?.name ?? _displayTitle}',
-                  onTap: () => _toast('Скоро'),
+                  title: l10n.partner_profile_create_group_with(
+                    fresh?.name ?? displayTitle,
+                  ),
+                  onTap: () => _toast(l10n.common_soon),
                 ),
               ],
               if (_isGroup) ...[
@@ -1204,9 +1341,9 @@ class _ChatPartnerProfileSheetState
                   style: TextButton.styleFrom(
                     foregroundColor: hiPrimary.withValues(alpha: 0.88),
                   ),
-                  onPressed: () => _toast('Покинуть группу: скоро'),
+                  onPressed: () => _toast(l10n.common_soon),
                   icon: const Icon(Icons.logout_rounded),
-                  label: const Text('Покинуть группу'),
+                  label: Text(l10n.partner_profile_leave_group),
                 ),
               ],
               if (partnerId != null && isContact && !_isGroup && !_isSaved) ...[
@@ -1214,6 +1351,9 @@ class _ChatPartnerProfileSheetState
                 _ContactPill(
                   isContact: true,
                   busy: _addContactBusy,
+                  addToContactsLabel: l10n.partner_profile_add_to_contacts,
+                  removeFromContactsLabel:
+                      l10n.partner_profile_remove_from_contacts,
                   onPressed: _addContactBusy
                       ? null
                       : () => _onRemoveContact(partnerId),
@@ -1296,6 +1436,7 @@ class _ChatPartnerProfileSheetState
   /// Раскрывающийся блок «Контакты и данные» — те же поля, что и раньше.
   Widget _buildContactDataExpansion(
     BuildContext context, {
+    required AppLocalizations l10n,
     required UserProfile fresh,
     required String? roleDisplay,
   }) {
@@ -1312,9 +1453,9 @@ class _ChatPartnerProfileSheetState
               horizontal: 12,
               vertical: 2,
             ),
-            title: const Text(
-              'Контакты и данные',
-              style: TextStyle(
+            title: Text(
+              l10n.partner_profile_contacts_and_data,
+              style: const TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
                 color: Color(0xFFF2F4FA),
@@ -1331,7 +1472,7 @@ class _ChatPartnerProfileSheetState
                 _detailTile(
                   context,
                   Icons.verified_user_rounded,
-                  'Роль в системе',
+                  l10n.partner_profile_field_system_role,
                   roleDisplay,
                 ),
               if (isProfileFieldVisibleToOthers(fresh, 'email') &&
@@ -1340,7 +1481,7 @@ class _ChatPartnerProfileSheetState
                 _detailTile(
                   context,
                   Icons.mail_rounded,
-                  'Электронная почта',
+                  l10n.partner_profile_field_email,
                   fresh.email!,
                 ),
               if (isProfileFieldVisibleToOthers(fresh, 'phone') &&
@@ -1349,7 +1490,7 @@ class _ChatPartnerProfileSheetState
                 _detailTile(
                   context,
                   Icons.smartphone_rounded,
-                  'Телефон',
+                  l10n.partner_profile_field_phone,
                   formatPhoneNumberForDisplay(fresh.phone!),
                 ),
               if (isProfileFieldVisibleToOthers(fresh, 'dateOfBirth') &&
@@ -1358,7 +1499,7 @@ class _ChatPartnerProfileSheetState
                 _detailTile(
                   context,
                   Icons.cake_rounded,
-                  'День рождения',
+                  l10n.partner_profile_field_birthday,
                   fresh.dateOfBirth!,
                 ),
               if (isProfileFieldVisibleToOthers(fresh, 'bio') &&
@@ -1372,7 +1513,7 @@ class _ChatPartnerProfileSheetState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'О себе',
+                          l10n.partner_profile_field_bio,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
@@ -1538,11 +1679,15 @@ class _ContactPill extends StatelessWidget {
   const _ContactPill({
     required this.isContact,
     required this.busy,
+    required this.addToContactsLabel,
+    required this.removeFromContactsLabel,
     this.onPressed,
   });
 
   final bool isContact;
   final bool busy;
+  final String addToContactsLabel;
+  final String removeFromContactsLabel;
   final VoidCallback? onPressed;
 
   @override
@@ -1569,7 +1714,7 @@ class _ContactPill extends StatelessWidget {
           color: fg,
         ),
         label: Text(
-          isContact ? 'Удалить из контактов' : 'Добавить в контакты',
+          isContact ? removeFromContactsLabel : addToContactsLabel,
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 14,

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/user_block_providers.dart';
 import '../data/user_profile.dart';
 
@@ -14,9 +15,12 @@ class BlockedUsersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return const Scaffold(body: Center(child: Text('Not signed in.')));
+      return Scaffold(
+        body: Center(child: Text(l10n.forward_error_not_authorized)),
+      );
     }
 
     final blockedAsync = ref.watch(userBlockedUserIdsProvider(uid));
@@ -24,7 +28,7 @@ class BlockedUsersScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Заблокированные'),
+        title: Text(l10n.account_menu_blacklist),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
@@ -38,12 +42,12 @@ class BlockedUsersScreen extends ConsumerWidget {
       ),
       body: blockedAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => Center(child: Text(l10n.chat_list_error_generic(e))),
         data: (ids) {
           if (ids.isEmpty) {
             return Center(
               child: Text(
-                'Нет заблокированных пользователей',
+                l10n.blacklist_empty,
                 style: TextStyle(
                   color: scheme.onSurface.withValues(alpha: 0.55),
                   fontSize: 16,
@@ -81,21 +85,20 @@ class _BlockedUserTileState extends ConsumerState<_BlockedUserTile> {
   Future<void> _unblock() async {
     final me = FirebaseAuth.instance.currentUser?.uid;
     if (me == null) return;
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Разблокировать?'),
-        content: const Text(
-          'Пользователь снова сможет писать вам (если политика контактов позволит) и видеть ваш профиль в поиске.',
-        ),
+        title: Text(l10n.blacklist_unblock_confirm_title),
+        content: Text(l10n.blacklist_unblock_confirm_body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(l10n.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Разблокировать'),
+            child: Text(l10n.blacklist_action_unblock),
           ),
         ],
       ),
@@ -115,7 +118,7 @@ class _BlockedUserTileState extends ConsumerState<_BlockedUserTile> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось: $e')),
+          SnackBar(content: Text(l10n.blacklist_unblock_error(e))),
         );
       }
     } finally {
@@ -125,6 +128,7 @@ class _BlockedUserTileState extends ConsumerState<_BlockedUserTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final repo = ref.watch(userProfilesRepositoryProvider);
     return FutureBuilder<Map<String, UserProfile>>(
       future: repo?.getUsersByIdsOnce([widget.userId]),
@@ -153,7 +157,7 @@ class _BlockedUserTileState extends ConsumerState<_BlockedUserTile> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Разблокировать'),
+                : Text(l10n.blacklist_action_unblock),
           ),
         );
       },

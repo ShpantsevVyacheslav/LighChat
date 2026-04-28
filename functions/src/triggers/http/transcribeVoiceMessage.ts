@@ -1,5 +1,6 @@
 import { onCall, HttpsError, type CallableRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
+import { defineSecret } from "firebase-functions/params";
 import * as admin from "firebase-admin";
 
 type RequestData = {
@@ -13,6 +14,8 @@ type ResponseData = {
 };
 
 const MAX_BYTES = 12 * 1024 * 1024; // 12 MB
+
+const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
 function asNonEmptyString(v: unknown): string | null {
   if (typeof v !== "string") return null;
@@ -41,7 +44,7 @@ async function openAiTranscribe({
   filename: string;
   languageCode: string;
 }): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = OPENAI_API_KEY.value();
   if (!apiKey) {
     throw new HttpsError("failed-precondition", "OPENAI_API_KEY_MISSING");
   }
@@ -76,7 +79,7 @@ async function openAiTranscribe({
 }
 
 export const transcribeVoiceMessage = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", secrets: [OPENAI_API_KEY] },
   async (request: CallableRequest<RequestData>): Promise<ResponseData> => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

@@ -213,6 +213,11 @@ export type Conversation = {
   createdByUserId?: string;
   adminIds: string[];
   participantIds: string[];
+  /**
+   * Секретный чат (E2EE+ограничения+срок жизни). Если отсутствует — обычный чат.
+   * Поля добавлены обратно-совместимо: старые клиенты их игнорируют.
+   */
+  secretChat?: SecretChatConfig | null;
   /** Снимок имён на момент правок группы; аватар не храним — брать из `users/{id}`. */
   participantInfo: {
     [key: string]: {
@@ -267,6 +272,77 @@ export type Conversation = {
   disappearingMessageTtlSec?: number | null;
   disappearingMessagesUpdatedAt?: string;
   disappearingMessagesUpdatedBy?: string;
+};
+
+export type SecretChatTtlPresetSec =
+  | 300
+  | 900
+  | 1800
+  | 3600
+  | 7200
+  | 21600
+  | 43200
+  | 86400;
+
+export type SecretChatRestrictions = {
+  /** Запрет пересылки сообщений. */
+  noForward: boolean;
+  /** Запрет копирования текста сообщений. */
+  noCopy: boolean;
+  /** Запрет сохранения медиа/файлов. */
+  noSave: boolean;
+  /** Попытка запрета скриншотов (гарантируется только на Android). */
+  screenshotProtection: boolean;
+};
+
+export type SecretChatLockPolicy = {
+  /** Если true — для чтения сообщений/вложений требуется unlock-grant (server-enforced). */
+  required: boolean;
+  /** TTL на grant-документ (сек). Клиенты периодически продлевают при активности. */
+  grantTtlSec: number;
+};
+
+export type SecretChatMediaViewPolicy = {
+  /** null/undefined => без лимита; число => лимит просмотров (MVP: best-effort). */
+  image?: number | null;
+  video?: number | null;
+  voice?: number | null;
+  file?: number | null;
+  location?: number | null;
+};
+
+export type SecretChatConfig = {
+  enabled: true;
+  createdAt: string;
+  createdBy: string;
+  /** ISO (дублируем на клиенте), источник истины в БД может быть Timestamp. */
+  expiresAt: string;
+  ttlPresetSec: SecretChatTtlPresetSec;
+  lockPolicy: SecretChatLockPolicy;
+  restrictions: SecretChatRestrictions;
+  mediaViewPolicy?: SecretChatMediaViewPolicy | null;
+};
+
+export type SecretChatAccessGrantDoc = {
+  userId: string;
+  conversationId: string;
+  unlockedAt: string;
+  /** ISO; сервер проверяет истечение через rules/CF. */
+  expiresAt: string;
+  deviceId?: string;
+  method: "pin" | "biometric";
+};
+
+export type UserSecretChatLockDoc = {
+  /** base64 salt */
+  pinSaltB64: string;
+  /** base64 hash */
+  pinHashB64: string;
+  /** Монотонный счётчик ошибок для rate-limit. */
+  failedAttempts?: number;
+  /** ISO: до какого момента нельзя пытаться unlock. */
+  lockedUntil?: string | null;
+  updatedAt: string;
 };
 
 /** Документ Firestore: platformSettings/main */

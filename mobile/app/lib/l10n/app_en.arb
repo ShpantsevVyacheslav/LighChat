@@ -1,4 +1,63 @@
 {
+  "secret_chat_title": "Secret chat",
+  "secret_chat_locked_title": "Secret chat is locked",
+  "secret_chat_locked_subtitle": "Enter your PIN to unlock and view messages.",
+  "secret_chat_unlock_title": "Unlock secret chat",
+  "secret_chat_unlock_subtitle": "PIN is required to open this chat.",
+  "secret_chat_unlock_action": "Unlock",
+  "secret_chat_set_pin_and_unlock": "Set PIN and unlock",
+  "secret_chat_pin_label": "PIN (4 digits)",
+  "secret_chat_pin_invalid": "Enter a 4-digit PIN",
+  "secret_chat_unlock_failed": "Unable to unlock. Please try again.",
+  "secret_chat_action_not_allowed": "This action is not allowed in a secret chat",
+  "secret_chat_remember_pin": "Remember PIN on this device",
+  "secret_chat_unlock_biometric": "Unlock with biometrics",
+  "secret_chat_biometric_reason": "Unlock secret chat",
+  "secret_chat_biometric_no_saved_pin": "Enter PIN once to enable biometric unlock",
+  "secret_chat_ttl_title": "Secret chat lifetime",
+  "secret_chat_settings_title": "Secret chat settings",
+  "secret_chat_settings_subtitle": "Lifetime, access, and restrictions",
+  "secret_chat_settings_not_secret": "This chat is not a secret chat",
+  "secret_chat_settings_ttl": "Lifetime",
+  "secret_chat_settings_expires_at": "Expires at: {iso}",
+  "@secret_chat_settings_expires_at": {
+    "placeholders": {
+      "iso": {}
+    }
+  },
+  "secret_chat_settings_unlock_grant_ttl": "Unlock duration",
+  "secret_chat_settings_unlock_grant_ttl_subtitle": "How long access stays active after unlocking",
+  "secret_chat_settings_no_copy": "Disable copying",
+  "secret_chat_settings_no_forward": "Disable forwarding",
+  "secret_chat_settings_no_save": "Disable saving media",
+  "secret_chat_settings_screenshot_protection": "Screenshot protection (Android)",
+  "secret_chat_settings_media_views": "Media view limits",
+  "secret_chat_settings_media_views_subtitle": "Best-effort limits for recipient views",
+  "secret_chat_media_type_image": "Images",
+  "secret_chat_media_type_video": "Videos",
+  "secret_chat_media_type_voice": "Voice messages",
+  "secret_chat_media_type_location": "Location",
+  "secret_chat_media_views_unlimited": "Unlimited",
+  "secret_chat_media_views_count": "{count} views",
+  "@secret_chat_media_views_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "secret_chat_settings_load_failed": "Failed to load: {error}",
+  "@secret_chat_settings_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "secret_chat_settings_save_failed": "Failed to save: {error}",
+  "@secret_chat_settings_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "secret_chat_settings_reset_strict": "Reset to strict defaults",
+  "secret_chat_settings_reset_strict_subtitle": "Enables all restrictions and sets media view limits to 1",
   "@@locale": "en",
   "settings_language_title": "Language",
   "settings_language_system": "System",
@@ -31,6 +90,16 @@
   "blacklist_unblock_success": "User unblocked",
   "blacklist_unblock_error": "Couldn’t unblock: {error}",
   "@blacklist_unblock_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "partner_profile_block_confirm_title": "Block this user?",
+  "partner_profile_block_confirm_body": "They won’t see a chat with you, can’t find you in search, or add you to contacts. You’ll disappear from their contacts. You’ll keep the chat history but can’t message them while they’re blocked.",
+  "partner_profile_block_action": "Block",
+  "partner_profile_block_success": "User blocked",
+  "partner_profile_block_error": "Couldn’t block: {error}",
+  "@partner_profile_block_error": {
     "placeholders": {
       "error": {}
     }
@@ -133,6 +202,7 @@
   "privacy_about_subtitle": "Your bio text in profile.",
   "privacy_reset_button": "Reset settings",
   "common_cancel": "Cancel",
+  "common_create": "Create",
   "common_delete": "Delete",
   "common_choose": "Choose",
   "common_save": "Save",
@@ -162,6 +232,12 @@
   "profile_password_confirm_label": "Confirm password",
   "profile_password_tooltip_show": "Show password",
   "profile_password_tooltip_hide": "Hide",
+  "profile_placeholder_username": "username",
+  "profile_placeholder_email": "name@example.com",
+  "profile_placeholder_phone": "+7900 000-00-00",
+  "profile_placeholder_birthdate": "DD.MM.YYYY",
+  "profile_placeholder_password_dots": "••••••••",
+  "profile_password_error_fill_both": "Fill in the new password and confirmation.",
   "settings_chats_title": "Chat settings",
   "settings_chats_preview": "Preview",
   "settings_chats_outgoing": "Outgoing messages",
@@ -362,6 +438,15 @@
       "error": {}
     }
   },
+  "new_chat_fallback_user_display_name": "User",
+  "new_group_role_badge_admin": "ADMIN",
+  "new_group_role_badge_worker": "MEMBER",
+  "new_group_error_auth_session": "Couldn’t verify sign-in: {error}",
+  "@new_group_error_auth_session": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "invite_subject": "Join me on LighChat",
   "invite_text": "Install LighChat: https://lighchat.online\\nI’m inviting you to LighChat — here’s the install link.",
   "new_group_title": "Create a group",
@@ -397,6 +482,9 @@
   "voice_transcript_copy": "Copy",
   "voice_transcript_loading": "Transcribing…",
   "voice_transcript_failed": "Couldn’t get the text.",
+  "voice_attachment_media_kind_audio": "audio",
+  "voice_attachment_load_failed": "Couldn’t load",
+  "voice_attachment_title_voice_message": "Voice message",
   "voice_transcript_error": "Couldn’t transcribe: {error}",
   "@voice_transcript_error": {
     "placeholders": {
@@ -569,6 +657,16 @@
   "media_viewer_action_delete": "Delete",
   "media_viewer_error_no_gallery_access": "No permission to save to gallery",
   "media_viewer_error_share_unavailable_web": "Sharing isn’t available on web",
+  "media_viewer_error_file_not_found": "File not found",
+  "media_viewer_error_bad_media_url": "Bad media URL",
+  "media_viewer_error_bad_url": "Bad URL",
+  "media_viewer_error_unsupported_media_scheme": "Unsupported media type",
+  "media_viewer_error_http_status": "Server error (HTTP {status})",
+  "@media_viewer_error_http_status": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "media_viewer_error_save_failed": "Couldn’t save: {error}",
   "@media_viewer_error_save_failed": {
     "placeholders": {
@@ -583,9 +681,500 @@
   },
   "media_viewer_video_playback_speed": "Playback speed",
   "media_viewer_video_quality": "Quality",
+  "media_viewer_video_quality_auto": "Auto",
   "media_viewer_error_quality_switch_failed": "Couldn’t switch quality",
   "media_viewer_error_pip_open_failed": "Couldn’t open PiP",
   "media_viewer_pip_not_supported": "Picture-in-picture isn’t supported on this device.",
   "media_viewer_video_processing": "This video is being processed on the server and will be available soon.",
-  "media_viewer_video_playback_failed": "Couldn’t play the video."
+  "media_viewer_video_playback_failed": "Couldn’t play the video.",
+
+  "common_none": "None",
+  "group_member_role_admin": "Administrator",
+  "group_member_role_worker": "Member",
+  "profile_no_photo_to_view": "No profile photo to view.",
+  "profile_chat_id_copied_toast": "Chat ID copied",
+  "auth_register_error_open_link": "Couldn’t open the link.",
+  "new_chat_error_self_profile_not_found": "Your profile wasn’t found in the directory. Try signing out and back in.",
+
+  "disappearing_messages_title": "Disappearing messages",
+  "disappearing_messages_intro": "New messages are automatically removed from the server after the selected time (from the moment they’re sent). Messages already sent are not changed.",
+  "disappearing_messages_admin_only": "Only group admins can change this. Current: {summary}.",
+  "@disappearing_messages_admin_only": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "disappearing_messages_snackbar_off": "Disappearing messages turned off.",
+  "disappearing_messages_snackbar_updated": "Timer updated.",
+  "disappearing_preset_off": "Off",
+  "disappearing_preset_1h": "1 h",
+  "disappearing_preset_24h": "24 h",
+  "disappearing_preset_7d": "7 days",
+  "disappearing_preset_30d": "30 days",
+  "disappearing_ttl_summary_off": "Off",
+  "disappearing_ttl_minutes": "{count} min",
+  "@disappearing_ttl_minutes": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_hours": "{count} h",
+  "@disappearing_ttl_hours": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_days": "{count} days",
+  "@disappearing_ttl_days": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_weeks": "{count} wk",
+  "@disappearing_ttl_weeks": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "conversation_profile_e2ee_on": "On",
+  "conversation_profile_e2ee_off": "Off",
+  "conversation_profile_e2ee_subtitle_on": "End-to-end encryption is on. Tap for details.",
+  "conversation_profile_e2ee_subtitle_off": "End-to-end encryption is off. Tap to enable.",
+
+  "partner_profile_title_fallback_group": "Group chat",
+  "partner_profile_title_fallback_saved": "Saved messages",
+  "partner_profile_title_fallback_chat": "Chat",
+  "partner_profile_subtitle_group_member_count": "{count} members",
+  "@partner_profile_subtitle_group_member_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "partner_profile_subtitle_saved_messages": "Messages and notes for you only",
+  "partner_profile_error_cannot_contact_user": "You can’t reach this user with the current contact settings.",
+  "partner_profile_error_open_chat": "Couldn’t open chat: {error}",
+  "@partner_profile_error_open_chat": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "partner_profile_call_peer_fallback": "Peer",
+  "partner_profile_chat_not_created": "The chat isn’t created yet",
+  "partner_profile_notifications_muted": "Notifications muted",
+  "partner_profile_notifications_unmuted": "Notifications unmuted",
+  "partner_profile_notifications_change_failed": "Couldn’t update notifications",
+  "partner_profile_removed_from_contacts": "Removed from contacts",
+  "partner_profile_remove_contact_failed": "Couldn’t remove from contacts",
+  "partner_profile_contact_sent": "Contact sent",
+  "partner_profile_share_failed_copied": "Sharing failed. Contact text copied.",
+  "partner_profile_share_contact_header": "Contact on LighChat",
+  "partner_profile_share_avatar_line": "Avatar: {url}",
+  "@partner_profile_share_avatar_line": {
+    "placeholders": {
+      "url": {}
+    }
+  },
+  "partner_profile_share_profile_line": "Profile: {url}",
+  "@partner_profile_share_profile_line": {
+    "placeholders": {
+      "url": {}
+    }
+  },
+  "partner_profile_share_contact_subject": "LighChat contact: {name}",
+  "@partner_profile_share_contact_subject": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "partner_profile_tooltip_back": "Back",
+  "partner_profile_tooltip_close": "Close",
+  "partner_profile_edit_contact_short": "Edit",
+  "partner_profile_tooltip_copy_chat_id": "Copy chat ID",
+  "partner_profile_action_chats": "Chats",
+  "partner_profile_action_voice_call": "Call",
+  "partner_profile_action_video": "Video",
+  "partner_profile_action_share": "Share",
+  "partner_profile_action_notifications": "Alerts",
+  "partner_profile_menu_members": "Members",
+  "partner_profile_menu_edit_group": "Edit group",
+  "partner_profile_menu_media_links_files": "Media, links, and files",
+  "partner_profile_menu_starred": "Starred",
+  "partner_profile_menu_threads": "Threads",
+  "partner_profile_menu_games": "Games",
+  "partner_profile_menu_block": "Block",
+  "partner_profile_menu_unblock": "Unblock",
+  "partner_profile_menu_notifications": "Notifications",
+  "partner_profile_menu_chat_theme": "Chat theme",
+  "partner_profile_menu_advanced_privacy": "Advanced chat privacy",
+  "partner_profile_privacy_trailing_default": "Default",
+  "partner_profile_menu_encryption": "Encryption",
+  "partner_profile_no_common_groups": "NO SHARED GROUPS",
+  "partner_profile_create_group_with": "Create a group with {name}",
+  "@partner_profile_create_group_with": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "partner_profile_leave_group": "Leave group",
+  "partner_profile_contacts_and_data": "Contact info",
+  "partner_profile_field_system_role": "System role",
+  "partner_profile_field_email": "Email",
+  "partner_profile_field_phone": "Phone",
+  "partner_profile_field_birthday": "Birthday",
+  "partner_profile_field_bio": "About",
+  "partner_profile_add_to_contacts": "Add to contacts",
+  "partner_profile_remove_from_contacts": "Remove from contacts",
+
+  "thread_search_hint": "Search in thread…",
+  "thread_search_tooltip_clear": "Clear",
+  "thread_search_tooltip_search": "Search",
+  "thread_reply_count": "{count, plural, =0{{count} replies} one{{count} reply} other{{count} replies}}",
+  "@thread_reply_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thread_message_not_found": "Message not found",
+  "thread_screen_title_fallback": "Thread",
+  "thread_load_replies_error": "Thread error: {error}",
+  "@thread_load_replies_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_message_empty_placeholder": "Message",
+  "chat_sender_you": "You",
+  "chat_clipboard_nothing_to_paste": "Nothing to paste from the clipboard",
+  "chat_clipboard_paste_failed": "Couldn’t paste from clipboard: {error}",
+  "@chat_clipboard_paste_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_send_failed": "Couldn’t send: {error}",
+  "@chat_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_send_video_circle_failed": "Couldn’t send video note: {error}",
+  "@chat_send_video_circle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_service_unavailable": "Service unavailable",
+  "chat_repository_unavailable": "Chat service unavailable",
+  "chat_still_loading": "Chat is still loading",
+  "chat_no_participants": "No chat participants",
+  "chat_location_ios_geolocator_missing": "Location isn’t linked in this iOS build. Run pod install in mobile/app/ios and rebuild.",
+  "chat_location_services_disabled": "Turn on location services",
+  "chat_location_permission_denied": "No permission to use location",
+  "chat_location_send_failed": "Couldn’t send location: {error}",
+  "@chat_location_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_poll_send_timeout": "Poll wasn’t sent: timed out",
+  "chat_poll_send_firebase": "Poll wasn’t sent (Firestore): {details}",
+  "@chat_poll_send_firebase": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "chat_poll_send_known_error": "Poll wasn’t sent: {details}",
+  "@chat_poll_send_known_error": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "chat_poll_send_failed": "Couldn’t send poll: {error}",
+  "@chat_poll_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_delete_action_failed": "Couldn’t delete: {error}",
+  "@chat_delete_action_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_media_transcode_retry_started": "Transcode retry started",
+  "chat_media_transcode_retry_failed": "Couldn’t start transcode retry: {error}",
+  "@chat_media_transcode_retry_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_parent_load_error": "Error: {error}",
+  "@chat_parent_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  }
+  ,
+  "chat_message_not_found_in_loaded_history": "Message wasn’t found in the loaded history",
+  "chat_finish_editing_first": "Finish editing first",
+  "chat_send_voice_failed": "Couldn’t send voice message: {error}",
+  "@chat_send_voice_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_starred_removed": "Removed from Starred",
+  "chat_starred_added": "Added to Starred",
+  "chat_starred_toggle_failed": "Couldn’t update Starred: {error}",
+  "@chat_starred_toggle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_reaction_toggle_failed": "Couldn’t add reaction: {error}",
+  "@chat_reaction_toggle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_emoji_burst_sync_failed": "Couldn’t sync emoji effect: {error}",
+  "@chat_emoji_burst_sync_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_pin_already_pinned": "Message is already pinned",
+  "chat_pin_limit_reached": "Pinned messages limit ({count})",
+  "@chat_pin_limit_reached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chat_pin_failed": "Couldn’t pin: {error}",
+  "@chat_pin_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_unpin_failed": "Couldn’t unpin: {error}",
+  "@chat_unpin_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_text_copied": "Text copied",
+  "chat_edit_attachments_not_allowed": "Attachments aren’t available while editing",
+  "chat_edit_text_empty": "Text can’t be empty",
+  "chat_e2ee_unavailable": "Encryption unavailable: {code}",
+  "@chat_e2ee_unavailable": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "chat_save_failed": "Couldn’t save: {error}",
+  "@chat_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_load_messages_error": "Couldn’t load messages: {error}",
+  "@chat_load_messages_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_conversation_error": "Conversation error: {error}",
+  "@chat_conversation_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_auth_error": "Auth error: {error}",
+  "@chat_auth_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_poll_label": "Poll",
+  "chat_location_label": "Location",
+  "chat_attachment_label": "Attachment",
+  "chat_media_pick_failed": "Couldn’t pick media: {error}",
+  "@chat_media_pick_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_file_pick_failed": "Couldn’t pick file: {error}",
+  "@chat_file_pick_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_call_ongoing_video": "Video call in progress",
+  "chat_call_ongoing_audio": "Audio call in progress",
+  "chat_call_incoming_video": "Incoming video call",
+  "chat_call_incoming_audio": "Incoming audio call"
+  ,
+  "message_menu_action_reply": "Reply",
+  "message_menu_action_thread": "Thread",
+  "message_menu_action_copy": "Copy",
+  "message_menu_action_edit": "Edit",
+  "message_menu_action_pin": "Pin",
+  "message_menu_action_star_add": "Add to Starred",
+  "message_menu_action_star_remove": "Remove from Starred",
+  "message_menu_action_forward": "Forward",
+  "message_menu_action_select": "Select",
+  "message_menu_action_delete": "Delete",
+  "message_menu_initiator_deleted": "Message deleted",
+  "message_menu_header_sent": "SENT:",
+  "message_menu_header_read": "READ:"
+  ,
+  "chat_header_search_hint": "Search messages…",
+  "chat_header_tooltip_threads": "Threads",
+  "chat_header_tooltip_search": "Search",
+  "chat_header_tooltip_video_call": "Video call",
+  "chat_header_tooltip_audio_call": "Audio call",
+  "conversation_games_title": "Games",
+  "conversation_games_durak": "Durak",
+  "conversation_games_durak_subtitle": "Create lobby",
+  "conversation_game_lobby_title": "Lobby",
+  "conversation_game_lobby_not_found": "Game not found",
+  "conversation_game_lobby_error": "Error: {error}",
+  "@conversation_game_lobby_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_create_failed": "Couldn’t create game: {error}",
+  "@conversation_game_lobby_create_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_game_id": "ID: {id}",
+  "@conversation_game_lobby_game_id": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "conversation_game_lobby_status": "Status: {status}",
+  "@conversation_game_lobby_status": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "conversation_game_lobby_players": "Players: {count}/{max}",
+  "@conversation_game_lobby_players": {
+    "placeholders": {
+      "count": {},
+      "max": {}
+    }
+  },
+  "conversation_game_lobby_join": "Join",
+  "conversation_game_lobby_start": "Start",
+  "conversation_game_lobby_join_failed": "Couldn’t join: {error}",
+  "@conversation_game_lobby_join_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_start_failed": "Couldn’t start the game: {error}",
+  "@conversation_game_lobby_start_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_send_test_move": "Test move",
+  "conversation_game_move_failed": "Move rejected: {error}",
+  "@conversation_game_move_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_durak_table_title": "Table",
+  "conversation_durak_hand_title": "Hand",
+  "conversation_durak_role_attacker": "Attacking",
+  "conversation_durak_role_defender": "Defending",
+  "conversation_durak_role_thrower": "Throwing in",
+  "conversation_durak_action_attack": "Attack",
+  "conversation_durak_action_defend": "Defend",
+  "conversation_durak_action_take": "Take",
+  "conversation_durak_action_beat": "Beat",
+  "conversation_durak_action_transfer": "Transfer",
+  "durak_settings_mode": "Mode",
+  "durak_mode_podkidnoy": "Podkidnoy",
+  "durak_mode_perevodnoy": "Perevodnoy",
+  "durak_settings_max_players": "Players",
+  "durak_settings_with_jokers": "Jokers",
+  "durak_settings_turn_timer": "Turn timer",
+  "durak_turn_timer_off": "Off",
+  "chat_selection_selected_count": "{count} selected",
+  "@chat_selection_selected_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chat_selection_tooltip_forward": "Forward",
+  "chat_selection_tooltip_delete": "Delete"
+  ,
+  "chat_composer_hint_message": "Type a message…",
+  "chat_composer_tooltip_stickers": "Stickers",
+  "chat_composer_tooltip_attachments": "Attachments"
+  ,
+  "chat_list_unread_separator": "Unread messages",
+  "chat_e2ee_decrypt_failed_open_devices": "Couldn’t decrypt. Open Settings → Devices",
+  "chat_e2ee_encrypted_message_placeholder": "Encrypted message",
+  "chat_forwarded_from": "Forwarded from {name}",
+  "@chat_forwarded_from": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_outbox_retry": "Retry",
+  "chat_outbox_remove": "Remove",
+  "chat_outbox_cancel": "Cancel",
+  "chat_message_edited_badge_short": "EDITED"
+  ,
+  "register_error_enter_name": "Enter your name.",
+  "register_error_enter_username": "Enter a username.",
+  "register_error_enter_phone": "Enter a phone number.",
+  "register_error_invalid_phone": "Enter a valid phone number.",
+  "register_error_enter_email": "Enter an email.",
+  "register_error_enter_password": "Enter a password.",
+  "register_error_repeat_password": "Repeat the password.",
+  "register_error_dob_format": "Enter date of birth in dd.mm.yyyy format",
+  "register_error_accept_privacy_policy": "Please confirm you accept the privacy policy",
+  "register_privacy_required": "Privacy policy acceptance is required",
+  "register_label_name": "Name",
+  "register_hint_name": "Enter your name",
+  "register_label_username": "Username",
+  "register_hint_username": "Enter a username",
+  "register_label_phone": "Phone",
+  "register_hint_choose_country": "Choose a country",
+  "register_label_email": "Email",
+  "register_hint_email": "Enter your email",
+  "register_label_password": "Password",
+  "register_hint_password": "Enter your password",
+  "register_label_confirm_password": "Confirm password",
+  "register_hint_confirm_password": "Repeat your password",
+  "register_label_dob": "Date of birth",
+  "register_hint_dob": "dd.mm.yyyy",
+  "register_label_bio": "About",
+  "register_hint_bio": "Tell us about yourself…",
+  "register_privacy_prefix": "I accept ",
+  "register_privacy_link_text": "Personal data processing consent",
+  "register_privacy_and": " and ",
+  "register_terms_link_text": "Privacy policy user agreement",
+  "register_button_create_account": "Create account",
+  "register_country_search_hint": "Search by country or code",
+  "register_date_picker_help": "Date of birth",
+  "register_date_picker_cancel": "Cancel",
+  "register_date_picker_confirm": "Select",
+  "register_pick_avatar_title": "Choose avatar"
 }

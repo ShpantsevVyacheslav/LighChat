@@ -16,8 +16,19 @@ service firebase.storage {
       return firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participantIds;
     }
 
+    function isSecretChat(convId) {
+      return firestore.get(/databases/(default)/documents/conversations/$(convId)).data.secretChat.enabled == true;
+    }
+
+    function hasActiveSecretChatAccess(convId) {
+      return firestore.exists(/databases/(default)/documents/conversations/$(convId)/secretAccess/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/conversations/$(convId)/secretAccess/$(request.auth.uid)).data.expiresAtTs > request.time;
+    }
+
     function isConversationMember(convId) {
-      return signedIn() && request.auth.uid in conversationParticipants(convId);
+      return signedIn()
+        && request.auth.uid in conversationParticipants(convId)
+        && (!isSecretChat(convId) || hasActiveSecretChatAccess(convId));
     }
 
     /** Статика звонка — без JWT в клиенте для первого запроса. */

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 typedef JsonMap = Map<String, Object?>;
 
+export 'src/secret_chat.dart';
+
 class UserChatIndex {
   const UserChatIndex({
     required this.conversationIds,
@@ -123,6 +125,7 @@ class Conversation {
     this.photoUrl,
     this.createdByUserId,
     this.adminIds = const <String>[],
+    this.secretChat,
     this.participantInfo,
     this.lastMessageText,
     this.lastMessageTimestamp,
@@ -153,6 +156,7 @@ class Conversation {
   final String? photoUrl;
   final String? createdByUserId;
   final List<String> adminIds;
+  final SecretChatConfig? secretChat;
   final Map<String, ConversationParticipantInfo>? participantInfo;
   final List<String> participantIds;
   final String? lastMessageText;
@@ -284,6 +288,7 @@ class Conversation {
           ? json['createdByUserId'] as String
           : null,
       adminIds: adminIds,
+      secretChat: SecretChatConfig.fromJson(json['secretChat']),
       participantInfo: parseParticipantInfo(json['participantInfo']),
       participantIds: participantIds,
       lastMessageText: json['lastMessageText'] is String

@@ -74,6 +74,8 @@ import 'message_context_menu.dart';
 import 'message_html_text.dart';
 import 'chat_composer.dart';
 import 'thread_route_payload.dart';
+import 'secret_chat_secure_scope.dart';
+import 'secret_chat_unlock_sheet.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversationId});
@@ -680,7 +682,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (messageId.isEmpty) return;
     final idx = _sortedAscCache.indexWhere((m) => m.id == messageId);
     if (idx < 0) {
-      _toast('Сообщение не найдено в загруженной истории');
+      _toast(
+        AppLocalizations.of(context)!.chat_message_not_found_in_loaded_history,
+      );
       return;
     }
 
@@ -722,7 +726,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       if (tries >= 24) {
         setState(() => _jumpScrollBoostMessageId = null);
-        _toast('Сообщение не найдено в загруженной истории');
+        _toast(
+          AppLocalizations.of(context)!.chat_message_not_found_in_loaded_history,
+        );
         return;
       }
       WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
@@ -791,14 +797,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final userAsync = ref.watch(authUserProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     final conversationId = widget.conversationId;
 
     if (!firebaseReady) {
-      return const Scaffold(
+      return Scaffold(
         body: Padding(
           padding: EdgeInsets.all(16),
-          child: Text('Firebase is not configured yet.'),
+          child: Text(l10n.chat_list_firebase_not_configured),
         ),
       );
     }
@@ -806,10 +813,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return userAsync.when(
       data: (user) {
         if (user == null) {
-          return const Scaffold(
+          return Scaffold(
             body: Padding(
               padding: EdgeInsets.all(16),
-              child: Text('Not signed in.'),
+              child: Text(l10n.forward_error_not_authorized),
             ),
           );
         }
@@ -862,9 +869,82 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   .toList();
               dmOtherId = others.isEmpty ? null : others.first;
             }
+            final isSecret = conv?.data.secretChat?.enabled == true;
+            final secretUnlocked = isSecret
+                ? (ref
+                        .watch(secretChatAccessActiveProvider((
+                          conversationId: widget.conversationId,
+                          userId: user.uid,
+                        )))
+                        .asData
+                        ?.value ==
+                    true)
+                : true;
             final isSaved =
                 conv != null &&
                 isSavedMessagesConversation(conv.data, user.uid);
+
+            if (isSecret && !secretUnlocked) {
+              return SecretChatSecureScope(
+                enabled: true,
+                child: Scaffold(
+                  appBar: AppBar(
+                    title: Text(AppLocalizations.of(context)!.secret_chat_title),
+                  ),
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.secret_chat_locked_title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            AppLocalizations.of(context)!.secret_chat_locked_subtitle,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 14),
+                          FilledButton(
+                            onPressed: () async {
+                              final res = await showModalBottomSheet<SecretChatUnlockResult>(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) => SecretChatUnlockSheet(
+                                  conversationId: widget.conversationId,
+                                ),
+                              );
+                              if (!mounted) return;
+                              if (res?.unlocked == true) {
+                                setState(() {});
+                              }
+                            },
+                            child: Text(
+                              AppLocalizations.of(context)!.secret_chat_unlock_action,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () {
+                              context.push('/chats/${widget.conversationId}/secret-settings');
+                            },
+                            child: Text(
+                              AppLocalizations.of(context)!.secret_chat_settings_title,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
             final myBlockedAsync = ref.watch(
               userBlockedUserIdsProvider(user.uid),
             );
@@ -919,15 +999,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 final resolvedDmName = resolveContactDisplayName(
                   contactProfiles: contactProfiles,
                   contactUserId: dmOtherId,
-                  fallbackName: ((profile?.name ?? dmFallbackName) ?? 'Чат')
+                  fallbackName: ((profile?.name ?? dmFallbackName) ??
+                          AppLocalizations.of(
+                            context,
+                          )!
+                              .partner_profile_title_fallback_chat)
                       .trim(),
                 );
                 final title = conv == null
                     ? resolvedDmName
                     : conv.data.isGroup
-                    ? (conv.data.name ?? 'Групповой чат')
+                    ? (conv.data.name ??
+                        AppLocalizations.of(
+                          context,
+                        )!
+                            .partner_profile_title_fallback_group)
                     : isSaved
-                    ? (conv.data.name ?? 'Избранное')
+                    ? (conv.data.name ??
+                        AppLocalizations.of(
+                          context,
+                        )!
+                            .partner_profile_title_fallback_saved)
                     : resolvedDmName;
                 final profileForSheet = profile == null
                     ? null
@@ -964,9 +1056,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           dmFallbackAvatarThumb ??
                           dmFallbackAvatar);
                 final subtitle = conv?.data.isGroup == true
-                    ? '${conv?.data.participantIds.length ?? 0} участников'
+                    ? AppLocalizations.of(
+                      context,
+                    )!
+                        .partner_profile_subtitle_group_member_count(
+                      conv?.data.participantIds.length ?? 0,
+                    )
                     : isSaved
-                    ? 'Сообщения и заметки только для вас'
+                    ? AppLocalizations.of(
+                      context,
+                    )!
+                        .partner_profile_subtitle_saved_messages
                     : partnerPresenceLine(profile);
                 final showCalls =
                     conv?.data.isGroup != true &&
@@ -1189,7 +1289,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               .isNotEmpty ==
                                           true
                                       ? resolvedDmName
-                                      : 'Собеседник';
+                                      : AppLocalizations.of(
+                                            context,
+                                          )!
+                                              .partner_profile_call_peer_fallback;
                                   final peerAvatar =
                                       profile?.avatarThumb ??
                                       profile?.avatar ??
@@ -1228,7 +1331,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               .isNotEmpty ==
                                           true
                                       ? resolvedDmName
-                                      : 'Собеседник';
+                                      : AppLocalizations.of(
+                                            context,
+                                          )!
+                                              .partner_profile_call_peer_fallback;
                                   final peerAvatar =
                                       profile?.avatarThumb ??
                                       profile?.avatar ??
@@ -1424,7 +1530,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                             if (_editingMessageId !=
                                                                 null) {
                                                               _toast(
-                                                                'Сначала завершите редактирование',
+                                                                AppLocalizations.of(
+                                                                  context,
+                                                                )!
+                                                                    .chat_finish_editing_first,
                                                               );
                                                               return;
                                                             }
@@ -1582,7 +1691,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                             ).showSnackBar(
                                                                               SnackBar(
                                                                                 content: Text(
-                                                                                  'Не удалось отправить: $e',
+                                                                                  AppLocalizations.of(
+                                                                                    context,
+                                                                                  )!
+                                                                                      .chat_send_failed(
+                                                                                        e,
+                                                                                      ),
                                                                                 ),
                                                                               ),
                                                                             );
@@ -1672,7 +1786,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               ).showSnackBar(
                                                                 SnackBar(
                                                                   content: Text(
-                                                                    'Не удалось поставить реакцию: $e',
+                                                                    AppLocalizations.of(
+                                                                      context,
+                                                                    )!
+                                                                        .chat_reaction_toggle_failed(
+                                                                          e,
+                                                                        ),
                                                                   ),
                                                                 ),
                                                               );
@@ -2062,7 +2181,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   ? (profile?.name ??
                                                         dmFallbackName ??
                                                         title)
-                                                  : 'Собеседник';
+                                                  : AppLocalizations.of(
+                                                        context,
+                                                      )!
+                                                          .partner_profile_call_peer_fallback;
                                               final peerAvatar =
                                                   profile?.avatarThumb ??
                                                   profile?.avatar ??
@@ -2086,11 +2208,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
                                       final incomingLabel = status == 'ongoing'
                                           ? (isVideo
-                                                ? 'Идёт видеозвонок'
-                                                : 'Идёт аудиозвонок')
+                                                ? AppLocalizations.of(
+                                                  context,
+                                                )!
+                                                    .chat_call_ongoing_video
+                                                : AppLocalizations.of(
+                                                  context,
+                                                )!
+                                                    .chat_call_ongoing_audio)
                                           : (isVideo
-                                                ? 'Входящий видеозвонок'
-                                                : 'Входящий аудиозвонок');
+                                                ? AppLocalizations.of(
+                                                  context,
+                                                )!
+                                                    .chat_call_incoming_video
+                                                : AppLocalizations.of(
+                                                  context,
+                                                )!
+                                                    .chat_call_incoming_audio);
                                       return DecoratedBox(
                                         decoration: BoxDecoration(
                                           color: Colors.black.withValues(
@@ -2149,8 +2283,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               .toIso8601String(),
                                                         });
                                                   },
-                                                  child: const Text(
-                                                    'Отклонить',
+                                                  child: Text(
+                                                    AppLocalizations.of(context)!.chat_call_decline,
                                                   ),
                                                 ),
                                               TextButton(
@@ -2177,7 +2311,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                       ? (profile?.name ??
                                                             dmFallbackName ??
                                                             title)
-                                                      : 'Собеседник';
+                                                      : AppLocalizations.of(
+                                                            context,
+                                                          )!
+                                                              .partner_profile_call_peer_fallback;
                                                   final peerAvatar =
                                                       profile?.avatarThumb ??
                                                       profile?.avatar ??
@@ -2197,8 +2334,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                 },
                                                 child: Text(
                                                   status == 'ongoing'
-                                                      ? 'Открыть'
-                                                      : 'Принять',
+                                                      ? AppLocalizations.of(context)!.chat_call_open
+                                                      : AppLocalizations.of(context)!.chat_call_accept,
                                                 ),
                                               ),
                                             ],
@@ -2281,7 +2418,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                       body: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text('Ошибка загрузки сообщений: $e'),
+                        child: Text(
+                          AppLocalizations.of(context)!.chat_load_messages_error(
+                            e,
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -2305,7 +2446,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           error: (e, _) => Scaffold(
             body: Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('Conversation error: $e'),
+              child: Text(
+                AppLocalizations.of(context)!.chat_conversation_error(e),
+              ),
             ),
           ),
         );
@@ -2315,7 +2458,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       error: (e, _) => Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(16),
-          child: Text('Auth error: $e'),
+          child: Text(AppLocalizations.of(context)!.chat_auth_error(e)),
         ),
       ),
     );
@@ -2359,7 +2502,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _insertComposerTextAtCursor(pastedText);
       }
       if (payload.files.isEmpty && pastedText.trim().isEmpty) {
-        _toast('Нечего вставлять из буфера');
+        _toast(AppLocalizations.of(context)!.chat_clipboard_nothing_to_paste);
       }
     } catch (e) {
       // Безопасный фолбэк: даже если расширенный клипборд недоступен,
@@ -2370,7 +2513,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (text.trim().isNotEmpty) {
         _insertComposerTextAtCursor(text);
       } else {
-        _toast('Не удалось вставить содержимое буфера: $e');
+        _toast(AppLocalizations.of(context)!.chat_clipboard_paste_failed(e));
       }
     }
   }
@@ -2388,13 +2531,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     plain = plain.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (plain.isEmpty) {
       if ((m.chatPollId ?? '').trim().isNotEmpty) {
-        plain = 'Опрос';
+        plain = AppLocalizations.of(context)!.chat_poll_label;
       } else if (m.locationShare != null) {
-        plain = 'Локация';
+        plain = AppLocalizations.of(context)!.chat_location_label;
       } else if (m.attachments.isNotEmpty) {
-        plain = 'Вложение';
+        plain = AppLocalizations.of(context)!.chat_attachment_label;
       } else {
-        plain = 'Сообщение';
+        plain = AppLocalizations.of(context)!.chat_message_empty_placeholder;
       }
     }
     if (plain.length > 240) {
@@ -2409,6 +2552,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required bool isStarredNow,
   }) async {
     if (message.id.trim().isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
     final ref = FirebaseFirestore.instance
         .collection('users')
         .doc(currentUserId)
@@ -2417,7 +2561,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     try {
       if (isStarredNow) {
         await ref.delete();
-        _toast('Удалено из избранного');
+        if (mounted) _toast(l10n.chat_starred_removed);
         return;
       }
       final now = DateTime.now().toUtc().toIso8601String();
@@ -2427,9 +2571,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         'createdAt': now,
         'previewText': _starredPreviewText(message),
       }, SetOptions(merge: true));
-      _toast('Добавлено в избранное');
+      if (mounted) _toast(l10n.chat_starred_added);
     } catch (e) {
-      _toast('Не удалось изменить избранное: $e');
+      if (mounted) _toast(l10n.chat_starred_toggle_failed(e));
     }
   }
 
@@ -2439,35 +2583,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required Map<String, UserProfile>? profileMap,
     required Conversation? conv,
   }) {
-    if (senderId == user.uid) return 'Вы';
+    if (senderId == user.uid) return AppLocalizations.of(context)!.chat_sender_you;
     final p = profileMap?[senderId];
     if ((p?.name ?? '').trim().isNotEmpty) return p!.name.trim();
     final pi = conv?.participantInfo?[senderId];
     final n = pi?.name;
     if ((n ?? '').trim().isNotEmpty) return n!.trim();
-    return 'Участник';
+    return AppLocalizations.of(context)!.forward_sender_fallback;
   }
 
   Future<bool> _confirmDeleteMessageForViewer(ChatMessage m) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return false;
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          AppLocalizations.of(context)!.chat_delete_message_title_single,
+          l10n.chat_delete_message_title_single,
         ),
         content: Text(
-          AppLocalizations.of(context)!.chat_delete_message_body_single,
+          l10n.chat_delete_message_body_single,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context)!.common_cancel),
+            child: Text(l10n.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(context)!.common_delete),
+            child: Text(l10n.common_delete),
           ),
         ],
       ),
@@ -2480,12 +2625,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
       return true;
     } catch (e) {
-      _toast('Не удалось удалить: $e');
+      if (mounted) _toast(l10n.chat_delete_action_failed(e));
       return false;
     }
   }
 
   Future<void> _retryMediaNormForMainChat(ChatMessage message) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final repo = ref.read(chatRepositoryProvider);
       if (repo == null) return;
@@ -2495,12 +2641,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Повторная обработка запущена')),
+        SnackBar(content: Text(l10n.chat_media_transcode_retry_started)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось запустить обработку: $e')),
+        SnackBar(content: Text(l10n.chat_media_transcode_retry_failed(e))),
       );
     }
   }
@@ -2510,6 +2656,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     String emoji,
     String eventId,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final repo = ref.read(chatRepositoryProvider);
       if (repo == null) return;
@@ -2526,7 +2673,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Не удалось синхронизировать эффект эмодзи: $e'),
+          content: Text(
+            l10n.chat_emoji_burst_sync_failed(e),
+          ),
         ),
       );
     }
@@ -2536,22 +2685,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final m = item.message;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return false;
+    final l10n = AppLocalizations.of(context)!;
     if (m.attachments.length <= 1) {
       return _confirmDeleteMessageForViewer(m);
     }
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.chat_delete_file_title),
-        content: Text(AppLocalizations.of(context)!.chat_delete_file_body),
+        title: Text(l10n.chat_delete_file_title),
+        content: Text(l10n.chat_delete_file_body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context)!.common_cancel),
+            child: Text(l10n.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(context)!.common_delete),
+            child: Text(l10n.common_delete),
           ),
         ],
       ),
@@ -2565,7 +2715,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
       return true;
     } catch (e) {
-      _toast('Не удалось удалить: $e');
+      if (mounted) _toast(l10n.chat_delete_action_failed(e));
       return false;
     }
   }
@@ -2587,6 +2737,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final items = collectChatMediaGalleryItems(source);
     if (items.isEmpty) return;
     final ix = indexInChatMediaGallery(items, att.url);
+    final secretRestrictions = conv?.secretChat?.restrictions;
+    final allowForward = !(secretRestrictions?.noForward == true);
+    final allowSave = !(secretRestrictions?.noSave == true);
     Navigator.of(context).push<void>(
       chatMediaViewerPageRoute<void>(
         ChatMediaViewerScreen(
@@ -2616,6 +2769,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _scheduleChatDraftSave();
           },
           onForward: (galleryItem) {
+            if (!allowForward) {
+              _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+              return;
+            }
             if (galleryItem.message.isDeleted) return;
             final m = chatMessageForSingleAttachmentForward(
               galleryItem.message,
@@ -2623,6 +2780,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
             context.push('/chats/forward', extra: <ChatMessage>[m]);
           },
+          allowForward: allowForward,
+          allowSave: allowSave,
+          allowExternalShare: allowSave,
           onDeleteItem: _confirmDeleteMediaGalleryItem,
           onShowInChat: (galleryItem) {
             _scrollToMessageId(galleryItem.message.id);
@@ -2667,25 +2827,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _confirmDeleteMessages(List<ChatMessage> targets) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null || targets.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          targets.length > 1 ? 'Удалить сообщения?' : 'Удалить сообщение?',
+          targets.length > 1
+              ? l10n.chat_delete_message_title_multi
+              : l10n.chat_delete_message_title_single,
         ),
         content: Text(
           targets.length > 1
-              ? 'Будет удалено сообщений: ${targets.length}'
-              : 'Сообщение будет скрыто у всех.',
+              ? l10n.chat_delete_message_body_multi(targets.length)
+              : l10n.chat_delete_message_body_single,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(l10n.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить'),
+            child: Text(l10n.common_delete),
           ),
         ],
       ),
@@ -2701,7 +2864,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       _exitSelection();
     } catch (e) {
-      _toast('Не удалось удалить: $e');
+      _toast(l10n.chat_delete_action_failed(e));
     } finally {
       if (mounted) setState(() => _actionBusy = false);
     }
@@ -2751,13 +2914,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final repo = ref.read(chatRepositoryProvider);
     final conv = convWrap?.data;
     if (repo == null || conv == null) return;
+    final l10n = AppLocalizations.of(context)!;
     final existing = conversationPinnedList(conv);
     if (existing.any((p) => p.messageId == m.id)) {
-      _toast('Сообщение уже закреплено');
+      _toast(l10n.chat_pin_already_pinned);
       return;
     }
     if (existing.length >= maxPinnedMessages) {
-      _toast('Лимит закреплённых ($maxPinnedMessages)');
+      _toast(
+        l10n.chat_pin_limit_reached(maxPinnedMessages),
+      );
       return;
     }
     final entry = buildPinnedMessageFromChatMessage(
@@ -2774,13 +2940,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         pins: next,
       );
     } catch (e) {
-      _toast('Не удалось закрепить: $e');
+      if (mounted) _toast(l10n.chat_pin_failed(e));
     }
   }
 
   Future<void> _unpinMessage(PinnedMessage p, Conversation conv) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
+    final l10n = AppLocalizations.of(context)!;
     final existing = conversationPinnedList(conv);
     final next = existing.where((x) => x.messageId != p.messageId).toList();
     try {
@@ -2789,7 +2956,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         pins: next,
       );
     } catch (e) {
-      _toast('Не удалось открепить: $e');
+      if (mounted) _toast(l10n.chat_unpin_failed(e));
     }
   }
 
@@ -2816,6 +2983,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ? messageHtmlToPlainText(plain).trim().isNotEmpty
             : true);
 
+    final secretRestrictions = convWrap?.data.secretChat?.restrictions;
+    final allowCopy = !(secretRestrictions?.noCopy == true);
+    final allowForward = !(secretRestrictions?.noForward == true);
     final result = await showMessageContextMenu(
       context,
       message: m,
@@ -2823,6 +2993,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       hasText: hasMenuText,
       canEdit: canEdit,
       canDelete: canDelete,
+      allowCopy: allowCopy,
+      allowForward: allowForward,
       showStarAction: !m.isDeleted,
       isStarred: starredMessageIds.contains(m.id),
       chatFontSize: fontSize,
@@ -2860,8 +3032,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           extra: m,
         );
       case MessageMenuActionType.copy:
+        if (!allowCopy) {
+          if (mounted) _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+          return;
+        }
         await copyMessageTextToClipboard(m);
-        if (mounted) _toast('Текст скопирован');
+        if (mounted) _toast(AppLocalizations.of(context)!.chat_text_copied);
       case MessageMenuActionType.edit:
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -2876,6 +3052,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           isStarredNow: starredMessageIds.contains(m.id),
         );
       case MessageMenuActionType.forward:
+        if (!allowForward) {
+          if (mounted) _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+          return;
+        }
         if (m.isDeleted) return;
         if (!mounted) return;
         context.push('/chats/forward', extra: <ChatMessage>[m]);
@@ -2896,7 +3076,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             emoji: emoji,
           );
         } catch (e) {
-          if (mounted) _toast('Не удалось поставить реакцию: $e');
+          if (mounted) {
+            _toast(AppLocalizations.of(context)!.chat_reaction_toggle_failed(e));
+          }
         }
     }
   }
@@ -3088,11 +3270,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     if (editingId != null) {
       if (_pendingAttachments.isNotEmpty) {
-        _toast('При редактировании вложения недоступны');
+        _toast(AppLocalizations.of(context)!.chat_edit_attachments_not_allowed);
         return;
       }
       if (plainOut.isEmpty) {
-        _toast('Текст не может быть пустым');
+        _toast(AppLocalizations.of(context)!.chat_edit_text_empty);
         return;
       }
     } else if (plainOut.isEmpty && _pendingAttachments.isEmpty) {
@@ -3114,7 +3296,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               plaintext: prepared,
             );
           } on MobileE2eeEncryptException catch (e) {
-            if (mounted) _toast('Шифрование недоступно: ${e.code}');
+            if (mounted) {
+              _toast(AppLocalizations.of(context)!.chat_e2ee_unavailable(e.code));
+            }
             return;
           }
         }
@@ -3133,7 +3317,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _controller.clear();
         unawaited(clearChatMessageDraft(uid, widget.conversationId));
       } catch (e) {
-        if (mounted) _toast('Не удалось сохранить: $e');
+        if (mounted) _toast(AppLocalizations.of(context)!.chat_save_failed(e));
       }
       return;
     }
@@ -3252,7 +3436,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (uid == null) return;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      _toast('Сервис чата недоступен');
+      _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
       return;
     }
     final convAsync = ref.read(
@@ -3265,12 +3449,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? convList.first
         : null;
     if (conv == null) {
-      _toast('Чат ещё загружается');
+      _toast(AppLocalizations.of(context)!.chat_still_loading);
       return;
     }
     final participantIds = conv.data.participantIds;
     if (participantIds.isEmpty) {
-      _toast('Нет участников чата');
+      _toast(AppLocalizations.of(context)!.chat_no_participants);
       return;
     }
 
@@ -3285,13 +3469,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       } on MissingPluginException catch (_) {
         if (mounted) {
           _toast(
-            'Геолокация не подключена в iOS-сборке. В каталоге mobile/app/ios выполните pod install и пересоберите приложение.',
+            AppLocalizations.of(context)!.chat_location_ios_geolocator_missing,
           );
         }
         return;
       }
       if (!serviceEnabled) {
-        if (mounted) _toast('Включите службу геолокации');
+        if (mounted) {
+          _toast(AppLocalizations.of(context)!.chat_location_services_disabled);
+        }
         return;
       }
       var permission = await Geolocator.checkPermission();
@@ -3300,7 +3486,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (mounted) _toast('Нет доступа к геолокации');
+        if (mounted) {
+          _toast(AppLocalizations.of(context)!.chat_location_permission_denied);
+        }
         return;
       }
 
@@ -3344,7 +3532,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось отправить геолокацию: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.chat_location_send_failed(e),
+            ),
+          ),
         );
       }
     } finally {
@@ -3357,11 +3549,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (uid == null) return;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      _toast('Сервис чата недоступен');
+      _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
       return;
     }
     if (_editingMessageId != null) {
-      _toast('Сначала завершите редактирование');
+      _toast(AppLocalizations.of(context)!.chat_finish_editing_first);
       return;
     }
     await pushVideoCircleCapturePage(
@@ -3573,7 +3765,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _scheduleAutoScrollToBottomIfNeeded();
       }
     } catch (e) {
-      if (mounted) _toast('Не удалось отправить голосовое: $e');
+      if (mounted) _toast(AppLocalizations.of(context)!.chat_send_voice_failed(e));
     } finally {
       unawaited(_deleteFileSilently(rec.filePath));
       if (mounted) setState(() => _sendBusy = false);
@@ -3590,14 +3782,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _openStickersGifPanel() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      _toast('Войдите в аккаунт');
+      _toast(AppLocalizations.of(context)!.forward_error_not_authorized);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
     final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
     final chatRepo = ref.read(chatRepositoryProvider);
     if (stickerRepo == null || chatRepo == null) {
-      _toast('Сервис недоступен');
+      _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
     await showComposerStickerGifSheet(
@@ -3659,7 +3851,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Не удалось отправить: $e')));
+        ).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.chat_send_failed(e))),
+        );
       }
     } finally {
       if (mounted) setState(() => _sendBusy = false);
@@ -3669,17 +3863,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _sendChatPoll() async {
     if (_sendBusy) return;
     if (_editingMessageId != null) {
-      _toast('Сначала завершите редактирование');
+      _toast(AppLocalizations.of(context)!.chat_finish_editing_first);
       return;
     }
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      _toast('Войдите в аккаунт');
+      _toast(AppLocalizations.of(context)!.forward_error_not_authorized);
       return;
     }
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      _toast('Сервис чата недоступен');
+      _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
       return;
     }
     final convAsync = ref.read(
@@ -3692,12 +3886,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? convList.first
         : null;
     if (conv == null) {
-      _toast('Чат ещё загружается');
+      _toast(AppLocalizations.of(context)!.chat_still_loading);
       return;
     }
     final participantIds = conv.data.participantIds;
     if (participantIds.isEmpty) {
-      _toast('Нет участников чата');
+      _toast(AppLocalizations.of(context)!.chat_no_participants);
       return;
     }
     final payload = await showChatPollCreateSheet(context);
@@ -3723,23 +3917,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         final raw = e.toString();
         String message;
         if (e is TimeoutException) {
-          message =
-              'Не удалось отправить опрос: превышено время ожидания сети.';
+          message = AppLocalizations.of(context)!.chat_poll_send_timeout;
         } else if (raw.contains('poll_send_timeout:')) {
-          final step = raw
-              .split('poll_send_timeout:')
-              .last
-              .split(RegExp(r'[\s\)]'))
-              .first;
-          message = 'Опрос не отправлен (таймаут: $step).';
+          message = AppLocalizations.of(context)!.chat_poll_send_timeout;
         } else if (raw.contains('poll_send_firebase:')) {
           final details = raw.split('poll_send_firebase:').last;
-          message = 'Опрос не отправлен (Firestore): $details';
+          message = AppLocalizations.of(context)!.chat_poll_send_firebase(details);
         } else if (raw.contains('poll_send_error:')) {
           final details = raw.split('poll_send_error:').last;
-          message = 'Опрос не отправлен: $details';
+          message = AppLocalizations.of(context)!.chat_poll_send_known_error(details);
         } else {
-          message = 'Не удалось отправить опрос: $e';
+          message = AppLocalizations.of(context)!.chat_poll_send_failed(e);
         }
         ScaffoldMessenger.of(
           context,
@@ -3754,7 +3942,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ComposerAttachmentAction action,
   ) async {
     if (_editingMessageId != null) {
-      _toast('Сначала завершите редактирование');
+      _toast(AppLocalizations.of(context)!.chat_finish_editing_first);
       return;
     }
     switch (action) {
@@ -3786,7 +3974,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               break;
           }
         } catch (e) {
-          if (mounted) _toast('Не удалось выбрать медиа: $e');
+          if (mounted) _toast(AppLocalizations.of(context)!.chat_media_pick_failed(e));
         }
         break;
       case ComposerAttachmentAction.deviceFiles:
@@ -3805,7 +3993,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _scheduleChatDraftSave();
           }
         } catch (e) {
-          if (mounted) _toast('Не удалось выбрать файл: $e');
+          if (mounted) _toast(AppLocalizations.of(context)!.chat_file_pick_failed(e));
         }
         break;
       case ComposerAttachmentAction.clipboard:

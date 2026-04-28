@@ -53,6 +53,22 @@ export type Conversation = {
   createdByUserId?: string;
   adminIds: string[];
   participantIds: string[];
+  /** Секретный чат (часть схемы conversations). */
+  secretChat?: {
+    enabled: true;
+    createdAt: string;
+    createdBy: string;
+    expiresAt: string;
+    ttlPresetSec: number;
+    lockPolicy: { required: boolean; grantTtlSec: number };
+    restrictions: {
+      noForward: boolean;
+      noCopy: boolean;
+      noSave: boolean;
+      screenshotProtection: boolean;
+    };
+    mediaViewPolicy?: Record<string, number | null> | null;
+  } | null;
   participantInfo: {
     [key: string]: {
       name: string;
@@ -74,6 +90,23 @@ export type Conversation = {
   disappearingMessageTtlSec?: number | null;
   disappearingMessagesUpdatedAt?: string;
   disappearingMessagesUpdatedBy?: string;
+};
+
+export type SecretChatAccessGrantDoc = {
+  userId: string;
+  conversationId: string;
+  unlockedAt: string;
+  expiresAt: string;
+  deviceId?: string;
+  method: "pin" | "biometric";
+};
+
+export type UserSecretChatLockDoc = {
+  pinSaltB64: string;
+  pinHashB64: string;
+  failedAttempts?: number;
+  lockedUntil?: string | null;
+  updatedAt: string;
 };
 
 export type ReplyContext = {

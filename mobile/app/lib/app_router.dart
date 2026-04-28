@@ -30,6 +30,7 @@ import 'features/settings/ui/e2ee_recovery_screen.dart';
 import 'features/settings/ui/e2ee_qr_pairing_screen.dart';
 import 'features/settings/ui/language_screen.dart';
 import 'features/settings/ui/blacklist_screen.dart';
+import 'features/chat/ui/secret_chat_settings_screen.dart';
 import 'features/chat/ui/new_chat_screen.dart';
 import 'features/chat/ui/new_group_chat_screen.dart';
 import 'features/chat/ui/thread_screen.dart';
@@ -228,6 +229,13 @@ GoRouter createRouter() {
         builder: (context, state) {
           final conversationId = state.pathParameters['conversationId'] ?? '';
           return ChatAdvancedPrivacyScreen(conversationId: conversationId);
+        },
+      ),
+      GoRoute(
+        path: '/chats/:conversationId/secret-settings',
+        builder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          return SecretChatSettingsScreen(conversationId: conversationId);
         },
       ),
       GoRoute(

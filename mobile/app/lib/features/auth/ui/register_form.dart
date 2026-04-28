@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../chat/data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import 'auth_validators.dart';
 import 'avatar_picker_cropper.dart';
@@ -116,37 +117,39 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
 
   String? get _nameError => !_showValidation
       ? null
-      : (_name.text.trim().isEmpty ? 'Введите имя.' : validateName(_name.text));
+      : (_name.text.trim().isEmpty
+            ? AppLocalizations.of(context)!.register_error_enter_name
+            : validateName(_name.text));
   String? get _usernameError => !_showValidation
       ? null
       : (_username.text.trim().isEmpty
-            ? 'Введите логин.'
+            ? AppLocalizations.of(context)!.register_error_enter_username
             : validateUsername(_username.text));
   String? get _phoneError => !_showValidation
       ? null
       : (_phone.text.trim().isEmpty
-            ? 'Введите номер телефона.'
+            ? AppLocalizations.of(context)!.register_error_enter_phone
             : _validatePhoneForCountry(_phone.text));
   String? get _emailError => !_showValidation
       ? null
       : (_email.text.trim().isEmpty
-            ? 'Введите email.'
+            ? AppLocalizations.of(context)!.register_error_enter_email
             : validateEmail(_email.text));
   String? get _passwordError => !_showValidation
       ? null
       : (_password.text.trim().isEmpty
-            ? 'Введите пароль.'
+            ? AppLocalizations.of(context)!.register_error_enter_password
             : validatePassword(_password.text));
   String? get _confirmError => !_showValidation
       ? null
       : (_confirm.text.trim().isEmpty
-            ? 'Повторите пароль.'
+            ? AppLocalizations.of(context)!.register_error_repeat_password
             : validateConfirmPassword(_password.text, _confirm.text));
   String? get _dobError {
     if (!_showValidation) return null;
     final dobIso = _toIsoDate(_dob.text);
     if (_dob.text.trim().isNotEmpty && dobIso == null) {
-      return 'Укажите дату рождения в формате дд.мм.гггг';
+      return AppLocalizations.of(context)!.register_error_dob_format;
     }
     return validateDateOfBirth(dobIso ?? '');
   }
@@ -164,7 +167,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
       _dobError,
       _bioError,
       (_showValidation && !_acceptedPolicy)
-          ? 'Подтвердите согласие с политикой конфиденциальности'
+          ? AppLocalizations.of(context)!.register_error_accept_privacy_policy
           : null,
     ].whereType<String>().toList();
     return e.isEmpty ? null : e.first;
@@ -230,11 +233,16 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Не удалось открыть ссылку')));
+    ).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.auth_register_error_open_link),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final enabled = !_busy;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
@@ -252,7 +260,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 18),
           _LabeledInput(
             key: _nameKey,
-            label: 'Имя',
+            label: l10n.register_label_name,
             required: true,
             focusNode: _nameFocus,
             enabled: enabled,
@@ -264,7 +272,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               onChanged: (_) => setState(() {}),
               decoration: _registerInputDecoration(
                 context,
-                hint: 'Введите имя',
+                hint: l10n.register_hint_name,
                 hasError: _nameError != null,
               ),
               enabled: enabled,
@@ -273,7 +281,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 14),
           _LabeledInput(
             key: _usernameKey,
-            label: 'Логин',
+            label: l10n.register_label_username,
             required: true,
             focusNode: _usernameFocus,
             enabled: enabled,
@@ -285,7 +293,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               onChanged: (_) => setState(() {}),
               decoration: _registerInputDecoration(
                 context,
-                hint: 'Введите логин',
+                hint: l10n.register_hint_username,
                 hasError: _usernameError != null,
               ),
               enabled: enabled,
@@ -294,7 +302,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 14),
           _LabeledInput(
             key: _phoneKey,
-            label: 'Телефон',
+            label: l10n.register_label_phone,
             required: true,
             focusNode: _phoneFocus,
             enabled: enabled,
@@ -309,7 +317,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                       initialValue: _selectedCountry,
                       decoration: _registerInputDecoration(
                         context,
-                        hint: 'Выберите страну',
+                        hint: l10n.register_hint_choose_country,
                         hasError: _phoneError != null,
                       ),
                       items: [
@@ -352,7 +360,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 14),
           _LabeledInput(
             key: _emailKey,
-            label: 'Email',
+            label: l10n.register_label_email,
             required: true,
             focusNode: _emailFocus,
             enabled: enabled,
@@ -365,7 +373,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               keyboardType: TextInputType.emailAddress,
               decoration: _registerInputDecoration(
                 context,
-                hint: 'Введите email',
+                hint: l10n.register_hint_email,
                 hasError: _emailError != null,
               ),
               enabled: enabled,
@@ -374,7 +382,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 14),
           _LabeledInput(
             key: _passwordKey,
-            label: 'Пароль',
+            label: l10n.register_label_password,
             required: true,
             focusNode: _passwordFocus,
             enabled: enabled,
@@ -387,7 +395,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               obscureText: true,
               decoration: _registerInputDecoration(
                 context,
-                hint: 'Введите пароль',
+                hint: l10n.register_hint_password,
                 hasError: _passwordError != null,
               ),
               enabled: enabled,
@@ -396,7 +404,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 14),
           _LabeledInput(
             key: _confirmKey,
-            label: 'Повтор пароля',
+            label: l10n.register_label_confirm_password,
             focusNode: _confirmFocus,
             enabled: enabled,
             errorText: _confirmError,
@@ -408,7 +416,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               obscureText: true,
               decoration: _registerInputDecoration(
                 context,
-                hint: 'Повторите пароль',
+                hint: l10n.register_hint_confirm_password,
                 hasError: _confirmError != null,
               ),
               enabled: enabled,
@@ -417,7 +425,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 14),
           _LabeledInput(
             key: _dobKey,
-            label: 'Дата рождения',
+            label: l10n.register_label_dob,
             focusNode: _dobFocus,
             enabled: enabled,
             errorText: _dobError,
@@ -430,7 +438,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               inputFormatters: [DateDdMmYyyyFormatter()],
               decoration: _registerInputDecoration(
                 context,
-                hint: 'дд.мм.гггг',
+                hint: l10n.register_hint_dob,
                 hasError: _dobError != null,
                 suffixIcon: IconButton(
                   onPressed: enabled ? _pickBirthDate : null,
@@ -448,7 +456,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           const SizedBox(height: 14),
           _LabeledInput(
             key: _bioKey,
-            label: 'О себе',
+            label: l10n.register_label_bio,
             focusNode: _bioFocus,
             enabled: enabled,
             errorText: _bioError,
@@ -460,7 +468,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               maxLines: 4,
               decoration: _registerInputDecoration(
                 context,
-                hint: 'Расскажите о себе...',
+                hint: l10n.register_hint_bio,
                 minHeight: 122,
                 hasError: _bioError != null,
               ),
@@ -502,19 +510,18 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                           .withValues(alpha: 0.64),
                     ),
                     children: [
-                      const TextSpan(text: 'Я принимаю '),
+                      TextSpan(text: l10n.register_privacy_prefix),
                       TextSpan(
-                        text: 'Согласия на обработку персональных данных',
+                        text: l10n.register_privacy_link_text,
                         recognizer: _privacyPolicyTap,
                         style: const TextStyle(
                           color: Color(0xFF38A3FF),
                           decoration: TextDecoration.underline,
                         ),
                       ),
-                      const TextSpan(text: ' и '),
+                      TextSpan(text: l10n.register_privacy_and),
                       TextSpan(
-                        text:
-                            'Пользовательское соглашение политики конфиденциальности',
+                        text: l10n.register_terms_link_text,
                         recognizer: _termsTap,
                         style: const TextStyle(
                           color: Color(0xFF38A3FF),
@@ -531,7 +538,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                'Требуется согласие с политикой конфиденциальности',
+                l10n.register_privacy_required,
                 style: TextStyle(
                   fontSize: 11,
                   color: Theme.of(context).colorScheme.error,
@@ -583,8 +590,8 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Создать аккаунт',
+                    : Text(
+                        l10n.register_button_create_account,
                         style: TextStyle(
                           fontSize: 21,
                           fontWeight: FontWeight.w700,
@@ -685,7 +692,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
     final nationalDigits = _extractNationalPhoneDigits(input);
     if (nationalDigits.length < _selectedCountry.minNationalDigits ||
         nationalDigits.length > _selectedCountry.maxNationalDigits) {
-      return 'Введите корректный номер телефона.';
+      return AppLocalizations.of(context)!.register_error_invalid_phone;
     }
     return null;
   }
@@ -697,6 +704,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
   }
 
   Future<void> _pickPhoneCountry() async {
+    final l10n = AppLocalizations.of(context)!;
     final selected = await showModalBottomSheet<_PhoneCountry>(
       context: context,
       isScrollControlled: true,
@@ -741,11 +749,11 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                         textCapitalization: TextCapitalization.sentences,
                         onChanged: (_) => setModalState(() {}),
                         style: const TextStyle(fontSize: 18),
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search, size: 24),
-                          hintText: 'Поиск страны или кода',
-                          hintStyle: TextStyle(fontSize: 18),
-                          contentPadding: EdgeInsets.symmetric(
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.search, size: 24),
+                          hintText: l10n.register_country_search_hint,
+                          hintStyle: const TextStyle(fontSize: 18),
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 18,
                             vertical: 18,
                           ),
@@ -841,6 +849,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
   }
 
   Future<void> _pickBirthDate() async {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final initial = _toIsoDate(_dob.text);
     final picked = await showDatePicker(
@@ -850,9 +859,9 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           : DateTime.parse(initial),
       firstDate: DateTime(1920),
       lastDate: now,
-      helpText: 'Дата рождения',
-      cancelText: 'Отмена',
-      confirmText: 'Выбрать',
+      helpText: l10n.register_date_picker_help,
+      cancelText: l10n.register_date_picker_cancel,
+      confirmText: l10n.register_date_picker_confirm,
     );
     if (picked == null) return;
     final dd = picked.day.toString().padLeft(2, '0');
@@ -1244,6 +1253,7 @@ class _AvatarSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     return Column(
@@ -1289,7 +1299,7 @@ class _AvatarSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Выбрать аватар',
+          l10n.register_pick_avatar_title,
           style: TextStyle(
             fontSize: 14,
             color: (dark ? Colors.white : scheme.onSurface).withValues(

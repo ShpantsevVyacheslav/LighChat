@@ -14,6 +14,7 @@ import 'features/chat/data/user_contacts_repository.dart';
 import 'features/chat/data/user_profiles_repository.dart';
 import 'features/chat/data/user_sticker_packs_repository.dart';
 import 'features/chat/data/chat_list_offline_cache.dart';
+import 'features/chat/data/secret_chat_access.dart';
 
 class StarredChatMessageEntry {
   const StarredChatMessageEntry({
@@ -136,6 +137,17 @@ final conversationsProvider =
         yield v;
       }
     });
+
+typedef SecretChatAccessKey = ({String conversationId, String userId});
+
+final secretChatAccessActiveProvider =
+    StreamProvider.family<bool, SecretChatAccessKey>((ref, key) {
+  return watchSecretChatAccessActive(
+    firestore: FirebaseFirestore.instance,
+    conversationId: key.conversationId,
+    userId: key.userId,
+  );
+});
 
 final messagesProvider =
     StreamProvider.family<

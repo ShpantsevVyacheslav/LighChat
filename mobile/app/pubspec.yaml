@@ -95,6 +95,10 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.2.0
   flutter_local_notifications: ^21.0.0
+  flutter_windowmanager: ^0.2.0
+  intl: any
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:
