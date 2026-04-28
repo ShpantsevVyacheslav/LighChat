@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/chat_emoji_only.dart';
+import '../../../l10n/app_localizations.dart';
 import 'chat_wallpaper_scope.dart';
 import 'chat_wallpaper_tone.dart';
 import 'message_attachments.dart';
@@ -67,6 +68,8 @@ Future<MessageMenuResult?> showMessageContextMenu(
   required bool hasText,
   required bool canEdit,
   required bool canDelete,
+  bool allowCopy = true,
+  bool allowForward = true,
   bool showStarAction = false,
   bool isStarred = false,
   String chatFontSize = 'medium',
@@ -87,6 +90,8 @@ Future<MessageMenuResult?> showMessageContextMenu(
         hasText: hasText,
         canEdit: canEdit,
         canDelete: canDelete,
+        allowCopy: allowCopy,
+        allowForward: allowForward,
         showStarAction: showStarAction,
         isStarred: isStarred,
         initiatorPureEmojiSize: initiatorPureEmojiSize,
@@ -116,6 +121,8 @@ class _MessageContextMenuPage extends StatelessWidget {
     required this.hasText,
     required this.canEdit,
     required this.canDelete,
+    required this.allowCopy,
+    required this.allowForward,
     required this.showStarAction,
     required this.isStarred,
     required this.initiatorPureEmojiSize,
@@ -128,6 +135,8 @@ class _MessageContextMenuPage extends StatelessWidget {
   final bool hasText;
   final bool canEdit;
   final bool canDelete;
+  final bool allowCopy;
+  final bool allowForward;
   final bool showStarAction;
   final bool isStarred;
   final double initiatorPureEmojiSize;
@@ -140,6 +149,7 @@ class _MessageContextMenuPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final sent = message.createdAt.toLocal();
     final read = message.readAt?.toLocal();
     final maxH = MediaQuery.sizeOf(context).height * 0.78;
@@ -229,7 +239,7 @@ class _MessageContextMenuPage extends StatelessWidget {
                                     children: [
                                       _MenuTile(
                                         icon: Icons.reply_rounded,
-                                        label: 'Ответить',
+                                        label: l10n.message_menu_action_reply,
                                         onTap: () => _pop(
                                           context,
                                           const MessageMenuResult(
@@ -239,7 +249,7 @@ class _MessageContextMenuPage extends StatelessWidget {
                                       ),
                                       _MenuTile(
                                         icon: Icons.chat_bubble_outline_rounded,
-                                        label: 'Обсудить',
+                                        label: l10n.message_menu_action_thread,
                                         onTap: () => _pop(
                                           context,
                                           const MessageMenuResult(
@@ -248,9 +258,10 @@ class _MessageContextMenuPage extends StatelessWidget {
                                         ),
                                       ),
                                       if (hasText)
-                                        _MenuTile(
+                                        if (allowCopy)
+                                          _MenuTile(
                                           icon: Icons.copy_rounded,
-                                          label: 'Копировать',
+                                          label: l10n.message_menu_action_copy,
                                           onTap: () => _pop(
                                             context,
                                             const MessageMenuResult(
@@ -261,7 +272,7 @@ class _MessageContextMenuPage extends StatelessWidget {
                                       if (canEdit)
                                         _MenuTile(
                                           icon: Icons.edit_rounded,
-                                          label: 'Изменить',
+                                          label: l10n.message_menu_action_edit,
                                           onTap: () => _pop(
                                             context,
                                             const MessageMenuResult(
@@ -271,7 +282,7 @@ class _MessageContextMenuPage extends StatelessWidget {
                                         ),
                                       _MenuTile(
                                         icon: Icons.push_pin_outlined,
-                                        label: 'Закрепить',
+                                        label: l10n.message_menu_action_pin,
                                         onTap: () => _pop(
                                           context,
                                           const MessageMenuResult(
@@ -285,8 +296,8 @@ class _MessageContextMenuPage extends StatelessWidget {
                                               ? Icons.star_rounded
                                               : Icons.star_outline_rounded,
                                           label: isStarred
-                                              ? 'Убрать из избранного'
-                                              : 'Добавить в избранное',
+                                              ? l10n.message_menu_action_star_remove
+                                              : l10n.message_menu_action_star_add,
                                           onTap: () => _pop(
                                             context,
                                             const MessageMenuResult(
@@ -294,19 +305,20 @@ class _MessageContextMenuPage extends StatelessWidget {
                                             ),
                                           ),
                                         ),
-                                      _MenuTile(
-                                        icon: Icons.forward_rounded,
-                                        label: 'Переслать',
-                                        onTap: () => _pop(
-                                          context,
-                                          const MessageMenuResult(
-                                            MessageMenuActionType.forward,
+                                      if (allowForward)
+                                        _MenuTile(
+                                          icon: Icons.forward_rounded,
+                                          label: l10n.message_menu_action_forward,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.forward,
+                                            ),
                                           ),
                                         ),
-                                      ),
                                       _MenuTile(
                                         icon: Icons.check_box_outlined,
-                                        label: 'Выбрать',
+                                        label: l10n.message_menu_action_select,
                                         onTap: () => _pop(
                                           context,
                                           const MessageMenuResult(
@@ -324,7 +336,7 @@ class _MessageContextMenuPage extends StatelessWidget {
                                         ),
                                         _MenuTile(
                                           icon: Icons.delete_outline_rounded,
-                                          label: 'Удалить',
+                                          label: l10n.message_menu_action_delete,
                                           danger: true,
                                           onTap: () => _pop(
                                             context,
@@ -374,6 +386,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     if (message.isDeleted) {
+      final l10n = AppLocalizations.of(context)!;
       final wallpaper = ChatWallpaperScope.of(context);
       final fg = chatWallpaperAdaptivePrimaryTextColor(
         context: context,
@@ -390,7 +403,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
             border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
           ),
           child: Text(
-            'Сообщение удалено',
+            l10n.message_menu_initiator_deleted,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -410,7 +423,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
       return _ContextMenuTextSummaryBubble(
         scheme: scheme,
         isCurrentUser: isCurrentUser,
-        summary: 'Опрос',
+        summary: AppLocalizations.of(context)!.chat_poll_label,
         outgoingBubbleColor: outgoingBubbleColor,
         incomingBubbleColor: incomingBubbleColor,
       );
@@ -419,7 +432,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
       return _ContextMenuTextSummaryBubble(
         scheme: scheme,
         isCurrentUser: isCurrentUser,
-        summary: 'Геолокация',
+        summary: AppLocalizations.of(context)!.chat_location_label,
         outgoingBubbleColor: outgoingBubbleColor,
         incomingBubbleColor: incomingBubbleColor,
       );
@@ -497,7 +510,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
     return _ContextMenuTextSummaryBubble(
       scheme: scheme,
       isCurrentUser: isCurrentUser,
-      summary: 'Сообщение',
+      summary: AppLocalizations.of(context)!.chat_message_empty_placeholder,
       outgoingBubbleColor: outgoingBubbleColor,
       incomingBubbleColor: incomingBubbleColor,
     );
@@ -573,7 +586,7 @@ class _MenuReplyQuote extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final rawText = (replyTo.text ?? '').trim();
     final preview = rawText.isEmpty
-        ? 'Сообщение'
+        ? AppLocalizations.of(context)!.chat_message_empty_placeholder
         : (rawText.contains('<') ? messageHtmlToPlainText(rawText) : rawText);
 
     return Container(
@@ -627,6 +640,7 @@ class _MenuHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final muted = Colors.white.withValues(alpha: 0.42);
     final strong = Colors.white.withValues(alpha: 0.88);
     final readBlue = const Color(0xFF60A5FA);
@@ -648,7 +662,7 @@ class _MenuHeader extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'ОТПРАВЛЕНО:',
+                  l10n.message_menu_header_sent,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -675,7 +689,7 @@ class _MenuHeader extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'ПРОЧИТАНО:',
+                    l10n.message_menu_header_read,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,

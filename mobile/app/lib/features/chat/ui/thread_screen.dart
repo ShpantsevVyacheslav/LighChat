@@ -15,6 +15,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import '../../../l10n/app_localizations.dart';
 
 import '../data/chat_media_gallery.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
@@ -91,34 +92,6 @@ Widget threadWallpaperBackdrop({
       );
     },
   );
-}
-
-String _threadRepliesUpperRu(int n) {
-  if (n % 100 >= 11 && n % 100 <= 14) return '$n ОТВЕТОВ';
-  switch (n % 10) {
-    case 1:
-      return '$n ОТВЕТ';
-    case 2:
-    case 3:
-    case 4:
-      return '$n ОТВЕТА';
-    default:
-      return '$n ОТВЕТОВ';
-  }
-}
-
-String _threadRepliesLabelRu(int n) {
-  if (n % 100 >= 11 && n % 100 <= 14) return '$n ответов';
-  switch (n % 10) {
-    case 1:
-      return '$n ответ';
-    case 2:
-    case 3:
-    case 4:
-      return '$n ответа';
-    default:
-      return '$n ответов';
-  }
 }
 
 class _AnchorReactionTarget {
@@ -539,6 +512,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   }
 
   Future<void> _pasteContentFromClipboard() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final payload = await readComposerClipboardPayload();
       if (!mounted) return;
@@ -550,7 +524,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         _insertThreadComposerTextAtCursor(pastedText);
       }
       if (payload.files.isEmpty && pastedText.trim().isEmpty) {
-        _toast('Нечего вставлять из буфера');
+        _toast(l10n.chat_clipboard_nothing_to_paste);
       }
     } catch (e) {
       final fallback = await Clipboard.getData(Clipboard.kTextPlain);
@@ -559,7 +533,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       if (text.trim().isNotEmpty) {
         _insertThreadComposerTextAtCursor(text);
       } else {
-        _toast('Не удалось вставить содержимое буфера: $e');
+        _toast(l10n.chat_clipboard_paste_failed(e));
       }
     }
   }
@@ -585,7 +559,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         unawaited(_animateToThreadBottom());
       }
     } catch (e) {
-      if (mounted) _toast('Не удалось отправить: $e');
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_send_failed(e));
+      }
     } finally {
       if (mounted) setState(() => _sendBusy = false);
     }
@@ -597,7 +573,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
     final chatRepo = ref.read(chatRepositoryProvider);
     if (stickerRepo == null || chatRepo == null) {
-      _toast('Сервис недоступен');
+      _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
     await showComposerStickerGifSheet(
@@ -621,7 +597,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   Future<void> _openVideoCircleCaptureThread(String uid) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      _toast('Сервис чата недоступен');
+      _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
       return;
     }
     await pushVideoCircleCapturePage(
@@ -662,7 +638,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         unawaited(_animateToThreadBottom());
       }
     } catch (e) {
-      if (mounted) _toast('Не удалось отправить кружок: $e');
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_send_video_circle_failed(e));
+      }
     } finally {
       unawaited(_deleteFileSilently(raw.path));
       if (mounted) setState(() => _sendBusy = false);
@@ -670,9 +648,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   }
 
   Future<void> _sendLocationShareThread(String uid) async {
+    final l10n = AppLocalizations.of(context)!;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      _toast('Сервис чата недоступен');
+      _toast(l10n.chat_repository_unavailable);
       return;
     }
     final convAsync = ref.read(
@@ -685,12 +664,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         ? convList.first
         : null;
     if (conv == null) {
-      _toast('Чат ещё загружается');
+      _toast(l10n.chat_still_loading);
       return;
     }
     final participantIds = conv.data.participantIds;
     if (participantIds.isEmpty) {
-      _toast('Нет участников чата');
+      _toast(l10n.chat_no_participants);
       return;
     }
 
@@ -704,14 +683,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         serviceEnabled = await Geolocator.isLocationServiceEnabled();
       } on MissingPluginException catch (_) {
         if (mounted) {
-          _toast(
-            'Геолокация не подключена в iOS-сборке. В каталоге mobile/app/ios выполните pod install и пересоберите приложение.',
-          );
+          _toast(l10n.chat_location_ios_geolocator_missing);
         }
         return;
       }
       if (!serviceEnabled) {
-        if (mounted) _toast('Включите службу геолокации');
+        if (mounted) _toast(l10n.chat_location_services_disabled);
         return;
       }
       var permission = await Geolocator.checkPermission();
@@ -720,7 +697,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (mounted) _toast('Нет доступа к геолокации');
+        if (mounted) _toast(l10n.chat_location_permission_denied);
         return;
       }
 
@@ -762,7 +739,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось отправить геолокацию: $e')),
+          SnackBar(content: Text(l10n.chat_location_send_failed(e))),
         );
       }
     } finally {
@@ -772,9 +749,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
   Future<void> _sendChatPollThread(String uid) async {
     if (_sendBusy) return;
+    final l10n = AppLocalizations.of(context)!;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      _toast('Сервис чата недоступен');
+      _toast(l10n.chat_repository_unavailable);
       return;
     }
     final convAsync = ref.read(
@@ -787,12 +765,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         ? convList.first
         : null;
     if (conv == null) {
-      _toast('Чат ещё загружается');
+      _toast(l10n.chat_still_loading);
       return;
     }
     final participantIds = conv.data.participantIds;
     if (participantIds.isEmpty) {
-      _toast('Нет участников чата');
+      _toast(l10n.chat_no_participants);
       return;
     }
     final payload = await showChatPollCreateSheet(context);
@@ -817,15 +795,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       final raw = '$e';
       final String message;
       if (raw.contains('poll_send_timeout:')) {
-        message = 'Опрос не отправлен: таймаут';
+        message = l10n.chat_poll_send_timeout;
       } else if (raw.contains('poll_send_firebase:')) {
         final details = raw.split('poll_send_firebase:').last;
-        message = 'Опрос не отправлен (Firestore): $details';
+        message = l10n.chat_poll_send_firebase(details);
       } else if (raw.contains('poll_send_error:')) {
         final details = raw.split('poll_send_error:').last;
-        message = 'Опрос не отправлен: $details';
+        message = l10n.chat_poll_send_known_error(details);
       } else {
-        message = 'Не удалось отправить опрос: $e';
+        message = l10n.chat_poll_send_failed(e);
       }
       ScaffoldMessenger.of(
         context,
@@ -887,29 +865,35 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     }
   }
 
-  String _threadSenderLabel(String senderId, User user, Conversation? conv) {
-    if (senderId == user.uid) return 'Вы';
+  String _threadSenderLabel(
+    String senderId,
+    User user,
+    Conversation? conv,
+    AppLocalizations l10n,
+  ) {
+    if (senderId == user.uid) return l10n.chat_sender_you;
     final n = conv?.participantInfo?[senderId]?.name;
     if ((n ?? '').trim().isNotEmpty) return n!.trim();
-    return 'Участник';
+    return l10n.forward_sender_fallback;
   }
 
   Future<bool> _confirmDeleteMessageInThread(ChatMessage m) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return false;
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить сообщение?'),
-        content: const Text('Сообщение будет скрыто у всех.'),
+        title: Text(l10n.chat_delete_message_title_single),
+        content: Text(l10n.chat_delete_message_body_single),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(l10n.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить'),
+            child: Text(l10n.common_delete),
           ),
         ],
       ),
@@ -928,7 +912,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Не удалось удалить: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.chat_delete_action_failed(e))));
       }
       return false;
     }
@@ -946,19 +930,20 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     if (m.attachments.length <= 1) {
       return _confirmDeleteMessageInThread(m);
     }
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить файл?'),
-        content: const Text('Будет удалён только этот файл из сообщения.'),
+        title: Text(l10n.chat_delete_file_title),
+        content: Text(l10n.chat_delete_file_body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(l10n.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить'),
+            child: Text(l10n.common_delete),
           ),
         ],
       ),
@@ -976,7 +961,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Не удалось удалить: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.chat_delete_action_failed(e))));
       }
       return false;
     }
@@ -1006,7 +991,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
           items: items,
           initialIndex: ix,
           currentUserId: user.uid,
-          senderLabel: (sid) => _threadSenderLabel(sid, user, conv),
+          senderLabel: (sid) => _threadSenderLabel(
+            sid,
+            user,
+            conv,
+            AppLocalizations.of(context)!,
+          ),
           onReply: null,
           onForward: (galleryItem) {
             if (galleryItem.message.isDeleted) return;
@@ -1100,6 +1090,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     ChatMessage message, {
     required String parentMessageId,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final repo = ref.read(chatRepositoryProvider);
       if (repo == null) return;
@@ -1111,12 +1102,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Повторная обработка запущена')),
+        SnackBar(content: Text(l10n.chat_media_transcode_retry_started)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось запустить обработку: $e')),
+        SnackBar(content: Text(l10n.chat_media_transcode_retry_failed(e))),
       );
     }
   }
@@ -1124,9 +1115,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authUserProvider).asData?.value;
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('Not signed in.')));
+      return Scaffold(
+        body: Center(child: Text(l10n.forward_error_not_authorized)),
+      );
     }
 
     ChatMessage? initial = widget.parentMessage;
@@ -1200,7 +1194,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
           child: Column(
             children: [
               SizedBox(height: topUnderAppBar),
-              Expanded(child: Center(child: Text('Ошибка: $e'))),
+              Expanded(
+                child: Center(child: Text(l10n.chat_parent_load_error(e))),
+              ),
             ],
           ),
         ),
@@ -1217,8 +1213,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
               child: Column(
                 children: [
                   SizedBox(height: topUnderAppBar),
-                  const Expanded(
-                    child: Center(child: Text('Сообщение не найдено')),
+                  Expanded(
+                    child: Center(child: Text(l10n.thread_message_not_found)),
                   ),
                 ],
               ),
@@ -1229,9 +1225,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         final outboxJobs = ref.watch(chatOutboxAttachmentNotifierProvider);
         final replyCount = parent.threadCount ?? 0;
         final convTitle = (conv?.name ?? '').trim();
-        final headerTitle = convTitle.isNotEmpty ? convTitle : 'Обсуждение';
+        final headerTitle = convTitle.isNotEmpty
+            ? convTitle
+            : l10n.thread_screen_title_fallback;
         final headerSubtitle =
-            '${_threadRepliesUpperRu(replyCount)} · ${_timeHm(parent.createdAt)}';
+            '${l10n.thread_reply_count(replyCount).toUpperCase()} · ${_timeHm(parent.createdAt)}';
 
         return Scaffold(
           extendBodyBehindAppBar: true,
@@ -1691,7 +1689,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                               onEditPending: (_) async {},
                               attachmentsEnabled: !_sendBusy,
                               sendBusy: _sendBusy,
-                              onMicTap: () => _toast('Скоро'),
+                              onMicTap: () => _toast(l10n.common_soon),
                               onStickersTap: () =>
                                   unawaited(_openStickersGifPanel(user.uid)),
                               stickerSuggestionBuilder: () {
@@ -1765,7 +1763,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                         ),
                       ],
                     ),
-                    error: (e, _) => Center(child: Text('Ошибка ветки: $e')),
+                    error: (e, _) => Center(
+                      child: Text(l10n.thread_load_replies_error(e)),
+                    ),
                   ),
                 ),
               ],
@@ -1802,6 +1802,7 @@ class _ThreadRootPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final isMine = message.senderId == currentUserId;
     if (message.isDeleted) {
@@ -1927,7 +1928,7 @@ class _ThreadRootPanel extends StatelessWidget {
         );
       }
       if (children.isEmpty) {
-        children.add(Text('Сообщение', style: baseStyle));
+        children.add(Text(l10n.chat_message_empty_placeholder, style: baseStyle));
       }
 
       final metaRow = Row(
@@ -2012,7 +2013,7 @@ class _ThreadRootPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _ThreadRepliesSeparator(label: _threadRepliesLabelRu(replyCount)),
+          _ThreadRepliesSeparator(label: l10n.thread_reply_count(replyCount)),
         ],
       ),
     );

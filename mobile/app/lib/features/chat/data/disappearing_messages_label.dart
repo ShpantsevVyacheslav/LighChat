@@ -1,19 +1,30 @@
-/// Сводка для `disappearingMessageTtlSec` (секунды), паритет с web `formatDisappearingTtlSummary`.
-String formatDisappearingTtlSummary(int? ttlSec) {
-  if (ttlSec == null || ttlSec <= 0) return 'Выкл';
+import '../../../l10n/app_localizations.dart';
+
+/// Localized summary for `disappearingMessageTtlSec` (seconds); parity with web `formatDisappearingTtlSummary`.
+String formatDisappearingTtlSummaryForLocale(
+  AppLocalizations l10n,
+  int? ttlSec,
+) {
+  if (ttlSec == null || ttlSec <= 0) return l10n.disappearing_ttl_summary_off;
   switch (ttlSec) {
     case 3600:
-      return '1 ч';
+      return l10n.disappearing_preset_1h;
     case 86400:
-      return '24 ч';
+      return l10n.disappearing_preset_24h;
     case 604800:
-      return '7 дн.';
+      return l10n.disappearing_preset_7d;
     case 2592000:
-      return '30 дн.';
+      return l10n.disappearing_preset_30d;
     default:
-      if (ttlSec < 3600) return '${(ttlSec / 60).round()} мин';
-      if (ttlSec < 86400) return '${(ttlSec / 3600).round()} ч';
-      if (ttlSec < 604800) return '${(ttlSec / 86400).round()} дн.';
-      return '${(ttlSec / 604800).round()} нед.';
+      if (ttlSec < 3600) {
+        return l10n.disappearing_ttl_minutes((ttlSec / 60).round());
+      }
+      if (ttlSec < 86400) {
+        return l10n.disappearing_ttl_hours((ttlSec / 3600).round());
+      }
+      if (ttlSec < 604800) {
+        return l10n.disappearing_ttl_days((ttlSec / 86400).round());
+      }
+      return l10n.disappearing_ttl_weeks((ttlSec / 604800).round());
   }
 }

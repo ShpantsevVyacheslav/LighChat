@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Thread header styled to match `ChatHeader` (chat screen).
 ///
 /// Supports the same search-mode UI to keep UX consistent.
@@ -28,6 +30,7 @@ class ThreadHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final fg = Colors.white.withValues(alpha: 0.96);
 
     if (searchActive &&
@@ -48,7 +51,7 @@ class ThreadHeader extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              tooltip: 'Назад',
+              tooltip: l10n.partner_profile_tooltip_back,
               onPressed: onSearchClose,
               color: fg,
               icon: const Icon(Icons.arrow_back_rounded),
@@ -69,7 +72,7 @@ class ThreadHeader extends StatelessWidget {
                     ),
                     cursorColor: fg,
                     decoration: InputDecoration(
-                      hintText: 'Поиск в обсуждении…',
+                      hintText: l10n.thread_search_hint,
                       hintStyle: TextStyle(color: fg.withValues(alpha: 0.50)),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.08),
@@ -84,7 +87,7 @@ class ThreadHeader extends StatelessWidget {
                       isDense: true,
                       suffixIcon: q.isNotEmpty
                           ? IconButton(
-                              tooltip: 'Очистить',
+                              tooltip: l10n.thread_search_tooltip_clear,
                               onPressed: () => searchController!.clear(),
                               icon: Icon(
                                 Icons.close_rounded,
@@ -144,7 +147,7 @@ class ThreadHeader extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Закрыть',
+            tooltip: l10n.partner_profile_tooltip_close,
             onPressed: onClose,
             color: fg,
             icon: const Icon(Icons.close_rounded),
@@ -178,7 +181,7 @@ class ThreadHeader extends StatelessWidget {
             ),
           ),
           iconButton(
-            tooltip: 'Поиск',
+            tooltip: l10n.thread_search_tooltip_search,
             onTap: onSearchTap,
             icon: Icons.search_rounded,
           ),

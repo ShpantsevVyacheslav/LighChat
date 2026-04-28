@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_avatar.dart';
 
 class ChatHeader extends StatelessWidget {
@@ -44,6 +45,7 @@ class ChatHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final fg = Colors.white.withValues(alpha: 0.96);
 
     if (searchActive &&
@@ -64,7 +66,7 @@ class ChatHeader extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              tooltip: 'Назад',
+              tooltip: l10n.partner_profile_tooltip_back,
               onPressed: onSearchClose,
               color: fg,
               icon: const Icon(Icons.arrow_back_rounded),
@@ -85,7 +87,7 @@ class ChatHeader extends StatelessWidget {
                     ),
                     cursorColor: fg,
                     decoration: InputDecoration(
-                      hintText: 'Поиск сообщений…',
+                      hintText: l10n.chat_header_search_hint,
                       hintStyle: TextStyle(color: fg.withValues(alpha: 0.50)),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.08),
@@ -100,7 +102,7 @@ class ChatHeader extends StatelessWidget {
                       isDense: true,
                       suffixIcon: q.isNotEmpty
                           ? IconButton(
-                              tooltip: 'Очистить',
+                              tooltip: l10n.thread_search_tooltip_clear,
                               onPressed: () => searchController!.clear(),
                               icon: Icon(
                                 Icons.close_rounded,
@@ -160,7 +162,7 @@ class ChatHeader extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Назад',
+            tooltip: l10n.partner_profile_tooltip_back,
             onPressed: onBack,
             color: fg,
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -218,7 +220,7 @@ class ChatHeader extends StatelessWidget {
                   ),
                 ),
                 child: IconButton(
-                  tooltip: 'Обсуждения',
+                  tooltip: l10n.chat_header_tooltip_threads,
                   onPressed: onThreadsTap,
                   iconSize: 17,
                   color: fg,
@@ -229,18 +231,18 @@ class ChatHeader extends StatelessWidget {
             ),
           ),
           iconButton(
-            tooltip: 'Поиск',
+            tooltip: l10n.chat_header_tooltip_search,
             onTap: onSearchTap,
             icon: Icons.search_rounded,
           ),
           if (showCalls) ...[
             iconButton(
-              tooltip: 'Видеозвонок',
+              tooltip: l10n.chat_header_tooltip_video_call,
               onTap: onVideoCallTap,
               icon: Icons.videocam_outlined,
             ),
             iconButton(
-              tooltip: 'Аудиозвонок',
+              tooltip: l10n.chat_header_tooltip_audio_call,
               onTap: onAudioCallTap,
               icon: Icons.call_outlined,
             ),

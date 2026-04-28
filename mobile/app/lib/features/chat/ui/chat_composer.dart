@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/composer_html_editing.dart';
+import '../../../l10n/app_localizations.dart';
 import 'composer_attachment_menu.dart';
 import 'composer_editing_banner.dart';
 import 'composer_formatting_toolbar.dart';
@@ -301,6 +302,7 @@ class _ChatComposerState extends State<ChatComposer> {
   }
 
   Widget _buildComposerTextField(bool keyboardOpen) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final wallpaper = ChatWallpaperScope.of(context);
     final fg = chatWallpaperAdaptivePrimaryTextColor(
@@ -331,7 +333,7 @@ class _ChatComposerState extends State<ChatComposer> {
         color: fg,
       ),
       decoration: InputDecoration(
-        hintText: 'Введите сообщение...',
+        hintText: l10n.chat_composer_hint_message,
         hintStyle: TextStyle(
           color: hintFg,
           fontWeight: FontWeight.w500,
@@ -343,7 +345,7 @@ class _ChatComposerState extends State<ChatComposer> {
         isCollapsed: false,
         suffixIcon: keyboardOpen
             ? IconButton(
-                tooltip: 'Стикеры',
+                tooltip: l10n.chat_composer_tooltip_stickers,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                 onPressed: widget.sendBusy ? null : _openStickersPanel,
@@ -379,6 +381,7 @@ class _ChatComposerState extends State<ChatComposer> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final wallpaper = ChatWallpaperScope.of(context);
@@ -476,7 +479,7 @@ class _ChatComposerState extends State<ChatComposer> {
                         ),
                       ),
                       child: IconButton(
-                        tooltip: 'Вложения',
+                        tooltip: l10n.chat_composer_tooltip_attachments,
                         onPressed: widget.attachmentsEnabled && !widget.sendBusy
                             ? _openAttachmentMenu
                             : null,

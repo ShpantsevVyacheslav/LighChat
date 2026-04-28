@@ -16,9 +16,11 @@ import '../data/device_contacts_suggestions.dart';
 import '../data/new_chat_user_search.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
+import '../data/secret_chat_create.dart';
 import 'chat_shell_backdrop.dart';
 import 'device_contact_invite_row.dart';
 import 'new_chat_user_picker_row.dart';
+import 'secret_chat_ttl_sheet.dart';
 import '../../../l10n/app_localizations.dart';
 
 class NewChatScreen extends ConsumerStatefulWidget {
@@ -353,9 +355,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                 if (profilesRepo == null ||
                     repo == null ||
                     _usersFuture == null) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('Firebase не готов.'),
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(AppLocalizations.of(context)!.auth_firebase_not_ready),
                   );
                 }
 
@@ -380,12 +382,17 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                           if (p.id == u.uid) me = p;
                         }
                         if (me == null) {
-                          return const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('Не найден профиль в users/{uid}.'),
+                          return Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.new_chat_error_self_profile_not_found,
+                            ),
                           );
                         }
                         final self = me;
+                        final l10n = AppLocalizations.of(context)!;
 
                         final others = all
                             .where((p) => p.id != u.uid)
@@ -397,7 +404,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         for (final p in others) {
                           final fallback = p.name.trim().isNotEmpty
                               ? p.name.trim()
-                              : 'Пользователь';
+                              : l10n.new_chat_fallback_user_display_name;
                           displayNameById[p.id] = resolveContactDisplayName(
                             contactProfiles: contactsIdx.contactProfiles,
                             contactUserId: p.id,
@@ -424,7 +431,6 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         );
 
                         final scheme = Theme.of(context).colorScheme;
-                        final l10n = AppLocalizations.of(context)!;
                         final listChildren = <Widget>[];
 
                         final deviceCandidates = buildDeviceContactCandidates(
@@ -503,16 +509,26 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: _horizontalPad,
                                 ),
-                                child: NewChatUserPickerRow(
-                                  profile: viewProfile,
-                                  style: NewChatUserPickerRowStyle.list,
-                                  enabled: !_busy,
-                                  onTap: () => _openDirect(
-                                    repo: repo,
-                                    uid: u.uid,
-                                    me: self,
-                                    peer: p,
-                                    allProfiles: all,
+                                child: GestureDetector(
+                                  onLongPress: _busy
+                                      ? null
+                                      : () => _openSecretDirect(
+                                            repo: repo,
+                                            uid: u.uid,
+                                            me: self,
+                                            peer: p,
+                                          ),
+                                  child: NewChatUserPickerRow(
+                                    profile: viewProfile,
+                                    style: NewChatUserPickerRowStyle.list,
+                                    enabled: !_busy,
+                                    onTap: () => _openDirect(
+                                      repo: repo,
+                                      uid: u.uid,
+                                      me: self,
+                                      peer: p,
+                                      allProfiles: all,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -537,16 +553,26 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: _horizontalPad,
                                 ),
-                                child: NewChatUserPickerRow(
-                                  profile: viewProfile,
-                                  style: NewChatUserPickerRowStyle.list,
-                                  enabled: !_busy,
-                                  onTap: () => _openDirect(
-                                    repo: repo,
-                                    uid: u.uid,
-                                    me: self,
-                                    peer: p,
-                                    allProfiles: all,
+                                child: GestureDetector(
+                                  onLongPress: _busy
+                                      ? null
+                                      : () => _openSecretDirect(
+                                            repo: repo,
+                                            uid: u.uid,
+                                            me: self,
+                                            peer: p,
+                                          ),
+                                  child: NewChatUserPickerRow(
+                                    profile: viewProfile,
+                                    style: NewChatUserPickerRowStyle.list,
+                                    enabled: !_busy,
+                                    onTap: () => _openDirect(
+                                      repo: repo,
+                                      uid: u.uid,
+                                      me: self,
+                                      peer: p,
+                                      allProfiles: all,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -638,7 +664,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Auth error: $e'),
+                child: Text(
+                  AppLocalizations.of(context)!.chat_auth_error(e.toString()),
+                ),
               ),
             ),
           ),
@@ -685,6 +713,48 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
       context.push('/chats/$convId');
     } catch (e) {
       setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openSecretDirect({
+    required ChatRepository repo,
+    required String uid,
+    required UserProfile me,
+    required UserProfile peer,
+  }) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final ttlSec = await showModalBottomSheet<int>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => const SecretChatTtlSheet(),
+      );
+      if (ttlSec == null || !mounted) return;
+      final convId = await createOrOpenSecretDirectChat(
+        firestore: FirebaseFirestore.instance,
+        currentUserId: uid,
+        otherUserId: peer.id,
+        currentUserInfo: (
+          name: me.name,
+          avatar: me.avatar,
+          avatarThumb: me.avatarThumb,
+        ),
+        otherUserInfo: (
+          name: peer.name,
+          avatar: peer.avatar,
+          avatarThumb: peer.avatarThumb,
+        ),
+        ttlPresetSec: ttlSec,
+      );
+      if (!mounted) return;
+      context.push('/chats/$convId');
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _busy = false);
     }

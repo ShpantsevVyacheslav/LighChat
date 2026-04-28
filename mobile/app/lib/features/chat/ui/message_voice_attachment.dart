@@ -68,9 +68,10 @@ class MessageVoiceAttachment extends StatelessWidget {
       mediaNorm: mediaNorm,
     );
     if (normState != ChatMediaNormUiState.none) {
+      final l10n = AppLocalizations.of(context)!;
       return ChatMediaNormStatusWidget(
         state: normState,
-        mediaKindLabel: 'аудио',
+        mediaKindLabel: l10n.voice_attachment_media_kind_audio,
         onRetry: onRetryNorm,
       );
     }
@@ -138,6 +139,7 @@ class _WebStyleVoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final metaColor = isMine
         ? scheme.onPrimary.withValues(alpha: 0.7)
@@ -219,7 +221,7 @@ class _WebStyleVoiceRow extends StatelessWidget {
                         )
                       else
                         Text(
-                          'Не удалось загрузить',
+                          l10n.voice_attachment_load_failed,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -229,7 +231,7 @@ class _WebStyleVoiceRow extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         failed
-                            ? 'Голосовое сообщение'
+                            ? l10n.voice_attachment_title_voice_message
                             : '${_format(displayTime)} · ${_sizeLabel()}',
                         style: TextStyle(
                           fontSize: 12,
@@ -290,12 +292,16 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   bool _open = false;
   bool _busy = false;
   String? _localTranscript;
+  String? _errorText;
 
   Future<void> _ensureTranscript() async {
     if (_busy) return;
     final existing = (widget.transcript ?? _localTranscript ?? '').trim();
     if (existing.isNotEmpty) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _errorText = null;
+    });
     try {
       final lang = Localizations.localeOf(context).languageCode.toLowerCase();
       final res = await VoiceTranscriptionCallables().transcribeVoiceMessage(
@@ -307,10 +313,20 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
       setState(() => _localTranscript = res.transcript);
     } catch (e) {
       if (!mounted) return;
-      final l10nErr = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10nErr.voice_transcript_error(e))),
-      );
+      setState(() => _errorText = e.toString());
+
+      // Don't crash if we're rendered without a ScaffoldMessenger/Localizations.
+      final l10nErr = AppLocalizations.of(context);
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (l10nErr != null && messenger != null) {
+        try {
+          messenger.showSnackBar(
+            SnackBar(content: Text(l10nErr.voice_transcript_error(e))),
+          );
+        } catch (_) {
+          // If the messenger is in an invalid state, fall back to inline UI.
+        }
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -335,6 +351,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final copyLabel = l10n.voice_transcript_copy;
     final loadingLabel = l10n.voice_transcript_loading;
     final failedLabel = l10n.voice_transcript_failed;
+    final inlineError = _errorText;
     return Padding(
       padding: const EdgeInsets.only(top: 6, left: 2, right: 2),
       child: Column(
@@ -411,7 +428,9 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                       ? Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            failedLabel,
+                            inlineError?.trim().isNotEmpty == true
+                                ? l10n.voice_transcript_error(inlineError!)
+                                : failedLabel,
                             style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,

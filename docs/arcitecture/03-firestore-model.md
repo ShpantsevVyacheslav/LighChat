@@ -13,15 +13,19 @@
   - `e2eeBackups/{backupId}` - password-backup обёрнутого приватника v2 (read/write только владелец). См. RFC §5.2.
   - `e2eePairingSessions/{sessionId}` - эфемерные QR-pairing сессии v2 (TTL 10 мин, чистятся scheduled CF [`cleanupE2eePairingSessions`](../functions/src/triggers/scheduler/cleanupE2eePairingSessions.ts)). См. RFC §5.3, §6.7.
   - `devices/{deviceId}` - реестр клиентских устройств/сессий пользователя (`app`, `platform`, `isActive`, `lastSeenAt`, `lastLoginAt`), read/write только владельцем uid.
+  - `secretChatLock/{docId}` - user‑scoped PIN‑lock для секретных чатов (например `users/{uid}/secretChatLock/main`): хранит `pinSaltB64`, `pinHashB64`, счётчик ошибок и `lockedUntil` (rate‑limit). Заполняется callable `setSecretChatPin`, проверяется callable `unlockSecretChat`.
 - `registrationIndex/{docId}` - индекс уникальности (email/phone/username), только server-write; чтение для вошедших ограничено, если владелец индекса (`uid` в документе) заблокировал читателя.
 - `publicStickerPacks/{packId}` - общие стикерпаки (read: авторизованные; write: admin).
   - `items/{itemId}` - стикеры/GIF (те же поля, что у `users/*/stickerPacks/*/items`).
 - `conversations/{conversationId}` - чат и метаданные участников (в т.ч. unread-счётчики и reaction-anchor поля `lastReaction*` + `lastReactionSeenAt`).
   - **Исчезающие сообщения:** `disappearingMessageTtlSec` (число секунд или `null` = выкл), опционально `disappearingMessagesUpdatedAt` (ISO), `disappearingMessagesUpdatedBy` (uid). В личном чате меняют оба участника; в группе — только создатель/админы (см. `firestore.rules`). На документы `messages/*` и `messages/*/thread/*` CF после создания пишет `expireAt` (Timestamp) для [Firestore TTL](https://firebase.google.com/docs/firestore/ttl); клиент поле `expireAt` не задаёт.
+  - **Секретный чат:** поле `secretChat` (map) включает флаги режима и срок жизни (ISO `expiresAt` + preset `ttlPresetSec`), а также ограничения (`noForward/noCopy/noSave/screenshotProtection`) и `lockPolicy.grantTtlSec`. В секретном чате чтение `messages/*`, `e2eeSessions/*` и медиа в Storage требует активного unlock‑grant (см. `secretAccess` ниже).
   - `members/{memberId}` - server-maintained индекс участников для правил.
   - `typing/{typingUserId}`
   - `messages/{messageId}` (+ вложенные thread-path документы; для медиа-нормализации используется поле `mediaNorm` со статусом `pending|done|failed` и `failedIndexes`; для синхронизации emoji-эффектов используется `emojiBurst: {eventId, emoji, by, at}`; при включённом таймере исчезновения — поле `expireAt` для TTL-удаления)
   - `polls/{pollId}`
+  - `gameLobbies/{gameId}` - список лобби игр в рамках беседы (read: участники беседы; write: только server). Используется как “приглашение”/точка входа для присоединения к игре.
+  - `secretAccess/{userId}` - unlock‑grant секретного чата (server‑write через callable `unlockSecretChat`, read: только владелец `userId`). Поле `expiresAtTs` (Timestamp) используется в правилах для server‑enforced доступа к сообщениям/вложениям.
   - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата в формате E2EE v2: вложенная мапа `wraps[userId][deviceId]` (ciphertext; сервер не знает plaintext). Единственная поддерживаемая версия — `protocolVersion: 'v2-p256-aesgcm-multi'`; документы с другими версиями клиенты молча ротируют через self-heal.
 - `userChats/{userId}` - денормализованный индекс чатов пользователя.
 - `userContacts/{userId}` - список контактов пользователя.
@@ -41,6 +45,12 @@
 - `userMeetings/{userId}` - денормализованный индекс встреч.
 - `platformSettings/{docId}` - платформенные настройки (admin-write). Ключевые поля E2EE: `e2eeDefaultForNewDirectChats` (попытка авто-E2E при создании нового личного чата, клиент) и `e2eeProtocolVersion` ∈ `{'v2','auto','off'}` (rollout-флаг; после Phase 10 cleanup поддержки v1 нет).
 - `supportTickets/{ticketId}` - admin-read.
+- `games/{gameId}` - сессии мини-приложений/игр внутри чата (например, “Дурак”).
+  - Создание/обновление — **только Cloud Functions** (Admin SDK).
+  - Чтение — только участникам игры (uid ∈ `playerIds`).
+  - `privateHands/{uid}` — приватная рука игрока (read: только `uid`, write: только server).
+  - `moves/{clientMoveId}` — журнал ходов (read: игроки, write: server).
+  - Поля (минимум): `type`, `status`, `conversationId`, `isGroup`, `createdAt`, `createdBy`, `playerIds[]`, `players[]`, `settings`, `serverState`, `publicView`, `lastUpdatedAt`.
 
 ## Ключевые связи
 

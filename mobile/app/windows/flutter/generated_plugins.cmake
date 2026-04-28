@@ -14,6 +14,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   gal
   geolocator_windows
   irondash_engine_context
+  local_auth_windows
   permission_handler_windows
   record_windows
   share_plus

@@ -131,11 +131,11 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
     }
   }
 
-  String? _roleChipText(String? role) {
+  String? _roleChipText(AppLocalizations l10n, String? role) {
     final r = role?.trim().toLowerCase();
     if (r == null || r.isEmpty) return null;
-    if (r == 'admin') return 'АДМИН';
-    if (r == 'worker') return 'СОТРУДНИК';
+    if (r == 'admin') return l10n.new_group_role_badge_admin;
+    if (r == 'worker') return l10n.new_group_role_badge_worker;
     return null;
   }
 
@@ -323,10 +323,11 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
   }
 
   Widget _selfParticipantRow(BuildContext context, UserProfile self) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final handle = (self.username ?? '').trim();
     final subtitle = handle.isNotEmpty ? '@$handle' : '';
-    final chip = _roleChipText(self.role);
+    final chip = _roleChipText(l10n, self.role);
     final avatarUrl = self.avatarThumb ?? self.avatar;
 
     return Padding(
@@ -563,9 +564,9 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                   if (profilesRepo == null ||
                       repo == null ||
                       _usersFuture == null) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('Firebase не готов.'),
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(AppLocalizations.of(context)!.auth_firebase_not_ready),
                     );
                   }
 
@@ -575,6 +576,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
 
                   return contactsAsync.when(
                     data: (contactsIdx) {
+                      final l10n = AppLocalizations.of(context)!;
                       return FutureBuilder<List<UserProfile>>(
                         future: _usersFuture,
                         builder: (context, snap) {
@@ -590,9 +592,13 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                             if (p.id == u.uid) me = p;
                           }
                           if (me == null) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text('Не найден профиль в users/{uid}.'),
+                            return Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.new_chat_error_self_profile_not_found,
+                              ),
                             );
                           }
                           final self = me;
@@ -611,7 +617,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                           for (final p in pool) {
                             final fallback = p.name.trim().isNotEmpty
                                 ? p.name.trim()
-                                : 'Пользователь';
+                                : l10n.new_chat_fallback_user_display_name;
                             displayNameById[p.id] = resolveContactDisplayName(
                               contactProfiles: contactsIdx.contactProfiles,
                               contactUserId: p.id,
@@ -647,7 +653,10 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                           if (term.trim().isNotEmpty &&
                               deviceCandidates.isNotEmpty) {
                             listChildren.add(
-                              _sectionHeader(context, 'КОНТАКТЫ ТЕЛЕФОНА'),
+                              _sectionHeader(
+                                context,
+                                l10n.new_chat_section_phone_contacts,
+                              ),
                             );
                             for (final c in deviceCandidates) {
                               final uid = _deviceContactIdToUserId[c.contactId];
@@ -679,11 +688,8 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                                                 shareOriginForContext(context);
                                             await SharePlus.instance.share(
                                               ShareParams(
-                                                text:
-                                                    'Поставь LighChat: https://lighchat.online\n'
-                                                    'Приглашаю тебя в LighChat — вот ссылка на установку.',
-                                                subject:
-                                                    'Приглашение в LighChat',
+                                                text: l10n.invite_text,
+                                                subject: l10n.invite_subject,
                                                 sharePositionOrigin: origin,
                                               ),
                                             );
@@ -696,7 +702,10 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
 
                           if (split.fromContacts.isNotEmpty) {
                             listChildren.add(
-                              _sectionHeader(context, 'КОНТАКТЫ'),
+                              _sectionHeader(
+                                context,
+                                l10n.new_chat_section_contacts,
+                              ),
                             );
                             for (final p in split.fromContacts) {
                               listChildren.add(
@@ -724,7 +733,10 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
 
                           if (split.fromGlobal.isNotEmpty) {
                             listChildren.add(
-                              _sectionHeader(context, 'ВСЕ ПОЛЬЗОВАТЕЛИ'),
+                              _sectionHeader(
+                                context,
+                                l10n.new_chat_section_all_users,
+                              ),
                             );
                             for (final p in split.fromGlobal) {
                               listChildren.add(
@@ -949,14 +961,18 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                         const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Text('Контакты: $e'),
+                      child: Text(
+                        AppLocalizations.of(context)!.new_chat_error_contacts(e),
+                      ),
                     ),
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Auth error: $e'),
+                  child: Text(
+                    AppLocalizations.of(context)!.new_group_error_auth_session(e),
+                  ),
                 ),
               ),
             ),

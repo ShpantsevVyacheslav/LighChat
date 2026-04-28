@@ -122,6 +122,9 @@ class ChatMediaViewerScreen extends StatefulWidget {
     required this.onForward,
     required this.onDeleteItem,
     this.onShowInChat,
+    this.allowForward = true,
+    this.allowSave = true,
+    this.allowExternalShare = true,
   });
 
   final List<ChatMediaGalleryItem> items;
@@ -140,6 +143,10 @@ class ChatMediaViewerScreen extends StatefulWidget {
 
   /// Переход к сообщению во внутреннем чате (из fullscreen-viewer).
   final void Function(ChatMediaGalleryItem item)? onShowInChat;
+
+  final bool allowForward;
+  final bool allowSave;
+  final bool allowExternalShare;
 
   @override
   State<ChatMediaViewerScreen> createState() => _ChatMediaViewerScreenState();
@@ -215,6 +222,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   }
 
   Future<void> _saveCurrent() async {
+    final l10n = AppLocalizations.of(context)!;
     final item = _current;
     if (item == null) return;
     final url = item.attachment.url;
@@ -229,7 +237,6 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
         final granted = await Gal.requestAccess(toAlbum: true);
         if (!granted) {
           if (mounted) {
-            final l10n = AppLocalizations.of(context)!;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.media_viewer_error_no_gallery_access),
@@ -243,22 +250,22 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
         '${Directory.systemTemp.path}/lighchat_${DateTime.now().millisecondsSinceEpoch}_$name',
       );
       if (uri == null || uri.scheme.isEmpty) {
-        throw const FormatException('Bad media URL');
+        throw FormatException(l10n.media_viewer_error_bad_media_url);
       }
       if (uri.scheme == 'file') {
         final src = File(uri.toFilePath());
         if (!await src.exists()) {
-          throw const FileSystemException('Файл не найден');
+          throw FileSystemException(l10n.media_viewer_error_file_not_found);
         }
         await src.copy(f.path);
       } else if (uri.scheme == 'http' || uri.scheme == 'https') {
         final res = await http.get(uri);
         if (res.statusCode != 200) {
-          throw HttpException('HTTP ${res.statusCode}');
+          throw HttpException(l10n.media_viewer_error_http_status(res.statusCode));
         }
         await f.writeAsBytes(res.bodyBytes);
       } else {
-        throw FormatException('Unsupported media scheme: ${uri.scheme}');
+        throw FormatException(l10n.media_viewer_error_unsupported_media_scheme);
       }
       final video = isChatGridGalleryVideo(item.attachment);
       if (video) {
@@ -301,11 +308,11 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   }
 
   Future<void> _shareCurrentExternal() async {
+    final l10n = AppLocalizations.of(context)!;
     final item = _current;
     if (item == null) return;
     if (kIsWeb) {
       if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.media_viewer_error_share_unavailable_web),
@@ -337,7 +344,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     File? f;
     try {
       if (uri == null || uri.scheme.isEmpty) {
-        throw const FormatException('Bad media URL');
+        throw FormatException(l10n.media_viewer_error_bad_media_url);
       }
       f = File(
         '${Directory.systemTemp.path}/lighchat_share_${DateTime.now().millisecondsSinceEpoch}_$fallbackName',
@@ -345,17 +352,17 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
       if (uri.scheme == 'file') {
         final src = File(uri.toFilePath());
         if (!await src.exists()) {
-          throw const FileSystemException('Файл не найден');
+          throw FileSystemException(l10n.media_viewer_error_file_not_found);
         }
         await src.copy(f.path);
       } else if (uri.scheme == 'http' || uri.scheme == 'https') {
         final res = await http.get(uri);
         if (res.statusCode != 200) {
-          throw HttpException('HTTP ${res.statusCode}');
+          throw HttpException(l10n.media_viewer_error_http_status(res.statusCode));
         }
         await f.writeAsBytes(res.bodyBytes, flush: true);
       } else {
-        throw FormatException('Unsupported media scheme: ${uri.scheme}');
+        throw FormatException(l10n.media_viewer_error_unsupported_media_scheme);
       }
 
       await SharePlus.instance.share(
@@ -681,13 +688,17 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                     _reply();
                                     return;
                                   case 'forward':
-                                    _forward();
+                                    if (widget.allowForward) _forward();
                                     return;
                                   case 'share_external':
-                                    unawaited(_shareCurrentExternal());
+                                    if (widget.allowExternalShare) {
+                                      unawaited(_shareCurrentExternal());
+                                    }
                                     return;
                                   case 'save':
-                                    unawaited(_saveCurrent());
+                                    if (widget.allowSave) {
+                                      unawaited(_saveCurrent());
+                                    }
                                     return;
                                   case 'show_in_chat':
                                     _showInChat();
@@ -720,54 +731,57 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                         ],
                                       ),
                                     ),
-                                  PopupMenuItem(
-                                    value: 'forward',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.forward_rounded, color: hi),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          l10n.media_viewer_action_forward,
-                                          style: TextStyle(
-                                            color: hi,
-                                            fontWeight: FontWeight.w600,
+                                  if (widget.allowForward)
+                                    PopupMenuItem(
+                                      value: 'forward',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.forward_rounded, color: hi),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            l10n.media_viewer_action_forward,
+                                            style: TextStyle(
+                                              color: hi,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'share_external',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.share_outlined, color: hi),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          l10n.media_viewer_action_send,
-                                          style: TextStyle(
-                                            color: hi,
-                                            fontWeight: FontWeight.w600,
+                                  if (widget.allowExternalShare)
+                                    PopupMenuItem(
+                                      value: 'share_external',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.share_outlined, color: hi),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            l10n.media_viewer_action_send,
+                                            style: TextStyle(
+                                              color: hi,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'save',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.download_rounded, color: hi),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          l10n.media_viewer_action_save,
-                                          style: TextStyle(
-                                            color: hi,
-                                            fontWeight: FontWeight.w600,
+                                  if (widget.allowSave)
+                                    PopupMenuItem(
+                                      value: 'save',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.download_rounded, color: hi),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            l10n.media_viewer_action_save,
+                                            style: TextStyle(
+                                              color: hi,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
                                   if (showInChat)
                                     PopupMenuItem(
                                       value: 'show_in_chat',
@@ -1299,7 +1313,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
                 ListTile(
                   onTap: () => Navigator.of(context).pop(quality),
                   title: Text(
-                    quality.label,
+                    _videoQualityLabel(l10n, quality),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.92),
                       fontWeight: FontWeight.w600,
@@ -1320,6 +1334,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
   }
 
   Future<void> _applyQuality(_ViewerVideoQuality next) async {
+    final l10n = AppLocalizations.of(context)!;
     if (Uri.tryParse(widget.url)?.scheme == 'file') return;
     final old = _av;
     if (old == null || !old.value.isInitialized || _switchingQuality) return;
@@ -1334,7 +1349,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
     try {
       final uri = Uri.tryParse(nextUrl);
       if (uri == null || uri.scheme.isEmpty) {
-        throw const FormatException('Bad URL');
+        throw FormatException(l10n.media_viewer_error_bad_url);
       }
       final cached = await ChatGalleryVideoLocalCache.cachedFileIfExists(
         nextUrl,
@@ -1359,7 +1374,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       }
       await replacement.initialize();
       if (replacement.value.hasError) {
-        throw Exception(replacement.value.errorDescription ?? 'Playback error');
+        throw Exception(
+          replacement.value.errorDescription ?? l10n.media_viewer_video_playback_failed,
+        );
       }
       await replacement.setLooping(false);
       await replacement.setPlaybackSpeed(_playbackSpeed);
@@ -1508,12 +1525,12 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final unsupported = chatMediaRequiresServerNormalizationOnIos(
       widget.url,
       mimeType: widget.mimeType,
     );
     if (unsupported) {
-      final l10n = AppLocalizations.of(context)!;
       return _wrapWithEdgeNav(
         Center(
           child: Padding(
@@ -1528,7 +1545,6 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       );
     }
     if (_failed) {
-      final l10n = AppLocalizations.of(context)!;
       return _wrapWithEdgeNav(
         Center(
           child: Padding(
@@ -1697,7 +1713,10 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
                                       const SizedBox(width: 8),
                                       _VideoControlChip(
                                         icon: Icons.hd_rounded,
-                                        label: _quality.label,
+                                        label: _videoQualityLabel(
+                                          AppLocalizations.of(context)!,
+                                          _quality,
+                                        ),
                                         onTap: _pickQuality,
                                       ),
                                       const SizedBox(width: 8),
@@ -1831,15 +1850,20 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
 }
 
 enum _ViewerVideoQuality {
-  auto(label: 'Auto', targetHeight: null),
-  p1080(label: '1080p', targetHeight: 1080),
-  p720(label: '720p', targetHeight: 720),
-  p480(label: '480p', targetHeight: 480);
+  auto(targetHeight: null),
+  p1080(targetHeight: 1080),
+  p720(targetHeight: 720),
+  p480(targetHeight: 480);
 
-  const _ViewerVideoQuality({required this.label, required this.targetHeight});
+  const _ViewerVideoQuality({required this.targetHeight});
 
-  final String label;
   final int? targetHeight;
+}
+
+String _videoQualityLabel(AppLocalizations l10n, _ViewerVideoQuality q) {
+  if (q == _ViewerVideoQuality.auto) return l10n.media_viewer_video_quality_auto;
+  final h = q.targetHeight;
+  return h == null ? l10n.media_viewer_video_quality_auto : '${h}p';
 }
 
 class _VideoControlChip extends StatelessWidget {

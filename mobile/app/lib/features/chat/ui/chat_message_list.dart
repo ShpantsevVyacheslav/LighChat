@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/contact_display_name.dart';
 import '../data/sanitize_message_html.dart';
@@ -698,6 +699,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
   }
 
   Widget _buildUnreadSeparatorRow() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
       child: Row(
@@ -717,7 +719,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
               border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
             ),
             child: Text(
-              'Непрочитанные сообщения',
+              l10n.chat_list_unread_separator,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
@@ -843,6 +845,7 @@ class _BubbleMetaLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final showEdited =
         message.updatedAt != null &&
         message.updatedAt!.isNotEmpty &&
@@ -863,7 +866,7 @@ class _BubbleMetaLine extends StatelessWidget {
         children: [
           if (showEdited)
             Text(
-              'изм.',
+              l10n.chat_message_edited_badge_short,
               style: TextStyle(
                 fontSize: editedTimeSize - 1,
                 fontWeight: FontWeight.w800,
@@ -999,6 +1002,7 @@ class _ChatMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final textSize = switch (fontSize) {
       'small' => 13.0,
@@ -1049,8 +1053,8 @@ class _ChatMessageBubble extends StatelessWidget {
         !hasPoll &&
         !hasLocation;
     final String e2eeFallback = decryptionFailed
-        ? 'Не удалось расшифровать. Откройте Настройки → Устройства'
-        : 'Зашифрованное сообщение';
+        ? l10n.chat_e2ee_decrypt_failed_open_devices
+        : l10n.chat_e2ee_encrypted_message_placeholder;
     final displayPlain = hasE2eeOnlyCiphertext ? e2eeFallback : plain;
     final hasText = displayPlain.trim().isNotEmpty;
     final pollStubCaption =
@@ -1138,7 +1142,7 @@ class _ChatMessageBubble extends StatelessWidget {
                 maxWidth: ChatMediaLayoutTokens.messageBubbleMaxWidth,
               ),
               child: Text(
-                'Переслано от ${message.forwardedFrom!.name}',
+                l10n.chat_forwarded_from(message.forwardedFrom!.name),
                 textAlign: isMine ? TextAlign.right : TextAlign.left,
                 style: TextStyle(
                   fontSize: editedTimeSize,
@@ -1202,7 +1206,9 @@ class _ChatMessageBubble extends StatelessWidget {
             ? profileName
             : (convName.isNotEmpty
                   ? convName
-                  : (fallbackClean.isNotEmpty ? fallbackClean : 'Участник'));
+                  : (fallbackClean.isNotEmpty
+                        ? fallbackClean
+                        : l10n.new_chat_fallback_user_display_name));
         final resolved = resolveContactDisplayName(
           contactProfiles: contactProfiles,
           contactUserId: uid,
@@ -1645,14 +1651,14 @@ class _ChatMessageBubble extends StatelessWidget {
                       if ((message.deliveryStatus ?? '') == 'failed')
                         TextButton(
                           onPressed: () => onOutboxRetry!(message.id),
-                          child: const Text('Повторить'),
+                          child: Text(l10n.chat_outbox_retry),
                         ),
                       TextButton(
                         onPressed: () => onOutboxDismiss!(message.id),
                         child: Text(
                           (message.deliveryStatus ?? '') == 'failed'
-                              ? 'Убрать'
-                              : 'Отменить',
+                              ? l10n.chat_outbox_remove
+                              : l10n.chat_outbox_cancel,
                         ),
                       ),
                     ],

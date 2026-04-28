@@ -2,16 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/disappearing_messages_label.dart';
 
-/// Пресеты TTL (секунды); null = выкл.
-const List<({String label, int? ttlSec})> _kPresets = <({String label, int? ttlSec})>[
-  (label: 'Выключено', ttlSec: null),
-  (label: '1 ч', ttlSec: 3600),
-  (label: '24 ч', ttlSec: 86400),
-  (label: '7 дн.', ttlSec: 604800),
-  (label: '30 дн.', ttlSec: 2592000),
-];
+List<({String label, int? ttlSec})> _disappearingPresets(AppLocalizations l10n) =>
+    <({String label, int? ttlSec})>[
+      (label: l10n.disappearing_preset_off, ttlSec: null),
+      (label: l10n.disappearing_preset_1h, ttlSec: 3600),
+      (label: l10n.disappearing_preset_24h, ttlSec: 86400),
+      (label: l10n.disappearing_preset_7d, ttlSec: 604800),
+      (label: l10n.disappearing_preset_30d, ttlSec: 2592000),
+    ];
 
 bool _canEditDisappearing(Conversation c, String uid) {
   if (!c.isGroup) return true;
@@ -43,10 +44,13 @@ class ConversationDisappearingScreen extends StatelessWidget {
       'disappearingMessagesUpdatedBy': currentUserId,
     });
     if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ttlSec == null ? 'Исчезающие сообщения выключены' : 'Таймер обновлён',
+          ttlSec == null
+              ? l10n.disappearing_messages_snackbar_off
+              : l10n.disappearing_messages_snackbar_updated,
         ),
       ),
     );
@@ -54,9 +58,10 @@ class ConversationDisappearingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Исчезающие сообщения')),
+      appBar: AppBar(title: Text(l10n.disappearing_messages_title)),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('conversations')
@@ -73,12 +78,12 @@ class ConversationDisappearingScreen extends StatelessWidget {
               : initialConversation;
           final canEdit = _canEditDisappearing(conv, currentUserId);
           final current = conv.disappearingMessageTtlSec;
+          final summary = formatDisappearingTtlSummaryForLocale(l10n, current);
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
               Text(
-                'Новые сообщения автоматически удаляются из базы после выбранного времени '
-                '(от момента отправки). Уже отправленные не меняются.',
+                l10n.disappearing_messages_intro,
                 style: TextStyle(
                   color: scheme.onSurface.withValues(alpha: 0.75),
                   height: 1.35,
@@ -87,12 +92,11 @@ class ConversationDisappearingScreen extends StatelessWidget {
               const SizedBox(height: 16),
               if (!canEdit)
                 Text(
-                  'Только администраторы группы могут менять этот параметр. '
-                  'Сейчас: ${formatDisappearingTtlSummary(current)}.',
+                  l10n.disappearing_messages_admin_only(summary),
                   style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.8)),
                 )
               else
-                ..._kPresets.map((p) {
+                ..._disappearingPresets(l10n).map((p) {
                   final active = p.ttlSec == current;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),

@@ -42,6 +42,10 @@
 - `UserMeetingsIndex` - список meeting id пользователя.
 - `PlatformSettingsDoc`, `PlatformStoragePolicy` - платформенные настройки квот/retention.
 
+## Mini apps / Игры
+
+- `GameSession` - сессия мини-приложения внутри чата (напр. “Дурак”): хранится в `games/{gameId}` и создаётся сервером (Cloud Functions). Доступ на чтение — только участникам (uid ∈ `playerIds`).
+
 ## Где смотреть серверные типы
 
 - `functions/src/lib/types.ts` - укороченный набор типов для Cloud Functions.

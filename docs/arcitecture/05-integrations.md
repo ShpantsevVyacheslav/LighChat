@@ -18,8 +18,13 @@
 
 ### Cloud Functions surface (ключевые вызовы)
 
-- Callable HTTP: `createNewUser`, `updateUserAdmin`, `backfillConversationMembers`, `backfillRegistrationIndex`, `requestMeetingAccess`, `respondToMeetingRequest`, `checkGroupInvitesAllowed`, `retryChatMediaTranscode`.
+- Callable HTTP: `createNewUser`, `updateUserAdmin`, `backfillConversationMembers`, `backfillRegistrationIndex`, `requestMeetingAccess`, `respondToMeetingRequest`, `checkGroupInvitesAllowed`, `retryChatMediaTranscode`, `transcribeVoiceMessage`.
+  - **Secret chat:** `setSecretChatPin` (установить/сменить PIN), `unlockSecretChat` (выдать временный unlock‑grant `secretAccess/{uid}`), scheduler `cleanupExpiredSecretChats` (каждые 5 минут удаляет истёкшие секретные чаты и связанные файлы в Storage).
   - **iOS-обход для `checkGroupInvitesAllowed`:** мобильный клиент (`mobile/packages/lighchat_firebase/lib/src/firebase_callable_http.dart`) на iOS вызывает функцию прямым `POST https://us-central1-{projectId}.cloudfunctions.net/checkGroupInvitesAllowed` с `Authorization: Bearer <idToken>`, минуя плагин `cloud_functions`. Причина — SDK `FirebaseFunctions` 12.9.0 в `FunctionsContext.context(options:)` использует три параллельных `async let`, на которых Swift-рантайм iOS крашит Release-процесс в `_swift_task_dealloc_specific (.cold.2)` (SIGABRT, «freed pointer was not the last allocation»). Контракт ответа (`{result: …}` / `{error: {status,message}}`) и семантика ошибок сохранены; Android/Web идут штатно через `cloud_functions`.
+- **Voice transcription (чат):** callable `transcribeVoiceMessage` (`region: us-central1`) делает on-demand транскрипцию голосового сообщения через OpenAI Whisper (`model: whisper-1`) и сохраняет результат в поле `voiceTranscript` документа сообщения.
+  - Требования: пользователь **должен быть авторизован** (иначе `unauthenticated/AUTH_REQUIRED`) и **быть участником** разговора (`permission-denied/NOT_A_MEMBER`).
+  - Ограничения: E2EE сообщения не поддерживаются (`failed-precondition/E2EE_UNSUPPORTED`), лимит размера ~12MB (`VOICE_TOO_LARGE`).
+  - Секреты: ключ провайдера хранится **на сервере** как `OPENAI_API_KEY` (Cloud Functions env/secret). В мобильном клиенте API-ключ не задаётся.
 - Firestore triggers: `onconversationcreated`, `onconversationupdated`, `onconversationdeleted`, `onmessagecreated`, `onthreadmessagecreated`, `onchatmessagedeleted`, `onchatthreadmessagedeleted`, `onchatmessagemediatranscode`, `onchatthreadmessagemediatranscode`, `oncallcreated`, `onmeetingparticipantcreated`, `onuserwritesyncregistrationindex`.
 - `oncallcreated` для APNs VoIP использует **один** secret `APNS_VOIP_CONFIG` (JSON): `keyId`, `teamId`, `bundleId`, `privateKeyPem` (содержимое `.p8`, в JSON можно экранировать переводы строк как `\\n`), `useSandbox` (`true`/`false`). Пустой JSON или пустые поля — VoIP пропускается. См. [`apns-voip-secrets.md`](../integrations/apns-voip-secrets.md).
 - **Медиа в чате (нормализация):** после создания документа сообщения (основной ленты или треда) функции `onchatmessagemediatranscode` / `onchatthreadmessagemediatranscode` скачивают вложения по публичному URL, при необходимости перекодируют **FFmpeg** (видео → **MP4 H.264 + AAC**, прочее аудио → **M4A AAC**), загружают в Storage по пути `chat-attachments/{conversationId}/norm/{messageId}/…_lcnorm.{mp4|m4a}`, **обновляют** `attachments` на новый URL и **удаляют исходный объект** в `chat-attachments/{conversationId}/…` (если путь распознан из старого URL), чтобы не хранить два файла. Уже `video/mp4` и `audio/mp4` / `audio/mpeg` не перекодируются — оригинал не трогается. В документ сообщения пишется `mediaNorm` (`pending|done|failed`, `failedIndexes`, `updatedAt`) для UI-статуса и ручного retry. Для ручного перезапуска используется callable `retryChatMediaTranscode` (main/thread). Лимит входного размера ~220 МБ; требуются **2 GiB RAM**, до **540 s** таймаут.
@@ -71,6 +76,18 @@
 - Auth parity: чеклист соответствия web↔mobile — `docs/mobile/auth-parity.md`. Требования к полям/валидациям — `docs/mobile/auth-requirements.md`.
 - Push: Android — FCM из коробки; iOS — связка FCM + APNS (настраивается в Apple Developer + Firebase console).
 - Native incoming call (mobile): `flutter_callkit_incoming` как bridge к Android full-screen incoming UI / iOS CallKit wrapper; обработка событий `Accept/Decline/Timeout` + синхронизация iOS VoIP token реализованы в `mobile/app/lib/features/push/push_native_call_service.dart`, а PushKit delegate — в `mobile/app/ios/Runner/AppDelegate.swift`.
+
+### In-chat mini apps (Games)
+
+В мобильном клиенте внутри профиля беседы (DM/группа) предусмотрен отдельный раздел **«Игры»**.
+Это точка входа для будущих мини-игр (например, «Дурак») и других “мини‑приложений” поверх чата.
+
+На текущем этапе реализован **скелет**:
+
+- **Cloud Functions (authoritative server)**: `createGameLobby`, `joinGameLobby`, `startDurakGame`, `makeDurakMove`.
+- **Firestore**:
+  - `games/{gameId}` — server-write, read только участникам игры.
+  - `conversations/{conversationId}/gameLobbies/{gameId}` — server-write, read всем участникам беседы (используется как “приглашение”/листинг лобби в чате).
 
 ## Конфиги и деплой
 
