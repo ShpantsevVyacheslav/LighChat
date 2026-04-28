@@ -336,12 +336,8 @@ export const makeDurakMove = onCall(
             const tgSnap = await tx.get(tgRef);
             const tg = tgSnap.exists ? (tgSnap.data() as any) : null;
             const alreadyApplied =
-              tg != null
-                && (
-                  typeof tg.appliedAt === "string"
-                  || tg.appliedAtTs != null
-                  || tg.applied === true
-                );
+              tg != null &&
+              (typeof tg.appliedAt === "string" || tg.appliedAtTs != null || tg.applied === true);
             if (alreadyApplied) {
               // Idempotency: CF transactions can retry; do not double-apply points.
               tx.set(
