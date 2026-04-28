@@ -777,88 +777,80 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        FilledButton(
-                          onPressed: canAttack
-                              ? () => unawaited(
-                                    () async {
-                                      _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
-                                      await _sendMove(
-                                        actionType: 'attack',
-                                        payload: <String, dynamic>{
-                                          'card': _cardPayload(_selectedCard!),
-                                        },
-                                      );
-                                    }(),
-                                  )
-                              : null,
-                          child: Text(l10n.conversation_durak_action_attack),
-                        ),
-                        FilledButton(
-                          onPressed: canDefend
-                              ? () => unawaited(
-                                    () async {
-                                      _flySelectedTo(
-                                        _pairKeyForFlight(_selectedAttackIndex, defense: true),
-                                        trumpSuit: trumpSuit,
-                                      );
-                                      await _sendMove(
-                                        actionType: 'defend',
-                                        payload: <String, dynamic>{
-                                          'attackIndex': _selectedAttackIndex,
-                                          'card': _cardPayload(_selectedCard!),
-                                        },
-                                      );
-                                    }(),
-                                  )
-                              : null,
-                          child: Text(l10n.conversation_durak_action_defend),
-                        ),
-                        OutlinedButton(
-                          onPressed: canTake
-                              ? () => unawaited(
-                                    _sendMove(actionType: 'take'),
-                                  )
-                              : null,
-                          child: Text(l10n.conversation_durak_action_take),
-                        ),
-                        OutlinedButton(
-                          onPressed: canBeat
-                              ? () => unawaited(
-                                    _sendMove(actionType: 'finishTurn'),
-                                  )
-                              : null,
-                          child: Text(l10n.conversation_durak_action_beat),
-                        ),
-                        OutlinedButton(
-                          onPressed: canResolve ? () => unawaited(_resolveBeat()) : null,
-                          child: Text(l10n.conversation_durak_action_resolve),
-                        ),
-                        OutlinedButton(
-                          onPressed: canTransfer
-                              ? () => unawaited(
-                                    () async {
-                                      _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
-                                      await _sendMove(
-                                        actionType: 'transfer',
-                                        payload: <String, dynamic>{
-                                          'card': _cardPayload(_selectedCard!),
-                                        },
-                                      );
-                                    }(),
-                                  )
-                              : null,
-                          child: Text(l10n.conversation_durak_action_transfer),
-                        ),
-                        OutlinedButton(
-                          onPressed: canPass
-                              ? () => unawaited(_sendMove(actionType: 'pass'))
-                              : null,
-                          child: Text(l10n.conversation_durak_action_pass),
-                        ),
-                        OutlinedButton(
-                          onPressed: canFoul ? () => unawaited(_callFoul()) : null,
-                          child: Text(l10n.conversation_durak_action_foul),
-                        ),
+                        if (canAttack)
+                          FilledButton(
+                            onPressed: () => unawaited(
+                              () async {
+                                _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
+                                await _sendMove(
+                                  actionType: 'attack',
+                                  payload: <String, dynamic>{
+                                    'card': _cardPayload(_selectedCard!),
+                                  },
+                                );
+                              }(),
+                            ),
+                            child: Text(l10n.conversation_durak_action_attack),
+                          ),
+                        if (canDefend)
+                          FilledButton(
+                            onPressed: () => unawaited(
+                              () async {
+                                _flySelectedTo(
+                                  _pairKeyForFlight(_selectedAttackIndex, defense: true),
+                                  trumpSuit: trumpSuit,
+                                );
+                                await _sendMove(
+                                  actionType: 'defend',
+                                  payload: <String, dynamic>{
+                                    'attackIndex': _selectedAttackIndex,
+                                    'card': _cardPayload(_selectedCard!),
+                                  },
+                                );
+                              }(),
+                            ),
+                            child: Text(l10n.conversation_durak_action_defend),
+                          ),
+                        if (canTransfer)
+                          OutlinedButton(
+                            onPressed: () => unawaited(
+                              () async {
+                                _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
+                                await _sendMove(
+                                  actionType: 'transfer',
+                                  payload: <String, dynamic>{
+                                    'card': _cardPayload(_selectedCard!),
+                                  },
+                                );
+                              }(),
+                            ),
+                            child: Text(l10n.conversation_durak_action_transfer),
+                          ),
+                        if (canTake)
+                          OutlinedButton(
+                            onPressed: () => unawaited(_sendMove(actionType: 'take')),
+                            child: Text(l10n.conversation_durak_action_take),
+                          ),
+                        if (canPass)
+                          OutlinedButton(
+                            onPressed: () => unawaited(_sendMove(actionType: 'pass')),
+                            child: Text(l10n.conversation_durak_action_pass),
+                          ),
+                        if (canBeat)
+                          OutlinedButton(
+                            onPressed: () => unawaited(_sendMove(actionType: 'finishTurn')),
+                            child: Text(l10n.conversation_durak_action_beat),
+                          ),
+                        if (canResolve)
+                          OutlinedButton(
+                            onPressed: () => unawaited(_resolveBeat()),
+                            child: Text(l10n.conversation_durak_action_resolve),
+                          ),
+                        if (canFoul)
+                          OutlinedButton(
+                            onPressed: () => unawaited(_callFoul()),
+                            child: Text(l10n.conversation_durak_action_foul),
+                          ),
                       ],
                     ),
                       ],
@@ -1001,6 +993,37 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
                                       cardCanDefendAt(card, _selectedAttackIndex) ||
                                       cardCanTransfer(card);
                                   if (!enabled) return;
+                                  final canA = cardCanAttack(card);
+                                  final canD = cardCanDefendAt(card, _selectedAttackIndex);
+                                  final canT = cardCanTransfer(card);
+                                  final options = <String>[
+                                    if (canA) 'attack',
+                                    if (canD) 'defend',
+                                    if (canT) 'transfer',
+                                  ];
+
+                                  // If the action is unambiguous, play immediately.
+                                  if (options.length == 1) {
+                                    final action = options.first;
+                                    if (action == 'attack') {
+                                      unawaited(_tryAttack(card));
+                                      return;
+                                    }
+                                    if (action == 'transfer') {
+                                      unawaited(_tryTransfer(card));
+                                      return;
+                                    }
+                                    if (action == 'defend') {
+                                      unawaited(
+                                        _tryDefend(
+                                          attackIndex: _selectedAttackIndex,
+                                          card: card,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                  }
+
                                   setState(() {
                                     _selectedCard = card;
                                     _selectedCardId = id;
