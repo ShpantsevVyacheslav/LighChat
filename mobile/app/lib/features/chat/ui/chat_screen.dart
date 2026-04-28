@@ -76,6 +76,7 @@ import 'chat_composer.dart';
 import 'thread_route_payload.dart';
 import 'secret_chat_secure_scope.dart';
 import 'secret_chat_unlock_sheet.dart';
+import '../data/secret_chat_media_open_service.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversationId});
@@ -854,9 +855,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           )),
         );
         final contactsAsync = ref.watch(userContactsIndexProvider(user.uid));
-        final msgsAsync = ref.watch(
-          messagesProvider((conversationId: conversationId, limit: _limit)),
-        );
 
         return convAsync.when(
           skipLoadingOnReload: true,
@@ -945,6 +943,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               );
             }
+
+            // IMPORTANT: In Secret Chats, Firestore rules deny reading `messages/*`
+            // without an active `secretAccess` grant. Do not even subscribe to the
+            // messages stream until the chat is unlocked, otherwise the UI gets a
+            // permission-denied error even though we render the lock screen.
+            final msgsAsync = ref.watch(
+              messagesProvider((conversationId: conversationId, limit: _limit)),
+            );
             final myBlockedAsync = ref.watch(
               userBlockedUserIdsProvider(user.uid),
             );
@@ -1435,6 +1441,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                 child: E2eeMessagesResolver(
                                                   conversationId:
                                                       conversationId,
+                                                  secretChat: conv?.data.secretChat,
                                                   messages: msgs,
                                                   builder:
                                                       (
@@ -2410,21 +2417,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         effectiveWallpaper: effectiveWp,
                       );
                     },
-                    error: (e, _) => Scaffold(
-                      appBar: AppBar(
-                        title: Text(
-                          AppLocalizations.of(context)!.chat_messages_title,
+                    error: (e, _) {
+                      final l10n = AppLocalizations.of(context)!;
+                      final fbCode = (e is FirebaseException)
+                          ? e.code.toLowerCase().trim()
+                          : '';
+                      final isDenied = fbCode == 'permission-denied';
+                      final msg = isDenied
+                          ? 'Permission denied.\n\n'
+                              'Most common reasons:\n'
+                              '- you are not a participant of this chat\n'
+                              '- in 1:1 chat the other user blocked you (chat is hidden)\n'
+                              '- the chat was deleted or access was revoked\n'
+                          : l10n.chat_load_messages_error(e);
+                      return Scaffold(
+                        appBar: AppBar(
+                          title: Text(l10n.chat_messages_title),
                         ),
-                      ),
-                      body: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          AppLocalizations.of(context)!.chat_load_messages_error(
-                            e,
+                        body: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(msg),
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                onPressed: () => Navigator.of(context).maybePop(),
+                                child: Text(l10n.common_close),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 }
 
@@ -2731,6 +2756,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required Conversation? conv,
   }) {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final isSecret = conv?.secretChat?.enabled == true;
+    if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(att)) {
+      unawaited(() async {
+        final rt = ref.read(mobileE2eeRuntimeProvider);
+        if (rt == null) return;
+        try {
+          final resolved = await const SecretChatMediaOpenService().openForView(
+            runtime: rt,
+            conversationId: widget.conversationId,
+            message: msg,
+            lockedAttachment: att,
+          );
+          if (!mounted) return;
+          Navigator.of(context).push<void>(
+            chatMediaViewerPageRoute<void>(
+              ChatMediaViewerScreen(
+                items: [ChatMediaGalleryItem(attachment: resolved, message: msg)],
+                initialIndex: 0,
+                currentUserId: user.uid,
+                senderLabel: (sid) => _senderLabelForMediaViewer(
+                  sid,
+                  user: user,
+                  profileMap: profileMap,
+                  conv: conv,
+                ),
+                onForward: (_) => _toast(l10n.secret_chat_action_not_allowed),
+                onDeleteItem: _confirmDeleteMediaGalleryItem,
+                allowForward: false,
+                allowSave: false,
+                allowExternalShare: false,
+              ),
+            ),
+          );
+        } catch (_) {
+          if (mounted) _toast(l10n.secret_chat_unlock_failed);
+        }
+      }());
+      return;
+    }
     final source = _sortedHydratedAscCache.isNotEmpty
         ? _sortedHydratedAscCache
         : _sortedAscCache;

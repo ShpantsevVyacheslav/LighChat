@@ -19,7 +19,8 @@
 ### Cloud Functions surface (ключевые вызовы)
 
 - Callable HTTP: `createNewUser`, `updateUserAdmin`, `backfillConversationMembers`, `backfillRegistrationIndex`, `requestMeetingAccess`, `respondToMeetingRequest`, `checkGroupInvitesAllowed`, `retryChatMediaTranscode`, `transcribeVoiceMessage`.
-  - **Secret chat:** `setSecretChatPin` (установить/сменить PIN), `unlockSecretChat` (выдать временный unlock‑grant `secretAccess/{uid}`), scheduler `cleanupExpiredSecretChats` (каждые 5 минут удаляет истёкшие секретные чаты и связанные файлы в Storage).
+  - **Secret chat:** `setSecretChatPin` (установить/сменить PIN), `unlockSecretChat` (выдать временный unlock‑grant `secretAccess/{uid}`), `updateSecretChatSettings` (server-only настройки), scheduler `cleanupExpiredSecretChats` (каждые 5 минут удаляет истёкшие секретные чаты и связанные файлы в Storage).
+  - **Secret chat hard media views:** `requestSecretMediaView` (получатель запрашивает просмотр → атомарно учитывается лимит и создаётся request), `fulfillSecretMediaViewRequest` (issuer/key-holder выдаёт короткий per-file grant), `consumeSecretMediaKeyGrant` (одноразово “съедает” grant), scheduler `cleanupSecretMediaRequests` (чистит просроченные requests/grants).
   - **iOS-обход для `checkGroupInvitesAllowed`:** мобильный клиент (`mobile/packages/lighchat_firebase/lib/src/firebase_callable_http.dart`) на iOS вызывает функцию прямым `POST https://us-central1-{projectId}.cloudfunctions.net/checkGroupInvitesAllowed` с `Authorization: Bearer <idToken>`, минуя плагин `cloud_functions`. Причина — SDK `FirebaseFunctions` 12.9.0 в `FunctionsContext.context(options:)` использует три параллельных `async let`, на которых Swift-рантайм iOS крашит Release-процесс в `_swift_task_dealloc_specific (.cold.2)` (SIGABRT, «freed pointer was not the last allocation»). Контракт ответа (`{result: …}` / `{error: {status,message}}`) и семантика ошибок сохранены; Android/Web идут штатно через `cloud_functions`.
 - **Voice transcription (чат):** callable `transcribeVoiceMessage` (`region: us-central1`) делает on-demand транскрипцию голосового сообщения через OpenAI Whisper (`model: whisper-1`) и сохраняет результат в поле `voiceTranscript` документа сообщения.
   - Требования: пользователь **должен быть авторизован** (иначе `unauthenticated/AUTH_REQUIRED`) и **быть участником** разговора (`permission-denied/NOT_A_MEMBER`).
@@ -30,6 +31,20 @@
 - **Медиа в чате (нормализация):** после создания документа сообщения (основной ленты или треда) функции `onchatmessagemediatranscode` / `onchatthreadmessagemediatranscode` скачивают вложения по публичному URL, при необходимости перекодируют **FFmpeg** (видео → **MP4 H.264 + AAC**, прочее аудио → **M4A AAC**), загружают в Storage по пути `chat-attachments/{conversationId}/norm/{messageId}/…_lcnorm.{mp4|m4a}`, **обновляют** `attachments` на новый URL и **удаляют исходный объект** в `chat-attachments/{conversationId}/…` (если путь распознан из старого URL), чтобы не хранить два файла. Уже `video/mp4` и `audio/mp4` / `audio/mpeg` не перекодируются — оригинал не трогается. В документ сообщения пишется `mediaNorm` (`pending|done|failed`, `failedIndexes`, `updatedAt`) для UI-статуса и ручного retry. Для ручного перезапуска используется callable `retryChatMediaTranscode` (main/thread). Лимит входного размера ~220 МБ; требуются **2 GiB RAM**, до **540 s** таймаут.
 - Auth trigger: `onUserCreated`.
 - Scheduler: `checkUserPresence`.
+
+## Games / Durak / Tournaments
+
+- **Durak lobby/game:** callables `createGameLobby`, `joinGameLobby`, `startDurakGame`, `makeDurakMove`.
+- **Tournaments (Durak):**
+  - callable `createDurakTournament` создаёт:
+    - `tournaments/{tournamentId}` — корневой документ турнира (server-write)
+    - `conversations/{conversationId}/tournaments/{tournamentId}` — индекс для списка в UI
+  - callable `createTournamentGameLobby` создаёт новую партию “Дурака” внутри турнира:
+    - `games/{gameId}` с полем `tournamentId`
+    - `conversations/{conversationId}/gameLobbies/{gameId}` с полем `tournamentId`
+    - `tournaments/{tournamentId}/games/{gameId}` — ссылка/статус партии в турнире
+  - начисление очков: при завершении игры (в `makeDurakMove`) турнир обновляет
+    `pointsByUid` и `gamesPlayedByUid` по “sport” схеме \(N..1\) с делением очков при ничьих.
 
 ## Tenor API
 
@@ -88,6 +103,16 @@
 - **Firestore**:
   - `games/{gameId}` — server-write, read только участникам игры.
   - `conversations/{conversationId}/gameLobbies/{gameId}` — server-write, read всем участникам беседы (используется как “приглашение”/листинг лобби в чате).
+- **Durak / «Шулер» (anti-cheat-игромеханика)**:
+  - Сервер может принять “неканоничный” ход и помечает его как чит (`serverState.lastCheat`).
+  - **«Фолл!» доступен только после «Бито»**: при `finishTurn` (когда на столе всё отбито) в шулер-режиме выставляется `serverState.pendingResolution`, и раунд ждёт подтверждения.
+  - Если кто-то нажимает **«Фолл!»** до подтверждения, сервер откатывает последний чит и применяет штраф; `foulEvent.missedUids` используется клиентом для показа “кто не заметил” поимённо/с аватарками.
+  - Если фолла нет, атакующий нажимает **подтверждение «Бито»** (`makeDurakMove` с `actionType="resolve"`) и раунд резолвится как обычно.
+
+- **Durak / UX (mobile)**:
+  - Экран игры показывает “ленту игроков” (порядок по кругу, роли, PASS), явную фазу и подсказки.
+  - Рука отображается как веер с overlap и сортировкой; при доборе/раздаче используется анимация “колода → рука”.
+  - При ходе есть анимация “рука → стол” (визуальный полёт карты), а стол уплотнён и пары атака/защита визуально связаны.
 
 ## Конфиги и деплой
 

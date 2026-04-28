@@ -123,6 +123,65 @@ class AppLocalizationsRu extends AppLocalizations {
   String get secret_chat_media_views_unlimited => 'Безлимит';
 
   @override
+  String get tournament_title => 'Турнир';
+
+  @override
+  String get tournament_subtitle => 'Турнирная таблица и серии партий';
+
+  @override
+  String get tournament_new_game => 'Новая партия';
+
+  @override
+  String get tournament_standings => 'Таблица';
+
+  @override
+  String get tournament_standings_empty => 'Пока нет результатов';
+
+  @override
+  String get tournament_games => 'Партии';
+
+  @override
+  String get tournament_games_empty => 'Пока нет партий';
+
+  @override
+  String tournament_points(Object pts) {
+    return '$pts очков';
+  }
+
+  @override
+  String tournament_games_played(Object n) {
+    return '$n игр';
+  }
+
+  @override
+  String tournament_create_failed(Object err) {
+    return 'Не удалось создать турнир: $err';
+  }
+
+  @override
+  String tournament_create_game_failed(Object err) {
+    return 'Не удалось создать партию: $err';
+  }
+
+  @override
+  String tournament_game_players(Object names) {
+    return 'Игроки: $names';
+  }
+
+  @override
+  String get tournament_game_result_draw => 'Результат: ничья';
+
+  @override
+  String tournament_game_result_loser(Object name) {
+    return 'Результат: дурак — $name';
+  }
+
+  @override
+  String tournament_game_place(Object place) {
+    return 'Место $place';
+  }
+
+  @override
   String secret_chat_media_views_count(Object count) {
     return '$count просмотров';
   }
@@ -464,6 +523,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get common_save => 'Сохранить';
+
+  @override
+  String get common_close => 'Закрыть';
 
   @override
   String get common_nothing_found => 'Ничего не найдено';
@@ -876,6 +938,234 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String chat_list_error_generic(Object error) {
     return 'Ошибка: $error';
+  }
+
+  @override
+  String get chat_calls_title => 'Звонки';
+
+  @override
+  String get chat_calls_search_hint => 'Поиск по имени…';
+
+  @override
+  String get chat_calls_empty => 'История звонков пуста.';
+
+  @override
+  String get chat_calls_nothing_found => 'Ничего не найдено.';
+
+  @override
+  String chat_calls_error_load(Object error) {
+    return 'Не удалось загрузить звонки:\n$error';
+  }
+
+  @override
+  String get chat_reply_cancel_tooltip => 'Отменить ответ';
+
+  @override
+  String get voice_preview_tooltip_cancel => 'Отменить';
+
+  @override
+  String get voice_preview_tooltip_send => 'Отправить';
+
+  @override
+  String get profile_qr_title => 'Мой QR-код';
+
+  @override
+  String get profile_qr_tooltip_close => 'Закрыть';
+
+  @override
+  String get profile_qr_share_title => 'Мой профиль в LighChat';
+
+  @override
+  String get profile_qr_share_subject => 'Профиль LighChat';
+
+  @override
+  String chat_media_norm_pending_title(Object mediaKind) {
+    return 'Обрабатываем $mediaKind…';
+  }
+
+  @override
+  String chat_media_norm_failed_title(Object mediaKind) {
+    return 'Не удалось обработать $mediaKind';
+  }
+
+  @override
+  String get chat_media_norm_pending_subtitle =>
+      'Файл станет доступен после серверной нормализации.';
+
+  @override
+  String get chat_media_norm_failed_subtitle =>
+      'Попробуйте запустить обработку повторно.';
+
+  @override
+  String get conversation_threads_title => 'Обсуждения';
+
+  @override
+  String get conversation_threads_empty => 'Нет обсуждений';
+
+  @override
+  String get conversation_threads_root_attachment => 'Вложение';
+
+  @override
+  String get conversation_threads_root_message => 'Сообщение';
+
+  @override
+  String conversation_threads_snippet_you(Object text) {
+    return 'Вы: $text';
+  }
+
+  @override
+  String get conversation_threads_day_today => 'Сегодня';
+
+  @override
+  String get conversation_threads_day_yesterday => 'Вчера';
+
+  @override
+  String conversation_threads_replies_badge(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ответов',
+      many: '$count ответов',
+      few: '$count ответа',
+      one: '$count ответ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chat_meetings_title => 'Видеовстречи';
+
+  @override
+  String get chat_meetings_subtitle =>
+      'Создавайте конференции и управляйте доступом участников';
+
+  @override
+  String get chat_meetings_section_new => 'Новая встреча';
+
+  @override
+  String get chat_meetings_field_title_label => 'Название встречи';
+
+  @override
+  String get chat_meetings_field_title_hint => 'Напр. Обсуждение логистики';
+
+  @override
+  String get chat_meetings_field_duration_label => 'Длительность';
+
+  @override
+  String get chat_meetings_duration_unlimited => 'Без ограничения';
+
+  @override
+  String get chat_meetings_duration_15m => '15 минут';
+
+  @override
+  String get chat_meetings_duration_30m => '30 минут';
+
+  @override
+  String get chat_meetings_duration_1h => '1 час';
+
+  @override
+  String get chat_meetings_duration_90m => '1,5 часа';
+
+  @override
+  String get chat_meetings_field_access_label => 'Тип доступа';
+
+  @override
+  String get chat_meetings_access_private => 'Закрытая';
+
+  @override
+  String get chat_meetings_access_public => 'Открытая';
+
+  @override
+  String get chat_meetings_waiting_room_title => 'Зал ожидания';
+
+  @override
+  String get chat_meetings_waiting_room_desc =>
+      'В режиме зала ожидания вы полностью контролируете список участников. Пока вы не нажмёте «Принять», гость будет видеть экран ожидания.';
+
+  @override
+  String get chat_meetings_backgrounds_title => 'Виртуальные фоны';
+
+  @override
+  String get chat_meetings_backgrounds_desc =>
+      'Загружайте фоны и размывайте задний план при желании. Изображение из галереи. Также доступна загрузка собственных фонов.';
+
+  @override
+  String get chat_meetings_waiting_room_toggle => 'Добавить комнату ожидания';
+
+  @override
+  String get chat_meetings_waiting_room_toggle_subtitle =>
+      'Только хозяин комнаты может дать разрешение на подключение и блокировать';
+
+  @override
+  String get chat_meetings_create_button => 'Создать встречу';
+
+  @override
+  String get chat_meetings_snackbar_enter_title => 'Укажите название встречи';
+
+  @override
+  String get chat_meetings_snackbar_auth_required =>
+      'Нужна авторизация для создания встречи';
+
+  @override
+  String chat_meetings_error_create_failed(Object error) {
+    return 'Не удалось создать встречу: $error';
+  }
+
+  @override
+  String get chat_meetings_history_title => 'Ваша история';
+
+  @override
+  String get chat_meetings_history_empty => 'История встреч пуста';
+
+  @override
+  String chat_meetings_history_error(Object error) {
+    return 'Не удалось загрузить историю встреч: $error';
+  }
+
+  @override
+  String get chat_meetings_status_live => 'идёт';
+
+  @override
+  String get chat_meetings_status_finished => 'завершена';
+
+  @override
+  String get chat_meetings_badge_private => 'закрытая';
+
+  @override
+  String get chat_contacts_search_hint => 'Поиск контактов...';
+
+  @override
+  String get chat_contacts_permission_denied =>
+      'Доступ к контактам не предоставлен.';
+
+  @override
+  String chat_contacts_sync_error(Object error) {
+    return 'Ошибка синхронизации контактов: $error';
+  }
+
+  @override
+  String chat_contacts_invite_prepare_failed(Object error) {
+    return 'Не удалось подготовить приглашение: $error';
+  }
+
+  @override
+  String get chat_contacts_matches_not_found => 'Совпадений не найдено.';
+
+  @override
+  String chat_contacts_added_count(Object count) {
+    return 'Добавлено контактов: $count.';
+  }
+
+  @override
+  String get chat_contacts_invite_text =>
+      'Поставь LighChat: https://lighchat.online\nПриглашаю тебя в LighChat — вот ссылка на установку.';
+
+  @override
+  String get chat_contacts_invite_subject => 'Приглашение в LighChat';
+
+  @override
+  String chat_contacts_error_load(Object error) {
+    return 'Ошибка загрузки контактов: $error';
   }
 
   @override
@@ -2058,6 +2348,30 @@ class AppLocalizationsRu extends AppLocalizations {
   String get conversation_durak_action_transfer => 'Перевести';
 
   @override
+  String get conversation_durak_action_pass => 'Пас';
+
+  @override
+  String get conversation_durak_game_finished_title => 'Игра завершена';
+
+  @override
+  String get conversation_durak_game_finished_no_loser =>
+      'В этот раз без проигравшего.';
+
+  @override
+  String conversation_durak_game_finished_loser(Object uid) {
+    return 'Проиграл: $uid';
+  }
+
+  @override
+  String conversation_durak_game_finished_winners(Object uids) {
+    return 'Победили: $uids';
+  }
+
+  @override
+  String get conversation_durak_drop_zone =>
+      'Перетащи карту сюда, чтобы сыграть';
+
+  @override
   String get durak_settings_mode => 'Режим';
 
   @override
@@ -2070,6 +2384,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get durak_settings_max_players => 'Игроков';
 
   @override
+  String get durak_settings_deck => 'Колода';
+
+  @override
+  String get durak_deck_36 => '36 карт';
+
+  @override
+  String get durak_deck_52 => '52 карты';
+
+  @override
   String get durak_settings_with_jokers => 'Джокеры';
 
   @override
@@ -2077,6 +2400,71 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get durak_turn_timer_off => 'Выкл';
+
+  @override
+  String get durak_settings_throw_in_policy => 'Кто может подкидывать';
+
+  @override
+  String get durak_throw_in_policy_all => 'Все (кроме защитника)';
+
+  @override
+  String get durak_throw_in_policy_neighbors => 'Только соседи защитника';
+
+  @override
+  String get durak_settings_shuler => 'Режим шулера';
+
+  @override
+  String get durak_settings_shuler_subtitle =>
+      'Разрешает нелегальные ходы, пока кто-то не крикнет «Фолл!»';
+
+  @override
+  String get conversation_durak_action_foul => 'Фолл!';
+
+  @override
+  String get conversation_durak_action_resolve => 'Подтвердить «Бито»';
+
+  @override
+  String get conversation_durak_foul_toast => 'Фолл! Шулер наказан.';
+
+  @override
+  String get durak_phase_prefix => 'Фаза';
+
+  @override
+  String get durak_phase_attack => 'Атака';
+
+  @override
+  String get durak_phase_defense => 'Защита';
+
+  @override
+  String get durak_phase_throw_in => 'Подкид';
+
+  @override
+  String get durak_phase_resolution => 'Розыгрыш';
+
+  @override
+  String get durak_phase_finished => 'Завершено';
+
+  @override
+  String get durak_phase_pending_foul => 'Ожидание фолла после «Бито»';
+
+  @override
+  String get durak_phase_pending_foul_hint_attacker =>
+      'Ждём фолл. Если никто не нажмёт — подтверди «Бито».';
+
+  @override
+  String get durak_phase_pending_foul_hint_other =>
+      'Ждём фолл. Нажми «Фолл!», если заметил шулерство.';
+
+  @override
+  String get durak_phase_hint_can_throw_in => 'Можно подкидывать';
+
+  @override
+  String get durak_phase_hint_wait => 'Ждите свой ход';
+
+  @override
+  String durak_now_throwing_in(Object name) {
+    return 'Сейчас подкидывает: $name';
+  }
 
   @override
   String chat_selection_selected_count(int count) {

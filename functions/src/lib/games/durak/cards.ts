@@ -1,7 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
 export type Suit = "S" | "H" | "D" | "C";
-export type Rank = 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14; // J=11, Q=12, K=13, A=14
+export type Rank = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14; // J=11, Q=12, K=13, A=14
 
 export type Card =
   | { r: Rank; s: Suit }
@@ -25,7 +25,7 @@ export function parseSuit(v: unknown): Suit | null {
 export function parseRank(v: unknown): Rank | "JOKER" | null {
   if (v === "JOKER") return "JOKER";
   if (typeof v !== "number") return null;
-  if ([6, 7, 8, 9, 10, 11, 12, 13, 14].includes(v)) return v as Rank;
+  if ([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(v)) return v as Rank;
   return null;
 }
 
@@ -44,9 +44,18 @@ export function cardKey(c: Card): string {
   return isJoker(c) ? "JOKER" : `${c.s}:${c.r}`;
 }
 
-export function buildDeck36(withJokers: boolean): DurakDeck {
+export function buildDeck({
+  deckSize,
+  withJokers,
+}: {
+  deckSize: 36 | 52;
+  withJokers: boolean;
+}): DurakDeck {
   const suits: Suit[] = ["S", "H", "D", "C"];
-  const ranks: Rank[] = [6, 7, 8, 9, 10, 11, 12, 13, 14];
+  const ranks: Rank[] =
+    deckSize === 52 ?
+      [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] :
+      [6, 7, 8, 9, 10, 11, 12, 13, 14];
   const cards: Card[] = [];
   for (const s of suits) for (const r of ranks) cards.push({ s, r });
   if (withJokers) {

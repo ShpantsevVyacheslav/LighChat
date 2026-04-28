@@ -25,7 +25,12 @@
   - `messages/{messageId}` (+ вложенные thread-path документы; для медиа-нормализации используется поле `mediaNorm` со статусом `pending|done|failed` и `failedIndexes`; для синхронизации emoji-эффектов используется `emojiBurst: {eventId, emoji, by, at}`; при включённом таймере исчезновения — поле `expireAt` для TTL-удаления)
   - `polls/{pollId}`
   - `gameLobbies/{gameId}` - список лобби игр в рамках беседы (read: участники беседы; write: только server). Используется как “приглашение”/точка входа для присоединения к игре.
+  - `tournaments/{tournamentId}` - индекс турниров в рамках беседы (server-write). Используется как список/точка входа в турнирный экран.
   - `secretAccess/{userId}` - unlock‑grant секретного чата (server‑write через callable `unlockSecretChat`, read: только владелец `userId`). Поле `expiresAtTs` (Timestamp) используется в правилах для server‑enforced доступа к сообщениям/вложениям.
+  - **Secret Chat hard media view limits (server-enforced):**
+    - `secretMediaViewState/{id}` — server‑controlled счётчик просмотров per `(recipientUid,messageId,fileId)` (`limit/used/locked`).
+    - `secretMediaViewRequests/{id}` — короткоживущий запрос на просмотр (TTL ~60s) от получателя; любой online key‑holder может fulfill.
+    - `secretMediaKeyGrants/{id}` — короткоживущий per‑file grant (TTL ~30s), который **разрешает Storage read** для `chat-attachments-enc/{cid}/{mid}/{fileId}/…`.
   - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата в формате E2EE v2: вложенная мапа `wraps[userId][deviceId]` (ciphertext; сервер не знает plaintext). Единственная поддерживаемая версия — `protocolVersion: 'v2-p256-aesgcm-multi'`; документы с другими версиями клиенты молча ротируют через self-heal.
 - `userChats/{userId}` - денормализованный индекс чатов пользователя.
 - `userContacts/{userId}` - список контактов пользователя.
@@ -50,7 +55,17 @@
   - Чтение — только участникам игры (uid ∈ `playerIds`).
   - `privateHands/{uid}` — приватная рука игрока (read: только `uid`, write: только server).
   - `moves/{clientMoveId}` — журнал ходов (read: игроки, write: server).
-  - Поля (минимум): `type`, `status`, `conversationId`, `isGroup`, `createdAt`, `createdBy`, `playerIds[]`, `players[]`, `settings`, `serverState`, `publicView`, `lastUpdatedAt`.
+  - Поля (минимум): `type`, `status`, `conversationId`, `isGroup`, `createdAt`, `createdBy`, `playerIds[]`, `settings`, `serverState`, `publicView`, `result`, `startedAt`, `finishedAt`, `lastUpdatedAt`.
+  - `publicView` (для UI): `phase` (`attack|defense|throwIn|resolution|finished`), `throwerUids[]`, `passedUids[]`, `table`, `handCounts`, `trumpSuit`, `deckCount`, `discardCount`, `attackerUid`, `defenderUid`, `result`.
+  - `moves/*` (для истории/дебага): хранит исходный `payload` и нормализованный `payloadNormalized` (например `cardKey`, `attackIndex`), а также `phase` и `result` на момент хода.
+
+- `tournaments/{tournamentId}` - турнир (серия партий) для игр внутри чата (сейчас: Durak).
+  - Создание/обновление — **только Cloud Functions** (Admin SDK).
+  - Чтение — только участникам беседы `conversationId` (см. `firestore.rules`).
+  - Поля (минимум): `type: 'durak'`, `status`, `title`, `conversationId`, `createdAt`, `createdBy`, `gameIds[]`,
+    `pointsByUid{uid:number}`, `gamesPlayedByUid{uid:number}`, `lastUpdatedAt`.
+  - `games/{gameId}` — подколлекция партий турнира: `status (lobby|active|finished)`, `playerIds[]`, `playerCount`,
+    `placements` (группы мест), `winners[]`, `loserUid|null`, а также маркеры идемпотентности начисления (`applied`, `appliedAt`).
 
 ## Ключевые связи
 

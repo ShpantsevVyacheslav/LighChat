@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'message_audio_waveform.dart';
 
 /// Telegram‑style preview bar for a just‑recorded voice message.
@@ -134,6 +135,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final dark = Theme.of(context).colorScheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : const Color(0xFF0F172A);
     final meta = fg.withValues(alpha: 0.62);
@@ -160,7 +162,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
           // Trash (cancel) — left.
           _CircleIconButton(
             icon: Icons.delete_outline_rounded,
-            tooltip: 'Отменить',
+            tooltip: l10n.voice_preview_tooltip_cancel,
             onTap: widget.busy ? null : widget.onCancel,
             color: fg.withValues(alpha: 0.82),
             background: Colors.transparent,
@@ -256,7 +258,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
           // Send — right.
           _CircleIconButton(
             icon: Icons.send_rounded,
-            tooltip: 'Отправить',
+            tooltip: l10n.voice_preview_tooltip_send,
             onTap: widget.busy ? null : widget.onSend,
             color: Colors.white,
             background: accent,

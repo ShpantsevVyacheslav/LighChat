@@ -10,6 +10,17 @@ class CreateGameLobbyResult {
   final String gameId;
 }
 
+class CreateTournamentResult {
+  const CreateTournamentResult({required this.tournamentId});
+  final String tournamentId;
+}
+
+class CreateTournamentGameResult {
+  const CreateTournamentGameResult({required this.tournamentId, required this.gameId});
+  final String tournamentId;
+  final String gameId;
+}
+
 class GamesCallables {
   GamesCallables({String region = 'us-central1'})
       : _functions = FirebaseFunctions.instanceFor(
@@ -18,6 +29,72 @@ class GamesCallables {
         );
 
   final FirebaseFunctions _functions;
+
+  Future<CreateTournamentResult> createDurakTournament({
+    required String conversationId,
+    String? title,
+  }) async {
+    final data = <String, dynamic>{
+      'conversationId': conversationId,
+      'title': title,
+    };
+
+    if (Platform.isIOS) {
+      final raw = await callFirebaseCallableHttp(
+        name: 'createDurakTournament',
+        region: 'us-central1',
+        data: data,
+        timeout: const Duration(seconds: 20),
+      );
+      final m = raw is Map ? raw : const <Object?, Object?>{};
+      final tournamentId = (m['tournamentId'] ?? '').toString().trim();
+      return CreateTournamentResult(tournamentId: tournamentId);
+    }
+
+    final callable = _functions.httpsCallable(
+      'createDurakTournament',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+    );
+    final res = await callable.call<dynamic>(data);
+    final raw = res.data;
+    final m = raw is Map ? raw : const <Object?, Object?>{};
+    final tournamentId = (m['tournamentId'] ?? '').toString().trim();
+    return CreateTournamentResult(tournamentId: tournamentId);
+  }
+
+  Future<CreateTournamentGameResult> createTournamentDurakLobby({
+    required String tournamentId,
+    required Map<String, dynamic> settings,
+  }) async {
+    final data = <String, dynamic>{
+      'tournamentId': tournamentId,
+      'settings': settings,
+    };
+
+    if (Platform.isIOS) {
+      final raw = await callFirebaseCallableHttp(
+        name: 'createTournamentGameLobby',
+        region: 'us-central1',
+        data: data,
+        timeout: const Duration(seconds: 20),
+      );
+      final m = raw is Map ? raw : const <Object?, Object?>{};
+      final gameId = (m['gameId'] ?? '').toString().trim();
+      final tid = (m['tournamentId'] ?? tournamentId).toString().trim();
+      return CreateTournamentGameResult(tournamentId: tid, gameId: gameId);
+    }
+
+    final callable = _functions.httpsCallable(
+      'createTournamentGameLobby',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+    );
+    final res = await callable.call<dynamic>(data);
+    final raw = res.data;
+    final m = raw is Map ? raw : const <Object?, Object?>{};
+    final gameId = (m['gameId'] ?? '').toString().trim();
+    final tid = (m['tournamentId'] ?? tournamentId).toString().trim();
+    return CreateTournamentGameResult(tournamentId: tid, gameId: gameId);
+  }
 
   Future<CreateGameLobbyResult> createDurakLobby({
     required String conversationId,

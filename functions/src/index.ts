@@ -28,10 +28,15 @@ export { transcribeVoiceMessage } from './triggers/http/transcribeVoiceMessage';
 export { setSecretChatPin } from './triggers/http/setSecretChatPin';
 export { unlockSecretChat } from './triggers/http/unlockSecretChat';
 export { updateSecretChatSettings } from './triggers/http/updateSecretChatSettings';
+export { requestSecretMediaView } from './triggers/http/requestSecretMediaView';
+export { fulfillSecretMediaViewRequest } from './triggers/http/fulfillSecretMediaViewRequest';
+export { consumeSecretMediaKeyGrant } from './triggers/http/consumeSecretMediaKeyGrant';
 export { createGameLobby } from './triggers/http/createGameLobby';
 export { joinGameLobby } from './triggers/http/joinGameLobby';
 export { startDurakGame } from './triggers/http/startDurakGame';
 export { makeDurakMove } from './triggers/http/makeDurakMove';
+export { createDurakTournament } from './triggers/http/createDurakTournament';
+export { createTournamentGameLobby } from './triggers/http/createTournamentGameLobby';
 
 // Firestore Triggers
 export { onconversationcreated } from './triggers/firestore/onConversationCreated';
@@ -54,3 +59,4 @@ export { checkUserPresence } from './triggers/scheduler/checkUserPresence';
 // Phase 6: TTL-cleanup эфемерных QR-pairing сессий E2EE v2.
 export { cleanupE2eePairingSessions } from './triggers/scheduler/cleanupE2eePairingSessions';
 export { cleanupExpiredSecretChats } from './triggers/scheduler/cleanupExpiredSecretChats';
+export { cleanupSecretMediaRequests } from './triggers/scheduler/cleanupSecretMediaRequests';

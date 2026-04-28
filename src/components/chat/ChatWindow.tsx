@@ -58,6 +58,7 @@ import {
 import { SelectionHeader } from '@/components/chat/SelectionHeader';
 import { ChatParticipantProfile } from '@/components/chat/ChatParticipantProfile';
 import type { ChatProfileSource, ChatProfileSubMenu } from '@/components/chat/ChatParticipantProfile';
+import { DurakWebGameDialog } from '@/components/chat/games/durak/DurakWebGameDialog';
 import { ChatMessageItem } from './ChatMessageItem';
 import { ChatMessageInput, type ChatMessageInputHandle } from './ChatMessageInput';
 import { initiateCall } from './AudioCallOverlay';
@@ -76,6 +77,7 @@ import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle } from 'luci
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { useSettings } from '@/hooks/use-settings';
+import { DASHBOARD_GAME_ID_QUERY } from '@/lib/dashboard-conversation-url';
 import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
 import { ChatDateSeparatorRow } from '@/components/chat/ChatDateSeparatorRow';
 import {
@@ -174,6 +176,24 @@ export function ChatWindow({
   const storage = useStorage();
   const { toast } = useToast();
   const router = useRouter();
+  const [openGameId, setOpenGameId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const p = new URLSearchParams(window.location.search || '');
+    const gid = p.get(DASHBOARD_GAME_ID_QUERY);
+    if (gid && gid.trim()) setOpenGameId(gid.trim());
+  }, [conversation.id]);
+
+  const closeGameDialog = useCallback(() => {
+    setOpenGameId(null);
+    if (typeof window === 'undefined') return;
+    const p = new URLSearchParams(window.location.search || '');
+    p.delete(DASHBOARD_GAME_ID_QUERY);
+    const q = p.toString();
+    const url = q ? `${window.location.pathname}?${q}` : window.location.pathname;
+    router.replace(url);
+  }, [router]);
   const { chatSettings, privacySettings } = useSettings();
   const { prefs } = useChatConversationPrefs(currentUser.id, conversation.id);
   const { starredMessageIds } = useStarredInConversation(currentUser.id, conversation.id);
@@ -1931,6 +1951,17 @@ export function ChatWindow({
   return (
     <div className="h-full flex flex-col overflow-hidden relative bg-transparent touch-pan-y" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <ChatWallpaperLayer wallpaper={effectiveWallpaper} />
+
+        {openGameId ? (
+          <DurakWebGameDialog
+            open={true}
+            onOpenChange={(v) => {
+              if (!v) closeGameDialog();
+            }}
+            gameId={openGameId}
+            currentUser={currentUser}
+          />
+        ) : null}
 
         <div className="relative z-10 flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <div

@@ -85,6 +85,20 @@ export const joinGameLobby = onCall(
         },
         { merge: true },
       );
+
+      const tournamentId = typeof (g as any).tournamentId === "string" ? ((g as any).tournamentId as string) : "";
+      if (tournamentId) {
+        tx.set(
+          db.doc(`tournaments/${tournamentId}/games/${gameId}`),
+          {
+            status: "lobby",
+            playerIds: [...playerIds, uid],
+            playerCount: playerIds.length + 1,
+            lastUpdatedAt: nowIso,
+          },
+          { merge: true },
+        );
+      }
     });
 
     logger.info("[joinGameLobby] joined", { gameId, uid });

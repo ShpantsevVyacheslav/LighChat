@@ -42,7 +42,8 @@ function resolveUserSortName(
 ): string {
   const local = (displayNameById?.[user.id] ?? '').trim();
   if (local) return local;
-  return user.name;
+  // Firestore данные могут быть неполные (старые документы/миграции) — гарантируем строку.
+  return (user.name ?? '').trim();
 }
 
 export function sortUsersByNameRu(
@@ -50,8 +51,8 @@ export function sortUsersByNameRu(
   b: User,
   displayNameById?: Record<string, string>
 ): number {
-  const left = resolveUserSortName(a, displayNameById);
-  const right = resolveUserSortName(b, displayNameById);
+  const left = resolveUserSortName(a, displayNameById) || '';
+  const right = resolveUserSortName(b, displayNameById) || '';
   return left.localeCompare(right, 'ru', { sensitivity: 'base' });
 }
 

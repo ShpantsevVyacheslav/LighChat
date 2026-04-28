@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'message_html_text.dart';
 
 /// Список сообщений с непустой веткой (паритет `ConversationThreadsPanel`).
@@ -24,12 +26,11 @@ class ConversationThreadsScreen extends ConsumerWidget {
   static String _rootTitlePlain(ChatMessage m) {
     final t = (m.text ?? '').trim();
     if (t.isEmpty) {
-      if (m.attachments.isNotEmpty) return 'Вложение';
-      return 'Сообщение';
+      return '';
     }
     if (t.contains('<')) {
       final p = messageHtmlToPlainText(t).trim();
-      return p.isEmpty ? 'Сообщение' : p;
+      return p;
     }
     return t;
   }
@@ -38,11 +39,12 @@ class ConversationThreadsScreen extends ConsumerWidget {
     required ChatMessage m,
     required String currentUserId,
     required Conversation? conv,
+    required AppLocalizations l10n,
   }) {
     final raw = (m.lastThreadMessageText ?? '').trim();
     if (raw.isEmpty) return '';
     final sid = m.lastThreadMessageSenderId ?? '';
-    if (sid == currentUserId) return 'Вы: $raw';
+    if (sid == currentUserId) return l10n.conversation_threads_snippet_you(raw);
     String? name;
     if (sid.isNotEmpty) {
       name = conv?.participantInfo?[sid]?.name;
@@ -53,52 +55,30 @@ class ConversationThreadsScreen extends ConsumerWidget {
     return raw;
   }
 
-  static String _dayLabelRu(DateTime dt) {
+  static String _dayLabel(
+    BuildContext context,
+    AppLocalizations l10n,
+    DateTime dt,
+  ) {
     final local = dt.toLocal();
     final now = DateTime.now();
     final t0 = DateTime(now.year, now.month, now.day);
     final t1 = DateTime(local.year, local.month, local.day);
     final diff = t0.difference(t1).inDays;
-    if (diff == 0) return 'Сегодня';
-    if (diff == 1) return 'Вчера';
-    const months = <String>[
-      'янв',
-      'фев',
-      'мар',
-      'апр',
-      'мая',
-      'июн',
-      'июл',
-      'авг',
-      'сен',
-      'окт',
-      'ноя',
-      'дек',
-    ];
-    final mo = months[local.month - 1];
-    return '${local.day} $mo';
+    if (diff == 0) return l10n.conversation_threads_day_today;
+    if (diff == 1) return l10n.conversation_threads_day_yesterday;
+    return MaterialLocalizations.of(context).formatShortMonthDay(local);
   }
 
-  static String _repliesUpper(int n) {
-    if (n % 100 >= 11 && n % 100 <= 14) return '$n ОТВЕТОВ';
-    switch (n % 10) {
-      case 1:
-        return '$n ОТВЕТ';
-      case 2:
-      case 3:
-      case 4:
-        return '$n ОТВЕТА';
-      default:
-        return '$n ОТВЕТОВ';
-    }
-  }
+  // Replies label is localized via ARB ICU plural: `conversation_threads_replies_badge`.
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authUserProvider).asData?.value;
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('Not signed in.')));
+      return Scaffold(body: Center(child: Text(l10n.forward_error_not_authorized)));
     }
 
     final convAsync = ref.watch(
@@ -128,12 +108,12 @@ class ConversationThreadsScreen extends ConsumerWidget {
 
             return Scaffold(
               appBar: AppBar(
-                title: const Text('Обсуждения'),
+                title: Text(l10n.conversation_threads_title),
               ),
               body: threads.isEmpty
                   ? Center(
                       child: Text(
-                        'Нет обсуждений',
+                        l10n.conversation_threads_empty,
                         style: TextStyle(
                           color: scheme.onSurface.withValues(alpha: 0.55),
                           fontWeight: FontWeight.w600,
@@ -147,11 +127,17 @@ class ConversationThreadsScreen extends ConsumerWidget {
                       itemBuilder: (context, i) {
                         final m = threads[i];
                         final tc = m.threadCount ?? 0;
-                        final title = _rootTitlePlain(m);
+                        final rawTitle = _rootTitlePlain(m).trim();
+                        final title = rawTitle.isNotEmpty
+                            ? rawTitle
+                            : (m.attachments.isNotEmpty
+                                  ? l10n.conversation_threads_root_attachment
+                                  : l10n.conversation_threads_root_message);
                         final snippet = _snippetLine(
                           m: m,
                           currentUserId: user.uid,
                           conv: conv,
+                          l10n: l10n,
                         );
                         final sortT = _parseThreadSortTime(m);
                         return Material(
@@ -226,7 +212,9 @@ class ConversationThreadsScreen extends ConsumerWidget {
                                                 BorderRadius.circular(20),
                                           ),
                                           child: Text(
-                                            _repliesUpper(tc),
+                                            l10n
+                                                .conversation_threads_replies_badge(tc)
+                                                .toUpperCase(),
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 11,
@@ -240,7 +228,7 @@ class ConversationThreadsScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    _dayLabelRu(sortT).toUpperCase(),
+                                    _dayLabel(context, l10n, sortT).toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -261,16 +249,22 @@ class ConversationThreadsScreen extends ConsumerWidget {
           loading: () => const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => Scaffold(
-            body: Center(child: Text('Ошибка: $e')),
-          ),
+          error: (e, _) {
+            final fbCode =
+                (e is FirebaseException) ? e.code.toLowerCase().trim() : '';
+            final isDenied = fbCode == 'permission-denied';
+            final msg = isDenied
+                ? 'Permission denied: you may have no access to this chat.'
+                : l10n.chat_list_error_generic(e);
+            return Scaffold(body: Center(child: Text(msg)));
+          },
         );
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Ошибка: $e')),
+        body: Center(child: Text(l10n.chat_list_error_generic(e))),
       ),
     );
   }

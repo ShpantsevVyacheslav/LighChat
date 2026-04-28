@@ -3,7 +3,7 @@ import { logger } from "firebase-functions";
 import * as admin from "firebase-admin";
 
 import { normalizeDurakSettings } from "../../lib/games/gameSettings";
-import { buildInitialState } from "../../lib/games/durak/engine";
+import { buildInitialState, derivePhase } from "../../lib/games/durak/engine";
 
 type RequestData = {
   gameId?: unknown;
@@ -75,10 +75,11 @@ export const startDurakGame = onCall(
         serverState: state,
         publicView: {
           revision: state.revision,
-          phase: "defense",
+          phase: derivePhase(state),
           trumpSuit: state.trumpSuit,
           deckCount: state.deck.length,
           discardCount: state.discard.length,
+          seats: state.seats ?? playerIds,
           attackerUid: state.attackerUid,
           defenderUid: state.defenderUid,
           table: state.table,
@@ -86,6 +87,12 @@ export const startDurakGame = onCall(
             Object.entries(handsByUid).map(([u, cards]) => [u, cards.length]),
           ),
           lastMoveAt: nowIso,
+          throwerUids: state.throwerUids ?? [],
+          passedUids: state.passedUids ?? [],
+          shuler: {
+            enabled: settings.shulerEnabled === true,
+            lastCheatUid: null,
+          },
         },
         lastUpdatedAt: nowIso,
       });

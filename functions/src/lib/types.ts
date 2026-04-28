@@ -109,6 +109,56 @@ export type UserSecretChatLockDoc = {
   updatedAt: string;
 };
 
+/**
+ * Secret Chat hard media view limits (server-enforced).
+ * Firestore subcollections under `conversations/{conversationId}`.
+ */
+export type SecretMediaKind =
+  | "image"
+  | "video"
+  | "voice"
+  | "videoCircle"
+  | "file"
+  | "location";
+
+export type SecretMediaViewStateDoc = {
+  conversationId: string;
+  messageId: string;
+  fileId: string;
+  recipientUid: string;
+  kind: SecretMediaKind;
+  limit: number;
+  used: number;
+  locked: boolean;
+  updatedAt: string;
+};
+
+export type SecretMediaViewRequestStatus = "pending" | "fulfilled" | "expired";
+
+export type SecretMediaViewRequestDoc = {
+  conversationId: string;
+  messageId: string;
+  fileId: string;
+  recipientUid: string;
+  recipientDeviceId: string;
+  kind: SecretMediaKind;
+  createdAt: string;
+  expiresAt: string;
+  status: SecretMediaViewRequestStatus;
+};
+
+export type SecretMediaKeyGrantDoc = {
+  conversationId: string;
+  messageId: string;
+  fileId: string;
+  recipientUid: string;
+  recipientDeviceId: string;
+  wrappedFileKeyForDevice: string;
+  expiresAtTs: unknown;
+  issuedByUid: string;
+  oneTime: true;
+};
+
 export type ReplyContext = {
   messageId: string;
   senderName: string;

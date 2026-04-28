@@ -8,6 +8,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 import 'package:lighchat_mobile/features/meetings/data/meeting_models.dart';
 import 'package:lighchat_mobile/features/meetings/data/meeting_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import 'chat_bottom_nav.dart';
 import 'chat_shell_backdrop.dart';
@@ -64,12 +65,13 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   Widget build(BuildContext context) {
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final userAsync = ref.watch(authUserProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     if (!firebaseReady) {
-      return const Scaffold(
+      return Scaffold(
         body: Padding(
           padding: EdgeInsets.all(16),
-          child: Text('Firebase is not configured yet.'),
+          child: Text(l10n.chat_list_firebase_not_configured),
         ),
       );
     }
@@ -106,7 +108,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
         final selfName =
             _asNonEmptyString(userDoc['name']) ??
             _asNonEmptyString(user.displayName) ??
-            'Профиль';
+            l10n.profile_title;
         final selfAvatar =
             _asNonEmptyString(userDoc['avatarThumb']) ??
             _asNonEmptyString(userDoc['avatar']) ??
@@ -158,11 +160,13 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text('Auth: $e'))),
+      error: (e, _) =>
+          Scaffold(body: Center(child: Text(l10n.chat_auth_error(e.toString())))),
     );
   }
 
   Widget _buildBody(BuildContext context, String uid) {
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       top: true,
       bottom: false,
@@ -174,7 +178,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
           children: [
             _header(context),
             const SizedBox(height: 22),
-            _sectionLabel(context, 'Новая встреча'),
+            _sectionLabel(context, l10n.chat_meetings_section_new),
             const SizedBox(height: 10),
             _formCard(context),
             const SizedBox(height: 12),
@@ -183,11 +187,8 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
               icon: Icons.visibility_rounded,
               iconBg: const Color(0xFF1D4ED8),
               iconTint: const Color(0xFF60A5FA),
-              title: 'Зал ожидания',
-              description:
-                  'В режиме зала ожидания вы полностью контролируете список '
-                  'участников. Пока вы не нажмёте «Принять», гость будет '
-                  'видеть экран ожидания.',
+              title: l10n.chat_meetings_waiting_room_title,
+              description: l10n.chat_meetings_waiting_room_desc,
             ),
             const SizedBox(height: 12),
             _infoCard(
@@ -195,11 +196,8 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
               icon: Icons.image_rounded,
               iconBg: const Color(0xFF6D28D9),
               iconTint: const Color(0xFFC4B5FD),
-              title: 'Виртуальные фоны',
-              description:
-                  'Загружайте фоны и размывайте задний план при желании. '
-                  'Изображение из галереи. Также доступна загрузка '
-                  'собственных фонов.',
+              title: l10n.chat_meetings_backgrounds_title,
+              description: l10n.chat_meetings_backgrounds_desc,
             ),
             const SizedBox(height: 16),
             _createButton(context),
@@ -249,12 +247,13 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _historyErrorCard(BuildContext context, Object err) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return _glass(
       context,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'Не удалось загрузить историю встреч: $err',
+          l10n.chat_meetings_history_error(err.toString()),
           style: TextStyle(color: scheme.error, fontSize: 13),
         ),
       ),
@@ -263,6 +262,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _header(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     return Column(
@@ -277,7 +277,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
             ),
             const SizedBox(width: 10),
             Text(
-              'Видеовстречи',
+              l10n.chat_meetings_title,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
@@ -291,7 +291,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
         Padding(
           padding: const EdgeInsets.only(left: 36),
           child: Text(
-            'Создавайте конференции и управляйте доступом участников',
+            l10n.chat_meetings_subtitle,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -320,6 +320,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _formCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     final fieldFill = fg.withValues(alpha: dark ? 0.06 : 0.04);
@@ -332,7 +333,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _fieldLabel(context, 'Название встречи'),
+            _fieldLabel(context, l10n.chat_meetings_field_title_label),
             const SizedBox(height: 6),
             TextField(
               controller: _title,
@@ -341,7 +342,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
               cursorColor: scheme.primary,
               decoration: _fieldDecoration(
                 context,
-                hint: 'Напр. Обсуждение логистики',
+                hint: l10n.chat_meetings_field_title_hint,
                 fill: fieldFill,
                 border: fieldBorder,
               ),
@@ -354,7 +355,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _fieldLabel(context, 'Длительность'),
+                      _fieldLabel(context, l10n.chat_meetings_field_duration_label),
                       const SizedBox(height: 6),
                       _durationDropdown(context, fieldFill, fieldBorder),
                     ],
@@ -365,7 +366,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _fieldLabel(context, 'Тип доступа'),
+                      _fieldLabel(context, l10n.chat_meetings_field_access_label),
                       const SizedBox(height: 6),
                       _accessToggle(context, fieldFill, fieldBorder),
                     ],
@@ -432,6 +433,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _durationDropdown(BuildContext context, Color fill, Color border) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     return Container(
@@ -456,7 +458,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
               : scheme.surfaceContainer,
           style: TextStyle(color: fg, fontSize: 15),
           hint: Text(
-            'Без ограничения',
+            l10n.chat_meetings_duration_unlimited,
             style: TextStyle(
               color: fg.withValues(alpha: 0.36),
               fontSize: 15,
@@ -467,7 +469,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
               .map((d) {
                 return DropdownMenuItem<_MeetingDuration>(
                   value: d,
-                  child: Text(d.label),
+                  child: Text(d.label(l10n)),
                 );
               })
               .toList(growable: false),
@@ -482,6 +484,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _accessToggle(BuildContext context, Color fill, Color border) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     return InkWell(
@@ -499,7 +502,9 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
           children: [
             Expanded(
               child: Text(
-                _isPrivate ? 'Закрытая' : 'Открытая',
+                _isPrivate
+                    ? l10n.chat_meetings_access_private
+                    : l10n.chat_meetings_access_public,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -526,6 +531,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _waitingRoomCheckbox(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     return InkWell(
@@ -556,7 +562,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Добавить комнату ожидания',
+                    l10n.chat_meetings_waiting_room_toggle,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -565,8 +571,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Только хозяин комнаты может дать разрешение на '
-                    'подключение и блокировать',
+                    l10n.chat_meetings_waiting_room_toggle_subtitle,
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w500,
@@ -646,6 +651,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _createButton(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final enabled = _title.text.trim().isNotEmpty && !_creating;
     return SizedBox(
       height: 52,
@@ -683,12 +689,16 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                         ),
                       ),
                     ]
-                  : const [
-                      Icon(Icons.add_rounded, color: Colors.white, size: 22),
-                      SizedBox(width: 6),
+                  : [
+                      const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 6),
                       Text(
-                        'Создать встречу',
-                        style: TextStyle(
+                        l10n.chat_meetings_create_button,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -703,17 +713,19 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   }
 
   void _hintTitleRequired() {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Укажите название встречи')));
+    ).showSnackBar(SnackBar(content: Text(l10n.chat_meetings_snackbar_enter_title)));
   }
 
   Future<void> _onCreateMeeting() async {
     if (_creating) return;
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.read(authUserProvider).asData?.value;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нужна авторизация для создания встречи')),
+        SnackBar(content: Text(l10n.chat_meetings_snackbar_auth_required)),
       );
       return;
     }
@@ -737,7 +749,9 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось создать встречу: $e')));
+      ).showSnackBar(
+        SnackBar(content: Text(l10n.chat_meetings_error_create_failed(e.toString()))),
+      );
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -745,6 +759,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _historyHeader(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     return Row(
@@ -756,7 +771,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
         ),
         const SizedBox(width: 8),
         Text(
-          'Ваша история',
+          l10n.chat_meetings_history_title,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -769,6 +784,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
 
   Widget _historyEmptyCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     return _glass(
@@ -795,7 +811,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'История встреч пуста',
+              l10n.chat_meetings_history_empty,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -842,7 +858,7 @@ class _MeetingHistoryRow extends StatelessWidget {
   final MeetingDoc meeting;
   final VoidCallback onTap;
 
-  String _subtitle() {
+  String _subtitle(AppLocalizations l10n) {
     final d = meeting.createdAt.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
     final date = '${two(d.day)}.${two(d.month)}.${d.year}';
@@ -851,10 +867,10 @@ class _MeetingHistoryRow extends StatelessWidget {
       date,
       time,
       if (meeting.status == 'active')
-        'идёт'
+        l10n.chat_meetings_status_live
       else if (meeting.status == 'ended')
-        'завершена',
-      if (meeting.isPrivate) 'закрытая',
+        l10n.chat_meetings_status_finished,
+      if (meeting.isPrivate) l10n.chat_meetings_badge_private,
     ];
     return parts.join(' · ');
   }
@@ -862,6 +878,7 @@ class _MeetingHistoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
     final active = meeting.status == 'active';
@@ -916,7 +933,7 @@ class _MeetingHistoryRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _subtitle(),
+                      _subtitle(l10n),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -941,18 +958,18 @@ class _MeetingHistoryRow extends StatelessWidget {
 enum _MeetingDuration { none, m15, m30, m60, m90 }
 
 extension _MeetingDurationLabel on _MeetingDuration {
-  String get label {
+  String label(AppLocalizations l10n) {
     switch (this) {
       case _MeetingDuration.none:
-        return 'Без ограничения';
+        return l10n.chat_meetings_duration_unlimited;
       case _MeetingDuration.m15:
-        return '15 минут';
+        return l10n.chat_meetings_duration_15m;
       case _MeetingDuration.m30:
-        return '30 минут';
+        return l10n.chat_meetings_duration_30m;
       case _MeetingDuration.m60:
-        return '1 час';
+        return l10n.chat_meetings_duration_1h;
       case _MeetingDuration.m90:
-        return '1,5 часа';
+        return l10n.chat_meetings_duration_90m;
     }
   }
 

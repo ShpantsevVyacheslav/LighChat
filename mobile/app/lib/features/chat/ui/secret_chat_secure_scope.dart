@@ -1,7 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
 
 class SecretChatSecureScope extends StatefulWidget {
   const SecretChatSecureScope({super.key, required this.enabled, required this.child});
@@ -19,10 +19,10 @@ class _SecretChatSecureScopeState extends State<SecretChatSecureScope> {
   Future<void> _apply(bool enabled) async {
     if (!Platform.isAndroid) return;
     if (enabled) {
-      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+      await FlutterWindowManagerPlus.addFlags(FlutterWindowManagerPlus.FLAG_SECURE);
       _applied = true;
     } else if (_applied) {
-      await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+      await FlutterWindowManagerPlus.clearFlags(FlutterWindowManagerPlus.FLAG_SECURE);
       _applied = false;
     }
   }

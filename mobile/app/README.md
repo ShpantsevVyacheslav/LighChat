@@ -22,6 +22,10 @@ samples, guidance on mobile development, and a full API reference.
 - **Backend**: transcription is performed server-side via Firebase Cloud Functions callable `transcribeVoiceMessage` (`us-central1`).
 - **API keys**: **do not** add any OpenAI (or other provider) key to the mobile app. The provider key is configured on the server as `OPENAI_API_KEY` (Cloud Functions env/secret).
 
+## Android build: `flutter_windowmanager` + AGP namespace
+
+If `flutter build apk --release` fails with **"Namespace not specified"** for `:flutter_windowmanager`, this repo includes a **project-level Gradle workaround** in `android/build.gradle.kts` that sets the missing `namespace` for that plugin when using **Gradle 8 / AGP 8+**.
+
 ### iOS checklist (when transcription fails)
 
 - Verify Firebase iOS app is configured (correct bundle id + `GoogleService-Info.plist` and `Firebase.initializeApp()` is called).

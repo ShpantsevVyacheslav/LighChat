@@ -38,6 +38,56 @@
   "secret_chat_media_type_voice": "Голосовые",
   "secret_chat_media_type_location": "Локация",
   "secret_chat_media_views_unlimited": "Безлимит",
+  "tournament_title": "Турнир",
+  "tournament_subtitle": "Турнирная таблица и серии партий",
+  "tournament_new_game": "Новая партия",
+  "tournament_standings": "Таблица",
+  "tournament_standings_empty": "Пока нет результатов",
+  "tournament_games": "Партии",
+  "tournament_games_empty": "Пока нет партий",
+  "tournament_points": "{pts} очков",
+  "@tournament_points": {
+    "placeholders": {
+      "pts": {}
+    }
+  },
+  "tournament_games_played": "{n} игр",
+  "@tournament_games_played": {
+    "placeholders": {
+      "n": {}
+    }
+  },
+  "tournament_create_failed": "Не удалось создать турнир: {err}",
+  "@tournament_create_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_create_game_failed": "Не удалось создать партию: {err}",
+  "@tournament_create_game_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_game_players": "Игроки: {names}",
+  "@tournament_game_players": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "tournament_game_result_draw": "Результат: ничья",
+  "tournament_game_result_loser": "Результат: дурак — {name}",
+  "@tournament_game_result_loser": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "tournament_game_place": "Место {place}",
+  "@tournament_game_place": {
+    "placeholders": {
+      "place": {}
+    }
+  },
   "secret_chat_media_views_count": "{count} просмотров",
   "@secret_chat_media_views_count": {
     "placeholders": {
@@ -206,6 +256,7 @@
   "common_delete": "Удалить",
   "common_choose": "Выбрать",
   "common_save": "Сохранить",
+  "common_close": "Закрыть",
   "common_nothing_found": "Ничего не найдено",
   "common_retry": "Повторить",
 
@@ -408,6 +459,124 @@
   "chat_list_snackbar_marked_read": "Чат помечен как прочитанный.",
   "chat_list_error_generic": "Ошибка: {error}",
   "@chat_list_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_calls_title": "Звонки",
+  "chat_calls_search_hint": "Поиск по имени…",
+  "chat_calls_empty": "История звонков пуста.",
+  "chat_calls_nothing_found": "Ничего не найдено.",
+  "chat_calls_error_load": "Не удалось загрузить звонки:\n{error}",
+  "@chat_calls_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_reply_cancel_tooltip": "Отменить ответ",
+  "voice_preview_tooltip_cancel": "Отменить",
+  "voice_preview_tooltip_send": "Отправить",
+  "profile_qr_title": "Мой QR-код",
+  "profile_qr_tooltip_close": "Закрыть",
+  "profile_qr_share_title": "Мой профиль в LighChat",
+  "profile_qr_share_subject": "Профиль LighChat",
+  "chat_media_norm_pending_title": "Обрабатываем {mediaKind}…",
+  "@chat_media_norm_pending_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_failed_title": "Не удалось обработать {mediaKind}",
+  "@chat_media_norm_failed_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_pending_subtitle": "Файл станет доступен после серверной нормализации.",
+  "chat_media_norm_failed_subtitle": "Попробуйте запустить обработку повторно.",
+  "conversation_threads_title": "Обсуждения",
+  "conversation_threads_empty": "Нет обсуждений",
+  "conversation_threads_root_attachment": "Вложение",
+  "conversation_threads_root_message": "Сообщение",
+  "conversation_threads_snippet_you": "Вы: {text}",
+  "@conversation_threads_snippet_you": {
+    "placeholders": {
+      "text": {}
+    }
+  },
+  "conversation_threads_day_today": "Сегодня",
+  "conversation_threads_day_yesterday": "Вчера",
+  "conversation_threads_replies_badge": "{count, plural, one{{count} ответ} few{{count} ответа} many{{count} ответов} other{{count} ответов}}",
+  "@conversation_threads_replies_badge": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_meetings_title": "Видеовстречи",
+  "chat_meetings_subtitle": "Создавайте конференции и управляйте доступом участников",
+  "chat_meetings_section_new": "Новая встреча",
+  "chat_meetings_field_title_label": "Название встречи",
+  "chat_meetings_field_title_hint": "Напр. Обсуждение логистики",
+  "chat_meetings_field_duration_label": "Длительность",
+  "chat_meetings_duration_unlimited": "Без ограничения",
+  "chat_meetings_duration_15m": "15 минут",
+  "chat_meetings_duration_30m": "30 минут",
+  "chat_meetings_duration_1h": "1 час",
+  "chat_meetings_duration_90m": "1,5 часа",
+  "chat_meetings_field_access_label": "Тип доступа",
+  "chat_meetings_access_private": "Закрытая",
+  "chat_meetings_access_public": "Открытая",
+  "chat_meetings_waiting_room_title": "Зал ожидания",
+  "chat_meetings_waiting_room_desc": "В режиме зала ожидания вы полностью контролируете список участников. Пока вы не нажмёте «Принять», гость будет видеть экран ожидания.",
+  "chat_meetings_backgrounds_title": "Виртуальные фоны",
+  "chat_meetings_backgrounds_desc": "Загружайте фоны и размывайте задний план при желании. Изображение из галереи. Также доступна загрузка собственных фонов.",
+  "chat_meetings_waiting_room_toggle": "Добавить комнату ожидания",
+  "chat_meetings_waiting_room_toggle_subtitle": "Только хозяин комнаты может дать разрешение на подключение и блокировать",
+  "chat_meetings_create_button": "Создать встречу",
+  "chat_meetings_snackbar_enter_title": "Укажите название встречи",
+  "chat_meetings_snackbar_auth_required": "Нужна авторизация для создания встречи",
+  "chat_meetings_error_create_failed": "Не удалось создать встречу: {error}",
+  "@chat_meetings_error_create_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_history_title": "Ваша история",
+  "chat_meetings_history_empty": "История встреч пуста",
+  "chat_meetings_history_error": "Не удалось загрузить историю встреч: {error}",
+  "@chat_meetings_history_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_status_live": "идёт",
+  "chat_meetings_status_finished": "завершена",
+  "chat_meetings_badge_private": "закрытая",
+  "chat_contacts_search_hint": "Поиск контактов...",
+  "chat_contacts_permission_denied": "Доступ к контактам не предоставлен.",
+  "chat_contacts_sync_error": "Ошибка синхронизации контактов: {error}",
+  "@chat_contacts_sync_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_invite_prepare_failed": "Не удалось подготовить приглашение: {error}",
+  "@chat_contacts_invite_prepare_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_matches_not_found": "Совпадений не найдено.",
+  "chat_contacts_added_count": "Добавлено контактов: {count}.",
+  "@chat_contacts_added_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_contacts_invite_text": "Поставь LighChat: https://lighchat.online\nПриглашаю тебя в LighChat — вот ссылка на установку.",
+  "chat_contacts_invite_subject": "Приглашение в LighChat",
+  "chat_contacts_error_load": "Ошибка загрузки контактов: {error}",
+  "@chat_contacts_error_load": {
     "placeholders": {
       "error": {}
     }
@@ -1105,13 +1274,57 @@
   "conversation_durak_action_take": "Взять",
   "conversation_durak_action_beat": "Бито",
   "conversation_durak_action_transfer": "Перевести",
+  "conversation_durak_action_pass": "Пас",
+  "conversation_durak_game_finished_title": "Игра завершена",
+  "conversation_durak_game_finished_no_loser": "В этот раз без проигравшего.",
+  "conversation_durak_game_finished_loser": "Проиграл: {uid}",
+  "@conversation_durak_game_finished_loser": {
+    "placeholders": {
+      "uid": {}
+    }
+  },
+  "conversation_durak_game_finished_winners": "Победили: {uids}",
+  "@conversation_durak_game_finished_winners": {
+    "placeholders": {
+      "uids": {}
+    }
+  },
+  "conversation_durak_drop_zone": "Перетащи карту сюда, чтобы сыграть",
   "durak_settings_mode": "Режим",
   "durak_mode_podkidnoy": "Подкидной",
   "durak_mode_perevodnoy": "Переводной",
   "durak_settings_max_players": "Игроков",
+  "durak_settings_deck": "Колода",
+  "durak_deck_36": "36 карт",
+  "durak_deck_52": "52 карты",
   "durak_settings_with_jokers": "Джокеры",
   "durak_settings_turn_timer": "Таймер хода",
   "durak_turn_timer_off": "Выкл",
+  "durak_settings_throw_in_policy": "Кто может подкидывать",
+  "durak_throw_in_policy_all": "Все (кроме защитника)",
+  "durak_throw_in_policy_neighbors": "Только соседи защитника",
+  "durak_settings_shuler": "Режим шулера",
+  "durak_settings_shuler_subtitle": "Разрешает нелегальные ходы, пока кто-то не крикнет «Фолл!»",
+  "conversation_durak_action_foul": "Фолл!",
+  "conversation_durak_action_resolve": "Подтвердить «Бито»",
+  "conversation_durak_foul_toast": "Фолл! Шулер наказан.",
+  "durak_phase_prefix": "Фаза",
+  "durak_phase_attack": "Атака",
+  "durak_phase_defense": "Защита",
+  "durak_phase_throw_in": "Подкид",
+  "durak_phase_resolution": "Розыгрыш",
+  "durak_phase_finished": "Завершено",
+  "durak_phase_pending_foul": "Ожидание фолла после «Бито»",
+  "durak_phase_pending_foul_hint_attacker": "Ждём фолл. Если никто не нажмёт — подтверди «Бито».",
+  "durak_phase_pending_foul_hint_other": "Ждём фолл. Нажми «Фолл!», если заметил шулерство.",
+  "durak_phase_hint_can_throw_in": "Можно подкидывать",
+  "durak_phase_hint_wait": "Ждите свой ход",
+  "durak_now_throwing_in": "Сейчас подкидывает: {name}",
+  "@durak_now_throwing_in": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "chat_selection_selected_count": "{count} выбрано",
   "@chat_selection_selected_count": {
     "placeholders": {

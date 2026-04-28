@@ -345,6 +345,62 @@ export type UserSecretChatLockDoc = {
   updatedAt: string;
 };
 
+/**
+ * Secret Chat hard media view limits (server-enforced).
+ * Firestore subcollections under `conversations/{conversationId}`.
+ */
+export type SecretMediaKind =
+  | "image"
+  | "video"
+  | "voice"
+  | "videoCircle"
+  | "file"
+  | "location";
+
+export type SecretMediaViewStateDoc = {
+  conversationId: string;
+  messageId: string;
+  fileId: string;
+  recipientUid: string;
+  kind: SecretMediaKind;
+  /** Maximum allowed views for this recipient+file. */
+  limit: number;
+  /** Already granted/used views (monotonic, server-controlled). */
+  used: number;
+  /** If true — permanently exhausted/locked (no more views). */
+  locked: boolean;
+  updatedAt: string;
+};
+
+export type SecretMediaViewRequestStatus = "pending" | "fulfilled" | "expired";
+
+export type SecretMediaViewRequestDoc = {
+  conversationId: string;
+  messageId: string;
+  fileId: string;
+  recipientUid: string;
+  recipientDeviceId: string;
+  kind: SecretMediaKind;
+  createdAt: string;
+  /** ISO; for UI/diagnostics, server enforces via Timestamp too. */
+  expiresAt: string;
+  status: SecretMediaViewRequestStatus;
+};
+
+export type SecretMediaKeyGrantDoc = {
+  conversationId: string;
+  messageId: string;
+  fileId: string;
+  recipientUid: string;
+  recipientDeviceId: string;
+  /** Ciphertext produced by issuer device, wrapped to recipient device pubkey. */
+  wrappedFileKeyForDevice: string;
+  /** Firestore Timestamp on server; clients see Timestamp or string depending on SDK. */
+  expiresAtTs: unknown;
+  issuedByUid: string;
+  oneTime: true;
+};
+
 /** Документ Firestore: platformSettings/main */
 export type PlatformStoragePolicy = {
   /** Удаление медиа в Storage старше N дней от даты отправки (нужна Cloud Function + индексация дат). */

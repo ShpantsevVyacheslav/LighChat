@@ -147,7 +147,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                       ),
                       error: (e, _) => Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text('Conversations error: $e'),
+                        child: Text(
+                          AppLocalizations.of(context)!.chat_list_error_generic(e),
+                        ),
                       ),
                     );
                   },
@@ -157,7 +159,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   ),
                   error: (e, _) => Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text('userChats error: $e'),
+                    child: Text(
+                      AppLocalizations.of(context)!.chat_list_error_generic(e),
+                    ),
                   ),
                 );
               },
@@ -167,7 +171,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Auth error: $e'),
+                child: Text(
+                  AppLocalizations.of(context)!.chat_auth_error(e.toString()),
+                ),
               ),
             ),
     );
@@ -2042,7 +2048,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             ),
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
-                              hintText: 'MoonPath',
+                              hintText: AppLocalizations.of(context)!
+                                  .settings_chats_icon_picker_search_hint,
                               hintStyle: TextStyle(
                                 color: modalFg.withValues(alpha: 0.36),
                                 fontSize: 16,

@@ -6,6 +6,7 @@ import '../data/chat_media_gallery.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/e2ee_decryption_orchestrator.dart'
     show e2eeMediaDecryptErrorMime;
+import '../data/secret_chat_media_open_service.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'message_video_attachment.dart';
@@ -34,6 +35,7 @@ bool _isVideoAttachment(ChatAttachment a) {
 }
 
 bool _isImageAttachment(ChatAttachment a) {
+  if (SecretChatMediaOpenService.isLockedSecretAttachment(a)) return true;
   if (_isVideoAttachment(a)) return false;
   if (_isE2eeMediaDecryptErrorAttachment(a)) return false;
   final t = (a.type ?? '').toLowerCase();
@@ -362,7 +364,20 @@ class _ImageGrid extends StatelessWidget {
       Widget inner = Stack(
         fit: StackFit.expand,
         children: [
-          ChatCachedNetworkImage(url: a.url, fit: BoxFit.cover),
+          SecretChatMediaOpenService.isLockedSecretAttachment(a)
+              ? DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.28),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.lock_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                )
+              : ChatCachedNetworkImage(url: a.url, fit: BoxFit.cover),
           if (showPlus)
             Container(
               color: Colors.black.withValues(alpha: 0.35),
@@ -596,14 +611,30 @@ class _AspectImageBox extends StatelessWidget {
           : BoxFit.cover,
       alignment: Alignment.center,
     );
+    final maybeLocked = SecretChatMediaOpenService.isLockedSecretAttachment(
+      attachment,
+    );
+    final lockedWidget = DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.28),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.lock_rounded,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
+    );
     final open = onOpenGridGallery;
+    final child = maybeLocked ? lockedWidget : img;
     final wrapped = open != null && isChatGridGalleryAttachment(attachment)
         ? GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => open(attachment),
-            child: img,
+            child: child,
           )
-        : img;
+        : child;
     return ClipRRect(
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAliasWithSaveLayer,

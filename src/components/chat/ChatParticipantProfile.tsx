@@ -4,7 +4,7 @@ import type { User, Conversation, ChatMessage, UserRole, UserContactsIndex } fro
 import { ROLES } from '@/lib/constants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
-import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone, Ban, Unlock } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone, Ban, Unlock, Swords } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { GroupChatFormPanel } from '@/components/chat/GroupChatFormPanel';
 import { GroupChatParticipantsManageView } from '@/components/chat/GroupChatParticipantsManageView';
@@ -47,6 +47,7 @@ import {
 import { ConversationMediaPanel } from '@/components/chat/conversation-pages/ConversationMediaPanel';
 import { ConversationStarredPanel } from '@/components/chat/conversation-pages/ConversationStarredPanel';
 import { ConversationThreadsPanel } from '@/components/chat/conversation-pages/ConversationThreadsPanel';
+import { ConversationGamesPanel } from '@/components/chat/conversation-pages/ConversationGamesPanel';
 import { ConversationNotificationsPanel } from '@/components/chat/conversation-pages/ConversationNotificationsPanel';
 import { ConversationThemePanel } from '@/components/chat/conversation-pages/ConversationThemePanel';
 import { ConversationPrivacyPanel } from '@/components/chat/conversation-pages/ConversationPrivacyPanel';
@@ -70,6 +71,7 @@ export type ChatProfileSubMenu =
   | 'media'
   | 'starred'
   | 'threads'
+  | 'games'
   | 'notifications'
   | 'theme'
   | 'privacy'
@@ -83,6 +85,7 @@ const PROFILE_SUBMENU_TITLES: Record<ChatProfileSubMenu, string> = {
   media: 'Медиа, ссылки и файлы',
   starred: 'Избранное',
   threads: 'Обсуждения',
+  games: 'Игры',
   notifications: 'Уведомления в этом чате',
   theme: 'Тема этого чата',
   privacy: 'Приватность этого чата',
@@ -797,6 +800,18 @@ export function ChatParticipantProfile({
                     onAfterThreadNavigate={afterThreadOpenFromProfile}
                   />
                 ) : null}
+                {profileSubMenu === 'games' ? (
+                  <ConversationGamesPanel
+                    conversationId={conversation.id}
+                    currentUser={currentUser}
+                    allUsers={allUsers}
+                    onCreatedGameLobby={(gameId) => {
+                      onSelectConversation(conversation.id);
+                      router.push(buildDashboardChatOpenUrl(conversation.id, { gameId }));
+                      onOpenChange(false);
+                    }}
+                  />
+                ) : null}
                 {profileSubMenu === 'notifications' ? (
                   <ConversationNotificationsPanel conversationId={conversation.id} userId={currentUser.id} />
                 ) : null}
@@ -1195,6 +1210,11 @@ export function ChatParticipantProfile({
                   title="Обсуждения"
                   right={<span className="text-xs tabular-nums text-muted-foreground">{discussionsLabel}</span>}
                   onClick={() => setProfileSubMenu('threads')}
+                />
+                <WaMenuRow
+                  icon={<Swords />}
+                  title="Игры"
+                  onClick={() => setProfileSubMenu('games')}
                 />
               </WaMenuSection>
               <WaMenuSection className="mt-0.5">

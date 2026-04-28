@@ -2,17 +2,172 @@ import { HttpsError } from "firebase-functions/v2/https";
 import type { DurakGameSettings } from "../gameSettings";
 import {
   beats,
-  buildDeck36,
+  buildDeck,
   cardKey,
   isJoker,
   shuffleInPlace,
   type Card,
 } from "./cards";
-import type { DurakServerState, DurakTable } from "./state";
+import type { DurakPhase, DurakServerState, DurakTable } from "./state";
+import type { DurakGameResult } from "./state";
 
 function rankValue(c: Card): number {
   if (isJoker(c)) return 100;
   return c.r;
+}
+
+function computeThrowerUids({
+  seats,
+  defenderUid,
+  policy,
+}: {
+  seats: string[];
+  defenderUid: string;
+  policy?: "all" | "neighbors";
+}): string[] {
+  const p = policy ?? "all";
+  if (p === "neighbors") {
+    if (seats.length <= 2) return seats.filter((u) => u !== defenderUid);
+    const i = seats.indexOf(defenderUid);
+    if (i < 0) return seats.filter((u) => u !== defenderUid);
+    const left = seats[(i - 1 + seats.length) % seats.length];
+    const right = seats[(i + 1) % seats.length];
+    const out = [left, right].filter((u) => u !== defenderUid);
+    // ensure unique
+    return Array.from(new Set(out));
+  }
+  return seats.filter((u) => u !== defenderUid);
+}
+
+export function derivePhase(state: DurakServerState): DurakPhase {
+  if (state.phase === "finished") return "finished";
+  if (state.table.attacks.length === 0) return "attack";
+  if (state.taking === true) return "throwIn";
+  const hasUndefended = state.table.defenses.some((d) => d == null);
+  if (hasUndefended) return "defense";
+  return "throwIn";
+}
+
+export function resetRoundTracking(state: DurakServerState): void {
+  state.phase = "attack";
+  state.throwerUids = computeThrowerUids({
+    seats: state.seats,
+    defenderUid: state.defenderUid,
+    policy: state.throwInPolicy,
+  });
+  state.passedUids = [];
+  state.roundDefenderHandLimit = undefined;
+  state.taking = false;
+}
+
+function clampInt(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.floor(v)));
+}
+
+function ensureRoundHandLimit(state: DurakServerState, handsByUid: Record<string, Card[]>): void {
+  if (typeof state.roundDefenderHandLimit === "number") return;
+  const size = handsByUid[state.defenderUid]?.length ?? 0;
+  state.roundDefenderHandLimit = clampInt(size, 0, 6);
+}
+
+function removeFromArray(xs: string[], x: string): string[] {
+  return xs.filter((v) => v !== x);
+}
+
+function hasCards(handsByUid: Record<string, Card[]>, uid: string): boolean {
+  return (handsByUid[uid]?.length ?? 0) > 0;
+}
+
+function throwInTurnOrder(state: DurakServerState): string[] {
+  const seats = state.seats ?? [];
+  const attackerIdx = seats.indexOf(state.attackerUid);
+  const base = attackerIdx < 0 ? [...seats] : [...seats.slice(attackerIdx), ...seats.slice(0, attackerIdx)];
+  const throwers =
+    state.throwerUids ??
+    computeThrowerUids({
+      seats,
+      defenderUid: state.defenderUid,
+      policy: state.throwInPolicy,
+    });
+  const allowed = new Set(throwers.filter((u) => u !== state.defenderUid));
+  return base.filter((u) => allowed.has(u));
+}
+
+function currentThrowerUid(state: DurakServerState, handsByUid: Record<string, Card[]>): string | null {
+  const passed = new Set(state.passedUids ?? []);
+  for (const u of throwInTurnOrder(state)) {
+    if (!hasCards(handsByUid, u)) continue;
+    if (passed.has(u)) continue;
+    return u;
+  }
+  return null;
+}
+
+function markTakingIfJokerOnTable(state: DurakServerState, handsByUid: Record<string, Card[]>): void {
+  if (!state.table.attacks.some((c) => isJoker(c))) return;
+  ensureRoundHandLimit(state, handsByUid);
+  state.taking = true;
+  state.phase = derivePhase(state);
+}
+
+export function computeAndApplyGameResult({
+  state,
+  handsByUid,
+  nowIso,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+  nowIso: string;
+}): DurakGameResult {
+  // End conditions for this product:
+  // - The deck is empty
+  // - The table is empty (resolve the round first)
+  // - Placements are based on who "went out" first; ties are grouped.
+  if ((state.deck?.length ?? 0) > 0) return null;
+  if ((state.table?.attacks?.length ?? 0) > 0) return null;
+
+  const seats = state.seats ?? [];
+  const anyCardsLeft = seats.some((u) => (handsByUid[u]?.length ?? 0) > 0);
+  const outUids = seats.filter((u) => (handsByUid[u]?.length ?? 0) === 0);
+
+  const finishGroups: string[][] = Array.isArray(state.finishGroups) ? state.finishGroups : [];
+  const already = new Set(finishGroups.flat());
+  const newGroup = outUids.filter((u) => !already.has(u));
+  if (newGroup.length > 0) finishGroups.push(newGroup);
+  state.finishGroups = finishGroups;
+
+  if (newGroup.length === 0 && anyCardsLeft) return null;
+
+  // Remove out players from seats.
+  let newSeats = [...seats];
+  for (const u of outUids) newSeats = removeFromArray(newSeats, u);
+  state.seats = newSeats;
+
+  // If game ended (0 or 1 seat left), finalize.
+  if (newSeats.length <= 1) {
+    const loserUid = newSeats.length === 1 ? newSeats[0] : null;
+    const winners = finishGroups.flat();
+    const placements = finishGroups.map((uids) => ({ uids }));
+    if (loserUid) placements.push({ uids: [loserUid] });
+    state.phase = "finished";
+    return {
+      kind: "finished",
+      finishedAt: nowIso,
+      winners,
+      loserUid,
+      placements,
+    };
+  }
+
+  // Ensure attacker/defender are still valid after pruning.
+  if (!newSeats.includes(state.attackerUid)) {
+    state.attackerUid = newSeats[0];
+  }
+  if (!newSeats.includes(state.defenderUid) || state.defenderUid === state.attackerUid) {
+    state.defenderUid = nextUid(newSeats, state.attackerUid);
+  }
+  resetRoundTracking(state);
+  return null;
 }
 
 export function buildInitialState({
@@ -29,7 +184,7 @@ export function buildInitialState({
   if (playerIds.length < 2) throw new HttpsError("failed-precondition", "NEED_AT_LEAST_2_PLAYERS");
   const seats = [...playerIds];
 
-  const deckObj = buildDeck36(settings.withJokers);
+  const deckObj = buildDeck({ deckSize: settings.deckSize, withJokers: settings.withJokers });
   const deck = [...deckObj.cards];
   shuffleInPlace(deck, randInt);
   const bottom = deck[0];
@@ -46,8 +201,8 @@ export function buildInitialState({
   const trumpSuit = bottom2.s;
 
   const handsByUid: Record<string, Card[]> = Object.fromEntries(seats.map((u) => [u, []]));
-  // Deal 6 cards each, round-robin from attacker seat 0 initially.
-  for (let i = 0; i < 6; i++) {
+  // First deal: 5 cards each (as per product rules).
+  for (let i = 0; i < 5; i++) {
     for (const uid of seats) {
       const c = deck.pop();
       if (!c) break;
@@ -76,6 +231,7 @@ export function buildInitialState({
   const table: DurakTable = { attacks: [], defenses: [] };
 
   const state: DurakServerState = {
+    schemaVersion: 1,
     revision: 1,
     trumpSuit,
     deck,
@@ -85,6 +241,14 @@ export function buildInitialState({
     table,
     seats,
     lastMoveAt: nowIso,
+    phase: "attack",
+    throwInPolicy: settings.throwInPolicy,
+    throwerUids: computeThrowerUids({
+      seats,
+      defenderUid,
+      policy: settings.throwInPolicy,
+    }),
+    passedUids: [],
   };
 
   return { state, handsByUid };
@@ -97,7 +261,10 @@ export function nextUid(seats: string[], uid: string): string {
 }
 
 export function canThrowIn({ state, defenderHandSize }: { state: DurakServerState; defenderHandSize: number }): boolean {
-  return state.table.attacks.length < defenderHandSize && state.table.attacks.length < 6;
+  const limit = typeof state.roundDefenderHandLimit === "number" ?
+    state.roundDefenderHandLimit :
+    defenderHandSize;
+  return state.table.attacks.length < limit && state.table.attacks.length < 6;
 }
 
 export function allowedAttackRanks(state: DurakServerState): Set<number | "JOKER"> {
@@ -105,6 +272,88 @@ export function allowedAttackRanks(state: DurakServerState): Set<number | "JOKER
   for (const a of state.table.attacks) s.add(isJoker(a) ? "JOKER" : a.r);
   for (const d of state.table.defenses) if (d) s.add(isJoker(d) ? "JOKER" : d.r);
   return s;
+}
+
+export function passThrowIn({
+  state,
+  uid,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  uid: string;
+  handsByUid: Record<string, Card[]>;
+}): void {
+  if (uid === state.defenderUid) throw new HttpsError("permission-denied", "DEFENDER_CANNOT_PASS_THROWIN");
+  const throwers = new Set(
+    state.throwerUids ??
+      computeThrowerUids({
+        seats: state.seats,
+        defenderUid: state.defenderUid,
+        policy: state.throwInPolicy,
+      }),
+  );
+  if (!throwers.has(uid)) throw new HttpsError("permission-denied", "NOT_ALLOWED_TO_THROWIN");
+  const passed = new Set(state.passedUids ?? []);
+  passed.add(uid);
+  state.passedUids = [...passed];
+  state.phase = derivePhase(state);
+}
+
+export function markTaking({
+  state,
+  uid,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  uid: string;
+  handsByUid: Record<string, Card[]>;
+}): void {
+  if (uid !== state.defenderUid) throw new HttpsError("permission-denied", "ONLY_DEFENDER_CAN_TAKE");
+  if (state.table.attacks.length === 0) throw new HttpsError("failed-precondition", "NOTHING_TO_TAKE");
+  // Cannot take if already fully defended (must finish/throw-in+finish).
+  if (allDefended(state) && state.taking !== true) {
+    throw new HttpsError("failed-precondition", "ALREADY_DEFENDED");
+  }
+  ensureRoundHandLimit(state, handsByUid);
+  state.taking = true;
+  state.phase = derivePhase(state);
+}
+
+export function shouldResolveTakingRound({
+  state,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+}): boolean {
+  if (state.taking !== true) return false;
+  const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
+  // If throw-in is impossible due to limit, or everyone passed, resolve.
+  if (!canThrowIn({ state, defenderHandSize })) return true;
+  return allThrowersPassed({ state, handsByUid });
+}
+
+export function allThrowersPassed({
+  state,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+}): boolean {
+  const throwers =
+    state.throwerUids ??
+    computeThrowerUids({
+      seats: state.seats,
+      defenderUid: state.defenderUid,
+      policy: state.throwInPolicy,
+    });
+  const passed = new Set(state.passedUids ?? []);
+  for (const u of throwers) {
+    if (u === state.defenderUid) continue;
+    const hasCards = (handsByUid[u]?.length ?? 0) > 0;
+    if (hasCards && !passed.has(u)) return false;
+  }
+  return true;
 }
 
 export function applyAttack({
@@ -126,6 +375,24 @@ export function applyAttack({
   }
   // Attacker or any non-defender can throw in during defense.
   if (uid === state.defenderUid) throw new HttpsError("permission-denied", "DEFENDER_CANNOT_ATTACK");
+  const throwers = new Set(
+    state.throwerUids ??
+      computeThrowerUids({
+        seats: state.seats,
+        defenderUid: state.defenderUid,
+        policy: state.throwInPolicy,
+      }),
+  );
+  if (!throwers.has(uid)) throw new HttpsError("permission-denied", "NOT_ALLOWED_TO_THROWIN");
+  const passed = new Set(state.passedUids ?? []);
+  if (passed.has(uid)) throw new HttpsError("failed-precondition", "ALREADY_PASSED_THROWIN");
+  if (state.table.attacks.length === 0) {
+    // Canon: limit throw-ins by defender hand size at the start of the round.
+    ensureRoundHandLimit(state, handsByUid);
+  } else {
+    const cur = currentThrowerUid(state, handsByUid);
+    if (cur && uid !== cur) throw new HttpsError("failed-precondition", "THROWIN_NOT_YOUR_TURN");
+  }
   const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
   if (!canThrowIn({ state, defenderHandSize })) throw new HttpsError("failed-precondition", "CANNOT_THROW_IN");
 
@@ -134,14 +401,68 @@ export function applyAttack({
   if (idx < 0) throw new HttpsError("failed-precondition", "CARD_NOT_IN_HAND");
 
   if (state.table.attacks.length > 0) {
-    const allowed = allowedAttackRanks(state);
-    const r = isJoker(card) ? "JOKER" : card.r;
-    if (!allowed.has(r)) throw new HttpsError("failed-precondition", "RANK_NOT_ALLOWED");
+    // Product rule: jokers can be thrown-in anytime.
+    if (!isJoker(card)) {
+      const allowed = allowedAttackRanks(state);
+      const r = card.r;
+      if (!allowed.has(r)) throw new HttpsError("failed-precondition", "RANK_NOT_ALLOWED");
+    }
   }
 
   hand.splice(idx, 1);
   state.table.attacks.push(card);
   state.table.defenses.push(null);
+  state.phase = derivePhase(state);
+  // Joker rule: if joker is thrown in, defender must take (cannot defend).
+  markTakingIfJokerOnTable(state, handsByUid);
+}
+
+export function applyAttackRelaxed({
+  state,
+  uid,
+  card,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  uid: string;
+  card: Card;
+  handsByUid: Record<string, Card[]>;
+}): void {
+  // Same as applyAttack but without rank restriction (Shuler).
+  if (state.table.attacks.length >= 6) throw new HttpsError("failed-precondition", "TABLE_FULL");
+  if (state.table.attacks.length === 0 && uid !== state.attackerUid) {
+    throw new HttpsError("permission-denied", "ONLY_ATTACKER_CAN_ATTACK_FIRST");
+  }
+  if (uid === state.defenderUid) throw new HttpsError("permission-denied", "DEFENDER_CANNOT_ATTACK");
+  const throwers = new Set(
+    state.throwerUids ??
+      computeThrowerUids({
+        seats: state.seats,
+        defenderUid: state.defenderUid,
+        policy: state.throwInPolicy,
+      }),
+  );
+  if (!throwers.has(uid)) throw new HttpsError("permission-denied", "NOT_ALLOWED_TO_THROWIN");
+  const passed = new Set(state.passedUids ?? []);
+  if (passed.has(uid)) throw new HttpsError("failed-precondition", "ALREADY_PASSED_THROWIN");
+  if (state.table.attacks.length === 0) {
+    ensureRoundHandLimit(state, handsByUid);
+  } else {
+    const cur = currentThrowerUid(state, handsByUid);
+    if (cur && uid !== cur) throw new HttpsError("failed-precondition", "THROWIN_NOT_YOUR_TURN");
+  }
+  const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
+  if (!canThrowIn({ state, defenderHandSize })) throw new HttpsError("failed-precondition", "CANNOT_THROW_IN");
+
+  const hand = handsByUid[uid] ?? [];
+  const idx = hand.findIndex((x) => cardKey(x) === cardKey(card));
+  if (idx < 0) throw new HttpsError("failed-precondition", "CARD_NOT_IN_HAND");
+
+  hand.splice(idx, 1);
+  state.table.attacks.push(card);
+  state.table.defenses.push(null);
+  state.phase = derivePhase(state);
+  markTakingIfJokerOnTable(state, handsByUid);
 }
 
 export function canTransfer({
@@ -155,6 +476,10 @@ export function canTransfer({
 }): boolean {
   if (defenderUid !== state.defenderUid) return false;
   if (state.table.attacks.length === 0) return false;
+  // Canon: transfer is only allowed before any defense card is placed.
+  if (state.table.defenses.some((d) => d != null)) return false;
+  // Product rule: joker can transfer anytime (before any defense is placed).
+  if (isJoker(transferCard)) return true;
   // Must match rank of at least one attack card (common rule).
   const r = isJoker(transferCard) ? "JOKER" : transferCard.r;
   for (const a of state.table.attacks) {
@@ -183,6 +508,8 @@ export function applyTransfer({
   const idx = hand.findIndex((x) => cardKey(x) === cardKey(card));
   if (idx < 0) throw new HttpsError("failed-precondition", "CARD_NOT_IN_HAND");
 
+  // Recompute round hand limit for the current defender seat (before changing defender).
+  ensureRoundHandLimit(state, handsByUid);
   const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
   if (!canThrowIn({ state, defenderHandSize })) throw new HttpsError("failed-precondition", "CANNOT_THROW_IN");
 
@@ -192,6 +519,57 @@ export function applyTransfer({
 
   // Pass defense to next player.
   state.defenderUid = nextUid(state.seats, state.defenderUid);
+  state.throwerUids = computeThrowerUids({
+    seats: state.seats,
+    defenderUid: state.defenderUid,
+    policy: state.throwInPolicy,
+  });
+  state.passedUids = [];
+  // New defender => new round limit based on new defender's current hand size.
+  state.roundDefenderHandLimit = undefined;
+  ensureRoundHandLimit(state, handsByUid);
+  state.phase = derivePhase(state);
+  markTakingIfJokerOnTable(state, handsByUid);
+}
+
+export function applyTransferRelaxed({
+  state,
+  uid,
+  card,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  uid: string;
+  card: Card;
+  handsByUid: Record<string, Card[]>;
+}): void {
+  // Relaxed transfer: defender may transfer with any card while attacks exist.
+  if (uid !== state.defenderUid) throw new HttpsError("permission-denied", "ONLY_DEFENDER_CAN_TRANSFER");
+  if (state.table.attacks.length === 0) throw new HttpsError("failed-precondition", "TRANSFER_NOT_ALLOWED");
+
+  const hand = handsByUid[uid] ?? [];
+  const idx = hand.findIndex((x) => cardKey(x) === cardKey(card));
+  if (idx < 0) throw new HttpsError("failed-precondition", "CARD_NOT_IN_HAND");
+
+  ensureRoundHandLimit(state, handsByUid);
+  const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
+  if (!canThrowIn({ state, defenderHandSize })) throw new HttpsError("failed-precondition", "CANNOT_THROW_IN");
+
+  hand.splice(idx, 1);
+  state.table.attacks.push(card);
+  state.table.defenses.push(null);
+
+  state.defenderUid = nextUid(state.seats, state.defenderUid);
+  state.throwerUids = computeThrowerUids({
+    seats: state.seats,
+    defenderUid: state.defenderUid,
+    policy: state.throwInPolicy,
+  });
+  state.passedUids = [];
+  state.roundDefenderHandLimit = undefined;
+  ensureRoundHandLimit(state, handsByUid);
+  state.phase = derivePhase(state);
+  markTakingIfJokerOnTable(state, handsByUid);
 }
 
 export function applyDefense({
@@ -208,6 +586,7 @@ export function applyDefense({
   handsByUid: Record<string, Card[]>;
 }): void {
   if (uid !== state.defenderUid) throw new HttpsError("permission-denied", "ONLY_DEFENDER_CAN_DEFEND");
+  if (state.taking === true) throw new HttpsError("failed-precondition", "DEFENDER_ALREADY_TAKING");
   if (attackIndex < 0 || attackIndex >= state.table.attacks.length) {
     throw new HttpsError("invalid-argument", "BAD_ATTACK_INDEX");
   }
@@ -224,6 +603,98 @@ export function applyDefense({
   if (idx < 0) throw new HttpsError("failed-precondition", "CARD_NOT_IN_HAND");
   hand.splice(idx, 1);
   state.table.defenses[attackIndex] = defense;
+  state.phase = derivePhase(state);
+}
+
+export function applyDefenseRelaxed({
+  state,
+  uid,
+  attackIndex,
+  defense,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  uid: string;
+  attackIndex: number;
+  defense: Card;
+  handsByUid: Record<string, Card[]>;
+}): void {
+  // Relaxed defense: any card can be used to defend (Shuler), still must be defender and slot open.
+  if (uid !== state.defenderUid) throw new HttpsError("permission-denied", "ONLY_DEFENDER_CAN_DEFEND");
+  if (state.taking === true) throw new HttpsError("failed-precondition", "DEFENDER_ALREADY_TAKING");
+  if (attackIndex < 0 || attackIndex >= state.table.attacks.length) {
+    throw new HttpsError("invalid-argument", "BAD_ATTACK_INDEX");
+  }
+  if (state.table.defenses[attackIndex] != null) {
+    throw new HttpsError("failed-precondition", "ALREADY_DEFENDED");
+  }
+  const hand = handsByUid[uid] ?? [];
+  const idx = hand.findIndex((x) => cardKey(x) === cardKey(defense));
+  if (idx < 0) throw new HttpsError("failed-precondition", "CARD_NOT_IN_HAND");
+  hand.splice(idx, 1);
+  state.table.defenses[attackIndex] = defense;
+  state.phase = derivePhase(state);
+}
+
+export function undoLastCheat({
+  state,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+}): { cheaterUid: string; penaltyCards: number; missedUids: string[] } {
+  const cheat = state.lastCheat;
+  if (!cheat) throw new HttpsError("failed-precondition", "NO_CHEAT_TO_FOUL");
+  const uid = cheat.uid;
+  handsByUid[uid] = handsByUid[uid] ?? [];
+
+  const key = cardKey(cheat.card);
+  if (cheat.actionType === "attack") {
+    // remove last matching attack and its defense slot
+    for (let i = state.table.attacks.length - 1; i >= 0; i--) {
+      if (cardKey(state.table.attacks[i]) === key) {
+        state.table.attacks.splice(i, 1);
+        state.table.defenses.splice(i, 1);
+        break;
+      }
+    }
+    handsByUid[uid].push(cheat.card);
+  } else if (cheat.actionType === "defend") {
+    const idx = cheat.attackIndex ?? -1;
+    if (idx >= 0 && idx < state.table.defenses.length) {
+      state.table.defenses[idx] = null;
+    }
+    handsByUid[uid].push(cheat.card);
+  } else if (cheat.actionType === "transfer") {
+    // remove last matching attack card
+    for (let i = state.table.attacks.length - 1; i >= 0; i--) {
+      if (cardKey(state.table.attacks[i]) === key) {
+        state.table.attacks.splice(i, 1);
+        state.table.defenses.splice(i, 1);
+        break;
+      }
+    }
+    handsByUid[uid].push(cheat.card);
+    if (cheat.prevDefenderUid) {
+      state.defenderUid = cheat.prevDefenderUid;
+    }
+    if (cheat.prevThrowerUids) state.throwerUids = cheat.prevThrowerUids;
+    if (cheat.prevPassedUids) state.passedUids = cheat.prevPassedUids;
+    state.roundDefenderHandLimit = cheat.prevRoundDefenderHandLimit;
+  }
+
+  state.lastCheat = null;
+  state.phase = derivePhase(state);
+
+  const penaltyCards = 2;
+  for (let i = 0; i < penaltyCards; i++) {
+    const c = state.deck.pop();
+    if (!c) break;
+    handsByUid[uid].push(c);
+  }
+
+  const missedUids = state.seats.filter((u) => u !== uid);
+  return { cheaterUid: uid, penaltyCards, missedUids };
 }
 
 export function allDefended(state: DurakServerState): boolean {
@@ -238,11 +709,14 @@ export function takeTable({ state, handsByUid }: { state: DurakServerState; hand
   for (const d of state.table.defenses) if (d) handsByUid[def].push(d);
   state.table.attacks = [];
   state.table.defenses = [];
+  state.phase = "resolution";
+  state.taking = false;
 }
 
 export function rotateAfterTake(state: DurakServerState): void {
   // attacker stays the same; defender becomes next after the (taking) defender
   state.defenderUid = nextUid(state.seats, state.defenderUid);
+  resetRoundTracking(state);
 }
 
 export function discardTable({ state }: { state: DurakServerState }): void {
@@ -250,6 +724,7 @@ export function discardTable({ state }: { state: DurakServerState }): void {
   for (const d of state.table.defenses) if (d) state.discard.push(d);
   state.table.attacks = [];
   state.table.defenses = [];
+  state.phase = "resolution";
 }
 
 export function drawUpToSix({
@@ -259,12 +734,14 @@ export function drawUpToSix({
   state: DurakServerState;
   handsByUid: Record<string, Card[]>;
 }): void {
-  // Draw order: attacker, then next seats, defender last (durak-ish simplification).
+  // Canonical draw order:
+  // Start from attacker seat and go forward; defender always draws last.
   const seats = state.seats;
   const attackerIdx = seats.indexOf(state.attackerUid);
-  const order = [...seats.slice(attackerIdx), ...seats.slice(0, attackerIdx)];
-  // move defender to end
-  const order2 = order.filter((u) => u !== state.defenderUid).concat([state.defenderUid]);
+  const baseOrder = attackerIdx < 0 ?
+    [...seats] :
+    [...seats.slice(attackerIdx), ...seats.slice(0, attackerIdx)];
+  const order2 = baseOrder.filter((u) => u !== state.defenderUid).concat([state.defenderUid]);
 
   for (const uid of order2) {
     const hand = (handsByUid[uid] = handsByUid[uid] ?? []);
@@ -282,5 +759,6 @@ export function rotateAfterSuccessfulDefense(state: DurakServerState): void {
   const newDefender = nextUid(state.seats, newAttacker);
   state.attackerUid = newAttacker;
   state.defenderUid = newDefender;
+  resetRoundTracking(state);
 }
 

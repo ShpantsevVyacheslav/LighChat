@@ -378,6 +378,15 @@ class MobileE2eeRuntime {
       return null;
     }
   }
+
+  /// Public wrapper for read-only access: lets UI/auxiliary flows fetch the raw
+  /// chat-key for a specific epoch without exposing private cache internals.
+  Future<Uint8List?> tryGetChatKeyForEpoch({
+    required String conversationId,
+    required int epoch,
+  }) async {
+    return _tryGetChatKey(conversationId: conversationId, epoch: epoch);
+  }
 }
 
 /// Итог разрешения chat-key: ключ и эпоха, под которой он получен. Эпоха

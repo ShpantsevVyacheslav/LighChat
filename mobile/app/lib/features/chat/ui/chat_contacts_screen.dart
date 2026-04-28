@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/device_contact_lookup_keys.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/user_chat_policy.dart';
@@ -24,7 +25,7 @@ class ChatContactsScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
-  static const List<String> _alphabet = <String>[
+  static const List<String> _alphabetRu = <String>[
     'А',
     'Б',
     'В',
@@ -55,6 +56,40 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     'Ю',
     'Я',
   ];
+  static const List<String> _alphabetEn = <String>[
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z',
+  ];
+
+  static List<String> _alphabetForLocale(Locale locale) {
+    return locale.languageCode.toLowerCase() == 'ru' ? _alphabetRu : _alphabetEn;
+  }
+
+  List<String> get _alphabet => _alphabetForLocale(Localizations.localeOf(context));
 
   static const double _contactRowHeight = 80;
   static const double _titleFontSize = 24;
@@ -92,6 +127,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     required UserContactsRepository repo,
   }) async {
     if (_syncBusy) return false;
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _syncBusy = true);
     try {
       final permission = await FlutterContacts.permissions.request(
@@ -103,7 +139,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
       if (!granted) {
         if (!context.mounted) return false;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Доступ к контактам не предоставлен.')),
+          SnackBar(content: Text(l10n.chat_contacts_permission_denied)),
         );
         return false;
       }
@@ -145,8 +181,8 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
           SnackBar(
             content: Text(
               eligible.isEmpty
-                  ? 'Совпадений не найдено.'
-                  : 'Добавлено контактов: ${eligible.length}.',
+                  ? l10n.chat_contacts_matches_not_found
+                  : l10n.chat_contacts_added_count(eligible.length),
             ),
           ),
         );
@@ -159,8 +195,8 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
         SnackBar(
           content: Text(
             toAdd.isEmpty
-                ? 'Совпадений не найдено.'
-                : 'Добавлено контактов: ${toAdd.length}.',
+                ? l10n.chat_contacts_matches_not_found
+                : l10n.chat_contacts_added_count(toAdd.length),
           ),
         ),
       );
@@ -168,7 +204,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     } catch (e) {
       if (!context.mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка синхронизации контактов: $e')),
+        SnackBar(content: Text(l10n.chat_contacts_sync_error(e.toString()))),
       );
       return false;
     } finally {
@@ -182,6 +218,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     required UserContactsRepository repo,
   }) async {
     try {
+      final l10n = AppLocalizations.of(context)!;
       final mq = MediaQuery.maybeOf(context);
       final size = mq?.size;
       final origin =
@@ -194,17 +231,18 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                 );
       await SharePlus.instance.share(
         ShareParams(
-          text:
-              'Поставь LighChat: https://lighchat.online\n'
-              'Приглашаю тебя в LighChat — вот ссылка на установку.',
-          subject: 'Приглашение в LighChat',
+          text: l10n.chat_contacts_invite_text,
+          subject: l10n.chat_contacts_invite_subject,
           sharePositionOrigin: origin,
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось подготовить приглашение: $e')),
+        SnackBar(
+          content: Text(l10n.chat_contacts_invite_prepare_failed(e.toString())),
+        ),
       );
     }
   }
@@ -347,6 +385,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final userAsync = ref.watch(authUserProvider);
@@ -395,7 +434,11 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                   error: (e, _) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Text('Ошибка загрузки контактов: $e'),
+                      child: Text(
+                        AppLocalizations.of(context)!.chat_contacts_error_load(
+                          e.toString(),
+                        ),
+                      ),
                     ),
                   ),
                   data: (idx) {
@@ -685,7 +728,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
               error: (e, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Auth error: $e'),
+                  child: Text(l10n.chat_auth_error(e.toString())),
                 ),
               ),
             ),
@@ -708,6 +751,7 @@ class _ContactsSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final baseFg = dark ? Colors.white : scheme.onSurface;
     return Container(
@@ -730,7 +774,7 @@ class _ContactsSearchField extends StatelessWidget {
         ),
         decoration: InputDecoration(
           border: InputBorder.none,
-          hintText: 'Поиск контактов...',
+          hintText: l10n.chat_contacts_search_hint,
           hintStyle: TextStyle(
             color: baseFg.withValues(alpha: dark ? 0.42 : 0.42),
             fontSize: _ChatContactsScreenState._searchFontSize,

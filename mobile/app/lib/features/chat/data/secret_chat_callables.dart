@@ -63,5 +63,55 @@ class SecretChatCallables {
       if (mediaViewPolicy != null) 'mediaViewPolicy': mediaViewPolicy,
     });
   }
+
+  Future<void> requestSecretMediaView({
+    required String conversationId,
+    required String messageId,
+    required String fileId,
+    required String recipientDeviceId,
+  }) async {
+    final callable = _functions.httpsCallable(
+      'requestSecretMediaView',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+    );
+    await callable.call<void>(<String, Object?>{
+      'conversationId': conversationId,
+      'messageId': messageId,
+      'fileId': fileId,
+      'recipientDeviceId': recipientDeviceId,
+    });
+  }
+
+  Future<void> consumeSecretMediaKeyGrant({
+    required String conversationId,
+    required String messageId,
+    required String fileId,
+  }) async {
+    final callable = _functions.httpsCallable(
+      'consumeSecretMediaKeyGrant',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+    );
+    await callable.call<void>(<String, Object?>{
+      'conversationId': conversationId,
+      'messageId': messageId,
+      'fileId': fileId,
+    });
+  }
+
+  Future<void> fulfillSecretMediaViewRequest({
+    required String conversationId,
+    required String requestId,
+    required String wrappedFileKeyForDevice,
+  }) async {
+    final callable = _functions.httpsCallable(
+      'fulfillSecretMediaViewRequest',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+    );
+    await callable.call<void>(<String, Object?>{
+      'conversationId': conversationId,
+      'requestId': requestId,
+      'wrappedFileKeyForDevice': wrappedFileKeyForDevice,
+    });
+  }
 }
 

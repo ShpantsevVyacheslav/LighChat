@@ -24,8 +24,11 @@ class _ConversationDurakCreateLobbySheetState
     extends State<ConversationDurakCreateLobbySheet> {
   late String _mode;
   late int _maxPlayers;
+  late int _deckSize;
   late bool _withJokers;
   int? _turnTimeSec;
+  late String _throwInPolicy;
+  late bool _shulerEnabled;
 
   @override
   void initState() {
@@ -34,9 +37,14 @@ class _ConversationDurakCreateLobbySheetState
     _maxPlayers = (widget.initial['maxPlayers'] is int)
         ? widget.initial['maxPlayers'] as int
         : 6;
+    _deckSize = (widget.initial['deckSize'] is int)
+        ? widget.initial['deckSize'] as int
+        : 36;
     _withJokers = widget.initial['withJokers'] == true;
     _turnTimeSec =
         widget.initial['turnTimeSec'] is int ? widget.initial['turnTimeSec'] as int : null;
+    _throwInPolicy = (widget.initial['throwInPolicy'] ?? 'all').toString();
+    _shulerEnabled = widget.initial['shulerEnabled'] == true;
   }
 
   @override
@@ -81,10 +89,45 @@ class _ConversationDurakCreateLobbySheetState
                 ],
               ),
             ),
+            ListTile(
+              title: Text(l10n.durak_settings_deck),
+              trailing: DropdownButton<int>(
+                value: _deckSize,
+                onChanged: (v) => setState(() => _deckSize = v ?? _deckSize),
+                items: [
+                  DropdownMenuItem(value: 36, child: Text(l10n.durak_deck_36)),
+                  DropdownMenuItem(value: 52, child: Text(l10n.durak_deck_52)),
+                ],
+              ),
+            ),
             SwitchListTile(
               title: Text(l10n.durak_settings_with_jokers),
               value: _withJokers,
               onChanged: (v) => setState(() => _withJokers = v),
+            ),
+            ListTile(
+              title: Text(l10n.durak_settings_throw_in_policy),
+              trailing: DropdownButton<String>(
+                value: _throwInPolicy,
+                onChanged: (v) =>
+                    setState(() => _throwInPolicy = v ?? _throwInPolicy),
+                items: [
+                  DropdownMenuItem(
+                    value: 'all',
+                    child: Text(l10n.durak_throw_in_policy_all),
+                  ),
+                  DropdownMenuItem(
+                    value: 'neighbors',
+                    child: Text(l10n.durak_throw_in_policy_neighbors),
+                  ),
+                ],
+              ),
+            ),
+            SwitchListTile(
+              title: Text(l10n.durak_settings_shuler),
+              subtitle: Text(l10n.durak_settings_shuler_subtitle),
+              value: _shulerEnabled,
+              onChanged: (v) => setState(() => _shulerEnabled = v),
             ),
             ListTile(
               title: Text(l10n.durak_settings_turn_timer),
@@ -112,8 +155,11 @@ class _ConversationDurakCreateLobbySheetState
                     DurakLobbySettingsResult(<String, dynamic>{
                       'mode': _mode,
                       'maxPlayers': _maxPlayers,
+                      'deckSize': _deckSize,
                       'withJokers': _withJokers,
                       'turnTimeSec': _turnTimeSec,
+                      'throwInPolicy': _throwInPolicy,
+                      'shulerEnabled': _shulerEnabled,
                     }),
                   );
                 },

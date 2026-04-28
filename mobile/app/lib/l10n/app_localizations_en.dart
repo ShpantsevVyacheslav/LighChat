@@ -122,6 +122,65 @@ class AppLocalizationsEn extends AppLocalizations {
   String get secret_chat_media_views_unlimited => 'Unlimited';
 
   @override
+  String get tournament_title => 'Tournament';
+
+  @override
+  String get tournament_subtitle => 'Standings and game series';
+
+  @override
+  String get tournament_new_game => 'New game';
+
+  @override
+  String get tournament_standings => 'Standings';
+
+  @override
+  String get tournament_standings_empty => 'No results yet';
+
+  @override
+  String get tournament_games => 'Games';
+
+  @override
+  String get tournament_games_empty => 'No games yet';
+
+  @override
+  String tournament_points(Object pts) {
+    return '$pts pts';
+  }
+
+  @override
+  String tournament_games_played(Object n) {
+    return '$n games';
+  }
+
+  @override
+  String tournament_create_failed(Object err) {
+    return 'Unable to create tournament: $err';
+  }
+
+  @override
+  String tournament_create_game_failed(Object err) {
+    return 'Unable to create game: $err';
+  }
+
+  @override
+  String tournament_game_players(Object names) {
+    return 'Players: $names';
+  }
+
+  @override
+  String get tournament_game_result_draw => 'Result: draw';
+
+  @override
+  String tournament_game_result_loser(Object name) {
+    return 'Result: durak — $name';
+  }
+
+  @override
+  String tournament_game_place(Object place) {
+    return 'Place $place';
+  }
+
+  @override
   String secret_chat_media_views_count(Object count) {
     return '$count views';
   }
@@ -455,6 +514,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get common_save => 'Save';
+
+  @override
+  String get common_close => 'Close';
 
   @override
   String get common_nothing_found => 'Nothing found';
@@ -867,6 +929,232 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String chat_list_error_generic(Object error) {
     return 'Error: $error';
+  }
+
+  @override
+  String get chat_calls_title => 'Calls';
+
+  @override
+  String get chat_calls_search_hint => 'Search by name…';
+
+  @override
+  String get chat_calls_empty => 'Your call history is empty.';
+
+  @override
+  String get chat_calls_nothing_found => 'Nothing found.';
+
+  @override
+  String chat_calls_error_load(Object error) {
+    return 'Couldn’t load calls:\n$error';
+  }
+
+  @override
+  String get chat_reply_cancel_tooltip => 'Cancel reply';
+
+  @override
+  String get voice_preview_tooltip_cancel => 'Cancel';
+
+  @override
+  String get voice_preview_tooltip_send => 'Send';
+
+  @override
+  String get profile_qr_title => 'My QR code';
+
+  @override
+  String get profile_qr_tooltip_close => 'Close';
+
+  @override
+  String get profile_qr_share_title => 'My LighChat profile';
+
+  @override
+  String get profile_qr_share_subject => 'LighChat profile';
+
+  @override
+  String chat_media_norm_pending_title(Object mediaKind) {
+    return 'Processing $mediaKind…';
+  }
+
+  @override
+  String chat_media_norm_failed_title(Object mediaKind) {
+    return 'Couldn’t process $mediaKind';
+  }
+
+  @override
+  String get chat_media_norm_pending_subtitle =>
+      'The file will be available after server processing.';
+
+  @override
+  String get chat_media_norm_failed_subtitle =>
+      'Try starting processing again.';
+
+  @override
+  String get conversation_threads_title => 'Threads';
+
+  @override
+  String get conversation_threads_empty => 'No threads yet';
+
+  @override
+  String get conversation_threads_root_attachment => 'Attachment';
+
+  @override
+  String get conversation_threads_root_message => 'Message';
+
+  @override
+  String conversation_threads_snippet_you(Object text) {
+    return 'You: $text';
+  }
+
+  @override
+  String get conversation_threads_day_today => 'Today';
+
+  @override
+  String get conversation_threads_day_yesterday => 'Yesterday';
+
+  @override
+  String conversation_threads_replies_badge(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count replies',
+      one: '$count reply',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chat_meetings_title => 'Meetings';
+
+  @override
+  String get chat_meetings_subtitle =>
+      'Create conferences and manage participant access';
+
+  @override
+  String get chat_meetings_section_new => 'New meeting';
+
+  @override
+  String get chat_meetings_field_title_label => 'Meeting title';
+
+  @override
+  String get chat_meetings_field_title_hint => 'E.g., Logistics sync';
+
+  @override
+  String get chat_meetings_field_duration_label => 'Duration';
+
+  @override
+  String get chat_meetings_duration_unlimited => 'No limit';
+
+  @override
+  String get chat_meetings_duration_15m => '15 minutes';
+
+  @override
+  String get chat_meetings_duration_30m => '30 minutes';
+
+  @override
+  String get chat_meetings_duration_1h => '1 hour';
+
+  @override
+  String get chat_meetings_duration_90m => '1.5 hours';
+
+  @override
+  String get chat_meetings_field_access_label => 'Access';
+
+  @override
+  String get chat_meetings_access_private => 'Private';
+
+  @override
+  String get chat_meetings_access_public => 'Public';
+
+  @override
+  String get chat_meetings_waiting_room_title => 'Waiting room';
+
+  @override
+  String get chat_meetings_waiting_room_desc =>
+      'In waiting room mode, you control who joins. Until you tap “Admit”, guests will stay on the waiting screen.';
+
+  @override
+  String get chat_meetings_backgrounds_title => 'Virtual backgrounds';
+
+  @override
+  String get chat_meetings_backgrounds_desc =>
+      'Upload backgrounds and blur your background if you want. Pick an image from the gallery or upload your own backgrounds.';
+
+  @override
+  String get chat_meetings_waiting_room_toggle => 'Add waiting room';
+
+  @override
+  String get chat_meetings_waiting_room_toggle_subtitle =>
+      'Only the host can admit participants and block access.';
+
+  @override
+  String get chat_meetings_create_button => 'Create meeting';
+
+  @override
+  String get chat_meetings_snackbar_enter_title => 'Enter a meeting title';
+
+  @override
+  String get chat_meetings_snackbar_auth_required =>
+      'You need to be signed in to create a meeting';
+
+  @override
+  String chat_meetings_error_create_failed(Object error) {
+    return 'Couldn’t create meeting: $error';
+  }
+
+  @override
+  String get chat_meetings_history_title => 'Your history';
+
+  @override
+  String get chat_meetings_history_empty => 'Meeting history is empty';
+
+  @override
+  String chat_meetings_history_error(Object error) {
+    return 'Couldn’t load meeting history: $error';
+  }
+
+  @override
+  String get chat_meetings_status_live => 'live';
+
+  @override
+  String get chat_meetings_status_finished => 'finished';
+
+  @override
+  String get chat_meetings_badge_private => 'private';
+
+  @override
+  String get chat_contacts_search_hint => 'Search contacts…';
+
+  @override
+  String get chat_contacts_permission_denied =>
+      'Contacts permission not granted.';
+
+  @override
+  String chat_contacts_sync_error(Object error) {
+    return 'Couldn’t sync contacts: $error';
+  }
+
+  @override
+  String chat_contacts_invite_prepare_failed(Object error) {
+    return 'Couldn’t prepare invite: $error';
+  }
+
+  @override
+  String get chat_contacts_matches_not_found => 'No matches found.';
+
+  @override
+  String chat_contacts_added_count(Object count) {
+    return 'Contacts added: $count.';
+  }
+
+  @override
+  String get chat_contacts_invite_text =>
+      'Install LighChat: https://lighchat.online\nI’m inviting you to LighChat — here’s the install link.';
+
+  @override
+  String get chat_contacts_invite_subject => 'Invite to LighChat';
+
+  @override
+  String chat_contacts_error_load(Object error) {
+    return 'Couldn’t load contacts: $error';
   }
 
   @override
@@ -2046,6 +2334,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversation_durak_action_transfer => 'Transfer';
 
   @override
+  String get conversation_durak_action_pass => 'Pass';
+
+  @override
+  String get conversation_durak_game_finished_title => 'Game finished';
+
+  @override
+  String get conversation_durak_game_finished_no_loser => 'No loser this time.';
+
+  @override
+  String conversation_durak_game_finished_loser(Object uid) {
+    return 'Loser: $uid';
+  }
+
+  @override
+  String conversation_durak_game_finished_winners(Object uids) {
+    return 'Winners: $uids';
+  }
+
+  @override
+  String get conversation_durak_drop_zone => 'Drop card here to play';
+
+  @override
   String get durak_settings_mode => 'Mode';
 
   @override
@@ -2058,6 +2368,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get durak_settings_max_players => 'Players';
 
   @override
+  String get durak_settings_deck => 'Deck';
+
+  @override
+  String get durak_deck_36 => '36 cards';
+
+  @override
+  String get durak_deck_52 => '52 cards';
+
+  @override
   String get durak_settings_with_jokers => 'Jokers';
 
   @override
@@ -2065,6 +2384,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get durak_turn_timer_off => 'Off';
+
+  @override
+  String get durak_settings_throw_in_policy => 'Who can throw in';
+
+  @override
+  String get durak_throw_in_policy_all => 'All players (except defender)';
+
+  @override
+  String get durak_throw_in_policy_neighbors => 'Only defender\'s neighbors';
+
+  @override
+  String get durak_settings_shuler => 'Shuler mode';
+
+  @override
+  String get durak_settings_shuler_subtitle =>
+      'Allows illegal moves unless someone calls foul.';
+
+  @override
+  String get conversation_durak_action_foul => 'Foul!';
+
+  @override
+  String get conversation_durak_action_resolve => 'Confirm Beat';
+
+  @override
+  String get conversation_durak_foul_toast => 'Foul! Cheater penalized.';
+
+  @override
+  String get durak_phase_prefix => 'Phase';
+
+  @override
+  String get durak_phase_attack => 'Attack';
+
+  @override
+  String get durak_phase_defense => 'Defense';
+
+  @override
+  String get durak_phase_throw_in => 'Throw-in';
+
+  @override
+  String get durak_phase_resolution => 'Resolution';
+
+  @override
+  String get durak_phase_finished => 'Finished';
+
+  @override
+  String get durak_phase_pending_foul => 'Pending foul after Beat';
+
+  @override
+  String get durak_phase_pending_foul_hint_attacker =>
+      'Wait for foul. If nobody calls it, confirm Beat.';
+
+  @override
+  String get durak_phase_pending_foul_hint_other =>
+      'Wait for foul. Call Foul! if you spotted cheating.';
+
+  @override
+  String get durak_phase_hint_can_throw_in => 'You can throw in';
+
+  @override
+  String get durak_phase_hint_wait => 'Wait for your turn';
+
+  @override
+  String durak_now_throwing_in(Object name) {
+    return 'Now throwing in: $name';
+  }
 
   @override
   String chat_selection_selected_count(int count) {

@@ -267,7 +267,9 @@ export function ChatForwardSheet() {
     }
 
     rows.sort((a, b) =>
-      a.displayName.localeCompare(b.displayName, 'ru', { sensitivity: 'base' }),
+      (a.displayName ?? '').localeCompare(b.displayName ?? '', 'ru', {
+        sensitivity: 'base',
+      }),
     );
     return rows;
   }, [conversations, contactOnlyUsers, currentUser?.id, allUsers]);

@@ -515,6 +515,25 @@ service cloud.firestore {
       }
     }
 
+    /**
+     * Tournaments:
+     * - Root docs are server-written; clients read only if they are conversation members.
+     * - Conversation index (`conversations/{id}/tournaments/*`) is used for listing in chat UI.
+     */
+    match /tournaments/{tournamentId} {
+      allow read: if isSignedIn()
+        && resource.data.conversationId is string
+        && isConversationMember(resource.data.conversationId);
+      allow write: if false;
+
+      match /games/{gameId} {
+        allow read: if isSignedIn()
+          && exists(/databases/$(database)/documents/tournaments/$(tournamentId))
+          && isConversationMember(get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.conversationId);
+        allow write: if false;
+      }
+    }
+
     match /conversations/{conversationId} {
       /**
        * Одно выражение: list-query по коллекции с array-contains в клиенте не используется (список чатов — userChats + doc).
@@ -566,6 +585,14 @@ service cloud.firestore {
 
       /** Game lobbies for a conversation (server-write). */
       match /gameLobbies/{gameId} {
+        allow read: if isConversationMember(conversationId)
+          && canReadSecretChat(conversationId, conversationData(conversationId))
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow write: if false;
+      }
+
+      /** Tournaments index for a conversation (server-write). */
+      match /tournaments/{tournamentId} {
         allow read: if isConversationMember(conversationId)
           && canReadSecretChat(conversationId, conversationData(conversationId))
           && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
@@ -659,6 +686,34 @@ service cloud.firestore {
       /** Unlock grants секретного чата: пишет только сервер (callable), читает только владелец. */
       match /secretAccess/{userId} {
         allow read: if isSignedIn() && request.auth.uid == userId;
+        allow write: if false;
+      }
+
+      /**
+       * Secret Chat hard-enforced media view limits.
+       * Server writes only; clients can only read relevant docs.
+       */
+      match /secretMediaViewState/{docId} {
+        allow read: if isConversationMember(conversationId)
+          && canReadSecretChat(conversationId, conversationData(conversationId))
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow write: if false;
+      }
+
+      match /secretMediaViewRequests/{docId} {
+        allow read: if isConversationMember(conversationId)
+          && canReadSecretChat(conversationId, conversationData(conversationId))
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
+        allow write: if false;
+      }
+
+      match /secretMediaKeyGrants/{docId} {
+        allow read: if isSignedIn()
+          && resource.data.recipientUid == request.auth.uid
+          && resource.data.expiresAtTs > request.time
+          && isConversationMember(conversationId)
+          && canReadSecretChat(conversationId, conversationData(conversationId))
+          && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
         allow write: if false;
       }
     }

@@ -184,3 +184,27 @@ Future<DecryptMediaResultV2> downloadAndDecryptMediaFileV2({
     },
   );
 }
+
+/// Secret Chat hard media view limits: decrypt using a pre-granted per-file key.
+Future<DecryptMediaResultV2> downloadAndDecryptMediaFileWithKeyV2({
+  required DownloadDecryptInputV2 input,
+  required Uint8List fileKeyRaw,
+}) async {
+  return decryptMediaFileV2WithFileKey(
+    envelope: input.envelope,
+    fileKeyRaw: fileKeyRaw,
+    fetchChunk: (index) async {
+      final path = chunkStoragePathV2(
+        conversationId: input.conversationId,
+        messageId: input.messageId,
+        fileId: input.envelope.fileId,
+        index: index,
+      );
+      final bytes = await input.storage.ref(path).getData(_chunkFetchMaxBytes);
+      if (bytes == null) {
+        throw StateError('E2EE_MEDIA_CHUNK_MISSING:$index');
+      }
+      return bytes;
+    },
+  );
+}

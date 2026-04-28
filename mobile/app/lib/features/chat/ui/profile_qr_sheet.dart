@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/profile_qr_link.dart';
 import 'chat_avatar.dart';
 
@@ -53,6 +54,7 @@ class ProfileQrSheet extends StatelessWidget {
   }
 
   Future<void> _shareQr(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final payload = _resolvedPayload();
     if (payload.isEmpty) return;
     Rect? origin;
@@ -63,11 +65,11 @@ class ProfileQrSheet extends StatelessWidget {
     }
     final cleanUsername = username.trim().replaceFirst(RegExp(r'^@'), '');
     final label = cleanUsername.isEmpty ? name.trim() : '@$cleanUsername';
-    final text = <String>['Мой профиль в LighChat', label, payload].join('\n');
+    final text = <String>[l10n.profile_qr_share_title, label, payload].join('\n');
     await SharePlus.instance.share(
       ShareParams(
         text: text,
-        subject: 'Профиль LighChat',
+        subject: l10n.profile_qr_share_subject,
         sharePositionOrigin: origin,
       ),
     );
@@ -75,10 +77,11 @@ class ProfileQrSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final payload = _resolvedPayload();
     final cleanUsername = username.trim().replaceFirst(RegExp(r'^@'), '');
     final displayUsername = cleanUsername.isEmpty ? 'user' : cleanUsername;
-    final displayName = name.trim().isEmpty ? 'Профиль' : name.trim();
+    final displayName = name.trim().isEmpty ? l10n.profile_title : name.trim();
 
     return Container(
       decoration: const BoxDecoration(
@@ -108,7 +111,7 @@ class ProfileQrSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Мой QR-код',
+                    l10n.profile_qr_title,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.95),
@@ -118,7 +121,7 @@ class ProfileQrSheet extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Закрыть',
+                  tooltip: l10n.profile_qr_tooltip_close,
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close_rounded),
                   color: Colors.white.withValues(alpha: 0.82),

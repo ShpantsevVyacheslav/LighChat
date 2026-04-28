@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 /// Legacy filename kept intentionally to avoid broad import churn.
 /// VLC dependency is removed; helpers now describe unsupported media and
 /// server-side normalization state.
@@ -64,6 +65,7 @@ class ChatMediaNormStatusWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     if (state == ChatMediaNormUiState.none) return const SizedBox.shrink();
     final isPending = state == ChatMediaNormUiState.pending;
@@ -71,11 +73,11 @@ class ChatMediaNormStatusWidget extends StatelessWidget {
         ? Icons.hourglass_top_rounded
         : Icons.error_outline_rounded;
     final title = isPending
-        ? 'Обрабатываем $mediaKindLabel…'
-        : 'Не удалось обработать $mediaKindLabel';
+        ? l10n.chat_media_norm_pending_title(mediaKindLabel)
+        : l10n.chat_media_norm_failed_title(mediaKindLabel);
     final subtitle = isPending
-        ? 'Файл станет доступен после серверной нормализации.'
-        : 'Попробуйте запустить обработку повторно.';
+        ? l10n.chat_media_norm_pending_subtitle
+        : l10n.chat_media_norm_failed_subtitle;
     final padV = compact ? 8.0 : 12.0;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -127,7 +129,7 @@ class ChatMediaNormStatusWidget extends StatelessWidget {
                 onPressed: () async {
                   await onRetry!.call();
                 },
-                child: const Text('Повторить'),
+                child: Text(l10n.common_retry),
               ),
           ],
         ),

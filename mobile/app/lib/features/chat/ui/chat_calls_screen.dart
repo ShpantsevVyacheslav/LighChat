@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/chat_call_formatting.dart';
 import '../data/chat_call_status.dart';
@@ -38,12 +39,13 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
   Widget build(BuildContext context) {
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final userAsync = ref.watch(authUserProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     if (!firebaseReady) {
-      return const Scaffold(
+      return Scaffold(
         body: Padding(
           padding: EdgeInsets.all(16),
-          child: Text('Firebase is not configured yet.'),
+          child: Text(l10n.chat_list_firebase_not_configured),
         ),
       );
     }
@@ -96,7 +98,7 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(
-                            'Не удалось загрузить звонки:\n${snap.error}',
+                            l10n.chat_calls_error_load(snap.error.toString()),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -127,7 +129,7 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                 final rawSelfName = selfProfile?.name ?? '';
                 final selfName = rawSelfName.trim().isNotEmpty
                     ? rawSelfName.trim()
-                    : 'Профиль';
+                    : l10n.profile_title;
                 final selfAvatar =
                     selfProfile?.avatarThumb ?? selfProfile?.avatar;
 
@@ -151,11 +153,13 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                         fallbackName: found?.name.trim().isNotEmpty == true
                             ? found!.name.trim()
                             : (fallbackName.isEmpty
-                                  ? 'Неизвестный'
+                                  ? l10n.new_chat_fallback_user_display_name
                                   : fallbackName),
                       );
                       return ruEnSubstringMatch(
-                        name.trim().isEmpty ? 'Неизвестный' : name.trim(),
+                        name.trim().isEmpty
+                            ? l10n.new_chat_fallback_user_display_name
+                            : name.trim(),
                         term,
                       );
                     })
@@ -182,7 +186,7 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      'Звонки',
+                                      l10n.chat_calls_title,
                                       style: TextStyle(
                                         fontSize: 26,
                                         fontWeight: FontWeight.w800,
@@ -226,7 +230,7 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                               style: TextStyle(color: fg, fontSize: 15),
                               cursorColor: scheme.primary,
                               decoration: InputDecoration(
-                                hintText: 'Поиск по имени…',
+                                hintText: l10n.chat_calls_search_hint,
                                 hintStyle: TextStyle(
                                   color: fg.withValues(alpha: 0.42),
                                   fontSize: 15,
@@ -285,8 +289,8 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                                 ? Center(
                                     child: Text(
                                       term.isEmpty
-                                          ? 'История звонков пуста.'
-                                          : 'Ничего не найдено.',
+                                          ? l10n.chat_calls_empty
+                                          : l10n.chat_calls_nothing_found,
                                       style: TextStyle(
                                         color: meta,
                                         fontSize: 15,
@@ -325,7 +329,8 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                                                     true
                                                 ? found!.name.trim()
                                                 : (fallbackName.isEmpty
-                                                      ? 'Неизвестный'
+                                                      ? l10n
+                                                          .new_chat_fallback_user_display_name
                                                       : fallbackName),
                                           );
                                       final avatarUrl =
@@ -508,12 +513,14 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
           },
           loading: () =>
               const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, _) => Scaffold(body: Center(child: Text('Ошибка: $e'))),
+          error: (e, _) =>
+              Scaffold(body: Center(child: Text(l10n.chat_list_error_generic(e)))),
         );
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text('Auth: $e'))),
+      error: (e, _) =>
+          Scaffold(body: Center(child: Text(l10n.chat_auth_error(e.toString())))),
     );
   }
 }

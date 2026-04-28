@@ -20,6 +20,8 @@ import '../../../l10n/app_localizations.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_data_type_policy.dart';
+import '../data/e2ee_runtime.dart';
+import '../data/secret_chat_media_open_service.dart';
 
 import '../data/chat_emoji_only.dart';
 import '../data/chat_location_share_factory.dart';
@@ -975,6 +977,53 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     required User user,
     required Conversation? conv,
   }) {
+    final l10n = AppLocalizations.of(context)!;
+    final isSecret = conv?.secretChat?.enabled == true;
+    if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(att)) {
+      unawaited(() async {
+        final rt = ref.read(mobileE2eeRuntimeProvider);
+        if (rt == null) return;
+        try {
+          final resolved = await const SecretChatMediaOpenService().openForView(
+            runtime: rt,
+            conversationId: widget.conversationId,
+            message: msg,
+            lockedAttachment: att,
+          );
+          if (!mounted) return;
+          await Navigator.of(context).push<void>(
+            chatMediaViewerPageRoute<void>(
+              ChatMediaViewerScreen(
+                items: [ChatMediaGalleryItem(attachment: resolved, message: msg)],
+                initialIndex: 0,
+                currentUserId: user.uid,
+                senderLabel: (sid) => _threadSenderLabel(
+                  sid,
+                  user,
+                  conv,
+                  l10n,
+                ),
+                onReply: null,
+                onForward: (_) {},
+                allowForward: false,
+                allowSave: false,
+                allowExternalShare: false,
+                onDeleteItem: _confirmDeleteMediaGalleryItemInThread,
+                onShowInChat: (galleryItem) {
+                  _scrollToMessageId(galleryItem.message.id);
+                },
+              ),
+            ),
+          );
+        } catch (_) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
+          );
+        }
+      }());
+      return;
+    }
     final ascReplies = List<ChatMessage>.from(threadMsgsDesc)
       ..sort((a, b) {
         final t = a.createdAt.compareTo(b.createdAt);
@@ -1392,6 +1441,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                           children: [
                             E2eeMessagesResolver(
                               conversationId: widget.conversationId,
+                              secretChat: conv?.secretChat,
                               messages: <ChatMessage>[parent],
                               builder:
                                   (
@@ -1444,6 +1494,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                   Positioned.fill(
                                     child: E2eeMessagesResolver(
                                       conversationId: widget.conversationId,
+                                      secretChat: conv?.secretChat,
                                       messages: threadMsgs,
                                       builder:
                                           (

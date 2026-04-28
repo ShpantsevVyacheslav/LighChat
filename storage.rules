@@ -25,6 +25,12 @@ service firebase.storage {
         && firestore.get(/databases/(default)/documents/conversations/$(convId)/secretAccess/$(request.auth.uid)).data.expiresAtTs > request.time;
     }
 
+    function hasActiveSecretMediaKeyGrant(convId, messageId, fileId) {
+      let gid = request.auth.uid + '__' + messageId + '__' + fileId;
+      return firestore.exists(/databases/(default)/documents/conversations/$(convId)/secretMediaKeyGrants/$(gid))
+        && firestore.get(/databases/(default)/documents/conversations/$(convId)/secretMediaKeyGrants/$(gid)).data.expiresAtTs > request.time;
+    }
+
     function isConversationMember(convId) {
       return signedIn()
         && request.auth.uid in conversationParticipants(convId)
@@ -54,6 +60,14 @@ service firebase.storage {
      * Доступ только участникам диалога; серверные триггеры (transcode) сюда не лезут,
      * поэтому пути обязаны отличаться от plaintext `chat-attachments/`.
      */
+    // Secret chat hard media views: require a short-lived per-file key-grant for reads.
+    match /chat-attachments-enc/{conversationId}/{messageId}/{fileId}/{allPaths=**} {
+      allow read: if isConversationMember(conversationId)
+        && (!isSecretChat(conversationId) || hasActiveSecretMediaKeyGrant(conversationId, messageId, fileId));
+      allow write: if isConversationMember(conversationId);
+    }
+
+    // Fallback for any other E2EE path under chat-attachments-enc.
     match /chat-attachments-enc/{conversationId}/{allPaths=**} {
       allow read: if isConversationMember(conversationId);
       allow write: if isConversationMember(conversationId);

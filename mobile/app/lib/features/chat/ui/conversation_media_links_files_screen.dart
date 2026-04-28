@@ -11,6 +11,8 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../../auth/ui/auth_glass.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
+import '../data/e2ee_runtime.dart';
+import '../data/secret_chat_media_open_service.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_media_viewer_screen.dart';
@@ -77,6 +79,8 @@ class _ConversationMediaLinksFilesScreenState
                 child: messagesAsync.when(
                   data: (msgsDesc) => E2eeMessagesResolver(
                     conversationId: widget.conversationId,
+                    // Secret media view limits apply inside secret chats too.
+                    secretChat: widget.conversation?.secretChat,
                     messages: msgsDesc,
                     builder:
                         (
@@ -274,10 +278,23 @@ class _ConversationMediaLinksFilesScreenState
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (isVideo)
-                  VideoCachedThumbImage(videoUrl: att.url, fit: BoxFit.cover)
-                else
-                  ChatCachedNetworkImage(url: att.url, fit: BoxFit.cover),
+                    if (SecretChatMediaOpenService.isLockedSecretAttachment(att))
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.28),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.lock_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                        ),
+                      )
+                    else if (isVideo)
+                      VideoCachedThumbImage(videoUrl: att.url, fit: BoxFit.cover)
+                    else
+                      ChatCachedNetworkImage(url: att.url, fit: BoxFit.cover),
                 if (isVideo)
                   Align(
                     alignment: Alignment.center,
@@ -307,6 +324,49 @@ class _ConversationMediaLinksFilesScreenState
     int index,
   ) async {
     if (items.isEmpty) return;
+    final conv = widget.conversation;
+    final isSecret = conv?.secretChat?.enabled == true;
+    final tapped = items[index].attachment;
+    if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(tapped)) {
+      final rt = ref.read(mobileE2eeRuntimeProvider);
+      if (rt == null) return;
+      try {
+        final resolved = await const SecretChatMediaOpenService().openForView(
+          runtime: rt,
+          conversationId: widget.conversationId,
+          message: items[index].message,
+          lockedAttachment: tapped,
+        );
+        final one = ChatMediaGalleryItem(
+          attachment: resolved,
+          message: items[index].message,
+        );
+        await Navigator.of(context).push(
+          chatMediaViewerPageRoute(
+            ChatMediaViewerScreen(
+              items: [one],
+              initialIndex: 0,
+              currentUserId: widget.currentUserId,
+              senderLabel: _senderLabel,
+              onReply: null,
+              onForward: (_) {},
+              allowForward: false,
+              allowSave: false,
+              allowExternalShare: false,
+              onDeleteItem: (_) async => false,
+              onShowInChat: (_) {
+                if (!mounted) return;
+                Navigator.of(context).pop();
+                context.go('/chats/${widget.conversationId}');
+              },
+            ),
+          ),
+        );
+      } catch (_) {
+        // best-effort: leave as is
+      }
+      return;
+    }
     await Navigator.of(context).push(
       chatMediaViewerPageRoute(
         ChatMediaViewerScreen(

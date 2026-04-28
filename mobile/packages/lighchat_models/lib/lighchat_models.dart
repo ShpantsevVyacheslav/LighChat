@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-typedef JsonMap = Map<String, Object?>;
+import 'src/secret_chat.dart' hide JsonMap;
 
 export 'src/secret_chat.dart';
+export 'src/secret_chat_media_views.dart';
+
+typedef JsonMap = Map<String, Object?>;
 
 class UserChatIndex {
   const UserChatIndex({

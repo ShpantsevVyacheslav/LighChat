@@ -455,6 +455,63 @@ Future<DecryptMediaResultV2> decryptMediaFileV2({
   return DecryptMediaResultV2(data: out, thumbnail: thumbnail, metadata: metadata);
 }
 
+/// Variant of [decryptMediaFileV2] that uses a pre-granted per-file key.
+///
+/// Used by Secret Chat hard media view limits protocol where the file-key
+/// is delivered via short-lived server-mediated grant (not derived from chat-key).
+Future<DecryptMediaResultV2> decryptMediaFileV2WithFileKey({
+  required MediaEnvelopeV2 envelope,
+  required Uint8List fileKeyRaw,
+  required FetchEncryptedChunkFnV2 fetchChunk,
+}) async {
+  final pieces = <Uint8List>[];
+  var total = 0;
+  for (var i = 0; i < envelope.chunkCount; i++) {
+    final ct = await fetchChunk(i);
+    final iv = _buildChunkIv(envelope.ivPrefix, i);
+    final aad = buildAadV2(<Object>[envelope.fileId, i, envelope.kind.wire]);
+    final pt = await aesGcmDecryptV2(
+      key: fileKeyRaw,
+      iv: iv,
+      ciphertextPlusTag: ct,
+      aad: aad,
+    );
+    pieces.add(pt);
+    total += pt.lengthInBytes;
+  }
+  final out = Uint8List(total);
+  var off = 0;
+  for (final p in pieces) {
+    out.setRange(off, off + p.lengthInBytes, p);
+    off += p.lengthInBytes;
+  }
+
+  DecryptedMediaThumb? thumbnail;
+  if (envelope.thumb != null) {
+    final t = envelope.thumb!;
+    final pt = await aesGcmDecryptV2(
+      key: fileKeyRaw,
+      iv: t.iv,
+      ciphertextPlusTag: t.ct,
+      aad: buildAadV2(<Object>[envelope.fileId, 'thumb', envelope.kind.wire]),
+    );
+    thumbnail = DecryptedMediaThumb(data: pt, mime: t.mime);
+  }
+
+  Uint8List? metadata;
+  if (envelope.metadataEnc != null) {
+    final m = envelope.metadataEnc!;
+    metadata = await aesGcmDecryptV2(
+      key: fileKeyRaw,
+      iv: m.iv,
+      ciphertextPlusTag: m.ct,
+      aad: buildAadV2(<Object>[envelope.fileId, 'meta', envelope.kind.wire]),
+    );
+  }
+
+  return DecryptMediaResultV2(data: out, thumbnail: thumbnail, metadata: metadata);
+}
+
 /// Ленивая потоковая расшифровка. Отдаёт по одному chunk'у, не удерживает
 /// весь файл в памяти.
 Stream<Uint8List> decryptMediaFileStreamV2({
@@ -467,6 +524,26 @@ Stream<Uint8List> decryptMediaFileStreamV2({
     chatKeyRaw: chatKeyRaw,
     fileId: envelope.fileId,
   );
+  for (var i = 0; i < envelope.chunkCount; i++) {
+    final ct = await fetchChunk(i);
+    final iv = _buildChunkIv(envelope.ivPrefix, i);
+    final aad = buildAadV2(<Object>[envelope.fileId, i, envelope.kind.wire]);
+    final pt = await aesGcmDecryptV2(
+      key: fileKeyRaw,
+      iv: iv,
+      ciphertextPlusTag: ct,
+      aad: aad,
+    );
+    yield pt;
+  }
+}
+
+/// Variant of [decryptMediaFileStreamV2] that uses a pre-granted per-file key.
+Stream<Uint8List> decryptMediaFileStreamV2WithFileKey({
+  required MediaEnvelopeV2 envelope,
+  required Uint8List fileKeyRaw,
+  required FetchEncryptedChunkFnV2 fetchChunk,
+}) async* {
   for (var i = 0; i < envelope.chunkCount; i++) {
     final ct = await fetchChunk(i);
     final iv = _buildChunkIv(envelope.ivPrefix, i);

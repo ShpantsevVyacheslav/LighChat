@@ -38,6 +38,56 @@
   "secret_chat_media_type_voice": "Voice messages",
   "secret_chat_media_type_location": "Location",
   "secret_chat_media_views_unlimited": "Unlimited",
+  "tournament_title": "Tournament",
+  "tournament_subtitle": "Standings and game series",
+  "tournament_new_game": "New game",
+  "tournament_standings": "Standings",
+  "tournament_standings_empty": "No results yet",
+  "tournament_games": "Games",
+  "tournament_games_empty": "No games yet",
+  "tournament_points": "{pts} pts",
+  "@tournament_points": {
+    "placeholders": {
+      "pts": {}
+    }
+  },
+  "tournament_games_played": "{n} games",
+  "@tournament_games_played": {
+    "placeholders": {
+      "n": {}
+    }
+  },
+  "tournament_create_failed": "Unable to create tournament: {err}",
+  "@tournament_create_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_create_game_failed": "Unable to create game: {err}",
+  "@tournament_create_game_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_game_players": "Players: {names}",
+  "@tournament_game_players": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "tournament_game_result_draw": "Result: draw",
+  "tournament_game_result_loser": "Result: durak — {name}",
+  "@tournament_game_result_loser": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "tournament_game_place": "Place {place}",
+  "@tournament_game_place": {
+    "placeholders": {
+      "place": {}
+    }
+  },
   "secret_chat_media_views_count": "{count} views",
   "@secret_chat_media_views_count": {
     "placeholders": {
@@ -206,6 +256,7 @@
   "common_delete": "Delete",
   "common_choose": "Choose",
   "common_save": "Save",
+  "common_close": "Close",
   "common_nothing_found": "Nothing found",
   "common_retry": "Retry",
 
@@ -408,6 +459,124 @@
   "chat_list_snackbar_marked_read": "Marked as read.",
   "chat_list_error_generic": "Error: {error}",
   "@chat_list_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_calls_title": "Calls",
+  "chat_calls_search_hint": "Search by name…",
+  "chat_calls_empty": "Your call history is empty.",
+  "chat_calls_nothing_found": "Nothing found.",
+  "chat_calls_error_load": "Couldn’t load calls:\n{error}",
+  "@chat_calls_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_reply_cancel_tooltip": "Cancel reply",
+  "voice_preview_tooltip_cancel": "Cancel",
+  "voice_preview_tooltip_send": "Send",
+  "profile_qr_title": "My QR code",
+  "profile_qr_tooltip_close": "Close",
+  "profile_qr_share_title": "My LighChat profile",
+  "profile_qr_share_subject": "LighChat profile",
+  "chat_media_norm_pending_title": "Processing {mediaKind}…",
+  "@chat_media_norm_pending_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_failed_title": "Couldn’t process {mediaKind}",
+  "@chat_media_norm_failed_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_pending_subtitle": "The file will be available after server processing.",
+  "chat_media_norm_failed_subtitle": "Try starting processing again.",
+  "conversation_threads_title": "Threads",
+  "conversation_threads_empty": "No threads yet",
+  "conversation_threads_root_attachment": "Attachment",
+  "conversation_threads_root_message": "Message",
+  "conversation_threads_snippet_you": "You: {text}",
+  "@conversation_threads_snippet_you": {
+    "placeholders": {
+      "text": {}
+    }
+  },
+  "conversation_threads_day_today": "Today",
+  "conversation_threads_day_yesterday": "Yesterday",
+  "conversation_threads_replies_badge": "{count, plural, one{{count} reply} other{{count} replies}}",
+  "@conversation_threads_replies_badge": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_meetings_title": "Meetings",
+  "chat_meetings_subtitle": "Create conferences and manage participant access",
+  "chat_meetings_section_new": "New meeting",
+  "chat_meetings_field_title_label": "Meeting title",
+  "chat_meetings_field_title_hint": "E.g., Logistics sync",
+  "chat_meetings_field_duration_label": "Duration",
+  "chat_meetings_duration_unlimited": "No limit",
+  "chat_meetings_duration_15m": "15 minutes",
+  "chat_meetings_duration_30m": "30 minutes",
+  "chat_meetings_duration_1h": "1 hour",
+  "chat_meetings_duration_90m": "1.5 hours",
+  "chat_meetings_field_access_label": "Access",
+  "chat_meetings_access_private": "Private",
+  "chat_meetings_access_public": "Public",
+  "chat_meetings_waiting_room_title": "Waiting room",
+  "chat_meetings_waiting_room_desc": "In waiting room mode, you control who joins. Until you tap “Admit”, guests will stay on the waiting screen.",
+  "chat_meetings_backgrounds_title": "Virtual backgrounds",
+  "chat_meetings_backgrounds_desc": "Upload backgrounds and blur your background if you want. Pick an image from the gallery or upload your own backgrounds.",
+  "chat_meetings_waiting_room_toggle": "Add waiting room",
+  "chat_meetings_waiting_room_toggle_subtitle": "Only the host can admit participants and block access.",
+  "chat_meetings_create_button": "Create meeting",
+  "chat_meetings_snackbar_enter_title": "Enter a meeting title",
+  "chat_meetings_snackbar_auth_required": "You need to be signed in to create a meeting",
+  "chat_meetings_error_create_failed": "Couldn’t create meeting: {error}",
+  "@chat_meetings_error_create_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_history_title": "Your history",
+  "chat_meetings_history_empty": "Meeting history is empty",
+  "chat_meetings_history_error": "Couldn’t load meeting history: {error}",
+  "@chat_meetings_history_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_status_live": "live",
+  "chat_meetings_status_finished": "finished",
+  "chat_meetings_badge_private": "private",
+  "chat_contacts_search_hint": "Search contacts…",
+  "chat_contacts_permission_denied": "Contacts permission not granted.",
+  "chat_contacts_sync_error": "Couldn’t sync contacts: {error}",
+  "@chat_contacts_sync_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_invite_prepare_failed": "Couldn’t prepare invite: {error}",
+  "@chat_contacts_invite_prepare_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_matches_not_found": "No matches found.",
+  "chat_contacts_added_count": "Contacts added: {count}.",
+  "@chat_contacts_added_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_contacts_invite_text": "Install LighChat: https://lighchat.online\nI’m inviting you to LighChat — here’s the install link.",
+  "chat_contacts_invite_subject": "Invite to LighChat",
+  "chat_contacts_error_load": "Couldn’t load contacts: {error}",
+  "@chat_contacts_error_load": {
     "placeholders": {
       "error": {}
     }
@@ -1105,13 +1274,57 @@
   "conversation_durak_action_take": "Take",
   "conversation_durak_action_beat": "Beat",
   "conversation_durak_action_transfer": "Transfer",
+  "conversation_durak_action_pass": "Pass",
+  "conversation_durak_game_finished_title": "Game finished",
+  "conversation_durak_game_finished_no_loser": "No loser this time.",
+  "conversation_durak_game_finished_loser": "Loser: {uid}",
+  "@conversation_durak_game_finished_loser": {
+    "placeholders": {
+      "uid": {}
+    }
+  },
+  "conversation_durak_game_finished_winners": "Winners: {uids}",
+  "@conversation_durak_game_finished_winners": {
+    "placeholders": {
+      "uids": {}
+    }
+  },
+  "conversation_durak_drop_zone": "Drop card here to play",
   "durak_settings_mode": "Mode",
   "durak_mode_podkidnoy": "Podkidnoy",
   "durak_mode_perevodnoy": "Perevodnoy",
   "durak_settings_max_players": "Players",
+  "durak_settings_deck": "Deck",
+  "durak_deck_36": "36 cards",
+  "durak_deck_52": "52 cards",
   "durak_settings_with_jokers": "Jokers",
   "durak_settings_turn_timer": "Turn timer",
   "durak_turn_timer_off": "Off",
+  "durak_settings_throw_in_policy": "Who can throw in",
+  "durak_throw_in_policy_all": "All players (except defender)",
+  "durak_throw_in_policy_neighbors": "Only defender's neighbors",
+  "durak_settings_shuler": "Shuler mode",
+  "durak_settings_shuler_subtitle": "Allows illegal moves unless someone calls foul.",
+  "conversation_durak_action_foul": "Foul!",
+  "conversation_durak_action_resolve": "Confirm Beat",
+  "conversation_durak_foul_toast": "Foul! Cheater penalized.",
+  "durak_phase_prefix": "Phase",
+  "durak_phase_attack": "Attack",
+  "durak_phase_defense": "Defense",
+  "durak_phase_throw_in": "Throw-in",
+  "durak_phase_resolution": "Resolution",
+  "durak_phase_finished": "Finished",
+  "durak_phase_pending_foul": "Pending foul after Beat",
+  "durak_phase_pending_foul_hint_attacker": "Wait for foul. If nobody calls it, confirm Beat.",
+  "durak_phase_pending_foul_hint_other": "Wait for foul. Call Foul! if you spotted cheating.",
+  "durak_phase_hint_can_throw_in": "You can throw in",
+  "durak_phase_hint_wait": "Wait for your turn",
+  "durak_now_throwing_in": "Now throwing in: {name}",
+  "@durak_now_throwing_in": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "chat_selection_selected_count": "{count} selected",
   "@chat_selection_selected_count": {
     "placeholders": {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'message_html_text.dart';
 
 /// Thin bar above the composer: shows who you reply to + preview; [onCancel] clears draft reply.
@@ -17,6 +18,7 @@ class ComposerReplyBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final raw = (replyTo.text ?? '').trim();
     final preview = raw.contains('<') ? messageHtmlToPlainText(raw) : raw;
 
@@ -56,7 +58,7 @@ class ComposerReplyBanner extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Отменить ответ',
+                tooltip: l10n.chat_reply_cancel_tooltip,
                 onPressed: onCancel,
                 icon: Icon(Icons.close_rounded, color: scheme.onSurface.withValues(alpha: 0.65)),
               ),

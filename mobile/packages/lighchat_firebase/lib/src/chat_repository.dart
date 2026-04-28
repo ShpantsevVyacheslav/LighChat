@@ -264,12 +264,47 @@ class ChatRepository {
           toFirestore: (value, options) => <String, Object?>{},
         );
 
-    return q.snapshots().map((snap) {
-      return snap.docs
-          .map((d) => d.data())
-          .whereType<ChatMessage>()
-          .toList(growable: false);
-    });
+    final controller = StreamController<List<ChatMessage>>();
+    StreamSubscription<QuerySnapshot<ChatMessage?>>? sub;
+    var retried = false;
+
+    void emitFrom(QuerySnapshot<ChatMessage?> snap) {
+      controller.add(
+        snap.docs
+            .map((d) => d.data())
+            .whereType<ChatMessage>()
+            .toList(growable: false),
+      );
+    }
+
+    Future<void> start() async {
+      await sub?.cancel().catchError((_) {});
+      sub = q.snapshots().listen(
+        emitFrom,
+        onError: (Object err, StackTrace st) async {
+          final code = err is FirebaseException
+              ? err.code.toLowerCase().trim()
+              : '';
+          final shouldRetry =
+              !retried && (code == 'permission-denied' || code == 'unauthenticated');
+          if (!shouldRetry) {
+            controller.addError(err, st);
+            return;
+          }
+          retried = true;
+          try {
+            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+          } catch (_) {}
+          await start();
+        },
+      );
+    }
+
+    unawaited(start());
+    controller.onCancel = () async {
+      await sub?.cancel().catchError((_) {});
+    };
+    return controller.stream;
   }
 
   /// Сообщение из основной ленты (для экрана ветки без `extra` в роуте).
@@ -320,12 +355,47 @@ class ChatRepository {
           toFirestore: (value, options) => <String, Object?>{},
         );
 
-    return q.snapshots().map((snap) {
-      return snap.docs
-          .map((d) => d.data())
-          .whereType<ChatMessage>()
-          .toList(growable: false);
-    });
+    final controller = StreamController<List<ChatMessage>>();
+    StreamSubscription<QuerySnapshot<ChatMessage?>>? sub;
+    var retried = false;
+
+    void emitFrom(QuerySnapshot<ChatMessage?> snap) {
+      controller.add(
+        snap.docs
+            .map((d) => d.data())
+            .whereType<ChatMessage>()
+            .toList(growable: false),
+      );
+    }
+
+    Future<void> start() async {
+      await sub?.cancel().catchError((_) {});
+      sub = q.snapshots().listen(
+        emitFrom,
+        onError: (Object err, StackTrace st) async {
+          final code = err is FirebaseException
+              ? err.code.toLowerCase().trim()
+              : '';
+          final shouldRetry =
+              !retried && (code == 'permission-denied' || code == 'unauthenticated');
+          if (!shouldRetry) {
+            controller.addError(err, st);
+            return;
+          }
+          retried = true;
+          try {
+            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+          } catch (_) {}
+          await start();
+        },
+      );
+    }
+
+    unawaited(start());
+    controller.onCancel = () async {
+      await sub?.cancel().catchError((_) {});
+    };
+    return controller.stream;
   }
 
   static String _threadLastPreviewText({

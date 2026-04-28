@@ -302,6 +302,96 @@ abstract class AppLocalizations {
   /// **'Безлимит'**
   String get secret_chat_media_views_unlimited;
 
+  /// No description provided for @tournament_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Турнир'**
+  String get tournament_title;
+
+  /// No description provided for @tournament_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Турнирная таблица и серии партий'**
+  String get tournament_subtitle;
+
+  /// No description provided for @tournament_new_game.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новая партия'**
+  String get tournament_new_game;
+
+  /// No description provided for @tournament_standings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Таблица'**
+  String get tournament_standings;
+
+  /// No description provided for @tournament_standings_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет результатов'**
+  String get tournament_standings_empty;
+
+  /// No description provided for @tournament_games.
+  ///
+  /// In ru, this message translates to:
+  /// **'Партии'**
+  String get tournament_games;
+
+  /// No description provided for @tournament_games_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет партий'**
+  String get tournament_games_empty;
+
+  /// No description provided for @tournament_points.
+  ///
+  /// In ru, this message translates to:
+  /// **'{pts} очков'**
+  String tournament_points(Object pts);
+
+  /// No description provided for @tournament_games_played.
+  ///
+  /// In ru, this message translates to:
+  /// **'{n} игр'**
+  String tournament_games_played(Object n);
+
+  /// No description provided for @tournament_create_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось создать турнир: {err}'**
+  String tournament_create_failed(Object err);
+
+  /// No description provided for @tournament_create_game_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось создать партию: {err}'**
+  String tournament_create_game_failed(Object err);
+
+  /// No description provided for @tournament_game_players.
+  ///
+  /// In ru, this message translates to:
+  /// **'Игроки: {names}'**
+  String tournament_game_players(Object names);
+
+  /// No description provided for @tournament_game_result_draw.
+  ///
+  /// In ru, this message translates to:
+  /// **'Результат: ничья'**
+  String get tournament_game_result_draw;
+
+  /// No description provided for @tournament_game_result_loser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Результат: дурак — {name}'**
+  String tournament_game_result_loser(Object name);
+
+  /// No description provided for @tournament_game_place.
+  ///
+  /// In ru, this message translates to:
+  /// **'Место {place}'**
+  String tournament_game_place(Object place);
+
   /// No description provided for @secret_chat_media_views_count.
   ///
   /// In ru, this message translates to:
@@ -883,6 +973,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сохранить'**
   String get common_save;
+
+  /// No description provided for @common_close.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрыть'**
+  String get common_close;
 
   /// No description provided for @common_nothing_found.
   ///
@@ -1621,6 +1717,384 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ошибка: {error}'**
   String chat_list_error_generic(Object error);
+
+  /// No description provided for @chat_calls_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонки'**
+  String get chat_calls_title;
+
+  /// No description provided for @chat_calls_search_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск по имени…'**
+  String get chat_calls_search_hint;
+
+  /// No description provided for @chat_calls_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'История звонков пуста.'**
+  String get chat_calls_empty;
+
+  /// No description provided for @chat_calls_nothing_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ничего не найдено.'**
+  String get chat_calls_nothing_found;
+
+  /// No description provided for @chat_calls_error_load.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить звонки:\n{error}'**
+  String chat_calls_error_load(Object error);
+
+  /// No description provided for @chat_reply_cancel_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить ответ'**
+  String get chat_reply_cancel_tooltip;
+
+  /// No description provided for @voice_preview_tooltip_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get voice_preview_tooltip_cancel;
+
+  /// No description provided for @voice_preview_tooltip_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get voice_preview_tooltip_send;
+
+  /// No description provided for @profile_qr_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мой QR-код'**
+  String get profile_qr_title;
+
+  /// No description provided for @profile_qr_tooltip_close.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрыть'**
+  String get profile_qr_tooltip_close;
+
+  /// No description provided for @profile_qr_share_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мой профиль в LighChat'**
+  String get profile_qr_share_title;
+
+  /// No description provided for @profile_qr_share_subject.
+  ///
+  /// In ru, this message translates to:
+  /// **'Профиль LighChat'**
+  String get profile_qr_share_subject;
+
+  /// No description provided for @chat_media_norm_pending_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обрабатываем {mediaKind}…'**
+  String chat_media_norm_pending_title(Object mediaKind);
+
+  /// No description provided for @chat_media_norm_failed_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось обработать {mediaKind}'**
+  String chat_media_norm_failed_title(Object mediaKind);
+
+  /// No description provided for @chat_media_norm_pending_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файл станет доступен после серверной нормализации.'**
+  String get chat_media_norm_pending_subtitle;
+
+  /// No description provided for @chat_media_norm_failed_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Попробуйте запустить обработку повторно.'**
+  String get chat_media_norm_failed_subtitle;
+
+  /// No description provided for @conversation_threads_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обсуждения'**
+  String get conversation_threads_title;
+
+  /// No description provided for @conversation_threads_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет обсуждений'**
+  String get conversation_threads_empty;
+
+  /// No description provided for @conversation_threads_root_attachment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get conversation_threads_root_attachment;
+
+  /// No description provided for @conversation_threads_root_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get conversation_threads_root_message;
+
+  /// No description provided for @conversation_threads_snippet_you.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы: {text}'**
+  String conversation_threads_snippet_you(Object text);
+
+  /// No description provided for @conversation_threads_day_today.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня'**
+  String get conversation_threads_day_today;
+
+  /// No description provided for @conversation_threads_day_yesterday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вчера'**
+  String get conversation_threads_day_yesterday;
+
+  /// No description provided for @conversation_threads_replies_badge.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} ответ} few{{count} ответа} many{{count} ответов} other{{count} ответов}}'**
+  String conversation_threads_replies_badge(num count);
+
+  /// No description provided for @chat_meetings_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеовстречи'**
+  String get chat_meetings_title;
+
+  /// No description provided for @chat_meetings_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создавайте конференции и управляйте доступом участников'**
+  String get chat_meetings_subtitle;
+
+  /// No description provided for @chat_meetings_section_new.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новая встреча'**
+  String get chat_meetings_section_new;
+
+  /// No description provided for @chat_meetings_field_title_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название встречи'**
+  String get chat_meetings_field_title_label;
+
+  /// No description provided for @chat_meetings_field_title_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напр. Обсуждение логистики'**
+  String get chat_meetings_field_title_hint;
+
+  /// No description provided for @chat_meetings_field_duration_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Длительность'**
+  String get chat_meetings_field_duration_label;
+
+  /// No description provided for @chat_meetings_duration_unlimited.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без ограничения'**
+  String get chat_meetings_duration_unlimited;
+
+  /// No description provided for @chat_meetings_duration_15m.
+  ///
+  /// In ru, this message translates to:
+  /// **'15 минут'**
+  String get chat_meetings_duration_15m;
+
+  /// No description provided for @chat_meetings_duration_30m.
+  ///
+  /// In ru, this message translates to:
+  /// **'30 минут'**
+  String get chat_meetings_duration_30m;
+
+  /// No description provided for @chat_meetings_duration_1h.
+  ///
+  /// In ru, this message translates to:
+  /// **'1 час'**
+  String get chat_meetings_duration_1h;
+
+  /// No description provided for @chat_meetings_duration_90m.
+  ///
+  /// In ru, this message translates to:
+  /// **'1,5 часа'**
+  String get chat_meetings_duration_90m;
+
+  /// No description provided for @chat_meetings_field_access_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тип доступа'**
+  String get chat_meetings_field_access_label;
+
+  /// No description provided for @chat_meetings_access_private.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрытая'**
+  String get chat_meetings_access_private;
+
+  /// No description provided for @chat_meetings_access_public.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открытая'**
+  String get chat_meetings_access_public;
+
+  /// No description provided for @chat_meetings_waiting_room_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Зал ожидания'**
+  String get chat_meetings_waiting_room_title;
+
+  /// No description provided for @chat_meetings_waiting_room_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'В режиме зала ожидания вы полностью контролируете список участников. Пока вы не нажмёте «Принять», гость будет видеть экран ожидания.'**
+  String get chat_meetings_waiting_room_desc;
+
+  /// No description provided for @chat_meetings_backgrounds_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Виртуальные фоны'**
+  String get chat_meetings_backgrounds_title;
+
+  /// No description provided for @chat_meetings_backgrounds_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загружайте фоны и размывайте задний план при желании. Изображение из галереи. Также доступна загрузка собственных фонов.'**
+  String get chat_meetings_backgrounds_desc;
+
+  /// No description provided for @chat_meetings_waiting_room_toggle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить комнату ожидания'**
+  String get chat_meetings_waiting_room_toggle;
+
+  /// No description provided for @chat_meetings_waiting_room_toggle_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Только хозяин комнаты может дать разрешение на подключение и блокировать'**
+  String get chat_meetings_waiting_room_toggle_subtitle;
+
+  /// No description provided for @chat_meetings_create_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать встречу'**
+  String get chat_meetings_create_button;
+
+  /// No description provided for @chat_meetings_snackbar_enter_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Укажите название встречи'**
+  String get chat_meetings_snackbar_enter_title;
+
+  /// No description provided for @chat_meetings_snackbar_auth_required.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нужна авторизация для создания встречи'**
+  String get chat_meetings_snackbar_auth_required;
+
+  /// No description provided for @chat_meetings_error_create_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось создать встречу: {error}'**
+  String chat_meetings_error_create_failed(Object error);
+
+  /// No description provided for @chat_meetings_history_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваша история'**
+  String get chat_meetings_history_title;
+
+  /// No description provided for @chat_meetings_history_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'История встреч пуста'**
+  String get chat_meetings_history_empty;
+
+  /// No description provided for @chat_meetings_history_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить историю встреч: {error}'**
+  String chat_meetings_history_error(Object error);
+
+  /// No description provided for @chat_meetings_status_live.
+  ///
+  /// In ru, this message translates to:
+  /// **'идёт'**
+  String get chat_meetings_status_live;
+
+  /// No description provided for @chat_meetings_status_finished.
+  ///
+  /// In ru, this message translates to:
+  /// **'завершена'**
+  String get chat_meetings_status_finished;
+
+  /// No description provided for @chat_meetings_badge_private.
+  ///
+  /// In ru, this message translates to:
+  /// **'закрытая'**
+  String get chat_meetings_badge_private;
+
+  /// No description provided for @chat_contacts_search_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск контактов...'**
+  String get chat_contacts_search_hint;
+
+  /// No description provided for @chat_contacts_permission_denied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступ к контактам не предоставлен.'**
+  String get chat_contacts_permission_denied;
+
+  /// No description provided for @chat_contacts_sync_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка синхронизации контактов: {error}'**
+  String chat_contacts_sync_error(Object error);
+
+  /// No description provided for @chat_contacts_invite_prepare_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось подготовить приглашение: {error}'**
+  String chat_contacts_invite_prepare_failed(Object error);
+
+  /// No description provided for @chat_contacts_matches_not_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'Совпадений не найдено.'**
+  String get chat_contacts_matches_not_found;
+
+  /// No description provided for @chat_contacts_added_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавлено контактов: {count}.'**
+  String chat_contacts_added_count(Object count);
+
+  /// No description provided for @chat_contacts_invite_text.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поставь LighChat: https://lighchat.online\nПриглашаю тебя в LighChat — вот ссылка на установку.'**
+  String get chat_contacts_invite_text;
+
+  /// No description provided for @chat_contacts_invite_subject.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приглашение в LighChat'**
+  String get chat_contacts_invite_subject;
+
+  /// No description provided for @chat_contacts_error_load.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки контактов: {error}'**
+  String chat_contacts_error_load(Object error);
 
   /// No description provided for @chat_list_item_draft_line.
   ///
@@ -3608,6 +4082,42 @@ abstract class AppLocalizations {
   /// **'Перевести'**
   String get conversation_durak_action_transfer;
 
+  /// No description provided for @conversation_durak_action_pass.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пас'**
+  String get conversation_durak_action_pass;
+
+  /// No description provided for @conversation_durak_game_finished_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Игра завершена'**
+  String get conversation_durak_game_finished_title;
+
+  /// No description provided for @conversation_durak_game_finished_no_loser.
+  ///
+  /// In ru, this message translates to:
+  /// **'В этот раз без проигравшего.'**
+  String get conversation_durak_game_finished_no_loser;
+
+  /// No description provided for @conversation_durak_game_finished_loser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проиграл: {uid}'**
+  String conversation_durak_game_finished_loser(Object uid);
+
+  /// No description provided for @conversation_durak_game_finished_winners.
+  ///
+  /// In ru, this message translates to:
+  /// **'Победили: {uids}'**
+  String conversation_durak_game_finished_winners(Object uids);
+
+  /// No description provided for @conversation_durak_drop_zone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перетащи карту сюда, чтобы сыграть'**
+  String get conversation_durak_drop_zone;
+
   /// No description provided for @durak_settings_mode.
   ///
   /// In ru, this message translates to:
@@ -3632,6 +4142,24 @@ abstract class AppLocalizations {
   /// **'Игроков'**
   String get durak_settings_max_players;
 
+  /// No description provided for @durak_settings_deck.
+  ///
+  /// In ru, this message translates to:
+  /// **'Колода'**
+  String get durak_settings_deck;
+
+  /// No description provided for @durak_deck_36.
+  ///
+  /// In ru, this message translates to:
+  /// **'36 карт'**
+  String get durak_deck_36;
+
+  /// No description provided for @durak_deck_52.
+  ///
+  /// In ru, this message translates to:
+  /// **'52 карты'**
+  String get durak_deck_52;
+
   /// No description provided for @durak_settings_with_jokers.
   ///
   /// In ru, this message translates to:
@@ -3649,6 +4177,126 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выкл'**
   String get durak_turn_timer_off;
+
+  /// No description provided for @durak_settings_throw_in_policy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто может подкидывать'**
+  String get durak_settings_throw_in_policy;
+
+  /// No description provided for @durak_throw_in_policy_all.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все (кроме защитника)'**
+  String get durak_throw_in_policy_all;
+
+  /// No description provided for @durak_throw_in_policy_neighbors.
+  ///
+  /// In ru, this message translates to:
+  /// **'Только соседи защитника'**
+  String get durak_throw_in_policy_neighbors;
+
+  /// No description provided for @durak_settings_shuler.
+  ///
+  /// In ru, this message translates to:
+  /// **'Режим шулера'**
+  String get durak_settings_shuler;
+
+  /// No description provided for @durak_settings_shuler_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешает нелегальные ходы, пока кто-то не крикнет «Фолл!»'**
+  String get durak_settings_shuler_subtitle;
+
+  /// No description provided for @conversation_durak_action_foul.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фолл!'**
+  String get conversation_durak_action_foul;
+
+  /// No description provided for @conversation_durak_action_resolve.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердить «Бито»'**
+  String get conversation_durak_action_resolve;
+
+  /// No description provided for @conversation_durak_foul_toast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фолл! Шулер наказан.'**
+  String get conversation_durak_foul_toast;
+
+  /// No description provided for @durak_phase_prefix.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фаза'**
+  String get durak_phase_prefix;
+
+  /// No description provided for @durak_phase_attack.
+  ///
+  /// In ru, this message translates to:
+  /// **'Атака'**
+  String get durak_phase_attack;
+
+  /// No description provided for @durak_phase_defense.
+  ///
+  /// In ru, this message translates to:
+  /// **'Защита'**
+  String get durak_phase_defense;
+
+  /// No description provided for @durak_phase_throw_in.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подкид'**
+  String get durak_phase_throw_in;
+
+  /// No description provided for @durak_phase_resolution.
+  ///
+  /// In ru, this message translates to:
+  /// **'Розыгрыш'**
+  String get durak_phase_resolution;
+
+  /// No description provided for @durak_phase_finished.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершено'**
+  String get durak_phase_finished;
+
+  /// No description provided for @durak_phase_pending_foul.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидание фолла после «Бито»'**
+  String get durak_phase_pending_foul;
+
+  /// No description provided for @durak_phase_pending_foul_hint_attacker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждём фолл. Если никто не нажмёт — подтверди «Бито».'**
+  String get durak_phase_pending_foul_hint_attacker;
+
+  /// No description provided for @durak_phase_pending_foul_hint_other.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждём фолл. Нажми «Фолл!», если заметил шулерство.'**
+  String get durak_phase_pending_foul_hint_other;
+
+  /// No description provided for @durak_phase_hint_can_throw_in.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно подкидывать'**
+  String get durak_phase_hint_can_throw_in;
+
+  /// No description provided for @durak_phase_hint_wait.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждите свой ход'**
+  String get durak_phase_hint_wait;
+
+  /// No description provided for @durak_now_throwing_in.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас подкидывает: {name}'**
+  String durak_now_throwing_in(Object name);
 
   /// No description provided for @chat_selection_selected_count.
   ///

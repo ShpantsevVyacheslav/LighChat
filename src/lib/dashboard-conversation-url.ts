@@ -12,6 +12,9 @@ export const DASHBOARD_OPEN_PROFILE_QUERY = 'openProfile';
 export const DASHBOARD_PROFILE_USER_QUERY = 'profileUserId';
 export const DASHBOARD_PROFILE_SOURCE_QUERY = 'profileSource';
 
+/** Открыть игру (лобби/экран) внутри чата. */
+export const DASHBOARD_GAME_ID_QUERY = 'gameId';
+
 export type DashboardChatProfileSource = 'contacts' | 'mention' | 'sender' | 'chat';
 
 function normalizeDashboardProfileSource(
@@ -32,6 +35,7 @@ export function buildDashboardChatOpenUrl(
     openProfile?: boolean;
     profileUserId?: string | null;
     profileSource?: DashboardChatProfileSource | null;
+    gameId?: string | null;
   }
 ): string {
   const p = new URLSearchParams();
@@ -51,6 +55,9 @@ export function buildDashboardChatOpenUrl(
   const source = normalizeDashboardProfileSource(options?.profileSource ?? null);
   if (source) {
     p.set(DASHBOARD_PROFILE_SOURCE_QUERY, source);
+  }
+  if (options?.gameId) {
+    p.set(DASHBOARD_GAME_ID_QUERY, options.gameId);
   }
   return `/dashboard/chat?${p.toString()}`;
 }
