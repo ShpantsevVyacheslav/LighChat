@@ -43,7 +43,9 @@ export const createGameLobby = onCall(
     }
 
     const isGroup = conv.isGroup === true;
-    const settings = normalizeDurakSettings(request.data?.settings);
+    const normalized = normalizeDurakSettings(request.data?.settings);
+    // DM is always 2 players by product definition.
+    const settings = isGroup ? normalized : { ...normalized, maxPlayers: 2 };
 
     const nowIso = new Date().toISOString();
     const gameRef = db.collection("games").doc();
@@ -86,6 +88,19 @@ export const createGameLobby = onCall(
     const batch = db.batch();
     batch.create(gameRef, gameDoc);
     batch.create(lobbyRef, lobbyDoc);
+
+    // System message so the other participant sees a banner / gets a push.
+    const msgRef = db.collection(`conversations/${conversationId}/messages`).doc();
+    batch.create(msgRef, {
+      id: msgRef.id,
+      senderId: "__system__",
+      createdAt: nowIso,
+      text: "🎮 Создано лобби «Дурак». Откройте «Игры», чтобы присоединиться.",
+      systemEvent: {
+        type: "gameLobbyCreated",
+        data: { gameId, gameType: "durak" },
+      },
+    });
     await batch.commit();
 
     logger.info("[createGameLobby] created", {

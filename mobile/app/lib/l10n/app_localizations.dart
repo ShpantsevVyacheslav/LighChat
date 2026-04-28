@@ -392,6 +392,30 @@ abstract class AppLocalizations {
   /// **'Место {place}'**
   String tournament_game_place(Object place);
 
+  /// No description provided for @durak_dm_lobby_banner.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собеседник создал лобби «Дурак» — присоединиться'**
+  String get durak_dm_lobby_banner;
+
+  /// No description provided for @durak_dm_lobby_open.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть лобби'**
+  String get durak_dm_lobby_open;
+
+  /// No description provided for @conversation_game_lobby_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершить ожидание'**
+  String get conversation_game_lobby_cancel;
+
+  /// No description provided for @conversation_game_lobby_cancel_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось завершить ожидание: {err}'**
+  String conversation_game_lobby_cancel_failed(Object err);
+
   /// No description provided for @secret_chat_media_views_count.
   ///
   /// In ru, this message translates to:

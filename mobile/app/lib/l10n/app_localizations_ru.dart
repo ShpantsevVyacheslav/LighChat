@@ -182,6 +182,21 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get durak_dm_lobby_banner =>
+      'Собеседник создал лобби «Дурак» — присоединиться';
+
+  @override
+  String get durak_dm_lobby_open => 'Открыть лобби';
+
+  @override
+  String get conversation_game_lobby_cancel => 'Завершить ожидание';
+
+  @override
+  String conversation_game_lobby_cancel_failed(Object err) {
+    return 'Не удалось завершить ожидание: $err';
+  }
+
+  @override
   String secret_chat_media_views_count(Object count) {
     return '$count просмотров';
   }

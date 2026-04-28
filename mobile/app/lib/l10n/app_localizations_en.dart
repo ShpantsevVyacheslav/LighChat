@@ -181,6 +181,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get durak_dm_lobby_banner =>
+      'Your partner created a Durak lobby — join';
+
+  @override
+  String get durak_dm_lobby_open => 'Open lobby';
+
+  @override
+  String get conversation_game_lobby_cancel => 'End waiting';
+
+  @override
+  String conversation_game_lobby_cancel_failed(Object err) {
+    return 'Unable to end waiting: $err';
+  }
+
+  @override
   String secret_chat_media_views_count(Object count) {
     return '$count views';
   }

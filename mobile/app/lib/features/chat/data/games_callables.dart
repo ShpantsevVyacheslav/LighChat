@@ -165,6 +165,24 @@ class GamesCallables {
     await callable.call<dynamic>(data);
   }
 
+  Future<void> cancelLobby({required String gameId}) async {
+    final data = <String, dynamic>{'gameId': gameId};
+    if (Platform.isIOS) {
+      await callFirebaseCallableHttp(
+        name: 'cancelGameLobby',
+        region: 'us-central1',
+        data: data,
+        timeout: const Duration(seconds: 20),
+      );
+      return;
+    }
+    final callable = _functions.httpsCallable(
+      'cancelGameLobby',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+    );
+    await callable.call<dynamic>(data);
+  }
+
   Future<void> makeDurakMove({
     required String gameId,
     required String clientMoveId,

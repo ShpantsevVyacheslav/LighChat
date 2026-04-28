@@ -47,7 +47,8 @@ export const createTournamentGameLobby = onCall(
     if (!participantIds.includes(uid)) throw new HttpsError("permission-denied", "NOT_A_MEMBER");
 
     const isGroup = conv.isGroup === true;
-    const settings = normalizeDurakSettings(request.data?.settings);
+    const normalized = normalizeDurakSettings(request.data?.settings);
+    const settings = isGroup ? normalized : { ...normalized, maxPlayers: 2 };
 
     const nowIso = new Date().toISOString();
     const gameRef = db.collection("games").doc();

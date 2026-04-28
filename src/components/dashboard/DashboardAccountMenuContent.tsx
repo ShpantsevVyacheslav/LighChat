@@ -117,7 +117,7 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
       <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
         <Avatar className="h-10 w-10 border border-black/5 dark:border-white/10 shadow-sm">
           <AvatarImage src={userAvatarListUrl(user)} alt={user.name} />
-          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+          <AvatarFallback>{(user.name ?? '?').charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold truncate">{user.name}</p>

@@ -35,6 +35,7 @@ export { createGameLobby } from './triggers/http/createGameLobby';
 export { joinGameLobby } from './triggers/http/joinGameLobby';
 export { startDurakGame } from './triggers/http/startDurakGame';
 export { makeDurakMove } from './triggers/http/makeDurakMove';
+export { cancelGameLobby } from './triggers/http/cancelGameLobby';
 export { createDurakTournament } from './triggers/http/createDurakTournament';
 export { createTournamentGameLobby } from './triggers/http/createTournamentGameLobby';
 

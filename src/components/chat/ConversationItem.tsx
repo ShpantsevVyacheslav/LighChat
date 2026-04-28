@@ -248,7 +248,9 @@ export function ConversationItem({
                 <div className="relative shrink-0">
                     <Avatar className="h-12 w-12 ring-1 ring-black/5 dark:ring-white/10">
                         <AvatarImage src={avatar} alt={displayName} className="object-cover" />
-                        <AvatarFallback className="bg-muted text-foreground font-bold">{displayName.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="bg-muted text-foreground font-bold">
+                          {(displayName || '?').charAt(0)}
+                        </AvatarFallback>
                     </Avatar>
                     {!conv.isGroup &&
                         !isSavedMessages &&

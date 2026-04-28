@@ -88,6 +88,15 @@
       "place": {}
     }
   },
+  "durak_dm_lobby_banner": "Собеседник создал лобби «Дурак» — присоединиться",
+  "durak_dm_lobby_open": "Открыть лобби",
+  "conversation_game_lobby_cancel": "Завершить ожидание",
+  "conversation_game_lobby_cancel_failed": "Не удалось завершить ожидание: {err}",
+  "@conversation_game_lobby_cancel_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
   "secret_chat_media_views_count": "{count} просмотров",
   "@secret_chat_media_views_count": {
     "placeholders": {

@@ -13,6 +13,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
+import 'package:lighchat_firebase/src/chat_open_diagnostics.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -69,6 +70,7 @@ import '../data/outgoing_album_e2ee_context.dart';
 import '../data/pending_image_album_send.dart';
 import 'outgoing_pending_media_album.dart';
 import 'live_location_stop_banner.dart';
+import 'dm_game_lobby_banner.dart';
 import 'location_send_preview_sheet.dart';
 import 'message_context_menu.dart';
 import 'message_html_text.dart';
@@ -1403,6 +1405,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             child: Column(
                               children: [
                                 SizedBox(height: belowHeaderGap),
+                                if (conv != null)
+                                  DmGameLobbyBanner(
+                                    conversationId: conversationId,
+                                    isGroup: conv.data.isGroup,
+                                  ),
                                 if (topPin != null && conv != null)
                                   ChatPinnedStrip(
                                     pin: topPin,
@@ -2423,6 +2430,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ? e.code.toLowerCase().trim()
                           : '';
                       final isDenied = fbCode == 'permission-denied';
+                      String diagHint = '';
+                      if (isDenied) {
+                        // ignore: discarded_futures
+                        logChatOpenDiagnostics(
+                          stage: 'chat_screen.messages.error',
+                          conversationId: conversationId,
+                          error: e,
+                        );
+                        final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                        diagHint =
+                            '\n\nDiagnostics:\n- uid: ${uid.isEmpty ? '(null)' : uid}';
+                      }
                       final msg = isDenied
                           ? 'Permission denied.\n\n'
                               'Most common reasons:\n'
@@ -2439,7 +2458,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(msg),
+                              Text('$msg$diagHint'),
                               const SizedBox(height: 12),
                               FilledButton(
                                 onPressed: () => Navigator.of(context).maybePop(),

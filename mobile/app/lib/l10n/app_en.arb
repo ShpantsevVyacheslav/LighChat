@@ -88,6 +88,15 @@
       "place": {}
     }
   },
+  "durak_dm_lobby_banner": "Your partner created a Durak lobby — join",
+  "durak_dm_lobby_open": "Open lobby",
+  "conversation_game_lobby_cancel": "End waiting",
+  "conversation_game_lobby_cancel_failed": "Unable to end waiting: {err}",
+  "@conversation_game_lobby_cancel_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
   "secret_chat_media_views_count": "{count} views",
   "@secret_chat_media_views_count": {
     "placeholders": {

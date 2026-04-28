@@ -58,7 +58,9 @@ export function DashboardAccountNavButton({
             )}
           >
             <AvatarImage src={userAvatarListUrl(user)} alt={user.name} />
-            <AvatarFallback className="text-xs font-bold">{user.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback className="text-xs font-bold">
+              {(user.name ?? '?').charAt(0)}
+            </AvatarFallback>
           </Avatar>
         </button>
       </PopoverTrigger>

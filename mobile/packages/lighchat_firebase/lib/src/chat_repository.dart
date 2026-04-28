@@ -12,6 +12,7 @@ import 'package:logger/logger.dart';
 
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'chat_open_diagnostics.dart';
 import 'firebase_callable_http.dart';
 
 /// Элемент ответа callable `checkGroupInvitesAllowed` (web `CheckGroupInvitesResult`).
@@ -288,13 +289,41 @@ class ChatRepository {
           final shouldRetry =
               !retried && (code == 'permission-denied' || code == 'unauthenticated');
           if (!shouldRetry) {
+            if (code == 'permission-denied' || code == 'unauthenticated') {
+              try {
+                await logChatOpenDiagnostics(
+                  stage: 'watchMessages.onError.final',
+                  conversationId: conversationId,
+                  error: err,
+                  stackTrace: st,
+                  logger: _logger,
+                );
+              } catch (_) {}
+            }
             controller.addError(err, st);
             return;
           }
           retried = true;
           try {
-            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+            await logChatOpenDiagnostics(
+              stage: 'watchMessages.onError.before_refresh',
+              conversationId: conversationId,
+              error: err,
+              stackTrace: st,
+              logger: _logger,
+            );
           } catch (_) {}
+          try {
+            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+          } catch (e, st2) {
+            // Important: on older iOS builds/VPN/mitm cases token refresh fails
+            // with TLS errors (-1200 / -9816) and Firestore will keep denying reads.
+            _logger.w(
+              'watchMessages token refresh failed',
+              error: e,
+              stackTrace: st2,
+            );
+          }
           await start();
         },
       );
@@ -379,13 +408,39 @@ class ChatRepository {
           final shouldRetry =
               !retried && (code == 'permission-denied' || code == 'unauthenticated');
           if (!shouldRetry) {
+            if (code == 'permission-denied' || code == 'unauthenticated') {
+              try {
+                await logChatOpenDiagnostics(
+                  stage: 'watchThreadMessages.onError.final',
+                  conversationId: conversationId,
+                  error: err,
+                  stackTrace: st,
+                  logger: _logger,
+                );
+              } catch (_) {}
+            }
             controller.addError(err, st);
             return;
           }
           retried = true;
           try {
-            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+            await logChatOpenDiagnostics(
+              stage: 'watchThreadMessages.onError.before_refresh',
+              conversationId: conversationId,
+              error: err,
+              stackTrace: st,
+              logger: _logger,
+            );
           } catch (_) {}
+          try {
+            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
+          } catch (e, st2) {
+            _logger.w(
+              'watchThreadMessages token refresh failed',
+              error: e,
+              stackTrace: st2,
+            );
+          }
           await start();
         },
       );

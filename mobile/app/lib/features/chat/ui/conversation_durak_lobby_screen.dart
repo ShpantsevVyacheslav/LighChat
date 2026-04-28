@@ -66,6 +66,7 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
               status == 'lobby' &&
               playerCount >= 2 &&
               _isOwner(data, me);
+          final canCancel = me != null && status == 'lobby' && _isOwner(data, me);
 
           if (status == 'active') {
             return ConversationDurakGameScreen(gameId: gameId);
@@ -151,6 +152,22 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                               : l10n.common_soon)),
                 ),
               ),
+              if (canCancel) ...[
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: () async {
+                    try {
+                      await GamesCallables().cancelLobby(gameId: gameId);
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop();
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      _toast(context, l10n.conversation_game_lobby_cancel_failed(e));
+                    }
+                  },
+                  child: Text(l10n.conversation_game_lobby_cancel),
+                ),
+              ],
             ],
           );
         },
