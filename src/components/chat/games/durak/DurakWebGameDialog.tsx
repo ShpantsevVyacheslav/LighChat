@@ -73,6 +73,9 @@ export function DurakWebGameDialog({
 
   const joinLobby = useCallback(() => call('joinGameLobby', { gameId }), [call, gameId]);
   const startGame = useCallback(() => call('startDurakGame', { gameId }), [call, gameId]);
+  const cancelLobby = useCallback(async () => {
+    await call('cancelGameLobby', { gameId });
+  }, [call, gameId, onOpenChange]);
 
   const makeMove = useCallback(
     (actionType: string, payload?: Record<string, unknown>) =>
@@ -89,6 +92,7 @@ export function DurakWebGameDialog({
   const status = game?.status ?? '';
   const playerIds = game?.playerIds ?? [];
   const inGame = playerIds.includes(currentUser.id);
+  const isOwner = game?.createdBy === currentUser.id;
 
   const attacks = (publicView?.table?.attacks ?? []) as Card[];
   const defenses = (publicView?.table?.defenses ?? []) as (Card | null)[];
@@ -131,6 +135,13 @@ export function DurakWebGameDialog({
                 </Button>
                 <Button onClick={startGame} disabled={busy != null || status !== 'lobby' || !inGame}>
                   Старт
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={cancelLobby}
+                  disabled={busy != null || status !== 'lobby' || !isOwner}
+                >
+                  Завершить ожидание
                 </Button>
               </div>
             </div>
@@ -219,6 +230,18 @@ export function DurakWebGameDialog({
                   </div>
                 </div>
               </>
+            ) : status === 'cancelled' ? (
+              <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/30 p-4">
+                <div className="text-sm font-bold text-zinc-100">Лобби завершено</div>
+                <div className="mt-1 text-sm text-zinc-500">
+                  Создатель завершил ожидание. Это лобби больше недоступно для старта.
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy != null}>
+                    Закрыть
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="text-sm text-zinc-500">
                 Открой лобби (join) и нажми «Старт», чтобы начать игру.

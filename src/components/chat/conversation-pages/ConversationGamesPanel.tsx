@@ -12,6 +12,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
+type GameLobbyIndexDoc = {
+  gameId?: string;
+  type?: string;
+  status?: string;
+  createdAt?: string;
+  createdBy?: string;
+  playerCount?: number;
+  maxPlayers?: number;
+};
+
 type TournamentDoc = {
   id: string;
   type: 'durak';
@@ -50,6 +60,23 @@ export function ConversationGamesPanel({
   const { toast } = useToast();
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+
+  const lobbiesQuery = useMemoFirebase(
+    () =>
+      firestore && conversationId
+        ? query(
+            collection(firestore, `conversations/${conversationId}/gameLobbies`),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+          )
+        : null,
+    [firestore, conversationId]
+  );
+  const { data: lobbyIndexRows } = useCollection<GameLobbyIndexDoc>(lobbiesQuery);
+  const durakLobbies = useMemo(() => {
+    const rows = lobbyIndexRows ?? [];
+    return rows.filter((r) => (r.type ?? '') === 'durak' && ['lobby', 'active'].includes(String(r.status ?? '')));
+  }, [lobbyIndexRows]);
 
   const tournamentsQuery = useMemoFirebase(
     () =>
@@ -236,6 +263,53 @@ export function ConversationGamesPanel({
 
   return (
     <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="text-xs font-bold uppercase text-zinc-500">Лобби</div>
+        {durakLobbies.length === 0 ? (
+          <div className="text-xs text-zinc-500">Активных лобби нет</div>
+        ) : (
+          <div className="space-y-2">
+            {durakLobbies.map((l, idx) => {
+              const gameId = (l.gameId ?? '') || '';
+              const status = String(l.status ?? '');
+              const pc = typeof l.playerCount === 'number' ? l.playerCount : 0;
+              const mp = typeof l.maxPlayers === 'number' ? l.maxPlayers : 0;
+              const canOpen = Boolean(gameId);
+              return (
+                <div
+                  key={`${gameId || idx}-${status}`}
+                  className="flex items-center justify-between gap-3 rounded-3xl border border-zinc-800/60 bg-zinc-900/40 p-4"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Swords className="h-4 w-4 text-emerald-400" />
+                      <div className="truncate text-sm font-bold text-zinc-100">Дурак</div>
+                      <Badge variant="secondary">{status}</Badge>
+                      <Badge variant="secondary" className="ml-auto">
+                        {pc}/{mp}
+                      </Badge>
+                    </div>
+                    {gameId && <div className="mt-1 text-xs text-zinc-500">gameId: {gameId}</div>}
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={!canOpen}
+                    onClick={() => {
+                      if (!gameId) return;
+                      onCreatedGameLobby?.(gameId);
+                    }}
+                    className="gap-2"
+                  >
+                    Открыть
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-bold text-zinc-100">Игры</div>
         <Button onClick={createTournament} disabled={busy != null} className="gap-2">
