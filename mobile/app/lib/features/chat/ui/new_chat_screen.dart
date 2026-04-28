@@ -732,6 +732,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
       final ttlSec = await showModalBottomSheet<int>(
         context: context,
         isScrollControlled: true,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        barrierColor: Colors.black.withValues(alpha: 0.55),
+        showDragHandle: true,
         builder: (_) => const SecretChatTtlSheet(),
       );
       if (ttlSec == null || !mounted) return;
@@ -752,7 +755,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
         ttlPresetSec: ttlSec,
       );
       if (!mounted) return;
-      context.push('/chats/$convId');
+      context.push('/chats/$convId/secret-settings');
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {

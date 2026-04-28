@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
 /// Creates (or opens existing) Secret DM chat between two users.
@@ -85,15 +86,21 @@ Future<String> createOrOpenSecretDirectChat({
     });
   });
 
-  // Force-enable E2EE for secret chats.
-  final identity = await getOrCreateMobileDeviceIdentity();
-  await tryAutoEnableE2eeNewDirectChatMobile(
-    firestore: firestore,
-    conversationId: conversationId,
-    currentUserId: a,
-    identity: identity,
-    options: const AutoEnableE2eeOptions(userWants: true, platformWants: true),
-  );
+  // Force-enable E2EE for secret chats (best-effort: chat still exists if keys/peers missing).
+  try {
+    final identity = await getOrCreateMobileDeviceIdentity();
+    await tryAutoEnableE2eeNewDirectChatMobile(
+      firestore: firestore,
+      conversationId: conversationId,
+      currentUserId: a,
+      identity: identity,
+      options: const AutoEnableE2eeOptions(userWants: true, platformWants: true),
+    );
+  } catch (e, st) {
+    if (kDebugMode) {
+      debugPrint('[secret-chat] E2EE auto-enable failed (non-fatal): $e\n$st');
+    }
+  }
 
   return conversationId;
 }

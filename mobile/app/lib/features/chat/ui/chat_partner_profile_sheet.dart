@@ -367,6 +367,9 @@ class _ChatPartnerProfileSheetState
     final ttlSec = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      showDragHandle: true,
       builder: (_) => const SecretChatTtlSheet(),
     );
     if (ttlSec == null || !mounted) return;
@@ -391,7 +394,7 @@ class _ChatPartnerProfileSheetState
         ttlPresetSec: ttlSec,
       );
       if (!mounted) return;
-      context.push('/chats/$id');
+      context.push('/chats/$id/secret-settings');
     } catch (e) {
       if (mounted) _toast(l10n.partner_profile_error_open_chat(e));
     } finally {
@@ -1253,6 +1256,24 @@ class _ChatPartnerProfileSheetState
                       ),
                     );
                   },
+                ),
+              if (!_isGroup &&
+                  !_isSaved &&
+                  partnerId != null &&
+                  widget.conversation.secretChat?.enabled != true)
+                _menuButton(
+                  context,
+                  icon: Icons.lock_rounded,
+                  title: l10n.secret_chat_title,
+                  subtitle: l10n.secret_chat_settings_subtitle,
+                  onTap: _chatActionBusy
+                      ? null
+                      : () => unawaited(
+                            _openSecretChatFromActions(
+                              partnerId: partnerId,
+                              displayTitle: displayTitle,
+                            ),
+                          ),
                 ),
               if (widget.conversation.secretChat?.enabled == true)
                 _menuButton(

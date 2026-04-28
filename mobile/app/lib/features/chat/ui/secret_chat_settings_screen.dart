@@ -142,6 +142,9 @@ class _SecretChatSettingsScreenState extends ConsumerState<SecretChatSettingsScr
                           final ttlSec = await showModalBottomSheet<int>(
                             context: context,
                             isScrollControlled: true,
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            barrierColor: Colors.black.withValues(alpha: 0.55),
+                            showDragHandle: true,
                             builder: (_) => SecretChatTtlSheet(initialSec: cfg.ttlPresetSec),
                           );
                           if (ttlSec == null) return;

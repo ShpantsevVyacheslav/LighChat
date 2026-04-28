@@ -27,33 +27,40 @@ class SecretChatTtlSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.secret_chat_ttl_title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 12),
-            for (final sec in presets)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  title: Text(_label(l10n, sec)),
-                  onTap: () => Navigator.of(context).pop(sec),
-                ),
+      child: Material(
+        color: scheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.secret_chat_ttl_title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop<int?>(null),
-              child: Text(l10n.common_cancel),
-            ),
-          ],
+              const SizedBox(height: 12),
+              for (final sec in presets)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    tileColor: scheme.surfaceContainerHighest,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    title: Text(_label(l10n, sec)),
+                    onTap: () => Navigator.of(context).pop(sec),
+                  ),
+                ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop<int?>(null),
+                child: Text(l10n.common_cancel),
+              ),
+            ],
+          ),
         ),
       ),
     );

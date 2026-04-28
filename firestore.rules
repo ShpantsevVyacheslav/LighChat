@@ -96,7 +96,8 @@ service cloud.firestore {
     function canReadMissingConversationById(conversationId) {
       return request.method == 'get' && (
         conversationId.matches('^saved_[0-9]+:.*$') ||
-        conversationId.matches('^dm_.*$')
+        conversationId.matches('^dm_.*$') ||
+        conversationId.matches('^sdm_.*$')
       );
     }
 
@@ -182,6 +183,20 @@ service cloud.firestore {
       return isSignedIn()
         && exists(/databases/$(database)/documents/conversations/$(conversationId)/secretAccess/$(request.auth.uid))
         && get(/databases/$(database)/documents/conversations/$(conversationId)/secretAccess/$(request.auth.uid)).data.expiresAtTs > request.time;
+    }
+
+    /**
+     * Пока нет активного secretAccess, участник всё равно должен иметь возможность
+     * записать первичный `e2eeSessions/*` и system-маркер `e2ee.v2.enabled`
+     * (иначе создание секретного чата + принудительное E2EE ломается с permission-denied).
+     * Обычные сообщения по-прежнему требуют unlock (`canReadSecretChat`).
+     */
+    function secretChatE2eeBootstrapAllowed(conversationId) {
+      return isSignedIn()
+        && isSecretChatConversationData(conversationData(conversationId))
+        && !hasActiveSecretChatAccess(conversationId)
+        && uidIsConversationParticipantFromData(conversationData(conversationId))
+        && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
     }
 
     function canReadSecretChat(conversationId, data) {
@@ -638,15 +653,25 @@ service cloud.firestore {
         // `systemEvent` c допустимым `type`. Обычные сообщения по-прежнему
         // должны иметь senderId == auth.uid.
         allow create: if isConversationMember(conversationId)
-          && canReadSecretChat(conversationId, conversationData(conversationId))
           && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
           && chatMessageCreateWithoutExpireAt()
           && (
-          request.resource.data.senderId == request.auth.uid
+          (
+            canReadSecretChat(conversationId, conversationData(conversationId))
+            && (
+              request.resource.data.senderId == request.auth.uid
+              || (
+                request.resource.data.senderId == '__system__'
+                && request.resource.data.systemEvent is map
+                && request.resource.data.systemEvent.type is string
+              )
+            )
+          )
           || (
-            request.resource.data.senderId == '__system__'
+            secretChatE2eeBootstrapAllowed(conversationId)
+            && request.resource.data.senderId == '__system__'
             && request.resource.data.systemEvent is map
-            && request.resource.data.systemEvent.type is string
+            && request.resource.data.systemEvent.type == 'e2ee.v2.enabled'
           )
         );
         allow update: if isConversationMember(conversationId)
@@ -692,9 +717,12 @@ service cloud.firestore {
           && canReadSecretChat(conversationId, conversationData(conversationId))
           && !isDmHiddenForViewerFromConvData(conversationData(conversationId));
         allow write: if isConversationMember(conversationId)
-          && canReadSecretChat(conversationId, conversationData(conversationId))
           && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
-          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
+          && (
+            canReadSecretChat(conversationId, conversationData(conversationId))
+            || secretChatE2eeBootstrapAllowed(conversationId)
+          );
       }
 
       /** Unlock grants секретного чата: пишет только сервер (callable), читает только владелец. */
