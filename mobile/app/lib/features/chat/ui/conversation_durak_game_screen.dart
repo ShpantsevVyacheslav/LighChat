@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/games_callables.dart';
 import 'durak_card_flight_layer.dart';
+import 'durak_felt_background.dart';
 import 'durak_hand_fan.dart';
 import 'durak_phase_banner.dart';
 import 'durak_player_names.dart';
@@ -275,8 +276,9 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.conversation_games_durak)),
-      body: DurakCardFlightLayer(
-        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      body: DurakFeltBackground(
+        child: DurakCardFlightLayer(
+          child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
           stream: gameRef.snapshots(),
           builder: (context, gameSnap) {
           if (!gameSnap.hasData) {
@@ -1053,6 +1055,7 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
             ],
           );
         },
+          ),
         ),
       ),
     );
