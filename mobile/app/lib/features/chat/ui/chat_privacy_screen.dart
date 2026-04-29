@@ -114,16 +114,17 @@ class ChatPrivacyScreen extends ConsumerWidget {
 
               Future<void> showOk(String message) async {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(message)),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(message)));
               }
 
               Future<void> openVaultPinSetupFlow() async {
                 try {
-                  bool hasPin = await vaultCallables
-                      .hasVaultPin()
-                      .timeout(const Duration(seconds: 5), onTimeout: () => false);
+                  bool hasPin = await vaultCallables.hasVaultPin().timeout(
+                    const Duration(seconds: 5),
+                    onTimeout: () => false,
+                  );
                   if (!context.mounted) return;
                   var trustedByBiometric = false;
                   String? oldPin;
@@ -197,9 +198,6 @@ class ChatPrivacyScreen extends ConsumerWidget {
 
               return _PrivacyView(
                 settings: settings,
-                onE2eeChanged: (v) => savePatch(e2eeForNewDirectChats: v),
-                onE2eeDataTypesChanged: (p) =>
-                    savePatch(e2eeEncryptedDataTypes: p),
                 onShowOnlineChanged: (v) => savePatch(showOnlineStatus: v),
                 onShowLastSeenChanged: (v) => savePatch(showLastSeen: v),
                 onShowReadReceiptsChanged: (v) =>
@@ -233,8 +231,6 @@ class ChatPrivacyScreen extends ConsumerWidget {
 class _PrivacyView extends StatelessWidget {
   const _PrivacyView({
     required this.settings,
-    required this.onE2eeChanged,
-    required this.onE2eeDataTypesChanged,
     required this.onShowOnlineChanged,
     required this.onShowLastSeenChanged,
     required this.onShowReadReceiptsChanged,
@@ -250,8 +246,6 @@ class _PrivacyView extends StatelessWidget {
   });
 
   final _PrivacySettingsState settings;
-  final ValueChanged<bool> onE2eeChanged;
-  final ValueChanged<E2eeDataTypePolicy> onE2eeDataTypesChanged;
   final ValueChanged<bool> onShowOnlineChanged;
   final ValueChanged<bool> onShowLastSeenChanged;
   final ValueChanged<bool> onShowReadReceiptsChanged;
@@ -327,50 +321,6 @@ class _PrivacyView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 6),
-                _SettingsCard(
-                  title: l10n.privacy_e2ee_section,
-                  leadingIcon: Icons.lock_outline_rounded,
-                  children: [
-                    _SwitchRow(
-                      title: l10n.privacy_e2ee_enable_for_all_chats,
-                      value: settings.e2eeForNewDirectChats,
-                      onChanged: onE2eeChanged,
-                    ),
-                    const SizedBox(height: 8),
-                    _SettingsSubheader(text: l10n.privacy_e2ee_what_encrypt),
-                    _SwitchRow(
-                      title: l10n.privacy_e2ee_text,
-                      value: settings.e2eeEncryptedDataTypes.text,
-                      onChanged: (v) => onE2eeDataTypesChanged(
-                        settings.e2eeEncryptedDataTypes.copyWith(text: v),
-                      ),
-                      icon: Icons.text_fields_rounded,
-                    ),
-                    _SwitchRow(
-                      title: l10n.privacy_e2ee_media,
-                      value: settings.e2eeEncryptedDataTypes.media,
-                      onChanged: (v) => onE2eeDataTypesChanged(
-                        settings.e2eeEncryptedDataTypes.copyWith(media: v),
-                      ),
-                      icon: Icons.attachment_rounded,
-                    ),
-                    // Переход на экран управления устройствами (Phase 5).
-                    // Держим как отдельный элемент, не switch — там список и actions.
-                    _NavRow(
-                      title: l10n.privacy_my_devices_title,
-                      subtitle: l10n.privacy_my_devices_subtitle,
-                      onTap: () => context.push('/settings/devices'),
-                    ),
-                    // Phase 6: recovery — backup ключа паролем + QR-pairing.
-                    // Оба пути нужны, если пользователь потеряет все устройства.
-                    _NavRow(
-                      title: l10n.privacy_key_backup_title,
-                      subtitle: l10n.privacy_key_backup_subtitle,
-                      onTap: () => context.push('/settings/e2ee-recovery'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
                 _SettingsCard(
                   title: l10n.privacy_secret_vault_title,
                   subtitle: l10n.privacy_secret_vault_subtitle,
@@ -602,30 +552,6 @@ class _SettingsCard extends StatelessWidget {
           const SizedBox(height: 10),
           ...children,
         ],
-      ),
-    );
-  }
-}
-
-class _SettingsSubheader extends StatelessWidget {
-  const _SettingsSubheader({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final fg = dark ? Colors.white : scheme.onSurface;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(2, 2, 2, 6),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: fg.withValues(alpha: dark ? 0.82 : 0.76),
-        ),
       ),
     );
   }

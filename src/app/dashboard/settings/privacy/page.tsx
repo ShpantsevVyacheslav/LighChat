@@ -9,11 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users, Lock } from "lucide-react";
+import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users } from "lucide-react";
 import { DevicesPanel } from "@/components/settings/DevicesPanel";
 import { E2eeRecoveryPanel } from "@/components/settings/E2eeRecoveryPanel";
 import { LanguageSettingsCard } from "@/components/settings/LanguageSettingsCard";
-import { DEFAULT_E2EE_ENCRYPTED_DATA_TYPES } from "@/lib/e2ee/e2ee-data-type-policy";
 
 export default function PrivacySettingsPage() {
   const { user, isLoading } = useAuth();
@@ -65,75 +64,6 @@ export default function PrivacySettingsPage() {
       </div>
 
       <LanguageSettingsCard />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Lock className="h-4 w-4 text-muted-foreground" />
-            {t("privacy.e2eeTitle")}
-          </CardTitle>
-          <CardDescription>{t("privacy.e2eeDescription")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Label className="text-sm font-medium">{t("privacy.e2eeTryNewDmLabel")}</Label>
-              <p className="text-xs text-muted-foreground">{t("privacy.e2eeTryNewDmHint")}</p>
-            </div>
-            <Switch
-              checked={privacySettings.e2eeForNewDirectChats === true}
-              onCheckedChange={(v) => handleUpdate({ e2eeForNewDirectChats: v })}
-            />
-          </div>
-          <div className="border-t pt-5 space-y-4">
-            {(() => {
-              const cur = privacySettings.e2eeEncryptedDataTypes ?? DEFAULT_E2EE_ENCRYPTED_DATA_TYPES;
-              const effective = { ...cur, replyPreview: cur.text };
-              return (
-                <>
-                  <div>
-                    <Label className="text-sm font-medium">{t("privacy.e2eeWhatEncryptTitle")}</Label>
-                    <p className="text-xs text-muted-foreground">{t("privacy.e2eeWhatEncryptHint")}</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <Label className="text-sm font-medium">{t("privacy.e2eeTextLabel")}</Label>
-                    </div>
-                    <Switch
-                      checked={effective.text}
-                      onCheckedChange={(v) =>
-                        handleUpdate({
-                          e2eeEncryptedDataTypes: {
-                            ...effective,
-                            text: v,
-                            replyPreview: v,
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <Label className="text-sm font-medium">{t("privacy.e2eeMediaLabel")}</Label>
-                    </div>
-                    <Switch
-                      checked={effective.media}
-                      onCheckedChange={(v) =>
-                        handleUpdate({
-                          e2eeEncryptedDataTypes: {
-                            ...effective,
-                            media: v,
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </CardContent>
-      </Card>
 
       <DevicesPanel />
       <E2eeRecoveryPanel />

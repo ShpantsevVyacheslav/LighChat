@@ -302,7 +302,9 @@ class _ChatPartnerProfileSheetState
     if (repo == null) return;
 
     final selfNameTrimmed = self.name.trim();
-    final selfName = selfNameTrimmed.isNotEmpty ? selfNameTrimmed : widget.currentUserId;
+    final selfName = selfNameTrimmed.isNotEmpty
+        ? selfNameTrimmed
+        : widget.currentUserId;
     final peerName =
         (partner?.name ??
                 widget.conversation.participantInfo?[partnerId]?.name ??
@@ -363,19 +365,24 @@ class _ChatPartnerProfileSheetState
       _toast(l10n.partner_profile_error_open_chat('missing self/partner'));
       return;
     }
-    final secretId = buildSecretDirectConversationId(widget.currentUserId, partnerId);
+    final secretId = buildSecretDirectConversationId(
+      widget.currentUserId,
+      partnerId,
+    );
     final existing = await FirebaseFirestore.instance
         .collection('conversations')
         .doc(secretId)
         .get();
     if (!mounted) return;
-    final alreadyExists = existing.exists &&
+    final alreadyExists =
+        existing.exists &&
         ((existing.data()?['secretChat'] as Map?)?['enabled'] == true);
     if (alreadyExists) {
       _toast(l10n.secret_chat_already_exists);
       return;
     }
-    final peer = partner ??
+    final peer =
+        partner ??
         UserProfile(
           id: partnerId.trim(),
           name: displayTitle.trim().isNotEmpty
@@ -506,7 +513,8 @@ class _ChatPartnerProfileSheetState
       if (username.isNotEmpty)
         username.startsWith('@') ? username : '@$username',
       if (phone.isNotEmpty) formatPhoneNumberForDisplay(phone),
-      if (avatarUrl.isNotEmpty) l10n.partner_profile_share_avatar_line(avatarUrl),
+      if (avatarUrl.isNotEmpty)
+        l10n.partner_profile_share_avatar_line(avatarUrl),
       l10n.partner_profile_share_profile_line(profileUrl),
     ];
     try {
@@ -643,10 +651,11 @@ class _ChatPartnerProfileSheetState
 
   Future<void> _onAddContact(String partnerId) async {
     if (!mounted) return;
-    final url = ((widget.partnerProfile?.avatarThumb ??
-                widget.partnerProfile?.avatar) ??
-            '')
-        .trim();
+    final url =
+        ((widget.partnerProfile?.avatarThumb ??
+                    widget.partnerProfile?.avatar) ??
+                '')
+            .trim();
     if (url.isNotEmpty) {
       try {
         await precacheImage(NetworkImage(url), context);
@@ -747,12 +756,9 @@ class _ChatPartnerProfileSheetState
         await FirebaseFirestore.instance
             .collection('users')
             .doc(widget.currentUserId)
-            .set(
-          <String, Object?>{
-            'blockedUserIds': FieldValue.arrayRemove([partnerId]),
-          },
-          SetOptions(merge: true),
-        );
+            .set(<String, Object?>{
+              'blockedUserIds': FieldValue.arrayRemove([partnerId]),
+            }, SetOptions(merge: true));
         if (mounted) _toast(l10n.blacklist_unblock_success);
       } catch (e) {
         if (mounted) _toast(l10n.blacklist_unblock_error(e));
@@ -782,12 +788,9 @@ class _ChatPartnerProfileSheetState
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.currentUserId)
-          .set(
-        <String, Object?>{
-          'blockedUserIds': FieldValue.arrayUnion([partnerId]),
-        },
-        SetOptions(merge: true),
-      );
+          .set(<String, Object?>{
+            'blockedUserIds': FieldValue.arrayUnion([partnerId]),
+          }, SetOptions(merge: true));
       if (mounted) _toast(l10n.partner_profile_block_success);
     } catch (e) {
       if (mounted) _toast(l10n.partner_profile_block_error(e));
@@ -800,8 +803,10 @@ class _ChatPartnerProfileSheetState
     final partnerId = _dmPartnerId;
     final fresh = widget.partnerProfile;
     final statusDm = partnerPresenceLine(fresh);
-    final (subtitleLine1, subtitleLine2) =
-        _profileHeaderSubtitles(l10n, statusDm);
+    final (subtitleLine1, subtitleLine2) = _profileHeaderSubtitles(
+      l10n,
+      statusDm,
+    );
 
     final contactsAsync = ref.watch(
       userContactsIndexProvider(widget.currentUserId),
@@ -865,7 +870,8 @@ class _ChatPartnerProfileSheetState
     final threadsLabel = threadsCount == 0 ? l10n.common_none : '$threadsCount';
 
     final showEncryptionRow = !_isGroup && !_isSaved;
-    final showDisappearingMessagesRow = !_isSaved;
+    final showDisappearingMessagesRow =
+        !_isSaved && widget.conversation.secretChat?.enabled != true;
     final disappearingTrailing = formatDisappearingTtlSummaryForLocale(
       l10n,
       widget.conversation.disappearingMessageTtlSec,
@@ -873,17 +879,18 @@ class _ChatPartnerProfileSheetState
     final e2eeOn =
         widget.conversation.e2eeEnabled == true &&
         (widget.conversation.e2eeKeyEpoch ?? 0) > 0;
-    final encryptionLabel =
-        e2eeOn ? l10n.conversation_profile_e2ee_on : l10n.conversation_profile_e2ee_off;
+    final encryptionLabel = e2eeOn
+        ? l10n.conversation_profile_e2ee_on
+        : l10n.conversation_profile_e2ee_off;
 
     final roleLabel = fresh?.role;
     final roleDisplay = roleLabel == null || roleLabel.isEmpty
         ? null
         : (roleLabel == 'admin'
-            ? l10n.group_member_role_admin
-            : roleLabel == 'worker'
-                ? l10n.group_member_role_worker
-                : roleLabel);
+              ? l10n.group_member_role_admin
+              : roleLabel == 'worker'
+              ? l10n.group_member_role_worker
+              : roleLabel);
 
     const hiPrimary = Color(0xFFF2F4FA);
     const hiMuted = Color(0xFFB4BDD1);
@@ -894,10 +901,10 @@ class _ChatPartnerProfileSheetState
         : l10n.conversation_profile_e2ee_subtitle_off;
 
     final myBlocked = myBlockedAsync.value ?? const <String>[];
-    final partnerIsBlocked =
-        partnerId != null && myBlocked.contains(partnerId);
+    final partnerIsBlocked = partnerId != null && myBlocked.contains(partnerId);
     final selfPr = widget.selfProfile;
-    final canDirectInteract = selfPr != null &&
+    final canDirectInteract =
+        selfPr != null &&
         target != null &&
         canStartDirectChat(
           selfPr,
@@ -905,7 +912,8 @@ class _ChatPartnerProfileSheetState
           partnerBlockedIdsSupplement: theirBlockedAsync?.asData?.value,
           partnerUserDocDenied: theirBlockedAsync?.hasError == true,
         );
-    final secretIds = ref
+    final secretIds =
+        ref
             .watch(userSecretChatIndexProvider(widget.currentUserId))
             .asData
             ?.value
@@ -1051,14 +1059,17 @@ class _ChatPartnerProfileSheetState
                             ? '${l10n.secret_chat_title} · ${l10n.secret_chat_exists_badge}'
                             : l10n.secret_chat_title,
                         busy: _chatActionBusy,
-                        onTap: _chatActionBusy ||
+                        onTap:
+                            _chatActionBusy ||
                                 !canDirectInteract ||
                                 hasSecretWithPartner
                             ? null
-                            : () => unawaited(_openSecretChatFromActions(
-                                partnerId: partnerId,
-                                displayTitle: displayTitle,
-                              )),
+                            : () => unawaited(
+                                _openSecretChatFromActions(
+                                  partnerId: partnerId,
+                                  displayTitle: displayTitle,
+                                ),
+                              ),
                       ),
                       _ProfileQuickAction(
                         icon: Icons.call_rounded,
@@ -1270,10 +1281,12 @@ class _ChatPartnerProfileSheetState
                   subtitle: l10n.secret_chat_settings_subtitle,
                   onTap: _chatActionBusy
                       ? null
-                      : () => unawaited(_openSecretChatFromActions(
+                      : () => unawaited(
+                          _openSecretChatFromActions(
                             partnerId: partnerId,
                             displayTitle: displayTitle,
-                          )),
+                          ),
+                        ),
                 ),
               if (!_isGroup &&
                   !_isSaved &&
@@ -1298,7 +1311,9 @@ class _ChatPartnerProfileSheetState
                     if (!widget.fullScreen) {
                       Navigator.of(context).pop();
                     }
-                    context.push('/chats/${widget.conversationId}/secret-settings');
+                    context.push(
+                      '/chats/${widget.conversationId}/secret-settings',
+                    );
                   },
                 ),
               _menuButton(
@@ -1678,7 +1693,9 @@ class _ChatPartnerProfileSheetState
                             style: TextStyle(
                               fontSize: 12,
                               height: 1.25,
-                              color: Colors.white.withValues(alpha: enabled ? 0.52 : 0.30),
+                              color: Colors.white.withValues(
+                                alpha: enabled ? 0.52 : 0.30,
+                              ),
                             ),
                           ),
                         ),
@@ -1691,7 +1708,9 @@ class _ChatPartnerProfileSheetState
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withValues(alpha: enabled ? 0.45 : 0.28),
+                      color: Colors.white.withValues(
+                        alpha: enabled ? 0.45 : 0.28,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),

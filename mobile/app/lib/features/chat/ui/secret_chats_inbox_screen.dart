@@ -15,6 +15,7 @@ import '../data/secret_chat_pin_device_storage.dart';
 import '../../../l10n/app_localizations.dart';
 import 'chat_avatar.dart';
 import 'chat_shell_backdrop.dart';
+import 'secret_vault_pin_screen.dart';
 
 /// Список секретных чатов (индекс `userSecretChats`). Перед показом — биометрия или PIN.
 class SecretChatsInboxScreen extends ConsumerStatefulWidget {
@@ -25,27 +26,24 @@ class SecretChatsInboxScreen extends ConsumerStatefulWidget {
       _SecretChatsInboxScreenState();
 }
 
-class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen> {
+class _SecretChatsInboxScreenState
+    extends ConsumerState<SecretChatsInboxScreen> {
   bool _booting = true;
   bool _unlocked = false;
-  final _pin = TextEditingController();
   bool _busy = false;
   String? _error;
   bool _needsPrivacySetup = false;
+
   /// Серверный vault PIN задан (callable). Локально сохранённый PIN — для кнопки Face ID.
   bool _vaultPinConfigured = false;
   bool _biometricsAvailable = false;
   bool _hasSavedVaultPinOnDevice = false;
+
   /// Только для начальной загрузки hasVaultPin — не смешивать с [_busy] ручного ввода.
   bool _vaultGateInFlight = false;
+  bool _pinPromptInFlight = false;
   final _auth = LocalAuthentication();
   final _pinStore = const SecretChatPinDeviceStorage();
-
-  @override
-  void dispose() {
-    _pin.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
@@ -61,9 +59,10 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
     final l10n = AppLocalizations.of(context)!;
     final callables = SecretChatCallables();
     try {
-      final has = await callables
-          .hasVaultPin()
-          .timeout(const Duration(seconds: 5), onTimeout: () => false);
+      final has = await callables.hasVaultPin().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => false,
+      );
       if (!mounted) return;
 
       final canBio =
@@ -75,8 +74,6 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
 
       if (!mounted) return;
 
-      // Не вызываем LocalAuthentication.authenticate при входе на экран: на iOS это часто
-      // даёт SIGABRT / gesture gate timeout во время transition. Разблокировка — явная кнопка.
       setState(() {
         _vaultPinConfigured = has;
         _biometricsAvailable = canBio;
@@ -89,6 +86,17 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
           _error = l10n.privacy_secret_vault_setup_required;
         }
       });
+
+      if (!has) return;
+
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!mounted || _unlocked) return;
+
+      if (canBio && savedLocal != null && savedLocal.trim().length == 4) {
+        await _unlockVaultWithBiometrics(fallbackToPinOnFailure: true);
+        return;
+      }
+      await _promptPinUnlock();
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('SecretChatsInbox _runGate: $e\n$st');
@@ -105,13 +113,18 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
     }
   }
 
-  /// Face ID / Touch ID только по действию пользователя (после стабилизации UI).
-  Future<void> _unlockVaultWithBiometrics() async {
+  Future<void> _unlockVaultWithBiometrics({
+    bool fallbackToPinOnFailure = false,
+  }) async {
     if (_busy || !_vaultPinConfigured) return;
     final l10n = AppLocalizations.of(context)!;
     final saved = await _pinStore.readVaultPin();
     if (saved == null || saved.trim().length != 4) {
-      setState(() => _error = l10n.secret_chat_biometric_no_saved_pin);
+      if (fallbackToPinOnFailure) {
+        await _promptPinUnlock();
+      } else {
+        setState(() => _error = l10n.secret_chat_biometric_no_saved_pin);
+      }
       return;
     }
     setState(() {
@@ -127,6 +140,9 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
         ),
       );
       if (!ok) {
+        if (fallbackToPinOnFailure) {
+          await _promptPinUnlock();
+        }
         return;
       }
       await SecretChatCallables().verifyVaultPin(pin: saved.trim());
@@ -138,15 +154,20 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
       }
       if (!mounted) return;
       setState(() => _error = l10n.secret_chat_unlock_failed);
+      if (fallbackToPinOnFailure) {
+        await _promptPinUnlock();
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _submitPin() async {
-    final pin = _pin.text.trim();
+  Future<void> _submitPin(String pinRaw) async {
+    final pin = pinRaw.trim();
     if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
-      setState(() => _error = AppLocalizations.of(context)!.secret_chat_pin_invalid);
+      setState(
+        () => _error = AppLocalizations.of(context)!.secret_chat_pin_invalid,
+      );
       return;
     }
     setState(() {
@@ -160,9 +181,35 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
       setState(() => _unlocked = true);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = AppLocalizations.of(context)!.secret_chat_unlock_failed);
+      setState(
+        () => _error = AppLocalizations.of(context)!.secret_chat_unlock_failed,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _promptPinUnlock() async {
+    if (!mounted || _busy || _unlocked || _pinPromptInFlight) return;
+    _pinPromptInFlight = true;
+    try {
+      final l10n = AppLocalizations.of(context)!;
+      final pin = await SecretVaultPinScreen.open(
+        context,
+        title: l10n.secret_chat_unlock_title,
+        subtitle: l10n.secret_chat_unlock_subtitle,
+        confirm: false,
+      );
+      if (!mounted) return;
+      if (pin == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.secret_chat_unlock_subtitle)),
+        );
+        return;
+      }
+      await _submitPin(pin);
+    } finally {
+      _pinPromptInFlight = false;
     }
   }
 
@@ -188,8 +235,8 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
             child: _booting
                 ? const Center(child: CircularProgressIndicator())
                 : !_unlocked
-                    ? _pinGate(context, l10n)
-                    : _SecretChatList(currentUserId: user.uid),
+                ? _pinGate(context, l10n)
+                : _SecretChatList(currentUserId: user.uid),
           ),
         ],
       ),
@@ -203,6 +250,7 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const SizedBox(height: 12),
           Text(
             l10n.secret_chat_unlock_subtitle,
             style: TextStyle(
@@ -214,20 +262,9 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
             const SizedBox(height: 12),
             Text(_error!, style: TextStyle(color: scheme.error)),
           ],
-          const SizedBox(height: 16),
-          TextField(
-            controller: _pin,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            maxLength: 4,
-            decoration: InputDecoration(
-              labelText: l10n.secret_chat_pin_label,
-              counterText: '',
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           FilledButton(
-            onPressed: _busy ? null : () => unawaited(_submitPin()),
+            onPressed: _busy ? null : () => unawaited(_promptPinUnlock()),
             child: _busy
                 ? const SizedBox(
                     height: 20,
@@ -241,7 +278,9 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
               _hasSavedVaultPinOnDevice) ...[
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: _busy ? null : () => unawaited(_unlockVaultWithBiometrics()),
+              onPressed: _busy
+                  ? null
+                  : () => unawaited(_unlockVaultWithBiometrics()),
               child: Text(l10n.secret_chat_unlock_biometric),
             ),
           ],
@@ -270,9 +309,10 @@ class _SecretChatList extends ConsumerWidget {
     return idxAsync.when(
       data: (idx) {
         final directIds = idx?.conversationIds ?? const <String>[];
-        final fromMain = (mainIdxAsync.asData?.value?.conversationIds ?? const <String>[])
-            .where((id) => id.startsWith('sdm_'))
-            .toList(growable: false);
+        final fromMain =
+            (mainIdxAsync.asData?.value?.conversationIds ?? const <String>[])
+                .where((id) => id.startsWith('sdm_'))
+                .toList(growable: false);
         final ids = directIds.isNotEmpty ? directIds : fromMain;
         if (ids.isEmpty) {
           return Center(
@@ -293,11 +333,15 @@ class _SecretChatList extends ConsumerWidget {
             // Нельзя вызывать sort на списке из провайдера — мутация ломает кеш Riverpod / может давать UB.
             final sorted = List<ConversationWithId>.of(convs)
               ..sort((a, b) {
-                final ta = DateTime.tryParse(a.data.lastMessageTimestamp ?? '')
-                        ?.millisecondsSinceEpoch ??
+                final ta =
+                    DateTime.tryParse(
+                      a.data.lastMessageTimestamp ?? '',
+                    )?.millisecondsSinceEpoch ??
                     0;
-                final tb = DateTime.tryParse(b.data.lastMessageTimestamp ?? '')
-                        ?.millisecondsSinceEpoch ??
+                final tb =
+                    DateTime.tryParse(
+                      b.data.lastMessageTimestamp ?? '',
+                    )?.millisecondsSinceEpoch ??
                     0;
                 return tb.compareTo(ta);
               });
@@ -349,9 +393,10 @@ class _SecretChatRow extends StatelessWidget {
             otherUserId: partnerId,
           );
     final lastMsg = (conversation.data.lastMessageText ?? '').trim();
-    final subtitle =
-        lastMsg.isEmpty ? l10n.secret_chat_title : lastMsg;
-    final pinfo = partnerId == null ? null : conversation.data.participantInfo?[partnerId];
+    final subtitle = lastMsg.isEmpty ? l10n.secret_chat_title : lastMsg;
+    final pinfo = partnerId == null
+        ? null
+        : conversation.data.participantInfo?[partnerId];
 
     return Material(
       color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),

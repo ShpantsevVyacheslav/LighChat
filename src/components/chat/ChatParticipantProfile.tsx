@@ -686,7 +686,10 @@ export function ChatParticipantProfile({
 
   const showEncryptionMenuRow = !isGroup && !isSelfSavedChat;
   /** Личный чат или основной профиль группы (не карточка участника). */
-  const showDisappearingMessagesRow = !isSelfSavedChat && (!isGroup || (isGroup && !showMemberFocus));
+  const showDisappearingMessagesRow =
+    !isSelfSavedChat &&
+    conversation.secretChat?.enabled !== true &&
+    (!isGroup || (isGroup && !showMemberFocus));
   const e2eeSummaryOn = !!(conversation.e2eeEnabled && (conversation.e2eeKeyEpoch ?? 0) > 0);
   const encryptionSummaryLabel = e2eeSummaryOn ? 'Вкл' : 'Выкл';
   const encryptionRowDescription = e2eeSummaryOn
