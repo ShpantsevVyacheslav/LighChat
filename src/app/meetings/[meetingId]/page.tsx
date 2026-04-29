@@ -173,8 +173,15 @@ export default function MeetingPage() {
       });
       
       setRequestStatus('pending');
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Ошибка доступа', description: e.message });
+    } catch (e: unknown) {
+      const message =
+        typeof e === 'object' &&
+        e != null &&
+        'message' in e &&
+        typeof (e as { message?: unknown }).message === 'string'
+          ? (e as { message: string }).message
+          : 'Unknown error';
+      toast({ variant: 'destructive', title: 'Ошибка доступа', description: message });
     }
   };
 
@@ -185,7 +192,7 @@ export default function MeetingPage() {
         const requestRef = doc(firestore, `meetings/${meetingId}/requests`, user.id);
         await deleteDoc(requestRef);
         router.push('/dashboard/meetings');
-    } catch (e) {
+    } catch {
         router.push('/dashboard/meetings');
     }
   };

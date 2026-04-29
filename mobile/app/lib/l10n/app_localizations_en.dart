@@ -85,6 +85,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get secret_chat_settings_ttl => 'Lifetime';
 
   @override
+  String secret_chat_settings_time_left(Object value) {
+    return 'Time left: $value';
+  }
+
+  @override
   String secret_chat_settings_expires_at(Object iso) {
     return 'Expires at: $iso';
   }

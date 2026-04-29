@@ -54,14 +54,18 @@ export default function DeleteConversationPage() {
         description: `Переписка была успешно удалена для всех участников.`,
       });
       router.push('/dashboard/chat');
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Fallback: если Firestore-правило запретило удалять parent-документ
       // (пользователь уже не в `participantIds` — вышел/убрали из группы,
       // устаревший индекс userChats), по крайней мере скрываем чат из своего
       // списка, чтобы UI не зависал на «удалить не удалось». Сам документ
       // `conversations/{id}` остаётся нетронутым — это безопасно для
       // остальных участников. См. firestore.rules §conversations.delete.
-      const isPermissionDenied = error?.code === 'permission-denied';
+      const isPermissionDenied =
+        typeof error === 'object' &&
+        error != null &&
+        'code' in error &&
+        (error as { code?: unknown }).code === 'permission-denied';
       const uid = authUser?.id || firebaseAuthUser?.uid;
       if (isPermissionDenied && firestore && uid && conversationId) {
         try {
@@ -79,6 +83,13 @@ export default function DeleteConversationPage() {
           console.error('[DeleteConversation] hide-from-userChats fallback failed:', hideErr);
         }
       }
+      const message =
+        typeof error === 'object' &&
+        error != null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Не удалось удалить чат.';
       console.error(
         'Failed to delete chat:',
         error,
@@ -87,7 +98,7 @@ export default function DeleteConversationPage() {
       toast({
         variant: 'destructive',
         title: 'Ошибка при удалении',
-        description: error.message,
+        description: message,
       });
       setIsDeleting(false);
     }

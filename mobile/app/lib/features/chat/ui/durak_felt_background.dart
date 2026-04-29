@@ -11,8 +11,8 @@ class DurakFeltBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: _FeltPainter(
-        base: const Color(0xFF0B2B2B),
-        tint: const Color(0xFF0F4C3A),
+        base: const Color(0xFF253F52),
+        tint: const Color(0xFF5F86A1),
       ),
       child: child,
     );
@@ -20,10 +20,7 @@ class DurakFeltBackground extends StatelessWidget {
 }
 
 class _FeltPainter extends CustomPainter {
-  _FeltPainter({
-    required this.base,
-    required this.tint,
-  });
+  _FeltPainter({required this.base, required this.tint});
 
   final Color base;
   final Color tint;
@@ -63,10 +60,7 @@ class _FeltPainter extends CustomPainter {
       ..shader = RadialGradient(
         center: Alignment.center,
         radius: 1.15,
-        colors: [
-          Colors.transparent,
-          Colors.black.withValues(alpha: 0.35),
-        ],
+        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.35)],
         stops: const [0.55, 1.0],
       ).createShader(rect);
     canvas.drawRect(rect, vignette);
@@ -77,4 +71,3 @@ class _FeltPainter extends CustomPainter {
     return oldDelegate.base != base || oldDelegate.tint != tint;
   }
 }
-

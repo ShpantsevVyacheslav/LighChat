@@ -10,7 +10,6 @@ import { GroupChatFormPanel } from '@/components/chat/GroupChatFormPanel';
 import { GroupChatParticipantsManageView } from '@/components/chat/GroupChatParticipantsManageView';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
-import { Separator } from '../ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '../ui/badge';
 import { useRouter } from 'next/navigation';
@@ -803,8 +802,8 @@ export function ChatParticipantProfile({
                 {profileSubMenu === 'games' ? (
                   <ConversationGamesPanel
                     conversationId={conversation.id}
-                    currentUser={currentUser}
                     allUsers={allUsers}
+                    isGroup={isGroup}
                     onCreatedGameLobby={(gameId) => {
                       onSelectConversation(conversation.id);
                       router.push(buildDashboardChatOpenUrl(conversation.id, { gameId }));

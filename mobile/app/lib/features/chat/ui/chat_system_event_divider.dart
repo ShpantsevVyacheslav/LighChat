@@ -82,6 +82,10 @@ class ChatSystemEventDivider extends StatelessWidget {
         return Icons.shield_outlined;
       case ChatSystemEventType.e2eeV2FingerprintChanged:
         return Icons.fingerprint;
+      case ChatSystemEventType.gameLobbyCreated:
+        return Icons.style_rounded;
+      case ChatSystemEventType.gameStarted:
+        return Icons.sports_esports_rounded;
     }
   }
 
@@ -91,10 +95,9 @@ class ChatSystemEventDivider extends StatelessWidget {
         actorNameOverride ??
         (data['actorName'] is String ? data['actorName'] as String : null) ??
         'Пользователь';
-    final deviceLabel =
-        data['deviceLabel'] is String
-            ? data['deviceLabel'] as String
-            : 'устройство';
+    final deviceLabel = data['deviceLabel'] is String
+        ? data['deviceLabel'] as String
+        : 'устройство';
     switch (event.type) {
       case ChatSystemEventType.e2eeV2Enabled:
         return 'Сквозное шифрование включено';
@@ -108,6 +111,10 @@ class ChatSystemEventDivider extends StatelessWidget {
         return '$actor отозвал устройство «$deviceLabel»';
       case ChatSystemEventType.e2eeV2FingerprintChanged:
         return 'Отпечаток безопасности у $actor изменился';
+      case ChatSystemEventType.gameLobbyCreated:
+        return 'Создано лобби игры';
+      case ChatSystemEventType.gameStarted:
+        return 'Игра началась';
     }
   }
 }

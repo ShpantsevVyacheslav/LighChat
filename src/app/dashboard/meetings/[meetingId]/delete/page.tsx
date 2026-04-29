@@ -39,11 +39,18 @@ export default function DeleteMeetingPage() {
       await deleteDoc(meetingRef);
       toast({ title: 'Встреча удалена' });
       router.push('/dashboard/meetings');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' &&
+        error != null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Не удалось удалить встречу.';
       toast({
         variant: 'destructive',
         title: 'Ошибка при удалении',
-        description: error.message,
+        description: message,
       });
       setIsDeleting(false);
     }
@@ -63,7 +70,7 @@ export default function DeleteMeetingPage() {
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить встречу?</AlertDialogTitle>
           <AlertDialogDescription>
-            Вы уверены? Это действие нельзя отменить. Запись о встрече "{meeting?.name}" будет навсегда удалена из истории.
+            Вы уверены? Это действие нельзя отменить. Запись о встрече &quot;{meeting?.name}&quot; будет навсегда удалена из истории.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

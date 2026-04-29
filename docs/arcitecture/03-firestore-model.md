@@ -58,8 +58,8 @@
   - `privateHands/{uid}` — приватная рука игрока (read: только `uid`, write: только server).
   - `moves/{clientMoveId}` — журнал ходов (read: игроки, write: server).
   - Поля (минимум): `type`, `status`, `conversationId`, `isGroup`, `createdAt`, `createdBy`, `playerIds[]`, `settings`, `serverState`, `publicView`, `result`, `startedAt`, `finishedAt`, `lastUpdatedAt`.
-  - `publicView` (для UI): `phase` (`attack|defense|throwIn|resolution|finished`), `throwerUids[]`, `passedUids[]`, `table`, `handCounts`, `trumpSuit`, `deckCount`, `discardCount`, `attackerUid`, `defenderUid`, `result`.
-  - `moves/*` (для истории/дебага): хранит исходный `payload` и нормализованный `payloadNormalized` (например `cardKey`, `attackIndex`), а также `phase` и `result` на момент хода.
+  - `publicView` (для UI): `phase` (`attack|defense|throwIn|resolution|finished`), `throwerUids[]`, `passedUids[]`, `currentThrowerUid|null`, `roundDefenderHandLimit|null`, `canFinishTurn`, `table`, `handCounts`, `trumpSuit`, `deckCount`, `discardCount`, `attackerUid`, `defenderUid`, `result`.
+  - `moves/*` (для истории/дебага): хранит исходный `payload` и нормализованный `payloadNormalized` (например `cardKey`, `attackIndex`, `loserUid` для `surrender`), а также `phase` и `result` на момент хода.
 
 - `tournaments/{tournamentId}` - турнир (серия партий) для игр внутри чата (сейчас: Durak).
   - Создание/обновление — **только Cloud Functions** (Admin SDK).

@@ -27,7 +27,9 @@ class DurakCardWidget extends StatelessWidget {
     final base = faceUp ? const Color(0xFFF6F7FB) : const Color(0xFF1D2B4A);
     final border = selected
         ? const Color(0xFF2E86FF)
-        : (highlight ? const Color(0xFF6EE7B7) : Colors.black.withValues(alpha: 0.15));
+        : (highlight
+              ? const Color(0xFF6EE7B7)
+              : Colors.black.withValues(alpha: 0.15));
 
     final effectiveBg = disabled ? base.withValues(alpha: 0.55) : base;
     final fg = isRed ? const Color(0xFFDC2626) : const Color(0xFF111827);
@@ -48,12 +50,15 @@ class DurakCardWidget extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 140),
             curve: Curves.easeOut,
-            width: 56,
-            height: 80,
+            width: 68,
+            height: 96,
             decoration: BoxDecoration(
               color: effectiveBg,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: border.withValues(alpha: disabled ? 0.35 : 0.95), width: selected ? 2 : 1),
+              border: Border.all(
+                color: border.withValues(alpha: disabled ? 0.35 : 0.95),
+                width: selected ? 2 : 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: shadowAlpha),
@@ -68,9 +73,7 @@ class DurakCardWidget extends StatelessWidget {
                     suitLabel: suitLabel,
                     color: textColor.withValues(alpha: disabled ? 0.50 : 1.0),
                   )
-                : _Back(
-                    disabled: disabled,
-                  ),
+                : _Back(disabled: disabled),
           ),
         ),
       ),
@@ -102,7 +105,7 @@ class _Face extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 color: color,
-                fontSize: 14,
+                fontSize: 16,
               ),
             ),
           ),
@@ -113,7 +116,7 @@ class _Face extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 color: color.withValues(alpha: 0.92),
-                fontSize: 26,
+                fontSize: 32,
               ),
             ),
           ),
@@ -126,7 +129,7 @@ class _Face extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   color: color,
-                  fontSize: 14,
+                  fontSize: 16,
                 ),
               ),
             ),
@@ -144,26 +147,37 @@ class _Back extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c1 = const Color(0xFF355CFF).withValues(alpha: disabled ? 0.45 : 0.70);
-    final c2 = const Color(0xFF22C55E).withValues(alpha: disabled ? 0.30 : 0.45);
+    final line = const Color(
+      0xFF7CB69A,
+    ).withValues(alpha: disabled ? 0.28 : 0.50);
+    final base = const Color(
+      0xFFE9F5EF,
+    ).withValues(alpha: disabled ? 0.72 : 1.0);
     return Padding(
       padding: const EdgeInsets.all(8),
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
+          color: base,
+          backgroundBlendMode: BlendMode.multiply,
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [c1, c2],
+            colors: [
+              Colors.white.withValues(alpha: disabled ? 0.35 : 0.65),
+              const Color(0xFFCDE7D8).withValues(alpha: disabled ? 0.35 : 0.75),
+            ],
           ),
         ),
-        child: Center(
-          child: Text(
-            'LC',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-              color: Colors.white.withValues(alpha: disabled ? 0.55 : 0.90),
+        child: CustomPaint(
+          painter: _BackPatternPainter(line),
+          child: Center(
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: disabled ? 0.22 : 0.46),
+                border: Border.all(color: line.withValues(alpha: 0.7)),
+              ),
             ),
           ),
         ),
@@ -172,3 +186,31 @@ class _Back extends StatelessWidget {
   }
 }
 
+class _BackPatternPainter extends CustomPainter {
+  const _BackPatternPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2;
+    for (double x = -size.height; x < size.width; x += 8) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x + size.height, size.height),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(x + 4, size.height),
+        Offset(x + size.height + 4, 0),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BackPatternPainter oldDelegate) =>
+      oldDelegate.color != color;
+}

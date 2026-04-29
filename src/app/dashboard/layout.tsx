@@ -14,17 +14,14 @@ import { LiveLocationProvider } from '@/components/location/LiveLocationProvider
 import { LiveLocationStopBanner } from '@/components/location/LiveLocationStopBanner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileChatOpenProvider } from '@/contexts/mobile-chat-open-context';
-import type { User } from '@/lib/types';
 import { isRegistrationProfileComplete } from '@/lib/registration-profile-complete';
 import { DashboardMainAndChatRail } from '@/components/dashboard/DashboardMainAndChatRail';
 import { useVisualViewportCssVars } from '@/hooks/use-visual-viewport-css-vars';
 
 function AuthenticatedLayoutBody({
   children,
-  user: _user,
 }: {
   children: React.ReactNode;
-  user: User;
 }) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
@@ -140,7 +137,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="absolute bottom-[-5%] right-[-5%] h-[40%] w-[40%] rounded-full bg-accent/5 blur-[60px] dark:bg-accent/10" />
             </div>
 
-            <AuthenticatedLayoutBody user={user}>{children}</AuthenticatedLayoutBody>
+            <AuthenticatedLayoutBody>{children}</AuthenticatedLayoutBody>
           </div>
           {callsOverlayEnabled ? <AudioCallOverlay currentUser={user} /> : null}
           <PwaOnboarding />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildInitialState, computeAndApplyGameResult, derivePhase, drawUpToSix, markTaking, shouldResolveTakingRound, takeTable } from "./engine";
+import { buildInitialState, buildSurrenderResult, canFinishTurn, computeAndApplyGameResult, derivePhase, drawUpToSix, markTaking, shouldResolveTakingRound, takeTable } from "./engine";
 import type { DurakGameSettings } from "../gameSettings";
 import { parseCard } from "./cards";
 import { applyAttack, applyDefense, applyTransfer, allDefended, resetRoundTracking } from "./engine";
@@ -16,7 +16,7 @@ const settings: DurakGameSettings = {
 };
 
 describe("durak engine", () => {
-  it("buildInitialState sets phase attack and deals 5 cards in first deal", () => {
+  it("buildInitialState sets phase attack and deals 6 cards in first deal", () => {
     const { state, handsByUid } = buildInitialState({
       playerIds: ["u1", "u2"],
       settings,
@@ -27,8 +27,21 @@ describe("durak engine", () => {
     expect(state.seats).toEqual(["u1", "u2"]);
     expect(state.phase).toBe("attack");
     expect(derivePhase(state)).toBe("attack");
-    expect(handsByUid.u1.length).toBe(5);
-    expect(handsByUid.u2.length).toBe(5);
+    expect(handsByUid.u1.length).toBe(6);
+    expect(handsByUid.u2.length).toBe(6);
+  });
+
+  it("buildSurrenderResult makes the surrendering player the loser", () => {
+    const result = buildSurrenderResult({
+      playerIds: ["u1", "u2", "u3"],
+      loserUid: "u2",
+      nowIso: new Date(10).toISOString(),
+    });
+
+    expect(result?.kind).toBe("finished");
+    expect(result?.loserUid).toBe("u2");
+    expect(result?.winners).toEqual(["u1", "u3"]);
+    expect(result?.placements).toEqual([{ uids: ["u1", "u3"] }, { uids: ["u2"] }]);
   });
 
   it("joker can be thrown-in anytime and forces defender to take", () => {
@@ -94,6 +107,30 @@ describe("durak engine", () => {
     expect(() =>
       applyAttack({ state, uid: "c", card: parseCard({ r: 6, s: "H" }), handsByUid }),
     ).toThrow();
+  });
+
+  it("canFinishTurn stays false until every thrower passed", () => {
+    const { state, handsByUid } = buildInitialState({
+      playerIds: ["a", "b", "c"],
+      settings: { ...settings, maxPlayers: 3 },
+      nowIso: new Date(0).toISOString(),
+      randInt: () => 0,
+    });
+    state.seats = ["a", "b", "c"];
+    state.attackerUid = "a";
+    state.defenderUid = "b";
+    resetRoundTracking(state);
+    state.trumpSuit = "H";
+    handsByUid.a = [parseCard({ r: 6, s: "S" })];
+    handsByUid.b = [parseCard({ r: 7, s: "S" })];
+    handsByUid.c = [parseCard({ r: 6, s: "C" })];
+
+    applyAttack({ state, uid: "a", card: parseCard({ r: 6, s: "S" }), handsByUid });
+    applyDefense({ state, uid: "b", attackIndex: 0, defense: parseCard({ r: 7, s: "S" }), handsByUid });
+
+    expect(canFinishTurn({ state, handsByUid })).toBe(false);
+    state.passedUids = ["a", "c"];
+    expect(canFinishTurn({ state, handsByUid })).toBe(true);
   });
 
   it("defense must beat attack (same suit higher or trump)", () => {
@@ -416,4 +453,3 @@ describe("durak engine", () => {
     expect(r?.placements).toEqual([{ uids: ["a", "b"] }, { uids: ["c"] }]);
   });
 });
-

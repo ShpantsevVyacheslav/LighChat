@@ -134,6 +134,8 @@
     "concurrently": "^8.2.2",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
     "firebase-tools": "^14.27.0",
     "postcss": "^8",
     "sharp": "^0.34.5",

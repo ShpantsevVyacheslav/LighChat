@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Срок жизни'**
   String get secret_chat_settings_ttl;
 
+  /// No description provided for @secret_chat_settings_time_left.
+  ///
+  /// In ru, this message translates to:
+  /// **'Осталось: {value}'**
+  String secret_chat_settings_time_left(Object value);
+
   /// No description provided for @secret_chat_settings_expires_at.
   ///
   /// In ru, this message translates to:

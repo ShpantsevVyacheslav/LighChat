@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Check, Loader2, Search, Trash2, FolderEdit } from 'lucide-react';
+import { Loader2, Search, Trash2, FolderEdit } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -145,8 +145,15 @@ export function FolderManagerDialog({
       
       toast({ title: editingFolder ? 'Папка обновлена' : 'Папка создана' });
       onFolderSaved(newFolder.id);
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Ошибка сохранения', description: e.message });
+    } catch (e: unknown) {
+      const message =
+        typeof e === 'object' &&
+        e != null &&
+        'message' in e &&
+        typeof (e as { message?: unknown }).message === 'string'
+          ? (e as { message: string }).message
+          : 'Не удалось сохранить папку.';
+      toast({ variant: 'destructive', title: 'Ошибка сохранения', description: message });
     } finally {
       setIsSaving(false);
     }
@@ -165,8 +172,15 @@ export function FolderManagerDialog({
       
       toast({ title: 'Папка удалена' });
       onFolderSaved('all');
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Ошибка удаления', description: e.message });
+    } catch (e: unknown) {
+      const message =
+        typeof e === 'object' &&
+        e != null &&
+        'message' in e &&
+        typeof (e as { message?: unknown }).message === 'string'
+          ? (e as { message: string }).message
+          : 'Не удалось удалить папку.';
+      toast({ variant: 'destructive', title: 'Ошибка удаления', description: message });
     } finally {
       setIsDeleting(false);
     }

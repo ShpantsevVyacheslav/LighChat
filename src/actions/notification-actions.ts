@@ -3,6 +3,7 @@
 
 import { adminDb, adminMessaging } from '@/firebase/admin';
 import type { UserRole, Notification } from '@/lib/types';
+import type { MulticastMessage } from 'firebase-admin/messaging';
 
 // Helper function to save notifications to Firestore
 async function saveNotificationsForUsers(userIds: string[], title: string, body: string, link: string) {
@@ -114,7 +115,11 @@ async function sendNotifications(
 
   const finalLink = link || '/dashboard';
 
-  const message: { data: any, notification?: any, tokens: string[] } = {
+  const message: MulticastMessage & {
+    data: Record<string, string>;
+    notification?: { title: string; body: string };
+    tokens: string[];
+  } = {
     data: {
         title,
         body,
@@ -133,7 +138,7 @@ async function sendNotifications(
   }
 
   try {
-    const response = await adminMessaging.sendEachForMulticast(message as any);
+    const response = await adminMessaging.sendEachForMulticast(message);
     const successCount = response.successCount;
     console.log(`Successfully sent ${successCount} notifications.`);
 
@@ -148,7 +153,7 @@ async function sendNotifications(
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending push notification:', error);
     return { success: false, error: 'Failed to send notifications' };
   }

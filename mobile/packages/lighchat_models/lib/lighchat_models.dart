@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'src/secret_chat.dart' hide JsonMap;
 
 export 'src/secret_chat.dart';
-export 'src/secret_chat_media_views.dart';
+export 'src/secret_chat_media_views.dart' hide JsonMap;
 
 typedef JsonMap = Map<String, Object?>;
 
@@ -1065,7 +1065,9 @@ enum ChatSystemEventType {
   e2eeV2EpochRotated('e2ee.v2.epoch.rotated'),
   e2eeV2DeviceAdded('e2ee.v2.device.added'),
   e2eeV2DeviceRevoked('e2ee.v2.device.revoked'),
-  e2eeV2FingerprintChanged('e2ee.v2.fingerprint.changed');
+  e2eeV2FingerprintChanged('e2ee.v2.fingerprint.changed'),
+  gameLobbyCreated('gameLobbyCreated'),
+  gameStarted('gameStarted');
 
   const ChatSystemEventType(this.wire);
   final String wire;
@@ -1097,6 +1099,82 @@ class ChatSystemEvent {
       data = d.map((k, v) => MapEntry(k.toString(), v));
     }
     return ChatSystemEvent(type: type, data: data);
+  }
+}
+
+enum DurakGameStatus { lobby, active, finished, cancelled }
+
+class DurakCardModel {
+  const DurakCardModel({required this.rank, required this.suit});
+
+  final Object rank;
+  final String? suit;
+
+  static DurakCardModel? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final r = raw['r'];
+    final s = raw['s'];
+    if (r == null) return null;
+    return DurakCardModel(rank: r, suit: s?.toString());
+  }
+}
+
+class DurakPublicViewModel {
+  const DurakPublicViewModel({
+    required this.phase,
+    required this.trumpSuit,
+    required this.deckCount,
+    required this.discardCount,
+    required this.attackerUid,
+    required this.defenderUid,
+    required this.handCounts,
+    this.currentThrowerUid,
+    this.roundDefenderHandLimit,
+    this.canFinishTurn,
+  });
+
+  final String phase;
+  final String trumpSuit;
+  final int deckCount;
+  final int discardCount;
+  final String attackerUid;
+  final String defenderUid;
+  final Map<String, int> handCounts;
+  final String? currentThrowerUid;
+  final int? roundDefenderHandLimit;
+  final bool? canFinishTurn;
+
+  static DurakPublicViewModel? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    int asInt(Object? v) =>
+        v is int ? v : int.tryParse((v ?? '').toString()) ?? 0;
+    final handCountsRaw = raw['handCounts'];
+    final handCounts = <String, int>{};
+    if (handCountsRaw is Map) {
+      for (final e in handCountsRaw.entries) {
+        handCounts[e.key.toString()] = asInt(e.value);
+      }
+    }
+    final roundLimitRaw = raw['roundDefenderHandLimit'];
+    return DurakPublicViewModel(
+      phase: (raw['phase'] ?? '').toString(),
+      trumpSuit: (raw['trumpSuit'] ?? '').toString(),
+      deckCount: asInt(raw['deckCount']),
+      discardCount: asInt(raw['discardCount']),
+      attackerUid: (raw['attackerUid'] ?? '').toString(),
+      defenderUid: (raw['defenderUid'] ?? '').toString(),
+      handCounts: handCounts,
+      currentThrowerUid:
+          (raw['currentThrowerUid'] ?? '').toString().trim().isEmpty
+          ? null
+          : raw['currentThrowerUid'].toString(),
+      roundDefenderHandLimit: roundLimitRaw is int
+          ? roundLimitRaw
+          : int.tryParse((roundLimitRaw ?? '').toString()),
+      canFinishTurn: raw.containsKey('canFinishTurn')
+          ? raw['canFinishTurn'] == true
+          : null,
+    );
   }
 }
 

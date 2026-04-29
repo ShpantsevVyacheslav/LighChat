@@ -48,12 +48,19 @@ export default function DeleteUserPage() {
         description: `Пользователь "${user?.name}" был успешно архивирован через сервер.`,
       });
       router.push('/dashboard/users');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete user via Cloud Function:", error);
+      const message =
+        typeof error === 'object' &&
+        error != null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : undefined;
       toast({
         variant: 'destructive',
         title: 'Ошибка при удалении',
-        description: error.message || 'Произошла ошибка при выполнении операции на сервере.',
+        description: message || 'Произошла ошибка при выполнении операции на сервере.',
       });
       setIsDeleting(false);
     }

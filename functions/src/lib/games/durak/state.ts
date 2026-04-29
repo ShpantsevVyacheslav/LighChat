@@ -45,6 +45,9 @@ export type DurakPublicView = {
   lastMoveAt: string;
   throwerUids?: string[];
   passedUids?: string[];
+  currentThrowerUid?: string | null;
+  roundDefenderHandLimit?: number | null;
+  canFinishTurn?: boolean;
   shuler?: {
     enabled: boolean;
     lastCheatUid: string | null;
@@ -143,4 +146,3 @@ export type GameDoc = {
   finishedAt?: string;
   lastUpdatedAt?: string;
 };
-

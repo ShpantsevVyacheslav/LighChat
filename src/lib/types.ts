@@ -712,7 +712,9 @@ export type ChatSystemEventType =
   | 'e2ee.v2.epoch.rotated'
   | 'e2ee.v2.device.added'
   | 'e2ee.v2.device.revoked'
-  | 'e2ee.v2.fingerprint.changed';
+  | 'e2ee.v2.fingerprint.changed'
+  | 'gameLobbyCreated'
+  | 'gameStarted';
 
 export type ChatSystemEvent = {
   type: ChatSystemEventType;
@@ -725,7 +727,62 @@ export type ChatSystemEvent = {
     epoch?: number;
     previousFingerprint?: string;
     nextFingerprint?: string;
+    gameId?: string;
+    gameType?: 'durak' | string;
   };
+};
+
+export type DurakSuit = 'S' | 'H' | 'D' | 'C';
+export type DurakRank = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 'JOKER';
+export type DurakCard =
+  | { r: Exclude<DurakRank, 'JOKER'>; s: DurakSuit }
+  | { r: 'JOKER'; s: null };
+export type DurakPhase = 'attack' | 'defense' | 'throwIn' | 'resolution' | 'finished';
+export type DurakGameStatus = 'lobby' | 'active' | 'finished' | 'cancelled';
+
+export type DurakPublicView = {
+  revision: number;
+  phase: DurakPhase;
+  trumpSuit: DurakSuit;
+  deckCount: number;
+  discardCount: number;
+  seats?: string[];
+  attackerUid: string;
+  defenderUid: string;
+  table: {
+    attacks: DurakCard[];
+    defenses: (DurakCard | null)[];
+  };
+  handCounts: Record<string, number>;
+  lastMoveAt: string;
+  throwerUids?: string[];
+  passedUids?: string[];
+  currentThrowerUid?: string | null;
+  roundDefenderHandLimit?: number | null;
+  canFinishTurn?: boolean;
+  result?: DurakGameResult;
+};
+
+export type DurakGameResult = {
+  kind: 'finished';
+  finishedAt: string;
+  winners: string[];
+  loserUid: string | null;
+  placements?: { uids: string[] }[];
+} | null;
+
+export type DurakGameSession = {
+  id: string;
+  type: 'durak';
+  status: DurakGameStatus;
+  conversationId: string;
+  isGroup: boolean;
+  createdAt: string;
+  createdBy: string;
+  playerIds: string[];
+  publicView?: DurakPublicView;
+  result?: DurakGameResult;
+  tournamentId?: string;
 };
 
 export type MeetingMessage = {

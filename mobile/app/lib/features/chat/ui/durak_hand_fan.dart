@@ -18,6 +18,7 @@ class DurakHandFan extends StatelessWidget {
     required this.selectedId,
     required this.onTap,
     required this.onDragAcceptedByTable,
+    required this.onDragRejected,
   });
 
   final List<Map<String, dynamic>> cards;
@@ -34,24 +35,27 @@ class DurakHandFan extends StatelessWidget {
 
   /// Called after successful drag end (table accepted). We use it to trigger fly animation.
   final void Function(Map<String, dynamic> card) onDragAcceptedByTable;
+  final void Function(Map<String, dynamic> card) onDragRejected;
 
   @override
   Widget build(BuildContext context) {
-    if (cards.isEmpty) return const SizedBox(height: 96);
+    if (cards.isEmpty) return const SizedBox(height: 116);
 
     return LayoutBuilder(
       builder: (context, c) {
         final w = c.maxWidth;
-        final cardW = 56.0;
-        final cardH = 80.0;
+        final cardW = 68.0;
+        final cardH = 96.0;
         final n = cards.length;
-        final overlap = n <= 1 ? 0.0 : min(32.0, max(14.0, (n * cardW - w) / max(1, n - 1)));
+        final overlap = n <= 1
+            ? 0.0
+            : min(42.0, max(18.0, (n * cardW - w) / max(1, n - 1)));
         final step = cardW - overlap;
         final fanW = cardW + (n - 1) * step;
         final startX = max(0.0, (w - fanW) / 2);
 
         return SizedBox(
-          height: cardH + 18,
+          height: cardH + 24,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -69,9 +73,12 @@ class DurakHandFan extends StatelessWidget {
                     suit: suitLabel(cards[i]),
                     enabled: enabled(cards[i]),
                     highlight: highlight(cards[i]),
-                    selected: selectedId != null && selectedId == cardId(cards[i], i),
+                    selected:
+                        selectedId != null && selectedId == cardId(cards[i], i),
                     onTap: () => onTap(cards[i], cardId(cards[i], i)),
-                    onDragAcceptedByTable: () => onDragAcceptedByTable(cards[i]),
+                    onDragAcceptedByTable: () =>
+                        onDragAcceptedByTable(cards[i]),
+                    onDragRejected: () => onDragRejected(cards[i]),
                   ),
                 ),
             ],
@@ -96,6 +103,7 @@ class _HandFanCard extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.onDragAcceptedByTable,
+    required this.onDragRejected,
   });
 
   final Map<String, dynamic> card;
@@ -109,20 +117,21 @@ class _HandFanCard extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onDragAcceptedByTable;
+  final VoidCallback onDragRejected;
 
   @override
   Widget build(BuildContext context) {
     final base = Container(
       key: keyForFlight,
       child: DurakCardWidget(
-      rankLabel: rank,
-      suitLabel: suit,
-      isRed: isRed,
-      faceUp: true,
-      selected: selected,
-      disabled: !enabled,
-      highlight: highlight,
-      onTap: onTap,
+        rankLabel: rank,
+        suitLabel: suit,
+        isRed: isRed,
+        faceUp: true,
+        selected: selected,
+        disabled: !enabled,
+        highlight: highlight,
+        onTap: onTap,
       ),
     );
 
@@ -139,7 +148,7 @@ class _HandFanCard extends StatelessWidget {
       onDragEnd: (d) {
         if (d.wasAccepted) onDragAcceptedByTable();
       },
+      onDraggableCanceled: (velocity, offset) => onDragRejected(),
     );
   }
 }
-

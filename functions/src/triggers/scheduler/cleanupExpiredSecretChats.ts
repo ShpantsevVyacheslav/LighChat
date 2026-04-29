@@ -18,31 +18,49 @@ export const cleanupExpiredSecretChats = onSchedule({
 }, async () => {
   const nowIso = new Date().toISOString();
   try {
-    const snap = await db
-      .collection("conversations")
-      .where("secretChat.enabled", "==", true)
-      .where("secretChat.expiresAt", "<=", nowIso)
+    const metaSnap = await db
+      .collection("secretChats")
+      .where("expiresAt", "<=", nowIso)
       .limit(50)
       .get();
 
-    if (snap.empty) return;
+    if (metaSnap.empty) {
+      logger.info("[cleanupExpiredSecretChats] no expired secret chats", {
+        scanned: 0,
+        ok: 0,
+        failed: 0,
+        nowIso,
+      });
+      return;
+    }
 
     let ok = 0;
     let failed = 0;
-    for (const doc of snap.docs) {
+    for (const metaDoc of metaSnap.docs) {
+      const conversationId = metaDoc.id;
       try {
-        await cleanupSecretChatConversationFully(doc.id, (doc.data() || {}) as Record<string, unknown>);
+        const convSnap = await db.doc(`conversations/${conversationId}`).get();
+        if (!convSnap.exists) {
+          // Index/meta can remain after partial failures from older versions.
+          await db.doc(`secretChats/${conversationId}`).delete();
+          ok++;
+          continue;
+        }
+        await cleanupSecretChatConversationFully(
+          conversationId,
+          (convSnap.data() || {}) as Record<string, unknown>,
+        );
         ok++;
       } catch (e) {
         failed++;
         logger.error("[cleanupExpiredSecretChats] failed conversation cleanup", {
-          conversationId: doc.id,
+          conversationId,
           err: String(e),
         });
       }
     }
 
-    logger.info("[cleanupExpiredSecretChats] done", { scanned: snap.size, ok, failed });
+    logger.info("[cleanupExpiredSecretChats] done", { scanned: metaSnap.size, ok, failed });
   } catch (e) {
     logger.error("[cleanupExpiredSecretChats] query failed", { err: String(e) });
   }

@@ -12,7 +12,9 @@ class DurakCardFlightLayer extends StatefulWidget {
   final Widget child;
 
   static DurakCardFlightController? of(BuildContext context) {
-    return context.findAncestorStateOfType<_DurakCardFlightLayerState>()?._controller;
+    return context
+        .findAncestorStateOfType<_DurakCardFlightLayerState>()
+        ?._controller;
   }
 
   @override
@@ -21,7 +23,8 @@ class DurakCardFlightLayer extends StatefulWidget {
 
 class _DurakCardFlightLayerState extends State<DurakCardFlightLayer> {
   final _flights = <_Flight>[];
-  late final DurakCardFlightController _controller = DurakCardFlightController._(this);
+  late final DurakCardFlightController _controller =
+      DurakCardFlightController._(this);
 
   Rect? _rectOf(GlobalKey key) {
     final ctx = key.currentContext;
@@ -46,18 +49,23 @@ class _DurakCardFlightLayerState extends State<DurakCardFlightLayer> {
       final spread = n <= 1 ? 0.0 : 14.0;
       final x = (i - (n - 1) / 2.0) * spread + (r.nextDouble() - 0.5) * 10;
       final y = (r.nextDouble() - 0.5) * 6;
-      final jitterFrom = Offset((r.nextDouble() - 0.5) * 18, (r.nextDouble() - 0.5) * 10);
+      final jitterFrom = Offset(
+        (r.nextDouble() - 0.5) * 18,
+        (r.nextDouble() - 0.5) * 10,
+      );
       final rot0 = (i - (n - 1) / 2.0) * 0.06 + (r.nextDouble() - 0.5) * 0.05;
-      _start(_Flight(
-        from: a.center + jitterFrom,
-        to: b.center + Offset(x, y),
-        faceUp: false,
-        label: null,
-        isRed: false,
-        popAtEnd: false,
-        baseRotation: rot0,
-        delayMs: i * 45,
-      ));
+      _start(
+        _Flight(
+          from: a.center + jitterFrom,
+          to: b.center + Offset(x, y),
+          faceUp: false,
+          label: null,
+          isRed: false,
+          popAtEnd: false,
+          baseRotation: rot0,
+          delayMs: i * 45,
+        ),
+      );
     }
   }
 
@@ -72,16 +80,18 @@ class _DurakCardFlightLayerState extends State<DurakCardFlightLayer> {
     final a = _rectOf(from);
     final b = _rectOf(to);
     if (a == null || b == null) return;
-    _start(_Flight(
-      from: a.center,
-      to: b.center,
-      faceUp: true,
-      label: (rankLabel, suitLabel),
-      isRed: isRed,
-      popAtEnd: popAtEnd,
-      baseRotation: 0.0,
-      delayMs: 0,
-    ));
+    _start(
+      _Flight(
+        from: a.center,
+        to: b.center,
+        faceUp: true,
+        label: (rankLabel, suitLabel),
+        isRed: isRed,
+        popAtEnd: popAtEnd,
+        baseRotation: 0.0,
+        delayMs: 0,
+      ),
+    );
   }
 
   void _start(_Flight f) {
@@ -112,8 +122,7 @@ class DurakCardFlightController {
     required GlobalKey from,
     required GlobalKey to,
     required int count,
-  }) =>
-      _s._flyBacks(from: from, to: to, count: count);
+  }) => _s._flyBacks(from: from, to: to, count: count);
 
   void flyCard({
     required GlobalKey from,
@@ -122,15 +131,14 @@ class DurakCardFlightController {
     required String suitLabel,
     required bool isRed,
     bool popAtEnd = true,
-  }) =>
-      _s._flyCard(
-        from: from,
-        to: to,
-        rankLabel: rankLabel,
-        suitLabel: suitLabel,
-        isRed: isRed,
-        popAtEnd: popAtEnd,
-      );
+  }) => _s._flyCard(
+    from: from,
+    to: to,
+    rankLabel: rankLabel,
+    suitLabel: suitLabel,
+    isRed: isRed,
+    popAtEnd: popAtEnd,
+  );
 }
 
 class _Flight {
@@ -165,16 +173,22 @@ class _FlightWidget extends StatefulWidget {
   State<_FlightWidget> createState() => _FlightWidgetState();
 }
 
-class _FlightWidgetState extends State<_FlightWidget> with SingleTickerProviderStateMixin {
+class _FlightWidgetState extends State<_FlightWidget>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   late final AnimationController _pop;
 
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 420))
-      ..stop();
-    _pop = AnimationController(vsync: this, duration: const Duration(milliseconds: 180));
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    )..stop();
+    _pop = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
 
     Future<void>.delayed(Duration(milliseconds: widget.f.delayMs), () {
       if (!mounted) return;
@@ -186,7 +200,10 @@ class _FlightWidgetState extends State<_FlightWidget> with SingleTickerProviderS
         _pop.forward(from: 0);
       });
     }
-    Future<void>.delayed(Duration(milliseconds: widget.f.delayMs + 440), widget.onDone);
+    Future<void>.delayed(
+      Duration(milliseconds: widget.f.delayMs + 440),
+      widget.onDone,
+    );
   }
 
   @override
@@ -208,8 +225,8 @@ class _FlightWidgetState extends State<_FlightWidget> with SingleTickerProviderS
         final rot = widget.f.baseRotation + (1.0 - t) * 0.08;
         final popT = widget.f.popAtEnd ? popAnim.value : 0.0;
         return Positioned(
-          left: p.dx - 28,
-          top: p.dy - 40,
+          left: p.dx - 34,
+          top: p.dy - 48,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -222,15 +239,19 @@ class _FlightWidgetState extends State<_FlightWidget> with SingleTickerProviderS
                     child: Transform.scale(
                       scale: 1.0 + popT * 0.25,
                       child: Container(
-                        width: 56,
-                        height: 80,
+                        width: 68,
+                        height: 96,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFFFFC107).withValues(alpha: 0.55),
+                            color: const Color(
+                              0xFFFFC107,
+                            ).withValues(alpha: 0.55),
                             width: 2,
                           ),
-                          color: const Color(0xFFFFC107).withValues(alpha: 0.06),
+                          color: const Color(
+                            0xFFFFC107,
+                          ).withValues(alpha: 0.06),
                         ),
                       ),
                     ),
@@ -256,4 +277,3 @@ class _FlightWidgetState extends State<_FlightWidget> with SingleTickerProviderS
     );
   }
 }
-

@@ -60,12 +60,19 @@ export default function ClearConversationPage() {
         description: `История переписки в чате "${conversation?.name || 'с пользователем'}" удалена для вас.`,
       });
       router.push('/dashboard/chat');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to clear history:", error);
+      const message =
+        typeof error === 'object' &&
+        error != null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Не удалось очистить историю.';
       toast({
         variant: 'destructive',
         title: 'Ошибка',
-        description: error.message,
+        description: message,
       });
       setIsClearing(false);
     }

@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { useDoc, useFirestore, useMemoFirebase, useStorage } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { collection, query, doc, updateDoc, orderBy, setDoc, getDocs, limit, onSnapshot, increment, documentId, where, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, orderBy, setDoc, limit, onSnapshot, increment, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { E2EE_LAST_MESSAGE_PREVIEW, autoEnableE2eeForNewDirectChat, isEncryptableMimeV2 } from '@/lib/e2ee';
 import { inferKindHintFromFileName } from '@/lib/e2ee/infer-kind-hint';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
@@ -19,8 +19,6 @@ import type {
   ChatMessage,
   ChatAttachment,
   ReplyContext,
-  ReactionDetail,
-  UserChatIndex,
   ChatLocationShare,
   ChatLocationSendMeta,
   PinnedMessage,
@@ -1237,11 +1235,16 @@ export function ChatWindow({
         if (!replyContext) return null;
         // 1) При E2EE envelope мы не пишем plaintext текста в replyTo (как раньше).
         if (useE2eeEnvelope && effectiveE2eeTypes.replyPreview !== false) {
-          return (({ text: _omitted, ...rest }) => rest)(replyContext);
+          return (({ text, ...rest }) => {
+            void text;
+            return rest;
+          })(replyContext);
         }
         // 2) При выключенном reply-preview — не пишем ни текст, ни url превью.
         if (effectiveE2eeTypes.replyPreview === false) {
-          const { text: _t, mediaPreviewUrl: _u, ...rest } = replyContext;
+          const { text, mediaPreviewUrl, ...rest } = replyContext;
+          void text;
+          void mediaPreviewUrl;
           return rest;
         }
         return replyContext;
@@ -1534,7 +1537,7 @@ export function ChatWindow({
             });
           }
         }
-    } catch (e) {
+    } catch {
         toast({ variant: 'destructive', title: 'Ошибка обновления' });
     }
   };
@@ -1559,7 +1562,7 @@ export function ChatWindow({
             const others = conversation.participantIds.filter(uid => uid !== msgData.senderId);
             if (others.length > 0) {
                 const convRef = doc(firestore, 'conversations', conversation.id);
-                const updates: Record<string, any> = {};
+                const updates: Record<string, unknown> = {};
                 others.forEach(uid => {
                     const field = isThread ? `unreadThreadCounts.${uid}` : `unreadCounts.${uid}`;
                     updates[field] = increment(-1);
@@ -1568,7 +1571,7 @@ export function ChatWindow({
 
                 if (isThread) {
                     const parentRef = doc(firestore, `conversations/${conversation.id}/messages`, parentId);
-                    const parentUpdates: Record<string, any> = {};
+                    const parentUpdates: Record<string, unknown> = {};
                     others.forEach(uid => {
                         parentUpdates[`unreadThreadCounts.${uid}`] = increment(-1);
                     });
@@ -1576,7 +1579,7 @@ export function ChatWindow({
                 }
             }
         }
-    } catch (e) {
+    } catch {
         toast({ variant: 'destructive', title: 'Ошибка удаления' });
     }
   };
@@ -1617,7 +1620,7 @@ export function ChatWindow({
         pinnedMessage: deleteField(),
         });
         toast({ title: 'Сообщение закреплено' });
-    } catch (e) {
+    } catch {
         toast({ variant: 'destructive', title: 'Ошибка закрепления' });
     }
   };
@@ -1634,7 +1637,7 @@ export function ChatWindow({
         await updateDoc(convRef, { pinnedMessages: next, pinnedMessage: deleteField() });
       }
       toast({ title: 'Сообщение откреплено' });
-    } catch (e) {
+    } catch {
       toast({ variant: 'destructive', title: 'Ошибка открепления' });
     }
   };
@@ -1648,7 +1651,7 @@ export function ChatWindow({
         }
         setSelection({ active: false, ids: new Set() });
         toast({ title: 'Сообщения удалены' });
-    } catch (e) {
+    } catch {
         toast({ variant: 'destructive', title: 'Ошибка при удалении' });
     } finally {
         setIsBulkProcessing(false);
@@ -1669,7 +1672,7 @@ export function ChatWindow({
         if (!message) return;
 
         const reactions = { ...(message.reactions || {}) };
-        let userReactions = reactions[emoji] ? [...reactions[emoji]] : [];
+        const userReactions = reactions[emoji] ? [...reactions[emoji]] : [];
         const now = new Date().toISOString();
         const existingIndex = userReactions.findIndex(r => typeof r === 'string' ? r === currentUser.id : r.userId === currentUser.id);
 
@@ -1960,6 +1963,7 @@ export function ChatWindow({
             }}
             gameId={openGameId}
             currentUser={currentUser}
+            allUsers={allUsers}
           />
         ) : null}
 

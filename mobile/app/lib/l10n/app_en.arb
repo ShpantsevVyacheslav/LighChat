@@ -22,6 +22,12 @@
   "secret_chat_settings_subtitle": "Lifetime, access, and restrictions",
   "secret_chat_settings_not_secret": "This chat is not a secret chat",
   "secret_chat_settings_ttl": "Lifetime",
+  "secret_chat_settings_time_left": "Time left: {value}",
+  "@secret_chat_settings_time_left": {
+    "placeholders": {
+      "value": {}
+    }
+  },
   "secret_chat_settings_expires_at": "Expires at: {iso}",
   "@secret_chat_settings_expires_at": {
     "placeholders": {

@@ -8,6 +8,7 @@
   - `api/tenor/search/route.ts` - серверный прокси к Tenor API.
 - `src/components` - UI-компоненты по доменам.
   - `chat/*` - окно чата, ввод, контекстные действия, медиа, 1:1 call overlay.
+  - `chat/conversation-pages/ConversationGamesPanel.tsx`, `chat/games/durak/*` - web-вход в игры из профиля беседы и responsive-стол “Дурака”.
   - `meetings/*` - комната, сайдбар, controls, чат и опросы встречи.
   - `dashboard/*`, `admin/*`, `auth/*`, `contacts/*`, `settings/*`, `ui/*`.
 - `src/hooks` - клиентские хуки приложения (`use-auth`, `use-settings`, `use-meeting-webrtc`, `use-chat-main-draft-preview` для метки черновика в списке чатов, и т.д.).
@@ -55,6 +56,7 @@
   - `lib/features/chat/data/device_contact_lookup_keys.dart` - генерация lookup-ключей `registrationIndex` из контактов устройства (`p_*`, `e_*`).
   - `lib/features/chat/ui/chat_bottom_nav.dart`, `lib/features/chat/ui/chat_account_menu_sheet.dart` - нижняя навигация и аккаунт-меню по аватару.
   - `lib/features/chat/ui/chat_settings_screen.dart` - экран «Настройки чатов» (пресеты/превью/загрузка своих фонов).
+  - `lib/features/chat/ui/conversation_games_screen.dart`, `conversation_durak_entry_screen.dart`, `conversation_durak_*`, `durak_*` - mobile-вход `Игры -> Дурак`, лобби/турниры и игровой стол “Дурака”.
   - `lib/features/chat/data/chat_settings_repository.dart` - чтение/запись `users.chatSettings` и `users.customBackgrounds`, upload фонов в Storage.
   - `lib/features/chat/ui/message_attachments.dart`, `lib/features/chat/data/chat_attachment_mosaic_layout.dart` - альбомные фото в сообщении (мозаика по числу и пропорциям).
   - `lib/features/chat/data/chat_media_gallery.dart`, `lib/features/chat/ui/chat_media_viewer_screen.dart` - полноэкранная галерея фото/видео из чата (фильтр как веб `isGridGalleryAttachment`, размытый фон, жесты, меню Ответить/Переслать/Сохранить/Удалить); зависимость `share_plus` для «Сохранить».

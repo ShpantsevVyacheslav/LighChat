@@ -1,23 +1,18 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, documentId, doc, setDoc } from 'firebase/firestore';
-import type { User, Meeting, UserMeetingsIndex } from '@/lib/types';
+import type { Meeting, UserMeetingsIndex } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Link as LinkIcon, Users, History, ArrowRight, Settings, ShieldCheck, ShieldAlert, MoreVertical, Trash2, Video, Clock, Calendar as CalendarIcon, Ban } from 'lucide-react';
-import { format, isToday, isYesterday, parseISO, addMinutes, isAfter } from 'date-fns';
+import { format, parseISO, addMinutes, isAfter } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -96,9 +91,16 @@ export default function MeetingsDashboardPage() {
       await setDoc(doc(firestore, 'meetings', meetingId), meetingData);
       toast({ title: 'Встреча создана', description: 'Перенаправляем в комнату...' });
       router.push(`/meetings/${meetingId}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Meeting creation error:", error);
-      toast({ variant: 'destructive', title: 'Ошибка', description: error.message });
+      const message =
+        typeof error === 'object' &&
+        error != null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Unknown error';
+      toast({ variant: 'destructive', title: 'Ошибка', description: message });
       setIsCreating(false);
     }
   };

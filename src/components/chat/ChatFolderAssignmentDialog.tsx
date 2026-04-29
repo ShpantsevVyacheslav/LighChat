@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import type { User, Conversation, ChatFolder, UserChatIndex } from '@/lib/types';
+import type { User, Conversation, UserChatIndex } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -93,8 +93,15 @@ export function ChatFolderAssignmentDialog({
         title: isAdded ? 'Добавлено в папку' : 'Удалено из папки',
         description: folderName
       });
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Ошибка обновления', description: e.message });
+    } catch (e: unknown) {
+      const message =
+        typeof e === 'object' &&
+        e != null &&
+        'message' in e &&
+        typeof (e as { message?: unknown }).message === 'string'
+          ? (e as { message: string }).message
+          : 'Не удалось обновить папки.';
+      toast({ variant: 'destructive', title: 'Ошибка обновления', description: message });
     } finally {
       setIsSaving(false);
     }

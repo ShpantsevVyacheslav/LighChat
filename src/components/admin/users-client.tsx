@@ -127,25 +127,32 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
         (user.phone && user.phone.includes(searchTerm))
   ), [users, searchTerm]);
 
-  const toTime = (val: any) => {
+  const toTime = (val: unknown) => {
     if (!val) return 0;
-    if (typeof val.toDate === 'function') return val.toDate().getTime();
+    if (
+      typeof val === 'object' &&
+      val != null &&
+      'toDate' in val &&
+      typeof (val as { toDate?: unknown }).toDate === 'function'
+    ) {
+      return (val as { toDate: () => Date }).toDate().getTime();
+    }
     if (typeof val === 'string') {
         try {
             return parseISO(val).getTime();
-        } catch (e) {
+        } catch {
             return new Date(val).getTime();
         }
     }
-    return new Date(val).getTime();
+    return new Date(val as never).getTime();
   };
 
   const sortedUsers = useMemo(() => {
-    let sortableItems = [...filteredUsers];
+    const sortableItems = [...filteredUsers];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        let aVal: any;
-        let bVal: any;
+        let aVal: unknown;
+        let bVal: unknown;
 
         switch (sortConfig.key) {
           case 'name':
@@ -161,8 +168,8 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
             bVal = toTime(b.createdAt);
             break;
           default:
-            aVal = (a as any)[sortConfig.key];
-            bVal = (b as any)[sortConfig.key];
+            aVal = (a as Record<string, unknown>)[sortConfig.key];
+            bVal = (b as Record<string, unknown>)[sortConfig.key];
         }
 
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;

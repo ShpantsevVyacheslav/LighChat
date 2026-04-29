@@ -282,7 +282,8 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
   };
 
   const onSubmit = (data: UserFormValues) => {
-    const { confirmPassword: _confirm, password, ...rest } = data;
+    const { confirmPassword, password, ...rest } = data;
+    void confirmPassword;
     const usernameNorm = (rest.username ?? "").trim().replace(/^@/, "").toLowerCase();
     const dobRaw = rest.dateOfBirth?.trim() ?? "";
     const dobIso = profileDisplayDateToIso(dobRaw);

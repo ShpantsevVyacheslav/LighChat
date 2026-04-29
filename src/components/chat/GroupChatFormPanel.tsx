@@ -170,7 +170,7 @@ export function GroupChatFormPanel({
       const response = await fetch(compressedDataUri);
       const blob = await response.blob();
       setAvatarFile(new File([blob], file.name, { type: 'image/jpeg' }));
-    } catch (e) {
+    } catch {
       toast({ variant: 'destructive', title: t('chat.groupForm.toastPhotoErrorTitle') });
     } finally {
       setIsProcessing(false);

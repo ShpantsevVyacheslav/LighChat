@@ -100,31 +100,7 @@ class _SecretVaultPinScreenState extends State<SecretVaultPinScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.chevron_left_rounded, size: 32),
-                  ),
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 26),
             Text(
               _activeSubtitle(l10n),
               textAlign: TextAlign.center,
@@ -193,7 +169,16 @@ class _SecretVaultPinScreenState extends State<SecretVaultPinScreen> {
                     ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.common_cancel),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    ),
+                    child: Text(
+                      l10n.common_cancel,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
               ),

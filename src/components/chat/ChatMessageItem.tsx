@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
-import { parseISO } from 'date-fns';
 
 import type { User, Conversation, ChatMessage, ChatAttachment, ReplyContext, ChatSettings, UserContactLocalProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -350,7 +349,7 @@ const ChatMessageItemComponent = ({
         const bubbleRectEl = bubbleEl.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const menuHeight = 360; const menuWidth = 240;
-        let top = bubbleRectEl.bottom + 4;
+        const top = bubbleRectEl.bottom + 4;
         let left = isCurrentUser ? bubbleRectEl.right - menuWidth : bubbleRectEl.left;
         let shiftY = 0;
         if (top + menuHeight > window.innerHeight - 90) shiftY = (window.innerHeight - 90) - (top + menuHeight);

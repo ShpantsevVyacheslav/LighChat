@@ -4,8 +4,8 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirestore, useMemoFirebase, useStorage, useCollection } from '@/firebase';
-import { collection, query, doc, updateDoc, increment, orderBy, setDoc, getDocs, where, limit, documentId, writeBatch, onSnapshot, deleteDoc, serverTimestamp, deleteField, arrayUnion } from 'firebase/firestore';
+import { useFirestore, useStorage } from '@/firebase';
+import { collection, query, doc, updateDoc, increment, orderBy, setDoc, limit, onSnapshot, deleteDoc, serverTimestamp, deleteField, arrayUnion } from 'firebase/firestore';
 import { E2EE_LAST_MESSAGE_PREVIEW } from '@/lib/e2ee';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
 import { useE2eeMediaAttachments } from '@/hooks/use-e2ee-media-attachments';
@@ -19,7 +19,6 @@ import type {
     ChatMessage,
     ChatAttachment,
     ReplyContext,
-    ReactionDetail,
     ChatLocationShare,
     ChatLocationSendMeta,
     UserContactLocalProfile,
@@ -33,7 +32,7 @@ import { ChatMessageInput } from './ChatMessageInput';
 import { ChatWallpaperLayer } from './ChatWallpaperLayer';
 import { SelectionHeader } from './SelectionHeader';
 import { ChatAnchor } from './ChatAnchor';
-import { X, MessageSquare, Loader2, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
+import { X, MessageSquare, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO, isToday, isYesterday, format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -752,10 +751,15 @@ export function ThreadWindow({
             const replyForWrite = (() => {
                 if (!replyContext) return null;
                 if (useE2eeEnvelope && effectiveE2eeTypes.replyPreview !== false) {
-                    return (({ text: _omitted, ...rest }) => rest)(replyContext);
+                    return (({ text, ...rest }) => {
+                        void text;
+                        return rest;
+                    })(replyContext);
                 }
                 if (effectiveE2eeTypes.replyPreview === false) {
-                    const { text: _t, mediaPreviewUrl: _u, ...rest } = replyContext;
+                    const { text, mediaPreviewUrl, ...rest } = replyContext;
+                    void text;
+                    void mediaPreviewUrl;
                     return rest;
                 }
                 return replyContext;
@@ -815,7 +819,7 @@ export function ThreadWindow({
             const convRef = doc(firestore, 'conversations', conversation.id);
             const otherParticipantIds = conversation.participantIds.filter(id => id !== currentUser.id);
             
-            const threadUnreadUpdates: Record<string, any> = {};
+            const threadUnreadUpdates: Record<string, unknown> = {};
             otherParticipantIds.forEach(id => {
                 threadUnreadUpdates[`unreadThreadCounts.${id}`] = increment(1);
             });

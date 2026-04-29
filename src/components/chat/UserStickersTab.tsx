@@ -69,7 +69,6 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     itemsError,
     selectedPackId,
     setSelectedPackId,
-    selectedPack,
     createPack,
     addFilesToPack,
     deleteItem,

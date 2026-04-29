@@ -15,6 +15,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  type Firestore,
   type QuerySnapshot,
   type DocumentData,
 } from 'firebase/firestore';
@@ -23,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2, Minimize2, Video, VideoOff, X, Maximize2, MonitorUp, MonitorOff, SwitchCamera } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, Loader2, Minimize2, Video, VideoOff, Maximize2, MonitorUp, MonitorOff, SwitchCamera } from 'lucide-react';
 import type { User, Call } from '@/lib/types';
 import { isEitherBlockingFromUserIds } from '@/lib/user-block-utils';
 import { cn } from '@/lib/utils';
@@ -110,7 +111,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
   const mediaRequestInProgress = useRef(false);
   const isSettingUp = useRef(false);
   const isHandlingAnswer = useRef(false);
-  const iceCandidatesQueue = useRef<any[]>([]);
+  const iceCandidatesQueue = useRef<unknown[]>([]);
   const candidatesUnsubscribeRef = useRef<(() => void) | null>(null);
   const processedCandidateIds = useRef<Set<string>>(new Set());
   const activeCallRef = useRef<Call | null>(null);
@@ -195,7 +196,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             const ringtoneUrl = await getDownloadURL(storageRef(storage, 'audio/ringtone.mp3'));
             const ringbackUrl = await getDownloadURL(storageRef(storage, 'audio/ringback.mp3'));
             setStorageUrls({ ringtone: ringtoneUrl, ringback: ringbackUrl });
-        } catch (e) {
+        } catch {
             console.warn("[WebRTC] Audio files not found in Storage (audio/ringtone.mp3, audio/ringback.mp3). Upload them to enable call sounds.");
             setStorageUrls({ ringtone: null, ringback: null });
         }
@@ -849,11 +850,11 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
 }
 
 export const initiateCall = async (
-  firestore: any,
+  firestore: Firestore,
   caller: User,
   receiver: Pick<User, 'id' | 'name'> & { blockedUserIds?: string[] },
   isVideo: boolean,
-  toast: any
+  toast: (opts: { variant?: string; title: string; description?: string }) => void
 ) => {
     if (!firestore || !caller || !receiver?.id) return;
     if (!navigator.mediaDevices || !window.RTCPeerConnection) {
@@ -889,7 +890,7 @@ export const initiateCall = async (
         };
         await setDoc(doc(firestore, 'calls', callId), callData);
         return { callId };
-    } catch (e) {
+    } catch {
         toast({ variant: 'destructive', title: 'Ошибка вызова', description: 'Не удалось создать вызов.' });
     }
 };

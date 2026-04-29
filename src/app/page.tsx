@@ -47,7 +47,6 @@ import {
   AUTH_GLASS_CARD_SHELL_CLASS,
   AUTH_DIALOG_OVERLAY_CLASS,
   AUTH_GLASS_INPUT_CLASS,
-  AUTH_GLASS_INPUT_ERROR_CLASS,
   AUTH_LABEL_CLASS,
 } from "@/components/auth/auth-glass-classes";
 import { TelegramLoginDialog } from "@/components/auth/telegram-login-dialog";
@@ -221,7 +220,6 @@ function YandexIcon({ className, title }: { className?: string; title: string })
 export default function AuthPage() {
   const {
     user,
-    googleProfileCompletionFlow,
     login,
     register,
     completeGoogleProfile,

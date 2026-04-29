@@ -137,7 +137,7 @@ export function ConversationItem({
                     stopPropagation: () => {},
                     clientX: touch.clientX,
                     clientY: touch.clientY
-                } as any;
+                        } as unknown as React.MouseEvent;
                 onContextMenu(fakeEvent, conv);
             }
         }, 600);

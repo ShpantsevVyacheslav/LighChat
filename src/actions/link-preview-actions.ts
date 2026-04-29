@@ -23,7 +23,7 @@ export async function getLinkMetadata(url: string) {
         if (['localhost', '127.0.0.1', '0.0.0.0'].includes(domain) || domain.startsWith('192.168.') || domain.startsWith('10.')) {
           return null;
         }
-    } catch (e) {
+    } catch {
         return null;
     }
 
@@ -47,7 +47,7 @@ export async function getLinkMetadata(url: string) {
     }
 
     // Clean up strings
-    const clean = (str: any) => typeof str === 'string' ? str.trim() : null;
+    const clean = (str: unknown) => typeof str === 'string' ? str.trim() : null;
 
     // Map result to a clean interface for the frontend
     // ogs provides a very rich set of data, we pick the most useful ones

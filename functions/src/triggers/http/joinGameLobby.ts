@@ -3,7 +3,12 @@ import { logger } from "firebase-functions";
 import * as admin from "firebase-admin";
 
 import { normalizeDurakSettings } from "../../lib/games/gameSettings";
-import { buildInitialState, derivePhase } from "../../lib/games/durak/engine";
+import {
+  buildInitialState,
+  canFinishTurn,
+  derivePhase,
+  getCurrentThrowerUid,
+} from "../../lib/games/durak/engine";
 
 type RequestData = {
   gameId?: unknown;
@@ -112,6 +117,9 @@ export const joinGameLobby = onCall(
             lastMoveAt: nowIso,
             throwerUids: state.throwerUids ?? [],
             passedUids: state.passedUids ?? [],
+            currentThrowerUid: getCurrentThrowerUid({ state, handsByUid }),
+            roundDefenderHandLimit: typeof state.roundDefenderHandLimit === "number" ? state.roundDefenderHandLimit : null,
+            canFinishTurn: canFinishTurn({ state, handsByUid }),
             shuler: {
               enabled: settings.shulerEnabled === true,
               lastCheatUid: null,
@@ -188,4 +196,3 @@ export const joinGameLobby = onCall(
     return { gameId };
   },
 );
-

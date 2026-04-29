@@ -22,6 +22,12 @@
   "secret_chat_settings_subtitle": "Срок жизни, доступ и ограничения",
   "secret_chat_settings_not_secret": "Этот чат не является секретным",
   "secret_chat_settings_ttl": "Срок жизни",
+  "secret_chat_settings_time_left": "Осталось: {value}",
+  "@secret_chat_settings_time_left": {
+    "placeholders": {
+      "value": {}
+    }
+  },
   "secret_chat_settings_expires_at": "Истекает: {iso}",
   "@secret_chat_settings_expires_at": {
     "placeholders": {

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { useStorage, useFirestore } from '@/firebase';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL, type FirebaseStorage } from 'firebase/storage';
+import { useFirestore } from '@/firebase';
 import type {
   User,
   Conversation,
@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { compressImage } from '@/lib/image-compression';
 import { getImageMetadata } from '@/lib/media-utils';
 import { LinkPreview } from './LinkPreview';
 import { FormattingToolbar } from './editor/FormattingToolbar';
@@ -52,7 +51,7 @@ import {
 /** Не чаще ~2.5–3 раз/с обновлять документ «печатает» в Firestore. */
 const TYPING_WRITE_THROTTLE_MS = 350;
 
-export async function uploadFile(file: File, path: string, storage: any): Promise<ChatAttachment> {
+export async function uploadFile(file: File, path: string, storage: FirebaseStorage): Promise<ChatAttachment> {
   let metadata: { width?: number; height?: number; thumbHash?: string | null } = {};
   if (file.type.startsWith('image/') && !file.type.includes('svg')) {
       const res = await getImageMetadata(file);
@@ -67,18 +66,6 @@ export async function uploadFile(file: File, path: string, storage: any): Promis
     });
   });
 };
-
-function dataURLtoFile(dataurl: string, filename: string): File {
-    const arr = dataurl.split(',');
-    const mimeMatch = arr[0].match(/:(.*?);/);
-    if (!mimeMatch) throw new Error('Invalid data URL');
-    const mime = mimeMatch[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) u8arr[n] = bstr.charCodeAt(n);
-    return new File([u8arr], filename, { type: mime });
-}
 
 export type ChatMessageInputHandle = {
   /** Добавить файлы в черновик (с нормализацией стикеров iOS). */
@@ -127,7 +114,16 @@ const ChatMessageInputInner = (
 
     const draftKey = draftScopeKey ?? conversation.id;
 
-    const editorInstance = useRef<any>(null);
+    type EditorLike = {
+        getHTML: () => string;
+        getText: () => string;
+        commands: {
+            clearContent: () => void;
+            setContent: (html: string) => void;
+            focus: (pos?: string) => void;
+        };
+    };
+    const editorInstance = useRef<EditorLike | null>(null);
     const mentionAnchorRef = useRef<HTMLDivElement>(null);
     const audioRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
@@ -155,7 +151,6 @@ const ChatMessageInputInner = (
     
     const { toast } = useToast();
     const firestore = useFirestore();
-    const storage = useStorage();
     const firebaseAuth = useAuth();
 
     const inputFrozen = isPartnerDeleted || composerLocked;
@@ -365,7 +360,7 @@ const ChatMessageInputInner = (
                 await onUpdateMessage(editingMessage.id, text, editingMessage.attachments);
                 onCancelEdit();
             } else {
-                let preparedFiles = [...finalFiles];
+                const preparedFiles = [...finalFiles];
                 if (currentVideoPreview) {
                     const videoFile = new File([currentVideoPreview.blob], `video-circle_${Date.now()}.webm`, { type: 'video/webm' });
                     preparedFiles.push(videoFile);
@@ -443,7 +438,7 @@ const ChatMessageInputInner = (
             recorder.ondataavailable = (e) => videoChunksRef.current.push(e.data);
             recorder.onstop = () => setVideoPreview({ url: URL.createObjectURL(new Blob(videoChunksRef.current, { type: 'video/webm' })), blob: new Blob(videoChunksRef.current, { type: 'video/webm' }) });
             recorder.start();
-        } catch (err) { toast({ variant: "destructive", title: "Ошибка камеры" }); }
+        } catch { toast({ variant: "destructive", title: "Ошибка камеры" }); }
     };
 
     const stopVideoRecording = () => {
@@ -519,7 +514,7 @@ const ChatMessageInputInner = (
             setIsAudioRecording(true);
             setAudioRecordingTime(0);
             audioTimerRef.current = setInterval(() => setAudioRecordingTime(t => t + 1), 1000);
-        } catch (err) {
+        } catch {
             toast({ variant: "destructive", title: "Нет доступа к микрофону" });
         }
     };
@@ -982,7 +977,7 @@ export interface ChatMessageInputProps {
     onUpdateMessage: (id: string, text: string, attachments?: ChatAttachment[]) => Promise<void>;
     replyingTo: ReplyContext | null;
     onCancelReply: () => void;
-    editingMessage: any | null;
+    editingMessage: ChatMessage | null;
     onCancelEdit: () => void;
     conversation: Conversation;
     currentUser: User;

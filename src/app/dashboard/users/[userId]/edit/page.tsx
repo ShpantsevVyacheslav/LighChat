@@ -53,12 +53,19 @@ export default function EditUserPage() {
             description: `Данные пользователя "${data.name}" были успешно обновлены через сервер.`,
         });
         router.push('/dashboard/users');
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("Failed to update user via Cloud Function:", e);
+        const message =
+          typeof e === 'object' &&
+          e != null &&
+          'message' in e &&
+          typeof (e as { message?: unknown }).message === 'string'
+            ? (e as { message: string }).message
+            : undefined;
         toast({
             variant: 'destructive',
             title: 'Ошибка при обновлении',
-            description: e.message || 'Не удалось обновить профиль пользователя. Проверьте права доступа.',
+            description: message || 'Не удалось обновить профиль пользователя. Проверьте права доступа.',
         });
         setIsSaving(false);
     }
@@ -77,7 +84,7 @@ export default function EditUserPage() {
         <DialogHeader>
           <DialogTitle>Редактировать пользователя</DialogTitle>
           <DialogDescription>
-            Измените данные пользователя. Нажмите "Сохранить", когда закончите.
+            Измените данные пользователя. Нажмите &quot;Сохранить&quot;, когда закончите.
           </DialogDescription>
         </DialogHeader>
         {isLoading ? (

@@ -61,7 +61,7 @@ export default function EditMeetingPage() {
 
     setIsSaving(true);
     try {
-      const updateData: any = { 
+      const updateData: Record<string, unknown> = { 
           name: name.trim(),
           isPrivate: isPrivate
       };
@@ -75,11 +75,18 @@ export default function EditMeetingPage() {
       await updateDoc(meetingRef, updateData);
       toast({ title: 'Настройки обновлены' });
       router.push('/dashboard/meetings');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' &&
+        error != null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Не удалось обновить настройки.';
       toast({
         variant: 'destructive',
         title: 'Ошибка',
-        description: error.message,
+        description: message,
       });
       setIsSaving(false);
     }

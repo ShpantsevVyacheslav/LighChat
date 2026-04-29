@@ -103,6 +103,51 @@ function currentThrowerUid(state: DurakServerState, handsByUid: Record<string, C
   return null;
 }
 
+export function getCurrentThrowerUid({
+  state,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+}): string | null {
+  if (state.phase === "finished") return null;
+  if ((state.table?.attacks?.length ?? 0) === 0) return null;
+  return currentThrowerUid(state, handsByUid);
+}
+
+export function canFinishTurn({
+  state,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+}): boolean {
+  if (state.phase === "finished") return false;
+  return allDefended(state) && allThrowersPassed({ state, handsByUid });
+}
+
+export function buildSurrenderResult({
+  playerIds,
+  loserUid,
+  nowIso,
+}: {
+  playerIds: string[];
+  loserUid: string;
+  nowIso: string;
+}): DurakGameResult {
+  const winners = playerIds.filter((u) => u !== loserUid);
+  return {
+    kind: "finished",
+    finishedAt: nowIso,
+    winners,
+    loserUid,
+    placements: [
+      { uids: winners },
+      { uids: [loserUid] },
+    ].filter((g) => g.uids.length > 0),
+  };
+}
+
 function markTakingIfJokerOnTable(state: DurakServerState, handsByUid: Record<string, Card[]>): void {
   if (!state.table.attacks.some((c) => isJoker(c))) return;
   ensureRoundHandLimit(state, handsByUid);
@@ -201,8 +246,8 @@ export function buildInitialState({
   const trumpSuit = bottom2.s;
 
   const handsByUid: Record<string, Card[]> = Object.fromEntries(seats.map((u) => [u, []]));
-  // First deal: 5 cards each (as per product rules).
-  for (let i = 0; i < 5; i++) {
+  // First deal: 6 cards each (classic Durak opening hand).
+  for (let i = 0; i < 6; i++) {
     for (const uid of seats) {
       const c = deck.pop();
       if (!c) break;
@@ -761,4 +806,3 @@ export function rotateAfterSuccessfulDefense(state: DurakServerState): void {
   state.defenderUid = newDefender;
   resetRoundTracking(state);
 }
-

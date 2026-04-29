@@ -54,14 +54,23 @@ export default function NewUserPage() {
         description: `Аккаунт для "${data.name}" был успешно создан на сервере.`,
       });
       router.push('/dashboard/users');
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = 'Произошла неизвестная ошибка.';
-      if (typeof error.message === 'string') {
-          errorMessage = error.message;
+      if (
+        typeof error === 'object' &&
+        error != null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+      ) {
+        errorMessage = (error as { message: string }).message;
       }
       
-      if (error.code) {
-        switch (error.code) {
+      const code =
+        typeof error === 'object' && error != null && 'code' in error
+          ? (error as { code?: unknown }).code
+          : undefined;
+      if (typeof code === 'string') {
+        switch (code) {
             case 'functions/already-exists':
                 errorMessage = 'Этот email уже используется.';
                 break;

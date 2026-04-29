@@ -10,9 +10,12 @@ import {
   applyDefenseRelaxed,
   applyTransfer,
   applyTransferRelaxed,
+  buildSurrenderResult,
+  canFinishTurn,
   computeAndApplyGameResult,
   derivePhase,
   drawUpToSix,
+  getCurrentThrowerUid,
   markTaking,
   passThrowIn,
   rotateAfterTake,
@@ -20,12 +23,13 @@ import {
   takeTable,
 } from "../../lib/games/durak/engine";
 import { applyFoul, applyFinishTurn, applyResolve } from "../../lib/games/durak/moves";
+import type { DurakGameResult } from "../../lib/games/durak/state";
 import { applyFinishedGameToTournament } from "../../lib/games/tournamentEngine";
 
 type RequestData = {
   gameId?: unknown;
   clientMoveId?: unknown;
-  actionType?: unknown; // "attack" | "defend" | "take" | "finishTurn" | "transfer" | "pass" | "foul" | "resolve"
+  actionType?: unknown; // "attack" | "defend" | "take" | "finishTurn" | "transfer" | "pass" | "foul" | "resolve" | "surrender"
   payload?: unknown;
 };
 
@@ -94,8 +98,9 @@ export const makeDurakMove = onCall(
 
       let payloadNormalized: Record<string, unknown> = {};
       let cheated: Record<string, unknown> | null = null;
+      let forcedResult: DurakGameResult = null;
 
-      if (state.pendingResolution && actionType !== "foul" && actionType !== "resolve") {
+      if (state.pendingResolution && actionType !== "foul" && actionType !== "resolve" && actionType !== "surrender") {
         throw new HttpsError("failed-precondition", "ROUND_RESOLUTION_PENDING");
       }
 
@@ -231,13 +236,21 @@ export const makeDurakMove = onCall(
           payloadNormalized = {};
           break;
         }
+        case "surrender": {
+          const activeSeats = Array.isArray(state.seats) ? state.seats : playerIds;
+          if (!activeSeats.includes(uid)) throw new HttpsError("permission-denied", "NOT_ACTIVE_PLAYER");
+          forcedResult = buildSurrenderResult({ playerIds, loserUid: uid, nowIso });
+          state.phase = "finished";
+          payloadNormalized = { loserUid: uid };
+          break;
+        }
         default:
           throw new HttpsError("invalid-argument", "UNKNOWN_ACTION");
       }
 
       // Canon: if defender is taking, allow throw-ins to continue until resolved,
       // then move table to defender, draw, and rotate.
-      if (shouldResolveTakingRound({ state, handsByUid: handsByUid as any })) {
+      if (!forcedResult && shouldResolveTakingRound({ state, handsByUid: handsByUid as any })) {
         takeTable({ state, handsByUid: handsByUid as any });
         drawUpToSix({ state, handsByUid: handsByUid as any });
         rotateAfterTake(state);
@@ -246,7 +259,7 @@ export const makeDurakMove = onCall(
       state.revision = (typeof state.revision === "number" ? state.revision : 0) + 1;
       state.lastMoveAt = nowIso;
 
-      const result = computeAndApplyGameResult({
+      const result = forcedResult ?? computeAndApplyGameResult({
         state,
         handsByUid: handsByUid as any,
         nowIso,
@@ -299,6 +312,9 @@ export const makeDurakMove = onCall(
           lastMoveAt: nowIso,
           throwerUids: state.throwerUids ?? [],
           passedUids: state.passedUids ?? [],
+          currentThrowerUid: getCurrentThrowerUid({ state, handsByUid: handsByUid as any }),
+          roundDefenderHandLimit: typeof state.roundDefenderHandLimit === "number" ? state.roundDefenderHandLimit : null,
+          canFinishTurn: canFinishTurn({ state, handsByUid: handsByUid as any }),
           shuler: {
             enabled: settings.shulerEnabled === true,
             lastCheatUid: state.lastCheat ? state.lastCheat.uid : null,
@@ -404,4 +420,3 @@ export const makeDurakMove = onCall(
     return { gameId, accepted: true };
   },
 );
-
