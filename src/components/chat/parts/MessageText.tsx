@@ -37,9 +37,6 @@ export function MessageText({
   contactProfiles,
   onMentionProfileOpen,
 }: MessageTextProps) {
-  // Если нет ни текста, ни дочерних элементов (статуса), ничего не рендерим
-  if (!text && !children) return null;
-
   const safeHtml = useMemo(() => (text ? sanitizeMessageHtml(text) : ''), [text]);
 
   const displayHtml = useMemo(() => {
@@ -79,6 +76,9 @@ export function MessageText({
       return safeHtml;
     }
   }, [safeHtml, conversation, allUsers, contactProfiles]);
+
+  // После хуков: если нечего показывать — выходим (иначе нарушается rules-of-hooks)
+  if (!text && !children) return null;
 
   const handleTextClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;

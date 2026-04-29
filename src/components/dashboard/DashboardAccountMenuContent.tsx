@@ -74,8 +74,6 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
     if (isMobile) setOpenMobile(false);
   }, [isMobile, onNavigate, setOpenMobile]);
 
-  if (!user) return null;
-
   const currentTheme = normalizeAppTheme(theme, resolvedTheme);
 
   const setAppTheme = async (next: AppThemePreference) => {
@@ -111,6 +109,8 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
     const next = THEME_CYCLE[(i >= 0 ? i + 1 : 1) % THEME_CYCLE.length];
     void setAppTheme(next);
   };
+
+  if (!user) return null;
 
   return (
     <>

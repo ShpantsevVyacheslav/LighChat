@@ -7,7 +7,6 @@ import type {
   User,
   Conversation,
   ReplyContext,
-  ChatMessage,
   ChatAttachment,
   ChatLocationShare,
   ChatLocationSendMeta,
@@ -41,12 +40,12 @@ import { ChatAttachLocationDialog } from '@/components/chat/ChatAttachLocationDi
 import { ChatAttachPollDialog, type ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
 import { AudioMessagePreviewBar } from '@/components/chat/AudioMessagePreviewBar';
 import { normalizeFilesAsStickersIfApplicable } from '@/lib/ios-sticker-detect';
-import {
-  chatDraftPlainFromHtml,
+import { chatDraftPlainFromHtml,
   clearChatMessageDraft,
   getChatMessageDraft,
   saveChatMessageDraft,
 } from '@/lib/chat-message-draft-storage';
+import type { Editor } from '@tiptap/core';
 
 /** Не чаще ~2.5–3 раз/с обновлять документ «печатает» в Firestore. */
 const TYPING_WRITE_THROTTLE_MS = 350;
@@ -114,16 +113,7 @@ const ChatMessageInputInner = (
 
     const draftKey = draftScopeKey ?? conversation.id;
 
-    type EditorLike = {
-        getHTML: () => string;
-        getText: () => string;
-        commands: {
-            clearContent: () => void;
-            setContent: (html: string) => void;
-            focus: (pos?: string) => void;
-        };
-    };
-    const editorInstance = useRef<EditorLike | null>(null);
+    const editorInstance = useRef<Editor | null>(null);
     const mentionAnchorRef = useRef<HTMLDivElement>(null);
     const audioRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
@@ -203,7 +193,7 @@ const ChatMessageInputInner = (
 
     useEffect(() => {
         if (editingMessage && editorInstance.current) {
-            editorInstance.current.commands.setContent(editingMessage.text);
+            editorInstance.current.commands.setContent(editingMessage.text ?? '');
             editorInstance.current.commands.focus('end');
         }
     }, [editingMessage]);
@@ -640,7 +630,7 @@ const ChatMessageInputInner = (
                                             {replyingTo ? (
                                                 <><span className="font-bold text-foreground/80">{replyingTo.senderName}:</span> {replyingTo.text}</>
                                             ) : (
-                                                editingMessage.text?.replace(/<[^>]*>/g, '') || 'Без текста'
+                                                editingMessage?.text?.replace(/<[^>]*>/g, '') || 'Без текста'
                                             )}
                                         </p>
                                     </div>
@@ -977,7 +967,8 @@ export interface ChatMessageInputProps {
     onUpdateMessage: (id: string, text: string, attachments?: ChatAttachment[]) => Promise<void>;
     replyingTo: ReplyContext | null;
     onCancelReply: () => void;
-    editingMessage: ChatMessage | null;
+    /** Черновик редактирования — только поля, нужные композеру (совпадает с состоянием чата/треда). */
+    editingMessage: { id: string; text: string; attachments?: ChatAttachment[] } | null;
     onCancelEdit: () => void;
     conversation: Conversation;
     currentUser: User;

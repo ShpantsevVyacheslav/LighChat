@@ -854,7 +854,7 @@ export const initiateCall = async (
   caller: User,
   receiver: Pick<User, 'id' | 'name'> & { blockedUserIds?: string[] },
   isVideo: boolean,
-  toast: (opts: { variant?: string; title: string; description?: string }) => void
+  toast: (opts: { variant?: 'default' | 'destructive' | null; title: string; description?: string }) => void
 ) => {
     if (!firestore || !caller || !receiver?.id) return;
     if (!navigator.mediaDevices || !window.RTCPeerConnection) {

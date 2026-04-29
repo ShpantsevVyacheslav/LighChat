@@ -837,7 +837,7 @@ class _ConversationDurakGameScreenState
                               ),
                             ),
                             child: Text(
-                              'Deck: ${(publicView == null ? 0 : (publicView['deckCount'] ?? 0)).toString()}',
+                              'Колода: ${(publicView == null ? 0 : (publicView['deckCount'] ?? 0)).toString()}',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.72),
                                 fontWeight: FontWeight.w800,
@@ -861,7 +861,7 @@ class _ConversationDurakGameScreenState
                               ),
                             ),
                             child: Text(
-                              'Discard: $discardCount',
+                              'Сброс: $discardCount',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.72),
                                 fontWeight: FontWeight.w800,
@@ -889,7 +889,7 @@ class _ConversationDurakGameScreenState
                                   ),
                                 ),
                                 child: Text(
-                                  'Trump: ${{'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[trumpSuit] ?? trumpSuit}',
+                                  'Козырь: ${{'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[trumpSuit] ?? trumpSuit}',
                                   style: TextStyle(
                                     color:
                                         (trumpSuit == 'H' || trumpSuit == 'D')

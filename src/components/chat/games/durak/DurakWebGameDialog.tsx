@@ -289,10 +289,10 @@ export function DurakWebGameDialog({
 
   const primaryLabel = useMemo(() => {
     if (status !== 'active') return 'Ожидание';
-    if (currentUser.id === defenderUid) return attacks.length > 0 ? 'I take' : 'your turn';
+    if (currentUser.id === defenderUid) return attacks.length > 0 ? 'Беру' : 'Ваш ход';
     if (canFinishTurn && currentUser.id === attackerUid) return 'Бито';
-    if (currentUser.id === currentThrowerUid) return 'your turn';
-    return 'wait';
+    if (currentUser.id === currentThrowerUid) return 'Пас';
+    return 'Ждать';
   }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, status]);
 
   const enabledCard = (card: DurakCard) =>
@@ -316,7 +316,7 @@ export function DurakWebGameDialog({
             <Swords className="h-6 w-6 text-emerald-300" />
             <div>
               <div className="text-lg font-black">Лобби “Дурак”</div>
-              <div className="text-sm text-white/60">{gamePlayerIds.length} игроков · status: {status}</div>
+              <div className="text-sm text-white/60">{gamePlayerIds.length} игроков · статус: {status}</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -368,7 +368,7 @@ export function DurakWebGameDialog({
                   allUsers={allUsers}
                   count={handCounts[uid] ?? 0}
                   active={uid === defenderUid || uid === attackerUid || uid === currentThrowerUid}
-                  role={uid === defenderUid ? 'DEF' : uid === attackerUid ? 'ATK' : uid === currentThrowerUid ? 'TURN' : ''}
+                  role={uid === defenderUid ? 'БЬЕТ' : uid === attackerUid ? 'ХОД' : uid === currentThrowerUid ? 'ПОДК' : ''}
                 />
               ))}
             </div>
@@ -428,14 +428,14 @@ export function DurakWebGameDialog({
                   selectedCard && canAttackCard(selectedCard) && 'border-emerald-200 bg-emerald-200/12 text-emerald-50'
                 )}
               >
-                Drop
+                Ход
               </div>
               {selectedCard && canTransferCard(selectedCard) ? (
                 <div
                   data-durak-drop="transfer"
                   className="flex h-32 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-amber-100 bg-amber-200/12 text-sm font-black text-amber-50"
                 >
-                  Transfer
+                  Перевод
                 </div>
               ) : null}
             </div>
@@ -446,18 +446,18 @@ export function DurakWebGameDialog({
               <button
                 type="button"
                 className="min-w-[150px] rounded-2xl bg-white px-5 py-3 text-2xl font-semibold shadow-md"
-                disabled={busy != null || primaryLabel === 'wait' || primaryLabel === 'Ожидание'}
+                disabled={busy != null || primaryLabel === 'Ждать' || primaryLabel === 'Ожидание' || primaryLabel === 'Ваш ход'}
                 onClick={() => {
-                  if (primaryLabel === 'I take') void makeMove('take');
+                  if (primaryLabel === 'Беру') void makeMove('take');
                   if (primaryLabel === 'Бито') void makeMove('finishTurn');
-                  if (primaryLabel === 'your turn' && attacks.length > 0) void makeMove('pass');
+                  if (primaryLabel === 'Пас') void makeMove('pass');
                 }}
               >
                 {primaryLabel}
               </button>
               <div className="flex items-center gap-2 rounded-xl border border-[#db4a68]/20 bg-white px-3 py-2 text-sm text-zinc-600">
                 <span className="font-black text-[#db4a68]">{displayName(currentUser.id, allUsers)}</span>
-                <span>{myCards.length} cards</span>
+                <span>{myCards.length} карт</span>
               </div>
             </div>
             <div className="relative h-[118px] overflow-visible">
@@ -482,7 +482,6 @@ export function DurakWebGameDialog({
                         setSelectedCardIdx(idx);
                         setDrag({ card, index: idx, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY });
                       }}
-                      onClick={() => handleCardTap(card, idx)}
                     >
                       <DurakCardView card={card} />
                     </button>

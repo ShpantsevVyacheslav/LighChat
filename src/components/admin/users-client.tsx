@@ -147,6 +147,18 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
     return new Date(val as never).getTime();
   };
 
+  /** Сравнение значений сортировки без «unknown < unknown» (строгий TS). */
+  const compareSortPair = (a: unknown, b: unknown): number => {
+    if (typeof a === 'number' && typeof b === 'number') {
+      if (a === b) return 0;
+      return a < b ? -1 : 1;
+    }
+    const sa = String(a ?? '');
+    const sb = String(b ?? '');
+    if (sa === sb) return 0;
+    return sa < sb ? -1 : 1;
+  };
+
   const sortedUsers = useMemo(() => {
     const sortableItems = [...filteredUsers];
     if (sortConfig !== null) {
@@ -172,9 +184,8 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
             bVal = (b as Record<string, unknown>)[sortConfig.key];
         }
 
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
+        const base = compareSortPair(aVal, bVal);
+        return sortConfig.direction === 'asc' ? base : -base;
       });
     }
     return sortableItems;
