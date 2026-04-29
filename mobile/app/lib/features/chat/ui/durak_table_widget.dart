@@ -73,22 +73,34 @@ class DurakTableWidget extends StatelessWidget {
         builder: (context, candidate, rejected) {
           final active = candidate.isNotEmpty;
           return Container(
-            height: 128,
+            height: 220,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: active
                     ? const Color(0xFF6EE7B7).withValues(alpha: 0.85)
-                    : Colors.white.withValues(alpha: 0.16),
+                    : Colors.white.withValues(alpha: 0.12),
                 width: active ? 2 : 1,
               ),
-              color: Colors.white.withValues(alpha: active ? 0.08 : 0.03),
+              color: Colors.white.withValues(alpha: active ? 0.08 : 0.015),
             ),
             child: Center(
-              child: Icon(
-                Icons.add_rounded,
-                size: 34,
-                color: Colors.white.withValues(alpha: active ? 0.78 : 0.45),
+              child: Container(
+                key: nextAttackSlotKey,
+                width: 78,
+                height: 108,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: active ? 0.75 : 0.35),
+                    width: active ? 2 : 1.5,
+                  ),
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 34,
+                  color: Colors.white.withValues(alpha: active ? 0.78 : 0.45),
+                ),
               ),
             ),
           );
@@ -107,47 +119,78 @@ class DurakTableWidget extends StatelessWidget {
         final totalW = cols * itemW + (cols - 1) * spacing;
         final maxW = totalW > w ? w : totalW;
 
-        return Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxW),
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (final p in pairs)
-                  _DurakTablePair(
-                    width: itemW,
-                    index: p.index,
-                    attack: p.attack,
-                    defense: p.defense,
-                    selected: p.index == selectedAttackIndex,
-                    onSelect: () => onSelectAttackIndex(p.index),
-                    canAcceptDefense: canAcceptDefense,
-                    onDefenseDropped: onDefenseDropped,
-                    rankLabel: rankLabel,
-                    suitLabel: suitLabel,
-                    isRedSuit: isRedSuit,
-                    attackKeyForFlight: pairKeyForFlight(
-                      p.index,
-                      defense: false,
-                    ),
-                    defenseKeyForFlight: pairKeyForFlight(
-                      p.index,
-                      defense: true,
-                    ),
-                  ),
-                _NextAttackSlot(
-                  keyForFlight: nextAttackSlotKey,
-                  width: itemW,
-                  canAcceptAttack: canAcceptAttack,
-                  onAttackDropped: onAttackDropped,
-                  canAcceptTransfer: canAcceptTransfer,
-                  onTransferDropped: onTransferDropped,
+        return DragTarget<Map<String, dynamic>>(
+          onWillAcceptWithDetails: (d) =>
+              canAcceptAttack(d.data) || canAcceptTransfer(d.data),
+          onAcceptWithDetails: (d) {
+            final card = d.data;
+            if (canAcceptTransfer(card)) {
+              unawaited(onTransferDropped(card));
+            } else {
+              unawaited(onAttackDropped(card));
+            }
+          },
+          builder: (context, candidate, rejected) {
+            final active = candidate.isNotEmpty;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              constraints: const BoxConstraints(minHeight: 230),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: active
+                      ? const Color(0xFF6EE7B7).withValues(alpha: 0.70)
+                      : Colors.transparent,
+                  width: 2,
                 ),
-              ],
-            ),
-          ),
+                color: Colors.white.withValues(alpha: active ? 0.045 : 0),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxW),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      for (final p in pairs)
+                        _DurakTablePair(
+                          width: itemW,
+                          index: p.index,
+                          attack: p.attack,
+                          defense: p.defense,
+                          selected: p.index == selectedAttackIndex,
+                          onSelect: () => onSelectAttackIndex(p.index),
+                          canAcceptDefense: canAcceptDefense,
+                          onDefenseDropped: onDefenseDropped,
+                          rankLabel: rankLabel,
+                          suitLabel: suitLabel,
+                          isRedSuit: isRedSuit,
+                          attackKeyForFlight: pairKeyForFlight(
+                            p.index,
+                            defense: false,
+                          ),
+                          defenseKeyForFlight: pairKeyForFlight(
+                            p.index,
+                            defense: true,
+                          ),
+                        ),
+                      _NextAttackSlot(
+                        keyForFlight: nextAttackSlotKey,
+                        width: itemW,
+                        canAcceptAttack: canAcceptAttack,
+                        onAttackDropped: onAttackDropped,
+                        canAcceptTransfer: canAcceptTransfer,
+                        onTransferDropped: onTransferDropped,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -267,10 +310,6 @@ class _DurakTablePair extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ring = selected
-        ? const Color(0xFF2E86FF).withValues(alpha: 0.65)
-        : Colors.white.withValues(alpha: 0.10);
-
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 220),
       switchInCurve: Curves.easeOut,
@@ -289,138 +328,104 @@ class _DurakTablePair extends StatelessWidget {
         key: ValueKey<String>(
           'p:$index:a:${rankLabel(attack)}${suitLabel(attack)}:d:${defense == null ? '—' : '${rankLabel(defense!)}${suitLabel(defense!)}'}',
         ),
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           onTap: onSelect,
           child: Container(
             width: width,
-            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: ring, width: selected ? 2 : 1),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: selected
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : Colors.transparent,
+                width: selected ? 1.5 : 1,
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '#${index + 1}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white.withValues(alpha: 0.70),
+            child: SizedBox(
+              height: 138,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: 10,
+                    top: 0,
+                    child: Transform.rotate(
+                      angle: -0.06,
+                      child: Container(
+                        key: attackKeyForFlight,
+                        child: DurakCardWidget(
+                          rankLabel: rankLabel(attack),
+                          suitLabel: suitLabel(attack),
+                          isRed: isRedSuit((attack['s'] ?? '').toString()),
+                          faceUp: true,
+                          disabled: true,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 126,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        child: Transform.rotate(
-                          angle: -0.06,
+                  Positioned(
+                    left: 48,
+                    top: 28,
+                    child: DragTarget<Map<String, dynamic>>(
+                      onWillAcceptWithDetails: (d) =>
+                          canAcceptDefense(d.data, index),
+                      onAcceptWithDetails: (d) =>
+                          unawaited(onDefenseDropped(index, d.data)),
+                      builder: (context, candidate, rejected) {
+                        if (defense == null) {
+                          final active = candidate.isNotEmpty;
+                          return Container(
+                            key: defenseKeyForFlight,
+                            width: 68,
+                            height: 96,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color:
+                                    (active
+                                            ? const Color(0xFF6EE7B7)
+                                            : Colors.white.withValues(
+                                                alpha: 0.28,
+                                              ))
+                                        .withValues(alpha: 0.9),
+                                width: active ? 2 : 1,
+                              ),
+                              color: Colors.white.withValues(
+                                alpha: active ? 0.07 : 0.015,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.shield_outlined,
+                                size: 24,
+                                color: Colors.white.withValues(alpha: 0.42),
+                              ),
+                            ),
+                          );
+                        }
+                        return Transform.rotate(
+                          angle: 0.05,
                           child: Container(
-                            key: attackKeyForFlight,
+                            key: defenseKeyForFlight,
                             child: DurakCardWidget(
-                              rankLabel: rankLabel(attack),
-                              suitLabel: suitLabel(attack),
-                              isRed: isRedSuit((attack['s'] ?? '').toString()),
+                              rankLabel: rankLabel(defense!),
+                              suitLabel: suitLabel(defense!),
+                              isRed: isRedSuit(
+                                (defense!['s'] ?? '').toString(),
+                              ),
                               faceUp: true,
                               disabled: true,
                             ),
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 36,
-                        top: 26,
-                        child: DragTarget<Map<String, dynamic>>(
-                          onWillAcceptWithDetails: (d) =>
-                              canAcceptDefense(d.data, index),
-                          onAcceptWithDetails: (d) =>
-                              unawaited(onDefenseDropped(index, d.data)),
-                          builder: (context, candidate, rejected) {
-                            if (defense == null) {
-                              final active = candidate.isNotEmpty;
-                              return Container(
-                                key: defenseKeyForFlight,
-                                width: 68,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color:
-                                        (active
-                                                ? const Color(0xFF6EE7B7)
-                                                : Colors.white.withValues(
-                                                    alpha: 0.14,
-                                                  ))
-                                            .withValues(alpha: 0.9),
-                                  ),
-                                  color: Colors.white.withValues(
-                                    alpha: active ? 0.07 : 0.02,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '—',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                            return Transform.rotate(
-                              angle: 0.05,
-                              child: Container(
-                                key: defenseKeyForFlight,
-                                child: DurakCardWidget(
-                                  rankLabel: rankLabel(defense!),
-                                  suitLabel: suitLabel(defense!),
-                                  isRed: isRedSuit(
-                                    (defense!['s'] ?? '').toString(),
-                                  ),
-                                  faceUp: true,
-                                  disabled: true,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      Positioned(
-                        left: 18,
-                        top: 50,
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black.withValues(alpha: 0.18),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.10),
-                            ),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.link_rounded,
-                              size: 14,
-                              color: Colors.white.withValues(alpha: 0.55),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -1,4 +1,5 @@
 import type { Conversation, User } from '@/lib/types';
+import { chatUserDisplayName } from '@/lib/chat-user-search';
 
 /**
  * Снимок участника для `conversations.participantInfo` при записи в Firestore.
@@ -8,7 +9,7 @@ export function participantInfoEntryForWrite(
   user: Pick<User, 'name' | 'avatar' | 'avatarThumb'>
 ): Conversation['participantInfo'][string] {
   const entry: Conversation['participantInfo'][string] = {
-    name: user.name,
+    name: chatUserDisplayName({ id: '', username: '', email: '', ...user }),
     avatar: user.avatar ?? '',
   };
   const thumb = user.avatarThumb?.trim();

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/games_callables.dart';
 import 'durak_card_flight_layer.dart';
+import 'durak_card_widget.dart';
 import 'durak_felt_background.dart';
 import 'durak_hand_fan.dart';
 import 'durak_player_names.dart';
@@ -238,7 +239,7 @@ class _ConversationDurakGameScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      _toast(e.toString());
+      _toast(friendlyGamesCallableError(e));
     }
   }
 
@@ -330,6 +331,17 @@ class _ConversationDurakGameScreenState
                           (publicView == null
                                   ? '0'
                                   : (publicView['discardCount'] ?? '0'))
+                              .toString(),
+                        ) ??
+                        0;
+              final deckCount =
+                  (publicView == null ? 0 : (publicView['deckCount'] ?? 0))
+                      is int
+                  ? (publicView!['deckCount'] as int)
+                  : int.tryParse(
+                          (publicView == null
+                                  ? '0'
+                                  : (publicView['deckCount'] ?? '0'))
                               .toString(),
                         ) ??
                         0;
@@ -825,23 +837,9 @@ class _ConversationDurakGameScreenState
                           top: 6,
                           child: Container(
                             key: _deckKey,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              color: Colors.white.withValues(alpha: 0.05),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.10),
-                              ),
-                            ),
-                            child: Text(
-                              'Колода: ${(publicView == null ? 0 : (publicView['deckCount'] ?? 0)).toString()}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.72),
-                                fontWeight: FontWeight.w800,
-                              ),
+                            child: _DurakSideDeck(
+                              deckCount: deckCount,
+                              trumpSuit: trumpSuit,
                             ),
                           ),
                         ),
@@ -905,7 +903,7 @@ class _ConversationDurakGameScreenState
                           ),
                         Center(
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 48, 12, 16),
+                            padding: const EdgeInsets.fromLTRB(12, 36, 12, 16),
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 220),
                               switchInCurve: Curves.easeOut,
@@ -1037,13 +1035,19 @@ class _ConversationDurakGameScreenState
                     Container(
                       key: _handKey,
                       width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                       decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.10),
-                          ),
+                        color: const Color(0xFFF7F7F9),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.22),
+                            blurRadius: 18,
+                            offset: const Offset(0, -8),
+                          ),
+                        ],
                       ),
                       child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                         stream: handRef.snapshots(),
@@ -1093,99 +1097,88 @@ class _ConversationDurakGameScreenState
                             return _rankValue(a).compareTo(_rankValue(b));
                           });
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.conversation_durak_hand_title,
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: 8),
-                              AnimatedSize(
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeOut,
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 220),
-                                  switchInCurve: Curves.easeOut,
-                                  switchOutCurve: Curves.easeIn,
-                                  child: DurakHandFan(
-                                    key: ValueKey<int>(maps.length),
-                                    cards: maps,
-                                    cardId: _cardId,
-                                    keyForCardId: _handKeyFor,
-                                    rankLabel: _rankLabel,
-                                    suitLabel: _suitLabel,
-                                    isRedSuit: _isRedSuit,
-                                    enabled: (card) =>
-                                        cardCanAttack(card) ||
-                                        cardCanDefendAt(
-                                          card,
-                                          _selectedAttackIndex,
-                                        ) ||
-                                        cardCanTransfer(card),
-                                    highlight: (card) =>
-                                        cardCanAttack(card) ||
-                                        cardCanDefendAt(
-                                          card,
-                                          _selectedAttackIndex,
-                                        ) ||
-                                        cardCanTransfer(card),
-                                    selectedId: _selectedCardId,
-                                    onTap: (card, id) {
-                                      final enabled =
-                                          cardCanAttack(card) ||
-                                          cardCanDefendAt(
-                                            card,
-                                            _selectedAttackIndex,
-                                          ) ||
-                                          cardCanTransfer(card);
-                                      if (!enabled) return;
-                                      final canA = cardCanAttack(card);
-                                      final canD = cardCanDefendAt(
+                          return AnimatedSize(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOut,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              switchInCurve: Curves.easeOut,
+                              switchOutCurve: Curves.easeIn,
+                              child: DurakHandFan(
+                                key: ValueKey<int>(maps.length),
+                                cards: maps,
+                                cardId: _cardId,
+                                keyForCardId: _handKeyFor,
+                                rankLabel: _rankLabel,
+                                suitLabel: _suitLabel,
+                                isRedSuit: _isRedSuit,
+                                enabled: (card) =>
+                                    cardCanAttack(card) ||
+                                    cardCanDefendAt(
+                                      card,
+                                      _selectedAttackIndex,
+                                    ) ||
+                                    cardCanTransfer(card),
+                                highlight: (card) =>
+                                    cardCanAttack(card) ||
+                                    cardCanDefendAt(
+                                      card,
+                                      _selectedAttackIndex,
+                                    ) ||
+                                    cardCanTransfer(card),
+                                selectedId: _selectedCardId,
+                                onTap: (card, id) {
+                                  final enabled =
+                                      cardCanAttack(card) ||
+                                      cardCanDefendAt(
                                         card,
                                         _selectedAttackIndex,
+                                      ) ||
+                                      cardCanTransfer(card);
+                                  if (!enabled) return;
+                                  final canA = cardCanAttack(card);
+                                  final canD = cardCanDefendAt(
+                                    card,
+                                    _selectedAttackIndex,
+                                  );
+                                  final canT = cardCanTransfer(card);
+                                  final options = <String>[
+                                    if (canA) 'attack',
+                                    if (canD) 'defend',
+                                    if (canT) 'transfer',
+                                  ];
+
+                                  // If the action is unambiguous, play immediately.
+                                  if (options.length == 1) {
+                                    final action = options.first;
+                                    if (action == 'attack') {
+                                      unawaited(_tryAttack(card));
+                                      return;
+                                    }
+                                    if (action == 'transfer') {
+                                      unawaited(_tryTransfer(card));
+                                      return;
+                                    }
+                                    if (action == 'defend') {
+                                      unawaited(
+                                        _tryDefend(
+                                          attackIndex: _selectedAttackIndex,
+                                          card: card,
+                                        ),
                                       );
-                                      final canT = cardCanTransfer(card);
-                                      final options = <String>[
-                                        if (canA) 'attack',
-                                        if (canD) 'defend',
-                                        if (canT) 'transfer',
-                                      ];
+                                      return;
+                                    }
+                                  }
 
-                                      // If the action is unambiguous, play immediately.
-                                      if (options.length == 1) {
-                                        final action = options.first;
-                                        if (action == 'attack') {
-                                          unawaited(_tryAttack(card));
-                                          return;
-                                        }
-                                        if (action == 'transfer') {
-                                          unawaited(_tryTransfer(card));
-                                          return;
-                                        }
-                                        if (action == 'defend') {
-                                          unawaited(
-                                            _tryDefend(
-                                              attackIndex: _selectedAttackIndex,
-                                              card: card,
-                                            ),
-                                          );
-                                          return;
-                                        }
-                                      }
-
-                                      setState(() {
-                                        _selectedCard = card;
-                                        _selectedCardId = id;
-                                      });
-                                    },
-                                    onDragAcceptedByTable: (_) {},
-                                    onDragRejected: (_) =>
-                                        _toast('Ход недоступен'),
-                                  ),
-                                ),
+                                  setState(() {
+                                    _selectedCard = card;
+                                    _selectedCardId = id;
+                                  });
+                                },
+                                onDragAcceptedByTable: (_) {},
+                                onDragRejected: (_) => _toast('Ход недоступен'),
                               ),
-                            ],
+                            ),
                           );
                         },
                       ),
@@ -1201,6 +1194,78 @@ class _ConversationDurakGameScreenState
 }
 
 // _HandCard was replaced by DurakHandFan.
+
+class _DurakSideDeck extends StatelessWidget {
+  const _DurakSideDeck({required this.deckCount, required this.trumpSuit});
+
+  final int deckCount;
+  final String trumpSuit;
+
+  @override
+  Widget build(BuildContext context) {
+    final suit =
+        {'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[trumpSuit] ?? trumpSuit;
+    final isRed = trumpSuit == 'H' || trumpSuit == 'D';
+
+    return SizedBox(
+      width: 96,
+      height: 122,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          if (trumpSuit.isNotEmpty)
+            Positioned(
+              left: 24,
+              top: 18,
+              child: Transform.rotate(
+                angle: -0.42,
+                child: DurakCardWidget(
+                  rankLabel: ' ',
+                  suitLabel: suit,
+                  isRed: isRed,
+                  faceUp: true,
+                  disabled: true,
+                ),
+              ),
+            ),
+          for (var i = 0; i < 3; i++)
+            Positioned(
+              left: i * 4.0,
+              top: 16 + i * 3.0,
+              child: Transform.rotate(
+                angle: -0.12 + i * 0.04,
+                child: const DurakCardWidget(
+                  rankLabel: '',
+                  suitLabel: '',
+                  isRed: false,
+                  faceUp: false,
+                  disabled: true,
+                ),
+              ),
+            ),
+          Positioned(
+            left: 0,
+            top: 0,
+            child: Text(
+              deckCount.toString(),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.86),
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _FoulBanner extends StatefulWidget {
   const _FoulBanner({required this.missedUids});

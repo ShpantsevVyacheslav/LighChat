@@ -7,6 +7,27 @@ export function atUsernameLabel(username: string | undefined | null): string | n
   return h ? `@${h}` : null;
 }
 
+/** Безопасное имя для списков пользователей: Firestore-документы после OAuth могут быть неполными. */
+export function chatUserDisplayName(
+  user: Pick<User, 'id' | 'name' | 'username' | 'email'>,
+  displayNameOverride?: string | null
+): string {
+  const local = (displayNameOverride ?? '').trim();
+  if (local) return local;
+  const name = String(user.name ?? '').trim();
+  if (name) return name;
+  const username = String(user.username ?? '').trim().replace(/^@/, '');
+  if (username) return `@${username}`;
+  const email = String(user.email ?? '').trim();
+  if (email) return email;
+  const id = String(user.id ?? '').trim();
+  return id ? `Пользователь ${id.slice(0, 6)}` : 'Пользователь';
+}
+
+export function chatUserInitial(displayName: string | null | undefined): string {
+  return (String(displayName ?? '').trim() || '?').charAt(0).toUpperCase();
+}
+
 /** Совпадение по имени или @username (подстрока; кириллица ↔ латиница). */
 export function userMatchesChatSearchQuery(
   user: User,
@@ -40,10 +61,7 @@ function resolveUserSortName(
   user: User,
   displayNameById?: Record<string, string>
 ): string {
-  const local = (displayNameById?.[user.id] ?? '').trim();
-  if (local) return local;
-  // Firestore данные могут быть неполные (старые документы/миграции) — гарантируем строку.
-  return (user.name ?? '').trim();
+  return chatUserDisplayName(user, displayNameById?.[user.id]);
 }
 
 export function sortUsersByNameRu(

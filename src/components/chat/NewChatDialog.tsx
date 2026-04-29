@@ -12,6 +12,8 @@ import type { PlatformSettingsDoc } from '@/lib/types';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import {
   atUsernameLabel,
+  chatUserDisplayName,
+  chatUserInitial,
   userMatchesChatSearchQuery,
   splitUsersByContactsAndGlobalVisibility,
 } from '@/lib/chat-user-search';
@@ -144,7 +146,7 @@ export function NewChatDialog({
                     {t('chat.newChat.sectionContacts')}
                   </p>
                   {fromContacts.map((user) => {
-                    const displayName = (contactDisplayNames[user.id] ?? '').trim() || user.name;
+                    const displayName = chatUserDisplayName(user, contactDisplayNames[user.id]);
                     const login = atUsernameLabel(user.username);
                     return (
                     <div
@@ -157,7 +159,7 @@ export function NewChatDialog({
                     >
                       <Avatar>
                         <AvatarImage src={userAvatarListUrl(user)} alt={displayName} />
-                        <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{chatUserInitial(displayName)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <p className="font-semibold transition-colors group-hover:text-primary truncate">
@@ -188,7 +190,7 @@ export function NewChatDialog({
                     {t('chat.newChat.sectionAllUsers')}
                   </p>
                   {fromGlobal.map((user) => {
-                    const displayName = (contactDisplayNames[user.id] ?? '').trim() || user.name;
+                    const displayName = chatUserDisplayName(user, contactDisplayNames[user.id]);
                     const login = atUsernameLabel(user.username);
                     return (
                     <div
@@ -201,7 +203,7 @@ export function NewChatDialog({
                     >
                       <Avatar>
                         <AvatarImage src={userAvatarListUrl(user)} alt={displayName} />
-                        <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{chatUserInitial(displayName)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <p className="font-semibold transition-colors group-hover:text-primary truncate">

@@ -1,21 +1,49 @@
+import 'dart:io' show Platform;
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:lighchat_firebase/lighchat_firebase.dart';
 
 class SecretChatCallables {
   SecretChatCallables({String region = 'us-central1'})
-      : _functions = FirebaseFunctions.instanceFor(
-          app: Firebase.app(),
-          region: region,
-        );
+    : _region = region,
+      _functions = Platform.isIOS
+          ? null
+          : FirebaseFunctions.instanceFor(app: Firebase.app(), region: region);
 
-  final FirebaseFunctions _functions;
+  final String _region;
+  final FirebaseFunctions? _functions;
+
+  Future<Object?> _call(
+    String name,
+    Map<String, dynamic> data, {
+    required Duration timeout,
+  }) async {
+    if (Platform.isIOS) {
+      return callFirebaseCallableHttp(
+        name: name,
+        region: _region,
+        data: data,
+        timeout: timeout,
+      );
+    }
+
+    final functions = _functions;
+    if (functions == null) {
+      throw StateError('FirebaseFunctions is not available on this platform');
+    }
+    final callable = functions.httpsCallable(
+      name,
+      options: HttpsCallableOptions(timeout: timeout),
+    );
+    final res = await callable.call<dynamic>(data);
+    return res.data;
+  }
 
   Future<void> setPin({required String pin}) async {
-    final callable = _functions.httpsCallable(
-      'setSecretChatPin',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
-    );
-    await callable.call<void>(<String, Object?>{'pin': pin});
+    await _call('setSecretChatPin', <String, dynamic>{
+      'pin': pin,
+    }, timeout: const Duration(seconds: 30));
   }
 
   Future<DateTime> unlock({
@@ -24,18 +52,15 @@ class SecretChatCallables {
     String? deviceId,
     String method = 'pin',
   }) async {
-    final callable = _functions.httpsCallable(
-      'unlockSecretChat',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
-    );
-    final res = await callable.call<Map<Object?, Object?>>(<String, Object?>{
+    final data = await _call('unlockSecretChat', <String, dynamic>{
       'conversationId': conversationId,
       'pin': pin,
-      if (deviceId != null && deviceId.trim().isNotEmpty) 'deviceId': deviceId.trim(),
+      if (deviceId != null && deviceId.trim().isNotEmpty)
+        'deviceId': deviceId.trim(),
       'method': method,
-    });
-    final data = res.data;
-    final exp = data['expiresAt'];
+    }, timeout: const Duration(seconds: 30));
+    final m = data is Map ? data : const <Object?, Object?>{};
+    final exp = m['expiresAt'];
     final iso = exp is String ? exp.trim() : '';
     final dt = DateTime.tryParse(iso);
     if (dt == null) {
@@ -50,42 +75,38 @@ class SecretChatCallables {
     Map<String, Object?>? restrictions,
     Map<String, Object?>? mediaViewPolicy,
   }) async {
-    final callable = _functions.httpsCallable(
+    final data = <String, dynamic>{'conversationId': conversationId};
+    if (ttlPresetSec != null) data['ttlPresetSec'] = ttlPresetSec;
+    if (restrictions != null) data['restrictions'] = restrictions;
+    if (mediaViewPolicy != null) data['mediaViewPolicy'] = mediaViewPolicy;
+    await _call(
       'updateSecretChatSettings',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+      data,
+      timeout: const Duration(seconds: 30),
     );
-    await callable.call<void>(<String, Object?>{
-      'conversationId': conversationId,
-      if (ttlPresetSec != null) 'ttlPresetSec': ttlPresetSec,
-      if (restrictions != null) 'restrictions': restrictions,
-      if (mediaViewPolicy != null) 'mediaViewPolicy': mediaViewPolicy,
-    });
   }
 
   Future<bool> hasVaultPin() async {
-    final callable = _functions.httpsCallable(
+    final data = await _call(
       'hasSecretVaultPin',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 15)),
+      <String, dynamic>{},
+      timeout: const Duration(seconds: 15),
     );
-    final res = await callable.call<Map<Object?, Object?>>({});
-    final h = res.data['hasPin'];
+    final m = data is Map ? data : const <Object?, Object?>{};
+    final h = m['hasPin'];
     return h == true;
   }
 
   Future<void> verifyVaultPin({required String pin}) async {
-    final callable = _functions.httpsCallable(
-      'verifySecretVaultPin',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
-    );
-    await callable.call<void>(<String, Object?>{'pin': pin});
+    await _call('verifySecretVaultPin', <String, dynamic>{
+      'pin': pin,
+    }, timeout: const Duration(seconds: 30));
   }
 
   Future<void> deleteSecretChat({required String conversationId}) async {
-    final callable = _functions.httpsCallable(
-      'deleteSecretChat',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 120)),
-    );
-    await callable.call<void>(<String, Object?>{'conversationId': conversationId});
+    await _call('deleteSecretChat', <String, dynamic>{
+      'conversationId': conversationId,
+    }, timeout: const Duration(seconds: 120));
   }
 
   Future<void> requestSecretMediaView({
@@ -94,16 +115,12 @@ class SecretChatCallables {
     required String fileId,
     required String recipientDeviceId,
   }) async {
-    final callable = _functions.httpsCallable(
-      'requestSecretMediaView',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
-    );
-    await callable.call<void>(<String, Object?>{
+    await _call('requestSecretMediaView', <String, dynamic>{
       'conversationId': conversationId,
       'messageId': messageId,
       'fileId': fileId,
       'recipientDeviceId': recipientDeviceId,
-    });
+    }, timeout: const Duration(seconds: 30));
   }
 
   Future<void> consumeSecretMediaKeyGrant({
@@ -111,15 +128,11 @@ class SecretChatCallables {
     required String messageId,
     required String fileId,
   }) async {
-    final callable = _functions.httpsCallable(
-      'consumeSecretMediaKeyGrant',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
-    );
-    await callable.call<void>(<String, Object?>{
+    await _call('consumeSecretMediaKeyGrant', <String, dynamic>{
       'conversationId': conversationId,
       'messageId': messageId,
       'fileId': fileId,
-    });
+    }, timeout: const Duration(seconds: 30));
   }
 
   Future<void> fulfillSecretMediaViewRequest({
@@ -127,15 +140,10 @@ class SecretChatCallables {
     required String requestId,
     required String wrappedFileKeyForDevice,
   }) async {
-    final callable = _functions.httpsCallable(
-      'fulfillSecretMediaViewRequest',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
-    );
-    await callable.call<void>(<String, Object?>{
+    await _call('fulfillSecretMediaViewRequest', <String, dynamic>{
       'conversationId': conversationId,
       'requestId': requestId,
       'wrappedFileKeyForDevice': wrappedFileKeyForDevice,
-    });
+    }, timeout: const Duration(seconds: 30));
   }
 }
-

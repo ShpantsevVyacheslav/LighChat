@@ -10,6 +10,8 @@ import type { User, Conversation, UserRole } from '@/lib/types';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import {
   atUsernameLabel,
+  chatUserDisplayName,
+  chatUserInitial,
   userMatchesChatSearchQuery,
   splitUsersByContactsAndGlobalVisibility,
 } from '@/lib/chat-user-search';
@@ -265,9 +267,15 @@ export function GroupChatFormPanel({
             const details = denied
               .map((d) => {
                 const name =
-                  participants.find((p) => p.id === d.uid)?.name ??
-                  allUsers.find((u) => u.id === d.uid)?.name ??
-                  t('chat.groupForm.fallbackParticipantName');
+                  chatUserDisplayName(
+                    participants.find((p) => p.id === d.uid) ??
+                      allUsers.find((u) => u.id === d.uid) ?? {
+                        id: d.uid,
+                        name: t('chat.groupForm.fallbackParticipantName'),
+                        username: '',
+                        email: '',
+                      }
+                  );
                 return d.reason === 'none'
                   ? t('chat.groupForm.inviteDeniedNone', { name })
                   : t('chat.groupForm.inviteDeniedContactsOnly', { name });
@@ -312,7 +320,7 @@ export function GroupChatFormPanel({
 
       allUsers.concat([currentUser]).forEach((user) => {
         if (finalParticipantIds.includes(user.id)) {
-          participantInfo[user.id] = { name: user.name };
+          participantInfo[user.id] = { name: chatUserDisplayName(user) };
         }
       });
 
@@ -447,15 +455,16 @@ export function GroupChatFormPanel({
                 <div className="space-y-1 p-2">
                   {participants.map((p) => {
                     const login = atUsernameLabel(p.username);
+                    const displayName = chatUserDisplayName(p);
                     return (
                       <div key={p.id} className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-muted">
                         <div className="flex min-w-0 items-center gap-3">
                           <Avatar className="h-9 w-9 shrink-0 border-none">
                             <AvatarImage src={userAvatarListUrl(p)} />
-                            <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{chatUserInitial(displayName)}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold leading-tight">{p.name}</p>
+                            <p className="truncate text-sm font-semibold leading-tight">{displayName}</p>
                             {login ? <p className="truncate text-xs text-muted-foreground">{login}</p> : null}
                             {p.role && p.role !== 'worker' ? (
                               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -521,6 +530,7 @@ export function GroupChatFormPanel({
                       </p>
                       {addFromContacts.map((user) => {
                         const login = atUsernameLabel(user.username);
+                        const displayName = chatUserDisplayName(user);
                         return (
                           <div
                             key={user.id}
@@ -532,10 +542,10 @@ export function GroupChatFormPanel({
                           >
                             <Avatar className="h-8 w-8 shrink-0 border-none">
                               <AvatarImage src={userAvatarListUrl(user)} />
-                              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                              <AvatarFallback>{chatUserInitial(displayName)}</AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <span className="block truncate text-sm font-medium leading-tight">{user.name}</span>
+                              <span className="block truncate text-sm font-medium leading-tight">{displayName}</span>
                               {login ? (
                                 <span className="block truncate text-xs text-muted-foreground">{login}</span>
                               ) : null}
@@ -562,6 +572,7 @@ export function GroupChatFormPanel({
                       </p>
                       {addFromGlobal.map((user) => {
                         const login = atUsernameLabel(user.username);
+                        const displayName = chatUserDisplayName(user);
                         return (
                           <div
                             key={user.id}
@@ -573,10 +584,10 @@ export function GroupChatFormPanel({
                           >
                             <Avatar className="h-8 w-8 shrink-0 border-none">
                               <AvatarImage src={userAvatarListUrl(user)} />
-                              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                              <AvatarFallback>{chatUserInitial(displayName)}</AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <span className="block truncate text-sm font-medium leading-tight">{user.name}</span>
+                              <span className="block truncate text-sm font-medium leading-tight">{displayName}</span>
                               {login ? (
                                 <span className="block truncate text-xs text-muted-foreground">{login}</span>
                               ) : null}

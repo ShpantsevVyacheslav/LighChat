@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +32,12 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
   bool _busy = false;
   String? _error;
   bool _needsPrivacySetup = false;
+  /// Серверный vault PIN задан (callable). Локально сохранённый PIN — для кнопки Face ID.
+  bool _vaultPinConfigured = false;
+  bool _biometricsAvailable = false;
+  bool _hasSavedVaultPinOnDevice = false;
+  /// Только для начальной загрузки hasVaultPin — не смешивать с [_busy] ручного ввода.
+  bool _vaultGateInFlight = false;
   final _auth = LocalAuthentication();
   final _pinStore = const SecretChatPinDeviceStorage();
 
@@ -49,6 +56,8 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
   }
 
   Future<void> _runGate() async {
+    if (_vaultGateInFlight) return;
+    _vaultGateInFlight = true;
     final l10n = AppLocalizations.of(context)!;
     final callables = SecretChatCallables();
     try {
@@ -56,51 +65,34 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
           .hasVaultPin()
           .timeout(const Duration(seconds: 5), onTimeout: () => false);
       if (!mounted) return;
-      if (!has) {
-        final canBio =
-            await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
-        if (!mounted) return;
-        if (!canBio) {
-          setState(() {
-            _booting = false;
-            _unlocked = false;
-            _needsPrivacySetup = true;
-            _error = l10n.privacy_secret_vault_setup_required;
-          });
-          return;
-        }
-        setState(() {
-          _booting = false;
-          _unlocked = false;
-        });
-        return;
-      }
 
-      final canBio = await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
-      if (canBio) {
-        final ok = await _auth.authenticate(
-          localizedReason: l10n.secret_chat_biometric_reason,
-        );
-        if (ok) {
-          final saved = await _pinStore.readVaultPin();
-          if (saved != null && saved.length == 4) {
-            await callables.verifyVaultPin(pin: saved);
-            if (!mounted) return;
-            setState(() {
-              _booting = false;
-              _unlocked = true;
-            });
-            return;
-          }
-        }
+      final canBio =
+          await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
+      String? savedLocal;
+      if (has) {
+        savedLocal = await _pinStore.readVaultPin();
       }
 
       if (!mounted) return;
+
+      // Не вызываем LocalAuthentication.authenticate при входе на экран: на iOS это часто
+      // даёт SIGABRT / gesture gate timeout во время transition. Разблокировка — явная кнопка.
       setState(() {
+        _vaultPinConfigured = has;
+        _biometricsAvailable = canBio;
+        _hasSavedVaultPinOnDevice =
+            savedLocal != null && savedLocal.trim().length == 4;
         _booting = false;
         _unlocked = false;
+        if (!has && !canBio) {
+          _needsPrivacySetup = true;
+          _error = l10n.privacy_secret_vault_setup_required;
+        }
       });
-    } catch (e) {
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('SecretChatsInbox _runGate: $e\n$st');
+      }
       if (!mounted) return;
       setState(() {
         _booting = false;
@@ -108,6 +100,46 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
         _needsPrivacySetup = true;
         _error = l10n.privacy_secret_vault_setup_required;
       });
+    } finally {
+      _vaultGateInFlight = false;
+    }
+  }
+
+  /// Face ID / Touch ID только по действию пользователя (после стабилизации UI).
+  Future<void> _unlockVaultWithBiometrics() async {
+    if (_busy || !_vaultPinConfigured) return;
+    final l10n = AppLocalizations.of(context)!;
+    final saved = await _pinStore.readVaultPin();
+    if (saved == null || saved.trim().length != 4) {
+      setState(() => _error = l10n.secret_chat_biometric_no_saved_pin);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final ok = await _auth.authenticate(
+        localizedReason: l10n.secret_chat_biometric_reason,
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+      if (!ok) {
+        return;
+      }
+      await SecretChatCallables().verifyVaultPin(pin: saved.trim());
+      if (!mounted) return;
+      setState(() => _unlocked = true);
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('SecretChatsInbox biometric vault: $e\n$st');
+      }
+      if (!mounted) return;
+      setState(() => _error = l10n.secret_chat_unlock_failed);
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -204,6 +236,15 @@ class _SecretChatsInboxScreenState extends ConsumerState<SecretChatsInboxScreen>
                   )
                 : Text(l10n.secret_chat_unlock_action),
           ),
+          if (_vaultPinConfigured &&
+              _biometricsAvailable &&
+              _hasSavedVaultPinOnDevice) ...[
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _busy ? null : () => unawaited(_unlockVaultWithBiometrics()),
+              child: Text(l10n.secret_chat_unlock_biometric),
+            ),
+          ],
           if (_needsPrivacySetup) ...[
             const SizedBox(height: 10),
             OutlinedButton(
@@ -249,21 +290,23 @@ class _SecretChatList extends ConsumerWidget {
         );
         return convAsync.when(
           data: (convs) {
-            convs.sort((a, b) {
-              final ta = DateTime.tryParse(a.data.lastMessageTimestamp ?? '')
-                      ?.millisecondsSinceEpoch ??
-                  0;
-              final tb = DateTime.tryParse(b.data.lastMessageTimestamp ?? '')
-                      ?.millisecondsSinceEpoch ??
-                  0;
-              return tb.compareTo(ta);
-            });
+            // Нельзя вызывать sort на списке из провайдера — мутация ломает кеш Riverpod / может давать UB.
+            final sorted = List<ConversationWithId>.of(convs)
+              ..sort((a, b) {
+                final ta = DateTime.tryParse(a.data.lastMessageTimestamp ?? '')
+                        ?.millisecondsSinceEpoch ??
+                    0;
+                final tb = DateTime.tryParse(b.data.lastMessageTimestamp ?? '')
+                        ?.millisecondsSinceEpoch ??
+                    0;
+                return tb.compareTo(ta);
+              });
             return ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              itemCount: convs.length,
+              itemCount: sorted.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, i) {
-                final c = convs[i];
+                final c = sorted[i];
                 return _SecretChatRow(
                   currentUserId: currentUserId,
                   conversation: c,

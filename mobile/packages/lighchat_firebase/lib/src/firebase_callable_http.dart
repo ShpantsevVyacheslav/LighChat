@@ -19,9 +19,9 @@
 /// подходят: обновления Pod перетрут fix (см. правило «No Hidden Changes»),
 /// а версия SDK у нас уже последняя на момент фикса.
 ///
-/// Обходим только точечно — для одного проблемного callable
-/// (`checkGroupInvitesAllowed`), и только на iOS. Android и другие callable
-/// продолжают использовать штатный SDK.
+/// Обходим только точечно — для iOS-путей, где callable вызывается из
+/// пользовательских сценариев с известным Release-crash риском. Android и
+/// остальные платформы продолжают использовать штатный SDK.
 ///
 /// # Контракт
 ///
@@ -134,9 +134,7 @@ Future<Object?> callFirebaseCallableHttp({
     );
   }
 
-  final url = Uri.parse(
-    'https://$region-$projectId.cloudfunctions.net/$name',
-  );
+  final url = Uri.parse('https://$region-$projectId.cloudfunctions.net/$name');
 
   final client = HttpClient();
   client.connectionTimeout = timeout;
