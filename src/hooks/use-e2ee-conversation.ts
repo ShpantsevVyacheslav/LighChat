@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Firestore } from 'firebase/firestore';
+import { doc, getDoc, type Firestore } from 'firebase/firestore';
 import type { ChatMessageE2eePayload, Conversation } from '@/lib/types';
 import {
   E2EE_V2_PROTOCOL,
@@ -16,6 +16,24 @@ import {
   getCachedPlaintext,
   putCachedPlaintext,
 } from '@/lib/e2ee';
+
+const E2EE_UNWRAP_MISSING_CODES = new Set([
+  'E2EE_NO_WRAP_FOR_DEVICE',
+  'E2EE_NO_WRAP_FOR_USER',
+]);
+
+function normalizeE2eeErrorCode(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === 'string' && code.trim()) return code;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  return 'E2EE_UNKNOWN';
+}
 
 /**
  * E2EE hook — v2-only (post Phase 10 cleanup, см. Gap #5 в `04-runtime-flows.md`).
@@ -42,6 +60,8 @@ export function useE2eeConversation(
   const keyByEpochRef = useRef<Map<string, CryptoKey>>(new Map());
   /** Phase 7: сырые байты v2-chatKey для HKDF при media-wrap. */
   const rawKeyByEpochRef = useRef<Map<string, ArrayBuffer>>(new Map());
+  /** Подавление шумных повторов unwrap-ошибок для одной и той же эпохи. */
+  const unwrapFailureByEpochRef = useRef<Map<string, string>>(new Map());
   const [identityReady, setIdentityReady] = useState(false);
 
   const e2eeEnabled = !!(conversation?.e2eeEnabled && (conversation?.e2eeKeyEpoch ?? 0) > 0);
@@ -50,6 +70,7 @@ export function useE2eeConversation(
   useEffect(() => {
     keyByEpochRef.current.clear();
     rawKeyByEpochRef.current.clear();
+    unwrapFailureByEpochRef.current.clear();
   }, [conversation?.id]);
 
   useEffect(() => {
@@ -95,6 +116,7 @@ export function useE2eeConversation(
         if (!cancelled && result.healed) {
           keyByEpochRef.current.clear();
           rawKeyByEpochRef.current.clear();
+          unwrapFailureByEpochRef.current.clear();
         }
       } catch (e) {
         console.warn('[e2ee] heal session skipped', e);
@@ -116,6 +138,10 @@ export function useE2eeConversation(
       const cacheKey = `${conversation.id}:${targetEpoch}`;
       const hit = keyByEpochRef.current.get(cacheKey);
       if (hit) return hit;
+      const unwrapFailure = unwrapFailureByEpochRef.current.get(cacheKey);
+      if (unwrapFailure && E2EE_UNWRAP_MISSING_CODES.has(unwrapFailure)) {
+        throw new Error(unwrapFailure);
+      }
 
       const any = await fetchE2eeSessionAny(firestore, conversation.id, targetEpoch);
       if (!any || any.version !== 'v2') return null;
@@ -123,13 +149,34 @@ export function useE2eeConversation(
       try {
         const aes = await unwrapChatKeyForMeV2(any.data, uid, identity, conversation.id);
         keyByEpochRef.current.set(cacheKey, aes);
+        unwrapFailureByEpochRef.current.delete(cacheKey);
         return aes;
       } catch (e) {
-        console.warn('[e2ee] v2 unwrap failed', e);
-        throw new Error('E2EE_UNWRAP_FAILED');
+        const code = normalizeE2eeErrorCode(e);
+        unwrapFailureByEpochRef.current.set(cacheKey, code);
+        if (!E2EE_UNWRAP_MISSING_CODES.has(code)) {
+          console.warn('[e2ee] v2 unwrap failed', e);
+        }
+        throw new Error(code);
       }
     },
     [firestore, conversation?.id, uid]
+  );
+
+  const getLatestConversationEpoch = useCallback(
+    async (fallbackEpoch: number): Promise<number> => {
+      if (!firestore || !conversation?.id) return fallbackEpoch;
+      try {
+        const snap = await getDoc(doc(firestore, 'conversations', conversation.id));
+        if (!snap.exists()) return fallbackEpoch;
+        const raw = snap.data()?.e2eeKeyEpoch;
+        const parsed = typeof raw === 'number' ? raw : 0;
+        return parsed > 0 ? parsed : fallbackEpoch;
+      } catch {
+        return fallbackEpoch;
+      }
+    },
+    [firestore, conversation?.id]
   );
 
   /**
@@ -156,9 +203,11 @@ export function useE2eeConversation(
           conversation,
           uid
         );
-        const targetEpoch = result.healed ? result.newEpoch : e2eeEpoch;
+        const latestEpoch = await getLatestConversationEpoch(e2eeEpoch);
+        const targetEpoch = result.healed ? result.newEpoch : latestEpoch;
         keyByEpochRef.current.clear();
         rawKeyByEpochRef.current.clear();
+        unwrapFailureByEpochRef.current.clear();
         const key = await getAesKeyForEpoch(targetEpoch);
         if (!key) return null;
         return { key, epoch: targetEpoch };
@@ -167,7 +216,7 @@ export function useE2eeConversation(
         return null;
       }
     },
-    [firestore, conversation, uid, e2eeEpoch, getAesKeyForEpoch]
+    [firestore, conversation, uid, e2eeEpoch, getAesKeyForEpoch, getLatestConversationEpoch]
   );
 
   /**

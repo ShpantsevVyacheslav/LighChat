@@ -208,6 +208,8 @@ export const messagesEn = {
   },
   openChat: {
     notFound: 'Chat not found or you have no access.',
+    transientError: 'Temporary Firestore connection error. Please try again.',
+    retry: 'Retry',
   },
   auth: {
     landingProfileIncomplete:

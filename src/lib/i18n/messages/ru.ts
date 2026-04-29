@@ -214,6 +214,8 @@ export const messagesRu = {
   },
   openChat: {
     notFound: 'Чат не найден или у вас нет доступа.',
+    transientError: 'Временная ошибка подключения к Firestore. Попробуйте снова.',
+    retry: 'Повторить',
   },
   auth: {
     landingProfileIncomplete:

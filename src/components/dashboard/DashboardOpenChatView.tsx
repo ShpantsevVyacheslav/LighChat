@@ -14,11 +14,13 @@ import { collection, doc } from 'firebase/firestore';
 import type { User, Conversation } from '@/lib/types';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   DASHBOARD_OPEN_PROFILE_QUERY,
   DASHBOARD_PROFILE_SOURCE_QUERY,
   DASHBOARD_PROFILE_USER_QUERY,
 } from '@/lib/dashboard-conversation-url';
+import { FirestorePermissionError } from '@/firebase/errors';
 import { useI18n } from '@/hooks/use-i18n';
 
 type DashboardOpenChatViewProps = {
@@ -102,7 +104,7 @@ export function DashboardOpenChatView({
     () => (firestore && conversationId ? doc(firestore, 'conversations', conversationId) : null),
     [firestore, conversationId]
   );
-  const { data: conversation, isLoading } = useDoc<Conversation>(conversationRef);
+  const { data: conversation, isLoading, error } = useDoc<Conversation>(conversationRef);
 
   if (!currentUserForFirestore || !authUid) {
     return (
@@ -118,6 +120,24 @@ export function DashboardOpenChatView({
         <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
       </div>
     );
+  }
+
+  if (error && !conversation) {
+    const isPermissionDenied = error instanceof FirestorePermissionError;
+    if (!isPermissionDenied) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-muted-foreground text-sm">
+          <p>{t('openChat.transientError')}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onSelectConversation(conversationId)}
+          >
+            {t('openChat.retry')}
+          </Button>
+        </div>
+      );
+    }
   }
 
   if (!conversation) {

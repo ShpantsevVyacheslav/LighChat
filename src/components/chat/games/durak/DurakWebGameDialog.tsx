@@ -173,7 +173,11 @@ export function DurakWebGameDialog({
   const canAttackCard = useCallback(
     (card: DurakCard) => {
       if (status !== 'active') return false;
-      if (attacks.length === 0) return currentUser.id === attackerUid;
+      if (attacks.length === 0) {
+        // First attack: prefer attackerUid, but keep compatibility with
+        // older/transition public views where currentThrowerUid is authoritative.
+        return currentUser.id === attackerUid || currentUser.id === currentThrowerUid;
+      }
       const defenderCount = handCounts[defenderUid] ?? 0;
       const roundLimit = publicView?.roundDefenderHandLimit ?? (defenderCount > 0 ? defenderCount : 6);
       const canThrow = attacks.length < 6 && attacks.length < roundLimit;
@@ -289,8 +293,9 @@ export function DurakWebGameDialog({
 
   const primaryLabel = useMemo(() => {
     if (status !== 'active') return 'Ожидание';
-    if (currentUser.id === defenderUid) return attacks.length > 0 ? 'Беру' : 'Ваш ход';
+    if (currentUser.id === defenderUid) return attacks.length > 0 ? 'Беру' : 'Ждать';
     if (canFinishTurn && currentUser.id === attackerUid) return 'Бито';
+    if (attacks.length === 0 && currentUser.id === attackerUid) return 'Ваш ход';
     if (currentUser.id === currentThrowerUid) return 'Пас';
     return 'Ждать';
   }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, status]);

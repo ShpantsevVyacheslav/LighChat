@@ -1,6 +1,6 @@
 'use client';
     
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DocumentReference,
   onSnapshot,
@@ -11,6 +11,17 @@ import {
 import { FirestorePermissionError } from '@/firebase/errors';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
 import { logFirestorePermissionDenied } from '@/lib/firestore-permission-debug';
+
+const TRANSIENT_DOC_ERROR_CODES = new Set<FirestoreError['code']>([
+  'internal',
+  'unavailable',
+  'aborted',
+  'deadline-exceeded',
+  'cancelled',
+  'unknown',
+  'resource-exhausted',
+]);
+const MAX_TRANSIENT_DOC_RETRIES = 4;
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -44,6 +55,8 @@ export function useDoc<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(!!memoizedDocRef);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
+  const transientRetryCountRef = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -52,6 +65,7 @@ export function useDoc<T = any>(
       setData(null);
       setIsLoading(false);
       setError(null);
+      transientRetryCountRef.current = 0;
       return;
     }
 
@@ -66,6 +80,7 @@ export function useDoc<T = any>(
           memoizedDocRef,
           (snapshot: DocumentSnapshot<DocumentData>) => {
             if (!isMounted) return;
+            transientRetryCountRef.current = 0;
             if (snapshot.exists()) {
               setData({ ...(snapshot.data() as T), id: snapshot.id });
             } else {
@@ -78,6 +93,7 @@ export function useDoc<T = any>(
             if (!isMounted) return;
             console.error("useDoc (real-time) error:", err);
             if (err.code === 'permission-denied') {
+              transientRetryCountRef.current = 0;
               logFirestorePermissionDenied({
                 source: 'useDoc',
                 operation: 'get (onSnapshot)',
@@ -85,9 +101,30 @@ export function useDoc<T = any>(
                 firestore: memoizedDocRef.firestore,
                 error: err,
               });
+              const contextualError = new FirestorePermissionError({ operation: 'get', path: memoizedDocRef.path });
+              setError(contextualError);
+              setData(null);
+              setIsLoading(false);
+              return;
             }
-            const contextualError = new FirestorePermissionError({ operation: 'get', path: memoizedDocRef.path });
-            setError(contextualError);
+
+            if (TRANSIENT_DOC_ERROR_CODES.has(err.code)) {
+              const retryCount = transientRetryCountRef.current;
+              if (retryCount < MAX_TRANSIENT_DOC_RETRIES) {
+                transientRetryCountRef.current = retryCount + 1;
+                const delayMs = Math.min(4000, 300 * 2 ** retryCount);
+                setError(err);
+                setIsLoading(true);
+                window.setTimeout(() => {
+                  if (!isMounted) return;
+                  setRetryTick((v) => v + 1);
+                }, delayMs);
+                return;
+              }
+            }
+
+            transientRetryCountRef.current = 0;
+            setError(err);
             setData(null);
             setIsLoading(false);
           }
@@ -112,7 +149,7 @@ export function useDoc<T = any>(
       }
     };
     
-  }, [memoizedDocRef]); // Re-run if the target changes.
+  }, [memoizedDocRef, retryTick]); // Re-run if the target changes or transient retry is triggered.
 
   if (memoizedDocRef && !memoizedDocRef.__memo) {
     throw new Error(memoizedDocRef + ' was not properly memoized using useMemoFirebase');
