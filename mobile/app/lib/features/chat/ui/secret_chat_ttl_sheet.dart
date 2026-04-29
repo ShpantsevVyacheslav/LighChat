@@ -7,6 +7,13 @@ class SecretChatTtlSheet extends StatelessWidget {
 
   final int initialSec;
 
+  /// Shared label for [presets] (minutes / hours / days).
+  static String presetLabel(AppLocalizations l10n, int sec) {
+    if (sec < 3600) return l10n.disappearing_ttl_minutes((sec / 60).round());
+    if (sec < 86400) return l10n.disappearing_ttl_hours((sec / 3600).round());
+    return l10n.disappearing_ttl_days((sec / 86400).round());
+  }
+
   static const presets = <int>[
     300,
     900,
@@ -17,12 +24,6 @@ class SecretChatTtlSheet extends StatelessWidget {
     43200,
     86400,
   ];
-
-  String _label(AppLocalizations l10n, int sec) {
-    if (sec < 3600) return l10n.disappearing_ttl_minutes((sec / 60).round());
-    if (sec < 86400) return l10n.disappearing_ttl_hours((sec / 3600).round());
-    return l10n.disappearing_ttl_days((sec / 86400).round());
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +52,7 @@ class SecretChatTtlSheet extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    title: Text(_label(l10n, sec)),
+                    title: Text(presetLabel(l10n, sec)),
                     onTap: () => Navigator.of(context).pop(sec),
                   ),
                 ),

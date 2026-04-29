@@ -117,14 +117,44 @@ export const requestSecretMediaView = onCall(
     const mediaPolicy = asPlainObject(secret.mediaViewPolicy);
     const limitRaw = mediaPolicy ? mediaPolicy[policyKey] : null;
     const limit = typeof limitRaw === "number" && Number.isFinite(limitRaw) ? Math.floor(limitRaw) : null;
-    if (limit == null || limit <= 0) {
-      // Hard-enforced mode: if policy isn't set for this kind, deny grant.
+    if (limit != null && limit <= 0) {
       throw new HttpsError("failed-precondition", "MEDIA_VIEWS_DISABLED");
     }
 
     const stateId = buildStateId(uid, messageId, fileId);
     const stateRef = db.doc(`conversations/${conversationId}/secretMediaViewState/${stateId}`);
     const requestsCol = db.collection(`conversations/${conversationId}/secretMediaViewRequests`);
+
+    if (limit == null) {
+      const expiresAt = new Date(now.getTime() + 60_000);
+      const reqRef = requestsCol.doc();
+      await reqRef.set({
+        conversationId,
+        messageId,
+        fileId,
+        recipientUid: uid,
+        recipientDeviceId,
+        kind: policyKey === "video" && envKind === "videoCircle" ? "videoCircle" : policyKey,
+        createdAt: nowIso,
+        expiresAt: expiresAt.toISOString(),
+        expiresAtTs: admin.firestore.Timestamp.fromDate(expiresAt),
+        status: "pending",
+        unlimitedMediaViews: true,
+      });
+
+      const grantId = buildStateId(uid, messageId, fileId);
+      logger.info("[requestSecretMediaView] created unlimited", {
+        uid,
+        conversationId,
+        messageId,
+        fileId,
+        policyKey,
+        requestId: reqRef.id,
+        grantId,
+      });
+
+      return { ok: true as const, requestId: reqRef.id, grantId };
+    }
 
     const requestId = await db.runTransaction(async (tx) => {
       const stateSnap = await tx.get(stateRef);

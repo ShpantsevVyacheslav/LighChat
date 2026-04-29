@@ -47,7 +47,6 @@ class SecretChatCallables {
   Future<void> updateSecretChatSettings({
     required String conversationId,
     int? ttlPresetSec,
-    int? grantTtlSec,
     Map<String, Object?>? restrictions,
     Map<String, Object?>? mediaViewPolicy,
   }) async {
@@ -58,10 +57,35 @@ class SecretChatCallables {
     await callable.call<void>(<String, Object?>{
       'conversationId': conversationId,
       if (ttlPresetSec != null) 'ttlPresetSec': ttlPresetSec,
-      if (grantTtlSec != null) 'grantTtlSec': grantTtlSec,
       if (restrictions != null) 'restrictions': restrictions,
       if (mediaViewPolicy != null) 'mediaViewPolicy': mediaViewPolicy,
     });
+  }
+
+  Future<bool> hasVaultPin() async {
+    final callable = _functions.httpsCallable(
+      'hasSecretVaultPin',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 15)),
+    );
+    final res = await callable.call<Map<Object?, Object?>>({});
+    final h = res.data['hasPin'];
+    return h == true;
+  }
+
+  Future<void> verifyVaultPin({required String pin}) async {
+    final callable = _functions.httpsCallable(
+      'verifySecretVaultPin',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+    );
+    await callable.call<void>(<String, Object?>{'pin': pin});
+  }
+
+  Future<void> deleteSecretChat({required String conversationId}) async {
+    final callable = _functions.httpsCallable(
+      'deleteSecretChat',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 120)),
+    );
+    await callable.call<void>(<String, Object?>{'conversationId': conversationId});
   }
 
   Future<void> requestSecretMediaView({

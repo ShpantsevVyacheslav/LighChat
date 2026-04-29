@@ -16,6 +16,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/partner_presence_line.dart';
 import '../data/phone_display.dart';
+import '../data/secret_chat_create.dart';
 import '../data/profile_attachment_stats.dart';
 import '../data/profile_field_visibility.dart';
 import '../data/saved_messages_chat.dart';
@@ -35,13 +36,12 @@ import 'chat_conversation_theme_screen.dart';
 import 'conversation_encryption_screen.dart';
 import 'conversation_disappearing_screen.dart';
 import '../data/disappearing_messages_label.dart';
-import '../data/secret_chat_create.dart';
+import 'secret_chat_compose_screen.dart';
 import 'conversation_media_links_files_screen.dart';
 import 'conversation_starred_screen.dart';
 import 'chat_shell_backdrop.dart';
 import 'chat_video_call_screen.dart';
 import 'user_avatar_fullscreen_viewer.dart';
-import 'secret_chat_ttl_sheet.dart';
 import '../../../l10n/app_localizations.dart';
 
 class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
@@ -356,7 +356,6 @@ class _ChatPartnerProfileSheetState
     required String partnerId,
     required String displayTitle,
   }) async {
-    if (_chatActionBusy) return;
     final l10n = AppLocalizations.of(context)!;
     final self = widget.selfProfile;
     final partner = widget.partnerProfile;
@@ -364,42 +363,29 @@ class _ChatPartnerProfileSheetState
       _toast(l10n.partner_profile_error_open_chat('missing self/partner'));
       return;
     }
-    final ttlSec = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      showDragHandle: true,
-      builder: (_) => const SecretChatTtlSheet(),
-    );
-    if (ttlSec == null || !mounted) return;
-    setState(() => _chatActionBusy = true);
-    try {
-      final id = await createOrOpenSecretDirectChat(
-        firestore: FirebaseFirestore.instance,
-        currentUserId: widget.currentUserId,
-        otherUserId: partnerId,
-        currentUserInfo: (
-          name: self.name.trim().isNotEmpty ? self.name.trim() : widget.currentUserId,
-          avatar: self.avatar,
-          avatarThumb: self.avatarThumb,
-        ),
-        otherUserInfo: (
-          name: (partner?.name ?? displayTitle).trim().isNotEmpty
-              ? (partner?.name ?? displayTitle).trim()
-              : l10n.new_chat_fallback_user_display_name,
-          avatar: partner?.avatar,
-          avatarThumb: partner?.avatarThumb,
-        ),
-        ttlPresetSec: ttlSec,
-      );
-      if (!mounted) return;
-      context.push('/chats/$id/secret-settings');
-    } catch (e) {
-      if (mounted) _toast(l10n.partner_profile_error_open_chat(e));
-    } finally {
-      if (mounted) setState(() => _chatActionBusy = false);
+    final secretId = buildSecretDirectConversationId(widget.currentUserId, partnerId);
+    final existing = await FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(secretId)
+        .get();
+    if (!mounted) return;
+    final alreadyExists = existing.exists &&
+        ((existing.data()?['secretChat'] as Map?)?['enabled'] == true);
+    if (alreadyExists) {
+      _toast(l10n.secret_chat_already_exists);
+      return;
     }
+    final peer = partner ??
+        UserProfile(
+          id: partnerId.trim(),
+          name: displayTitle.trim().isNotEmpty
+              ? displayTitle.trim()
+              : l10n.new_chat_fallback_user_display_name,
+        );
+    context.push(
+      '/chats/new/secret',
+      extra: SecretChatComposeArgs(me: self, peer: peer),
+    );
   }
 
   Future<void> _openCallFromActions({
@@ -919,6 +905,17 @@ class _ChatPartnerProfileSheetState
           partnerBlockedIdsSupplement: theirBlockedAsync?.asData?.value,
           partnerUserDocDenied: theirBlockedAsync?.hasError == true,
         );
+    final secretIds = ref
+            .watch(userSecretChatIndexProvider(widget.currentUserId))
+            .asData
+            ?.value
+            ?.conversationIds ??
+        const <String>[];
+    final hasSecretWithPartner = (!_isGroup && !_isSaved && partnerId != null)
+        ? secretIds.contains(
+            buildSecretDirectConversationId(widget.currentUserId, partnerId),
+          )
+        : false;
 
     List<Widget> buildScrollChildren() {
       return [
@@ -1050,14 +1047,18 @@ class _ChatPartnerProfileSheetState
                         ),
                       _ProfileQuickAction(
                         icon: Icons.lock_rounded,
-                        label: l10n.secret_chat_title,
+                        label: hasSecretWithPartner
+                            ? '${l10n.secret_chat_title} · ${l10n.secret_chat_exists_badge}'
+                            : l10n.secret_chat_title,
                         busy: _chatActionBusy,
-                        onTap: _chatActionBusy || !canDirectInteract
+                        onTap: _chatActionBusy ||
+                                !canDirectInteract ||
+                                hasSecretWithPartner
                             ? null
-                            : () => _openSecretChatFromActions(
+                            : () => unawaited(_openSecretChatFromActions(
                                 partnerId: partnerId,
                                 displayTitle: displayTitle,
-                              ),
+                              )),
                       ),
                       _ProfileQuickAction(
                         icon: Icons.call_rounded,
@@ -1260,7 +1261,8 @@ class _ChatPartnerProfileSheetState
               if (!_isGroup &&
                   !_isSaved &&
                   partnerId != null &&
-                  widget.conversation.secretChat?.enabled != true)
+                  widget.conversation.secretChat?.enabled != true &&
+                  !hasSecretWithPartner)
                 _menuButton(
                   context,
                   icon: Icons.lock_rounded,
@@ -1268,12 +1270,23 @@ class _ChatPartnerProfileSheetState
                   subtitle: l10n.secret_chat_settings_subtitle,
                   onTap: _chatActionBusy
                       ? null
-                      : () => unawaited(
-                            _openSecretChatFromActions(
-                              partnerId: partnerId,
-                              displayTitle: displayTitle,
-                            ),
-                          ),
+                      : () => unawaited(_openSecretChatFromActions(
+                            partnerId: partnerId,
+                            displayTitle: displayTitle,
+                          )),
+                ),
+              if (!_isGroup &&
+                  !_isSaved &&
+                  partnerId != null &&
+                  widget.conversation.secretChat?.enabled != true &&
+                  hasSecretWithPartner)
+                _menuButton(
+                  context,
+                  icon: Icons.lock_rounded,
+                  title: l10n.secret_chat_title,
+                  subtitle: l10n.secret_chat_already_exists,
+                  trailing: l10n.secret_chat_exists_badge,
+                  onTap: null,
                 ),
               if (widget.conversation.secretChat?.enabled == true)
                 _menuButton(

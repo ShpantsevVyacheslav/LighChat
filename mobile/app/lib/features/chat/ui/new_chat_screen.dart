@@ -14,13 +14,13 @@ import '../data/e2ee_auto_enable_helper.dart';
 import '../data/contact_display_name.dart';
 import '../data/device_contacts_suggestions.dart';
 import '../data/new_chat_user_search.dart';
+import '../data/secret_chat_create.dart';
 import '../data/user_chat_policy.dart';
 import '../data/user_profile.dart';
-import '../data/secret_chat_create.dart';
 import 'chat_shell_backdrop.dart';
 import 'device_contact_invite_row.dart';
 import 'new_chat_user_picker_row.dart';
-import 'secret_chat_ttl_sheet.dart';
+import 'secret_chat_compose_screen.dart';
 import '../../../l10n/app_localizations.dart';
 
 class NewChatScreen extends ConsumerStatefulWidget {
@@ -429,6 +429,12 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                           contactIds: contactsIdx.contactIds,
                           displayNameById: displayNameById,
                         );
+                        final secretIds = ref
+                                .watch(userSecretChatIndexProvider(u.uid))
+                                .asData
+                                ?.value
+                                ?.conversationIds ??
+                            const <String>[];
 
                         final scheme = Theme.of(context).colorScheme;
                         final listChildren = <Widget>[];
@@ -500,6 +506,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                             ),
                           );
                           for (final p in split.fromContacts) {
+                            final hasSecretWithUser = secretIds.contains(
+                              buildSecretDirectConversationId(u.uid, p.id),
+                            );
                             final viewProfile = _withDisplayName(
                               p,
                               (displayNameById[p.id] ?? p.name).trim(),
@@ -510,11 +519,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                   horizontal: _horizontalPad,
                                 ),
                                 child: GestureDetector(
-                                  onLongPress: _busy
+                                  onLongPress: (_busy || hasSecretWithUser)
                                       ? null
                                       : () => _openSecretDirect(
-                                            repo: repo,
-                                            uid: u.uid,
                                             me: self,
                                             peer: p,
                                           ),
@@ -522,6 +529,11 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                     profile: viewProfile,
                                     style: NewChatUserPickerRowStyle.list,
                                     enabled: !_busy,
+                                    badgeText: hasSecretWithUser
+                                        ? AppLocalizations.of(
+                                            context,
+                                          )!.secret_chat_exists_badge
+                                        : null,
                                     onTap: () => _openDirect(
                                       repo: repo,
                                       uid: u.uid,
@@ -544,6 +556,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                             ),
                           );
                           for (final p in split.fromGlobal) {
+                            final hasSecretWithUser = secretIds.contains(
+                              buildSecretDirectConversationId(u.uid, p.id),
+                            );
                             final viewProfile = _withDisplayName(
                               p,
                               (displayNameById[p.id] ?? p.name).trim(),
@@ -554,11 +569,9 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                   horizontal: _horizontalPad,
                                 ),
                                 child: GestureDetector(
-                                  onLongPress: _busy
+                                  onLongPress: (_busy || hasSecretWithUser)
                                       ? null
                                       : () => _openSecretDirect(
-                                            repo: repo,
-                                            uid: u.uid,
                                             me: self,
                                             peer: p,
                                           ),
@@ -566,6 +579,11 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                                     profile: viewProfile,
                                     style: NewChatUserPickerRowStyle.list,
                                     enabled: !_busy,
+                                    badgeText: hasSecretWithUser
+                                        ? AppLocalizations.of(
+                                            context,
+                                          )!.secret_chat_exists_badge
+                                        : null,
                                     onTap: () => _openDirect(
                                       repo: repo,
                                       uid: u.uid,
@@ -719,47 +737,27 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   }
 
   Future<void> _openSecretDirect({
-    required ChatRepository repo,
-    required String uid,
     required UserProfile me,
     required UserProfile peer,
   }) async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final ttlSec = await showModalBottomSheet<int>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        barrierColor: Colors.black.withValues(alpha: 0.55),
-        showDragHandle: true,
-        builder: (_) => const SecretChatTtlSheet(),
-      );
-      if (ttlSec == null || !mounted) return;
-      final convId = await createOrOpenSecretDirectChat(
-        firestore: FirebaseFirestore.instance,
-        currentUserId: uid,
-        otherUserId: peer.id,
-        currentUserInfo: (
-          name: me.name,
-          avatar: me.avatar,
-          avatarThumb: me.avatarThumb,
-        ),
-        otherUserInfo: (
-          name: peer.name,
-          avatar: peer.avatar,
-          avatarThumb: peer.avatarThumb,
-        ),
-        ttlPresetSec: ttlSec,
-      );
+    final uid = ref.read(authUserProvider).asData?.value?.uid;
+    if (uid == null) return;
+    final secretId = buildSecretDirectConversationId(uid, peer.id);
+    final snap = await FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(secretId)
+        .get();
+    if (!mounted) return;
+    final isActiveSecret = snap.exists &&
+        ((snap.data()?['secretChat'] as Map?)?['enabled'] == true);
+    if (isActiveSecret) {
       if (!mounted) return;
-      context.push('/chats/$convId/secret-settings');
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _busy = false);
+      setState(() => _error = AppLocalizations.of(context)!.secret_chat_already_exists);
+      return;
     }
+    context.push(
+      '/chats/new/secret',
+      extra: SecretChatComposeArgs(me: me, peer: peer),
+    );
   }
 }

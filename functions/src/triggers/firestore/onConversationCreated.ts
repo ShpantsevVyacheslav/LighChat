@@ -5,6 +5,7 @@ import {
   participantIdsFromConversationData,
   setMemberDocsForConversation,
 } from "../../lib/sync-conversation-members";
+import { isSecretConversation } from "../../lib/secret-chat-index";
 import { buildDataPayload, evaluateSimpleNotificationPush } from "../../lib/push-notification-policy";
 import { sendDataMulticastGrouped } from "../../lib/fcm-send-data-batches";
 
@@ -44,25 +45,50 @@ export const onconversationcreated = onDocumentCreated(
       logger.error("Error creating conversation member docs.", error);
     }
 
+    const secret = isSecretConversation(conversationId, conversationData as Record<string, unknown>);
+
     const batch = db.batch();
 
-    // 1. Update user indices
-    participantIds.forEach((userId) => {
-      const userChatIndexRef = db.doc(`userChats/${userId}`);
+    if (secret) {
+      const sc = (conversationData.secretChat ?? {}) as Record<string, unknown>;
       batch.set(
-        userChatIndexRef,
+        db.doc(`secretChats/${conversationId}`),
         {
-          conversationIds: admin.firestore.FieldValue.arrayUnion(
-            conversationId,
-          ),
+          conversationId,
+          participantIds,
+          createdAt: typeof sc.createdAt === "string" ? sc.createdAt : admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: typeof sc.expiresAt === "string" ? sc.expiresAt : null,
+          ttlPresetSec: typeof sc.ttlPresetSec === "number" ? sc.ttlPresetSec : null,
         },
         { merge: true },
       );
-    });
+      participantIds.forEach((userId) => {
+        batch.set(
+          db.doc(`userSecretChats/${userId}`),
+          {
+            conversationIds: admin.firestore.FieldValue.arrayUnion(conversationId),
+          },
+          { merge: true },
+        );
+      });
+    } else {
+      participantIds.forEach((userId) => {
+        const userChatIndexRef = db.doc(`userChats/${userId}`);
+        batch.set(
+          userChatIndexRef,
+          {
+            conversationIds: admin.firestore.FieldValue.arrayUnion(
+              conversationId,
+            ),
+          },
+          { merge: true },
+        );
+      });
+    }
 
     try {
       await batch.commit();
-      logger.log("Chat indices successfully updated.");
+      logger.log(secret ? "Secret chat indices (userSecretChats + secretChats) updated." : "Chat indices successfully updated.");
     } catch (error) {
       logger.error("Error updating chat indices.", error);
     }

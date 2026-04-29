@@ -60,7 +60,7 @@ export type Conversation = {
     createdBy: string;
     expiresAt: string;
     ttlPresetSec: number;
-    lockPolicy: { required: boolean; grantTtlSec: number };
+    lockPolicy: { required: boolean };
     restrictions: {
       noForward: boolean;
       noCopy: boolean;

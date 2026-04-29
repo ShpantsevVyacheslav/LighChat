@@ -12,6 +12,7 @@ import 'push_foreground_suppression.dart';
 import 'push_local_notifications_facade.dart';
 import 'push_native_call_service.dart';
 import 'push_notification_payload.dart';
+import 'push_runtime_flags.dart';
 
 /// Регистрация FCM-токена в `users.fcmTokens` (как web `use-notifications`).
 class PushMessagingService {
@@ -98,6 +99,7 @@ class PushMessagingService {
 
   Future<void> start({required String uid}) async {
     if (kIsWeb || !isFirebaseReady()) return;
+    if (!iosPushRuntimeEnabled) return;
     if (_activeUid == uid && _onMessageSub != null) return;
 
     await _onMessageSub?.cancel();

@@ -16,6 +16,22 @@ class SecretChatPinDeviceStorage {
   static String _keyForConversation(String conversationId) =>
       'lighchat.secretChat.pin.v1.$conversationId';
 
+  static const _vaultKey = 'lighchat.secretVault.pin.v1';
+
+  Future<void> saveVaultPin(String pin) async {
+    await _storage.write(key: _vaultKey, value: pin);
+  }
+
+  Future<String?> readVaultPin() async {
+    final v = await _storage.read(key: _vaultKey);
+    final t = (v ?? '').trim();
+    return t.isEmpty ? null : t;
+  }
+
+  Future<void> clearVaultPin() async {
+    await _storage.delete(key: _vaultKey);
+  }
+
   Future<void> savePin({
     required String conversationId,
     required String pin,

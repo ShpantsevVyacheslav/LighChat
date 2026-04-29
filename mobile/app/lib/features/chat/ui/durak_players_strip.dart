@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'durak_player_profiles.dart';
 
 class DurakPlayersStrip extends StatelessWidget {
   const DurakPlayersStrip({
     super.key,
+    required this.l10n,
     required this.seats,
     required this.attackerUid,
     required this.defenderUid,
@@ -13,8 +15,10 @@ class DurakPlayersStrip extends StatelessWidget {
     required this.activeThrowerUid,
     required this.handCounts,
     required this.me,
+    required this.defenderTaking,
   });
 
+  final AppLocalizations l10n;
   final List<String> seats;
   final String attackerUid;
   final String defenderUid;
@@ -23,6 +27,8 @@ class DurakPlayersStrip extends StatelessWidget {
   final String? activeThrowerUid;
   final Map? handCounts;
   final String? me;
+  /// From server state: defender chose to take; throw-ins may still be open.
+  final bool defenderTaking;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +46,7 @@ class DurakPlayersStrip extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 10),
                   child: _PlayerChip(
+                    l10n: l10n,
                     uid: uid,
                     name: byUid[uid]?.name ?? uid,
                     avatarUrl: _avatarUrl(byUid[uid]?.avatarThumb, byUid[uid]?.avatar),
@@ -49,6 +56,7 @@ class DurakPlayersStrip extends StatelessWidget {
                     isDefender: uid == defenderUid,
                     canThrowIn: throwerUids.contains(uid) && uid != defenderUid,
                     passed: passedUids.contains(uid),
+                    showTakingBadge: defenderTaking && uid == defenderUid,
                     cardCount: int.tryParse((handCounts == null ? '' : (handCounts![uid] ?? '')).toString()) ?? 0,
                   ),
                 ),
@@ -70,6 +78,7 @@ class DurakPlayersStrip extends StatelessWidget {
 
 class _PlayerChip extends StatelessWidget {
   const _PlayerChip({
+    required this.l10n,
     required this.uid,
     required this.name,
     required this.avatarUrl,
@@ -79,9 +88,11 @@ class _PlayerChip extends StatelessWidget {
     required this.isDefender,
     required this.canThrowIn,
     required this.passed,
+    required this.showTakingBadge,
     required this.cardCount,
   });
 
+  final AppLocalizations l10n;
   final String uid;
   final String name;
   final String? avatarUrl;
@@ -91,6 +102,7 @@ class _PlayerChip extends StatelessWidget {
   final bool isDefender;
   final bool canThrowIn;
   final bool passed;
+  final bool showTakingBadge;
   final int cardCount;
 
   @override
@@ -109,108 +121,154 @@ class _PlayerChip extends StatelessWidget {
         ? 'DEF'
         : (isAttacker ? 'ATK' : (canThrowIn ? 'THR' : '—'));
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withValues(alpha: 0.05),
-        border: Border.all(color: border),
-        boxShadow: isActive
-            ? [
-                BoxShadow(
-                  color: const Color(0xFFFFC107).withValues(alpha: 0.18),
-                  blurRadius: 18,
-                  offset: const Offset(0, 10),
-                ),
-              ]
-            : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: Colors.white.withValues(alpha: 0.12),
-                foregroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
-                child: avatarUrl == null
-                    ? const Icon(Icons.person, size: 18, color: Colors.white70)
-                    : null,
-              ),
-              Positioned(
-                right: -4,
-                bottom: -4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    color: roleColor.withValues(alpha: 0.85),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.25)),
-                  ),
-                  child: Text(
-                    roleLabel,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      height: 1.0,
+    final badges = <Widget>[
+      if (showTakingBadge)
+        _SpeechBadge(
+          text: l10n.conversation_durak_badge_taking,
+          background: const Color(0xFFEF4444).withValues(alpha: 0.92),
+        ),
+      if (passed)
+        _SpeechBadge(
+          text: l10n.conversation_durak_action_pass,
+          background: Colors.white.withValues(alpha: 0.14),
+        ),
+    ];
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (badges.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 4,
+              children: badges,
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: Colors.white.withValues(alpha: 0.05),
+            border: Border.all(color: border),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFFC107).withValues(alpha: 0.18),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
                     ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: Colors.white.withValues(alpha: 0.12),
+                    foregroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
+                    child: avatarUrl == null
+                        ? const Icon(Icons.person, size: 18, color: Colors.white70)
+                        : null,
+                  ),
+                  Positioned(
+                    right: -4,
+                    bottom: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        color: roleColor.withValues(alpha: 0.85),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.25)),
+                      ),
+                      child: Text(
+                        roleLabel,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white.withValues(alpha: isMe ? 0.95 : 0.88),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: Colors.white.withValues(alpha: 0.08),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: Text(
+                  cardCount.toString(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.82),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(width: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 160),
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: Colors.white.withValues(alpha: isMe ? 0.95 : 0.88),
-              ),
-            ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SpeechBadge extends StatelessWidget {
+  const _SpeechBadge({required this.text, required this.background});
+
+  final String text;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              color: Colors.white.withValues(alpha: 0.08),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            ),
-            child: Text(
-              cardCount.toString(),
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 11,
-                color: Colors.white.withValues(alpha: 0.82),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (passed)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: Colors.white.withValues(alpha: 0.08),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: Text(
-                'PASS',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.72),
-                ),
-              ),
-            ),
         ],
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          height: 1.1,
+        ),
       ),
     );
   }

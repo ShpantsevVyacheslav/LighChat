@@ -111,7 +111,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                 final indexAsync = ref.watch(userChatIndexProvider(user.uid));
                 return indexAsync.when(
                   data: (idx) {
-                    final ids = idx?.conversationIds ?? const <String>[];
+                    final ids = (idx?.conversationIds ?? const <String>[])
+                        .where((id) => !id.startsWith('sdm_'))
+                        .toList(growable: false);
                     final convAsync = ref.watch(
                       conversationsProvider((
                         key: conversationIdsCacheKey(ids),
@@ -265,8 +267,10 @@ class _ChatListBody extends ConsumerStatefulWidget {
 class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   String _activeFolderId = 'all';
   final _search = TextEditingController();
+  final _listScrollController = ScrollController();
   Map<String, StoredChatMessageDraft> _draftByConv =
       <String, StoredChatMessageDraft>{};
+  bool _showSecretChatsRow = false;
 
   String? _lastOfflinePersistFingerprint;
 
@@ -292,6 +296,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     unawaited(_reloadChatDrafts());
   }
 
+  void _onListScroll() {
+    if (_listScrollController.hasClients && _listScrollController.offset > 4) {
+      if (_showSecretChatsRow) {
+        setState(() {
+          _showSecretChatsRow = false;
+        });
+      }
+    }
+  }
+
   Future<void> _reloadChatDrafts() async {
     final m = await loadAllChatDraftsForUser(widget.currentUserId);
     if (!mounted) return;
@@ -301,6 +315,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   @override
   void initState() {
     super.initState();
+    _listScrollController.addListener(_onListScroll);
     chatDraftListRevision.addListener(_draftRevListener);
     unawaited(_reloadChatDrafts());
     WidgetsBinding.instance.addPostFrameCallback(
@@ -324,6 +339,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
 
   @override
   void dispose() {
+    _listScrollController.removeListener(_onListScroll);
+    _listScrollController.dispose();
     chatDraftListRevision.removeListener(_draftRevListener);
     _search.dispose();
     super.dispose();
@@ -1518,9 +1535,93 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 180),
+                    crossFadeState: _showSecretChatsRow
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    firstChild: Column(
+                      children: [
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Material(
+                            color: Colors.white.withValues(
+                              alpha: dark ? 0.06 : 0.1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => context.push('/chats/secret-inbox'),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.lock_rounded,
+                                      size: 22,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.secret_chats_title,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.45),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                    secondChild: const SizedBox.shrink(),
+                  ),
                   Expanded(
-                    child: hasChatIdsButNotLoadedYet
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification.metrics.axis != Axis.vertical) {
+                          return false;
+                        }
+                        if (notification is OverscrollNotification &&
+                            notification.overscroll < 0 &&
+                            notification.metrics.pixels <= 0) {
+                          if (!_showSecretChatsRow &&
+                              notification.metrics.pixels < -10) {
+                            setState(() => _showSecretChatsRow = true);
+                          }
+                        } else if (notification is ScrollUpdateNotification &&
+                            notification.metrics.pixels < -10) {
+                          if (!_showSecretChatsRow) {
+                            setState(() => _showSecretChatsRow = true);
+                          }
+                        } else if (notification is ScrollStartNotification ||
+                            notification is ScrollUpdateNotification ||
+                            notification is ScrollEndNotification) {
+                          if (notification.metrics.pixels > 0 &&
+                              _showSecretChatsRow) {
+                            setState(() => _showSecretChatsRow = false);
+                          }
+                        }
+                        return false;
+                      },
+                      child: hasChatIdsButNotLoadedYet
                         ? Center(
                             child: Text(
                               AppLocalizations.of(
@@ -1564,6 +1665,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             onCreateTap: () => context.go('/chats/new'),
                           )
                         : ListView.separated(
+                            controller: _listScrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(0, 0, 0, 88),
                             itemCount: convs.length,
                             separatorBuilder: (_, _) => Divider(
@@ -1694,6 +1797,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                               );
                             },
                           ),
+                    ),
                   ),
                   ChatBottomNav(
                     activeTab: ChatBottomNavTab.chats,

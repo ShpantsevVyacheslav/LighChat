@@ -19,7 +19,7 @@
   - `items/{itemId}` - стикеры/GIF (те же поля, что у `users/*/stickerPacks/*/items`).
 - `conversations/{conversationId}` - чат и метаданные участников (в т.ч. unread-счётчики и reaction-anchor поля `lastReaction*` + `lastReactionSeenAt`).
   - **Исчезающие сообщения:** `disappearingMessageTtlSec` (число секунд или `null` = выкл), опционально `disappearingMessagesUpdatedAt` (ISO), `disappearingMessagesUpdatedBy` (uid). В личном чате меняют оба участника; в группе — только создатель/админы (см. `firestore.rules`). На документы `messages/*` и `messages/*/thread/*` CF после создания пишет `expireAt` (Timestamp) для [Firestore TTL](https://firebase.google.com/docs/firestore/ttl); клиент поле `expireAt` не задаёт.
-  - **Секретный чат:** поле `secretChat` (map) включает флаги режима и срок жизни (ISO `expiresAt` + preset `ttlPresetSec`), а также ограничения (`noForward/noCopy/noSave/screenshotProtection`) и `lockPolicy.grantTtlSec`. В секретном чате чтение `messages/*`, `e2eeSessions/*` и медиа в Storage требует активного unlock‑grant (см. `secretAccess` ниже).
+  - **Секретный чат:** поле `secretChat` (map) включает флаги режима и срок жизни (ISO `expiresAt` + preset `ttlPresetSec`), ограничения (`noForward/noCopy/noSave/screenshotProtection`), опционально `mediaViewPolicy`, а также `lockPolicy.required`. Поля задаются **только при создании** чата (callable-клиенты не могут менять конфигурацию через `updateSecretChatSettings`). TTL действия unlock‑grant фиксирован на сервере (`unlockSecretChat`). В секретном чате чтение `messages/*`, `e2eeSessions/*` и медиа в Storage требует активного unlock‑grant (см. `secretAccess` ниже).
   - `members/{memberId}` - server-maintained индекс участников для правил.
   - `typing/{typingUserId}`
   - `messages/{messageId}` (+ вложенные thread-path документы; для медиа-нормализации используется поле `mediaNorm` со статусом `pending|done|failed` и `failedIndexes`; для синхронизации emoji-эффектов используется `emojiBurst: {eventId, emoji, by, at}`; при включённом таймере исчезновения — поле `expireAt` для TTL-удаления)
@@ -32,7 +32,9 @@
     - `secretMediaViewRequests/{id}` — короткоживущий запрос на просмотр (TTL ~60s) от получателя; любой online key‑holder может fulfill.
     - `secretMediaKeyGrants/{id}` — короткоживущий per‑file grant (TTL ~30s), который **разрешает Storage read** для `chat-attachments-enc/{cid}/{mid}/{fileId}/…`.
   - `e2eeSessions/{epoch}` - эпохи симметричного ключа чата в формате E2EE v2: вложенная мапа `wraps[userId][deviceId]` (ciphertext; сервер не знает plaintext). Единственная поддерживаемая версия — `protocolVersion: 'v2-p256-aesgcm-multi'`; документы с другими версиями клиенты молча ротируют через self-heal.
-- `userChats/{userId}` - денормализованный индекс чатов пользователя.
+- `userChats/{userId}` - денормализованный индекс **обычных** чатов пользователя (`conversationIds[]`). Документы секретных личных чатов с префиксом id `sdm_*` сюда **не** добавляются.
+- `userSecretChats/{userId}` - индекс только секретных DM (`conversationIds[]`, синхронизируется триггером при создании/удалении/миграции). Читает владелец; клиентская запись запрещена правилами.
+- `secretChats/{conversationId}` - минимальный server-maintained маркер существования секретного чата (для правил и очистки), синхронизируется с `conversations/{id}` где `secretChat.enabled == true`.
 - `userContacts/{userId}` - список контактов пользователя.
   - `contactIds[]` - id добавленных контактов.
   - `contactProfiles.{contactUserId}` - локальное имя контакта (firstName/lastName/displayName/updatedAt), используется только владельцем списка в списках чатов/поиске/карточках контакта.

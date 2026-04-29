@@ -32,6 +32,8 @@ import 'features/settings/ui/language_screen.dart';
 import 'features/settings/ui/blacklist_screen.dart';
 import 'features/chat/ui/secret_chat_settings_screen.dart';
 import 'features/chat/ui/new_chat_screen.dart';
+import 'features/chat/ui/secret_chat_compose_screen.dart';
+import 'features/chat/ui/secret_chats_inbox_screen.dart';
 import 'features/chat/ui/new_group_chat_screen.dart';
 import 'features/chat/ui/thread_screen.dart';
 import 'features/chat/ui/thread_route_payload.dart';
@@ -165,6 +167,18 @@ GoRouter createRouter() {
         builder: (context, state) => const NewGroupChatScreen(),
       ),
       GoRoute(
+        path: '/chats/new/secret',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is SecretChatComposeArgs) {
+            return SecretChatComposeScreen(args: extra);
+          }
+          return const Scaffold(
+            body: Center(child: Text('Invalid secret compose navigation')),
+          );
+        },
+      ),
+      GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
       ),
@@ -201,6 +215,10 @@ GoRouter createRouter() {
       GoRoute(
         path: '/settings/e2ee-qr-pairing',
         builder: (context, state) => const E2eeQrPairingScreen(),
+      ),
+      GoRoute(
+        path: '/chats/secret-inbox',
+        builder: (context, state) => const SecretChatsInboxScreen(),
       ),
       GoRoute(
         path: '/chats/forward',

@@ -16,6 +16,14 @@
       ]
     },
     {
+      "collectionId": "conversations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "secretChat.enabled", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionId": "users",
       "queryScope": "COLLECTION",
       "fields": [

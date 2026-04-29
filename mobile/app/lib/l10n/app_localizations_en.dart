@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get secret_chat_title => 'Secret chat';
 
   @override
+  String get secret_chats_title => 'Secret Chats';
+
+  @override
   String get secret_chat_locked_title => 'Secret chat is locked';
 
   @override
@@ -36,6 +39,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get secret_chat_pin_invalid => 'Enter a 4-digit PIN';
+
+  @override
+  String get secret_chat_already_exists =>
+      'Secret chat with this user already exists.';
+
+  @override
+  String get secret_chat_exists_badge => 'Created';
 
   @override
   String get secret_chat_unlock_failed => 'Unable to unlock. Please try again.';
@@ -119,7 +129,93 @@ class AppLocalizationsEn extends AppLocalizations {
   String get secret_chat_media_type_location => 'Location';
 
   @override
+  String get secret_chat_media_type_file => 'Files';
+
+  @override
   String get secret_chat_media_views_unlimited => 'Unlimited';
+
+  @override
+  String get secret_chat_compose_create => 'Create secret chat';
+
+  @override
+  String get secret_chat_compose_vault_pin_subtitle =>
+      'Optional: set a 4-digit vault PIN used for secret inbox unlock (stored on this device for biometrics when enabled).';
+
+  @override
+  String get secret_chat_compose_require_unlock_pin =>
+      'Require PIN to open this chat';
+
+  @override
+  String get secret_chat_settings_read_only_hint =>
+      'These settings are fixed at creation and cannot be changed.';
+
+  @override
+  String get secret_chat_settings_delete => 'Delete secret chat';
+
+  @override
+  String get secret_chat_settings_delete_confirm_title =>
+      'Delete this secret chat?';
+
+  @override
+  String get secret_chat_settings_delete_confirm_body =>
+      'Messages and media will be removed for both participants.';
+
+  @override
+  String get privacy_secret_vault_title => 'Secret vault';
+
+  @override
+  String get privacy_secret_vault_subtitle =>
+      'Global PIN and biometric checks for entering secret chats.';
+
+  @override
+  String get privacy_secret_vault_change_pin => 'Set or change vault PIN';
+
+  @override
+  String get privacy_secret_vault_change_pin_subtitle =>
+      'If PIN already exists, confirm using old PIN or biometrics.';
+
+  @override
+  String get privacy_secret_vault_bio_subtitle =>
+      'Run biometric check and validate saved local PIN.';
+
+  @override
+  String get privacy_secret_vault_bio_reason =>
+      'Confirm access to secret chats';
+
+  @override
+  String get privacy_secret_vault_current_pin => 'Current PIN';
+
+  @override
+  String get privacy_secret_vault_new_pin => 'New PIN';
+
+  @override
+  String get privacy_secret_vault_repeat_pin => 'Repeat new PIN';
+
+  @override
+  String get privacy_secret_vault_pin_mismatch => 'PINs do not match';
+
+  @override
+  String get privacy_secret_vault_pin_updated => 'Vault PIN updated';
+
+  @override
+  String get privacy_secret_vault_bio_unavailable =>
+      'Biometric authentication is not available on this device';
+
+  @override
+  String get privacy_secret_vault_bio_verified => 'Biometric check passed';
+
+  @override
+  String get privacy_secret_vault_setup_required =>
+      'Set up PIN or biometric access in Privacy first.';
+
+  @override
+  String get privacy_secret_vault_network_timeout =>
+      'Network timeout. Please try again.';
+
+  @override
+  String privacy_secret_vault_error(Object error) {
+    return 'Secret vault error: $error';
+  }
 
   @override
   String get tournament_title => 'Tournament';
@@ -2350,6 +2446,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get conversation_durak_action_pass => 'Pass';
+
+  @override
+  String get conversation_durak_badge_taking => 'I\'ll take';
 
   @override
   String get conversation_durak_game_finished_title => 'Game finished';

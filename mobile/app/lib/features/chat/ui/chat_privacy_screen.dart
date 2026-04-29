@@ -1,12 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:local_auth/local_auth.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/e2ee_data_type_policy.dart';
+import '../data/secret_chat_callables.dart';
+import '../data/secret_chat_pin_device_storage.dart';
 import '../../../l10n/app_localizations.dart';
+import 'secret_vault_pin_screen.dart';
 
 const double _kHeaderTitleSize = 16;
 const double _kCardTitleSize = 18;
@@ -43,6 +49,9 @@ class ChatPrivacyScreen extends ConsumerWidget {
                   : const <String, Object?>{};
               final settings = _PrivacySettingsState.fromRaw(rawMap);
               final repo = ref.read(chatSettingsRepositoryProvider);
+              final vaultCallables = SecretChatCallables();
+              final vaultStore = const SecretChatPinDeviceStorage();
+              final localAuth = LocalAuthentication();
 
               Future<void> savePatch({
                 bool? showOnlineStatus,
@@ -92,6 +101,100 @@ class ChatPrivacyScreen extends ConsumerWidget {
                 }
               }
 
+              Future<void> showErr(Object e) async {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      l10n.privacy_secret_vault_error(e.toString()),
+                    ),
+                  ),
+                );
+              }
+
+              Future<void> showOk(String message) async {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              }
+
+              Future<void> openVaultPinSetupFlow() async {
+                try {
+                  bool hasPin = await vaultCallables
+                      .hasVaultPin()
+                      .timeout(const Duration(seconds: 5), onTimeout: () => false);
+                  if (!context.mounted) return;
+                  var trustedByBiometric = false;
+                  String? oldPin;
+                  if (hasPin) {
+                    final canBio =
+                        await localAuth.canCheckBiometrics ||
+                        await localAuth.isDeviceSupported();
+                    if (canBio) {
+                      trustedByBiometric = await localAuth.authenticate(
+                        localizedReason: l10n.privacy_secret_vault_bio_reason,
+                      );
+                    }
+                    if (!trustedByBiometric) {
+                      if (!context.mounted) return;
+                      oldPin = await SecretVaultPinScreen.open(
+                        context,
+                        title: l10n.privacy_secret_vault_change_pin,
+                        subtitle: l10n.privacy_secret_vault_current_pin,
+                        confirm: false,
+                      );
+                      if (oldPin == null) return;
+                    }
+                  }
+                  if (!context.mounted) return;
+                  final newPin = await SecretVaultPinScreen.open(
+                    context,
+                    title: l10n.privacy_secret_vault_change_pin,
+                    subtitle: l10n.privacy_secret_vault_new_pin,
+                    confirm: true,
+                  );
+                  if (newPin == null) return;
+                  if (hasPin && !trustedByBiometric) {
+                    await vaultCallables.verifyVaultPin(pin: oldPin!);
+                  }
+                  await vaultCallables.setPin(pin: newPin);
+                  await vaultStore.saveVaultPin(newPin);
+                  await showOk(l10n.privacy_secret_vault_pin_updated);
+                } catch (e) {
+                  if (e is TimeoutException) {
+                    await showErr(l10n.privacy_secret_vault_network_timeout);
+                    return;
+                  }
+                  await showErr(e);
+                }
+              }
+
+              Future<void> runBiometricCheck() async {
+                try {
+                  final canBio =
+                      await localAuth.canCheckBiometrics ||
+                      await localAuth.isDeviceSupported();
+                  if (!canBio) {
+                    await showOk(l10n.privacy_secret_vault_bio_unavailable);
+                    return;
+                  }
+                  final ok = await localAuth.authenticate(
+                    localizedReason: l10n.privacy_secret_vault_bio_reason,
+                  );
+                  if (!ok) return;
+                  final pin = await vaultStore.readVaultPin();
+                  if (pin == null || pin.length != 4) {
+                    await showOk(l10n.secret_chat_biometric_no_saved_pin);
+                    return;
+                  }
+                  await vaultCallables.verifyVaultPin(pin: pin);
+                  await showOk(l10n.privacy_secret_vault_bio_verified);
+                } catch (e) {
+                  await showErr(e);
+                }
+              }
+
               return _PrivacyView(
                 settings: settings,
                 onE2eeChanged: (v) => savePatch(e2eeForNewDirectChats: v),
@@ -109,6 +212,8 @@ class ChatPrivacyScreen extends ConsumerWidget {
                 onShowDobChanged: (v) => savePatch(showDateOfBirthToOthers: v),
                 onShowBioChanged: (v) => savePatch(showBioToOthers: v),
                 onReset: () => savePatch(reset: true),
+                onVaultPinSetup: () => unawaited(openVaultPinSetupFlow()),
+                onVaultBiometricCheck: () => unawaited(runBiometricCheck()),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -140,6 +245,8 @@ class _PrivacyView extends StatelessWidget {
     required this.onShowDobChanged,
     required this.onShowBioChanged,
     required this.onReset,
+    required this.onVaultPinSetup,
+    required this.onVaultBiometricCheck,
   });
 
   final _PrivacySettingsState settings;
@@ -155,6 +262,8 @@ class _PrivacyView extends StatelessWidget {
   final ValueChanged<bool> onShowDobChanged;
   final ValueChanged<bool> onShowBioChanged;
   final VoidCallback onReset;
+  final VoidCallback onVaultPinSetup;
+  final VoidCallback onVaultBiometricCheck;
 
   @override
   Widget build(BuildContext context) {
@@ -258,6 +367,24 @@ class _PrivacyView extends StatelessWidget {
                       title: l10n.privacy_key_backup_title,
                       subtitle: l10n.privacy_key_backup_subtitle,
                       onTap: () => context.push('/settings/e2ee-recovery'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _SettingsCard(
+                  title: l10n.privacy_secret_vault_title,
+                  subtitle: l10n.privacy_secret_vault_subtitle,
+                  leadingIcon: Icons.lock_rounded,
+                  children: [
+                    _NavRow(
+                      title: l10n.privacy_secret_vault_change_pin,
+                      subtitle: l10n.privacy_secret_vault_change_pin_subtitle,
+                      onTap: onVaultPinSetup,
+                    ),
+                    _NavRow(
+                      title: l10n.secret_chat_unlock_biometric,
+                      subtitle: l10n.privacy_secret_vault_bio_subtitle,
+                      onTap: onVaultBiometricCheck,
                     ),
                   ],
                 ),

@@ -183,7 +183,9 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     if FirebaseApp.app() == nil {
       FirebaseApp.configure()
     }
+    #if !DEBUG
     setupVoipRegistry()
+    #endif
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

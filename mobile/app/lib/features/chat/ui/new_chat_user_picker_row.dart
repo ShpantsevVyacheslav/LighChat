@@ -19,6 +19,7 @@ class NewChatUserPickerRow extends StatelessWidget {
     this.selected = false,
     this.selectionTrailing = false,
     this.style = NewChatUserPickerRowStyle.card,
+    this.badgeText,
   });
 
   final UserProfile profile;
@@ -27,6 +28,7 @@ class NewChatUserPickerRow extends StatelessWidget {
   final bool selected;
   final bool selectionTrailing;
   final NewChatUserPickerRowStyle style;
+  final String? badgeText;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +79,25 @@ class NewChatUserPickerRow extends StatelessWidget {
             selected ? Icons.check_circle_rounded : Icons.circle_outlined,
             color: selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.35),
             size: 22,
+          ),
+        ],
+        if ((badgeText ?? '').trim().isNotEmpty) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: scheme.primary.withValues(alpha: 0.20),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
+            ),
+            child: Text(
+              badgeText!,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: scheme.primary,
+              ),
+            ),
           ),
         ],
       ],

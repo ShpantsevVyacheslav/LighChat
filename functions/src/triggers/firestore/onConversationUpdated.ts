@@ -5,6 +5,7 @@ import {
   participantIdsFromConversationData,
   syncMemberDocsForConversation,
 } from "../../lib/sync-conversation-members";
+import { isSecretConversation } from "../../lib/secret-chat-index";
 import { buildDataPayload, evaluateSimpleNotificationPush } from "../../lib/push-notification-policy";
 import { sendDataMulticastGrouped } from "../../lib/fcm-send-data-batches";
 
@@ -24,6 +25,7 @@ export const onconversationupdated = onDocumentUpdated("conversations/{conversat
   const afterParticipantIds = participantIdsFromConversationData(afterData);
 
   const conversationId = event.params.conversationId;
+  const secret = isSecretConversation(conversationId, afterData as Record<string, unknown>);
 
   const participantsKey = (ids: string[]) => [...ids].sort().join("\0");
   if (participantsKey(beforeParticipantIds) !== participantsKey(afterParticipantIds)) {
@@ -40,10 +42,22 @@ export const onconversationupdated = onDocumentUpdated("conversations/{conversat
   if (removedParticipantIds.length > 0) {
     const batch = db.batch();
     removedParticipantIds.forEach((userId) => {
-      const userChatIndexRef = db.doc(`userChats/${userId}`);
-      batch.update(userChatIndexRef, {
-        conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId),
-      });
+      if (secret) {
+        batch.set(
+          db.doc(`userSecretChats/${userId}`),
+          { conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId) },
+          { merge: true },
+        );
+        batch.set(
+          db.doc(`userChats/${userId}`),
+          { conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId) },
+          { merge: true },
+        );
+      } else {
+        batch.update(db.doc(`userChats/${userId}`), {
+          conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId),
+        });
+      }
     });
     try {
       await batch.commit();
@@ -58,10 +72,23 @@ export const onconversationupdated = onDocumentUpdated("conversations/{conversat
   if (addedParticipantIds.length > 0) {
     const batch = db.batch();
     addedParticipantIds.forEach((userId) => {
-      const userChatIndexRef = db.doc(`userChats/${userId}`);
-      batch.set(userChatIndexRef, {
-        conversationIds: admin.firestore.FieldValue.arrayUnion(conversationId),
-      }, { merge: true });
+      if (secret) {
+        batch.set(
+          db.doc(`userSecretChats/${userId}`),
+          {
+            conversationIds: admin.firestore.FieldValue.arrayUnion(conversationId),
+          },
+          { merge: true },
+        );
+      } else {
+        batch.set(
+          db.doc(`userChats/${userId}`),
+          {
+            conversationIds: admin.firestore.FieldValue.arrayUnion(conversationId),
+          },
+          { merge: true },
+        );
+      }
     });
     
     try {

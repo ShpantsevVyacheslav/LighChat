@@ -2,6 +2,7 @@ import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import { deleteAllMemberDocsForConversation } from "../../lib/sync-conversation-members";
+import { isSecretConversation } from "../../lib/secret-chat-index";
 
 const db = admin.firestore();
 
@@ -33,19 +34,36 @@ export const onconversationdeleted = onDocumentDeleted("conversations/{conversat
     return;
   }
 
-  // Clean up userChats index
+  const secret = isSecretConversation(conversationId, deletedConversation as Record<string, unknown>);
   const batch = db.batch();
+
   participantIds.forEach((userId: string) => {
-    const userChatIndexRef = db.doc(`userChats/${userId}`);
-    batch.update(userChatIndexRef, {
-      conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId),
-    });
+    if (secret) {
+      batch.set(
+        db.doc(`userSecretChats/${userId}`),
+        { conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId) },
+        { merge: true },
+      );
+      batch.set(
+        db.doc(`userChats/${userId}`),
+        { conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId) },
+        { merge: true },
+      );
+    } else {
+      batch.update(db.doc(`userChats/${userId}`), {
+        conversationIds: admin.firestore.FieldValue.arrayRemove(conversationId),
+      });
+    }
   });
+
+  if (secret) {
+    batch.delete(db.doc(`secretChats/${conversationId}`));
+  }
 
   try {
     await batch.commit();
-    logger.log(`Cleaned up userChats for conversation ${conversationId}`);
+    logger.log(`Cleaned up chat indices for conversation ${conversationId} (secret=${secret})`);
   } catch (error) {
-    logger.error(`Error cleaning up userChats for conversation ${conversationId}`, error);
+    logger.error(`Error cleaning up indices for conversation ${conversationId}`, error);
   }
 });

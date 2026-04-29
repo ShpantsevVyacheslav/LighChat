@@ -156,6 +156,43 @@ class ChatRepository {
     }();
   }
 
+  /// Индекс секретных чатов (`userSecretChats/{uid}`), зеркалит структуру [UserChatIndex].
+  Stream<UserChatIndex?> watchUserSecretChatIndex({required String userId}) {
+    final ref = _firestore
+        .collection('userSecretChats')
+        .doc(userId)
+        .withConverter<UserChatIndex?>(
+          fromFirestore: (snap, options) {
+            try {
+              final data = snap.data();
+              if (!snap.exists || data == null) return null;
+              return UserChatIndex.fromJson(data);
+            } catch (e, st) {
+              _logger.w('UserSecretChatIndex parse failed', error: e, stackTrace: st);
+              return null;
+            }
+          },
+          toFirestore: (value, options) => <String, Object?>{},
+        );
+
+    return () async* {
+      try {
+        final initial = await ref.get().timeout(_userChatIndexInitialTimeout);
+        yield initial.data();
+      } catch (e, st) {
+        _logger.w(
+          'userSecretChats/$userId initial get failed',
+          error: e,
+          stackTrace: st,
+        );
+        yield null;
+      }
+      await for (final snap in ref.snapshots()) {
+        yield snap.data();
+      }
+    }();
+  }
+
   /// Mirrors the web strategy: subscribe to each `conversations/{id}` doc
   /// individually (avoid list-query limitations under rules).
   Stream<List<ConversationWithId>> watchConversationsByIds(

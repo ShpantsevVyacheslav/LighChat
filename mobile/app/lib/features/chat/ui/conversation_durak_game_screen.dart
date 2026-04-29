@@ -9,10 +9,10 @@ import '../data/games_callables.dart';
 import 'durak_card_flight_layer.dart';
 import 'durak_felt_background.dart';
 import 'durak_hand_fan.dart';
-import 'durak_phase_banner.dart';
 import 'durak_player_names.dart';
 import 'durak_player_profiles.dart';
 import 'durak_players_strip.dart';
+import 'durak_primary_actions_bar.dart';
 import 'durak_table_fly_fx.dart';
 import 'durak_table_widget.dart';
 
@@ -42,7 +42,6 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
 
   final _deckKey = GlobalKey();
   final _handKey = GlobalKey();
-  final _tableDropKey = GlobalKey();
   final _nextAttackSlotKey = GlobalKey();
   final _tableAttackKeys = <int, GlobalKey>{};
   final _tableDefenseKeys = <int, GlobalKey>{};
@@ -310,13 +309,14 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
           final defenderUid =
               (publicView == null ? '' : (publicView['defenderUid'] ?? ''))
                   .toString();
-          final myRole = me == null
-              ? ''
-              : (me == attackerUid
-                  ? l10n.conversation_durak_role_attacker
-                  : (me == defenderUid
-                      ? l10n.conversation_durak_role_defender
-                      : l10n.conversation_durak_role_thrower));
+
+          Map<String, dynamic>? serverState;
+          final serverStateRaw = g['serverState'];
+          if (serverStateRaw is Map) {
+            serverState = Map<String, dynamic>.from(serverStateRaw);
+          }
+          final defenderTaking =
+              serverState != null && serverState['taking'] == true;
 
           final tableRaw = publicView == null ? null : publicView['table'];
           final table = tableRaw is Map ? Map<Object?, Object?>.from(tableRaw) : null;
@@ -465,15 +465,107 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
               me == attackerUid &&
               hasPendingResolution;
 
-          final available = <String>[
-            if (canAttack) l10n.conversation_durak_action_attack,
-            if (canDefend) l10n.conversation_durak_action_defend,
-            if (canTake) l10n.conversation_durak_action_take,
-            if (canBeat) l10n.conversation_durak_action_beat,
-            if (canTransfer) l10n.conversation_durak_action_transfer,
-            if (canFoul) l10n.conversation_durak_action_foul,
-            if (canResolve) l10n.conversation_durak_action_resolve,
-          ];
+          final primaryCandidates = <({String id, String label, VoidCallback onTap})>[];
+          if (canBeat) {
+            primaryCandidates.add((
+              id: 'beat',
+              label: l10n.conversation_durak_action_beat,
+              onTap: () => unawaited(_sendMove(actionType: 'finishTurn')),
+            ));
+          }
+          if (canTake) {
+            primaryCandidates.add((
+              id: 'take',
+              label: l10n.conversation_durak_action_take,
+              onTap: () => unawaited(_sendMove(actionType: 'take')),
+            ));
+          }
+          if (canPass) {
+            primaryCandidates.add((
+              id: 'pass',
+              label: l10n.conversation_durak_action_pass,
+              onTap: () => unawaited(_sendMove(actionType: 'pass')),
+            ));
+          }
+          if (canResolve) {
+            primaryCandidates.add((
+              id: 'resolve',
+              label: l10n.conversation_durak_action_resolve,
+              onTap: () => unawaited(_resolveBeat()),
+            ));
+          }
+          final primaryActions = primaryCandidates
+              .take(2)
+              .map((e) => (label: e.label, onTap: e.onTap))
+              .toList();
+          final primaryIds =
+              primaryCandidates.take(2).map((e) => e.id).toSet();
+
+          final overflowActions = <({String label, VoidCallback onTap})>[];
+          if (canAttack && hasSelected) {
+            overflowActions.add((
+              label: l10n.conversation_durak_action_attack,
+              onTap: () => unawaited(
+                () async {
+                  _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
+                  await _sendMove(
+                    actionType: 'attack',
+                    payload: <String, dynamic>{
+                      'card': _cardPayload(_selectedCard!),
+                    },
+                  );
+                }(),
+              ),
+            ));
+          }
+          if (canDefend && hasSelected) {
+            overflowActions.add((
+              label: l10n.conversation_durak_action_defend,
+              onTap: () => unawaited(
+                () async {
+                  _flySelectedTo(
+                    _pairKeyForFlight(_selectedAttackIndex, defense: true),
+                    trumpSuit: trumpSuit,
+                  );
+                  await _sendMove(
+                    actionType: 'defend',
+                    payload: <String, dynamic>{
+                      'attackIndex': _selectedAttackIndex,
+                      'card': _cardPayload(_selectedCard!),
+                    },
+                  );
+                }(),
+              ),
+            ));
+          }
+          if (canTransfer && hasSelected) {
+            overflowActions.add((
+              label: l10n.conversation_durak_action_transfer,
+              onTap: () => unawaited(
+                () async {
+                  _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
+                  await _sendMove(
+                    actionType: 'transfer',
+                    payload: <String, dynamic>{
+                      'card': _cardPayload(_selectedCard!),
+                    },
+                  );
+                }(),
+              ),
+            ));
+          }
+          if (canFoul) {
+            overflowActions.add((
+              label: l10n.conversation_durak_action_foul,
+              onTap: () => unawaited(_callFoul()),
+            ));
+          }
+          if (canResolve && !primaryIds.contains('resolve')) {
+            overflowActions.add((
+              label: l10n.conversation_durak_action_resolve,
+              onTap: () => unawaited(_resolveBeat()),
+            ));
+          }
 
           final resultRaw = publicView == null ? null : publicView['result'];
           final result = resultRaw is Map ? Map<String, dynamic>.from(resultRaw) : null;
@@ -569,70 +661,70 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
                   },
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+                child: DurakPlayersStrip(
+                  l10n: l10n,
+                  seats: seats,
+                  attackerUid: attackerUid,
+                  defenderUid: defenderUid,
+                  throwerUids: throwerUids,
+                  passedUids: passedUids,
+                  activeThrowerUid: activeThrowerUid,
+                  handCounts: handCounts,
+                  me: me,
+                  defenderTaking: defenderTaking,
+                ),
+              ),
+              Expanded(
+                child: Stack(
                   children: [
-                    DurakPlayersStrip(
-                      seats: seats,
-                      attackerUid: attackerUid,
-                      defenderUid: defenderUid,
-                      throwerUids: throwerUids,
-                      passedUids: passedUids,
-                      activeThrowerUid: activeThrowerUid,
-                      handCounts: handCounts,
-                      me: me,
-                    ),
-                    const SizedBox(height: 10),
-                    DurakPhaseBanner(
-                      phase: phase,
-                      attackerUid: attackerUid,
-                      defenderUid: defenderUid,
-                      throwerUids: throwerUids.toList(),
-                      pendingResolution: hasPendingResolution && shulerEnabled,
-                      me: me,
-                    ),
-                    if (activeThrowerUid != null && activeThrowerUid.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: DurakPlayerProfiles(
-                          uids: [activeThrowerUid],
-                          builder: (context, byUid) {
-                            final name = byUid[activeThrowerUid]?.name ?? activeThrowerUid;
-                            return Text(
-                              l10n.durak_now_throwing_in(name),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: const Color(0xFFFFC107).withValues(alpha: 0.92),
-                                fontWeight: FontWeight.w900,
-                              ),
-                            );
-                          },
+                    Positioned(
+                      left: 12,
+                      top: 6,
+                      child: Container(
+                        key: _deckKey,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: Colors.white.withValues(alpha: 0.05),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                        ),
+                        child: Text(
+                          'Deck: ${(publicView == null ? 0 : (publicView['deckCount'] ?? 0)).toString()}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.72),
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Container(
-                          key: _deckKey,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: Colors.white.withValues(alpha: 0.05),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                          ),
-                          child: Text(
-                            'Deck: ${(publicView == null ? 0 : (publicView['deckCount'] ?? 0)).toString()}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.72),
-                              fontWeight: FontWeight.w800,
-                            ),
+                    ),
+                    Positioned(
+                      right: 12,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: Colors.white.withValues(alpha: 0.05),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                        ),
+                        child: Text(
+                          'Discard: $discardCount',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.72),
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        if (trumpSuit.isNotEmpty)
-                          Container(
+                      ),
+                    ),
+                    if (trumpSuit.isNotEmpty)
+                      Positioned(
+                        top: 6,
+                        left: 0,
+                        right: 0,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(999),
@@ -654,208 +746,47 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
                               ),
                             ),
                           ),
-                        if (trumpSuit.isNotEmpty) const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: Colors.white.withValues(alpha: 0.05),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                          ),
-                          child: Text(
-                            'Discard: $discardCount',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.72),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      '${l10n.conversation_game_lobby_status(status)} · $myRole',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      children: [
-                    Text(
-                      l10n.conversation_durak_table_title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 10),
-                    DragTarget<Map<String, dynamic>>(
-                      key: _tableDropKey,
-                      onWillAcceptWithDetails: (d) =>
-                          cardCanAttack(d.data) || cardCanTransfer(d.data),
-                      onAcceptWithDetails: (d) {
-                        final card = d.data;
-                        if (cardCanTransfer(card)) {
-                          unawaited(_tryTransfer(card));
-                        } else {
-                          unawaited(_tryAttack(card));
-                        }
-                      },
-                      builder: (context, candidate, rejected) {
-                        final active = candidate.isNotEmpty;
-                        return Container(
-                          height: 44,
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: (active
-                                      ? const Color(0xFF6EE7B7)
-                                      : Colors.white.withValues(alpha: 0.14))
-                                  .withValues(alpha: 0.9),
-                            ),
-                            color: Colors.white.withValues(alpha: active ? 0.06 : 0.03),
-                          ),
-                          child: Center(
-                            child: Text(
-                              l10n.conversation_durak_drop_zone,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white.withValues(alpha: active ? 0.92 : 0.62),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
-                      child: DurakTableWidget(
-                        key: ValueKey<String>('t:${(publicView == null ? '' : (publicView['revision'] ?? '')).toString()}'),
-                        pairKeyForFlight: _pairKeyForFlight,
-                        nextAttackSlotKey: _nextAttackSlotKey,
-                        attacks: attacks,
-                        defenses: defenses,
-                        selectedAttackIndex: _selectedAttackIndex,
-                        onSelectAttackIndex: (i) => setState(() => _selectedAttackIndex = i),
-                        canAcceptDefense: (card, idx) => cardCanDefendAt(card, idx),
-                        onDefenseDropped: (idx, card) {
-                          final flight = DurakCardFlightLayer.of(context);
-                          if (flight != null) {
-                            // Best-effort: we don't know exact hand-card id on drag; fly from hand area.
-                            flight.flyCard(
-                              from: _handKey,
-                              to: _pairKeyForFlight(idx, defense: true),
-                              rankLabel: _rankLabel(card),
-                              suitLabel: _suitLabel(card),
-                              isRed: _isRedSuit(_suitOf(card)),
-                            );
-                          }
-                          return _tryDefend(attackIndex: idx, card: card);
-                        },
-                        rankLabel: _rankLabel,
-                        suitLabel: _suitLabel,
-                        isRedSuit: _isRedSuit,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (available.isNotEmpty) ...[
-                      Text(
-                        '${l10n.common_choose}: ${available.join(' · ')}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.72),
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                    ],
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (canAttack)
-                          FilledButton(
-                            onPressed: () => unawaited(
-                              () async {
-                                _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
-                                await _sendMove(
-                                  actionType: 'attack',
-                                  payload: <String, dynamic>{
-                                    'card': _cardPayload(_selectedCard!),
-                                  },
-                                );
-                              }(),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 48, 12, 16),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          child: DurakTableWidget(
+                            key: ValueKey<String>(
+                              't:${(publicView == null ? '' : (publicView['revision'] ?? '')).toString()}',
                             ),
-                            child: Text(l10n.conversation_durak_action_attack),
-                          ),
-                        if (canDefend)
-                          FilledButton(
-                            onPressed: () => unawaited(
-                              () async {
-                                _flySelectedTo(
-                                  _pairKeyForFlight(_selectedAttackIndex, defense: true),
-                                  trumpSuit: trumpSuit,
+                            pairKeyForFlight: _pairKeyForFlight,
+                            nextAttackSlotKey: _nextAttackSlotKey,
+                            attacks: attacks,
+                            defenses: defenses,
+                            selectedAttackIndex: _selectedAttackIndex,
+                            onSelectAttackIndex: (i) =>
+                                setState(() => _selectedAttackIndex = i),
+                            canAcceptDefense: (card, idx) =>
+                                cardCanDefendAt(card, idx),
+                            onDefenseDropped: (idx, card) {
+                              final flight = DurakCardFlightLayer.of(context);
+                              if (flight != null) {
+                                flight.flyCard(
+                                  from: _handKey,
+                                  to: _pairKeyForFlight(idx, defense: true),
+                                  rankLabel: _rankLabel(card),
+                                  suitLabel: _suitLabel(card),
+                                  isRed: _isRedSuit(_suitOf(card)),
                                 );
-                                await _sendMove(
-                                  actionType: 'defend',
-                                  payload: <String, dynamic>{
-                                    'attackIndex': _selectedAttackIndex,
-                                    'card': _cardPayload(_selectedCard!),
-                                  },
-                                );
-                              }(),
-                            ),
-                            child: Text(l10n.conversation_durak_action_defend),
+                              }
+                              return _tryDefend(attackIndex: idx, card: card);
+                            },
+                            rankLabel: _rankLabel,
+                            suitLabel: _suitLabel,
+                            isRedSuit: _isRedSuit,
                           ),
-                        if (canTransfer)
-                          OutlinedButton(
-                            onPressed: () => unawaited(
-                              () async {
-                                _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
-                                await _sendMove(
-                                  actionType: 'transfer',
-                                  payload: <String, dynamic>{
-                                    'card': _cardPayload(_selectedCard!),
-                                  },
-                                );
-                              }(),
-                            ),
-                            child: Text(l10n.conversation_durak_action_transfer),
-                          ),
-                        if (canTake)
-                          OutlinedButton(
-                            onPressed: () => unawaited(_sendMove(actionType: 'take')),
-                            child: Text(l10n.conversation_durak_action_take),
-                          ),
-                        if (canPass)
-                          OutlinedButton(
-                            onPressed: () => unawaited(_sendMove(actionType: 'pass')),
-                            child: Text(l10n.conversation_durak_action_pass),
-                          ),
-                        if (canBeat)
-                          OutlinedButton(
-                            onPressed: () => unawaited(_sendMove(actionType: 'finishTurn')),
-                            child: Text(l10n.conversation_durak_action_beat),
-                          ),
-                        if (canResolve)
-                          OutlinedButton(
-                            onPressed: () => unawaited(_resolveBeat()),
-                            child: Text(l10n.conversation_durak_action_resolve),
-                          ),
-                        if (canFoul)
-                          OutlinedButton(
-                            onPressed: () => unawaited(_callFoul()),
-                            child: Text(l10n.conversation_durak_action_foul),
-                          ),
-                      ],
-                    ),
-                      ],
+                        ),
+                      ),
                     ),
                     if (foulAt.isNotEmpty && foulMissed.isNotEmpty)
                       Positioned(
@@ -863,15 +794,6 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
                         right: 12,
                         top: 8,
                         child: _FoulBanner(missedUids: foulMissed),
-                      ),
-                    if (hasPendingResolution && shulerEnabled)
-                      Positioned(
-                        left: 12,
-                        right: 12,
-                        bottom: 12,
-                        child: _PendingResolutionBanner(
-                          isAttacker: me == attackerUid,
-                        ),
                       ),
                     if (_tableFxText.isNotEmpty)
                       Positioned.fill(
@@ -904,6 +826,18 @@ class _ConversationDurakGameScreenState extends State<ConversationDurakGameScree
                       ),
                   ],
                 ),
+              ),
+              if (hasPendingResolution && shulerEnabled)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  child: _PendingResolutionBanner(
+                    isAttacker: me == attackerUid,
+                  ),
+                ),
+              DurakPrimaryActionsBar(
+                l10n: l10n,
+                primaryActions: primaryActions,
+                overflowActions: overflowActions,
               ),
               if (handRef == null)
                 const SizedBox.shrink()

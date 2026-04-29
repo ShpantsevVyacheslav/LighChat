@@ -899,7 +899,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               dmOtherId = others.isEmpty ? null : others.first;
             }
             final isSecret = conv?.data.secretChat?.enabled == true;
-            final secretUnlocked = isSecret
+            final secretLockRequired =
+                conv?.data.secretChat?.lockPolicy.required == true;
+            final secretUnlocked = (isSecret && secretLockRequired)
                 ? (ref
                         .watch(secretChatAccessActiveProvider((
                           conversationId: widget.conversationId,
@@ -913,7 +915,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 conv != null &&
                 isSavedMessagesConversation(conv.data, user.uid);
 
-            if (isSecret && !secretUnlocked) {
+            if (isSecret && secretLockRequired && !secretUnlocked) {
               return SecretChatSecureScope(
                 enabled: true,
                 child: Scaffold(

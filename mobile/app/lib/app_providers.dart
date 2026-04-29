@@ -95,6 +95,51 @@ final userChatIndexProvider = StreamProvider.family<UserChatIndex?, String>((
   }
 });
 
+/// Индекс секретных чатов (отдельно от основного списка).
+final userSecretChatIndexProvider = StreamProvider.family<UserChatIndex?, String>((
+  ref,
+  userId,
+) async* {
+  final uid = userId.trim();
+  if (uid.isEmpty) {
+    yield null;
+    return;
+  }
+  final repo = ref.watch(chatRepositoryProvider);
+  if (repo == null) {
+    yield null;
+    return;
+  }
+  await for (final v in repo.watchUserSecretChatIndex(userId: uid)) {
+    yield v;
+  }
+});
+
+/// Fallback для секретных чатов: если `userSecretChats/{uid}` ещё не заполнен,
+/// читаем ids напрямую из conversations (не зависит от CF индексов).
+final userSecretChatFallbackIdsProvider =
+    StreamProvider.family<List<String>, String>((ref, userId) {
+      final uid = userId.trim();
+      if (uid.isEmpty) return Stream.value(const <String>[]);
+      return FirebaseFirestore.instance
+          .collection('conversations')
+          .where('participantIds', arrayContains: uid)
+          .snapshots()
+          .map((snap) {
+            final ids = <String>[];
+            for (final d in snap.docs) {
+              final data = d.data();
+              final rawSecret = data['secretChat'];
+              final enabled =
+                  rawSecret is Map && rawSecret['enabled'] == true;
+              if (d.id.startsWith('sdm_') || enabled) {
+                ids.add(d.id);
+              }
+            }
+            return ids;
+          });
+    });
+
 /// Stable key for Riverpod family (avoid `List` identity churn on every rebuild).
 typedef ConversationIdsKey = ({String key});
 

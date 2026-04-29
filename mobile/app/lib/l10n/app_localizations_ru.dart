@@ -12,6 +12,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get secret_chat_title => 'Секретный чат';
 
   @override
+  String get secret_chats_title => 'Секретные чаты';
+
+  @override
   String get secret_chat_locked_title => 'Секретный чат заблокирован';
 
   @override
@@ -36,6 +39,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get secret_chat_pin_invalid => 'Введите 4 цифры';
+
+  @override
+  String get secret_chat_already_exists =>
+      'Секретный чат с этим пользователем уже существует.';
+
+  @override
+  String get secret_chat_exists_badge => 'Создан';
 
   @override
   String get secret_chat_unlock_failed =>
@@ -120,7 +130,94 @@ class AppLocalizationsRu extends AppLocalizations {
   String get secret_chat_media_type_location => 'Локация';
 
   @override
+  String get secret_chat_media_type_file => 'Файлы';
+
+  @override
   String get secret_chat_media_views_unlimited => 'Безлимит';
+
+  @override
+  String get secret_chat_compose_create => 'Создать секретный чат';
+
+  @override
+  String get secret_chat_compose_vault_pin_subtitle =>
+      'Необязательно: 4-цифровой PIN для доступа к списку секретных чатов (сохраняется на устройстве для биометрии).';
+
+  @override
+  String get secret_chat_compose_require_unlock_pin =>
+      'Требовать PIN при открытии чата';
+
+  @override
+  String get secret_chat_settings_read_only_hint =>
+      'Параметры задаются при создании и дальше не меняются.';
+
+  @override
+  String get secret_chat_settings_delete => 'Удалить секретный чат';
+
+  @override
+  String get secret_chat_settings_delete_confirm_title =>
+      'Удалить этот секретный чат?';
+
+  @override
+  String get secret_chat_settings_delete_confirm_body =>
+      'Сообщения и медиа будут удалены у обоих участников.';
+
+  @override
+  String get privacy_secret_vault_title => 'Секретное хранилище';
+
+  @override
+  String get privacy_secret_vault_subtitle =>
+      'Глобальный PIN и биометрия для входа в секретные чаты.';
+
+  @override
+  String get privacy_secret_vault_change_pin =>
+      'Установить или сменить PIN хранилища';
+
+  @override
+  String get privacy_secret_vault_change_pin_subtitle =>
+      'Если PIN уже есть, подтвердите старым PIN или биометрией.';
+
+  @override
+  String get privacy_secret_vault_bio_subtitle =>
+      'Проверить биометрию и валидировать локально сохраненный PIN.';
+
+  @override
+  String get privacy_secret_vault_bio_reason =>
+      'Подтвердите доступ к секретным чатам';
+
+  @override
+  String get privacy_secret_vault_current_pin => 'Текущий PIN';
+
+  @override
+  String get privacy_secret_vault_new_pin => 'Новый PIN';
+
+  @override
+  String get privacy_secret_vault_repeat_pin => 'Повторите новый PIN';
+
+  @override
+  String get privacy_secret_vault_pin_mismatch => 'PIN-коды не совпадают';
+
+  @override
+  String get privacy_secret_vault_pin_updated => 'PIN хранилища обновлен';
+
+  @override
+  String get privacy_secret_vault_bio_unavailable =>
+      'Биометрия недоступна на этом устройстве';
+
+  @override
+  String get privacy_secret_vault_bio_verified => 'Проверка биометрии пройдена';
+
+  @override
+  String get privacy_secret_vault_setup_required =>
+      'Сначала настройте PIN или биометрию в разделе Конфиденциальность.';
+
+  @override
+  String get privacy_secret_vault_network_timeout =>
+      'Таймаут сети. Попробуйте снова.';
+
+  @override
+  String privacy_secret_vault_error(Object error) {
+    return 'Ошибка секретного хранилища: $error';
+  }
 
   @override
   String get tournament_title => 'Турнир';
@@ -2364,6 +2461,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get conversation_durak_action_pass => 'Пас';
+
+  @override
+  String get conversation_durak_badge_taking => 'Беру';
 
   @override
   String get conversation_durak_game_finished_title => 'Игра завершена';

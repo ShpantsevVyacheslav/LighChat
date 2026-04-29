@@ -42,6 +42,8 @@
 	<string>Чтобы снимать фото и видео для сообщений в чате</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Чтобы находить знакомых и синхронизировать контакты из телефонной книги</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Для разблокировки секретных чатов и подтверждения действий в хранилище</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Чтобы отправлять и обновлять геолокацию в чате</string>
 	<key>NSMicrophoneUsageDescription</key>

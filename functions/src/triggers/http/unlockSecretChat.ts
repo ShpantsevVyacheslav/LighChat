@@ -16,6 +16,9 @@ type ResponseData = {
   expiresAt: string;
 };
 
+/** Fixed server-side TTL for secretAccess grants (Unlock Duration removed from product). */
+const SECRET_ACCESS_GRANT_TTL_SEC = 600;
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES_AFTER_MAX = 15;
 
@@ -32,12 +35,11 @@ export const unlockSecretChat = onCall(
     if (!uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");
 
     const conversationId = asNonEmptyString(request.data?.conversationId);
-    const pin = asNonEmptyString(request.data?.pin) ?? "";
+    const pinRaw = asNonEmptyString(request.data?.pin) ?? "";
     const deviceId = asNonEmptyString(request.data?.deviceId);
     const methodRaw = asNonEmptyString(request.data?.method) ?? "pin";
     const method = methodRaw === "biometric" ? "biometric" : "pin";
     if (!conversationId) throw new HttpsError("invalid-argument", "BAD_INPUT");
-    if (!isValidFourDigitPin(pin)) throw new HttpsError("invalid-argument", "BAD_PIN");
 
     const db = admin.firestore();
     const convRef = db.doc(`conversations/${conversationId}`);
@@ -64,62 +66,55 @@ export const unlockSecretChat = onCall(
       throw new HttpsError("failed-precondition", "SECRET_CHAT_EXPIRED");
     }
 
-    const rawLockPolicy = secret.lockPolicy;
-    let lockPolicy: Record<string, unknown> = {};
-    if (typeof rawLockPolicy === "object" && rawLockPolicy != null) {
-      lockPolicy = rawLockPolicy as Record<string, unknown>;
-    }
-    const lockTtlRaw = lockPolicy.grantTtlSec;
-    let grantTtlSec = 600;
-    if (typeof lockTtlRaw === "number" && lockTtlRaw > 0) {
-      grantTtlSec = Math.floor(lockTtlRaw);
-    }
+    const grantTtlSec = SECRET_ACCESS_GRANT_TTL_SEC;
 
     const lockRef = db.doc(`users/${uid}/secretChatLock/main`);
     const lockSnap = await lockRef.get();
-    if (!lockSnap.exists) throw new HttpsError("failed-precondition", "PIN_NOT_SET");
-    const lock = lockSnap.data() || {};
+    const lock = lockSnap.exists ? (lockSnap.data() || {}) : {};
     const saltB64 = typeof lock.pinSaltB64 === "string" ? lock.pinSaltB64 : "";
     const hashB64 = typeof lock.pinHashB64 === "string" ? lock.pinHashB64 : "";
-    if (!saltB64 || !hashB64) throw new HttpsError("failed-precondition", "PIN_NOT_SET");
+    const hasPin = Boolean(lockSnap.exists && saltB64.length > 0 && hashB64.length > 0);
 
-    const lockedUntil = typeof lock.lockedUntil === "string" ? lock.lockedUntil : null;
-    if (lockedUntil && lockedUntil > nowIso) {
-      throw new HttpsError("resource-exhausted", "PIN_LOCKED");
-    }
+    if (hasPin) {
+      if (!isValidFourDigitPin(pinRaw)) throw new HttpsError("invalid-argument", "BAD_PIN");
 
-    const derived = derivePinHashB64(pin, saltB64);
-    const ok = constantTimeEqualsB64(derived, hashB64);
-
-    const failedAttempts = typeof lock.failedAttempts === "number" ? lock.failedAttempts : 0;
-    if (!ok) {
-      const nextFailed = failedAttempts + 1;
-      const shouldLock = nextFailed >= MAX_FAILED_ATTEMPTS;
-      let nextLockedUntil: string | null = null;
-      if (shouldLock) {
-        nextLockedUntil = new Date(now.getTime() + LOCK_MINUTES_AFTER_MAX * 60_000).toISOString();
+      const lockedUntil = typeof lock.lockedUntil === "string" ? lock.lockedUntil : null;
+      if (lockedUntil && lockedUntil > nowIso) {
+        throw new HttpsError("resource-exhausted", "PIN_LOCKED");
       }
-      await lockRef.set(
-        {
-          failedAttempts: nextFailed,
-          lockedUntil: nextLockedUntil,
-          updatedAt: nowIso,
-        },
-        { merge: true }
-      );
-      throw new HttpsError("permission-denied", "PIN_INVALID");
-    }
 
-    // Reset attempt counters on success.
-    if (failedAttempts !== 0 || lockedUntil != null) {
-      await lockRef.set(
-        {
-          failedAttempts: 0,
-          lockedUntil: null,
-          updatedAt: nowIso,
-        },
-        { merge: true }
-      );
+      const derived = derivePinHashB64(pinRaw, saltB64);
+      const ok = constantTimeEqualsB64(derived, hashB64);
+
+      const failedAttempts = typeof lock.failedAttempts === "number" ? lock.failedAttempts : 0;
+      if (!ok) {
+        const nextFailed = failedAttempts + 1;
+        const shouldLock = nextFailed >= MAX_FAILED_ATTEMPTS;
+        let nextLockedUntil: string | null = null;
+        if (shouldLock) {
+          nextLockedUntil = new Date(now.getTime() + LOCK_MINUTES_AFTER_MAX * 60_000).toISOString();
+        }
+        await lockRef.set(
+          {
+            failedAttempts: nextFailed,
+            lockedUntil: nextLockedUntil,
+            updatedAt: nowIso,
+          },
+          { merge: true }
+        );
+        throw new HttpsError("permission-denied", "PIN_INVALID");
+      }
+
+      if (failedAttempts !== 0 || lockedUntil != null) {
+        await lockRef.set(
+          {
+            failedAttempts: 0,
+            lockedUntil: null,
+            updatedAt: nowIso,
+          },
+          { merge: true }
+        );
+      }
     }
 
     const grantExpiresAt = new Date(now.getTime() + grantTtlSec * 1000).toISOString();
@@ -143,9 +138,9 @@ export const unlockSecretChat = onCall(
       conversationId,
       expiresAt: grantExpiresAt,
       method,
+      hasPin,
     });
 
     return { ok: true, expiresAt: grantExpiresAt };
   }
 );
-

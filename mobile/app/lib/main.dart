@@ -18,6 +18,7 @@ import 'features/push/push_messaging_background.dart';
 import 'features/push/in_app_incoming_call_scope.dart';
 import 'features/push/push_messaging_scope.dart';
 import 'features/push/push_native_call_service.dart';
+import 'features/push/push_runtime_flags.dart';
 import 'features/chat/data/app_theme_preference.dart';
 import 'features/chat/data/chat_auto_theme_mode.dart';
 import 'features/auth/device_session_firestore_sync.dart';
@@ -39,7 +40,7 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 300;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 250 << 20;
   await bootstrap();
-  if (!kIsWeb) {
+  if (!kIsWeb && iosPushRuntimeEnabled) {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await PushNativeCallService.instance.ensureInitialized();
   }

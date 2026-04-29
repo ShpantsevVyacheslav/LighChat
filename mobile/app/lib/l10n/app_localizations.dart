@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Секретный чат'**
   String get secret_chat_title;
 
+  /// No description provided for @secret_chats_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Секретные чаты'**
+  String get secret_chats_title;
+
   /// No description provided for @secret_chat_locked_title.
   ///
   /// In ru, this message translates to:
@@ -151,6 +157,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Введите 4 цифры'**
   String get secret_chat_pin_invalid;
+
+  /// No description provided for @secret_chat_already_exists.
+  ///
+  /// In ru, this message translates to:
+  /// **'Секретный чат с этим пользователем уже существует.'**
+  String get secret_chat_already_exists;
+
+  /// No description provided for @secret_chat_exists_badge.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создан'**
+  String get secret_chat_exists_badge;
 
   /// No description provided for @secret_chat_unlock_failed.
   ///
@@ -296,11 +314,155 @@ abstract class AppLocalizations {
   /// **'Локация'**
   String get secret_chat_media_type_location;
 
+  /// No description provided for @secret_chat_media_type_file.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файлы'**
+  String get secret_chat_media_type_file;
+
   /// No description provided for @secret_chat_media_views_unlimited.
   ///
   /// In ru, this message translates to:
   /// **'Безлимит'**
   String get secret_chat_media_views_unlimited;
+
+  /// No description provided for @secret_chat_compose_create.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать секретный чат'**
+  String get secret_chat_compose_create;
+
+  /// No description provided for @secret_chat_compose_vault_pin_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Необязательно: 4-цифровой PIN для доступа к списку секретных чатов (сохраняется на устройстве для биометрии).'**
+  String get secret_chat_compose_vault_pin_subtitle;
+
+  /// No description provided for @secret_chat_compose_require_unlock_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Требовать PIN при открытии чата'**
+  String get secret_chat_compose_require_unlock_pin;
+
+  /// No description provided for @secret_chat_settings_read_only_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Параметры задаются при создании и дальше не меняются.'**
+  String get secret_chat_settings_read_only_hint;
+
+  /// No description provided for @secret_chat_settings_delete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить секретный чат'**
+  String get secret_chat_settings_delete;
+
+  /// No description provided for @secret_chat_settings_delete_confirm_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить этот секретный чат?'**
+  String get secret_chat_settings_delete_confirm_title;
+
+  /// No description provided for @secret_chat_settings_delete_confirm_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения и медиа будут удалены у обоих участников.'**
+  String get secret_chat_settings_delete_confirm_body;
+
+  /// No description provided for @privacy_secret_vault_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Секретное хранилище'**
+  String get privacy_secret_vault_title;
+
+  /// No description provided for @privacy_secret_vault_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Глобальный PIN и биометрия для входа в секретные чаты.'**
+  String get privacy_secret_vault_subtitle;
+
+  /// No description provided for @privacy_secret_vault_change_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Установить или сменить PIN хранилища'**
+  String get privacy_secret_vault_change_pin;
+
+  /// No description provided for @privacy_secret_vault_change_pin_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если PIN уже есть, подтвердите старым PIN или биометрией.'**
+  String get privacy_secret_vault_change_pin_subtitle;
+
+  /// No description provided for @privacy_secret_vault_bio_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверить биометрию и валидировать локально сохраненный PIN.'**
+  String get privacy_secret_vault_bio_subtitle;
+
+  /// No description provided for @privacy_secret_vault_bio_reason.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердите доступ к секретным чатам'**
+  String get privacy_secret_vault_bio_reason;
+
+  /// No description provided for @privacy_secret_vault_current_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текущий PIN'**
+  String get privacy_secret_vault_current_pin;
+
+  /// No description provided for @privacy_secret_vault_new_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый PIN'**
+  String get privacy_secret_vault_new_pin;
+
+  /// No description provided for @privacy_secret_vault_repeat_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторите новый PIN'**
+  String get privacy_secret_vault_repeat_pin;
+
+  /// No description provided for @privacy_secret_vault_pin_mismatch.
+  ///
+  /// In ru, this message translates to:
+  /// **'PIN-коды не совпадают'**
+  String get privacy_secret_vault_pin_mismatch;
+
+  /// No description provided for @privacy_secret_vault_pin_updated.
+  ///
+  /// In ru, this message translates to:
+  /// **'PIN хранилища обновлен'**
+  String get privacy_secret_vault_pin_updated;
+
+  /// No description provided for @privacy_secret_vault_bio_unavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Биометрия недоступна на этом устройстве'**
+  String get privacy_secret_vault_bio_unavailable;
+
+  /// No description provided for @privacy_secret_vault_bio_verified.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверка биометрии пройдена'**
+  String get privacy_secret_vault_bio_verified;
+
+  /// No description provided for @privacy_secret_vault_setup_required.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала настройте PIN или биометрию в разделе Конфиденциальность.'**
+  String get privacy_secret_vault_setup_required;
+
+  /// No description provided for @privacy_secret_vault_network_timeout.
+  ///
+  /// In ru, this message translates to:
+  /// **'Таймаут сети. Попробуйте снова.'**
+  String get privacy_secret_vault_network_timeout;
+
+  /// No description provided for @privacy_secret_vault_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка секретного хранилища: {error}'**
+  String privacy_secret_vault_error(Object error);
 
   /// No description provided for @tournament_title.
   ///
@@ -4111,6 +4273,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Пас'**
   String get conversation_durak_action_pass;
+
+  /// No description provided for @conversation_durak_badge_taking.
+  ///
+  /// In ru, this message translates to:
+  /// **'Беру'**
+  String get conversation_durak_badge_taking;
 
   /// No description provided for @conversation_durak_game_finished_title.
   ///

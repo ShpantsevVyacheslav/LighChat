@@ -25,6 +25,12 @@ const FIRESTORE_EMULATOR_PORT = 8080;
 const UID = "5edHRxyQKWZEk4M2iQ3lBjDKKdd2";
 const CONVERSATION_ID =
   "dm_28:5edHRxyQKWZEk4M2iQ3lBjDKKdd2_28:UyhfMen0NITWtlazwjlk8ZTJ2gv1";
+const SECRET_NO_LOCK_ID =
+  "sdm_28:5edHRxyQKWZEk4M2iQ3lBjDKKdd2_28:UyhfMen0NITWtlazwjlk8ZTJ2gv1";
+const SECRET_WITH_LOCK_ID =
+  "sdm_28:5edHRxyQKWZEk4M2iQ3lBjDKKdd2_28:zzzzzzzzzzzzzzzzzzzzzzzzzzzz";
+const SECRET_WITH_LOCK_NO_GRANT_ID =
+  "sdm_28:5edHRxyQKWZEk4M2iQ3lBjDKKdd2_28:yyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
 async function main() {
   const rulesPath = path.join(process.cwd(), "firestore.rules");
@@ -62,6 +68,66 @@ async function main() {
         createdAt: new Date().toISOString(),
         text: "hi",
       });
+
+    await db.doc(`conversations/${SECRET_NO_LOCK_ID}`).set({
+      isGroup: false,
+      adminIds: [],
+      participantIds: [UID, "UyhfMen0NITWtlazwjlk8ZTJ2gv1"],
+      secretChat: {
+        enabled: true,
+        lockPolicy: { required: false },
+      },
+    });
+    await db
+      .collection(`conversations/${SECRET_NO_LOCK_ID}/messages`)
+      .doc("m1")
+      .set({
+        senderId: UID,
+        createdAt: new Date().toISOString(),
+        text: "secret-unlocked-by-default",
+      });
+
+    await db.doc(`conversations/${SECRET_WITH_LOCK_ID}`).set({
+      isGroup: false,
+      adminIds: [],
+      participantIds: [UID, "zzzzzzzzzzzzzzzzzzzzzzzzzzzz"],
+      secretChat: {
+        enabled: true,
+        lockPolicy: { required: true },
+      },
+    });
+    await db
+      .collection(`conversations/${SECRET_WITH_LOCK_ID}/messages`)
+      .doc("m1")
+      .set({
+        senderId: UID,
+        createdAt: new Date().toISOString(),
+        text: "secret-locked",
+      });
+    await db
+      .doc(`conversations/${SECRET_WITH_LOCK_ID}/secretAccess/${UID}`)
+      .set({
+        userId: UID,
+        expiresAtTs: new Date(Date.now() + 10 * 60 * 1000),
+      });
+
+    await db.doc(`conversations/${SECRET_WITH_LOCK_NO_GRANT_ID}`).set({
+      isGroup: false,
+      adminIds: [],
+      participantIds: [UID, "yyyyyyyyyyyyyyyyyyyyyyyyyyyy"],
+      secretChat: {
+        enabled: true,
+        lockPolicy: { required: true },
+      },
+    });
+    await db
+      .collection(`conversations/${SECRET_WITH_LOCK_NO_GRANT_ID}/messages`)
+      .doc("m1")
+      .set({
+        senderId: UID,
+        createdAt: new Date().toISOString(),
+        text: "secret-locked-no-grant",
+      });
   });
 
   const authed = testEnv.authenticatedContext(UID);
@@ -92,6 +158,21 @@ async function main() {
       name: "list gameLobbies",
       run: () => db.collection(`conversations/${CONVERSATION_ID}/gameLobbies`).limit(1).get(),
       expect: "succeeds",
+    },
+    {
+      name: "list messages in secret chat without lockPolicy.required",
+      run: () => db.collection(`conversations/${SECRET_NO_LOCK_ID}/messages`).limit(1).get(),
+      expect: "succeeds",
+    },
+    {
+      name: "list messages in secret chat with lockPolicy.required and active grant",
+      run: () => db.collection(`conversations/${SECRET_WITH_LOCK_ID}/messages`).limit(1).get(),
+      expect: "succeeds",
+    },
+    {
+      name: "deny messages read in secret chat with lockPolicy.required and no grant",
+      run: () => db.collection(`conversations/${SECRET_WITH_LOCK_NO_GRANT_ID}/messages`).limit(1).get(),
+      expect: "fails",
     },
   ];
 

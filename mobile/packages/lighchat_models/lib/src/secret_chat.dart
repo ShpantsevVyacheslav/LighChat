@@ -53,20 +53,16 @@ class SecretChatConfig {
 }
 
 class SecretChatLockPolicy {
-  const SecretChatLockPolicy({required this.required, required this.grantTtlSec});
+  const SecretChatLockPolicy({required this.required});
 
   final bool required;
-  final int grantTtlSec;
 
   static SecretChatLockPolicy? fromJson(Object? raw) {
     if (raw is! Map) return null;
     final m = raw.map((k, v) => MapEntry(k.toString(), v));
     final req = m['required'];
-    final ttl = m['grantTtlSec'];
     if (req is! bool) return null;
-    final ttlSec = ttl is int ? ttl : (ttl is num ? ttl.toInt() : null);
-    if (ttlSec == null || ttlSec <= 0) return null;
-    return SecretChatLockPolicy(required: req, grantTtlSec: ttlSec);
+    return SecretChatLockPolicy(required: req);
   }
 }
 

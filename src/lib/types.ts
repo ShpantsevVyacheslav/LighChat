@@ -298,8 +298,6 @@ export type SecretChatRestrictions = {
 export type SecretChatLockPolicy = {
   /** Если true — для чтения сообщений/вложений требуется unlock-grant (server-enforced). */
   required: boolean;
-  /** TTL на grant-документ (сек). Клиенты периодически продлевают при активности. */
-  grantTtlSec: number;
 };
 
 export type SecretChatMediaViewPolicy = {

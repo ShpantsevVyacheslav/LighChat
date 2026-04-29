@@ -200,7 +200,11 @@ service cloud.firestore {
     }
 
     function canReadSecretChat(conversationId, data) {
-      return !isSecretChatConversationData(data) || hasActiveSecretChatAccess(conversationId);
+      return !isSecretChatConversationData(data)
+        || (
+          !(data.secretChat.lockPolicy is map && data.secretChat.lockPolicy.required == true)
+          || hasActiveSecretChatAccess(conversationId)
+        );
     }
 
     /** Звонок 1:1: запрет, если кто-то из пары заблокировал другого. */
@@ -481,6 +485,22 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    /** Индекс секретных чатов (заполняется Cloud Functions; клиент только читает). */
+    match /userSecretChats/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    /** Метаданные секретного чата (зеркало conversations/sdm_*; запись только с сервера). */
+    match /secretChats/{secretChatId} {
+      allow read: if isSignedIn()
+        && exists(/databases/$(database)/documents/conversations/$(secretChatId))
+        && uidIsConversationParticipantFromData(
+          get(/databases/$(database)/documents/conversations/$(secretChatId)).data
+        );
+      allow write: if false;
+    }
+
     match /userContacts/{userId} {
       allow get, create, update: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
@@ -663,9 +683,17 @@ service cloud.firestore {
           )
           || (
             secretChatE2eeBootstrapAllowed(conversationId)
-            && request.resource.data.senderId == '__system__'
-            && request.resource.data.systemEvent is map
-            && request.resource.data.systemEvent.type == 'e2ee.v2.enabled'
+            && (
+              request.resource.data.senderId == '__system__'
+              || request.resource.data.senderId == request.auth.uid
+            )
+            && (
+              !request.resource.data.keys().hasAny(['systemEvent'])
+              || (
+                request.resource.data.systemEvent is map
+                && request.resource.data.systemEvent.type is string
+              )
+            )
           )
         );
         allow update: if isConversationMember(conversationId)

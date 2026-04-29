@@ -2,25 +2,26 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
-import 'package:lighchat_models/lighchat_models.dart';
-
 import '../../../l10n/app_localizations.dart';
-import '../data/secret_chat_settings_repository.dart';
+import '../data/secret_chat_callables.dart';
 import 'secret_chat_ttl_sheet.dart';
 
+/// Просмотр неизменяемых настроек секретного чата и удаление для себя (Cloud Function).
 class SecretChatSettingsScreen extends ConsumerStatefulWidget {
   const SecretChatSettingsScreen({super.key, required this.conversationId});
 
   final String conversationId;
 
   @override
-  ConsumerState<SecretChatSettingsScreen> createState() => _SecretChatSettingsScreenState();
+  ConsumerState<SecretChatSettingsScreen> createState() =>
+      _SecretChatSettingsScreenState();
 }
 
 class _SecretChatSettingsScreenState extends ConsumerState<SecretChatSettingsScreen> {
-  final _repo = SecretChatSettingsRepository();
+  final _callables = SecretChatCallables();
   bool _busy = false;
 
   void _toast(String msg) {
@@ -28,56 +29,45 @@ class _SecretChatSettingsScreenState extends ConsumerState<SecretChatSettingsScr
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _withBusy(Future<void> Function() op) async {
-    if (_busy) return;
-    final l10n = AppLocalizations.of(context)!;
+  String _ttlLabel(AppLocalizations l10n, int sec) =>
+      SecretChatTtlSheet.presetLabel(l10n, sec);
+
+  Future<void> _confirmDelete(AppLocalizations l10n) async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.secret_chat_settings_delete_confirm_title),
+        content: Text(l10n.secret_chat_settings_delete_confirm_body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.common_cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
+            child: Text(l10n.common_delete),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
     setState(() => _busy = true);
     try {
-      await op();
+      await _callables.deleteSecretChat(conversationId: widget.conversationId);
+      if (!mounted) return;
+      context.go('/chats');
     } catch (e) {
-      _toast(l10n.secret_chat_settings_save_failed(e.toString()));
+      _toast(e.toString());
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  String _ttlLabel(AppLocalizations l10n, int sec) {
-    if (sec < 3600) return l10n.disappearing_ttl_minutes((sec / 60).round());
-    if (sec < 86400) return l10n.disappearing_ttl_hours((sec / 3600).round());
-    return l10n.disappearing_ttl_days((sec / 86400).round());
-  }
-
-  String _viewsLabel(AppLocalizations l10n, int? v) {
-    if (v == null) return l10n.secret_chat_media_views_unlimited;
-    return l10n.secret_chat_media_views_count(v);
-  }
-
-  Widget _viewsPicker({
-    required AppLocalizations l10n,
-    required String title,
-    required int? value,
-    required ValueChanged<int?> onChanged,
-  }) {
-    final items = <int?>[null, 1, 2, 3, 5, 10];
-    return ListTile(
-      title: Text(title),
-      trailing: DropdownButton<int?>(
-        value: items.contains(value) ? value : null,
-        items: [
-          for (final v in items)
-            DropdownMenuItem<int?>(
-              value: v,
-              child: Text(_viewsLabel(l10n, v)),
-            ),
-        ],
-        onChanged: _busy ? null : onChanged,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     final user = ref.watch(authUserProvider).asData?.value;
     if (user == null) {
       return Scaffold(
@@ -93,15 +83,6 @@ class _SecretChatSettingsScreenState extends ConsumerState<SecretChatSettingsScr
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.secret_chat_settings_title),
-        actions: [
-          if (_busy)
-            const Padding(
-              padding: EdgeInsets.only(right: 14),
-              child: Center(
-                child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-              ),
-            ),
-        ],
       ),
       body: convAsync.when(
         data: (list) {
@@ -111,216 +92,127 @@ class _SecretChatSettingsScreenState extends ConsumerState<SecretChatSettingsScr
             return Center(child: Text(l10n.secret_chat_settings_not_secret));
           }
 
-          final restrictions = cfg.restrictions;
-          final media = cfg.mediaViewPolicy ?? const SecretChatMediaViewPolicy();
-          final grantTtl = cfg.lockPolicy.grantTtlSec;
+          final r = cfg.restrictions;
+          final media = cfg.mediaViewPolicy;
+
+          String mediaSummaryLines() {
+            if (media == null) return l10n.secret_chat_media_views_unlimited;
+            final parts = <String>[];
+            void line(String label, int? v) {
+              parts.add(
+                '$label: ${v == null ? l10n.secret_chat_media_views_unlimited : l10n.secret_chat_media_views_count(v)}',
+              );
+            }
+
+            line(l10n.secret_chat_media_type_image, media.image);
+            line(l10n.secret_chat_media_type_video, media.video);
+            line(l10n.secret_chat_media_type_voice, media.voice);
+            line(l10n.secret_chat_media_type_file, media.file);
+            line(l10n.secret_chat_media_type_location, media.location);
+            return parts.join('\n');
+          }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              Card(
-                child: ListTile(
-                  title: Text(l10n.secret_chat_settings_reset_strict),
-                  subtitle: Text(l10n.secret_chat_settings_reset_strict_subtitle),
-                  trailing: const Icon(Icons.restart_alt_rounded),
-                  onTap: _busy
-                      ? null
-                      : () => unawaited(_withBusy(() => _repo.resetToStrictDefaults(
-                            conversationId: widget.conversationId,
-                          ))),
-                ),
+              Text(
+                l10n.secret_chat_settings_read_only_hint,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               Card(
-                child: ListTile(
-                  title: Text(l10n.secret_chat_settings_ttl),
-                  subtitle: Text(l10n.secret_chat_settings_expires_at(cfg.expiresAt)),
-                  trailing: Text(_ttlLabel(l10n, cfg.ttlPresetSec)),
-                  onTap: _busy
-                      ? null
-                      : () async {
-                          final ttlSec = await showModalBottomSheet<int>(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Theme.of(context).colorScheme.surface,
-                            barrierColor: Colors.black.withValues(alpha: 0.55),
-                            showDragHandle: true,
-                            builder: (_) => SecretChatTtlSheet(initialSec: cfg.ttlPresetSec),
-                          );
-                          if (ttlSec == null) return;
-                          await _withBusy(() => _repo.updateTtlPreset(
-                                conversationId: widget.conversationId,
-                                ttlPresetSec: ttlSec,
-                              ));
-                        },
-                ),
-              ),
-              const SizedBox(height: 10),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      title: Text(l10n.secret_chat_settings_unlock_grant_ttl),
-                      subtitle: Text(l10n.secret_chat_settings_unlock_grant_ttl_subtitle),
-                      trailing: DropdownButton<int>(
-                        value: grantTtl,
-                        onChanged: _busy
-                            ? null
-                            : (v) {
-                                if (v == null) return;
-                                unawaited(_withBusy(() => _repo.updateGrantTtlSec(
-                                      conversationId: widget.conversationId,
-                                      grantTtlSec: v,
-                                    )));
-                              },
-                        items: const [
-                          DropdownMenuItem(value: 300, child: Text('5m')),
-                          DropdownMenuItem(value: 600, child: Text('10m')),
-                          DropdownMenuItem(value: 900, child: Text('15m')),
-                          DropdownMenuItem(value: 1800, child: Text('30m')),
-                        ],
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.secret_chat_settings_ttl, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      Text(_ttlLabel(l10n, cfg.ttlPresetSec)),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.secret_chat_settings_expires_at(cfg.expiresAt),
+                        style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
-              Card(
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      title: Text(l10n.secret_chat_settings_no_copy),
-                      value: restrictions.noCopy,
-                      onChanged: _busy
-                          ? null
-                          : (v) => unawaited(_withBusy(() => _repo.updateRestrictions(
-                                conversationId: widget.conversationId,
-                                restrictions: SecretChatRestrictions(
-                                  noForward: restrictions.noForward,
-                                  noCopy: v,
-                                  noSave: restrictions.noSave,
-                                  screenshotProtection: restrictions.screenshotProtection,
-                                ),
-                              ))),
-                    ),
-                    SwitchListTile(
-                      title: Text(l10n.secret_chat_settings_no_forward),
-                      value: restrictions.noForward,
-                      onChanged: _busy
-                          ? null
-                          : (v) => unawaited(_withBusy(() => _repo.updateRestrictions(
-                                conversationId: widget.conversationId,
-                                restrictions: SecretChatRestrictions(
-                                  noForward: v,
-                                  noCopy: restrictions.noCopy,
-                                  noSave: restrictions.noSave,
-                                  screenshotProtection: restrictions.screenshotProtection,
-                                ),
-                              ))),
-                    ),
-                    SwitchListTile(
-                      title: Text(l10n.secret_chat_settings_no_save),
-                      value: restrictions.noSave,
-                      onChanged: _busy
-                          ? null
-                          : (v) => unawaited(_withBusy(() => _repo.updateRestrictions(
-                                conversationId: widget.conversationId,
-                                restrictions: SecretChatRestrictions(
-                                  noForward: restrictions.noForward,
-                                  noCopy: restrictions.noCopy,
-                                  noSave: v,
-                                  screenshotProtection: restrictions.screenshotProtection,
-                                ),
-                              ))),
-                    ),
-                    SwitchListTile(
-                      title: Text(l10n.secret_chat_settings_screenshot_protection),
-                      value: restrictions.screenshotProtection,
-                      onChanged: _busy
-                          ? null
-                          : (v) => unawaited(_withBusy(() => _repo.updateRestrictions(
-                                conversationId: widget.conversationId,
-                                restrictions: SecretChatRestrictions(
-                                  noForward: restrictions.noForward,
-                                  noCopy: restrictions.noCopy,
-                                  noSave: restrictions.noSave,
-                                  screenshotProtection: v,
-                                ),
-                              ))),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Card(
                 child: Column(
                   children: [
                     ListTile(
-                      title: Text(l10n.secret_chat_settings_media_views),
-                      subtitle: Text(l10n.secret_chat_settings_media_views_subtitle),
+                      title: Text(l10n.secret_chat_settings_no_forward),
+                      trailing: Text(r.noForward ? '✓' : '—'),
                     ),
-                    _viewsPicker(
-                      l10n: l10n,
-                      title: l10n.secret_chat_media_type_image,
-                      value: media.image,
-                      onChanged: (v) => unawaited(_withBusy(() => _repo.updateMediaViewPolicy(
-                            conversationId: widget.conversationId,
-                            policy: SecretChatMediaViewPolicy(
-                              image: v,
-                              video: media.video,
-                              voice: media.voice,
-                              file: media.file,
-                              location: media.location,
-                            ),
-                          ))),
+                    ListTile(
+                      title: Text(l10n.secret_chat_settings_no_copy),
+                      trailing: Text(r.noCopy ? '✓' : '—'),
                     ),
-                    _viewsPicker(
-                      l10n: l10n,
-                      title: l10n.secret_chat_media_type_video,
-                      value: media.video,
-                      onChanged: (v) => unawaited(_withBusy(() => _repo.updateMediaViewPolicy(
-                            conversationId: widget.conversationId,
-                            policy: SecretChatMediaViewPolicy(
-                              image: media.image,
-                              video: v,
-                              voice: media.voice,
-                              file: media.file,
-                              location: media.location,
-                            ),
-                          ))),
+                    ListTile(
+                      title: Text(l10n.secret_chat_settings_no_save),
+                      trailing: Text(r.noSave ? '✓' : '—'),
                     ),
-                    _viewsPicker(
-                      l10n: l10n,
-                      title: l10n.secret_chat_media_type_voice,
-                      value: media.voice,
-                      onChanged: (v) => unawaited(_withBusy(() => _repo.updateMediaViewPolicy(
-                            conversationId: widget.conversationId,
-                            policy: SecretChatMediaViewPolicy(
-                              image: media.image,
-                              video: media.video,
-                              voice: v,
-                              file: media.file,
-                              location: media.location,
-                            ),
-                          ))),
-                    ),
-                    _viewsPicker(
-                      l10n: l10n,
-                      title: l10n.secret_chat_media_type_location,
-                      value: media.location,
-                      onChanged: (v) => unawaited(_withBusy(() => _repo.updateMediaViewPolicy(
-                            conversationId: widget.conversationId,
-                            policy: SecretChatMediaViewPolicy(
-                              image: media.image,
-                              video: media.video,
-                              voice: media.voice,
-                              file: media.file,
-                              location: v,
-                            ),
-                          ))),
+                    ListTile(
+                      title: Text(l10n.secret_chat_settings_screenshot_protection),
+                      trailing: Text(r.screenshotProtection ? '✓' : '—'),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.secret_chat_compose_require_unlock_pin,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(cfg.lockPolicy.required ? '✓' : '—'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.secret_chat_settings_media_views,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        mediaSummaryLines(),
+                        style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.error,
+                  foregroundColor: scheme.onError,
+                ),
+                onPressed: _busy ? null : () => unawaited(_confirmDelete(l10n)),
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_forever_rounded),
+                label: Text(l10n.secret_chat_settings_delete),
               ),
             ],
           );
@@ -336,4 +228,3 @@ class _SecretChatSettingsScreenState extends ConsumerState<SecretChatSettingsScr
     );
   }
 }
-
