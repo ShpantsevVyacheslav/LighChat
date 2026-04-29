@@ -272,6 +272,22 @@ class MobileE2eeRuntime {
     );
   }
 
+  Future<Map<String, dynamic>?> _readConversationDataForE2ee(
+    String conversationId,
+  ) async {
+    final ref = firestore.collection('conversations').doc(conversationId);
+    DocumentSnapshot<Map<String, dynamic>> snap;
+    try {
+      // Предпочитаем сервер: после conflict-heal кэш может отставать и
+      // возвращать устаревший e2eeKeyEpoch.
+      snap = await ref.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      snap = await ref.get(const GetOptions(source: Source.serverAndCache));
+    }
+    if (!snap.exists) return null;
+    return snap.data();
+  }
+
   /// Переиспользуется в двух местах: read-path и send-path.
   ///
   /// Новый контракт (post-launch fix): возвращает `ResolvedChatKey` с фактически
@@ -302,12 +318,7 @@ class MobileE2eeRuntime {
     }
 
     try {
-      final convSnap = await firestore
-          .collection('conversations')
-          .doc(conversationId)
-          .get();
-      if (!convSnap.exists) return null;
-      final data = convSnap.data();
+      final data = await _readConversationDataForE2ee(conversationId);
       if (data == null) return null;
       final participantIdsRaw = data['participantIds'];
       final participantIds = (participantIdsRaw is List
@@ -330,8 +341,17 @@ class MobileE2eeRuntime {
         currentUserId: userId,
         identity: identity,
       );
-      final targetEpoch =
-          healResult.healed ? healResult.newEpoch : latestEpoch;
+      var targetEpoch = healResult.healed ? healResult.newEpoch : latestEpoch;
+      final refreshed = await _readConversationDataForE2ee(conversationId);
+      if (refreshed != null) {
+        final refreshedRawEpoch = refreshed['e2eeKeyEpoch'];
+        final refreshedEpoch = refreshedRawEpoch is int
+            ? refreshedRawEpoch
+            : (refreshedRawEpoch is num ? refreshedRawEpoch.toInt() : 0);
+        if (refreshedEpoch > targetEpoch) {
+          targetEpoch = refreshedEpoch;
+        }
+      }
       _chatKeyCache.remove('$conversationId:$epoch');
       final healed = await _tryGetChatKey(
         conversationId: conversationId,
