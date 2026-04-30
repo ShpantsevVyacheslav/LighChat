@@ -977,6 +977,19 @@ class _ConversationDurakGameScreenState
                                         _cardKey(card),
                                       ) ??
                                       false);
+                            int? serverDefenseIndexFor(
+                              Map<String, dynamic> card,
+                            ) {
+                              for (final entry in defenseTargets.entries) {
+                                if (entry.value.contains(_cardKey(card))) {
+                                  return entry.key;
+                                }
+                              }
+                              for (var i = 0; i < attacks.length; i++) {
+                                if (cardCanDefendAt(card, i)) return i;
+                              }
+                              return null;
+                            }
 
                             final flight = DurakCardFlightLayer.of(context);
                             scheduleMicrotask(() {
@@ -1041,10 +1054,10 @@ class _ConversationDurakGameScreenState
                                 selectedId: _selectedCardId,
                                 onTap: (card, id) {
                                   final canA = serverCanAttack(card);
-                                  final canD = serverCanDefend(
+                                  final defenseIndex = serverDefenseIndexFor(
                                     card,
-                                    _selectedAttackIndex,
                                   );
+                                  final canD = defenseIndex != null;
                                   final canT = serverCanTransfer(card);
                                   if (!canA && !canD && !canT) return;
                                   final options = <String>[
@@ -1064,7 +1077,9 @@ class _ConversationDurakGameScreenState
                                     }
                                     unawaited(
                                       _tryDefend(
-                                        attackIndex: _selectedAttackIndex,
+                                        attackIndex:
+                                            defenseIndex ??
+                                            _selectedAttackIndex,
                                         card: card,
                                       ),
                                     );

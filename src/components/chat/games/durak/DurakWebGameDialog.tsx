@@ -77,12 +77,14 @@ export function DurakWebGameDialog({
   gameId,
   currentUser,
   allUsers,
+  standalone = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   gameId: string;
   currentUser: User;
   allUsers: User[];
+  standalone?: boolean;
 }) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -144,7 +146,7 @@ export function DurakWebGameDialog({
       const nextGameId = (res.data as any)?.gameId as string | undefined;
       if (nextGameId) {
         onOpenChange(false);
-        window.open(`${window.location.pathname}?gameId=${encodeURIComponent(nextGameId)}`, `durak_${nextGameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
+        window.open(`/games/durak/${encodeURIComponent(nextGameId)}`, `durak_${nextGameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Ошибка';
@@ -256,23 +258,37 @@ export function DurakWebGameDialog({
     [attacks.length, currentUser.id, defenderUid, defenses, game, handCounts, legalMoves, legalTransferKeys, publicView, status, tableRanks]
   );
 
+  const firstDefenseIndexForCard = useCallback(
+    (card: DurakCard): number | null => {
+      for (const [idx, keys] of legalDefenseTargets.entries()) {
+        if (keys.has(cardKey(card))) return idx;
+      }
+      for (let i = 0; i < attacks.length; i++) {
+        if (canDefendCardAt(card, i)) return i;
+      }
+      return null;
+    },
+    [attacks.length, canDefendCardAt, legalDefenseTargets]
+  );
+
   const handleCardTap = useCallback(
     (card: DurakCard, idx: number) => {
+      const defenseIndex = firstDefenseIndexForCard(card);
       const actions = [
         canAttackCard(card) ? 'attack' : '',
         canTransferCard(card) ? 'transfer' : '',
-        canDefendCardAt(card, selectedAttackIndex) ? 'defend' : '',
+        defenseIndex != null ? 'defend' : '',
       ].filter(Boolean);
       if (actions.length === 1) {
         const action = actions[0];
         if (action === 'attack') void makeMove('attack', { card });
         if (action === 'transfer') void makeMove('transfer', { card });
-        if (action === 'defend') void makeMove('defend', { attackIndex: selectedAttackIndex, card });
+        if (action === 'defend' && defenseIndex != null) void makeMove('defend', { attackIndex: defenseIndex, card });
         return;
       }
       setSelectedCardIdx((old) => (old === idx ? null : idx));
     },
-    [canAttackCard, canDefendCardAt, canTransferCard, makeMove, selectedAttackIndex]
+    [canAttackCard, canTransferCard, firstDefenseIndexForCard, makeMove]
   );
 
   const playDrop = useCallback(
@@ -634,6 +650,14 @@ export function DurakWebGameDialog({
       </div>
     );
   };
+
+  if (standalone) {
+    return (
+      <main className="h-[100dvh] w-[100dvw] overflow-hidden bg-[#263d4d] p-0">
+        {gameBody()}
+      </main>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -250,9 +250,7 @@ export function ChatWindow({
       setOpenGameId(gameId);
       return;
     }
-    const p = new URLSearchParams(window.location.search || '');
-    p.set(DASHBOARD_GAME_ID_QUERY, gameId);
-    const url = `${window.location.pathname}?${p.toString()}`;
+    const url = `/games/durak/${encodeURIComponent(gameId)}`;
     const popup = window.open(url, `durak_${gameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
     if (!popup) setOpenGameId(gameId);
   }, []);

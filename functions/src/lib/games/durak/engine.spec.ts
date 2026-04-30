@@ -541,4 +541,32 @@ describe("durak engine", () => {
     expect(r?.loserUid).toBe("c");
     expect(r?.placements).toEqual([{ uids: ["a", "b"] }, { uids: ["c"] }]);
   });
+
+  it("finishes after defender takes when deck is empty and attacker has no cards", () => {
+    const { state, handsByUid } = buildInitialState({
+      playerIds: ["a", "b"],
+      settings,
+      nowIso: new Date(0).toISOString(),
+      randInt: () => 0,
+    });
+    state.seats = ["a", "b"];
+    state.attackerUid = "a";
+    state.defenderUid = "b";
+    state.deck = [];
+    state.trumpSuit = "H";
+    resetRoundTracking(state);
+    handsByUid.a = [parseCard({ r: 6, s: "S" })];
+    handsByUid.b = [parseCard({ r: 8, s: "D" })];
+
+    applyAttack({ state, uid: "a", card: parseCard({ r: 6, s: "S" }), handsByUid });
+    markTaking({ state, uid: "b", handsByUid });
+    expect(shouldResolveTakingRound({ state, handsByUid })).toBe(true);
+    takeTable({ state, handsByUid });
+    rotateAfterTake(state);
+
+    const r = computeAndApplyGameResult({ state, handsByUid, nowIso: new Date(4).toISOString() });
+    expect(r?.kind).toBe("finished");
+    expect(r?.winners).toEqual(["a"]);
+    expect(r?.loserUid).toBe("b");
+  });
 });
