@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildInitialState, buildSurrenderResult, canFinishTurn, computeAndApplyGameResult, derivePhase, drawUpToSix, markTaking, shouldResolveTakingRound, takeTable } from "./engine";
+import { buildInitialState, buildSurrenderResult, canFinishTurn, computeAndApplyGameResult, derivePhase, drawUpToSix, markTaking, rotateAfterTake, shouldResolveTakingRound, takeTable } from "./engine";
 import type { DurakGameSettings } from "../gameSettings";
 import { parseCard } from "./cards";
 import { applyAttack, applyDefense, applyTransfer, allDefended, resetRoundTracking } from "./engine";
@@ -356,6 +356,23 @@ describe("durak engine", () => {
     expect(handsByUid[state.defenderUid].length).toBeGreaterThan(before);
     expect(state.table.attacks.length).toBe(0);
     expect(state.taking).toBe(false);
+  });
+
+  it("after take in a two-player game attacker and defender stay distinct", () => {
+    const { state } = buildInitialState({
+      playerIds: ["u1", "u2"],
+      settings,
+      nowIso: new Date(0).toISOString(),
+      randInt: () => 0,
+    });
+    const attacker = state.attackerUid;
+    const defender = state.defenderUid;
+
+    rotateAfterTake(state);
+
+    expect(state.attackerUid).toBe(attacker);
+    expect(state.defenderUid).toBe(defender);
+    expect(state.attackerUid).not.toBe(state.defenderUid);
   });
 
   it("neighbors throw-in policy allows only defender neighbors", () => {

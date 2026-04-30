@@ -763,8 +763,13 @@ export function takeTable({ state, handsByUid }: { state: DurakServerState; hand
 }
 
 export function rotateAfterTake(state: DurakServerState): void {
-  // attacker stays the same; defender becomes next after the (taking) defender
-  state.defenderUid = nextUid(state.seats, state.defenderUid);
+  // If defender takes, the same attacker starts the next round.
+  // In 2-player games this keeps roles as attacker -> defender instead of
+  // accidentally making the attacker defend against themself.
+  if (!state.seats.includes(state.attackerUid)) {
+    state.attackerUid = state.seats[0];
+  }
+  state.defenderUid = nextUid(state.seats, state.attackerUid);
   resetRoundTracking(state);
 }
 

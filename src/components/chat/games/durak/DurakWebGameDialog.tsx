@@ -86,6 +86,7 @@ export function DurakWebGameDialog({
   const [selectedAttackIndex, setSelectedAttackIndex] = useState(0);
   const [drag, setDrag] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const moveInFlightRef = useRef(false);
 
   const gameRef = useMemoFirebase(
     () => (firestore && gameId ? doc(firestore, 'games', gameId) : null),
@@ -108,6 +109,8 @@ export function DurakWebGameDialog({
   const call = useCallback(
     async (name: string, data: Record<string, unknown>) => {
       if (!firestore) return;
+      if (name === 'makeDurakMove' && moveInFlightRef.current) return;
+      if (name === 'makeDurakMove') moveInFlightRef.current = true;
       setBusy(name);
       try {
         const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), name);
@@ -116,6 +119,7 @@ export function DurakWebGameDialog({
         const msg = e instanceof Error ? e.message : 'Ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
       } finally {
+        if (name === 'makeDurakMove') moveInFlightRef.current = false;
         setBusy(null);
       }
     },
@@ -173,6 +177,7 @@ export function DurakWebGameDialog({
   const canAttackCard = useCallback(
     (card: DurakCard) => {
       if (status !== 'active') return false;
+      if (currentUser.id === defenderUid) return false;
       if (attacks.length === 0) {
         // First attack: prefer attackerUid, but keep compatibility with
         // older/transition public views where currentThrowerUid is authoritative.
@@ -266,11 +271,15 @@ export function DurakWebGameDialog({
 
   useEffect(() => {
     if (!drag) return;
+    let handled = false;
     const move = (e: PointerEvent) => {
       setDrag((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : prev));
     };
     const up = (e: PointerEvent) => {
+      if (handled) return;
+      handled = true;
       const current = dragRef.current;
+      dragRef.current = null;
       setDrag(null);
       if (!current) return;
       const moved = Math.hypot(e.clientX - current.startX, e.clientY - current.startY);
@@ -291,13 +300,22 @@ export function DurakWebGameDialog({
     };
   }, [drag, handleCardTap, playDrop]);
 
+  const myTurnLabel = useMemo(() => {
+    if (status !== 'active') return '';
+    if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
+    if (currentUser.id === defenderUid && attacks.length > 0) return 'Твой ход';
+    if (currentUser.id === currentThrowerUid) return 'Твой ход';
+    if (canFinishTurn && currentUser.id === attackerUid) return 'Твой ход';
+    return '';
+  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, status]);
+
   const primaryLabel = useMemo(() => {
-    if (status !== 'active') return 'Ожидание';
-    if (currentUser.id === defenderUid) return attacks.length > 0 ? 'Беру' : 'Ждать';
+    if (status !== 'active') return '';
+    if (currentUser.id === defenderUid) return attacks.length > 0 ? 'Беру' : '';
     if (canFinishTurn && currentUser.id === attackerUid) return 'Бито';
-    if (attacks.length === 0 && currentUser.id === attackerUid) return 'Ваш ход';
+    if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
     if (currentUser.id === currentThrowerUid) return 'Пас';
-    return 'Ждать';
+    return '';
   }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, status]);
 
   const enabledCard = (card: DurakCard) =>
@@ -448,18 +466,25 @@ export function DurakWebGameDialog({
 
           <div className="relative z-20 shrink-0 rounded-t-[28px] bg-white/88 px-4 pb-4 pt-3 text-[#db4a68] shadow-[0_-18px_40px_rgba(0,0,0,.18)] backdrop-blur-xl">
             <div className="mb-2 flex items-center gap-3">
-              <button
-                type="button"
-                className="min-w-[150px] rounded-2xl bg-white px-5 py-3 text-2xl font-semibold shadow-md"
-                disabled={busy != null || primaryLabel === 'Ждать' || primaryLabel === 'Ожидание' || primaryLabel === 'Ваш ход'}
-                onClick={() => {
-                  if (primaryLabel === 'Беру') void makeMove('take');
-                  if (primaryLabel === 'Бито') void makeMove('finishTurn');
-                  if (primaryLabel === 'Пас') void makeMove('pass');
-                }}
-              >
-                {primaryLabel}
-              </button>
+              {primaryLabel ? (
+                <button
+                  type="button"
+                  className="min-w-[150px] rounded-2xl bg-white px-5 py-3 text-2xl font-semibold shadow-md disabled:cursor-default disabled:opacity-100"
+                  disabled={busy != null || primaryLabel === 'Твой ход'}
+                  onClick={() => {
+                    if (primaryLabel === 'Беру') void makeMove('take');
+                    if (primaryLabel === 'Бито') void makeMove('finishTurn');
+                    if (primaryLabel === 'Пас') void makeMove('pass');
+                  }}
+                >
+                  {primaryLabel}
+                </button>
+              ) : null}
+              {myTurnLabel && primaryLabel !== 'Твой ход' ? (
+                <div className="rounded-2xl border border-emerald-200/40 bg-emerald-100 px-4 py-3 text-lg font-black text-emerald-700 shadow-md">
+                  {myTurnLabel}
+                </div>
+              ) : null}
               <div className="flex items-center gap-2 rounded-xl border border-[#db4a68]/20 bg-white px-3 py-2 text-sm text-zinc-600">
                 <span className="font-black text-[#db4a68]">{displayName(currentUser.id, allUsers)}</span>
                 <span>{myCards.length} карт</span>

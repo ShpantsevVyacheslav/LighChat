@@ -352,17 +352,14 @@ class _DurakTablePair extends StatelessWidget {
                   Positioned(
                     left: 10,
                     top: 0,
-                    child: Transform.rotate(
-                      angle: -0.06,
-                      child: Container(
-                        key: attackKeyForFlight,
-                        child: DurakCardWidget(
-                          rankLabel: rankLabel(attack),
-                          suitLabel: suitLabel(attack),
-                          isRed: isRedSuit((attack['s'] ?? '').toString()),
-                          faceUp: true,
-                          disabled: true,
-                        ),
+                    child: Container(
+                      key: attackKeyForFlight,
+                      child: DurakCardWidget(
+                        rankLabel: rankLabel(attack),
+                        suitLabel: suitLabel(attack),
+                        isRed: isRedSuit((attack['s'] ?? '').toString()),
+                        faceUp: true,
+                        disabled: true,
                       ),
                     ),
                   ),
@@ -406,19 +403,14 @@ class _DurakTablePair extends StatelessWidget {
                             ),
                           );
                         }
-                        return Transform.rotate(
-                          angle: 0.05,
-                          child: Container(
-                            key: defenseKeyForFlight,
-                            child: DurakCardWidget(
-                              rankLabel: rankLabel(defense!),
-                              suitLabel: suitLabel(defense!),
-                              isRed: isRedSuit(
-                                (defense!['s'] ?? '').toString(),
-                              ),
-                              faceUp: true,
-                              disabled: true,
-                            ),
+                        return Container(
+                          key: defenseKeyForFlight,
+                          child: DurakCardWidget(
+                            rankLabel: rankLabel(defense!),
+                            suitLabel: suitLabel(defense!),
+                            isRed: isRedSuit((defense!['s'] ?? '').toString()),
+                            faceUp: true,
+                            disabled: true,
                           ),
                         );
                       },

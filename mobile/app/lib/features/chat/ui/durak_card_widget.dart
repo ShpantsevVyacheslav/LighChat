@@ -35,46 +35,40 @@ class DurakCardWidget extends StatelessWidget {
     final fg = isRed ? const Color(0xFFDC2626) : const Color(0xFF111827);
     final textColor = faceUp ? fg : Colors.white.withValues(alpha: 0.92);
 
-    final scale = selected ? 1.06 : 1.0;
     final shadowAlpha = disabled ? 0.05 : (selected ? 0.22 : 0.14);
 
-    return AnimatedScale(
-      scale: scale,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOut,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: disabled ? null : onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            curve: Curves.easeOut,
-            width: 68,
-            height: 96,
-            decoration: BoxDecoration(
-              color: effectiveBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: border.withValues(alpha: disabled ? 0.35 : 0.95),
-                width: selected ? 2 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: shadowAlpha),
-                  blurRadius: selected ? 12 : 8,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: disabled ? null : onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOut,
+          width: 68,
+          height: 96,
+          decoration: BoxDecoration(
+            color: effectiveBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: border.withValues(alpha: disabled ? 0.35 : 0.95),
+              width: selected ? 2 : 1,
             ),
-            child: faceUp
-                ? _Face(
-                    rankLabel: rankLabel,
-                    suitLabel: suitLabel,
-                    color: textColor,
-                  )
-                : _Back(disabled: disabled),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: shadowAlpha),
+                blurRadius: selected ? 12 : 8,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
+          child: faceUp
+              ? _Face(
+                  rankLabel: rankLabel,
+                  suitLabel: suitLabel,
+                  color: textColor,
+                )
+              : _Back(disabled: disabled),
         ),
       ),
     );
@@ -122,8 +116,8 @@ class _Face extends StatelessWidget {
           ),
           Align(
             alignment: Alignment.bottomRight,
-            child: Transform.rotate(
-              angle: 3.14159,
+            child: RotatedBox(
+              quarterTurns: 2,
               child: Text(
                 '$rankLabel$suitLabel',
                 style: TextStyle(

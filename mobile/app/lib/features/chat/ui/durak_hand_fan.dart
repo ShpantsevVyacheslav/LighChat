@@ -143,6 +143,9 @@ class _HandFanCard extends StatelessWidget {
 
     return Draggable<Map<String, dynamic>>(
       data: card,
+      maxSimultaneousDrags: 1,
+      rootOverlay: true,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: Material(
         color: Colors.transparent,
         child: Opacity(opacity: 0.96, child: buildCard(withFlightKey: false)),
