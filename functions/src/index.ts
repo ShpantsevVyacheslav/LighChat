@@ -42,6 +42,7 @@ export { makeDurakMove } from './triggers/http/makeDurakMove';
 export { cancelGameLobby } from './triggers/http/cancelGameLobby';
 export { createDurakTournament } from './triggers/http/createDurakTournament';
 export { createTournamentGameLobby } from './triggers/http/createTournamentGameLobby';
+export { createDurakRematch } from './triggers/http/createDurakRematch';
 
 // Firestore Triggers
 export { onconversationcreated } from './triggers/firestore/onConversationCreated';
@@ -66,3 +67,4 @@ export { cleanupE2eePairingSessions } from './triggers/scheduler/cleanupE2eePair
 export { cleanupExpiredSecretChats } from './triggers/scheduler/cleanupExpiredSecretChats';
 export { cleanupExpiredDisappearingMessages } from './triggers/scheduler/cleanupExpiredDisappearingMessages';
 export { cleanupSecretMediaRequests } from './triggers/scheduler/cleanupSecretMediaRequests';
+export { cleanupDurakReadyRooms } from './triggers/scheduler/cleanupDurakReadyRooms';

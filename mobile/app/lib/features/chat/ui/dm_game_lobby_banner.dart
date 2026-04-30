@@ -46,7 +46,6 @@ class _DmGameLobbyBannerState extends State<DmGameLobbyBanner> {
   @override
   Widget build(BuildContext context) {
     if (_dismissed) return const SizedBox.shrink();
-    if (widget.isGroup) return const SizedBox.shrink();
 
     final me = FirebaseAuth.instance.currentUser?.uid;
     if (me == null) return const SizedBox.shrink();
@@ -66,7 +65,9 @@ class _DmGameLobbyBannerState extends State<DmGameLobbyBanner> {
         for (final d in docs) {
           final m = d.data();
           if ((m['type'] ?? '').toString() != 'durak') continue;
-          if ((m['status'] ?? '').toString() != 'lobby') continue;
+          if (!{'lobby', 'active'}.contains((m['status'] ?? '').toString())) {
+            continue;
+          }
           lobby = d;
           break;
         }
@@ -90,7 +91,7 @@ class _DmGameLobbyBannerState extends State<DmGameLobbyBanner> {
               final code = (gSnap.error is FirebaseException)
                   ? ((gSnap.error as FirebaseException).code.toLowerCase())
                   : '';
-              if (code == 'permission-denied' || code == 'not-found') {
+              if (code == 'not-found') {
                 unawaited(_cleanupDeadLobbyDoc(lobbyGameId));
                 return const SizedBox.shrink();
               }
@@ -108,6 +109,10 @@ class _DmGameLobbyBannerState extends State<DmGameLobbyBanner> {
                 : const <String>[];
             final iAmPlayer = ids.contains(me);
             final l10n = AppLocalizations.of(context)!;
+            final lobbyStatus = (lobbyData['status'] ?? '').toString();
+            final title = lobbyStatus == 'active'
+                ? 'Партия “Дурак” идёт'
+                : 'Игра “Дурак” создана';
             return Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
               child: Material(
@@ -127,7 +132,7 @@ class _DmGameLobbyBannerState extends State<DmGameLobbyBanner> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          '${l10n.durak_dm_lobby_banner}\n${l10n.conversation_game_lobby_players(lobbyPlayerCount, lobbyMaxPlayers)}',
+                          '$title\n${l10n.conversation_game_lobby_players(lobbyPlayerCount, lobbyMaxPlayers)}',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

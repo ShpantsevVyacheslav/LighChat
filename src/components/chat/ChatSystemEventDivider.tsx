@@ -9,7 +9,7 @@
  * forward-compatible type, не падал.
  */
 
-import { Lock, LockOpen, Shield, Smartphone, Fingerprint, RefreshCw } from 'lucide-react';
+import { Lock, LockOpen, Shield, Smartphone, Fingerprint, RefreshCw, Swords } from 'lucide-react';
 import type { ChatSystemEvent } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,9 @@ function pickIcon(type: ChatSystemEvent['type']) {
       return Shield;
     case 'e2ee.v2.fingerprint.changed':
       return Fingerprint;
+    case 'gameLobbyCreated':
+    case 'gameStarted':
+      return Swords;
     default:
       return Lock;
   }
@@ -48,6 +51,10 @@ function renderText(event: ChatSystemEvent): string {
       return `${actor} отозвал устройство «${device}»`;
     case 'e2ee.v2.fingerprint.changed':
       return `Отпечаток безопасности у ${actor} изменился`;
+    case 'gameLobbyCreated':
+      return event.data?.gameType === 'durak' ? 'Создана партия “Дурак”' : 'Создана игровая партия';
+    case 'gameStarted':
+      return event.data?.gameType === 'durak' ? 'Партия “Дурак” началась' : 'Игровая партия началась';
     default:
       return 'Системное событие';
   }

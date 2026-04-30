@@ -739,11 +739,23 @@ export type DurakCard =
   | { r: 'JOKER'; s: null };
 export type DurakPhase = 'attack' | 'defense' | 'throwIn' | 'resolution' | 'finished';
 export type DurakGameStatus = 'lobby' | 'active' | 'finished' | 'cancelled';
+export type DurakTurnKind = 'attack' | 'defend' | 'throwIn' | 'takeOrDefend' | 'finishTurn' | 'wait' | 'finished';
+
+export type DurakLegalMoves = {
+  revision: number;
+  canTake: boolean;
+  canPass: boolean;
+  canFinishTurn: boolean;
+  attackCardKeys: string[];
+  transferCardKeys: string[];
+  defenseTargets: { attackIndex: number; cardKeys: string[] }[];
+};
 
 export type DurakPublicView = {
   revision: number;
   phase: DurakPhase;
   trumpSuit: DurakSuit;
+  trumpCard?: DurakCard | null;
   deckCount: number;
   discardCount: number;
   seats?: string[];
@@ -758,6 +770,11 @@ export type DurakPublicView = {
   throwerUids?: string[];
   passedUids?: string[];
   currentThrowerUid?: string | null;
+  turnUid?: string | null;
+  turnKind?: DurakTurnKind;
+  turnStartedAt?: string | null;
+  turnDeadlineAt?: string | null;
+  turnTimeSec?: number | null;
   roundDefenderHandLimit?: number | null;
   canFinishTurn?: boolean;
   result?: DurakGameResult;

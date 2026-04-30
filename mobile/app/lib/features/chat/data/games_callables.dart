@@ -170,6 +170,32 @@ class GamesCallables {
     await callable.call<dynamic>(data);
   }
 
+  Future<CreateGameLobbyResult> createDurakRematch({
+    required String gameId,
+  }) async {
+    final data = <String, dynamic>{'gameId': gameId};
+    if (Platform.isIOS) {
+      final raw = await callFirebaseCallableHttp(
+        name: 'createDurakRematch',
+        region: 'us-central1',
+        data: data,
+        timeout: const Duration(seconds: 20),
+      );
+      final m = raw is Map ? raw : const <Object?, Object?>{};
+      final nextGameId = (m['gameId'] ?? '').toString().trim();
+      return CreateGameLobbyResult(gameId: nextGameId);
+    }
+    final callable = _functions.httpsCallable(
+      'createDurakRematch',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+    );
+    final res = await callable.call<dynamic>(data);
+    final raw = res.data;
+    final m = raw is Map ? raw : const <Object?, Object?>{};
+    final nextGameId = (m['gameId'] ?? '').toString().trim();
+    return CreateGameLobbyResult(gameId: nextGameId);
+  }
+
   Future<void> cancelLobby({required String gameId}) async {
     final data = <String, dynamic>{'gameId': gameId};
     if (Platform.isIOS) {

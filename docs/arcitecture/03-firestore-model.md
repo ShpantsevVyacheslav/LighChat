@@ -55,10 +55,12 @@
 - `games/{gameId}` - сессии мини-приложений/игр внутри чата (например, “Дурак”).
   - Создание/обновление — **только Cloud Functions** (Admin SDK).
   - Чтение — только участникам игры (uid ∈ `playerIds`).
-  - `privateHands/{uid}` — приватная рука игрока (read: только `uid`, write: только server).
+  - `privateHands/{uid}` — приватная рука игрока (read: только `uid`, write: только server). Помимо `cards[]` содержит `legalMoves` с серверно рассчитанными разрешёнными действиями для текущей `revision`.
   - `moves/{clientMoveId}` — журнал ходов (read: игроки, write: server).
   - Поля (минимум): `type`, `status`, `conversationId`, `isGroup`, `createdAt`, `createdBy`, `playerIds[]`, `settings`, `serverState`, `publicView`, `result`, `startedAt`, `finishedAt`, `lastUpdatedAt`.
-  - `publicView` (для UI): `phase` (`attack|defense|throwIn|resolution|finished`), `throwerUids[]`, `passedUids[]`, `currentThrowerUid|null`, `roundDefenderHandLimit|null`, `canFinishTurn`, `table`, `handCounts`, `trumpSuit`, `deckCount`, `discardCount`, `attackerUid`, `defenderUid`, `result`.
+  - Для `status='lobby'`: `readyUids[]`, `readyDeadlineAt` (ISO, 30 секунд на ready-room), `players[]`. Нажатие Ready идёт через callable `startDurakGame`; scheduler `cleanupDurakReadyRooms` удаляет неготовых после дедлайна и стартует партию, если осталось минимум 2 готовых игрока.
+  - `publicView` (для UI): `phase` (`attack|defense|throwIn|resolution|finished`), `throwerUids[]`, `passedUids[]`, `currentThrowerUid|null`, `turnUid|null`, `turnKind`, `turnStartedAt|null`, `turnDeadlineAt|null`, `turnTimeSec|null`, `roundDefenderHandLimit|null`, `canFinishTurn`, `table`, `handCounts`, `trumpSuit`, фактическая `trumpCard|null`, `deckCount`, `discardCount`, `attackerUid`, `defenderUid`, `result`.
+  - `privateHands/{uid}.legalMoves`: `revision`, `canTake`, `canPass`, `canFinishTurn`, `attackCardKeys[]`, `transferCardKeys[]`, `defenseTargets[]` (`attackIndex`, `cardKeys[]`). Клиенты не получают прав записи на эти поля.
   - `moves/*` (для истории/дебага): хранит исходный `payload` и нормализованный `payloadNormalized` (например `cardKey`, `attackIndex`, `loserUid` для `surrender`), а также `phase` и `result` на момент хода.
 
 - `tournaments/{tournamentId}` - турнир (серия партий) для игр внутри чата (сейчас: Durak).

@@ -10,6 +10,8 @@ class DurakCardWidget extends StatelessWidget {
     this.selected = false,
     this.highlight = false,
     this.disabled = false,
+    this.width = 68,
+    this.height = 96,
     this.onTap,
   });
 
@@ -20,6 +22,8 @@ class DurakCardWidget extends StatelessWidget {
   final bool selected;
   final bool highlight;
   final bool disabled;
+  final double width;
+  final double height;
   final VoidCallback? onTap;
 
   @override
@@ -45,8 +49,8 @@ class DurakCardWidget extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
-          width: 68,
-          height: 96,
+          width: width,
+          height: height,
           decoration: BoxDecoration(
             color: effectiveBg,
             borderRadius: BorderRadius.circular(12),
@@ -67,6 +71,7 @@ class DurakCardWidget extends StatelessWidget {
                   rankLabel: rankLabel,
                   suitLabel: suitLabel,
                   color: textColor,
+                  scale: width / 68,
                 )
               : _Back(disabled: disabled),
         ),
@@ -80,11 +85,13 @@ class _Face extends StatelessWidget {
     required this.rankLabel,
     required this.suitLabel,
     required this.color,
+    required this.scale,
   });
 
   final String rankLabel;
   final String suitLabel;
   final Color color;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +106,7 @@ class _Face extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 color: color,
-                fontSize: 16,
+                fontSize: 16 * scale.clamp(0.72, 1.0).toDouble(),
               ),
             ),
           ),
@@ -110,7 +117,7 @@ class _Face extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 color: color.withValues(alpha: 0.92),
-                fontSize: 32,
+                fontSize: 32 * scale.clamp(0.72, 1.0).toDouble(),
               ),
             ),
           ),
@@ -123,7 +130,7 @@ class _Face extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   color: color,
-                  fontSize: 16,
+                  fontSize: 16 * scale.clamp(0.72, 1.0).toDouble(),
                 ),
               ),
             ),

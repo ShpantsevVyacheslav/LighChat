@@ -3,12 +3,7 @@ import { logger } from "firebase-functions";
 import * as admin from "firebase-admin";
 
 import { normalizeDurakSettings } from "../../lib/games/gameSettings";
-import {
-  buildInitialState,
-  canFinishTurn,
-  derivePhase,
-  getCurrentThrowerUid,
-} from "../../lib/games/durak/engine";
+import { readyDeadlineFrom } from "../../lib/games/durak/lobbyLifecycle";
 
 type RequestData = {
   gameId?: unknown;
@@ -43,7 +38,8 @@ export const joinGameLobby = onCall(
       if (!gameSnap.exists) throw new HttpsError("not-found", "GAME_NOT_FOUND");
       const g = gameSnap.data() || {};
       if (g.type !== "durak") throw new HttpsError("failed-precondition", "GAME_TYPE_UNSUPPORTED");
-      if (g.status !== "lobby") throw new HttpsError("failed-precondition", "NOT_IN_LOBBY");
+      const status = typeof g.status === "string" ? g.status : "";
+      if (status !== "lobby" && status !== "active") throw new HttpsError("failed-precondition", "GAME_NOT_JOINABLE");
 
       const conversationId = typeof g.conversationId === "string" ? g.conversationId : "";
       if (!conversationId) throw new HttpsError("internal", "GAME_MISSING_CONVERSATION");
@@ -57,6 +53,16 @@ export const joinGameLobby = onCall(
       }
 
       const playerIds = Array.isArray(g.playerIds) ? g.playerIds : [];
+      if (status === "active") {
+        const spectators = Array.isArray(g.spectatorIds) ? g.spectatorIds.map((x: any) => String(x)) : [];
+        if (!playerIds.includes(uid) && !spectators.includes(uid)) {
+          tx.update(gameRef, {
+            spectatorIds: [...spectators, uid],
+            lastUpdatedAt: nowIso,
+          });
+        }
+        return;
+      }
       if (playerIds.includes(uid)) {
         return; // idempotent join
       }
@@ -74,74 +80,13 @@ export const joinGameLobby = onCall(
       ];
       const newPlayerIds = [...playerIds, uid];
 
-      // Auto-start for DM (maxPlayers=2) once the second player joins.
-      const shouldAutoStart = maxPlayers === 2 && newPlayerIds.length === 2;
-      if (shouldAutoStart) {
-        // randInt with crypto, deterministic-free.
-        const randInt = (maxExclusive: number): number => {
-          if (maxExclusive <= 1) return 0;
-          const buf = new Uint32Array(1);
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const crypto = require("crypto") as typeof import("crypto");
-          crypto.randomFillSync(buf);
-          return buf[0] % maxExclusive;
-        };
-
-        const { state, handsByUid } = buildInitialState({
-          playerIds: newPlayerIds,
-          settings,
-          nowIso,
-          randInt,
-        });
-
-        tx.update(gameRef, {
-          status: "active",
-          startedAt: nowIso,
-          settings,
-          playerIds: newPlayerIds,
-          players: newPlayers,
-          serverState: state,
-          publicView: {
-            revision: state.revision,
-            phase: derivePhase(state),
-            trumpSuit: state.trumpSuit,
-            deckCount: state.deck.length,
-            discardCount: state.discard.length,
-            seats: state.seats ?? newPlayerIds,
-            attackerUid: state.attackerUid,
-            defenderUid: state.defenderUid,
-            table: state.table,
-            handCounts: Object.fromEntries(
-              Object.entries(handsByUid).map(([u, cards]) => [u, cards.length]),
-            ),
-            lastMoveAt: nowIso,
-            throwerUids: state.throwerUids ?? [],
-            passedUids: state.passedUids ?? [],
-            currentThrowerUid: getCurrentThrowerUid({ state, handsByUid }),
-            roundDefenderHandLimit: typeof state.roundDefenderHandLimit === "number" ? state.roundDefenderHandLimit : null,
-            canFinishTurn: canFinishTurn({ state, handsByUid }),
-            shuler: {
-              enabled: settings.shulerEnabled === true,
-              lastCheatUid: null,
-            },
-          },
-          lastUpdatedAt: nowIso,
-        });
-
-        for (const [u, cards] of Object.entries(handsByUid)) {
-          tx.set(db.doc(`games/${gameId}/privateHands/${u}`), {
-            uid: u,
-            cards,
-            updatedAt: nowIso,
-          });
-        }
-      } else {
-        tx.update(gameRef, {
-          playerIds: newPlayerIds,
-          players: newPlayers,
-          lastUpdatedAt: nowIso,
-        });
-      }
+      const deadline = readyDeadlineFrom(Date.now());
+      tx.update(gameRef, {
+        playerIds: newPlayerIds,
+        players: newPlayers,
+        readyDeadlineAt: deadline,
+        lastUpdatedAt: nowIso,
+      });
 
       const lobbyRef = db.doc(`conversations/${conversationId}/gameLobbies/${gameId}`);
       tx.set(
@@ -149,10 +94,11 @@ export const joinGameLobby = onCall(
         {
           gameId,
           type: "durak",
-          status: shouldAutoStart ? "active" : "lobby",
+          status: "lobby",
           conversationId,
           playerCount: playerIds.length + 1,
           maxPlayers,
+          readyDeadlineAt: deadline,
           lastUpdatedAt: nowIso,
         },
         { merge: true },
@@ -163,29 +109,11 @@ export const joinGameLobby = onCall(
         tx.set(
           db.doc(`tournaments/${tournamentId}/games/${gameId}`),
           {
-            status: shouldAutoStart ? "active" : "lobby",
+            status: "lobby",
             playerIds: newPlayerIds,
             playerCount: playerIds.length + 1,
+            readyDeadlineAt: deadline,
             lastUpdatedAt: nowIso,
-          },
-          { merge: true },
-        );
-      }
-
-      if (shouldAutoStart) {
-        // Idempotent system message to notify both participants (and push).
-        const msgRef = db.doc(`conversations/${conversationId}/messages/sys_game_started_${gameId}`);
-        tx.set(
-          msgRef,
-          {
-            id: `sys_game_started_${gameId}`,
-            senderId: "__system__",
-            createdAt: nowIso,
-            text: "🎮 Партия «Дурак» началась.",
-            systemEvent: {
-              type: "gameStarted",
-              data: { gameId, gameType: "durak" },
-            },
           },
           { merge: true },
         );

@@ -8,7 +8,7 @@ import {
   shuffleInPlace,
   type Card,
 } from "./cards";
-import type { DurakPhase, DurakServerState, DurakTable } from "./state";
+import type { DurakLegalMoves, DurakPhase, DurakPublicView, DurakServerState, DurakTable, DurakTurnKind } from "./state";
 import type { DurakGameResult } from "./state";
 
 function rankValue(c: Card): number {
@@ -124,6 +124,209 @@ export function canFinishTurn({
 }): boolean {
   if (state.phase === "finished") return false;
   return allDefended(state) && allThrowersPassed({ state, handsByUid });
+}
+
+export function getTrumpCard(state: DurakServerState): Card | null {
+  return Array.isArray(state.deck) && state.deck.length > 0 ? state.deck[0] : null;
+}
+
+export function getTurnInfo({
+  state,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+}): { turnUid: string | null; turnKind: DurakTurnKind } {
+  if (state.phase === "finished") return { turnUid: null, turnKind: "finished" };
+  const attacks = state.table?.attacks ?? [];
+  if (attacks.length === 0) return { turnUid: state.attackerUid ?? null, turnKind: "attack" };
+  if (canFinishTurn({ state, handsByUid })) return { turnUid: state.attackerUid ?? null, turnKind: "finishTurn" };
+  const thrower = currentThrowerUid(state, handsByUid);
+  if (state.taking === true) {
+    return thrower ? { turnUid: thrower, turnKind: "throwIn" } : { turnUid: null, turnKind: "wait" };
+  }
+  if (state.table.defenses.some((d) => d == null)) {
+    return { turnUid: state.defenderUid ?? null, turnKind: "takeOrDefend" };
+  }
+  return thrower ? { turnUid: thrower, turnKind: "throwIn" } : { turnUid: null, turnKind: "wait" };
+}
+
+function canTransferCard({
+  state,
+  uid,
+  card,
+  settings,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  uid: string;
+  card: Card;
+  settings: DurakGameSettings;
+  handsByUid: Record<string, Card[]>;
+}): boolean {
+  if ((settings.mode ?? "podkidnoy") !== "perevodnoy") return false;
+  if (!canTransfer({ state, defenderUid: uid, transferCard: card })) return false;
+  const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
+  return canThrowIn({ state, defenderHandSize });
+}
+
+function canAttackCard({
+  state,
+  uid,
+  card,
+  handsByUid,
+}: {
+  state: DurakServerState;
+  uid: string;
+  card: Card;
+  handsByUid: Record<string, Card[]>;
+}): boolean {
+  if (state.table.attacks.length >= 6) return false;
+  if (uid === state.defenderUid) return false;
+  const throwers = new Set(
+    state.throwerUids ??
+      computeThrowerUids({
+        seats: state.seats,
+        defenderUid: state.defenderUid,
+        policy: state.throwInPolicy,
+      }),
+  );
+  if (!throwers.has(uid)) return false;
+  if ((state.passedUids ?? []).includes(uid)) return false;
+  if (state.table.attacks.length === 0) {
+    if (uid !== state.attackerUid) return false;
+  } else {
+    const cur = currentThrowerUid(state, handsByUid);
+    if (cur !== uid) return false;
+    if (!isJoker(card) && !allowedAttackRanks(state).has(card.r)) return false;
+  }
+  const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
+  return canThrowIn({ state, defenderHandSize });
+}
+
+export function buildLegalMovesForUid({
+  state,
+  handsByUid,
+  uid,
+  settings,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+  uid: string;
+  settings: DurakGameSettings;
+}): DurakLegalMoves {
+  const hand = handsByUid[uid] ?? [];
+  const revision = typeof state.revision === "number" ? state.revision : 0;
+  const attackCardKeys: string[] = [];
+  const transferCardKeys: string[] = [];
+  const defenseTargets: { attackIndex: number; cardKeys: string[] }[] = [];
+
+  if (state.phase !== "finished") {
+    for (const c of hand) {
+      const key = cardKey(c);
+      if (canAttackCard({ state, uid, card: c, handsByUid })) attackCardKeys.push(key);
+      if (canTransferCard({ state, uid, card: c, settings, handsByUid })) transferCardKeys.push(key);
+    }
+    if (uid === state.defenderUid && state.taking !== true) {
+      for (let i = 0; i < state.table.attacks.length; i++) {
+        if (state.table.defenses[i] != null) continue;
+        const attack = state.table.attacks[i];
+        const cardKeys = hand
+          .filter((c) => beats({ attack, defense: c, trumpSuit: state.trumpSuit }))
+          .map((c) => cardKey(c));
+        if (cardKeys.length > 0) defenseTargets.push({ attackIndex: i, cardKeys });
+      }
+    }
+  }
+
+  const canTakeMove =
+    state.phase !== "finished" &&
+    uid === state.defenderUid &&
+    state.table.attacks.length > 0 &&
+    !(allDefended(state) && state.taking !== true);
+  const canPassMove =
+    state.phase !== "finished" &&
+    uid !== state.defenderUid &&
+    state.table.attacks.length > 0 &&
+    currentThrowerUid(state, handsByUid) === uid &&
+    !(state.passedUids ?? []).includes(uid);
+  const canFinishTurnMove =
+    state.phase !== "finished" &&
+    uid === state.attackerUid &&
+    canFinishTurn({ state, handsByUid });
+
+  return {
+    revision,
+    canTake: canTakeMove,
+    canPass: canPassMove,
+    canFinishTurn: canFinishTurnMove,
+    attackCardKeys: Array.from(new Set(attackCardKeys)),
+    transferCardKeys: Array.from(new Set(transferCardKeys)),
+    defenseTargets: defenseTargets.map((t) => ({
+      attackIndex: t.attackIndex,
+      cardKeys: Array.from(new Set(t.cardKeys)),
+    })),
+  };
+}
+
+export function buildPublicView({
+  state,
+  handsByUid,
+  playerIds,
+  settings,
+  nowIso,
+  result,
+}: {
+  state: DurakServerState;
+  handsByUid: Record<string, Card[]>;
+  playerIds: string[];
+  settings: DurakGameSettings;
+  nowIso: string;
+  result?: DurakGameResult;
+}): DurakPublicView {
+  const turn = getTurnInfo({ state, handsByUid });
+  const handCounts = Object.fromEntries(
+    Object.entries(handsByUid).map(([u, cards]) => [u, cards.length]),
+  );
+  const shulerEnabled = settings.shulerEnabled === true;
+  const turnTimeSec = typeof settings.turnTimeSec === "number" ? settings.turnTimeSec : null;
+  const turnStartedAt = state.lastMoveAt || nowIso;
+  const turnDeadlineAt =
+    turn.turnUid && turn.turnKind !== "wait" && turn.turnKind !== "finished" && turnTimeSec != null ?
+      new Date(Date.parse(turnStartedAt) + turnTimeSec * 1000).toISOString() :
+      null;
+  return {
+    revision: state.revision,
+    phase: derivePhase(state),
+    trumpSuit: state.trumpSuit,
+    trumpCard: getTrumpCard(state),
+    deckCount: Array.isArray(state.deck) ? state.deck.length : 0,
+    discardCount: Array.isArray(state.discard) ? state.discard.length : 0,
+    seats: Array.isArray(state.seats) ? state.seats : playerIds,
+    attackerUid: state.attackerUid,
+    defenderUid: state.defenderUid,
+    table: state.table,
+    handCounts,
+    lastMoveAt: nowIso,
+    throwerUids: state.throwerUids ?? [],
+    passedUids: state.passedUids ?? [],
+    currentThrowerUid: getCurrentThrowerUid({ state, handsByUid }),
+    turnUid: turn.turnUid,
+    turnKind: result?.kind === "finished" ? "finished" : turn.turnKind,
+    turnStartedAt,
+    turnDeadlineAt,
+    turnTimeSec,
+    roundDefenderHandLimit: typeof state.roundDefenderHandLimit === "number" ? state.roundDefenderHandLimit : null,
+    canFinishTurn: canFinishTurn({ state, handsByUid }),
+    shuler: {
+      enabled: shulerEnabled,
+      lastCheatUid: state.lastCheat ? state.lastCheat.uid : null,
+      ...(state.lastCheat ? { lastCheatAt: state.lastCheat.at } : {}),
+      ...(state.foulEvent ? { foulEvent: state.foulEvent } : {}),
+      ...(state.pendingResolution ? { pendingResolution: state.pendingResolution } : {}),
+    },
+    result: result ?? null,
+  };
 }
 
 export function buildSurrenderResult({

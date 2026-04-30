@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../data/games_callables.dart';
 import 'durak_card_flight_layer.dart';
 import 'durak_card_widget.dart';
+import 'conversation_durak_lobby_screen.dart';
 import 'durak_felt_background.dart';
 import 'durak_hand_fan.dart';
 import 'durak_player_names.dart';
@@ -40,6 +41,15 @@ class _ConversationDurakGameScreenState
   String _tableFxText = '';
   String _flyFxKind = '';
   int _flyFxCount = 0;
+  int _legalRevision = -1;
+  bool _legalCanTake = false;
+  bool _legalCanPass = false;
+  bool _legalCanFinishTurn = false;
+  Set<String> _legalAttackKeys = const <String>{};
+  Set<String> _legalTransferKeys = const <String>{};
+  Map<int, Set<String>> _legalDefenseTargets = const <int, Set<String>>{};
+  late final Timer _turnTimerTicker;
+  DateTime _turnTimerNow = DateTime.now();
 
   final _deckKey = GlobalKey();
   final _handKey = GlobalKey();
@@ -48,6 +58,20 @@ class _ConversationDurakGameScreenState
   final _tableDefenseKeys = <int, GlobalKey>{};
   final _handCardKeys = <String, GlobalKey>{};
   int _prevMyHandCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _turnTimerTicker = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) setState(() => _turnTimerNow = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _turnTimerTicker.cancel();
+    super.dispose();
+  }
 
   void _toast(String msg) {
     if (!mounted) return;
@@ -88,6 +112,11 @@ class _ConversationDurakGameScreenState
   String _cardId(Map<String, dynamic> card, int index) {
     // Stable enough for UI/animation even with duplicate jokers.
     return '${_cardLabel(card)}#$index';
+  }
+
+  String _cardKey(Map<String, dynamic> card) {
+    if (_isJoker(card)) return 'JOKER';
+    return '${(card['s'] ?? '').toString()}:${(card['r'] ?? '').toString()}';
   }
 
   GlobalKey _handKeyFor(String id) =>
@@ -247,6 +276,65 @@ class _ConversationDurakGameScreenState
     }
   }
 
+  void _syncLegalMoves(Map<String, dynamic>? legal) {
+    if (legal == null) {
+      if (_legalRevision < 0) return;
+      scheduleMicrotask(() {
+        if (!mounted) return;
+        setState(() {
+          _legalRevision = -1;
+          _legalCanTake = false;
+          _legalCanPass = false;
+          _legalCanFinishTurn = false;
+          _legalAttackKeys = const <String>{};
+          _legalTransferKeys = const <String>{};
+          _legalDefenseTargets = const <int, Set<String>>{};
+        });
+      });
+      return;
+    }
+    final rev = legal['revision'] is int
+        ? legal['revision'] as int
+        : int.tryParse((legal['revision'] ?? '').toString()) ?? -1;
+    final attackKeys = ((legal['attackCardKeys'] as List?) ?? const [])
+        .map((e) => e.toString())
+        .toSet();
+    final transferKeys = ((legal['transferCardKeys'] as List?) ?? const [])
+        .map((e) => e.toString())
+        .toSet();
+    final defenseTargets = <int, Set<String>>{};
+    final defenseRaw = legal['defenseTargets'];
+    if (defenseRaw is List) {
+      for (final item in defenseRaw) {
+        if (item is! Map) continue;
+        final idx = item['attackIndex'] is int
+            ? item['attackIndex'] as int
+            : int.tryParse((item['attackIndex'] ?? '').toString());
+        final keysRaw = item['cardKeys'];
+        if (idx == null || keysRaw is! List) continue;
+        defenseTargets[idx] = keysRaw.map((e) => e.toString()).toSet();
+      }
+    }
+    if (rev == _legalRevision &&
+        _legalCanTake == (legal['canTake'] == true) &&
+        _legalCanPass == (legal['canPass'] == true) &&
+        _legalCanFinishTurn == (legal['canFinishTurn'] == true)) {
+      return;
+    }
+    scheduleMicrotask(() {
+      if (!mounted) return;
+      setState(() {
+        _legalRevision = rev;
+        _legalCanTake = legal['canTake'] == true;
+        _legalCanPass = legal['canPass'] == true;
+        _legalCanFinishTurn = legal['canFinishTurn'] == true;
+        _legalAttackKeys = attackKeys;
+        _legalTransferKeys = transferKeys;
+        _legalDefenseTargets = defenseTargets;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -319,6 +407,12 @@ class _ConversationDurakGameScreenState
               final trumpSuit =
                   (publicView == null ? '' : (publicView['trumpSuit'] ?? ''))
                       .toString();
+              final trumpCardRaw = publicView == null
+                  ? null
+                  : publicView['trumpCard'];
+              final trumpCard = trumpCardRaw is Map
+                  ? Map<String, dynamic>.from(trumpCardRaw)
+                  : null;
               final discardCount =
                   (publicView == null ? 0 : (publicView['discardCount'] ?? 0))
                       is int
@@ -352,6 +446,15 @@ class _ConversationDurakGameScreenState
               final phase =
                   (publicView == null ? '' : (publicView['phase'] ?? ''))
                       .toString();
+              final turnUid =
+                  (publicView == null ? '' : (publicView['turnUid'] ?? ''))
+                      .toString();
+              final turnStartedAt = publicView == null
+                  ? ''
+                  : (publicView['turnStartedAt'] ?? '').toString();
+              final turnDeadlineAt = publicView == null
+                  ? ''
+                  : (publicView['turnDeadlineAt'] ?? '').toString();
               final passedRaw = publicView == null
                   ? null
                   : publicView['passedUids'];
@@ -442,6 +545,9 @@ class _ConversationDurakGameScreenState
                           (defenderHandCount <= 0 ? 99 : defenderHandCount));
 
               bool cardCanAttack(Map<String, dynamic> card) {
+                if (_legalRevision >= 0) {
+                  return _legalAttackKeys.contains(_cardKey(card));
+                }
                 final rank = (card['r'] ?? '').toString();
                 final isJoker = _isJoker(card);
                 if (status != 'active' || me == null) return false;
@@ -459,6 +565,12 @@ class _ConversationDurakGameScreenState
               }
 
               bool cardCanDefendAt(Map<String, dynamic> card, int attackIndex) {
+                if (_legalRevision >= 0) {
+                  return _legalDefenseTargets[attackIndex]?.contains(
+                        _cardKey(card),
+                      ) ??
+                      false;
+                }
                 if (status != 'active' || me == null) return false;
                 if (me != defenderUid) return false;
                 if (!tableHasAttacks) return false;
@@ -478,6 +590,9 @@ class _ConversationDurakGameScreenState
               }
 
               bool cardCanTransfer(Map<String, dynamic> card) {
+                if (_legalRevision >= 0) {
+                  return _legalTransferKeys.contains(_cardKey(card));
+                }
                 final rank = (card['r'] ?? '').toString();
                 final isJoker = _isJoker(card);
                 if (status != 'active' || me == null) return false;
@@ -488,13 +603,14 @@ class _ConversationDurakGameScreenState
                 return isJoker || ranksOnTable.contains(rank);
               }
 
-              final canPass =
-                  status == 'active' &&
-                  me != null &&
-                  me != defenderUid &&
-                  tableHasAttacks &&
-                  !passedUids.contains(me) &&
-                  (activeThrowerUid != null && me == activeThrowerUid);
+              final canPass = _legalRevision >= 0
+                  ? _legalCanPass
+                  : status == 'active' &&
+                        me != null &&
+                        me != defenderUid &&
+                        tableHasAttacks &&
+                        !passedUids.contains(me) &&
+                        (activeThrowerUid != null && me == activeThrowerUid);
 
               final canAttack =
                   status == 'active' &&
@@ -508,16 +624,19 @@ class _ConversationDurakGameScreenState
                   hasSelected &&
                   cardCanDefendAt(_selectedCard!, _selectedAttackIndex);
 
-              final canTake =
-                  status == 'active' &&
-                  me != null &&
-                  me == defenderUid &&
-                  tableHasAttacks;
+              final canTake = _legalRevision >= 0
+                  ? _legalCanTake
+                  : status == 'active' &&
+                        me != null &&
+                        me == defenderUid &&
+                        tableHasAttacks;
 
               final canFinishTurnRaw = publicView == null
                   ? null
                   : publicView['canFinishTurn'];
-              final canFinishTurn = canFinishTurnRaw is bool
+              final canFinishTurn = _legalRevision >= 0
+                  ? _legalCanFinishTurn
+                  : canFinishTurnRaw is bool
                   ? canFinishTurnRaw
                   : allDefended && activeThrowerUid == null;
 
@@ -766,8 +885,20 @@ class _ConversationDurakGameScreenState
                             ),
                             const SizedBox(height: 16),
                             FilledButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: Text(l10n.common_close),
+                              onPressed: () => unawaited(() async {
+                                final res = await GamesCallables()
+                                    .createDurakRematch(gameId: widget.gameId);
+                                if (!context.mounted) return;
+                                await Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        ConversationDurakLobbyScreen(
+                                          gameId: res.gameId,
+                                        ),
+                                  ),
+                                );
+                              }()),
+                              child: const Text('Сыграть ещё раз'),
                             ),
                           ],
                         ),
@@ -777,7 +908,187 @@ class _ConversationDurakGameScreenState
                 );
               }
 
-              return Column(
+              Widget buildHand() {
+                if (handRef == null) return const SizedBox.shrink();
+                return RepaintBoundary(
+                  child: Container(
+                    key: _handKey,
+                    width: double.infinity,
+                    height: 120,
+                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                    alignment: Alignment.bottomCenter,
+                    child:
+                        StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                          stream: handRef.snapshots(),
+                          builder: (context, handSnap) {
+                            final d =
+                                handSnap.data?.data() ??
+                                const <String, dynamic>{};
+                            final cardsRaw = d['cards'];
+                            final cards = cardsRaw is List
+                                ? cardsRaw
+                                : const [];
+                            final legalRaw = d['legalMoves'];
+                            final legal = legalRaw is Map
+                                ? Map<String, dynamic>.from(legalRaw)
+                                : null;
+                            _syncLegalMoves(legal);
+                            final attackKeys =
+                                ((legal?['attackCardKeys'] as List?) ??
+                                        const [])
+                                    .map((e) => e.toString())
+                                    .toSet();
+                            final transferKeys =
+                                ((legal?['transferCardKeys'] as List?) ??
+                                        const [])
+                                    .map((e) => e.toString())
+                                    .toSet();
+                            final defenseTargets = <int, Set<String>>{};
+                            final defenseRaw = legal?['defenseTargets'];
+                            if (defenseRaw is List) {
+                              for (final item in defenseRaw) {
+                                if (item is! Map) continue;
+                                final idx = item['attackIndex'] is int
+                                    ? item['attackIndex'] as int
+                                    : int.tryParse(
+                                        (item['attackIndex'] ?? '').toString(),
+                                      );
+                                final keysRaw = item['cardKeys'];
+                                if (idx == null || keysRaw is! List) continue;
+                                defenseTargets[idx] = keysRaw
+                                    .map((e) => e.toString())
+                                    .toSet();
+                              }
+                            }
+                            bool serverCanAttack(Map<String, dynamic> card) =>
+                                legal == null
+                                ? cardCanAttack(card)
+                                : attackKeys.contains(_cardKey(card));
+                            bool serverCanTransfer(Map<String, dynamic> card) =>
+                                legal == null
+                                ? cardCanTransfer(card)
+                                : transferKeys.contains(_cardKey(card));
+                            bool serverCanDefend(
+                              Map<String, dynamic> card,
+                              int idx,
+                            ) => legal == null
+                                ? cardCanDefendAt(card, idx)
+                                : (defenseTargets[idx]?.contains(
+                                        _cardKey(card),
+                                      ) ??
+                                      false);
+
+                            final flight = DurakCardFlightLayer.of(context);
+                            scheduleMicrotask(() {
+                              if (!mounted || flight == null) return;
+                              final now = cards.length;
+                              if (_prevMyHandCount == 0) {
+                                _prevMyHandCount = now;
+                                return;
+                              }
+                              final delta = now - _prevMyHandCount;
+                              if (delta > 0) {
+                                flight.flyBacks(
+                                  from: _deckKey,
+                                  to: _handKey,
+                                  count: delta,
+                                );
+                              }
+                              _prevMyHandCount = now;
+                            });
+
+                            final maps = cards
+                                .whereType<Map>()
+                                .map((e) => Map<String, dynamic>.from(e))
+                                .toList();
+                            maps.sort((a, b) {
+                              final aj = _isJoker(a);
+                              final bj = _isJoker(b);
+                              if (aj != bj) return aj ? 1 : -1;
+                              final as = _suitOf(a);
+                              final bs = _suitOf(b);
+                              final at = as == trumpSuit;
+                              final bt = bs == trumpSuit;
+                              if (at != bt) return at ? 1 : -1;
+                              final suitCmp = as.compareTo(bs);
+                              if (suitCmp != 0) return suitCmp;
+                              return _rankValue(a).compareTo(_rankValue(b));
+                            });
+
+                            return Align(
+                              alignment: Alignment.bottomCenter,
+                              child: DurakHandFan(
+                                cards: maps,
+                                cardId: _cardId,
+                                keyForCardId: _handKeyFor,
+                                rankLabel: _rankLabel,
+                                suitLabel: _suitLabel,
+                                isRedSuit: _isRedSuit,
+                                enabled: (card) =>
+                                    serverCanAttack(card) ||
+                                    serverCanDefend(
+                                      card,
+                                      _selectedAttackIndex,
+                                    ) ||
+                                    serverCanTransfer(card),
+                                highlight: (card) =>
+                                    serverCanAttack(card) ||
+                                    serverCanDefend(
+                                      card,
+                                      _selectedAttackIndex,
+                                    ) ||
+                                    serverCanTransfer(card),
+                                selectedId: _selectedCardId,
+                                onTap: (card, id) {
+                                  final canA = serverCanAttack(card);
+                                  final canD = serverCanDefend(
+                                    card,
+                                    _selectedAttackIndex,
+                                  );
+                                  final canT = serverCanTransfer(card);
+                                  if (!canA && !canD && !canT) return;
+                                  final options = <String>[
+                                    if (canA) 'attack',
+                                    if (canD) 'defend',
+                                    if (canT) 'transfer',
+                                  ];
+                                  if (options.length == 1) {
+                                    final action = options.first;
+                                    if (action == 'attack') {
+                                      unawaited(_tryAttack(card));
+                                      return;
+                                    }
+                                    if (action == 'transfer') {
+                                      unawaited(_tryTransfer(card));
+                                      return;
+                                    }
+                                    unawaited(
+                                      _tryDefend(
+                                        attackIndex: _selectedAttackIndex,
+                                        card: card,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  setState(() {
+                                    _selectedCard = card;
+                                    _selectedCardId = id;
+                                  });
+                                },
+                                onDragAcceptedByTable: (_) {},
+                                onDragRejected: (_) => _toast('Ход недоступен'),
+                              ),
+                            );
+                          },
+                        ),
+                  ),
+                );
+              }
+
+              final safe = MediaQuery.paddingOf(context);
+              final bottomPanelHeight = 174.0 + safe.bottom;
+
+              return Stack(
                 children: [
                   if (foulAt.isNotEmpty && foulAt != _lastFoulAtShown)
                     Builder(
@@ -790,7 +1101,8 @@ class _ConversationDurakGameScreenState
                         return const SizedBox.shrink();
                       },
                     ),
-                  Expanded(
+                  Positioned.fill(
+                    bottom: bottomPanelHeight,
                     child: Stack(
                       children: [
                         SafeArea(
@@ -826,6 +1138,10 @@ class _ConversationDurakGameScreenState
                             attackerUid: attackerUid,
                             defenderUid: defenderUid,
                             activeThrowerUid: activeThrowerUid,
+                            turnUid: turnUid,
+                            turnStartedAt: turnStartedAt,
+                            turnDeadlineAt: turnDeadlineAt,
+                            now: _turnTimerNow,
                             handCounts: handCounts,
                           ),
                         ),
@@ -837,6 +1153,7 @@ class _ConversationDurakGameScreenState
                             child: _DurakSideDeck(
                               deckCount: deckCount,
                               trumpSuit: trumpSuit,
+                              trumpCard: trumpCard,
                             ),
                           ),
                         ),
@@ -864,81 +1181,68 @@ class _ConversationDurakGameScreenState
                             ),
                           ),
                         ),
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 140, 12, 16),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              switchInCurve: Curves.easeOut,
-                              switchOutCurve: Curves.easeIn,
-                              child: DurakTableWidget(
-                                key: ValueKey<String>(
-                                  't:${(publicView == null ? '' : (publicView['revision'] ?? '')).toString()}',
-                                ),
-                                pairKeyForFlight: _pairKeyForFlight,
-                                nextAttackSlotKey: _nextAttackSlotKey,
-                                attacks: attacks,
-                                defenses: defenses,
-                                selectedAttackIndex: _selectedAttackIndex,
-                                onSelectAttackIndex: (i) =>
-                                    setState(() => _selectedAttackIndex = i),
-                                canAcceptDefense: (card, idx) =>
-                                    cardCanDefendAt(card, idx),
-                                canAcceptAttack: cardCanAttack,
-                                onAttackDropped: (card) {
-                                  final flight = DurakCardFlightLayer.of(
-                                    context,
-                                  );
-                                  if (flight != null) {
-                                    flight.flyCard(
-                                      from: _handKey,
-                                      to: _nextAttackSlotKey,
-                                      rankLabel: _rankLabel(card),
-                                      suitLabel: _suitLabel(card),
-                                      isRed: _isRedSuit(_suitOf(card)),
-                                    );
-                                  }
-                                  return _tryAttack(card);
-                                },
-                                canAcceptTransfer: cardCanTransfer,
-                                onTransferDropped: (card) {
-                                  final flight = DurakCardFlightLayer.of(
-                                    context,
-                                  );
-                                  if (flight != null) {
-                                    flight.flyCard(
-                                      from: _handKey,
-                                      to: _nextAttackSlotKey,
-                                      rankLabel: _rankLabel(card),
-                                      suitLabel: _suitLabel(card),
-                                      isRed: _isRedSuit(_suitOf(card)),
-                                    );
-                                  }
-                                  return _tryTransfer(card);
-                                },
-                                onDefenseDropped: (idx, card) {
-                                  final flight = DurakCardFlightLayer.of(
-                                    context,
-                                  );
-                                  if (flight != null) {
-                                    flight.flyCard(
-                                      from: _handKey,
-                                      to: _pairKeyForFlight(idx, defense: true),
-                                      rankLabel: _rankLabel(card),
-                                      suitLabel: _suitLabel(card),
-                                      isRed: _isRedSuit(_suitOf(card)),
-                                    );
-                                  }
-                                  return _tryDefend(
-                                    attackIndex: idx,
-                                    card: card,
-                                  );
-                                },
-                                rankLabel: _rankLabel,
-                                suitLabel: _suitLabel,
-                                isRedSuit: _isRedSuit,
-                              ),
+                        Positioned.fill(
+                          top: 140,
+                          left: 12,
+                          right: 12,
+                          bottom: 12,
+                          child: DurakTableWidget(
+                            key: ValueKey<String>(
+                              't:${(publicView == null ? '' : (publicView['revision'] ?? '')).toString()}',
                             ),
+                            pairKeyForFlight: _pairKeyForFlight,
+                            nextAttackSlotKey: _nextAttackSlotKey,
+                            attacks: attacks,
+                            defenses: defenses,
+                            selectedAttackIndex: _selectedAttackIndex,
+                            onSelectAttackIndex: (i) =>
+                                setState(() => _selectedAttackIndex = i),
+                            canAcceptDefense: (card, idx) =>
+                                cardCanDefendAt(card, idx),
+                            canAcceptAttack: cardCanAttack,
+                            onAttackDropped: (card) {
+                              final flight = DurakCardFlightLayer.of(context);
+                              if (flight != null) {
+                                flight.flyCard(
+                                  from: _handKey,
+                                  to: _nextAttackSlotKey,
+                                  rankLabel: _rankLabel(card),
+                                  suitLabel: _suitLabel(card),
+                                  isRed: _isRedSuit(_suitOf(card)),
+                                );
+                              }
+                              return _tryAttack(card);
+                            },
+                            canAcceptTransfer: cardCanTransfer,
+                            onTransferDropped: (card) {
+                              final flight = DurakCardFlightLayer.of(context);
+                              if (flight != null) {
+                                flight.flyCard(
+                                  from: _handKey,
+                                  to: _nextAttackSlotKey,
+                                  rankLabel: _rankLabel(card),
+                                  suitLabel: _suitLabel(card),
+                                  isRed: _isRedSuit(_suitOf(card)),
+                                );
+                              }
+                              return _tryTransfer(card);
+                            },
+                            onDefenseDropped: (idx, card) {
+                              final flight = DurakCardFlightLayer.of(context);
+                              if (flight != null) {
+                                flight.flyCard(
+                                  from: _handKey,
+                                  to: _pairKeyForFlight(idx, defense: true),
+                                  rankLabel: _rankLabel(card),
+                                  suitLabel: _suitLabel(card),
+                                  isRed: _isRedSuit(_suitOf(card)),
+                                );
+                              }
+                              return _tryDefend(attackIndex: idx, card: card);
+                            },
+                            rankLabel: _rankLabel,
+                            suitLabel: _suitLabel,
+                            isRedSuit: _isRedSuit,
                           ),
                         ),
                         if (foulAt.isNotEmpty && foulMissed.isNotEmpty)
@@ -980,181 +1284,38 @@ class _ConversationDurakGameScreenState
                       ],
                     ),
                   ),
-                  if (hasPendingResolution && shulerEnabled)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                      child: _PendingResolutionBanner(
-                        isAttacker: me == attackerUid,
-                      ),
-                    ),
-                  if (myTurnLabel.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                      child: _TurnStatusPill(text: myTurnLabel),
-                    ),
-                  DurakPrimaryActionsBar(
-                    l10n: l10n,
-                    primaryActions: primaryActions,
-                    overflowActions: overflowActions,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: status == 'active' && me != null
-                            ? () => unawaited(_surrender())
-                            : null,
-                        icon: const Icon(Icons.flag_rounded),
-                        label: const Text('Завершить игру'),
-                      ),
-                    ),
-                  ),
-                  if (handRef == null)
-                    const SizedBox.shrink()
-                  else
-                    SafeArea(
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: SafeArea(
                       top: false,
                       minimum: const EdgeInsets.only(bottom: 2),
-                      child: RepaintBoundary(
-                        child: Container(
-                          key: _handKey,
-                          width: double.infinity,
-                          height: 128,
-                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                          alignment: Alignment.bottomCenter,
-                          child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                            stream: handRef.snapshots(),
-                            builder: (context, handSnap) {
-                              final d =
-                                  handSnap.data?.data() ??
-                                  const <String, dynamic>{};
-                              final cardsRaw = d['cards'];
-                              final cards = cardsRaw is List
-                                  ? cardsRaw
-                                  : const [];
-                              final flight = DurakCardFlightLayer.of(context);
-                              // Deal/draw animation: deck -> hand for new cards (count diff).
-                              scheduleMicrotask(() {
-                                if (!mounted) return;
-                                if (flight == null) return;
-                                final now = cards.length;
-                                if (_prevMyHandCount == 0) {
-                                  _prevMyHandCount = now;
-                                  return;
-                                }
-                                final delta = now - _prevMyHandCount;
-                                if (delta > 0) {
-                                  flight.flyBacks(
-                                    from: _deckKey,
-                                    to: _handKey,
-                                    count: delta,
-                                  );
-                                }
-                                _prevMyHandCount = now;
-                              });
-
-                              List<Map<String, dynamic>> maps = cards
-                                  .whereType<Map>()
-                                  .map((e) => Map<String, dynamic>.from(e))
-                                  .toList();
-                              // Sort hand: non-trump suits first, then trump, then jokers; within suit by rank.
-                              maps.sort((a, b) {
-                                final aj = _isJoker(a);
-                                final bj = _isJoker(b);
-                                if (aj != bj) return aj ? 1 : -1;
-                                final as = _suitOf(a);
-                                final bs = _suitOf(b);
-                                final at = as == trumpSuit;
-                                final bt = bs == trumpSuit;
-                                if (at != bt) return at ? 1 : -1;
-                                final suitCmp = as.compareTo(bs);
-                                if (suitCmp != 0) return suitCmp;
-                                return _rankValue(a).compareTo(_rankValue(b));
-                              });
-
-                              return Align(
-                                alignment: Alignment.bottomCenter,
-                                child: DurakHandFan(
-                                  cards: maps,
-                                  cardId: _cardId,
-                                  keyForCardId: _handKeyFor,
-                                  rankLabel: _rankLabel,
-                                  suitLabel: _suitLabel,
-                                  isRedSuit: _isRedSuit,
-                                  enabled: (card) =>
-                                      cardCanAttack(card) ||
-                                      cardCanDefendAt(
-                                        card,
-                                        _selectedAttackIndex,
-                                      ) ||
-                                      cardCanTransfer(card),
-                                  highlight: (card) =>
-                                      cardCanAttack(card) ||
-                                      cardCanDefendAt(
-                                        card,
-                                        _selectedAttackIndex,
-                                      ) ||
-                                      cardCanTransfer(card),
-                                  selectedId: _selectedCardId,
-                                  onTap: (card, id) {
-                                    final enabled =
-                                        cardCanAttack(card) ||
-                                        cardCanDefendAt(
-                                          card,
-                                          _selectedAttackIndex,
-                                        ) ||
-                                        cardCanTransfer(card);
-                                    if (!enabled) return;
-                                    final canA = cardCanAttack(card);
-                                    final canD = cardCanDefendAt(
-                                      card,
-                                      _selectedAttackIndex,
-                                    );
-                                    final canT = cardCanTransfer(card);
-                                    final options = <String>[
-                                      if (canA) 'attack',
-                                      if (canD) 'defend',
-                                      if (canT) 'transfer',
-                                    ];
-
-                                    // If the action is unambiguous, play immediately.
-                                    if (options.length == 1) {
-                                      final action = options.first;
-                                      if (action == 'attack') {
-                                        unawaited(_tryAttack(card));
-                                        return;
-                                      }
-                                      if (action == 'transfer') {
-                                        unawaited(_tryTransfer(card));
-                                        return;
-                                      }
-                                      if (action == 'defend') {
-                                        unawaited(
-                                          _tryDefend(
-                                            attackIndex: _selectedAttackIndex,
-                                            card: card,
-                                          ),
-                                        );
-                                        return;
-                                      }
-                                    }
-
-                                    setState(() {
-                                      _selectedCard = card;
-                                      _selectedCardId = id;
-                                    });
-                                  },
-                                  onDragAcceptedByTable: (_) {},
-                                  onDragRejected: (_) =>
-                                      _toast('Ход недоступен'),
-                                ),
-                              );
-                            },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (hasPendingResolution && shulerEnabled)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                              child: _PendingResolutionBanner(
+                                isAttacker: me == attackerUid,
+                              ),
+                            ),
+                          if (myTurnLabel.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                              child: _TurnStatusPill(text: myTurnLabel),
+                            ),
+                          DurakPrimaryActionsBar(
+                            l10n: l10n,
+                            primaryActions: primaryActions,
+                            overflowActions: overflowActions,
                           ),
-                        ),
+                          buildHand(),
+                        ],
                       ),
                     ),
+                  ),
                 ],
               );
             },
@@ -1210,6 +1371,10 @@ class _DurakTopOpponent extends StatelessWidget {
     required this.attackerUid,
     required this.defenderUid,
     required this.activeThrowerUid,
+    required this.turnUid,
+    required this.turnStartedAt,
+    required this.turnDeadlineAt,
+    required this.now,
     required this.handCounts,
   });
 
@@ -1218,6 +1383,10 @@ class _DurakTopOpponent extends StatelessWidget {
   final String attackerUid;
   final String defenderUid;
   final String? activeThrowerUid;
+  final String turnUid;
+  final String turnStartedAt;
+  final String turnDeadlineAt;
+  final DateTime now;
   final Map? handCounts;
 
   @override
@@ -1242,6 +1411,16 @@ class _DurakTopOpponent extends StatelessWidget {
         opponentUid == defenderUid ||
         opponentUid == attackerUid ||
         opponentUid == activeThrowerUid;
+    final start = DateTime.tryParse(turnStartedAt);
+    final deadline = DateTime.tryParse(turnDeadlineAt);
+    final timerActive =
+        turnUid == opponentUid && start != null && deadline != null;
+    final progress = timerActive && deadline.isAfter(start)
+        ? (now.difference(start).inMilliseconds /
+                  deadline.difference(start).inMilliseconds)
+              .clamp(0.0, 1.0)
+              .toDouble()
+        : 0.0;
 
     return DurakPlayerNames(
       uids: <String>[opponentUid],
@@ -1259,28 +1438,61 @@ class _DurakTopOpponent extends StatelessWidget {
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        width: 64,
-                        height: 64,
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: active
-                                ? const Color(0xFFA3E635)
-                                : Colors.white.withValues(alpha: 0.5),
-                            width: 4,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: avatarUrl.isNotEmpty
-                              ? Image.network(
-                                  avatarUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
+                      SizedBox(
+                        width: 70,
+                        height: 70,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (timerActive)
+                              SizedBox(
+                                width: 70,
+                                height: 70,
+                                child: CircularProgressIndicator(
+                                  value: progress,
+                                  strokeWidth: 4,
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.22,
+                                  ),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Color(0xFFA3E635),
+                                      ),
+                                ),
+                              ),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 64,
+                              height: 64,
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: active
+                                      ? const Color(0xFFA3E635)
+                                      : Colors.white.withValues(alpha: 0.5),
+                                  width: 4,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: avatarUrl.isNotEmpty
+                                    ? Image.network(
+                                        avatarUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Container(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.22),
+                                                  child: const Icon(
+                                                    Icons.person_rounded,
+                                                    color: Colors.white70,
+                                                    size: 30,
+                                                  ),
+                                                ),
+                                      )
+                                    : Container(
                                         color: Colors.white.withValues(
                                           alpha: 0.22,
                                         ),
@@ -1290,15 +1502,9 @@ class _DurakTopOpponent extends StatelessWidget {
                                           size: 30,
                                         ),
                                       ),
-                                )
-                              : Container(
-                                  color: Colors.white.withValues(alpha: 0.22),
-                                  child: const Icon(
-                                    Icons.person_rounded,
-                                    color: Colors.white70,
-                                    size: 30,
-                                  ),
-                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       Positioned(
@@ -1369,16 +1575,26 @@ class _DurakTopOpponent extends StatelessWidget {
 }
 
 class _DurakSideDeck extends StatelessWidget {
-  const _DurakSideDeck({required this.deckCount, required this.trumpSuit});
+  const _DurakSideDeck({
+    required this.deckCount,
+    required this.trumpSuit,
+    required this.trumpCard,
+  });
 
   final int deckCount;
   final String trumpSuit;
+  final Map<String, dynamic>? trumpCard;
 
   @override
   Widget build(BuildContext context) {
+    final suitSource = (trumpCard == null ? trumpSuit : (trumpCard!['s'] ?? ''))
+        .toString();
     final suit =
-        {'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[trumpSuit] ?? trumpSuit;
-    final isRed = trumpSuit == 'H' || trumpSuit == 'D';
+        {'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[suitSource] ?? suitSource;
+    final rankRaw = (trumpCard == null ? 6 : trumpCard!['r']).toString();
+    final rank =
+        {'11': 'J', '12': 'Q', '13': 'K', '14': 'A'}[rankRaw] ?? rankRaw;
+    final isRed = suitSource == 'H' || suitSource == 'D';
 
     return SizedBox(
       width: 108,
@@ -1393,7 +1609,7 @@ class _DurakSideDeck extends StatelessWidget {
               child: Transform.rotate(
                 angle: -0.32,
                 child: DurakCardWidget(
-                  rankLabel: 'A',
+                  rankLabel: rank,
                   suitLabel: suit,
                   isRed: isRed,
                   faceUp: true,

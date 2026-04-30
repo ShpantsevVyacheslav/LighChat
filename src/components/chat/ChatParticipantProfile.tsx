@@ -809,7 +809,13 @@ export function ChatParticipantProfile({
                     isGroup={isGroup}
                     onCreatedGameLobby={(gameId) => {
                       onSelectConversation(conversation.id);
-                      router.push(buildDashboardChatOpenUrl(conversation.id, { gameId }));
+                      const url = buildDashboardChatOpenUrl(conversation.id, { gameId });
+                      if (typeof window !== 'undefined') {
+                        const popup = window.open(url, `durak_${gameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
+                        if (!popup) router.push(url);
+                      } else {
+                        router.push(url);
+                      }
                       onOpenChange(false);
                     }}
                   />

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useDoc, useFirestore, useMemoFirebase, useStorage } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useStorage } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { collection, query, doc, updateDoc, orderBy, setDoc, limit, onSnapshot, increment, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
@@ -71,7 +71,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle, Swords } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettings } from '@/hooks/use-settings';
@@ -155,6 +155,58 @@ const CHAT_HEADER_IOS = {
 const TOP_LOAD_THRESHOLD_PX = 40;
 const LOAD_MORE_COOLDOWN_MS = 600;
 
+type ConversationGameLobbyIndex = {
+  id: string;
+  type?: string;
+  status?: string;
+  playerCount?: number;
+  maxPlayers?: number;
+};
+
+function ConversationDurakGameBanner({
+  conversationId,
+  onOpenGame,
+}: {
+  conversationId: string;
+  onOpenGame: (gameId: string) => void;
+}) {
+  const firestore = useFirestore();
+  const q = useMemoFirebase(
+    () =>
+      firestore && conversationId
+        ? query(
+            collection(firestore, `conversations/${conversationId}/gameLobbies`),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+          )
+        : null,
+    [firestore, conversationId]
+  );
+  const { data } = useCollection<ConversationGameLobbyIndex>(q);
+  const lobby = useMemo(
+    () => (data ?? []).find((row) => row.type === 'durak' && ['lobby', 'active'].includes(String(row.status ?? ''))),
+    [data]
+  );
+  if (!lobby?.id) return null;
+  const active = lobby.status === 'active';
+  const players = Number(lobby.playerCount ?? 0) || 0;
+  const max = Number(lobby.maxPlayers ?? 0) || 0;
+  return (
+    <div className="mx-3 mb-2 rounded-2xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-sm text-foreground shadow-sm backdrop-blur-md">
+      <div className="flex items-center gap-3">
+        <Swords className="h-4 w-4 shrink-0 text-amber-500" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-semibold">{active ? 'Партия “Дурак” идёт' : 'Игра “Дурак” создана'}</div>
+          <div className="text-xs text-muted-foreground">{max > 0 ? `${players}/${max} игроков` : `${players} игроков`}</div>
+        </div>
+        <Button size="sm" variant="secondary" onClick={() => onOpenGame(lobby.id)}>
+          {active ? 'Открыть' : 'Присоединиться'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ChatWindow({ 
   conversation, 
   currentUser, 
@@ -193,6 +245,17 @@ export function ChatWindow({
     const url = q ? `${window.location.pathname}?${q}` : window.location.pathname;
     router.replace(url);
   }, [router]);
+  const openGameInWindow = useCallback((gameId: string) => {
+    if (typeof window === 'undefined') {
+      setOpenGameId(gameId);
+      return;
+    }
+    const p = new URLSearchParams(window.location.search || '');
+    p.set(DASHBOARD_GAME_ID_QUERY, gameId);
+    const url = `${window.location.pathname}?${p.toString()}`;
+    const popup = window.open(url, `durak_${gameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
+    if (!popup) setOpenGameId(gameId);
+  }, []);
   const { chatSettings, privacySettings } = useSettings();
   const { prefs } = useChatConversationPrefs(currentUser.id, conversation.id);
   const { starredMessageIds } = useStarredInConversation(currentUser.id, conversation.id);
@@ -2149,6 +2212,10 @@ export function ChatWindow({
                 onNavigate={handlePinnedBarNavigate}
               />
             ) : null}
+            <ConversationDurakGameBanner
+              conversationId={conversation.id}
+              onOpenGame={openGameInWindow}
+            />
             <div className="flex-1 min-h-0 relative min-w-0 overflow-hidden">
                 {!isFullyReady && (
                     <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">

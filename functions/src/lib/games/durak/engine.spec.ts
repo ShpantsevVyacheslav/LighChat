@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildInitialState, buildSurrenderResult, canFinishTurn, computeAndApplyGameResult, derivePhase, drawUpToSix, markTaking, rotateAfterTake, shouldResolveTakingRound, takeTable } from "./engine";
+import { buildInitialState, buildLegalMovesForUid, buildPublicView, buildSurrenderResult, canFinishTurn, computeAndApplyGameResult, derivePhase, drawUpToSix, getTrumpCard, markTaking, rotateAfterTake, shouldResolveTakingRound, takeTable } from "./engine";
 import type { DurakGameSettings } from "../gameSettings";
 import { parseCard } from "./cards";
 import { applyAttack, applyDefense, applyTransfer, allDefended, resetRoundTracking } from "./engine";
@@ -163,6 +163,78 @@ describe("durak engine", () => {
 
     expect(allDefended(state)).toBe(true);
     expect(state.table.defenses[0]).not.toBeNull();
+  });
+
+  it("legalMoves exposes only the attacker cards on first move", () => {
+    const { state, handsByUid } = buildInitialState({
+      playerIds: ["u1", "u2"],
+      settings,
+      nowIso: new Date(0).toISOString(),
+      randInt: () => 0,
+    });
+    state.attackerUid = "u1";
+    state.defenderUid = "u2";
+    resetRoundTracking(state);
+    handsByUid.u1 = [parseCard({ r: 6, s: "S" }), parseCard({ r: 10, s: "H" })];
+    handsByUid.u2 = [parseCard({ r: 7, s: "S" })];
+
+    const attackerMoves = buildLegalMovesForUid({ state, handsByUid, uid: "u1", settings });
+    const defenderMoves = buildLegalMovesForUid({ state, handsByUid, uid: "u2", settings });
+
+    expect(attackerMoves.attackCardKeys).toEqual(["S:6", "H:10"]);
+    expect(attackerMoves.defenseTargets).toEqual([]);
+    expect(defenderMoves.attackCardKeys).toEqual([]);
+    expect(defenderMoves.defenseTargets).toEqual([]);
+  });
+
+  it("legalMoves exposes defense targets only for cards that beat the attack", () => {
+    const { state, handsByUid } = buildInitialState({
+      playerIds: ["u1", "u2"],
+      settings,
+      nowIso: new Date(0).toISOString(),
+      randInt: () => 0,
+    });
+    state.attackerUid = "u1";
+    state.defenderUid = "u2";
+    resetRoundTracking(state);
+    state.trumpSuit = "H";
+    handsByUid.u1 = [parseCard({ r: 9, s: "S" })];
+    handsByUid.u2 = [
+      parseCard({ r: 8, s: "S" }),
+      parseCard({ r: 10, s: "S" }),
+      parseCard({ r: 6, s: "H" }),
+      parseCard({ r: 14, s: "D" }),
+    ];
+
+    applyAttack({ state, uid: "u1", card: parseCard({ r: 9, s: "S" }), handsByUid });
+    const defenderMoves = buildLegalMovesForUid({ state, handsByUid, uid: "u2", settings });
+
+    expect(defenderMoves.defenseTargets).toEqual([
+      { attackIndex: 0, cardKeys: ["S:10", "H:6"] },
+    ]);
+  });
+
+  it("publishes the actual trump card from the bottom of the deck", () => {
+    const { state, handsByUid } = buildInitialState({
+      playerIds: ["u1", "u2"],
+      settings,
+      nowIso: new Date(0).toISOString(),
+      randInt: () => 0,
+    });
+    state.deck = [
+      parseCard({ r: 9, s: "D" }),
+      parseCard({ r: 14, s: "S" }),
+    ];
+    state.trumpSuit = "D";
+
+    expect(getTrumpCard(state)).toEqual(parseCard({ r: 9, s: "D" }));
+    expect(buildPublicView({
+      state,
+      handsByUid,
+      playerIds: ["u1", "u2"],
+      settings,
+      nowIso: new Date(1).toISOString(),
+    }).trumpCard).toEqual(parseCard({ r: 9, s: "D" }));
   });
 
   it("transfer is forbidden after any defense card is placed (canon)", () => {

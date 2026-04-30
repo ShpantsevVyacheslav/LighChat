@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { DurakCard, DurakGameSession, User } from '@/lib/types';
+import type { DurakCard, DurakGameSession, DurakLegalMoves, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { cardLabel, isJoker } from './durak-cards';
@@ -18,6 +18,7 @@ import { cardLabel, isJoker } from './durak-cards';
 type HandDoc = {
   uid: string;
   cards: DurakCard[];
+  legalMoves?: DurakLegalMoves;
 };
 
 type DragState = {
@@ -53,6 +54,10 @@ function rankKey(c: DurakCard): string {
   return isJoker(c) ? 'JOKER' : String(c.r);
 }
 
+function cardKey(c: DurakCard): string {
+  return isJoker(c) ? 'JOKER' : `${c.s}:${c.r}`;
+}
+
 function isRed(c: DurakCard) {
   return c.s === 'H' || c.s === 'D';
 }
@@ -85,6 +90,7 @@ export function DurakWebGameDialog({
   const [selectedCardIdx, setSelectedCardIdx] = useState<number | null>(null);
   const [selectedAttackIndex, setSelectedAttackIndex] = useState(0);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const dragRef = useRef<DragState | null>(null);
   const moveInFlightRef = useRef(false);
 
@@ -129,6 +135,24 @@ export function DurakWebGameDialog({
   const joinLobby = useCallback(() => call('joinGameLobby', { gameId }), [call, gameId]);
   const startGame = useCallback(() => call('startDurakGame', { gameId }), [call, gameId]);
   const cancelLobby = useCallback(() => call('cancelGameLobby', { gameId }), [call, gameId]);
+  const rematch = useCallback(async () => {
+    if (!firestore) return;
+    setBusy('createDurakRematch');
+    try {
+      const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), 'createDurakRematch');
+      const res = await fn({ gameId });
+      const nextGameId = (res.data as any)?.gameId as string | undefined;
+      if (nextGameId) {
+        onOpenChange(false);
+        window.open(`${window.location.pathname}?gameId=${encodeURIComponent(nextGameId)}`, `durak_${nextGameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Ошибка';
+      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+      setBusy(null);
+    }
+  }, [firestore, gameId, onOpenChange, toast]);
   const makeMove = useCallback(
     (actionType: string, payload?: Record<string, unknown>) =>
       call('makeDurakMove', {
@@ -147,6 +171,16 @@ export function DurakWebGameDialog({
   const defenses = publicView?.table?.defenses ?? [];
   const trumpSuit = String(publicView?.trumpSuit ?? '');
   const myCards = hand?.cards ?? [];
+  const legalMoves = hand?.legalMoves ?? null;
+  const legalAttackKeys = useMemo(() => new Set(legalMoves?.attackCardKeys ?? []), [legalMoves]);
+  const legalTransferKeys = useMemo(() => new Set(legalMoves?.transferCardKeys ?? []), [legalMoves]);
+  const legalDefenseTargets = useMemo(() => {
+    const map = new Map<number, Set<string>>();
+    for (const target of legalMoves?.defenseTargets ?? []) {
+      map.set(target.attackIndex, new Set(target.cardKeys));
+    }
+    return map;
+  }, [legalMoves]);
   const selectedCard = selectedCardIdx == null ? null : myCards[selectedCardIdx] ?? null;
   const seats = publicView?.seats?.length ? publicView.seats : gamePlayerIds;
   const attackerUid = publicView?.attackerUid ?? '';
@@ -159,6 +193,7 @@ export function DurakWebGameDialog({
       : fallbackCurrentThrower();
   const tableRanks = new Set([...attacks, ...defenses.filter(Boolean)].map((c) => rankKey(c as DurakCard)));
   const canFinishTurn = publicView?.canFinishTurn ?? fallbackCanFinishTurn();
+  const serverTurnKind = publicView?.turnKind ?? '';
 
   function fallbackCurrentThrower(): string | null {
     if (attacks.length === 0) return null;
@@ -176,6 +211,7 @@ export function DurakWebGameDialog({
 
   const canAttackCard = useCallback(
     (card: DurakCard) => {
+      if (legalMoves) return legalAttackKeys.has(cardKey(card));
       if (status !== 'active') return false;
       if (currentUser.id === defenderUid) return false;
       if (attacks.length === 0) {
@@ -193,20 +229,22 @@ export function DurakWebGameDialog({
         (isJoker(card) || tableRanks.has(rankKey(card)))
       );
     },
-    [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, handCounts, publicView, status, tableRanks]
+    [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, handCounts, legalAttackKeys, legalMoves, publicView, status, tableRanks]
   );
 
   const canDefendCardAt = useCallback(
     (card: DurakCard, idx: number) => {
+      if (legalMoves) return legalDefenseTargets.get(idx)?.has(cardKey(card)) ?? false;
       if (status !== 'active' || currentUser.id !== defenderUid || !trumpSuit || !defenseSlotOpen(idx)) return false;
       const attack = attacks[idx];
       return Boolean(attack && beats({ attack, defense: card, trumpSuit }));
     },
-    [attacks, currentUser.id, defenderUid, status, trumpSuit]
+    [attacks, currentUser.id, defenderUid, legalDefenseTargets, legalMoves, status, trumpSuit]
   );
 
   const canTransferCard = useCallback(
     (card: DurakCard) => {
+      if (legalMoves) return legalTransferKeys.has(cardKey(card));
       if (status !== 'active' || currentUser.id !== defenderUid || game?.publicView == null) return false;
       const mode = (game as any)?.settings?.mode ?? 'podkidnoy';
       if (mode !== 'perevodnoy' || attacks.length === 0 || defenses.some(Boolean)) return false;
@@ -215,7 +253,7 @@ export function DurakWebGameDialog({
       if (attacks.length >= 6 || attacks.length >= roundLimit) return false;
       return isJoker(card) || tableRanks.has(rankKey(card));
     },
-    [attacks.length, currentUser.id, defenderUid, defenses, game, handCounts, publicView, status, tableRanks]
+    [attacks.length, currentUser.id, defenderUid, defenses, game, handCounts, legalMoves, legalTransferKeys, publicView, status, tableRanks]
   );
 
   const handleCardTap = useCallback(
@@ -266,6 +304,11 @@ export function DurakWebGameDialog({
   );
 
   useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     dragRef.current = drag;
   }, [drag]);
 
@@ -302,21 +345,26 @@ export function DurakWebGameDialog({
 
   const myTurnLabel = useMemo(() => {
     if (status !== 'active') return '';
+    if (publicView?.turnUid === currentUser.id && serverTurnKind !== 'wait') return 'Твой ход';
     if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
     if (currentUser.id === defenderUid && attacks.length > 0) return 'Твой ход';
     if (currentUser.id === currentThrowerUid) return 'Твой ход';
     if (canFinishTurn && currentUser.id === attackerUid) return 'Твой ход';
     return '';
-  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, status]);
+  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, publicView?.turnUid, serverTurnKind, status]);
 
   const primaryLabel = useMemo(() => {
     if (status !== 'active') return '';
+    if (legalMoves?.canFinishTurn) return 'Бито';
+    if (legalMoves?.canTake) return 'Беру';
+    if (legalMoves?.canPass) return 'Пас';
+    if (serverTurnKind === 'attack' && publicView?.turnUid === currentUser.id) return 'Твой ход';
     if (currentUser.id === defenderUid) return attacks.length > 0 ? 'Беру' : '';
     if (canFinishTurn && currentUser.id === attackerUid) return 'Бито';
     if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
     if (currentUser.id === currentThrowerUid) return 'Пас';
     return '';
-  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, status]);
+  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, legalMoves, publicView?.turnUid, serverTurnKind, status]);
 
   const enabledCard = (card: DurakCard) =>
     canAttackCard(card) || canTransferCard(card) || canDefendCardAt(card, selectedAttackIndex);
@@ -332,14 +380,45 @@ export function DurakWebGameDialog({
     }
     if (!game) return <div className="text-sm text-white/70">Игра не найдена</div>;
 
+    if (status === 'finished' || publicView?.phase === 'finished' || publicView?.result) {
+      const winners = publicView?.result?.winners ?? game.result?.winners ?? [];
+      const loserUid = publicView?.result?.loserUid ?? game.result?.loserUid ?? null;
+      return (
+        <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-[28px] border border-white/12 bg-white/10 p-6 text-center text-white shadow-2xl backdrop-blur-xl">
+          <div className="flex -space-x-3">
+            {winners.slice(0, 4).map((uid) => {
+              const avatar = avatarUrl(uid, allUsers);
+              return (
+                <div key={uid} className="h-16 w-16 overflow-hidden rounded-2xl border-4 border-lime-300 bg-white/20">
+                  {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : null}
+                </div>
+              );
+            })}
+          </div>
+          <Badge className="bg-lime-300 text-lime-950">Победитель</Badge>
+          <div className="text-xl font-black">
+            {winners.map((uid) => displayName(uid, allUsers)).join(', ') || 'Победителей нет'}
+          </div>
+          {loserUid ? <div className="text-sm text-white/70">Проиграл: {displayName(loserUid, allUsers)}</div> : null}
+          <Button onClick={() => void rematch()} disabled={busy != null} className="mt-2">
+            Сыграть ещё раз
+          </Button>
+        </div>
+      );
+    }
+
     if (status !== 'active') {
+      const readyUids = Array.isArray((game as any).readyUids) ? ((game as any).readyUids as string[]) : [];
+      const iAmReady = readyUids.includes(currentUser.id);
       return (
         <div className="mx-auto flex w-full max-w-xl flex-col gap-4 rounded-[28px] border border-white/12 bg-white/10 p-5 text-white shadow-2xl backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <Swords className="h-6 w-6 text-emerald-300" />
             <div>
               <div className="text-lg font-black">Лобби “Дурак”</div>
-              <div className="text-sm text-white/60">{gamePlayerIds.length} игроков · статус: {status}</div>
+              <div className="text-sm text-white/60">
+                {gamePlayerIds.length} игроков · готовы {readyUids.length}/{gamePlayerIds.length}
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -353,11 +432,11 @@ export function DurakWebGameDialog({
             )}
             <Button
               onClick={startGame}
-              disabled={busy != null || status !== 'lobby' || !inGame || !isOwner || gamePlayerIds.length < 2}
+              disabled={busy != null || status !== 'lobby' || !inGame || gamePlayerIds.length < 2}
               className="gap-2"
             >
               <Play className="h-4 w-4" />
-              Старт
+              {iAmReady ? 'Готов' : 'Ready'}
             </Button>
             <Button variant="outline" onClick={cancelLobby} disabled={busy != null || status !== 'lobby' || !isOwner}>
               Завершить ожидание
@@ -391,6 +470,10 @@ export function DurakWebGameDialog({
                   allUsers={allUsers}
                   count={handCounts[uid] ?? 0}
                   active={uid === defenderUid || uid === attackerUid || uid === currentThrowerUid}
+                  timerActive={publicView?.turnUid === uid}
+                  turnStartedAt={publicView?.turnStartedAt ?? null}
+                  turnDeadlineAt={publicView?.turnDeadlineAt ?? null}
+                  nowMs={nowMs}
                   role={uid === defenderUid ? 'БЬЕТ' : uid === attackerUid ? 'ХОД' : uid === currentThrowerUid ? 'ПОДК' : ''}
                 />
               ))}
@@ -409,7 +492,11 @@ export function DurakWebGameDialog({
           <div className="relative min-h-0 flex-1">
             <div className="absolute left-4 top-6 flex items-center gap-2">
               <div className="relative h-24 w-16 rotate-[-14deg] rounded-xl border border-white/40 bg-[repeating-linear-gradient(45deg,#d9efe2_0_4px,#87b999_4px_7px,#f7fff9_7px_10px)] shadow-lg" />
-              <DurakCardView card={{ r: 6, s: trumpSuit as any }} compact muted />
+              {publicView?.trumpCard ? (
+                <DurakCardView card={publicView.trumpCard} compact />
+              ) : trumpSuit ? (
+                <DurakCardView card={{ r: 6, s: trumpSuit as any }} compact />
+              ) : null}
               <div className="text-lg font-black drop-shadow">{publicView?.deckCount ?? 0}</div>
             </div>
 
@@ -487,7 +574,6 @@ export function DurakWebGameDialog({
               ) : null}
               <div className="flex items-center gap-2 rounded-xl border border-[#db4a68]/20 bg-white px-3 py-2 text-sm text-zinc-600">
                 <span className="font-black text-[#db4a68]">{displayName(currentUser.id, allUsers)}</span>
-                <span>{myCards.length} карт</span>
               </div>
               <Button
                 type="button"
@@ -505,16 +591,22 @@ export function DurakWebGameDialog({
                   const enabled = enabledCard(card);
                   const selected = idx === selectedCardIdx;
                   const offset = idx - (myCards.length - 1) / 2;
+                  const cardWidth = Math.max(50, Math.min(74, 960 / Math.max(8, myCards.length + 5)));
+                  const cardHeight = cardWidth * (104 / 74);
+                  const margin = myCards.length > 10 ? -Math.max(20, cardWidth * 0.42) : -12;
                   return (
                     <button
                       key={`${cardLabel(card)}-${idx}`}
                       type="button"
                       className={cn(
-                        'relative -ml-3 first:ml-0 touch-none transition-transform',
-                        enabled ? 'cursor-grab active:cursor-grabbing' : 'opacity-60',
-                        selected && '-translate-y-4'
+                        'relative first:ml-0 touch-none transition-transform',
+                        enabled ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
+                        selected && 'drop-shadow-[0_0_12px_rgba(110,231,183,.65)]'
                       )}
-                      style={{ transform: `translateY(${selected ? -18 : Math.abs(offset) * 2}px) rotate(${offset * 3}deg)` }}
+                      style={{
+                        marginLeft: idx === 0 ? 0 : margin,
+                        transform: `translateY(${Math.abs(offset) * 2}px) rotate(${offset * 3}deg)`,
+                      }}
                       onPointerDown={(e) => {
                         if (!enabled) return;
                         e.preventDefault();
@@ -522,7 +614,7 @@ export function DurakWebGameDialog({
                         setDrag({ card, index: idx, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY });
                       }}
                     >
-                      <DurakCardView card={card} />
+                      <DurakCardView card={card} width={cardWidth} height={cardHeight} selected={selected} />
                     </button>
                   );
                 })}
@@ -533,7 +625,7 @@ export function DurakWebGameDialog({
 
         {drag ? (
           <div
-            className="pointer-events-none fixed z-[160] -translate-x-1/2 -translate-y-1/2 opacity-95 drop-shadow-2xl"
+            className="pointer-events-none fixed z-[160] -translate-x-1/2 -translate-y-1/2 drop-shadow-2xl"
             style={{ left: drag.x, top: drag.y }}
           >
             <DurakCardView card={drag.card} />
@@ -564,18 +656,38 @@ function PlayerSeat({
   allUsers,
   count,
   active,
+  timerActive,
+  turnStartedAt,
+  turnDeadlineAt,
+  nowMs,
   role,
 }: {
   uid: string;
   allUsers: User[];
   count: number;
   active: boolean;
+  timerActive: boolean;
+  turnStartedAt: string | null;
+  turnDeadlineAt: string | null;
+  nowMs: number;
   role: string;
 }) {
   const avatar = avatarUrl(uid, allUsers);
+  const startMs = turnStartedAt ? Date.parse(turnStartedAt) : Number.NaN;
+  const endMs = turnDeadlineAt ? Date.parse(turnDeadlineAt) : Number.NaN;
+  const progress =
+    timerActive && Number.isFinite(startMs) && Number.isFinite(endMs) && endMs > startMs
+      ? Math.max(0, Math.min(1, (nowMs - startMs) / (endMs - startMs)))
+      : 0;
+  const ring = timerActive
+    ? {
+        background: `conic-gradient(#a3e635 ${Math.round(progress * 360)}deg, rgba(255,255,255,.25) 0deg)`,
+      }
+    : undefined;
   return (
     <div className="flex min-w-[78px] flex-col items-center gap-1">
       <div className="relative">
+        <div className="rounded-[18px] p-1" style={ring}>
         <div className={cn('h-16 w-16 rounded-xl border-4 bg-white/20 p-1 shadow-lg', active ? 'border-lime-400' : 'border-white/20')}>
           {avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -585,6 +697,7 @@ function PlayerSeat({
               {displayName(uid, allUsers).slice(0, 1).toUpperCase()}
             </div>
           )}
+        </div>
         </div>
         <div className="absolute -right-2 -top-2 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black text-zinc-700">
           {count}
@@ -602,11 +715,17 @@ function DurakCardView({
   card,
   compact = false,
   muted = false,
+  selected = false,
+  width,
+  height,
   className,
 }: {
   card: DurakCard;
   compact?: boolean;
   muted?: boolean;
+  selected?: boolean;
+  width?: number;
+  height?: number;
   className?: string;
 }) {
   const label = cardLabel(card);
@@ -618,9 +737,10 @@ function DurakCardView({
       className={cn(
         'relative rounded-xl border border-black/10 bg-[#fbfbff] shadow-[0_10px_20px_rgba(0,0,0,.22)]',
         compact ? 'h-20 w-14' : 'h-[104px] w-[74px]',
-        muted && 'opacity-90',
+        selected && 'ring-2 ring-emerald-300',
         className
       )}
+      style={width && height ? { width, height } : undefined}
     >
       <div className={cn('absolute left-2 top-1 text-left font-black leading-none', red ? 'text-red-500' : 'text-zinc-950')}>
         <div className={compact ? 'text-base' : 'text-xl'}>{rank}</div>

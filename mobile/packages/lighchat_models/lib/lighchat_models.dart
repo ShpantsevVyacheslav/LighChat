@@ -1136,24 +1136,36 @@ class DurakPublicViewModel {
   const DurakPublicViewModel({
     required this.phase,
     required this.trumpSuit,
+    this.trumpCard,
     required this.deckCount,
     required this.discardCount,
     required this.attackerUid,
     required this.defenderUid,
     required this.handCounts,
     this.currentThrowerUid,
+    this.turnUid,
+    this.turnKind,
+    this.turnStartedAt,
+    this.turnDeadlineAt,
+    this.turnTimeSec,
     this.roundDefenderHandLimit,
     this.canFinishTurn,
   });
 
   final String phase;
   final String trumpSuit;
+  final DurakCardModel? trumpCard;
   final int deckCount;
   final int discardCount;
   final String attackerUid;
   final String defenderUid;
   final Map<String, int> handCounts;
   final String? currentThrowerUid;
+  final String? turnUid;
+  final String? turnKind;
+  final String? turnStartedAt;
+  final String? turnDeadlineAt;
+  final int? turnTimeSec;
   final int? roundDefenderHandLimit;
   final bool? canFinishTurn;
 
@@ -1172,6 +1184,7 @@ class DurakPublicViewModel {
     return DurakPublicViewModel(
       phase: (raw['phase'] ?? '').toString(),
       trumpSuit: (raw['trumpSuit'] ?? '').toString(),
+      trumpCard: DurakCardModel.fromJson(raw['trumpCard']),
       deckCount: asInt(raw['deckCount']),
       discardCount: asInt(raw['discardCount']),
       attackerUid: (raw['attackerUid'] ?? '').toString(),
@@ -1181,6 +1194,21 @@ class DurakPublicViewModel {
           (raw['currentThrowerUid'] ?? '').toString().trim().isEmpty
           ? null
           : raw['currentThrowerUid'].toString(),
+      turnUid: (raw['turnUid'] ?? '').toString().trim().isEmpty
+          ? null
+          : raw['turnUid'].toString(),
+      turnKind: (raw['turnKind'] ?? '').toString().trim().isEmpty
+          ? null
+          : raw['turnKind'].toString(),
+      turnStartedAt: (raw['turnStartedAt'] ?? '').toString().trim().isEmpty
+          ? null
+          : raw['turnStartedAt'].toString(),
+      turnDeadlineAt: (raw['turnDeadlineAt'] ?? '').toString().trim().isEmpty
+          ? null
+          : raw['turnDeadlineAt'].toString(),
+      turnTimeSec: raw['turnTimeSec'] is int
+          ? raw['turnTimeSec'] as int
+          : int.tryParse((raw['turnTimeSec'] ?? '').toString()),
       roundDefenderHandLimit: roundLimitRaw is int
           ? roundLimitRaw
           : int.tryParse((roundLimitRaw ?? '').toString()),

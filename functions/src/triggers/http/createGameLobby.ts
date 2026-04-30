@@ -3,6 +3,7 @@ import { logger } from "firebase-functions";
 import * as admin from "firebase-admin";
 
 import { normalizeDurakSettings } from "../../lib/games/gameSettings";
+import { readyDeadlineFrom } from "../../lib/games/durak/lobbyLifecycle";
 
 type RequestData = {
   conversationId?: unknown;
@@ -60,6 +61,8 @@ export const createGameLobby = onCall(
       conversationId,
       isGroup,
       playerIds: [uid],
+      readyUids: [],
+      readyDeadlineAt: readyDeadlineFrom(Date.now()),
       players: [
         {
           uid,
@@ -82,6 +85,8 @@ export const createGameLobby = onCall(
       createdBy: uid,
       maxPlayers: settings.maxPlayers,
       playerCount: 1,
+      readyUids: [],
+      readyDeadlineAt: readyDeadlineFrom(Date.now()),
       lastUpdatedAt: nowIso,
     };
 
@@ -122,4 +127,3 @@ export const createGameLobby = onCall(
     return { gameId };
   },
 );
-

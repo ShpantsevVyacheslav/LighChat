@@ -10,12 +10,12 @@ import {
   applyDefenseRelaxed,
   applyTransfer,
   applyTransferRelaxed,
+  buildLegalMovesForUid,
+  buildPublicView,
   buildSurrenderResult,
-  canFinishTurn,
   computeAndApplyGameResult,
   derivePhase,
   drawUpToSix,
-  getCurrentThrowerUid,
   markTaking,
   passThrowIn,
   rotateAfterTake,
@@ -264,6 +264,13 @@ export const makeDurakMove = onCall(
         handsByUid: handsByUid as any,
         nowIso,
       });
+      const isFinished = result != null && result.kind === "finished";
+      const conversationId = typeof g.conversationId === "string" ? g.conversationId : "";
+      const tournamentId = typeof (g as any).tournamentId === "string" ? ((g as any).tournamentId as string) : "";
+      const tRef = isFinished && tournamentId ? db.doc(`tournaments/${tournamentId}`) : null;
+      const tgRef = isFinished && tournamentId ? db.doc(`tournaments/${tournamentId}/games/${gameId}`) : null;
+      const tSnap = tRef ? await tx.get(tRef) : null;
+      const tgSnap = tgRef ? await tx.get(tgRef) : null;
 
       tx.create(moveRef, {
         id: clientMoveId,
@@ -283,53 +290,33 @@ export const makeDurakMove = onCall(
       for (const [u, cards] of Object.entries(handsByUid)) {
         tx.set(
           db.doc(`games/${gameId}/privateHands/${u}`),
-          { uid: u, cards, updatedAt: nowIso },
+          {
+            uid: u,
+            cards,
+            legalMoves: buildLegalMovesForUid({ state, handsByUid: handsByUid as any, uid: u, settings }),
+            updatedAt: nowIso,
+          },
           { merge: true },
         );
       }
 
-      const handCounts = Object.fromEntries(
-        Object.entries(handsByUid).map(([u, cards]) => [u, cards.length]),
-      );
-
-      const phase = derivePhase(state);
-      const isFinished = result != null && result.kind === "finished";
       tx.update(gameRef, {
         status: isFinished ? "finished" : "active",
         result: result ?? null,
         serverState: state,
-        publicView: {
-          revision: state.revision,
-          phase,
-          trumpSuit: state.trumpSuit,
-          deckCount: Array.isArray(state.deck) ? state.deck.length : 0,
-          discardCount: Array.isArray(state.discard) ? state.discard.length : 0,
-          seats: Array.isArray(state.seats) ? state.seats : playerIds,
-          attackerUid: state.attackerUid,
-          defenderUid: state.defenderUid,
-          table: state.table,
-          handCounts,
-          lastMoveAt: nowIso,
-          throwerUids: state.throwerUids ?? [],
-          passedUids: state.passedUids ?? [],
-          currentThrowerUid: getCurrentThrowerUid({ state, handsByUid: handsByUid as any }),
-          roundDefenderHandLimit: typeof state.roundDefenderHandLimit === "number" ? state.roundDefenderHandLimit : null,
-          canFinishTurn: canFinishTurn({ state, handsByUid: handsByUid as any }),
-          shuler: {
-            enabled: settings.shulerEnabled === true,
-            lastCheatUid: state.lastCheat ? state.lastCheat.uid : null,
-            lastCheatAt: state.lastCheat ? state.lastCheat.at : null,
-            foulEvent: state.foulEvent ?? null,
-            pendingResolution: state.pendingResolution ?? null,
-          },
-          result: result ?? null,
-        },
+        publicView: buildPublicView({
+          state,
+          handsByUid: handsByUid as any,
+          playerIds,
+          settings,
+          nowIso,
+          result,
+        }),
         lastUpdatedAt: nowIso,
         finishedAt: isFinished ? nowIso : admin.firestore.FieldValue.delete(),
       });
 
       if (isFinished) {
-        const conversationId = typeof g.conversationId === "string" ? g.conversationId : "";
         if (conversationId) {
           tx.set(
             db.doc(`conversations/${conversationId}/gameLobbies/${gameId}`),
@@ -338,15 +325,10 @@ export const makeDurakMove = onCall(
           );
         }
 
-        const tournamentId = typeof (g as any).tournamentId === "string" ? ((g as any).tournamentId as string) : "";
-        if (tournamentId) {
-          const tRef = db.doc(`tournaments/${tournamentId}`);
-          const tgRef = db.doc(`tournaments/${tournamentId}/games/${gameId}`);
-          const tSnap = await tx.get(tRef);
+        if (tRef && tgRef && tSnap) {
           if (tSnap.exists) {
             const t = tSnap.data() as any;
-            const tgSnap = await tx.get(tgRef);
-            const tg = tgSnap.exists ? (tgSnap.data() as any) : null;
+            const tg = tgSnap?.exists ? (tgSnap.data() as any) : null;
             const alreadyApplied =
               tg != null &&
               (typeof tg.appliedAt === "string" || tg.appliedAtTs != null || tg.applied === true);

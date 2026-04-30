@@ -13,7 +13,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
-import 'package:lighchat_firebase/src/chat_open_diagnostics.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -218,6 +217,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String? _autoOpenedDurakGameId;
   bool _autoOpenDurakInFlight = false;
   final Set<String> _invalidDurakGameIds = <String>{};
+  final Set<String> _closedDurakGameIds = <String>{};
+
+  List<ChatMessage> _holdPendingE2eeAlbumPreviewUntilHydrated({
+    required List<ChatMessage> hydratedMsgs,
+    required PendingImageAlbumSend? pendingAlbum,
+    required Set<String> e2eeFailedIds,
+    required String userId,
+  }) {
+    final pendingMessageId = pendingAlbum?.e2eeContext?.messageId.trim();
+    if (pendingMessageId == null || pendingMessageId.isEmpty) {
+      return hydratedMsgs;
+    }
+
+    ChatMessage? pendingMessage;
+    for (final m in hydratedMsgs) {
+      if (m.id == pendingMessageId) {
+        pendingMessage = m;
+        break;
+      }
+    }
+
+    final ready = (pendingMessage?.attachments.isNotEmpty ?? false);
+    final decryptFailed = e2eeFailedIds.contains(pendingMessageId);
+    if (ready || decryptFailed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final currentPending = ref.read(
+          pendingImageAlbumNotifierProvider,
+        )[widget.conversationId];
+        if (currentPending?.e2eeContext?.messageId == pendingMessageId) {
+          ref
+              .read(pendingImageAlbumNotifierProvider.notifier)
+              .setFor(widget.conversationId, null);
+          unawaited(clearChatMessageDraft(userId, widget.conversationId));
+        }
+      });
+      return hydratedMsgs;
+    }
+
+    return hydratedMsgs
+        .where((m) => m.id != pendingMessageId)
+        .toList(growable: false);
+  }
 
   Future<void> _cleanupDeadDurakLobbyLink(String gameId) async {
     final gid = gameId.trim();
@@ -251,6 +293,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (gid == _autoOpenedDurakGameId) return;
     if (_autoOpenDurakInFlight) return;
     if (_invalidDurakGameIds.contains(gid)) return;
+    if (_closedDurakGameIds.contains(gid)) return;
     if (isGroup) return; // requirement: DM auto-open
 
     _autoOpenDurakInFlight = true;
@@ -269,16 +312,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         unawaited(
-          Navigator.of(context).push<void>(
-            MaterialPageRoute<void>(
-              builder: (_) => ConversationDurakLobbyScreen(gameId: gid),
-            ),
-          ),
+          Navigator.of(context)
+              .push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => ConversationDurakLobbyScreen(gameId: gid),
+                ),
+              )
+              .then((_) {
+                if (!mounted) return;
+                _closedDurakGameIds.add(gid);
+              }),
         );
       });
     } on FirebaseException catch (e) {
       final code = (e.code).toLowerCase();
-      if (code == 'permission-denied' || code == 'not-found') {
+      if (code == 'not-found') {
         _invalidDurakGameIds.add(gid);
         unawaited(_cleanupDeadDurakLobbyLink(gid));
       }
@@ -1604,6 +1652,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                         e2eeDecryptedMap,
                                                         e2eeFailedIds,
                                                       ) {
+                                                        final visualMsgs =
+                                                            _holdPendingE2eeAlbumPreviewUntilHydrated(
+                                                              hydratedMsgs:
+                                                                  hydratedMsgs,
+                                                              pendingAlbum:
+                                                                  pendingAlbum,
+                                                              e2eeFailedIds:
+                                                                  e2eeFailedIds,
+                                                              userId: user.uid,
+                                                            );
                                                         _sortedHydratedAscCache =
                                                             List<
                                                                 ChatMessage
@@ -1628,7 +1686,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                           messagesDesc:
                                                               buildDescWithOutboxMessages(
                                                                 hydratedDesc:
-                                                                    hydratedMsgs,
+                                                                    visualMsgs,
                                                                 jobs:
                                                                     outboxJobs,
                                                                 conversationId:
@@ -1795,24 +1853,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                         e2eeContext:
                                                                             album.e2eeContext,
                                                                         onFinished: () {
-                                                                          ref
-                                                                              .read(
-                                                                                pendingImageAlbumNotifierProvider.notifier,
-                                                                              )
-                                                                              .setFor(
-                                                                                widget.conversationId,
-                                                                                null,
-                                                                              );
-                                                                          unawaited(
-                                                                            clearChatMessageDraft(
-                                                                              user.uid,
-                                                                              widget.conversationId,
-                                                                            ),
-                                                                          );
                                                                           if (mounted) {
                                                                             setState(
                                                                               () => _sendBusy = false,
                                                                             );
+                                                                            final pendingMessageId =
+                                                                                album.e2eeContext?.messageId.trim();
+                                                                            final shouldKeepPreview =
+                                                                                pendingMessageId !=
+                                                                                    null &&
+                                                                                pendingMessageId.isNotEmpty;
+                                                                            if (!shouldKeepPreview) {
+                                                                              ref
+                                                                                  .read(
+                                                                                    pendingImageAlbumNotifierProvider.notifier,
+                                                                                  )
+                                                                                  .setFor(
+                                                                                    widget.conversationId,
+                                                                                    null,
+                                                                                  );
+                                                                              unawaited(
+                                                                                clearChatMessageDraft(
+                                                                                  user.uid,
+                                                                                  widget.conversationId,
+                                                                                ),
+                                                                              );
+                                                                            }
                                                                             WidgetsBinding.instance.addPostFrameCallback((
                                                                               _,
                                                                             ) {
@@ -2754,8 +2820,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required Map<String, UserProfile>? profileMap,
     required Conversation? conv,
   }) {
-    if (senderId == user.uid)
+    if (senderId == user.uid) {
       return AppLocalizations.of(context)!.chat_sender_you;
+    }
     final p = profileMap?[senderId];
     if ((p?.name ?? '').trim().isNotEmpty) return p!.name.trim();
     final pi = conv?.participantInfo?[senderId];
@@ -3239,10 +3306,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
       case MessageMenuActionType.copy:
         if (!allowCopy) {
-          if (mounted)
+          if (mounted) {
             _toast(
               AppLocalizations.of(context)!.secret_chat_action_not_allowed,
             );
+          }
           return;
         }
         await copyMessageTextToClipboard(m);
@@ -3262,10 +3330,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
       case MessageMenuActionType.forward:
         if (!allowForward) {
-          if (mounted)
+          if (mounted) {
             _toast(
               AppLocalizations.of(context)!.secret_chat_action_not_allowed,
             );
+          }
           return;
         }
         if (m.isDeleted) return;
@@ -3998,8 +4067,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _scheduleAutoScrollToBottomIfNeeded();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         _toast(AppLocalizations.of(context)!.chat_send_voice_failed(e));
+      }
     } finally {
       unawaited(_deleteFileSilently(rec.filePath));
       if (mounted) setState(() => _sendBusy = false);
@@ -4212,8 +4282,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               break;
           }
         } catch (e) {
-          if (mounted)
+          if (mounted) {
             _toast(AppLocalizations.of(context)!.chat_media_pick_failed(e));
+          }
         }
         break;
       case ComposerAttachmentAction.deviceFiles:
@@ -4232,8 +4303,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _scheduleChatDraftSave();
           }
         } catch (e) {
-          if (mounted)
+          if (mounted) {
             _toast(AppLocalizations.of(context)!.chat_file_pick_failed(e));
+          }
         }
         break;
       case ComposerAttachmentAction.clipboard:

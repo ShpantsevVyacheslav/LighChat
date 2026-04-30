@@ -4,11 +4,11 @@ import * as admin from "firebase-admin";
 
 import { normalizeDurakSettings } from "../../lib/games/gameSettings";
 import {
-  buildInitialState,
-  canFinishTurn,
-  derivePhase,
-  getCurrentThrowerUid,
-} from "../../lib/games/durak/engine";
+  canAutoStartReadyLobby,
+  pruneReadyLobby,
+  readyDeadlineFrom,
+  startDurakRoundInTransaction,
+} from "../../lib/games/durak/lobbyLifecycle";
 
 type RequestData = {
   gameId?: unknown;
@@ -16,7 +16,7 @@ type RequestData = {
 
 type ResponseData = {
   gameId: string;
-  status: "active";
+  status: "lobby" | "active";
 };
 
 function asNonEmptyString(v: unknown): string | null {
@@ -45,78 +45,57 @@ export const startDurakGame = onCall(
       if (g.type !== "durak") throw new HttpsError("failed-precondition", "GAME_TYPE_UNSUPPORTED");
       if (g.status !== "lobby") throw new HttpsError("failed-precondition", "NOT_IN_LOBBY");
 
-      const createdBy = typeof g.createdBy === "string" ? g.createdBy : "";
-      if (createdBy !== uid) throw new HttpsError("permission-denied", "ONLY_OWNER_CAN_START");
-
       const playerIds = Array.isArray(g.playerIds) ? g.playerIds : [];
-      if (playerIds.length < 2) throw new HttpsError("failed-precondition", "NEED_AT_LEAST_2_PLAYERS");
+      if (!playerIds.includes(uid)) throw new HttpsError("permission-denied", "NOT_A_PLAYER");
 
       const conversationId = typeof g.conversationId === "string" ? g.conversationId : "";
       if (!conversationId) throw new HttpsError("internal", "GAME_MISSING_CONVERSATION");
 
       const settings = normalizeDurakSettings(g.settings);
-
-      // randInt with crypto, deterministic-free.
-      const randInt = (maxExclusive: number): number => {
-        if (maxExclusive <= 1) return 0;
-        const buf = new Uint32Array(1);
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const crypto = require("crypto") as typeof import("crypto");
-        crypto.randomFillSync(buf);
-        return buf[0] % maxExclusive;
-      };
-
-      const { state, handsByUid } = buildInitialState({
+      const players = Array.isArray(g.players) ? g.players : playerIds.map((u: string) => ({ uid: u }));
+      const readyBefore = Array.isArray(g.readyUids) ? g.readyUids.map((x: any) => String(x)) : [];
+      const pruned = pruneReadyLobby({
         playerIds,
-        settings,
-        nowIso,
-        randInt,
+        players,
+        readyUids: readyBefore,
+        readyDeadlineAt: typeof g.readyDeadlineAt === "string" ? g.readyDeadlineAt : undefined,
+        nowMs: Date.now(),
       });
+      const nextPlayerIds = pruned.playerIds.includes(uid) ? pruned.playerIds : [...pruned.playerIds, uid];
+      const nextPlayers = pruned.players.some((p) => String(p?.uid ?? "") === uid) ?
+        pruned.players :
+        [...pruned.players, { uid, joinedAt: nowIso, isOwner: uid === g.createdBy }];
+      const nextReadyUids = Array.from(new Set([...pruned.readyUids, uid])).filter((u) => nextPlayerIds.includes(u));
 
-      tx.update(gameRef, {
-        status: "active",
-        startedAt: nowIso,
-        settings,
-        serverState: state,
-        publicView: {
-          revision: state.revision,
-          phase: derivePhase(state),
-          trumpSuit: state.trumpSuit,
-          deckCount: state.deck.length,
-          discardCount: state.discard.length,
-          seats: state.seats ?? playerIds,
-          attackerUid: state.attackerUid,
-          defenderUid: state.defenderUid,
-          table: state.table,
-          handCounts: Object.fromEntries(
-            Object.entries(handsByUid).map(([u, cards]) => [u, cards.length]),
-          ),
-          lastMoveAt: nowIso,
-          throwerUids: state.throwerUids ?? [],
-          passedUids: state.passedUids ?? [],
-          currentThrowerUid: getCurrentThrowerUid({ state, handsByUid }),
-          roundDefenderHandLimit: typeof state.roundDefenderHandLimit === "number" ? state.roundDefenderHandLimit : null,
-          canFinishTurn: canFinishTurn({ state, handsByUid }),
-          shuler: {
-            enabled: settings.shulerEnabled === true,
-            lastCheatUid: null,
-          },
-        },
-        lastUpdatedAt: nowIso,
-      });
-
-      for (const [u, cards] of Object.entries(handsByUid)) {
-        tx.set(db.doc(`games/${gameId}/privateHands/${u}`), {
-          uid: u,
-          cards,
-          updatedAt: nowIso,
+      if (canAutoStartReadyLobby(nextPlayerIds, nextReadyUids)) {
+        startDurakRoundInTransaction({
+          tx,
+          db,
+          gameRef,
+          gameId,
+          game: g,
+          playerIds: nextPlayerIds,
+          settings,
+          nowIso,
         });
+        return;
       }
 
+      const deadline = typeof g.readyDeadlineAt === "string" ? g.readyDeadlineAt : readyDeadlineFrom(Date.now());
+      tx.update(gameRef, {
+        playerIds: nextPlayerIds,
+        players: nextPlayers,
+        readyUids: nextReadyUids,
+        readyDeadlineAt: deadline,
+        lastUpdatedAt: nowIso,
+      });
       tx.set(
         db.doc(`conversations/${conversationId}/gameLobbies/${gameId}`),
         {
-          status: "active",
+          status: "lobby",
+          playerCount: nextPlayerIds.length,
+          readyUids: nextReadyUids,
+          readyDeadlineAt: deadline,
           lastUpdatedAt: nowIso,
         },
         { merge: true },
@@ -124,6 +103,6 @@ export const startDurakGame = onCall(
     });
 
     logger.info("[startDurakGame] started", { gameId, uid });
-    return { gameId, status: "active" };
+    return { gameId, status: "lobby" };
   },
 );

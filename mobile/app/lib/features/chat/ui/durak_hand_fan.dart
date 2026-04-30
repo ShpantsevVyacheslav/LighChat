@@ -44,12 +44,16 @@ class DurakHandFan extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, c) {
         final w = c.maxWidth;
-        final cardW = 68.0;
-        final cardH = 96.0;
         final n = cards.length;
+        final baseW = 68.0;
+        final cardW = min(baseW, max(46.0, w / max(4.7, n * 0.68)));
+        final cardH = cardW * (96.0 / 68.0);
         final overlap = n <= 1
             ? 0.0
-            : min(42.0, max(18.0, (n * cardW - w) / max(1, n - 1)));
+            : min(
+                cardW * 0.62,
+                max(cardW * 0.28, (n * cardW - w) / max(1, n - 1)),
+              );
         final step = cardW - overlap;
         final fanW = cardW + (n - 1) * step;
         final startX = max(0.0, (w - fanW) / 2);
@@ -79,6 +83,8 @@ class DurakHandFan extends StatelessWidget {
                     onDragAcceptedByTable: () =>
                         onDragAcceptedByTable(cards[i]),
                     onDragRejected: () => onDragRejected(cards[i]),
+                    cardWidth: cardW,
+                    cardHeight: cardH,
                   ),
                 ),
             ],
@@ -104,6 +110,8 @@ class _HandFanCard extends StatelessWidget {
     required this.onTap,
     required this.onDragAcceptedByTable,
     required this.onDragRejected,
+    required this.cardWidth,
+    required this.cardHeight,
   });
 
   final Map<String, dynamic> card;
@@ -118,6 +126,8 @@ class _HandFanCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDragAcceptedByTable;
   final VoidCallback onDragRejected;
+  final double cardWidth;
+  final double cardHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +142,8 @@ class _HandFanCard extends StatelessWidget {
           selected: selected,
           disabled: !enabled,
           highlight: highlight,
+          width: cardWidth,
+          height: cardHeight,
           onTap: onTap,
         ),
       );
@@ -148,9 +160,15 @@ class _HandFanCard extends StatelessWidget {
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: Material(
         color: Colors.transparent,
-        child: Opacity(opacity: 0.96, child: buildCard(withFlightKey: false)),
+        child: buildCard(withFlightKey: false),
       ),
-      childWhenDragging: buildCard(withFlightKey: true),
+      childWhenDragging: Visibility(
+        visible: false,
+        maintainSize: true,
+        maintainAnimation: true,
+        maintainState: true,
+        child: buildCard(withFlightKey: true),
+      ),
       child: childCard,
       onDragEnd: (d) {
         if (d.wasAccepted) onDragAcceptedByTable();

@@ -18,6 +18,7 @@ export type DurakTable = {
 export type DurakPrivateHandDoc = {
   uid: string;
   cards: Card[];
+  legalMoves?: DurakLegalMoves;
   updatedAt: string;
 };
 
@@ -35,6 +36,7 @@ export type DurakPublicView = {
   revision: number;
   phase: DurakPhase;
   trumpSuit: Suit;
+  trumpCard?: Card | null;
   deckCount: number;
   discardCount: number;
   seats?: string[]; // uid order (clockwise)
@@ -46,6 +48,11 @@ export type DurakPublicView = {
   throwerUids?: string[];
   passedUids?: string[];
   currentThrowerUid?: string | null;
+  turnUid?: string | null;
+  turnKind?: DurakTurnKind;
+  turnStartedAt?: string | null;
+  turnDeadlineAt?: string | null;
+  turnTimeSec?: number | null;
   roundDefenderHandLimit?: number | null;
   canFinishTurn?: boolean;
   shuler?: {
@@ -66,6 +73,25 @@ export type DurakPublicView = {
     };
   };
   result?: DurakGameResult;
+};
+
+export type DurakTurnKind =
+  | "attack"
+  | "defend"
+  | "throwIn"
+  | "takeOrDefend"
+  | "finishTurn"
+  | "wait"
+  | "finished";
+
+export type DurakLegalMoves = {
+  revision: number;
+  canTake: boolean;
+  canPass: boolean;
+  canFinishTurn: boolean;
+  attackCardKeys: string[];
+  transferCardKeys: string[];
+  defenseTargets: { attackIndex: number; cardKeys: string[] }[];
 };
 
 export type DurakServerState = {

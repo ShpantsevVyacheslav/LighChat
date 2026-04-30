@@ -78,12 +78,13 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
         final maxPlayers = (data['settings'] is Map)
             ? ((data['settings'] as Map)['maxPlayers'] ?? 0)
             : 0;
-        final canStart =
-            me != null &&
-            iAmPlayer &&
-            status == 'lobby' &&
-            playerCount >= 2 &&
-            _isOwner(data, me);
+        final readyRaw = data['readyUids'];
+        final readyUids = readyRaw is List
+            ? readyRaw.map((e) => e.toString()).toSet()
+            : <String>{};
+        final iAmReady = me != null && readyUids.contains(me);
+        final canReady =
+            me != null && iAmPlayer && status == 'lobby' && playerCount >= 2;
         final canCancel = me != null && status == 'lobby' && _isOwner(data, me);
 
         if (status == 'active') {
@@ -110,6 +111,8 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                   maxPlayers is int ? maxPlayers : 0,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text('Готовы: ${readyUids.length}/$playerCount'),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: me == null
@@ -128,7 +131,7 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                                 );
                               }
                             }
-                          : (canStart
+                          : (canReady
                                 ? () async {
                                     try {
                                       await GamesCallables().startDurak(
@@ -148,8 +151,8 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                 child: Text(
                   !iAmPlayer && status == 'lobby'
                       ? l10n.conversation_game_lobby_join
-                      : (canStart
-                            ? l10n.conversation_game_lobby_start
+                      : (canReady
+                            ? (iAmReady ? 'Готов' : 'Ready')
                             : l10n.common_soon),
                 ),
               ),

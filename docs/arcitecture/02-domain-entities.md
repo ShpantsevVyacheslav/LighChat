@@ -45,7 +45,9 @@
 ## Mini apps / Игры
 
 - `GameSession` - сессия мини-приложения внутри чата (напр. “Дурак”): хранится в `games/{gameId}` и создаётся сервером (Cloud Functions). Доступ на чтение — только участникам (uid ∈ `playerIds`).
-  - Для “Дурака” игра имеет публичное представление `publicView` (фаза раунда, стол, счётчики рук, `currentThrowerUid`, `roundDefenderHandLimit`, `canFinishTurn`) и приватные документы рук `privateHands/{uid}`.
+  - Для “Дурака” игра имеет публичное представление `publicView` (фаза раунда, стол, счётчики рук, фактическая `trumpCard`, `currentThrowerUid`, `turnUid`, `turnKind`, `roundDefenderHandLimit`, `canFinishTurn`) и приватные документы рук `privateHands/{uid}`.
+  - `privateHands/{uid}.legalMoves` — серверно рассчитанный список разрешённых действий игрока (`attackCardKeys`, `transferCardKeys`, `defenseTargets`, `canTake`, `canPass`, `canFinishTurn`) с `revision`; web/mobile используют его как основной источник правил, а локальные проверки оставляют только как fallback для старых партий.
+  - Лобби “Дурака” работает как ready-room: `readyUids[]`, `readyDeadlineAt` и список `playerIds[]`. `startDurakGame` используется как действие Ready; когда все текущие игроки готовы, сервер стартует партию. Если `readyDeadlineAt` истёк, неготовые игроки удаляются из комнаты ожидания, и партия стартует без них при наличии минимум двух готовых.
   - Новые партии “Дурака” стартуют с 6 картами на игрока; добор после раунда также ведётся до 6.
   - Результат завершённой партии фиксируется в `result` + `finishedAt`. Ход `surrender` завершает активную партию немедленно: сдающийся становится `loserUid`, остальные игроки — `winners`, `placements` формируются как победители и затем сдающийся.
 
