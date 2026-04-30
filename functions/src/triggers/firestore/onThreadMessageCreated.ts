@@ -132,6 +132,5 @@ export const onthreadmessagecreated = onDocumentCreated(
     } catch (error) {
       logger.error("Error sending thread message via FCM:", error);
     }
-
   },
 );

@@ -148,6 +148,5 @@ export const onmessagecreated = onDocumentCreated(
     } catch (error) {
       logger.error("Error sending message via FCM:", error);
     }
-
   },
 );
