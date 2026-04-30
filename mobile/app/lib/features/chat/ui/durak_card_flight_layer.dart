@@ -31,8 +31,18 @@ class _DurakCardFlightLayerState extends State<DurakCardFlightLayer> {
     if (ctx == null) return null;
     final box = ctx.findRenderObject();
     if (box is! RenderBox) return null;
+    if (!box.attached) return null;
     final p = box.localToGlobal(Offset.zero);
-    return p & box.size;
+    final size = box.size;
+    if (!p.dx.isFinite ||
+        !p.dy.isFinite ||
+        !size.width.isFinite ||
+        !size.height.isFinite ||
+        size.width <= 0 ||
+        size.height <= 0) {
+      return null;
+    }
+    return p & size;
   }
 
   void _flyBacks({
@@ -95,6 +105,13 @@ class _DurakCardFlightLayerState extends State<DurakCardFlightLayer> {
   }
 
   void _start(_Flight f) {
+    if (!f.from.dx.isFinite ||
+        !f.from.dy.isFinite ||
+        !f.to.dx.isFinite ||
+        !f.to.dy.isFinite ||
+        !f.baseRotation.isFinite) {
+      return;
+    }
     setState(() => _flights.add(f));
   }
 
@@ -221,8 +238,11 @@ class _FlightWidgetState extends State<_FlightWidget>
       animation: Listenable.merge([anim, popAnim]),
       builder: (context, _) {
         final t = anim.value;
+        if (!t.isFinite) return const SizedBox.shrink();
         final p = Offset.lerp(widget.f.from, widget.f.to, t)!;
+        if (!p.dx.isFinite || !p.dy.isFinite) return const SizedBox.shrink();
         final rot = widget.f.baseRotation + (1.0 - t) * 0.08;
+        if (!rot.isFinite) return const SizedBox.shrink();
         final popT = widget.f.popAtEnd ? popAnim.value : 0.0;
         return Positioned(
           left: p.dx - 34,

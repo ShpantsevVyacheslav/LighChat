@@ -86,14 +86,14 @@ class _ConversationEncryptionScreenState
       );
       if (!mounted) return;
       if (did) {
-        _toast('Шифрование включено');
+        Navigator.of(context).pop();
       } else {
         _toast(
           'Шифрование уже включено или не удалось создать ключи. '
           'Проверьте сеть и наличие ключей у собеседника.',
         );
+        Navigator.of(context).pop();
       }
-      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       final s = e.toString();
@@ -131,9 +131,7 @@ class _ConversationEncryptionScreenState
               child: const Text('Отмена'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: scheme.error,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: scheme.error),
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Отключить'),
             ),
@@ -162,10 +160,7 @@ class _ConversationEncryptionScreenState
       await FirebaseFirestore.instance
           .collection('conversations')
           .doc(widget.conversationId)
-          .update(<String, Object?>{
-            'e2eeEnabled': false,
-            'e2eeKeyEpoch': 0,
-          });
+          .update(<String, Object?>{'e2eeEnabled': false, 'e2eeKeyEpoch': 0});
 
       // Публикуем divider «Сквозное шифрование отключено». Ошибку ловим:
       // маркер — cosmetic, не должен откатывать сам disable.
@@ -179,7 +174,6 @@ class _ConversationEncryptionScreenState
       } catch (_) {}
 
       if (!mounted) return;
-      _toast('Шифрование отключено');
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -203,7 +197,9 @@ class _ConversationEncryptionScreenState
               child: Row(
                 children: [
                   Material(
-                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.55,
+                    ),
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
@@ -232,64 +228,64 @@ class _ConversationEncryptionScreenState
               ),
             ),
             const SizedBox(height: 16),
-          Text(
-            on
-                ? 'Сквозное шифрование включено для этого чата.'
-                : 'Сквозное шифрование выключено.',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface.withValues(alpha: 0.92),
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Когда шифрование включено, содержимое новых сообщений доступно '
-            'только участникам чата на их устройствах. Отключение влияет только '
-            'на новые сообщения.',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              color: scheme.onSurface.withValues(alpha: 0.68),
-            ),
-          ),
-          const SizedBox(height: 28),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-              border: Border.all(
-                color: scheme.onSurface.withValues(alpha: 0.10),
+            Text(
+              on
+                  ? 'Сквозное шифрование включено для этого чата.'
+                  : 'Сквозное шифрование выключено.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface.withValues(alpha: 0.92),
+                height: 1.35,
               ),
             ),
-            child: SwitchListTile.adaptive(
-              title: const Text('Включить шифрование'),
-              subtitle: Text(
-                on
-                    ? 'Включено (эпоха ключа: ${widget.conversation.e2eeKeyEpoch ?? 0})'
-                    : 'Выключено',
+            const SizedBox(height: 14),
+            Text(
+              'Когда шифрование включено, содержимое новых сообщений доступно '
+              'только участникам чата на их устройствах. Отключение влияет только '
+              'на новые сообщения.',
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: scheme.onSurface.withValues(alpha: 0.68),
               ),
-              value: on,
-              onChanged: _busy
-                  ? null
-                  : (v) {
-                      if (v) {
-                        unawaited(_enable());
-                      } else {
-                        unawaited(_disable());
-                      }
-                    },
             ),
-          ),
-          const SizedBox(height: 18),
-          _E2eeDataTypesCard(
-            conversationId: widget.conversationId,
-            currentUserId: widget.currentUserId,
-            busy: _typesBusy,
-            onBusyChanged: (v) => setState(() => _typesBusy = v),
-          ),
-        ],
+            const SizedBox(height: 28),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                border: Border.all(
+                  color: scheme.onSurface.withValues(alpha: 0.10),
+                ),
+              ),
+              child: SwitchListTile.adaptive(
+                title: const Text('Включить шифрование'),
+                subtitle: Text(
+                  on
+                      ? 'Включено (эпоха ключа: ${widget.conversation.e2eeKeyEpoch ?? 0})'
+                      : 'Выключено',
+                ),
+                value: on,
+                onChanged: _busy
+                    ? null
+                    : (v) {
+                        if (v) {
+                          unawaited(_enable());
+                        } else {
+                          unawaited(_disable());
+                        }
+                      },
+              ),
+            ),
+            const SizedBox(height: 18),
+            _E2eeDataTypesCard(
+              conversationId: widget.conversationId,
+              currentUserId: widget.currentUserId,
+              busy: _typesBusy,
+              onBusyChanged: (v) => setState(() => _typesBusy = v),
+            ),
+          ],
         ),
       ),
     );
@@ -440,8 +436,8 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                     onChanged: (on) async {
                       if (on) {
                         await _setOverride(<String, Object?>{
-                          'e2eeEncryptedDataTypesOverride':
-                              effective.toFirestoreMap(),
+                          'e2eeEncryptedDataTypesOverride': effective
+                              .toFirestoreMap(),
                         });
                       } else {
                         await _setOverride(<String, Object?>{
@@ -458,11 +454,12 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                     onChanged: !hasOverride
                         ? null
                         : (v) async {
-                      final next = effective.copyWith(text: v);
-                      await _setOverride(<String, Object?>{
-                        'e2eeEncryptedDataTypesOverride': next.toFirestoreMap(),
-                      });
-                    },
+                            final next = effective.copyWith(text: v);
+                            await _setOverride(<String, Object?>{
+                              'e2eeEncryptedDataTypesOverride': next
+                                  .toFirestoreMap(),
+                            });
+                          },
                   ),
                   row(
                     title: 'Вложения (медиа/файлы)',
@@ -471,11 +468,12 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                     onChanged: !hasOverride
                         ? null
                         : (v) async {
-                      final next = effective.copyWith(media: v);
-                      await _setOverride(<String, Object?>{
-                        'e2eeEncryptedDataTypesOverride': next.toFirestoreMap(),
-                      });
-                    },
+                            final next = effective.copyWith(media: v);
+                            await _setOverride(<String, Object?>{
+                              'e2eeEncryptedDataTypesOverride': next
+                                  .toFirestoreMap(),
+                            });
+                          },
                   ),
                   if (!hasOverride) ...[
                     const SizedBox(height: 6),
@@ -496,4 +494,3 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
     );
   }
 }
-

@@ -217,6 +217,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String? _handledIncomingCallId;
   String? _autoOpenedDurakGameId;
   bool _autoOpenDurakInFlight = false;
+  final Set<String> _invalidDurakGameIds = <String>{};
+
+  Future<void> _cleanupDeadDurakLobbyLink(String gameId) async {
+    final gid = gameId.trim();
+    if (gid.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(widget.conversationId)
+          .collection('gameLobbies')
+          .doc(gid)
+          .delete();
+    } on FirebaseException catch (_) {
+      // Best-effort cleanup: ignore permission/race errors.
+    }
+  }
 
   double _chatBottomOffset(ScrollController c) {
     if (!c.hasClients) return 0;
@@ -225,30 +241,50 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         : c.position.maxScrollExtent;
   }
 
-  void _maybeAutoOpenDurakOnGameStarted({
+  Future<void> _maybeAutoOpenDurakOnGameStarted({
     required String? gameId,
     required bool isGroup,
-  }) {
+  }) async {
     if (!mounted) return;
     final gid = (gameId ?? '').trim();
     if (gid.isEmpty) return;
     if (gid == _autoOpenedDurakGameId) return;
     if (_autoOpenDurakInFlight) return;
+    if (_invalidDurakGameIds.contains(gid)) return;
     if (isGroup) return; // requirement: DM auto-open
 
     _autoOpenDurakInFlight = true;
-    _autoOpenedDurakGameId = gid;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('games')
+          .doc(gid)
+          .get();
       if (!mounted) return;
-      unawaited(
-        Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(
-            builder: (_) => ConversationDurakLobbyScreen(gameId: gid),
+      if (!doc.exists) {
+        _invalidDurakGameIds.add(gid);
+        unawaited(_cleanupDeadDurakLobbyLink(gid));
+        return;
+      }
+      _autoOpenedDurakGameId = gid;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(
+          Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
+              builder: (_) => ConversationDurakLobbyScreen(gameId: gid),
+            ),
           ),
-        ),
-      );
+        );
+      });
+    } on FirebaseException catch (e) {
+      final code = (e.code).toLowerCase();
+      if (code == 'permission-denied' || code == 'not-found') {
+        _invalidDurakGameIds.add(gid);
+        unawaited(_cleanupDeadDurakLobbyLink(gid));
+      }
+    } finally {
       _autoOpenDurakInFlight = false;
-    });
+    }
   }
 
   void _jumpToChatBottom() {
@@ -1504,9 +1540,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       if (gameType != 'durak') continue;
                                       final gid = (data['gameId'] ?? '')
                                           .toString();
-                                      _maybeAutoOpenDurakOnGameStarted(
-                                        gameId: gid,
-                                        isGroup: conv?.data.isGroup ?? true,
+                                      unawaited(
+                                        _maybeAutoOpenDurakOnGameStarted(
+                                          gameId: gid,
+                                          isGroup: conv?.data.isGroup ?? true,
+                                        ),
                                       );
                                       break;
                                     }

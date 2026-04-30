@@ -1039,88 +1039,69 @@ class _ConversationDurakGameScreenState
                             return _rankValue(a).compareTo(_rankValue(b));
                           });
 
-                          return AnimatedSize(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOut,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              switchInCurve: Curves.easeOut,
-                              switchOutCurve: Curves.easeIn,
-                              child: DurakHandFan(
-                                key: ValueKey<int>(maps.length),
-                                cards: maps,
-                                cardId: _cardId,
-                                keyForCardId: _handKeyFor,
-                                rankLabel: _rankLabel,
-                                suitLabel: _suitLabel,
-                                isRedSuit: _isRedSuit,
-                                enabled: (card) =>
-                                    cardCanAttack(card) ||
-                                    cardCanDefendAt(
-                                      card,
-                                      _selectedAttackIndex,
-                                    ) ||
-                                    cardCanTransfer(card),
-                                highlight: (card) =>
-                                    cardCanAttack(card) ||
-                                    cardCanDefendAt(
-                                      card,
-                                      _selectedAttackIndex,
-                                    ) ||
-                                    cardCanTransfer(card),
-                                selectedId: _selectedCardId,
-                                onTap: (card, id) {
-                                  final enabled =
-                                      cardCanAttack(card) ||
-                                      cardCanDefendAt(
-                                        card,
-                                        _selectedAttackIndex,
-                                      ) ||
-                                      cardCanTransfer(card);
-                                  if (!enabled) return;
-                                  final canA = cardCanAttack(card);
-                                  final canD = cardCanDefendAt(
-                                    card,
-                                    _selectedAttackIndex,
+                          return DurakHandFan(
+                            cards: maps,
+                            cardId: _cardId,
+                            keyForCardId: _handKeyFor,
+                            rankLabel: _rankLabel,
+                            suitLabel: _suitLabel,
+                            isRedSuit: _isRedSuit,
+                            enabled: (card) =>
+                                cardCanAttack(card) ||
+                                cardCanDefendAt(card, _selectedAttackIndex) ||
+                                cardCanTransfer(card),
+                            highlight: (card) =>
+                                cardCanAttack(card) ||
+                                cardCanDefendAt(card, _selectedAttackIndex) ||
+                                cardCanTransfer(card),
+                            selectedId: _selectedCardId,
+                            onTap: (card, id) {
+                              final enabled =
+                                  cardCanAttack(card) ||
+                                  cardCanDefendAt(card, _selectedAttackIndex) ||
+                                  cardCanTransfer(card);
+                              if (!enabled) return;
+                              final canA = cardCanAttack(card);
+                              final canD = cardCanDefendAt(
+                                card,
+                                _selectedAttackIndex,
+                              );
+                              final canT = cardCanTransfer(card);
+                              final options = <String>[
+                                if (canA) 'attack',
+                                if (canD) 'defend',
+                                if (canT) 'transfer',
+                              ];
+
+                              // If the action is unambiguous, play immediately.
+                              if (options.length == 1) {
+                                final action = options.first;
+                                if (action == 'attack') {
+                                  unawaited(_tryAttack(card));
+                                  return;
+                                }
+                                if (action == 'transfer') {
+                                  unawaited(_tryTransfer(card));
+                                  return;
+                                }
+                                if (action == 'defend') {
+                                  unawaited(
+                                    _tryDefend(
+                                      attackIndex: _selectedAttackIndex,
+                                      card: card,
+                                    ),
                                   );
-                                  final canT = cardCanTransfer(card);
-                                  final options = <String>[
-                                    if (canA) 'attack',
-                                    if (canD) 'defend',
-                                    if (canT) 'transfer',
-                                  ];
+                                  return;
+                                }
+                              }
 
-                                  // If the action is unambiguous, play immediately.
-                                  if (options.length == 1) {
-                                    final action = options.first;
-                                    if (action == 'attack') {
-                                      unawaited(_tryAttack(card));
-                                      return;
-                                    }
-                                    if (action == 'transfer') {
-                                      unawaited(_tryTransfer(card));
-                                      return;
-                                    }
-                                    if (action == 'defend') {
-                                      unawaited(
-                                        _tryDefend(
-                                          attackIndex: _selectedAttackIndex,
-                                          card: card,
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                  }
-
-                                  setState(() {
-                                    _selectedCard = card;
-                                    _selectedCardId = id;
-                                  });
-                                },
-                                onDragAcceptedByTable: (_) {},
-                                onDragRejected: (_) => _toast('Ход недоступен'),
-                              ),
-                            ),
+                              setState(() {
+                                _selectedCard = card;
+                                _selectedCardId = id;
+                              });
+                            },
+                            onDragAcceptedByTable: (_) {},
+                            onDragRejected: (_) => _toast('Ход недоступен'),
                           );
                         },
                       ),

@@ -31,7 +31,7 @@ class DurakCardWidget extends StatelessWidget {
               ? const Color(0xFF6EE7B7)
               : Colors.black.withValues(alpha: 0.15));
 
-    final effectiveBg = disabled ? base.withValues(alpha: 0.55) : base;
+    final effectiveBg = base;
     final fg = isRed ? const Color(0xFFDC2626) : const Color(0xFF111827);
     final textColor = faceUp ? fg : Colors.white.withValues(alpha: 0.92);
 
@@ -71,7 +71,7 @@ class DurakCardWidget extends StatelessWidget {
                 ? _Face(
                     rankLabel: rankLabel,
                     suitLabel: suitLabel,
-                    color: textColor.withValues(alpha: disabled ? 0.50 : 1.0),
+                    color: textColor,
                   )
                 : _Back(disabled: disabled),
           ),

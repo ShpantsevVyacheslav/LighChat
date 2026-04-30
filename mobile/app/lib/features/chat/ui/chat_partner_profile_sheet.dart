@@ -71,6 +71,17 @@ class ChatPartnerProfileSheet extends ConsumerStatefulWidget {
       _ChatPartnerProfileSheetState();
 }
 
+Conversation? _findConversationById(
+  List<ConversationWithId>? conversations,
+  String conversationId,
+) {
+  if (conversations == null) return null;
+  for (final conversation in conversations) {
+    if (conversation.id == conversationId) return conversation.data;
+  }
+  return null;
+}
+
 class _ChatPartnerProfileSheetState
     extends ConsumerState<ChatPartnerProfileSheet> {
   bool _addContactBusy = false;
@@ -800,6 +811,17 @@ class _ChatPartnerProfileSheetState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final liveConversationAsync = ref.watch(
+      conversationsProvider((
+        key: conversationIdsCacheKey(<String>[widget.conversationId]),
+      )),
+    );
+    final conversation =
+        _findConversationById(
+          liveConversationAsync.asData?.value,
+          widget.conversationId,
+        ) ??
+        widget.conversation;
     final partnerId = _dmPartnerId;
     final fresh = widget.partnerProfile;
     final statusDm = partnerPresenceLine(fresh);
@@ -877,8 +899,8 @@ class _ChatPartnerProfileSheetState
       widget.conversation.disappearingMessageTtlSec,
     );
     final e2eeOn =
-        widget.conversation.e2eeEnabled == true &&
-        (widget.conversation.e2eeKeyEpoch ?? 0) > 0;
+        conversation.e2eeEnabled == true &&
+        (conversation.e2eeKeyEpoch ?? 0) > 0;
     final encryptionLabel = e2eeOn
         ? l10n.conversation_profile_e2ee_on
         : l10n.conversation_profile_e2ee_off;
@@ -1343,7 +1365,7 @@ class _ChatPartnerProfileSheetState
                         builder: (_) => ConversationEncryptionScreen(
                           conversationId: widget.conversationId,
                           currentUserId: widget.currentUserId,
-                          conversation: widget.conversation,
+                          conversation: conversation,
                         ),
                       ),
                     );

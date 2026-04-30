@@ -121,30 +121,34 @@ class _HandFanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Container(
-      key: keyForFlight,
-      child: DurakCardWidget(
-        rankLabel: rank,
-        suitLabel: suit,
-        isRed: isRed,
-        faceUp: true,
-        selected: selected,
-        disabled: !enabled,
-        highlight: highlight,
-        onTap: onTap,
-      ),
-    );
+    Widget buildCard({required bool withFlightKey}) {
+      return Container(
+        key: withFlightKey ? keyForFlight : null,
+        child: DurakCardWidget(
+          rankLabel: rank,
+          suitLabel: suit,
+          isRed: isRed,
+          faceUp: true,
+          selected: selected,
+          disabled: !enabled,
+          highlight: highlight,
+          onTap: onTap,
+        ),
+      );
+    }
 
-    if (!enabled) return base;
+    final childCard = buildCard(withFlightKey: true);
+
+    if (!enabled) return childCard;
 
     return Draggable<Map<String, dynamic>>(
       data: card,
       feedback: Material(
         color: Colors.transparent,
-        child: Opacity(opacity: 0.96, child: base),
+        child: Opacity(opacity: 0.96, child: buildCard(withFlightKey: false)),
       ),
-      childWhenDragging: Opacity(opacity: 0.35, child: base),
-      child: base,
+      childWhenDragging: buildCard(withFlightKey: true),
+      child: childCard,
       onDragEnd: (d) {
         if (d.wasAccepted) onDragAcceptedByTable();
       },

@@ -30,10 +30,30 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
       stream: ref.snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
+          final code = (snap.error is FirebaseException)
+              ? ((snap.error as FirebaseException).code.toLowerCase())
+              : '';
+          final removed = code == 'permission-denied' || code == 'not-found';
           return Center(
-            child: Text(
-              l10n.conversation_game_lobby_error(
-                (snap.error ?? 'unknown').toString(),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    removed
+                        ? 'Игра недоступна или была удалена'
+                        : l10n.conversation_game_lobby_error(
+                            (snap.error ?? 'unknown').toString(),
+                          ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    child: Text(l10n.common_close),
+                  ),
+                ],
               ),
             ),
           );
