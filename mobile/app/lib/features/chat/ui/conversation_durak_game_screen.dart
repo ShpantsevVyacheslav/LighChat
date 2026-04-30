@@ -12,7 +12,6 @@ import 'durak_felt_background.dart';
 import 'durak_hand_fan.dart';
 import 'durak_player_names.dart';
 import 'durak_player_profiles.dart';
-import 'durak_players_strip.dart';
 import 'durak_primary_actions_bar.dart';
 import 'durak_table_fly_fx.dart';
 import 'durak_table_widget.dart';
@@ -298,14 +297,6 @@ class _ConversationDurakGameScreenState
               final defenderUid =
                   (publicView == null ? '' : (publicView['defenderUid'] ?? ''))
                       .toString();
-
-              Map<String, dynamic>? serverState;
-              final serverStateRaw = g['serverState'];
-              if (serverStateRaw is Map) {
-                serverState = Map<String, dynamic>.from(serverStateRaw);
-              }
-              final defenderTaking =
-                  serverState != null && serverState['taking'] == true;
 
               final tableRaw = publicView == null ? null : publicView['table'];
               final table = tableRaw is Map
@@ -777,64 +768,48 @@ class _ConversationDurakGameScreenState
                         return const SizedBox.shrink();
                       },
                     ),
-                  SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 6, 10, 2),
-                      child: Row(
-                        children: [
-                          IconButton.filledTonal(
-                            tooltip: 'Назад',
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.arrow_back_rounded),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              l10n.conversation_games_durak,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filled(
-                            tooltip: 'Сдаться',
-                            onPressed: status == 'active' && me != null
-                                ? () => unawaited(_surrender())
-                                : null,
-                            icon: const Icon(Icons.flag_rounded),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-                    child: DurakPlayersStrip(
-                      l10n: l10n,
-                      seats: seats,
-                      attackerUid: attackerUid,
-                      defenderUid: defenderUid,
-                      throwerUids: throwerUids,
-                      passedUids: passedUids,
-                      activeThrowerUid: activeThrowerUid,
-                      handCounts: handCounts,
-                      me: me,
-                      defenderTaking: defenderTaking,
-                    ),
-                  ),
                   Expanded(
                     child: Stack(
                       children: [
+                        SafeArea(
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                            child: Row(
+                              children: [
+                                IconButton.filled(
+                                  tooltip: 'Завершить игру',
+                                  onPressed: status == 'active' && me != null
+                                      ? () => unawaited(_surrender())
+                                      : null,
+                                  icon: const Icon(Icons.flag_rounded),
+                                ),
+                                const Spacer(),
+                                IconButton.filledTonal(
+                                  tooltip: 'Закрыть',
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 58,
+                          left: 0,
+                          right: 0,
+                          child: _DurakTopOpponent(
+                            seats: seats,
+                            me: me,
+                            attackerUid: attackerUid,
+                            defenderUid: defenderUid,
+                            activeThrowerUid: activeThrowerUid,
+                            handCounts: handCounts,
+                          ),
+                        ),
                         Positioned(
                           left: 12,
-                          top: 6,
+                          top: 118,
                           child: Container(
                             key: _deckKey,
                             child: _DurakSideDeck(
@@ -845,7 +820,7 @@ class _ConversationDurakGameScreenState
                         ),
                         Positioned(
                           right: 12,
-                          top: 6,
+                          top: 118,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -867,43 +842,9 @@ class _ConversationDurakGameScreenState
                             ),
                           ),
                         ),
-                        if (trumpSuit.isNotEmpty)
-                          Positioned(
-                            top: 6,
-                            left: 0,
-                            right: 0,
-                            child: Align(
-                              alignment: Alignment.topCenter,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.10),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Козырь: ${{'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[trumpSuit] ?? trumpSuit}',
-                                  style: TextStyle(
-                                    color:
-                                        (trumpSuit == 'H' || trumpSuit == 'D')
-                                        ? const Color(
-                                            0xFFF87171,
-                                          ).withValues(alpha: 0.92)
-                                        : Colors.white.withValues(alpha: 0.82),
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                         Center(
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 36, 12, 16),
+                            padding: const EdgeInsets.fromLTRB(12, 140, 12, 16),
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 220),
                               switchInCurve: Curves.easeOut,
@@ -1029,6 +970,19 @@ class _ConversationDurakGameScreenState
                     primaryActions: primaryActions,
                     overflowActions: overflowActions,
                   ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: status == 'active' && me != null
+                            ? () => unawaited(_surrender())
+                            : null,
+                        icon: const Icon(Icons.flag_rounded),
+                        label: const Text('Завершить игру'),
+                      ),
+                    ),
+                  ),
                   if (handRef == null)
                     const SizedBox.shrink()
                   else
@@ -1036,19 +990,7 @@ class _ConversationDurakGameScreenState
                       key: _handKey,
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F7F9),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.22),
-                            blurRadius: 18,
-                            offset: const Offset(0, -8),
-                          ),
-                        ],
-                      ),
+                      decoration: const BoxDecoration(),
                       child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                         stream: handRef.snapshots(),
                         builder: (context, handSnap) {
@@ -1195,6 +1137,171 @@ class _ConversationDurakGameScreenState
 
 // _HandCard was replaced by DurakHandFan.
 
+class _DurakTopOpponent extends StatelessWidget {
+  const _DurakTopOpponent({
+    required this.seats,
+    required this.me,
+    required this.attackerUid,
+    required this.defenderUid,
+    required this.activeThrowerUid,
+    required this.handCounts,
+  });
+
+  final List<String> seats;
+  final String? me;
+  final String attackerUid;
+  final String defenderUid;
+  final String? activeThrowerUid;
+  final Map? handCounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final opponentUid = seats.firstWhere(
+      (uid) => uid.trim().isNotEmpty && uid != me,
+      orElse: () => '',
+    );
+    if (opponentUid.isEmpty) return const SizedBox.shrink();
+    final role = opponentUid == defenderUid
+        ? 'БЬЕТ'
+        : (opponentUid == attackerUid
+              ? 'ХОД'
+              : (opponentUid == activeThrowerUid ? 'ПОДК' : ''));
+    final count =
+        int.tryParse(
+          (handCounts == null ? '' : (handCounts![opponentUid] ?? ''))
+              .toString(),
+        ) ??
+        0;
+    final active =
+        opponentUid == defenderUid ||
+        opponentUid == attackerUid ||
+        opponentUid == activeThrowerUid;
+
+    return DurakPlayerNames(
+      uids: <String>[opponentUid],
+      builder: (context, nameByUid) {
+        final name = nameByUid[opponentUid] ?? opponentUid;
+        return DurakPlayerProfiles(
+          uids: <String>[opponentUid],
+          builder: (context, byUid) {
+            final p = byUid[opponentUid];
+            final avatarUrl = ((p?.avatarThumb ?? p?.avatar) ?? '').trim();
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 64,
+                        height: 64,
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: active
+                                ? const Color(0xFFA3E635)
+                                : Colors.white.withValues(alpha: 0.5),
+                            width: 4,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: avatarUrl.isNotEmpty
+                              ? Image.network(
+                                  avatarUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.22,
+                                        ),
+                                        child: const Icon(
+                                          Icons.person_rounded,
+                                          color: Colors.white70,
+                                          size: 30,
+                                        ),
+                                      ),
+                                )
+                              : Container(
+                                  color: Colors.white.withValues(alpha: 0.22),
+                                  child: const Icon(
+                                    Icons.person_rounded,
+                                    color: Colors.white70,
+                                    size: 30,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      Positioned(
+                        right: -2,
+                        top: -8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            count.toString(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF111827),
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.black.withValues(alpha: 0.25),
+                    ),
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    role,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 0,
+                      color: Colors.white.withValues(alpha: 0.84),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 class _DurakSideDeck extends StatelessWidget {
   const _DurakSideDeck({required this.deckCount, required this.trumpSuit});
 
@@ -1208,19 +1315,19 @@ class _DurakSideDeck extends StatelessWidget {
     final isRed = trumpSuit == 'H' || trumpSuit == 'D';
 
     return SizedBox(
-      width: 96,
-      height: 122,
+      width: 108,
+      height: 124,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           if (trumpSuit.isNotEmpty)
             Positioned(
-              left: 24,
-              top: 18,
+              left: 34,
+              top: 16,
               child: Transform.rotate(
-                angle: -0.42,
+                angle: -0.32,
                 child: DurakCardWidget(
-                  rankLabel: ' ',
+                  rankLabel: 'A',
                   suitLabel: suit,
                   isRed: isRed,
                   faceUp: true,
@@ -1244,8 +1351,8 @@ class _DurakSideDeck extends StatelessWidget {
               ),
             ),
           Positioned(
-            left: 0,
-            top: 0,
+            left: 2,
+            top: 8,
             child: Text(
               deckCount.toString(),
               style: TextStyle(

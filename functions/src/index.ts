@@ -64,4 +64,5 @@ export { checkUserPresence } from './triggers/scheduler/checkUserPresence';
 // Phase 6: TTL-cleanup эфемерных QR-pairing сессий E2EE v2.
 export { cleanupE2eePairingSessions } from './triggers/scheduler/cleanupE2eePairingSessions';
 export { cleanupExpiredSecretChats } from './triggers/scheduler/cleanupExpiredSecretChats';
+export { cleanupExpiredDisappearingMessages } from './triggers/scheduler/cleanupExpiredDisappearingMessages';
 export { cleanupSecretMediaRequests } from './triggers/scheduler/cleanupSecretMediaRequests';

@@ -56,7 +56,7 @@ export function resetRoundTracking(state: DurakServerState): void {
     policy: state.throwInPolicy,
   });
   state.passedUids = [];
-  state.roundDefenderHandLimit = undefined;
+  delete state.roundDefenderHandLimit;
   state.taking = false;
 }
 
@@ -571,7 +571,7 @@ export function applyTransfer({
   });
   state.passedUids = [];
   // New defender => new round limit based on new defender's current hand size.
-  state.roundDefenderHandLimit = undefined;
+  delete state.roundDefenderHandLimit;
   ensureRoundHandLimit(state, handsByUid);
   state.phase = derivePhase(state);
   markTakingIfJokerOnTable(state, handsByUid);
@@ -611,7 +611,7 @@ export function applyTransferRelaxed({
     policy: state.throwInPolicy,
   });
   state.passedUids = [];
-  state.roundDefenderHandLimit = undefined;
+  delete state.roundDefenderHandLimit;
   ensureRoundHandLimit(state, handsByUid);
   state.phase = derivePhase(state);
   markTakingIfJokerOnTable(state, handsByUid);
@@ -725,7 +725,11 @@ export function undoLastCheat({
     }
     if (cheat.prevThrowerUids) state.throwerUids = cheat.prevThrowerUids;
     if (cheat.prevPassedUids) state.passedUids = cheat.prevPassedUids;
-    state.roundDefenderHandLimit = cheat.prevRoundDefenderHandLimit;
+    if (typeof cheat.prevRoundDefenderHandLimit === "number") {
+      state.roundDefenderHandLimit = cheat.prevRoundDefenderHandLimit;
+    } else {
+      delete state.roundDefenderHandLimit;
+    }
   }
 
   state.lastCheat = null;

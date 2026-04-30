@@ -37,6 +37,16 @@ export const onmessagecreated = onDocumentCreated(
       logger.error("Conversation data is empty for message.", { conversationId });
       return;
     }
+
+    await trySetMessageExpireAtForDisappearing({
+      db,
+      messageRef: messageSnapshot.ref,
+      messageData: messageData as Record<string, unknown>,
+      conversationData: conversationData as Record<string, unknown>,
+      conversationId,
+      messageId: event.params.messageId,
+    });
+
     const participantIds: string[] = conversationData.participantIds;
 
     const recipientIds = participantIds.filter((id) => id !== senderId);
@@ -139,13 +149,5 @@ export const onmessagecreated = onDocumentCreated(
       logger.error("Error sending message via FCM:", error);
     }
 
-    await trySetMessageExpireAtForDisappearing({
-      db,
-      messageRef: messageSnapshot.ref,
-      messageData: messageData as Record<string, unknown>,
-      conversationData: conversationData as Record<string, unknown>,
-      conversationId,
-      messageId: event.params.messageId,
-    });
   },
 );

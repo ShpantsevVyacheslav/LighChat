@@ -857,6 +857,7 @@ class ChatMessage {
     this.emojiBurst,
     this.systemEvent,
     this.voiceTranscript,
+    this.expireAt,
   });
 
   final String id;
@@ -916,6 +917,9 @@ class ChatMessage {
   /// Stored in Firestore as `voiceTranscript.text` (map) or legacy string.
   final String? voiceTranscript;
 
+  /// Firestore TTL timestamp for disappearing messages (`expireAt`).
+  final DateTime? expireAt;
+
   static ChatMessage? fromDoc(DocumentSnapshot<Map<String, Object?>> doc) {
     if (!doc.exists) return null;
     final data = doc.data();
@@ -932,6 +936,7 @@ class ChatMessage {
     final updatedAtRaw = data['updatedAt'];
     final forwardedFromRaw = data['forwardedFrom'];
     final deliveryStatusRaw = data['deliveryStatus'];
+    final expireAtRaw = data['expireAt'];
     final chatPollIdRaw = data['chatPollId'];
     final chatPollId =
         chatPollIdRaw is String && chatPollIdRaw.trim().isNotEmpty
@@ -1020,6 +1025,13 @@ class ChatMessage {
       readAt = DateTime.tryParse(readAtRaw);
     }
 
+    DateTime? expireAt;
+    if (expireAtRaw is Timestamp) {
+      expireAt = expireAtRaw.toDate();
+    } else if (expireAtRaw is String && expireAtRaw.isNotEmpty) {
+      expireAt = DateTime.tryParse(expireAtRaw);
+    }
+
     final updatedAt = updatedAtRaw is String ? updatedAtRaw : null;
     final forwardedFrom = ForwardedFrom.fromJson(forwardedFromRaw);
     final deliveryStatus =
@@ -1053,6 +1065,7 @@ class ChatMessage {
       emojiBurst: emojiBurst,
       systemEvent: systemEvent,
       voiceTranscript: voiceTranscript,
+      expireAt: expireAt,
     );
   }
 }

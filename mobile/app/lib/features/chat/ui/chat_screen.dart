@@ -120,6 +120,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   double? _pendingAnchorAlignment;
   List<ChatMessage> _sortedAscCache = const <ChatMessage>[];
   List<ChatMessage> _sortedHydratedAscCache = const <ChatMessage>[];
+  DateTime _messageExpiryNow = DateTime.now();
+  Timer? _messageExpiryTimer;
   bool _suppressAutoScrollToBottom = false;
   bool _chatAtBottom = true;
   int _anchorUnreadStep = 0;
@@ -165,6 +167,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return messages
         .where((m) => m.createdAt.toUtc().isAfter(cutoff))
         .toList(growable: false);
+  }
+
+  List<ChatMessage> _filterExpiredMessages(List<ChatMessage> messages) {
+    final now = _messageExpiryNow.toUtc();
+    return messages
+        .where((m) => m.expireAt == null || m.expireAt!.toUtc().isAfter(now))
+        .toList(growable: false);
+  }
+
+  void _scheduleMessageExpiryRefresh(List<ChatMessage> messages) {
+    _messageExpiryTimer?.cancel();
+    final now = DateTime.now().toUtc();
+    DateTime? next;
+    for (final m in messages) {
+      final exp = m.expireAt?.toUtc();
+      if (exp == null || !exp.isAfter(now)) continue;
+      if (next == null || exp.isBefore(next)) next = exp;
+    }
+    if (next == null) return;
+    final delay = next.difference(now) + const Duration(milliseconds: 250);
+    _messageExpiryTimer = Timer(delay, () {
+      if (!mounted) return;
+      setState(() => _messageExpiryNow = DateTime.now());
+    });
   }
 
   bool _looksLikeVideoAttachment(XFile f) {
@@ -467,6 +493,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _historyStartMaxScrollExtent = null;
       _historyStartedNearOldestEdge = false;
       _lastMessagesCount = 0;
+      _messageExpiryNow = DateTime.now();
+      _messageExpiryTimer?.cancel();
       _pendingAnchorMessageId = null;
       _pendingAnchorAlignment = null;
       _sortedAscCache = const <ChatMessage>[];
@@ -759,7 +787,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (tries >= 24) {
         setState(() => _jumpScrollBoostMessageId = null);
         _toast(
-          AppLocalizations.of(context)!.chat_message_not_found_in_loaded_history,
+          AppLocalizations.of(
+            context,
+          )!.chat_message_not_found_in_loaded_history,
         );
         return;
       }
@@ -772,6 +802,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void dispose() {
     _chatDraftDebounce?.cancel();
+    _messageExpiryTimer?.cancel();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       unawaited(_persistChatDraftSnapshotForConv(uid, widget.conversationId));
@@ -903,13 +934,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 conv?.data.secretChat?.lockPolicy.required == true;
             final secretUnlocked = (isSecret && secretLockRequired)
                 ? (ref
-                        .watch(secretChatAccessActiveProvider((
-                          conversationId: widget.conversationId,
-                          userId: user.uid,
-                        )))
-                        .asData
-                        ?.value ==
-                    true)
+                          .watch(
+                            secretChatAccessActiveProvider((
+                              conversationId: widget.conversationId,
+                              userId: user.uid,
+                            )),
+                          )
+                          .asData
+                          ?.value ==
+                      true)
                 : true;
             final isSaved =
                 conv != null &&
@@ -920,7 +953,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 enabled: true,
                 child: Scaffold(
                   appBar: AppBar(
-                    title: Text(AppLocalizations.of(context)!.secret_chat_title),
+                    title: Text(
+                      AppLocalizations.of(context)!.secret_chat_title,
+                    ),
                   ),
                   body: Center(
                     child: Padding(
@@ -929,7 +964,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            AppLocalizations.of(context)!.secret_chat_locked_title,
+                            AppLocalizations.of(
+                              context,
+                            )!.secret_chat_locked_title,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 18,
@@ -938,35 +975,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            AppLocalizations.of(context)!.secret_chat_locked_subtitle,
+                            AppLocalizations.of(
+                              context,
+                            )!.secret_chat_locked_subtitle,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 14),
                           FilledButton(
                             onPressed: () async {
-                              final res = await showModalBottomSheet<SecretChatUnlockResult>(
-                                context: context,
-                                isScrollControlled: true,
-                                builder: (_) => SecretChatUnlockSheet(
-                                  conversationId: widget.conversationId,
-                                ),
-                              );
+                              final res =
+                                  await showModalBottomSheet<
+                                    SecretChatUnlockResult
+                                  >(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    builder: (_) => SecretChatUnlockSheet(
+                                      conversationId: widget.conversationId,
+                                    ),
+                                  );
                               if (!mounted) return;
                               if (res?.unlocked == true) {
                                 setState(() {});
                               }
                             },
                             child: Text(
-                              AppLocalizations.of(context)!.secret_chat_unlock_action,
+                              AppLocalizations.of(
+                                context,
+                              )!.secret_chat_unlock_action,
                             ),
                           ),
                           const SizedBox(height: 8),
                           TextButton(
                             onPressed: () {
-                              context.push('/chats/${widget.conversationId}/secret-settings');
+                              context.push(
+                                '/chats/${widget.conversationId}/secret-settings',
+                              );
                             },
                             child: Text(
-                              AppLocalizations.of(context)!.secret_chat_settings_title,
+                              AppLocalizations.of(
+                                context,
+                              )!.secret_chat_settings_title,
                             ),
                           ),
                         ],
@@ -1038,27 +1086,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 final resolvedDmName = resolveContactDisplayName(
                   contactProfiles: contactProfiles,
                   contactUserId: dmOtherId,
-                  fallbackName: ((profile?.name ?? dmFallbackName) ??
-                          AppLocalizations.of(
-                            context,
-                          )!
-                              .partner_profile_title_fallback_chat)
-                      .trim(),
+                  fallbackName:
+                      ((profile?.name ?? dmFallbackName) ??
+                              AppLocalizations.of(
+                                context,
+                              )!.partner_profile_title_fallback_chat)
+                          .trim(),
                 );
                 final title = conv == null
                     ? resolvedDmName
                     : conv.data.isGroup
                     ? (conv.data.name ??
-                        AppLocalizations.of(
-                          context,
-                        )!
-                            .partner_profile_title_fallback_group)
+                          AppLocalizations.of(
+                            context,
+                          )!.partner_profile_title_fallback_group)
                     : isSaved
                     ? (conv.data.name ??
-                        AppLocalizations.of(
-                          context,
-                        )!
-                            .partner_profile_title_fallback_saved)
+                          AppLocalizations.of(
+                            context,
+                          )!.partner_profile_title_fallback_saved)
                     : resolvedDmName;
                 final profileForSheet = profile == null
                     ? null
@@ -1096,16 +1142,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           dmFallbackAvatar);
                 final subtitle = conv?.data.isGroup == true
                     ? AppLocalizations.of(
-                      context,
-                    )!
-                        .partner_profile_subtitle_group_member_count(
-                      conv?.data.participantIds.length ?? 0,
-                    )
+                        context,
+                      )!.partner_profile_subtitle_group_member_count(
+                        conv?.data.participantIds.length ?? 0,
+                      )
                     : isSaved
                     ? AppLocalizations.of(
-                      context,
-                    )!
-                        .partner_profile_subtitle_saved_messages
+                        context,
+                      )!.partner_profile_subtitle_saved_messages
                     : partnerPresenceLine(profile);
                 final showCalls =
                     conv?.data.isGroup != true &&
@@ -1329,9 +1373,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           true
                                       ? resolvedDmName
                                       : AppLocalizations.of(
-                                            context,
-                                          )!
-                                              .partner_profile_call_peer_fallback;
+                                          context,
+                                        )!.partner_profile_call_peer_fallback;
                                   final peerAvatar =
                                       profile?.avatarThumb ??
                                       profile?.avatar ??
@@ -1371,9 +1414,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           true
                                       ? resolvedDmName
                                       : AppLocalizations.of(
-                                            context,
-                                          )!
-                                              .partner_profile_call_peer_fallback;
+                                          context,
+                                        )!.partner_profile_call_peer_fallback;
                                   final peerAvatar =
                                       profile?.avatarThumb ??
                                       profile?.avatar ??
@@ -1436,7 +1478,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             child: Column(
                               children: [
                                 SizedBox(height: belowHeaderGap),
-                                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                StreamBuilder<
+                                  QuerySnapshot<Map<String, dynamic>>
+                                >(
                                   stream: FirebaseFirestore.instance
                                       .collection('conversations')
                                       .doc(conversationId)
@@ -1450,13 +1494,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       final m = d.data();
                                       final se = m['systemEvent'];
                                       if (se is! Map) continue;
-                                      final type = (se['type'] ?? '').toString();
+                                      final type = (se['type'] ?? '')
+                                          .toString();
                                       if (type != 'gameStarted') continue;
                                       final data = se['data'];
                                       if (data is! Map) continue;
-                                      final gameType = (data['gameType'] ?? '').toString();
+                                      final gameType = (data['gameType'] ?? '')
+                                          .toString();
                                       if (gameType != 'durak') continue;
-                                      final gid = (data['gameId'] ?? '').toString();
+                                      final gid = (data['gameId'] ?? '')
+                                          .toString();
                                       _maybeAutoOpenDurakOnGameStarted(
                                         gameId: gid,
                                         isGroup: conv?.data.isGroup ?? true,
@@ -1509,7 +1556,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                 child: E2eeMessagesResolver(
                                                   conversationId:
                                                       conversationId,
-                                                  secretChat: conv?.data.secretChat,
+                                                  secretChat:
+                                                      conv?.data.secretChat,
                                                   messages: msgs,
                                                   builder:
                                                       (
@@ -1607,8 +1655,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               _toast(
                                                                 AppLocalizations.of(
                                                                   context,
-                                                                )!
-                                                                    .chat_finish_editing_first,
+                                                                )!.chat_finish_editing_first,
                                                               );
                                                               return;
                                                             }
@@ -1768,10 +1815,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                                 content: Text(
                                                                                   AppLocalizations.of(
                                                                                     context,
-                                                                                  )!
-                                                                                      .chat_send_failed(
-                                                                                        e,
-                                                                                      ),
+                                                                                  )!.chat_send_failed(
+                                                                                    e,
+                                                                                  ),
                                                                                 ),
                                                                               ),
                                                                             );
@@ -1863,10 +1909,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                   content: Text(
                                                                     AppLocalizations.of(
                                                                       context,
-                                                                    )!
-                                                                        .chat_reaction_toggle_failed(
-                                                                          e,
-                                                                        ),
+                                                                    )!.chat_reaction_toggle_failed(
+                                                                      e,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               );
@@ -1968,17 +2013,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     focusNode: _composerFocusNode,
                                     e2eeDisabledBanner:
                                         (conv != null &&
-                                                conv.data.isGroup != true &&
-                                                dmOtherId != null &&
-                                                dmOtherId.isNotEmpty &&
-                                                profile == null)
-                                            ? const DeletedAccountReadOnlyBanner()
-                                            : dmComposerBlockBanner(
-                                                context: context,
-                                                ref: ref,
-                                                currentUserId: user.uid,
-                                                conv: conv?.data,
-                                              ),
+                                            conv.data.isGroup != true &&
+                                            dmOtherId != null &&
+                                            dmOtherId.isNotEmpty &&
+                                            profile == null)
+                                        ? const DeletedAccountReadOnlyBanner()
+                                        : dmComposerBlockBanner(
+                                            context: context,
+                                            ref: ref,
+                                            currentUserId: user.uid,
+                                            conv: conv?.data,
+                                          ),
                                     // Phase 4: в E2EE-чатах текст отправляется
                                     // зашифрованным через [MobileE2eeRuntime].
                                     // Баннер оставляем только когда runtime ещё
@@ -2178,63 +2223,174 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               top: belowHeaderGap + 8,
                               left: 12,
                               right: 12,
-                              child:
-                                  StreamBuilder<
-                                    QuerySnapshot<Map<String, dynamic>>
-                                  >(
-                                    stream: FirebaseFirestore.instance
-                                        .collection('calls')
-                                        .where(
-                                          'receiverId',
-                                          isEqualTo: user.uid,
-                                        )
-                                        .snapshots(),
-                                    builder: (context, callSnap) {
-                                      if (!callSnap.hasData ||
-                                          callSnap.data!.docs.isEmpty ||
-                                          _callScreenOpening) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final activeDocs =
-                                          callSnap.data!.docs.where((d) {
-                                            final m = d.data();
-                                            if ((m['callerId'] as String?) !=
-                                                dmOtherId) {
-                                              return false;
-                                            }
-                                            final status =
-                                                (m['status'] as String?) ?? '';
-                                            return status == 'calling' ||
-                                                status == 'ongoing';
-                                          }).toList()..sort((a, b) {
-                                            final ta =
-                                                (a.data()['createdAt']
-                                                    as String?) ??
-                                                '';
-                                            final tb =
-                                                (b.data()['createdAt']
-                                                    as String?) ??
-                                                '';
-                                            return tb.compareTo(ta);
-                                          });
-                                      if (activeDocs.isEmpty) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final doc = activeDocs.first;
-                                      final callId = doc.id;
-                                      final map = doc.data();
-                                      final status =
-                                          (map['status'] as String?) ??
-                                          'calling';
-                                      final isVideo = map['isVideo'] == true;
+                              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('calls')
+                                    .where('receiverId', isEqualTo: user.uid)
+                                    .snapshots(),
+                                builder: (context, callSnap) {
+                                  if (!callSnap.hasData ||
+                                      callSnap.data!.docs.isEmpty ||
+                                      _callScreenOpening) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final activeDocs =
+                                      callSnap.data!.docs.where((d) {
+                                        final m = d.data();
+                                        if ((m['callerId'] as String?) !=
+                                            dmOtherId) {
+                                          return false;
+                                        }
+                                        final status =
+                                            (m['status'] as String?) ?? '';
+                                        return status == 'calling' ||
+                                            status == 'ongoing';
+                                      }).toList()..sort((a, b) {
+                                        final ta =
+                                            (a.data()['createdAt']
+                                                as String?) ??
+                                            '';
+                                        final tb =
+                                            (b.data()['createdAt']
+                                                as String?) ??
+                                            '';
+                                        return tb.compareTo(ta);
+                                      });
+                                  if (activeDocs.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final doc = activeDocs.first;
+                                  final callId = doc.id;
+                                  final map = doc.data();
+                                  final status =
+                                      (map['status'] as String?) ?? 'calling';
+                                  final isVideo = map['isVideo'] == true;
 
-                                      if (status == 'calling' &&
-                                          _handledIncomingCallId != callId &&
-                                          !_callScreenOpening) {
-                                        _handledIncomingCallId = callId;
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback((_) {
-                                              if (!mounted) return;
+                                  if (status == 'calling' &&
+                                      _handledIncomingCallId != callId &&
+                                      !_callScreenOpening) {
+                                    _handledIncomingCallId = callId;
+                                    WidgetsBinding.instance.addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      if (!mounted) return;
+                                      final meName =
+                                          (selfProfile?.name ?? user.uid)
+                                              .trim()
+                                              .isNotEmpty
+                                          ? (selfProfile?.name ?? user.uid)
+                                          : user.uid;
+                                      final meAvatar =
+                                          selfProfile?.avatarThumb ??
+                                          selfProfile?.avatar;
+                                      final peerName =
+                                          (profile?.name ??
+                                                      dmFallbackName ??
+                                                      title)
+                                                  .trim()
+                                                  .isNotEmpty ==
+                                              true
+                                          ? (profile?.name ??
+                                                dmFallbackName ??
+                                                title)
+                                          : AppLocalizations.of(
+                                              context,
+                                            )!.partner_profile_call_peer_fallback;
+                                      final peerAvatar =
+                                          profile?.avatarThumb ??
+                                          profile?.avatar ??
+                                          dmFallbackAvatarThumb ??
+                                          dmFallbackAvatar;
+                                      unawaited(
+                                        _openCallScreen(
+                                          currentUserId: user.uid,
+                                          currentUserName: meName,
+                                          currentUserAvatarUrl: meAvatar,
+                                          peerUserId: dmOtherId!,
+                                          peerUserName: peerName,
+                                          peerAvatarUrl: peerAvatar,
+                                          isVideo: isVideo,
+                                          existingCallId: callId,
+                                        ),
+                                      );
+                                    });
+                                  }
+
+                                  final incomingLabel = status == 'ongoing'
+                                      ? (isVideo
+                                            ? AppLocalizations.of(
+                                                context,
+                                              )!.chat_call_ongoing_video
+                                            : AppLocalizations.of(
+                                                context,
+                                              )!.chat_call_ongoing_audio)
+                                      : (isVideo
+                                            ? AppLocalizations.of(
+                                                context,
+                                              )!.chat_call_incoming_video
+                                            : AppLocalizations.of(
+                                                context,
+                                              )!.chat_call_incoming_audio);
+                                  return DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.52,
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        12,
+                                        10,
+                                        10,
+                                        10,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            isVideo
+                                                ? Icons.videocam_rounded
+                                                : Icons.call_rounded,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.92,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              incomingLabel,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                          if (status != 'ongoing')
+                                            TextButton(
+                                              onPressed: () async {
+                                                await FirebaseFirestore.instance
+                                                    .collection('calls')
+                                                    .doc(callId)
+                                                    .update(<String, Object?>{
+                                                      'status': 'cancelled',
+                                                      'endedAt': DateTime.now()
+                                                          .toUtc()
+                                                          .toIso8601String(),
+                                                    });
+                                              },
+                                              child: Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.chat_call_decline,
+                                              ),
+                                            ),
+                                          TextButton(
+                                            onPressed: () async {
                                               final meName =
                                                   (selfProfile?.name ??
                                                           user.uid)
@@ -2257,168 +2413,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                         dmFallbackName ??
                                                         title)
                                                   : AppLocalizations.of(
-                                                        context,
-                                                      )!
-                                                          .partner_profile_call_peer_fallback;
+                                                      context,
+                                                    )!.partner_profile_call_peer_fallback;
                                               final peerAvatar =
                                                   profile?.avatarThumb ??
                                                   profile?.avatar ??
                                                   dmFallbackAvatarThumb ??
                                                   dmFallbackAvatar;
-                                              unawaited(
-                                                _openCallScreen(
-                                                  currentUserId: user.uid,
-                                                  currentUserName: meName,
-                                                  currentUserAvatarUrl:
-                                                      meAvatar,
-                                                  peerUserId: dmOtherId!,
-                                                  peerUserName: peerName,
-                                                  peerAvatarUrl: peerAvatar,
-                                                  isVideo: isVideo,
-                                                  existingCallId: callId,
-                                                ),
+                                              await _openCallScreen(
+                                                currentUserId: user.uid,
+                                                currentUserName: meName,
+                                                currentUserAvatarUrl: meAvatar,
+                                                peerUserId: dmOtherId!,
+                                                peerUserName: peerName,
+                                                peerAvatarUrl: peerAvatar,
+                                                isVideo: isVideo,
+                                                existingCallId: callId,
                                               );
-                                            });
-                                      }
-
-                                      final incomingLabel = status == 'ongoing'
-                                          ? (isVideo
-                                                ? AppLocalizations.of(
-                                                  context,
-                                                )!
-                                                    .chat_call_ongoing_video
-                                                : AppLocalizations.of(
-                                                  context,
-                                                )!
-                                                    .chat_call_ongoing_audio)
-                                          : (isVideo
-                                                ? AppLocalizations.of(
-                                                  context,
-                                                )!
-                                                    .chat_call_incoming_video
-                                                : AppLocalizations.of(
-                                                  context,
-                                                )!
-                                                    .chat_call_incoming_audio);
-                                      return DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.52,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.15,
+                                            },
+                                            child: Text(
+                                              status == 'ongoing'
+                                                  ? AppLocalizations.of(
+                                                      context,
+                                                    )!.chat_call_open
+                                                  : AppLocalizations.of(
+                                                      context,
+                                                    )!.chat_call_accept,
                                             ),
                                           ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            12,
-                                            10,
-                                            10,
-                                            10,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                isVideo
-                                                    ? Icons.videocam_rounded
-                                                    : Icons.call_rounded,
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.92,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Text(
-                                                  incomingLabel,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (status != 'ongoing')
-                                                TextButton(
-                                                  onPressed: () async {
-                                                    await FirebaseFirestore
-                                                        .instance
-                                                        .collection('calls')
-                                                        .doc(callId)
-                                                        .update(<
-                                                          String,
-                                                          Object?
-                                                        >{
-                                                          'status': 'cancelled',
-                                                          'endedAt': DateTime.now()
-                                                              .toUtc()
-                                                              .toIso8601String(),
-                                                        });
-                                                  },
-                                                  child: Text(
-                                                    AppLocalizations.of(context)!.chat_call_decline,
-                                                  ),
-                                                ),
-                                              TextButton(
-                                                onPressed: () async {
-                                                  final meName =
-                                                      (selfProfile?.name ??
-                                                              user.uid)
-                                                          .trim()
-                                                          .isNotEmpty
-                                                      ? (selfProfile?.name ??
-                                                            user.uid)
-                                                      : user.uid;
-                                                  final meAvatar =
-                                                      selfProfile
-                                                          ?.avatarThumb ??
-                                                      selfProfile?.avatar;
-                                                  final peerName =
-                                                      (profile?.name ??
-                                                                  dmFallbackName ??
-                                                                  title)
-                                                              .trim()
-                                                              .isNotEmpty ==
-                                                          true
-                                                      ? (profile?.name ??
-                                                            dmFallbackName ??
-                                                            title)
-                                                      : AppLocalizations.of(
-                                                            context,
-                                                          )!
-                                                              .partner_profile_call_peer_fallback;
-                                                  final peerAvatar =
-                                                      profile?.avatarThumb ??
-                                                      profile?.avatar ??
-                                                      dmFallbackAvatarThumb ??
-                                                      dmFallbackAvatar;
-                                                  await _openCallScreen(
-                                                    currentUserId: user.uid,
-                                                    currentUserName: meName,
-                                                    currentUserAvatarUrl:
-                                                        meAvatar,
-                                                    peerUserId: dmOtherId!,
-                                                    peerUserName: peerName,
-                                                    peerAvatarUrl: peerAvatar,
-                                                    isVideo: isVideo,
-                                                    existingCallId: callId,
-                                                  );
-                                                },
-                                                child: Text(
-                                                  status == 'ongoing'
-                                                      ? AppLocalizations.of(context)!.chat_call_open
-                                                      : AppLocalizations.of(context)!.chat_call_accept,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                         ],
                       ),
@@ -2438,9 +2466,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     skipLoadingOnReload: true,
                     data: (msgs) {
                       final clearedAtIso = conv?.data.clearedAt?[user.uid];
-                      final visibleMsgs = _filterByClearedAt(
-                        msgs,
-                        clearedAtIso,
+                      _scheduleMessageExpiryRefresh(msgs);
+                      final visibleMsgs = _filterExpiredMessages(
+                        _filterByClearedAt(msgs, clearedAtIso),
                       );
                       final previousVisibleCount = _lastMessagesCount;
                       _lastMessagesCount = visibleMsgs.length;
@@ -2499,21 +2527,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           conversationId: conversationId,
                           error: e,
                         );
-                        final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                        final uid =
+                            FirebaseAuth.instance.currentUser?.uid ?? '';
                         diagHint =
                             '\n\nDiagnostics:\n- uid: ${uid.isEmpty ? '(null)' : uid}';
                       }
                       final msg = isDenied
                           ? 'Permission denied.\n\n'
-                              'Most common reasons:\n'
-                              '- you are not a participant of this chat\n'
-                              '- in 1:1 chat the other user blocked you (chat is hidden)\n'
-                              '- the chat was deleted or access was revoked\n'
+                                'Most common reasons:\n'
+                                '- you are not a participant of this chat\n'
+                                '- in 1:1 chat the other user blocked you (chat is hidden)\n'
+                                '- the chat was deleted or access was revoked\n'
                           : l10n.chat_load_messages_error(e);
                       return Scaffold(
-                        appBar: AppBar(
-                          title: Text(l10n.chat_messages_title),
-                        ),
+                        appBar: AppBar(title: Text(l10n.chat_messages_title)),
                         body: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -2522,7 +2549,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               Text('$msg$diagHint'),
                               const SizedBox(height: 12),
                               FilledButton(
-                                onPressed: () => Navigator.of(context).maybePop(),
+                                onPressed: () =>
+                                    Navigator.of(context).maybePop(),
                                 child: Text(l10n.common_close),
                               ),
                             ],
@@ -2688,7 +2716,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required Map<String, UserProfile>? profileMap,
     required Conversation? conv,
   }) {
-    if (senderId == user.uid) return AppLocalizations.of(context)!.chat_sender_you;
+    if (senderId == user.uid)
+      return AppLocalizations.of(context)!.chat_sender_you;
     final p = profileMap?[senderId];
     if ((p?.name ?? '').trim().isNotEmpty) return p!.name.trim();
     final pi = conv?.participantInfo?[senderId];
@@ -2704,12 +2733,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(
-          l10n.chat_delete_message_title_single,
-        ),
-        content: Text(
-          l10n.chat_delete_message_body_single,
-        ),
+        title: Text(l10n.chat_delete_message_title_single),
+        content: Text(l10n.chat_delete_message_body_single),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -2777,11 +2802,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.chat_emoji_burst_sync_failed(e),
-          ),
-        ),
+        SnackBar(content: Text(l10n.chat_emoji_burst_sync_failed(e))),
       );
     }
   }
@@ -2853,7 +2874,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Navigator.of(context).push<void>(
             chatMediaViewerPageRoute<void>(
               ChatMediaViewerScreen(
-                items: [ChatMediaGalleryItem(attachment: resolved, message: msg)],
+                items: [
+                  ChatMediaGalleryItem(attachment: resolved, message: msg),
+                ],
                 initialIndex: 0,
                 currentUserId: user.uid,
                 senderLabel: (sid) => _senderLabelForMediaViewer(
@@ -2915,7 +2938,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           },
           onForward: (galleryItem) {
             if (!allowForward) {
-              _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+              _toast(
+                AppLocalizations.of(context)!.secret_chat_action_not_allowed,
+              );
               return;
             }
             if (galleryItem.message.isDeleted) return;
@@ -3066,9 +3091,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     if (existing.length >= maxPinnedMessages) {
-      _toast(
-        l10n.chat_pin_limit_reached(maxPinnedMessages),
-      );
+      _toast(l10n.chat_pin_limit_reached(maxPinnedMessages));
       return;
     }
     final entry = buildPinnedMessageFromChatMessage(
@@ -3178,7 +3201,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
       case MessageMenuActionType.copy:
         if (!allowCopy) {
-          if (mounted) _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+          if (mounted)
+            _toast(
+              AppLocalizations.of(context)!.secret_chat_action_not_allowed,
+            );
           return;
         }
         await copyMessageTextToClipboard(m);
@@ -3198,7 +3224,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
       case MessageMenuActionType.forward:
         if (!allowForward) {
-          if (mounted) _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+          if (mounted)
+            _toast(
+              AppLocalizations.of(context)!.secret_chat_action_not_allowed,
+            );
           return;
         }
         if (m.isDeleted) return;
@@ -3222,7 +3251,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           );
         } catch (e) {
           if (mounted) {
-            _toast(AppLocalizations.of(context)!.chat_reaction_toggle_failed(e));
+            _toast(
+              AppLocalizations.of(context)!.chat_reaction_toggle_failed(e),
+            );
           }
         }
     }
@@ -3398,6 +3429,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // чтобы включить его в AAD, и (б) encrypted envelope. Все места ниже,
     // отправляющие простой текст, используют этот helper.
     final bool convIsE2ee = isConversationE2eeActive(conv);
+    final effectiveE2eePolicy = convIsE2ee
+        ? e2eePolicy.copyWith(text: true, media: true)
+        : e2eePolicy;
     final MobileE2eeRuntime? e2eeRuntime = convIsE2ee
         ? ref.read(mobileE2eeRuntimeProvider)
         : null;
@@ -3430,7 +3464,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       try {
         Map<String, Object?>? editEnvelope;
         if (convIsE2ee &&
-            e2eePolicy.text &&
+            effectiveE2eePolicy.text &&
             e2eeRuntime != null &&
             e2eeEpoch != null) {
           try {
@@ -3442,7 +3476,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
           } on MobileE2eeEncryptException catch (e) {
             if (mounted) {
-              _toast(AppLocalizations.of(context)!.chat_e2ee_unavailable(e.code));
+              _toast(
+                AppLocalizations.of(context)!.chat_e2ee_unavailable(e.code),
+              );
             }
             return;
           }
@@ -3469,7 +3505,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final pending = List<XFile>.from(_pendingAttachments);
     if (pending.isNotEmpty) {
-      final replySnap = _stripReplyPreviewByPolicy(_replyingTo, e2eePolicy);
+      final replySnap = _stripReplyPreviewByPolicy(
+        _replyingTo,
+        effectiveE2eePolicy,
+      );
       final textSave = prepared;
       if (pending.every(isOutgoingAlbumLocalImage)) {
         // E2EE v2 Phase 9: для E2EE-active чата заранее резервируем messageId и
@@ -3478,7 +3517,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         // сообщение в Firestore.
         OutgoingAlbumE2eeContext? albumE2eeContext;
         if (convIsE2ee &&
-            e2eePolicy.media &&
+            effectiveE2eePolicy.media &&
             e2eeRuntime != null &&
             e2eeEpoch != null) {
           final reservedId = FirebaseFirestore.instance
@@ -3491,7 +3530,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             runtime: e2eeRuntime,
             epoch: e2eeEpoch,
             messageId: reservedId,
-            encryptText: e2eePolicy.text,
+            encryptText: effectiveE2eePolicy.text,
           );
         }
         ref
@@ -3531,8 +3570,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             rawCaptionHtml: prepared,
             replyTo: replySnap,
             convIsE2ee: convIsE2ee,
-            e2eeEncryptText: e2eePolicy.text,
-            e2eeEncryptMedia: e2eePolicy.media,
+            e2eeEncryptText: effectiveE2eePolicy.text,
+            e2eeEncryptMedia: effectiveE2eePolicy.media,
             e2eeEpoch: e2eeEpoch,
           );
       if (mounted) {
@@ -3549,7 +3588,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
 
-    final replySnap = _stripReplyPreviewByPolicy(_replyingTo, e2eePolicy);
+    final replySnap = _stripReplyPreviewByPolicy(
+      _replyingTo,
+      effectiveE2eePolicy,
+    );
     _controller.clear();
     setState(() => _sendBusy = true);
     await ref
@@ -3561,8 +3603,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           rawCaptionHtml: prepared,
           replyTo: replySnap,
           convIsE2ee: convIsE2ee,
-          e2eeEncryptText: e2eePolicy.text,
-          e2eeEncryptMedia: e2eePolicy.media,
+          e2eeEncryptText: effectiveE2eePolicy.text,
+          e2eeEncryptMedia: effectiveE2eePolicy.media,
           e2eeEpoch: e2eeEpoch,
         );
     if (mounted) {
@@ -3733,7 +3775,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final overridePolicy = overrideRaw == null
         ? null
         : E2eeDataTypePolicy.fromFirestore(overrideRaw);
-    return resolveE2eeEffectivePolicy(global: global, override: overridePolicy);
+    final base = resolveE2eeEffectivePolicy(
+      global: global,
+      override: overridePolicy,
+    );
+    if (isConversationE2eeActive(conv)) {
+      // Для E2EE-активного чата исходящие сообщения обязаны уходить в envelope.
+      return base.copyWith(text: true, media: true);
+    }
+    return base;
   }
 
   ({MobileE2eeRuntime runtime, int epoch, String messageId})?
@@ -3910,7 +3960,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _scheduleAutoScrollToBottomIfNeeded();
       }
     } catch (e) {
-      if (mounted) _toast(AppLocalizations.of(context)!.chat_send_voice_failed(e));
+      if (mounted)
+        _toast(AppLocalizations.of(context)!.chat_send_voice_failed(e));
     } finally {
       unawaited(_deleteFileSilently(rec.filePath));
       if (mounted) setState(() => _sendBusy = false);
@@ -3994,10 +4045,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.chat_send_failed(e))),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.chat_send_failed(e)),
+          ),
         );
       }
     } finally {
@@ -4067,10 +4118,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           message = AppLocalizations.of(context)!.chat_poll_send_timeout;
         } else if (raw.contains('poll_send_firebase:')) {
           final details = raw.split('poll_send_firebase:').last;
-          message = AppLocalizations.of(context)!.chat_poll_send_firebase(details);
+          message = AppLocalizations.of(
+            context,
+          )!.chat_poll_send_firebase(details);
         } else if (raw.contains('poll_send_error:')) {
           final details = raw.split('poll_send_error:').last;
-          message = AppLocalizations.of(context)!.chat_poll_send_known_error(details);
+          message = AppLocalizations.of(
+            context,
+          )!.chat_poll_send_known_error(details);
         } else {
           message = AppLocalizations.of(context)!.chat_poll_send_failed(e);
         }
@@ -4119,7 +4174,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               break;
           }
         } catch (e) {
-          if (mounted) _toast(AppLocalizations.of(context)!.chat_media_pick_failed(e));
+          if (mounted)
+            _toast(AppLocalizations.of(context)!.chat_media_pick_failed(e));
         }
         break;
       case ComposerAttachmentAction.deviceFiles:
@@ -4138,7 +4194,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _scheduleChatDraftSave();
           }
         } catch (e) {
-          if (mounted) _toast(AppLocalizations.of(context)!.chat_file_pick_failed(e));
+          if (mounted)
+            _toast(AppLocalizations.of(context)!.chat_file_pick_failed(e));
         }
         break;
       case ComposerAttachmentAction.clipboard:

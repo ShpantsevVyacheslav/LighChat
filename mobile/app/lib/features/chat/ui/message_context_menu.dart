@@ -152,6 +152,7 @@ class _MessageContextMenuPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final sent = message.createdAt.toLocal();
     final read = message.readAt?.toLocal();
+    final expireAt = message.expireAt?.toLocal();
     final maxH = MediaQuery.sizeOf(context).height * 0.78;
 
     return Material(
@@ -215,7 +216,11 @@ class _MessageContextMenuPage extends StatelessWidget {
                               children: [
                                 if (message.replyTo != null)
                                   _MenuReplyQuote(replyTo: message.replyTo!),
-                                _MenuHeader(sent: sent, read: read),
+                                _MenuHeader(
+                                  sent: sent,
+                                  read: read,
+                                  expireAt: expireAt,
+                                ),
                                 _ReactionStrip(
                                   onPick: (emoji) => _pop(
                                     context,
@@ -260,15 +265,16 @@ class _MessageContextMenuPage extends StatelessWidget {
                                       if (hasText)
                                         if (allowCopy)
                                           _MenuTile(
-                                          icon: Icons.copy_rounded,
-                                          label: l10n.message_menu_action_copy,
-                                          onTap: () => _pop(
-                                            context,
-                                            const MessageMenuResult(
-                                              MessageMenuActionType.copy,
+                                            icon: Icons.copy_rounded,
+                                            label:
+                                                l10n.message_menu_action_copy,
+                                            onTap: () => _pop(
+                                              context,
+                                              const MessageMenuResult(
+                                                MessageMenuActionType.copy,
+                                              ),
                                             ),
                                           ),
-                                        ),
                                       if (canEdit)
                                         _MenuTile(
                                           icon: Icons.edit_rounded,
@@ -308,7 +314,8 @@ class _MessageContextMenuPage extends StatelessWidget {
                                       if (allowForward)
                                         _MenuTile(
                                           icon: Icons.forward_rounded,
-                                          label: l10n.message_menu_action_forward,
+                                          label:
+                                              l10n.message_menu_action_forward,
                                           onTap: () => _pop(
                                             context,
                                             const MessageMenuResult(
@@ -336,7 +343,8 @@ class _MessageContextMenuPage extends StatelessWidget {
                                         ),
                                         _MenuTile(
                                           icon: Icons.delete_outline_rounded,
-                                          label: l10n.message_menu_action_delete,
+                                          label:
+                                              l10n.message_menu_action_delete,
                                           danger: true,
                                           onTap: () => _pop(
                                             context,
@@ -633,10 +641,11 @@ class _MenuReplyQuote extends StatelessWidget {
 }
 
 class _MenuHeader extends StatelessWidget {
-  const _MenuHeader({required this.sent, this.read});
+  const _MenuHeader({required this.sent, this.read, this.expireAt});
 
   final DateTime sent;
   final DateTime? read;
+  final DateTime? expireAt;
 
   @override
   Widget build(BuildContext context) {
@@ -705,6 +714,34 @@ class _MenuHeader extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                     color: readBlue,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (expireAt != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.message_menu_header_expire_at,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: muted,
+                    ),
+                  ),
+                ),
+                Text(
+                  _formatMenuDateTime(expireAt!),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                    color: Color(0xFFFCD34D),
                   ),
                 ),
               ],

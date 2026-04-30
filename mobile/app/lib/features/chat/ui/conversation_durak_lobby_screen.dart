@@ -7,10 +7,7 @@ import '../data/games_callables.dart';
 import 'conversation_durak_game_screen.dart';
 
 class ConversationDurakLobbyScreen extends StatelessWidget {
-  const ConversationDurakLobbyScreen({
-    super.key,
-    required this.gameId,
-  });
+  const ConversationDurakLobbyScreen({super.key, required this.gameId});
 
   final String gameId;
 
@@ -29,50 +26,53 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
     final ref = FirebaseFirestore.instance.collection('games').doc(gameId);
     final me = FirebaseAuth.instance.currentUser?.uid;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.conversation_games_durak)),
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: ref.snapshots(),
-        builder: (context, snap) {
-          if (snap.hasError) {
-            return Center(
-              child: Text(
-                l10n.conversation_game_lobby_error(
-                  (snap.error ?? 'unknown').toString(),
-                ),
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: ref.snapshots(),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(
+            child: Text(
+              l10n.conversation_game_lobby_error(
+                (snap.error ?? 'unknown').toString(),
               ),
-            );
-          }
-          if (!snap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final doc = snap.data!;
-          if (!doc.exists) {
-            return Center(child: Text(l10n.conversation_game_lobby_not_found));
-          }
+            ),
+          );
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final doc = snap.data!;
+        if (!doc.exists) {
+          return Center(child: Text(l10n.conversation_game_lobby_not_found));
+        }
 
-          final data = doc.data() ?? const <String, dynamic>{};
-          final status = (data['status'] ?? '').toString();
-          final playerIds = data['playerIds'];
-          final ids = playerIds is List ? playerIds.map((e) => e.toString()).toList() : const <String>[];
-          final iAmPlayer = me != null && ids.contains(me);
-          final players = data['players'];
-          final playerCount = players is List ? players.length : 0;
-          final maxPlayers = (data['settings'] is Map)
-              ? ((data['settings'] as Map)['maxPlayers'] ?? 0)
-              : 0;
-          final canStart = me != null &&
-              iAmPlayer &&
-              status == 'lobby' &&
-              playerCount >= 2 &&
-              _isOwner(data, me);
-          final canCancel = me != null && status == 'lobby' && _isOwner(data, me);
+        final data = doc.data() ?? const <String, dynamic>{};
+        final status = (data['status'] ?? '').toString();
+        final playerIds = data['playerIds'];
+        final ids = playerIds is List
+            ? playerIds.map((e) => e.toString()).toList()
+            : const <String>[];
+        final iAmPlayer = me != null && ids.contains(me);
+        final players = data['players'];
+        final playerCount = players is List ? players.length : 0;
+        final maxPlayers = (data['settings'] is Map)
+            ? ((data['settings'] as Map)['maxPlayers'] ?? 0)
+            : 0;
+        final canStart =
+            me != null &&
+            iAmPlayer &&
+            status == 'lobby' &&
+            playerCount >= 2 &&
+            _isOwner(data, me);
+        final canCancel = me != null && status == 'lobby' && _isOwner(data, me);
 
-          if (status == 'active') {
-            return ConversationDurakGameScreen(gameId: gameId);
-          }
+        if (status == 'active') {
+          return ConversationDurakGameScreen(gameId: gameId);
+        }
 
-          return ListView(
+        return Scaffold(
+          appBar: AppBar(title: Text(l10n.conversation_games_durak)),
+          body: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             children: [
               Text(
@@ -95,61 +95,42 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                 onPressed: me == null
                     ? null
                     : (!iAmPlayer && status == 'lobby'
-                        ? () async {
-                            try {
-                              await GamesCallables().joinLobby(gameId: gameId);
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              _toast(
-                                context,
-                                l10n.conversation_game_lobby_join_failed(e),
-                              );
-                            }
-                          }
-                        : (canStart
-                            ? () async {
-                                try {
-                                  await GamesCallables().startDurak(
-                                    gameId: gameId,
-                                  );
-                                } catch (e) {
-                                  if (!context.mounted) return;
-                                  _toast(
-                                    context,
-                                    l10n.conversation_game_lobby_start_failed(
-                                      e,
-                                    ),
-                                  );
-                                }
+                          ? () async {
+                              try {
+                                await GamesCallables().joinLobby(
+                                  gameId: gameId,
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                _toast(
+                                  context,
+                                  l10n.conversation_game_lobby_join_failed(e),
+                                );
                               }
-                            : (status == 'active'
+                            }
+                          : (canStart
                                 ? () async {
                                     try {
-                                      await GamesCallables().makeDurakMove(
+                                      await GamesCallables().startDurak(
                                         gameId: gameId,
-                                        clientMoveId:
-                                            DateTime.now().microsecondsSinceEpoch.toString(),
-                                        actionType: 'noop',
                                       );
-                                      if (!context.mounted) return;
-                                      _toast(context, l10n.common_soon);
                                     } catch (e) {
                                       if (!context.mounted) return;
                                       _toast(
                                         context,
-                                        l10n.conversation_game_move_failed(e),
+                                        l10n.conversation_game_lobby_start_failed(
+                                          e,
+                                        ),
                                       );
                                     }
                                   }
-                                : null))),
+                                : null)),
                 child: Text(
                   !iAmPlayer && status == 'lobby'
                       ? l10n.conversation_game_lobby_join
                       : (canStart
-                          ? l10n.conversation_game_lobby_start
-                          : (status == 'active'
-                              ? l10n.conversation_game_send_test_move
-                              : l10n.common_soon)),
+                            ? l10n.conversation_game_lobby_start
+                            : l10n.common_soon),
                 ),
               ),
               if (canCancel) ...[
@@ -162,17 +143,19 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                       Navigator.of(context).pop();
                     } catch (e) {
                       if (!context.mounted) return;
-                      _toast(context, l10n.conversation_game_lobby_cancel_failed(e));
+                      _toast(
+                        context,
+                        l10n.conversation_game_lobby_cancel_failed(e),
+                      );
                     }
                   },
                   child: Text(l10n.conversation_game_lobby_cancel),
                 ),
               ],
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
-

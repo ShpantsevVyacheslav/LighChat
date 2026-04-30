@@ -78,6 +78,7 @@ import { useSettings } from '@/hooks/use-settings';
 import { DASHBOARD_GAME_ID_QUERY } from '@/lib/dashboard-conversation-url';
 import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
 import { ChatDateSeparatorRow } from '@/components/chat/ChatDateSeparatorRow';
+import { isChatMessageExpired, nextChatMessageExpireAtMillis } from '@/lib/message-expire-at';
 import {
   parseE2eeEncryptedDataTypes,
   resolveEffectiveE2eeEncryptedDataTypes,
@@ -562,6 +563,15 @@ export function ChatWindow({
     return [...messages, ...uniqueOptimistic];
   }, [messages, optimisticMessages]);
 
+  const [expiryNowMs, setExpiryNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const nextExpireMs = nextChatMessageExpireAtMillis(allMessages, Date.now());
+    if (nextExpireMs == null) return undefined;
+    const delayMs = Math.max(0, nextExpireMs - Date.now()) + 250;
+    const id = window.setTimeout(() => setExpiryNowMs(Date.now()), delayMs);
+    return () => window.clearTimeout(id);
+  }, [allMessages, expiryNowMs]);
+
   useEffect(() => {
     const hasCiphertext = allMessages.some((m) => m.e2ee?.ciphertext);
     if (!hasCiphertext) {
@@ -599,8 +609,9 @@ export function ChatWindow({
 
   const messagesForListRaw = useMemo(() => {
     const clearedAt = conversation.clearedAt?.[currentUser.id];
-    return clearedAt ? allMessages.filter(m => new Date(m.createdAt) > new Date(clearedAt)) : allMessages;
-  }, [allMessages, conversation.clearedAt, currentUser.id]);
+    const notExpired = allMessages.filter((m) => !isChatMessageExpired(m, expiryNowMs));
+    return clearedAt ? notExpired.filter(m => new Date(m.createdAt) > new Date(clearedAt)) : notExpired;
+  }, [allMessages, conversation.clearedAt, currentUser.id, expiryNowMs]);
 
   // E2EE v2 Phase 9: расшифрованные blob-URL'ы для message.e2ee.attachments[]
   // подмешиваются в .attachments перед рендером. Хук ленивый, кэширует

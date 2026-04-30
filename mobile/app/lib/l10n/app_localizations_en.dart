@@ -2341,6 +2341,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get message_menu_header_read => 'READ:';
 
   @override
+  String get message_menu_header_expire_at => 'DISAPPEARS:';
+
+  @override
   String get chat_header_search_hint => 'Search messages…';
 
   @override

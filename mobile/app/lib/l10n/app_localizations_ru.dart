@@ -2356,6 +2356,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get message_menu_header_read => 'ПРОЧИТАНО:';
 
   @override
+  String get message_menu_header_expire_at => 'ИСЧЕЗНЕТ:';
+
+  @override
   String get chat_header_search_hint => 'Поиск сообщений…';
 
   @override

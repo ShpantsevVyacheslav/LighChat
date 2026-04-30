@@ -135,9 +135,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   List<ChatMessage> _sortedAscCache = const <ChatMessage>[];
   List<ChatMessage> _hydratedThreadMsgsDescCache = const <ChatMessage>[];
   ChatMessage? _hydratedParentCache;
+  DateTime _messageExpiryNow = DateTime.now();
+  Timer? _messageExpiryTimer;
   String? _jumpScrollBoostMessageId;
   bool _threadAtBottom = true;
   int _anchorUnreadStep = 0;
+
   /// Паритет основного чата: разделитель не «едет» при прочитке в сессии.
   String? _sessionUnreadSeparatorAnchorMessageId;
   String _suppressThreadUnreadResetKey = '';
@@ -157,6 +160,30 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  List<ChatMessage> _filterExpiredMessages(List<ChatMessage> messages) {
+    final now = _messageExpiryNow.toUtc();
+    return messages
+        .where((m) => m.expireAt == null || m.expireAt!.toUtc().isAfter(now))
+        .toList(growable: false);
+  }
+
+  void _scheduleMessageExpiryRefresh(List<ChatMessage> messages) {
+    _messageExpiryTimer?.cancel();
+    final now = DateTime.now().toUtc();
+    DateTime? next;
+    for (final m in messages) {
+      final exp = m.expireAt?.toUtc();
+      if (exp == null || !exp.isAfter(now)) continue;
+      if (next == null || exp.isBefore(next)) next = exp;
+    }
+    if (next == null) return;
+    final delay = next.difference(now) + const Duration(milliseconds: 250);
+    _messageExpiryTimer = Timer(delay, () {
+      if (!mounted) return;
+      setState(() => _messageExpiryNow = DateTime.now());
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -168,6 +195,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
   @override
   void dispose() {
+    _messageExpiryTimer?.cancel();
     _flashHighlightTimer?.cancel();
     _scrollController.dispose();
     _composerController.dispose();
@@ -186,6 +214,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       _sortedAscCache = const <ChatMessage>[];
       _hydratedThreadMsgsDescCache = const <ChatMessage>[];
       _hydratedParentCache = null;
+      _messageExpiryNow = DateTime.now();
+      _messageExpiryTimer?.cancel();
       _jumpScrollBoostMessageId = null;
       _replyingTo = null;
       _flashHighlightTimer?.cancel();
@@ -267,8 +297,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       _sessionUnreadSeparatorAnchorMessageId = null;
       return;
     }
-    _sessionUnreadSeparatorAnchorMessageId ??=
-        _oldestIncomingUnreadId(sortedAsc, viewerId);
+    _sessionUnreadSeparatorAnchorMessageId ??= _oldestIncomingUnreadId(
+      sortedAsc,
+      viewerId,
+    );
   }
 
   Future<void> _markVisibleMessageAsRead(
@@ -912,9 +944,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.chat_delete_action_failed(e))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.chat_delete_action_failed(e))),
+        );
       }
       return false;
     }
@@ -961,9 +993,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.chat_delete_action_failed(e))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.chat_delete_action_failed(e))),
+        );
       }
       return false;
     }
@@ -994,15 +1026,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
           await Navigator.of(context).push<void>(
             chatMediaViewerPageRoute<void>(
               ChatMediaViewerScreen(
-                items: [ChatMediaGalleryItem(attachment: resolved, message: msg)],
+                items: [
+                  ChatMediaGalleryItem(attachment: resolved, message: msg),
+                ],
                 initialIndex: 0,
                 currentUserId: user.uid,
-                senderLabel: (sid) => _threadSenderLabel(
-                  sid,
-                  user,
-                  conv,
-                  l10n,
-                ),
+                senderLabel: (sid) => _threadSenderLabel(sid, user, conv, l10n),
                 onReply: null,
                 onForward: (_) {},
                 allowForward: false,
@@ -1079,7 +1108,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
     final userDoc =
         ref.read(userChatSettingsDocProvider(uid)).asData?.value ??
-            const <String, dynamic>{};
+        const <String, dynamic>{};
     final rawPrivacy =
         userDoc['privacySettings'] as Map? ?? const <String, dynamic>{};
     final globalPolicy = E2eeDataTypePolicy.fromFirestore(
@@ -1089,10 +1118,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     final overridePolicy = overrideRaw == null
         ? null
         : E2eeDataTypePolicy.fromFirestore(overrideRaw);
-    final e2eePolicy = resolveE2eeEffectivePolicy(
+    final basePolicy = resolveE2eeEffectivePolicy(
       global: globalPolicy,
       override: overridePolicy,
     );
+    final e2eePolicy = isConversationE2eeActive(conv)
+        ? basePolicy.copyWith(text: true, media: true)
+        : basePolicy;
 
     ReplyContext? stripReply(ReplyContext? input) {
       if (input == null) return null;
@@ -1308,12 +1340,17 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                 Expanded(
                   child: threadAsync.when(
                     data: (threadMsgs) {
-                      final sortedAsc = List<ChatMessage>.from(threadMsgs)
-                        ..sort((a, b) {
-                          final t = a.createdAt.compareTo(b.createdAt);
-                          if (t != 0) return t;
-                          return a.id.compareTo(b.id);
-                        });
+                      _scheduleMessageExpiryRefresh(threadMsgs);
+                      final visibleThreadMsgs = _filterExpiredMessages(
+                        threadMsgs,
+                      );
+                      final sortedAsc =
+                          List<ChatMessage>.from(visibleThreadMsgs)
+                            ..sort((a, b) {
+                              final t = a.createdAt.compareTo(b.createdAt);
+                              if (t != 0) return t;
+                              return a.id.compareTo(b.id);
+                            });
                       _sortedAscCache = sortedAsc;
                       _hydratedThreadMsgsDescCache = const <ChatMessage>[];
                       _syncMessageItemKeys(sortedAsc);
@@ -1458,7 +1495,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     final sourceReplies =
                                         _hydratedThreadMsgsDescCache.isNotEmpty
                                         ? _hydratedThreadMsgsDescCache
-                                        : threadMsgs;
+                                        : visibleThreadMsgs;
                                     return _ThreadRootPanel(
                                       message: hydratedParent,
                                       currentUserId: user.uid,
@@ -1495,7 +1532,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     child: E2eeMessagesResolver(
                                       conversationId: widget.conversationId,
                                       secretChat: conv?.secretChat,
-                                      messages: threadMsgs,
+                                      messages: visibleThreadMsgs,
                                       builder:
                                           (
                                             context,
@@ -1510,15 +1547,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                             return ChatMessageList(
                                               messagesDesc:
                                                   buildDescWithOutboxMessages(
-                                                hydratedDesc:
-                                                    hydratedThreadMsgs,
-                                                jobs: outboxJobs,
-                                                conversationId:
-                                                    widget.conversationId,
-                                                senderId: user.uid,
-                                                threadParentMessageId:
-                                                    widget.parentMessageId,
-                                              ),
+                                                    hydratedDesc:
+                                                        hydratedThreadMsgs,
+                                                    jobs: outboxJobs,
+                                                    conversationId:
+                                                        widget.conversationId,
+                                                    senderId: user.uid,
+                                                    threadParentMessageId:
+                                                        widget.parentMessageId,
+                                                  ),
                                               currentUserId: user.uid,
                                               conversationId:
                                                   widget.conversationId,
@@ -1673,13 +1710,16 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                               e2eeDisabledBanner: () {
                                 final c = conv;
                                 if (c != null && c.isGroup != true) {
-                                  final others =
-                                      c.participantIds.where((id) => id != user.uid).toList();
-                                  final otherId =
-                                      others.isEmpty ? null : others.first.trim();
+                                  final others = c.participantIds
+                                      .where((id) => id != user.uid)
+                                      .toList();
+                                  final otherId = others.isEmpty
+                                      ? null
+                                      : others.first.trim();
                                   if (otherId != null && otherId.isNotEmpty) {
                                     return StreamBuilder<
-                                        DocumentSnapshot<Map<String, dynamic>>>(
+                                      DocumentSnapshot<Map<String, dynamic>>
+                                    >(
                                       stream: FirebaseFirestore.instance
                                           .collection('users')
                                           .doc(otherId)
@@ -1687,11 +1727,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                       builder: (context, snap) {
                                         if (snap.hasError) {
                                           return dmComposerBlockBanner(
-                                            context: context,
-                                            ref: ref,
-                                            currentUserId: user.uid,
-                                            conv: conv,
-                                          ) ??
+                                                context: context,
+                                                ref: ref,
+                                                currentUserId: user.uid,
+                                                conv: conv,
+                                              ) ??
                                               const SizedBox.shrink();
                                         }
                                         final exists = snap.data?.exists;
@@ -1699,11 +1739,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                           return const DeletedAccountReadOnlyBanner();
                                         }
                                         return dmComposerBlockBanner(
-                                          context: context,
-                                          ref: ref,
-                                          currentUserId: user.uid,
-                                          conv: conv,
-                                        ) ??
+                                              context: context,
+                                              ref: ref,
+                                              currentUserId: user.uid,
+                                              conv: conv,
+                                            ) ??
                                             const SizedBox.shrink();
                                       },
                                     );
@@ -1814,9 +1854,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                         ),
                       ],
                     ),
-                    error: (e, _) => Center(
-                      child: Text(l10n.thread_load_replies_error(e)),
-                    ),
+                    error: (e, _) =>
+                        Center(child: Text(l10n.thread_load_replies_error(e))),
                   ),
                 ),
               ],
@@ -1979,7 +2018,9 @@ class _ThreadRootPanel extends StatelessWidget {
         );
       }
       if (children.isEmpty) {
-        children.add(Text(l10n.chat_message_empty_placeholder, style: baseStyle));
+        children.add(
+          Text(l10n.chat_message_empty_placeholder, style: baseStyle),
+        );
       }
 
       final metaRow = Row(

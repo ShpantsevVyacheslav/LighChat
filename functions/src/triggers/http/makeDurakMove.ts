@@ -195,7 +195,7 @@ export const makeDurakMove = onCall(
                 prevDefenderUid,
                 prevThrowerUids,
                 prevPassedUids,
-                prevRoundDefenderHandLimit,
+                ...(typeof prevRoundDefenderHandLimit === "number" ? { prevRoundDefenderHandLimit } : {}),
                 at: nowIso,
               };
             }
@@ -318,9 +318,9 @@ export const makeDurakMove = onCall(
           shuler: {
             enabled: settings.shulerEnabled === true,
             lastCheatUid: state.lastCheat ? state.lastCheat.uid : null,
-            lastCheatAt: state.lastCheat ? state.lastCheat.at : undefined,
-            foulEvent: state.foulEvent ?? undefined,
-            pendingResolution: state.pendingResolution ?? undefined,
+            lastCheatAt: state.lastCheat ? state.lastCheat.at : null,
+            foulEvent: state.foulEvent ?? null,
+            pendingResolution: state.pendingResolution ?? null,
           },
           result: result ?? null,
         },

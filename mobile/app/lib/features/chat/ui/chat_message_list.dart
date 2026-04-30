@@ -1638,7 +1638,8 @@ class _ChatMessageBubble extends StatelessWidget {
             if (isMine &&
                 onOutboxRetry != null &&
                 onOutboxDismiss != null &&
-                message.id.startsWith(kLocalOutboxMessageIdPrefix)) ...[
+                message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
+                (message.deliveryStatus ?? '') == 'failed') ...[
               Align(
                 alignment: Alignment.centerRight,
                 child: Padding(
@@ -1655,11 +1656,7 @@ class _ChatMessageBubble extends StatelessWidget {
                         ),
                       TextButton(
                         onPressed: () => onOutboxDismiss!(message.id),
-                        child: Text(
-                          (message.deliveryStatus ?? '') == 'failed'
-                              ? l10n.chat_outbox_remove
-                              : l10n.chat_outbox_cancel,
-                        ),
+                        child: Text(l10n.chat_outbox_remove),
                       ),
                     ],
                   ),

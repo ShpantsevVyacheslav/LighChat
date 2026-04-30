@@ -68,6 +68,7 @@ import {
     measureChatPerf,
 } from '@/components/chat/chat-performance-metrics';
 import { CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
+import { isChatMessageExpired, nextChatMessageExpireAtMillis } from '@/lib/message-expire-at';
 
 interface ThreadWindowProps {
     parentMessage: ChatMessage;
@@ -297,16 +298,26 @@ export function ThreadWindow({
         setDisplayLimit(prev => prev + HISTORY_PAGE_SIZE);
     }, [hasMore, isLoadingOlder]);
 
+    const [expiryNowMs, setExpiryNowMs] = useState(() => Date.now());
+    useEffect(() => {
+        const nextExpireMs = nextChatMessageExpireAtMillis(messages, Date.now());
+        if (nextExpireMs == null) return undefined;
+        const delayMs = Math.max(0, nextExpireMs - Date.now()) + 250;
+        const id = window.setTimeout(() => setExpiryNowMs(Date.now()), delayMs);
+        return () => window.clearTimeout(id);
+    }, [messages, expiryNowMs]);
+
     const allMessagesRaw = useMemo(() => {
         const remoteMessageIds = new Set(messages.map(rm => rm.id));
         const uniqueOptimistic = optimisticMessages.filter(om => !remoteMessageIds.has(om.id));
         const combined = [...messages, ...uniqueOptimistic];
         
         const clearedAt = conversation.clearedAt?.[currentUser.id];
-        return clearedAt 
-            ? combined.filter(m => new Date(m.createdAt) > new Date(clearedAt))
-            : combined;
-    }, [messages, optimisticMessages, conversation.clearedAt, currentUser.id]);
+        const notExpired = combined.filter((m) => !isChatMessageExpired(m, expiryNowMs));
+        return clearedAt
+            ? notExpired.filter(m => new Date(m.createdAt) > new Date(clearedAt))
+            : notExpired;
+    }, [messages, optimisticMessages, conversation.clearedAt, currentUser.id, expiryNowMs]);
 
     // E2EE v2 Phase 9: подмешиваем расшифрованные blob-URL в message.attachments
     // перед тем как сообщения попадут в flatItems/ChatMessageItem.

@@ -1247,7 +1247,8 @@
   "message_menu_action_delete": "Удалить",
   "message_menu_initiator_deleted": "Сообщение удалено",
   "message_menu_header_sent": "ОТПРАВЛЕНО:",
-  "message_menu_header_read": "ПРОЧИТАНО:"
+  "message_menu_header_read": "ПРОЧИТАНО:",
+  "message_menu_header_expire_at": "ИСЧЕЗНЕТ:"
   ,
   "chat_header_search_hint": "Поиск сообщений…",
   "chat_header_tooltip_threads": "Обсуждения",

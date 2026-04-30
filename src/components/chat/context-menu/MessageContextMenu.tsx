@@ -12,6 +12,7 @@ import type { ChatMessage } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { FocusCircleHole } from '@/components/chat/context-menu/message-focus-hole';
+import { getExpireAtMillisFromUnknown } from '@/lib/message-expire-at';
 
 const REACTION_LIST = ['👌', '😁', '🤝', '😱', '❤️', '👍', '🔥', '😂', '😮', '😢', '👏', '🎉', '✅'];
 
@@ -136,6 +137,10 @@ export function MessageContextMenu({
   const readDate = message.readAt ? parseISO(message.readAt) : null;
   const readDateStr = readDate ? format(readDate, 'dd.MM.yyyy', { locale: ru }) : null;
   const readTimeStr = readDate ? format(readDate, 'HH:mm') : null;
+  const expireMs = getExpireAtMillisFromUnknown(message.expireAt);
+  const expireDate = expireMs == null ? null : new Date(expireMs);
+  const expireDateStr = expireDate ? format(expireDate, 'dd.MM.yyyy', { locale: ru }) : null;
+  const expireTimeStr = expireDate ? format(expireDate, 'HH:mm') : null;
 
   return createPortal(
     <>
@@ -163,6 +168,12 @@ export function MessageContextMenu({
                     <p className="text-[10px] font-bold uppercase tracking-wide flex justify-between">
                         <span>Прочитано:</span>
                         <span className="text-blue-400">{readDateStr} {readTimeStr}</span>
+                    </p>
+                )}
+                {expireDate && (
+                    <p className="text-[10px] font-bold uppercase tracking-wide flex justify-between">
+                        <span>Исчезнет:</span>
+                        <span className="text-amber-300">{expireDateStr} {expireTimeStr}</span>
                     </p>
                 )}
             </div>

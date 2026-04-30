@@ -200,6 +200,29 @@ export function ConversationGamesPanel({
     }
   }, [firestore, isGroup, onCreatedGameLobby, selectedTournamentId, settings, toast]);
 
+  const finishDurakGame = useCallback(
+    async (gameId: string) => {
+      if (!firestore || !gameId) return;
+      setBusy(`finish:${gameId}`);
+      try {
+        const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), 'makeDurakMove');
+        await fn({
+          gameId,
+          clientMoveId: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+          actionType: 'surrender',
+          payload: null,
+        });
+        toast({ title: 'Игра завершена' });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Не удалось завершить игру';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      } finally {
+        setBusy(null);
+      }
+    },
+    [firestore, toast]
+  );
+
   if (!selectedGame) {
     return (
       <div className="space-y-3">
@@ -338,20 +361,33 @@ export function ConversationGamesPanel({
           const gameId = (l.gameId ?? l.id ?? '') || '';
           const status = String(l.status ?? '');
           return (
-            <button
+            <div
               key={`${gameId || idx}-${status}`}
-              type="button"
-              disabled={!gameId}
-              onClick={() => gameId && onCreatedGameLobby?.(gameId)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-border/70 bg-card/70 p-4 text-left transition hover:bg-card disabled:opacity-60"
+              className="flex w-full items-center gap-3 rounded-2xl border border-border/70 bg-card/70 p-4"
             >
-              <Swords className="h-5 w-5 text-emerald-500" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold">Дурак</div>
-                <div className="text-xs text-muted-foreground">{status} · {l.playerCount ?? 0}/{l.maxPlayers ?? 0}</div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
+              <button
+                type="button"
+                disabled={!gameId}
+                onClick={() => gameId && onCreatedGameLobby?.(gameId)}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60"
+              >
+                <Swords className="h-5 w-5 text-emerald-500" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold">Дурак</div>
+                  <div className="text-xs text-muted-foreground">{status} · {l.playerCount ?? 0}/{l.maxPlayers ?? 0}</div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!gameId || busy === `finish:${gameId}`}
+                onClick={() => gameId && void finishDurakGame(gameId)}
+                className="shrink-0"
+              >
+                Завершить
+              </Button>
+            </div>
           );
         })}
       </ListSection>

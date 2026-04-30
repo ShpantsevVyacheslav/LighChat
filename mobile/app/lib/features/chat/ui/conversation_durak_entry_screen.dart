@@ -23,6 +23,19 @@ class ConversationDurakEntryScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  Future<void> _finishGame(BuildContext context, String gameId) async {
+    try {
+      await GamesCallables().makeDurakMove(
+        gameId: gameId,
+        clientMoveId: DateTime.now().microsecondsSinceEpoch.toString(),
+        actionType: 'surrender',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      _toast(context, friendlyGamesCallableError(e));
+    }
+  }
+
   Future<void> _openSingleGame(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -151,7 +164,18 @@ class ConversationDurakEntryScreen extends StatelessWidget {
                             (d.data()['status'] ?? '').toString(),
                           ),
                         ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
+                        trailing: Wrap(
+                          spacing: 8,
+                          children: [
+                            IconButton(
+                              tooltip: 'Завершить игру',
+                              onPressed: () =>
+                                  unawaited(_finishGame(context, d.id)),
+                              icon: const Icon(Icons.flag_rounded),
+                            ),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
                         onTap: () => unawaited(
                           Navigator.of(context).push<void>(
                             MaterialPageRoute<void>(

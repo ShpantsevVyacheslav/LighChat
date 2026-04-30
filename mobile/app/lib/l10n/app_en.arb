@@ -1247,7 +1247,8 @@
   "message_menu_action_delete": "Delete",
   "message_menu_initiator_deleted": "Message deleted",
   "message_menu_header_sent": "SENT:",
-  "message_menu_header_read": "READ:"
+  "message_menu_header_read": "READ:",
+  "message_menu_header_expire_at": "DISAPPEARS:"
   ,
   "chat_header_search_hint": "Search messages…",
   "chat_header_tooltip_threads": "Threads",

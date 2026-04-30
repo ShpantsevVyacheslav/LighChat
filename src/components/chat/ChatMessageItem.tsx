@@ -25,7 +25,6 @@ import { MessageMedia } from './parts/MessageMedia';
 import { HeicAwareChatImage } from './parts/HeicAwareChatImage';
 import { useChatAttachmentDisplaySrc } from '@/components/chat/use-chat-attachment-display-src';
 import { MessageStatus } from './parts/MessageStatus';
-import { MessageDisappearingEta } from './parts/MessageDisappearingEta';
 import { MessageReply } from './parts/MessageReply';
 import { MessageReactions } from './parts/MessageReactions';
 import { AudioMessagePlayer } from './AudioMessagePlayer';
@@ -156,11 +155,6 @@ const ChatMessageItemComponent = ({
 }: ChatMessageItemProps) => {
     const isCurrentUser = message.senderId === currentUser.id;
     const isDeleted = !!message.isDeleted;
-    const showDisappearingEta =
-        !isDeleted &&
-        message.senderId !== '__system__' &&
-        !message.systemEvent &&
-        message.expireAt != null;
 
     const hasDecryptedEntry =
         e2eeDecryptedByMessageId != null && Object.prototype.hasOwnProperty.call(e2eeDecryptedByMessageId, message.id);
@@ -758,12 +752,6 @@ const ChatMessageItemComponent = ({
                                                                     readAt={message.readAt}
                                                                     bare
                                                                 />
-                                                                {showDisappearingEta ? (
-                                                                    <MessageDisappearingEta
-                                                                        expireAt={message.expireAt}
-                                                                        variant="bare"
-                                                                    />
-                                                                ) : null}
                                                             </div>
                                                         )}
                                                     </div>
@@ -794,14 +782,6 @@ const ChatMessageItemComponent = ({
                                                                         overlay
                                                                         isColoredBubble={isColoredBubble}
                                                                     />
-                                                                    {showDisappearingEta ? (
-                                                                        <div className="pointer-events-none absolute bottom-11 left-2 z-20 max-w-[min(100%,12rem)]">
-                                                                            <MessageDisappearingEta
-                                                                                expireAt={message.expireAt}
-                                                                                variant="muted"
-                                                                            />
-                                                                        </div>
-                                                                    ) : null}
                                                                 </>
                                                             )}
                                                         </div>
@@ -912,17 +892,6 @@ const ChatMessageItemComponent = ({
                                                                                 readAt={message.readAt}
                                                                                 isColoredBubble={isColoredBubble}
                                                                             />
-                                                                            {showDisappearingEta ? (
-                                                                                <MessageDisappearingEta
-                                                                                    expireAt={message.expireAt}
-                                                                                    variant="inline"
-                                                                                    className={
-                                                                                        isColoredBubble
-                                                                                            ? 'text-white/55'
-                                                                                            : undefined
-                                                                                    }
-                                                                                />
-                                                                            ) : null}
                                                                         </span>
                                                                     )}
                                                 </MessageText>

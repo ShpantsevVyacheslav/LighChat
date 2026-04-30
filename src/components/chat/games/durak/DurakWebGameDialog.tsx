@@ -464,6 +464,15 @@ export function DurakWebGameDialog({
                 <span className="font-black text-[#db4a68]">{displayName(currentUser.id, allUsers)}</span>
                 <span>{myCards.length} карт</span>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-[#db4a68]/35 bg-white text-[#db4a68] hover:bg-[#fff6f8]"
+                disabled={busy != null || status !== 'active'}
+                onClick={() => void makeMove('surrender')}
+              >
+                Завершить игру
+              </Button>
             </div>
             <div className="relative h-[118px] overflow-visible">
               <div className="absolute left-1/2 top-2 flex -translate-x-1/2 items-end justify-center">

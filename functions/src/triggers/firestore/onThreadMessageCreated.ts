@@ -37,6 +37,16 @@ export const onthreadmessagecreated = onDocumentCreated(
       logger.error("Conversation data is empty for thread message.", { conversationId });
       return;
     }
+
+    await trySetMessageExpireAtForDisappearing({
+      db,
+      messageRef: messageSnapshot.ref,
+      messageData: messageData as Record<string, unknown>,
+      conversationData: conversationData as Record<string, unknown>,
+      conversationId,
+      messageId: event.params.threadMessageId,
+    });
+
     const participantIds: string[] = conversationData.participantIds;
 
     const recipientIds = participantIds.filter((id) => id !== senderId);
@@ -123,13 +133,5 @@ export const onthreadmessagecreated = onDocumentCreated(
       logger.error("Error sending thread message via FCM:", error);
     }
 
-    await trySetMessageExpireAtForDisappearing({
-      db,
-      messageRef: messageSnapshot.ref,
-      messageData: messageData as Record<string, unknown>,
-      conversationData: conversationData as Record<string, unknown>,
-      conversationId,
-      messageId: event.params.threadMessageId,
-    });
   },
 );

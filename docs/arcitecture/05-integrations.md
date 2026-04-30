@@ -7,7 +7,7 @@
   - **TTL исчезающих сообщений:** после деплоя CF включите в консоли Firestore (или gcloud) политику TTL на поле **`expireAt`** для групп коллекций:
     - `conversations/{conversationId}/messages/{messageId}`
     - `conversations/{conversationId}/messages/{messageId}/thread/{threadMessageId}`  
-    Имя поля должно совпадать с тем, что пишут функции (`expireAt`, тип Timestamp). Без политики TTL документы с `expireAt` не удаляются автоматически.
+    Имя поля должно совпадать с тем, что пишут функции (`expireAt`, тип Timestamp). Legacy/ошибочное `expired_at` не используется. Без политики TTL документы с `expireAt` не удаляются автоматически; дополнительно Cloud Scheduler `cleanupExpiredDisappearingMessages` удаляет истёкшие сообщения раз в минуту как bounded fallback, потому что Firestore TTL может срабатывать с задержкой.
 - Storage: медиа/вложения/аватары/фоновые ресурсы.
 - Cloud Functions (v2): auth/firestore/http/scheduler automation.
 - FCM: data-push для уведомлений и входящих звонков (Android/Web и fallback).
@@ -30,7 +30,7 @@
 - `oncallcreated` для APNs VoIP использует **один** secret `APNS_VOIP_CONFIG` (JSON): `keyId`, `teamId`, `bundleId`, `privateKeyPem` (содержимое `.p8`, в JSON можно экранировать переводы строк как `\\n`), `useSandbox` (`true`/`false`). Пустой JSON или пустые поля — VoIP пропускается. См. [`apns-voip-secrets.md`](../integrations/apns-voip-secrets.md).
 - **Медиа в чате (нормализация):** после создания документа сообщения (основной ленты или треда) функции `onchatmessagemediatranscode` / `onchatthreadmessagemediatranscode` скачивают вложения по публичному URL, при необходимости перекодируют **FFmpeg** (видео → **MP4 H.264 + AAC**, прочее аудио → **M4A AAC**), загружают в Storage по пути `chat-attachments/{conversationId}/norm/{messageId}/…_lcnorm.{mp4|m4a}`, **обновляют** `attachments` на новый URL и **удаляют исходный объект** в `chat-attachments/{conversationId}/…` (если путь распознан из старого URL), чтобы не хранить два файла. Уже `video/mp4` и `audio/mp4` / `audio/mpeg` не перекодируются — оригинал не трогается. В документ сообщения пишется `mediaNorm` (`pending|done|failed`, `failedIndexes`, `updatedAt`) для UI-статуса и ручного retry. Для ручного перезапуска используется callable `retryChatMediaTranscode` (main/thread). Лимит входного размера ~220 МБ; требуются **2 GiB RAM**, до **540 s** таймаут.
 - Auth trigger: `onUserCreated`.
-- Scheduler: `checkUserPresence`.
+- Scheduler: `checkUserPresence`, `cleanupExpiredDisappearingMessages`.
 
 ## Games / Durak / Tournaments
 

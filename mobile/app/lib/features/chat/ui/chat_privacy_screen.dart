@@ -202,6 +202,12 @@ class ChatPrivacyScreen extends ConsumerWidget {
                 onShowLastSeenChanged: (v) => savePatch(showLastSeen: v),
                 onShowReadReceiptsChanged: (v) =>
                     savePatch(showReadReceipts: v),
+                onE2eeForNewDirectChatsChanged: (v) =>
+                    savePatch(e2eeForNewDirectChats: v),
+                onE2eeEncryptedDataTypesChanged: (v) =>
+                    savePatch(e2eeEncryptedDataTypes: v),
+                onOpenMyDevices: () => context.push('/settings/devices'),
+                onOpenKeyBackup: () => context.push('/settings/e2ee-recovery'),
                 onGroupPolicyChange: (v) => savePatch(groupInvitePolicy: v),
                 onGlobalSearchChanged: (v) =>
                     savePatch(showInGlobalUserSearch: v),
@@ -234,6 +240,10 @@ class _PrivacyView extends StatelessWidget {
     required this.onShowOnlineChanged,
     required this.onShowLastSeenChanged,
     required this.onShowReadReceiptsChanged,
+    required this.onE2eeForNewDirectChatsChanged,
+    required this.onE2eeEncryptedDataTypesChanged,
+    required this.onOpenMyDevices,
+    required this.onOpenKeyBackup,
     required this.onGroupPolicyChange,
     required this.onGlobalSearchChanged,
     required this.onShowEmailChanged,
@@ -249,6 +259,10 @@ class _PrivacyView extends StatelessWidget {
   final ValueChanged<bool> onShowOnlineChanged;
   final ValueChanged<bool> onShowLastSeenChanged;
   final ValueChanged<bool> onShowReadReceiptsChanged;
+  final ValueChanged<bool> onE2eeForNewDirectChatsChanged;
+  final ValueChanged<E2eeDataTypePolicy> onE2eeEncryptedDataTypesChanged;
+  final VoidCallback onOpenMyDevices;
+  final VoidCallback onOpenKeyBackup;
   final ValueChanged<String> onGroupPolicyChange;
   final ValueChanged<bool> onGlobalSearchChanged;
   final ValueChanged<bool> onShowEmailChanged;
@@ -335,6 +349,71 @@ class _PrivacyView extends StatelessWidget {
                       title: l10n.secret_chat_unlock_biometric,
                       subtitle: l10n.privacy_secret_vault_bio_subtitle,
                       onTap: onVaultBiometricCheck,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _SettingsCard(
+                  title: l10n.privacy_e2ee_section,
+                  leadingIcon: Icons.lock_outline_rounded,
+                  children: [
+                    _SwitchRow(
+                      title: l10n.privacy_e2ee_enable_for_all_chats,
+                      value: settings.e2eeForNewDirectChats,
+                      onChanged: onE2eeForNewDirectChatsChanged,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.enhanced_encryption_outlined,
+                            size: 16,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.privacy_e2ee_what_encrypt,
+                              style: TextStyle(
+                                fontSize: _kMutedTextSize,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface.withValues(alpha: 0.62),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _SwitchRow(
+                      title: l10n.privacy_e2ee_text,
+                      value: settings.e2eeEncryptedDataTypes.text,
+                      onChanged: (v) {
+                        final next = settings.e2eeEncryptedDataTypes.copyWith(
+                          text: v,
+                        );
+                        onE2eeEncryptedDataTypesChanged(next);
+                      },
+                    ),
+                    _SwitchRow(
+                      title: l10n.privacy_e2ee_media,
+                      value: settings.e2eeEncryptedDataTypes.media,
+                      onChanged: (v) {
+                        final next = settings.e2eeEncryptedDataTypes.copyWith(
+                          media: v,
+                        );
+                        onE2eeEncryptedDataTypesChanged(next);
+                      },
+                    ),
+                    _NavRow(
+                      title: l10n.privacy_my_devices_title,
+                      subtitle: l10n.privacy_my_devices_subtitle,
+                      onTap: onOpenMyDevices,
+                    ),
+                    _NavRow(
+                      title: l10n.privacy_key_backup_title,
+                      subtitle: l10n.privacy_key_backup_subtitle,
+                      onTap: onOpenKeyBackup,
                     ),
                   ],
                 ),

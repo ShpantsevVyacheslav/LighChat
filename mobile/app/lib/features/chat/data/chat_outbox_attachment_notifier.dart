@@ -362,24 +362,25 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       }
 
       Map<String, Object?>? outgoingEnvelope;
-      String? msgIdOverride;
       final hasEncryptedMedia = prep.encryptedEnvelopes.isNotEmpty;
+      // В E2EE-активном чате envelope обязателен для любого исходящего
+      // сообщения (иначе репозиторий заблокирует plaintext-send).
       final shouldUseE2eeEnvelope =
-          job.convIsE2ee && e2eeRuntime != null && epoch != null &&
-          (job.e2eeEncryptText || (job.e2eeEncryptMedia && hasEncryptedMedia));
+          job.convIsE2ee && e2eeRuntime != null && epoch != null;
       if (shouldUseE2eeEnvelope) {
         final textEnvelope = await e2eeRuntime.encryptOutgoing(
           conversationId: job.conversationId,
           messageId: job.effectiveMessageId,
           epoch: epoch,
-          plaintext: job.e2eeEncryptText ? textSave : '',
+          // Для чисто media-сообщений шифруем пустую строку (валидный envelope
+          // + AAD), для остальных — текст.
+          plaintext: hasEncryptedMedia && textSave.isEmpty ? '' : textSave,
         );
         outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
           textEnvelope: textEnvelope,
           mediaEnvelopes: prep.encryptedEnvelopes,
           epoch: epoch,
         );
-        msgIdOverride = job.effectiveMessageId;
       }
 
       final threadParent = job.threadParentMessageId;
@@ -392,7 +393,7 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
           replyTo: job.replyTo,
           attachments: uploaded,
           e2eeEnvelope: outgoingEnvelope,
-          messageIdOverride: msgIdOverride,
+          messageIdOverride: job.effectiveMessageId,
         );
       } else {
         await repo.sendTextMessage(
@@ -402,7 +403,7 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
           replyTo: job.replyTo,
           attachments: uploaded,
           e2eeEnvelope: outgoingEnvelope,
-          messageIdOverride: msgIdOverride,
+          messageIdOverride: job.effectiveMessageId,
         );
       }
 
@@ -449,6 +450,7 @@ List<ChatMessage> buildDescWithOutboxMessages({
   required String senderId,
   String? threadParentMessageId,
 }) {
+  final deliveredIds = hydratedDesc.map((m) => m.id).toSet();
   final out = <ChatMessage>[];
   for (final j in jobs) {
     if (j.conversationId != conversationId) continue;
@@ -461,6 +463,9 @@ List<ChatMessage> buildDescWithOutboxMessages({
     if (j.phase == OutboxAttachmentPhase.failed ||
         j.phase == OutboxAttachmentPhase.uploading ||
         j.phase == OutboxAttachmentPhase.sending) {
+      // Не дублируем пузырь, если «реальный» документ сообщения уже появился в
+      // ленте (тот же deterministic messageId из effectiveMessageId).
+      if (deliveredIds.contains(j.effectiveMessageId)) continue;
       final ds = j.phase == OutboxAttachmentPhase.failed ? 'failed' : 'sending';
       out.add(
         ChatMessage(

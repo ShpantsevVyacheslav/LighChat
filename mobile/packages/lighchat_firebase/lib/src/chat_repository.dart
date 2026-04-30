@@ -114,6 +114,41 @@ class ChatRepository {
         .doc(messageId);
   }
 
+  ChatMessage _withPendingWriteStatus(
+    ChatMessage message, {
+    required bool hasPendingWrites,
+  }) {
+    if (!hasPendingWrites || message.deliveryStatus == 'failed') return message;
+    if (message.deliveryStatus == 'sending') return message;
+    return ChatMessage(
+      id: message.id,
+      senderId: message.senderId,
+      text: message.text,
+      attachments: message.attachments,
+      replyTo: message.replyTo,
+      isDeleted: message.isDeleted,
+      reactions: message.reactions,
+      createdAt: message.createdAt,
+      readAt: message.readAt,
+      updatedAt: message.updatedAt,
+      forwardedFrom: message.forwardedFrom,
+      deliveryStatus: 'sending',
+      chatPollId: message.chatPollId,
+      locationShare: message.locationShare,
+      threadCount: message.threadCount,
+      unreadThreadCounts: message.unreadThreadCounts,
+      lastThreadMessageText: message.lastThreadMessageText,
+      lastThreadMessageSenderId: message.lastThreadMessageSenderId,
+      lastThreadMessageTimestamp: message.lastThreadMessageTimestamp,
+      hasE2eeCiphertext: message.hasE2eeCiphertext,
+      e2eePayload: message.e2eePayload,
+      mediaNorm: message.mediaNorm,
+      emojiBurst: message.emojiBurst,
+      systemEvent: message.systemEvent,
+      voiceTranscript: message.voiceTranscript,
+    );
+  }
+
   /// Web `placeholder-images.json` → `group-avatar-placeholder`.
   static const String _groupAvatarPlaceholderUrl =
       'https://images.unsplash.com/photo-1511632765486-a01980e01a18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNDE5ODJ8MHwxfHNlYXJjaHwxfHxncm91cCUyMHBvcHVsYXRpb258ZW58MHx8fHwxNjYwNjIzNzY5&ixlib=rb-4.1.0&q=80&w=1080';
@@ -307,17 +342,23 @@ class ChatRepository {
     var retried = false;
 
     void emitFrom(QuerySnapshot<ChatMessage?> snap) {
-      controller.add(
-        snap.docs
-            .map((d) => d.data())
-            .whereType<ChatMessage>()
-            .toList(growable: false),
-      );
+      final out = <ChatMessage>[];
+      for (final d in snap.docs) {
+        final parsed = d.data();
+        if (parsed == null) continue;
+        out.add(
+          _withPendingWriteStatus(
+            parsed,
+            hasPendingWrites: d.metadata.hasPendingWrites,
+          ),
+        );
+      }
+      controller.add(out);
     }
 
     Future<void> start() async {
       await sub?.cancel().catchError((_) {});
-      sub = q.snapshots().listen(
+      sub = q.snapshots(includeMetadataChanges: true).listen(
         emitFrom,
         onError: (Object err, StackTrace st) async {
           final code = err is FirebaseException
@@ -426,17 +467,23 @@ class ChatRepository {
     var retried = false;
 
     void emitFrom(QuerySnapshot<ChatMessage?> snap) {
-      controller.add(
-        snap.docs
-            .map((d) => d.data())
-            .whereType<ChatMessage>()
-            .toList(growable: false),
-      );
+      final out = <ChatMessage>[];
+      for (final d in snap.docs) {
+        final parsed = d.data();
+        if (parsed == null) continue;
+        out.add(
+          _withPendingWriteStatus(
+            parsed,
+            hasPendingWrites: d.metadata.hasPendingWrites,
+          ),
+        );
+      }
+      controller.add(out);
     }
 
     Future<void> start() async {
       await sub?.cancel().catchError((_) {});
-      sub = q.snapshots().listen(
+      sub = q.snapshots(includeMetadataChanges: true).listen(
         emitFrom,
         onError: (Object err, StackTrace st) async {
           final code = err is FirebaseException

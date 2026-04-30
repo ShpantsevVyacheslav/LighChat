@@ -4088,6 +4088,12 @@ abstract class AppLocalizations {
   /// **'ПРОЧИТАНО:'**
   String get message_menu_header_read;
 
+  /// No description provided for @message_menu_header_expire_at.
+  ///
+  /// In ru, this message translates to:
+  /// **'ИСЧЕЗНЕТ:'**
+  String get message_menu_header_expire_at;
+
   /// No description provided for @chat_header_search_hint.
   ///
   /// In ru, this message translates to:
