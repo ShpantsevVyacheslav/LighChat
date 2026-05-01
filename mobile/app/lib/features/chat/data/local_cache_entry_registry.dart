@@ -43,6 +43,9 @@ class LocalCacheEntryRegistry {
 
   static const String _videoKeyPrefix = 'mobile_video_cache_ctx_v1_';
   static const String _videoThumbKeyPrefix = 'mobile_video_thumb_cache_ctx_v1_';
+  static const String _imageKeyPrefix = 'mobile_image_cache_ctx_v1_';
+
+  static String imageFileIdForUrl(String url) => _thumbSha32(url.trim());
 
   static String _fnv32Id(String url) {
     const prime = 0x01000193;
@@ -92,6 +95,43 @@ class LocalCacheEntryRegistry {
       attachmentName: attachmentName?.trim(),
     );
     await prefs.setString(key, jsonEncode(ctx.toJson()));
+  }
+
+  static Future<void> registerImageContext({
+    required String url,
+    required String conversationId,
+    String? messageId,
+    String? attachmentName,
+  }) async {
+    final cid = conversationId.trim();
+    if (url.trim().isEmpty || cid.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_imageKeyPrefix${imageFileIdForUrl(url)}';
+    if (prefs.getString(key) != null) return; // already registered
+    final ctx = LocalCacheEntryContext(
+      conversationId: cid,
+      messageId: messageId?.trim(),
+      attachmentName: attachmentName?.trim(),
+    );
+    await prefs.setString(key, jsonEncode(ctx.toJson()));
+  }
+
+  static LocalCacheEntryContext? readImageContextSyncForFileName({
+    required SharedPreferences prefs,
+    required String fileName,
+  }) {
+    final id = _extractHex32Id(fileName);
+    if (id == null) return null;
+    return _readContext(prefs: prefs, key: '$_imageKeyPrefix$id');
+  }
+
+  static String? _extractHex32Id(String fileName) {
+    final lower = fileName.toLowerCase();
+    final dot = lower.indexOf('.');
+    final id = dot <= 0 ? lower : lower.substring(0, dot);
+    if (id.length != 32) return null;
+    final isHex = RegExp(r'^[0-9a-f]{32}$').hasMatch(id);
+    return isHex ? id : null;
   }
 
   static LocalCacheEntryContext? readVideoContextSyncForFileName({

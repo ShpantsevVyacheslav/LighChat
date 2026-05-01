@@ -3,6 +3,9 @@ import 'dart:io' show File;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../data/chat_image_cache_manager.dart';
+import '../data/local_cache_entry_registry.dart';
+
 /// Сетевые картинки чата: кэш на диске + в памяти ([CachedNetworkImage]),
 /// чтобы при обратном скролле не было повторной загрузки с сети.
 class ChatCachedNetworkImage extends StatelessWidget {
@@ -17,6 +20,9 @@ class ChatCachedNetworkImage extends StatelessWidget {
     this.showProgressIndicator = true,
     this.errorOverride,
     this.httpHeaders,
+    this.conversationId,
+    this.messageId,
+    this.attachmentName,
   });
 
   final String url;
@@ -36,6 +42,12 @@ class ChatCachedNetworkImage extends StatelessWidget {
 
   /// Для тайлов/превью OSM и др. сервисов, требующих идентифицируемый User-Agent.
   final Map<String, String>? httpHeaders;
+
+  /// Когда заданы — закэшированный файл регистрируется в [LocalCacheEntryRegistry],
+  /// чтобы экран «Хранилище» мог сопоставить его с конкретным чатом.
+  final String? conversationId;
+  final String? messageId;
+  final String? attachmentName;
 
   @override
   Widget build(BuildContext context) {
@@ -114,9 +126,23 @@ class ChatCachedNetworkImage extends StatelessWidget {
       }
     }
 
+    final cid = conversationId?.trim();
+    final useChatCache = cid != null && cid.isNotEmpty;
+    if (useChatCache) {
+      // Best-effort: register so storage settings can map the cached file
+      // back to this conversation. Idempotent.
+      LocalCacheEntryRegistry.registerImageContext(
+        url: url,
+        conversationId: cid,
+        messageId: messageId,
+        attachmentName: attachmentName,
+      );
+    }
+
     return CachedNetworkImage(
       imageUrl: url,
       httpHeaders: httpHeaders,
+      cacheManager: useChatCache ? ChatImageCacheManager() : null,
       width: width,
       height: height,
       fit: fit,

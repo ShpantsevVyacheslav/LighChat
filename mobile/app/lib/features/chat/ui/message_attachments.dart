@@ -220,6 +220,8 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                       maxWidth: width,
                       alignRight: alignRight,
                       onOpenGridGallery: widget.onOpenGridGallery,
+                      conversationId: widget.conversationId,
+                      messageId: widget.messageId,
                     ),
                   ),
                 if (voices.isNotEmpty) ...[
@@ -330,12 +332,16 @@ class _ImageGrid extends StatelessWidget {
     required this.maxWidth,
     required this.alignRight,
     this.onOpenGridGallery,
+    this.conversationId,
+    this.messageId,
   });
 
   final List<ChatAttachment> images;
   final double maxWidth;
   final bool alignRight;
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
+  final String? conversationId;
+  final String? messageId;
 
   static const double _gap = 2;
   static const int _maxCells = 9;
@@ -355,6 +361,8 @@ class _ImageGrid extends StatelessWidget {
         maxWidth: maxWidth,
         borderRadius: radius,
         onOpenGridGallery: onOpenGridGallery,
+        conversationId: conversationId,
+        messageId: messageId,
       );
     }
 
@@ -506,12 +514,16 @@ class _SingleVisualAttachment extends StatelessWidget {
     required this.maxWidth,
     required this.borderRadius,
     this.onOpenGridGallery,
+    this.conversationId,
+    this.messageId,
   });
 
   final ChatAttachment attachment;
   final double maxWidth;
   final BorderRadius borderRadius;
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
+  final String? conversationId;
+  final String? messageId;
 
   @override
   Widget build(BuildContext context) {
@@ -524,7 +536,13 @@ class _SingleVisualAttachment extends StatelessWidget {
         child: SizedBox(
           width: side,
           height: side,
-          child: ChatCachedNetworkImage(url: a.url, fit: BoxFit.contain),
+          child: ChatCachedNetworkImage(
+            url: a.url,
+            fit: BoxFit.contain,
+            conversationId: conversationId,
+            messageId: messageId,
+            attachmentName: a.name,
+          ),
         ),
       );
     }
@@ -538,6 +556,8 @@ class _SingleVisualAttachment extends StatelessWidget {
         minHeight: 96,
         borderRadius: borderRadius,
         onOpenGridGallery: onOpenGridGallery,
+        conversationId: conversationId,
+        messageId: messageId,
       );
     }
 
@@ -548,6 +568,8 @@ class _SingleVisualAttachment extends StatelessWidget {
       minHeight: 72,
       borderRadius: borderRadius,
       onOpenGridGallery: onOpenGridGallery,
+      conversationId: conversationId,
+      messageId: messageId,
     );
   }
 }
@@ -560,6 +582,8 @@ class _AspectImageBox extends StatelessWidget {
     required this.minHeight,
     required this.borderRadius,
     this.onOpenGridGallery,
+    this.conversationId,
+    this.messageId,
   });
 
   final ChatAttachment attachment;
@@ -568,6 +592,8 @@ class _AspectImageBox extends StatelessWidget {
   final double minHeight;
   final BorderRadius borderRadius;
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
+  final String? conversationId;
+  final String? messageId;
 
   @override
   Widget build(BuildContext context) {
@@ -610,6 +636,9 @@ class _AspectImageBox extends StatelessWidget {
           ? (isLandscape ? BoxFit.cover : BoxFit.contain)
           : BoxFit.cover,
       alignment: Alignment.center,
+      conversationId: conversationId,
+      messageId: messageId,
+      attachmentName: attachment.name,
     );
     final maybeLocked = SecretChatMediaOpenService.isLockedSecretAttachment(
       attachment,

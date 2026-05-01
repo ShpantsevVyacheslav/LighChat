@@ -506,6 +506,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Generated first-frame thumbnails for videos.';
 
   @override
+  String get storage_category_chat_images => 'Chat photos';
+
+  @override
+  String get storage_category_chat_images_subtitle =>
+      'Cached photos and stickers from open chats.';
+
+  @override
   String get storage_media_type_video => 'Video';
 
   @override
@@ -575,6 +582,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storage_chat_detail_clear_button_empty => 'Select files to delete';
+
+  @override
+  String get storage_chat_detail_tab_empty => 'Nothing in this tab.';
 
   @override
   String get storage_chat_detail_delete_title => 'Delete selected files?';

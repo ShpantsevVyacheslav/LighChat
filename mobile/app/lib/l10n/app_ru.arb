@@ -232,6 +232,8 @@
   "storage_category_video_downloads_subtitle": "Локальные копии видео из просмотрщика медиа.",
   "storage_category_video_thumbs": "Превью-кадры видео",
   "storage_category_video_thumbs_subtitle": "Сгенерированные первые кадры для видео.",
+  "storage_category_chat_images": "Фото в чатах",
+  "storage_category_chat_images_subtitle": "Кэшированные фотографии и стикеры из открытых чатов.",
   "storage_media_type_video": "Видео",
   "storage_media_type_photo": "Фотографии",
   "storage_media_type_files": "Файлы",
@@ -268,6 +270,7 @@
     }
   },
   "storage_chat_detail_clear_button_empty": "Выберите файлы для удаления",
+  "storage_chat_detail_tab_empty": "В этой вкладке ничего нет.",
   "storage_chat_detail_delete_title": "Удалить выбранные файлы?",
   "storage_chat_detail_delete_body": "{count} файлов ({size}) будет удалено с устройства. Облачные копии не затрагиваются.",
   "@storage_chat_detail_delete_body": {

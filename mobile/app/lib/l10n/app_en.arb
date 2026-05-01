@@ -232,6 +232,8 @@
   "storage_category_video_downloads_subtitle": "Locally downloaded videos from gallery views.",
   "storage_category_video_thumbs": "Video preview frames",
   "storage_category_video_thumbs_subtitle": "Generated first-frame thumbnails for videos.",
+  "storage_category_chat_images": "Chat photos",
+  "storage_category_chat_images_subtitle": "Cached photos and stickers from open chats.",
   "storage_media_type_video": "Video",
   "storage_media_type_photo": "Photos",
   "storage_media_type_files": "Files",
@@ -268,6 +270,7 @@
     }
   },
   "storage_chat_detail_clear_button_empty": "Select files to delete",
+  "storage_chat_detail_tab_empty": "Nothing in this tab.",
   "storage_chat_detail_delete_title": "Delete selected files?",
   "storage_chat_detail_delete_body": "{count} files ({size}) will be removed from the device. Cloud copies stay intact.",
   "@storage_chat_detail_delete_body": {

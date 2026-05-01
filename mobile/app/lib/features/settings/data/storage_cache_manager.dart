@@ -30,6 +30,8 @@ StorageMediaType classifyEntryMediaType(LocalStorageEntry entry) {
       if (_kVideoExtensions.contains(ext)) return StorageMediaType.video;
       if (_kPhotoExtensions.contains(ext)) return StorageMediaType.photo;
       return StorageMediaType.file;
+    case LocalStorageCategory.chatImages:
+      return StorageMediaType.photo;
     case LocalStorageCategory.videoThumbs:
     case LocalStorageCategory.e2eeText:
     case LocalStorageCategory.chatDrafts:
@@ -168,6 +170,14 @@ class StorageCacheManager {
       dir: Directory('${supportDir.path}/video_first_frame_cache'),
       category: LocalStorageCategory.videoThumbs,
       labelPrefix: 'Thumb',
+    );
+    final tempDir = await getTemporaryDirectory();
+    await _collectFlatDirectory(
+      entries: entries,
+      prefs: prefs,
+      dir: Directory('${tempDir.path}/chat_image_cache'),
+      category: LocalStorageCategory.chatImages,
+      labelPrefix: 'Image',
     );
     _collectDraftEntries(entries, prefs, userId);
     _collectChatListSnapshot(entries, prefs, userId);
@@ -313,6 +323,12 @@ class StorageCacheManager {
       case LocalStorageCategory.videoThumbs:
         await _safeDeleteDir(
           Directory('${supportDir.path}/video_first_frame_cache'),
+        );
+        break;
+      case LocalStorageCategory.chatImages:
+        final tempDir = await getTemporaryDirectory();
+        await _safeDeleteDir(
+          Directory('${tempDir.path}/chat_image_cache'),
         );
         break;
     }
@@ -517,6 +533,11 @@ class StorageCacheManager {
           ),
         LocalStorageCategory.videoThumbs =>
           LocalCacheEntryRegistry.readVideoThumbContextSyncForFileName(
+            prefs: prefs,
+            fileName: fileName,
+          ),
+        LocalStorageCategory.chatImages =>
+          LocalCacheEntryRegistry.readImageContextSyncForFileName(
             prefs: prefs,
             fileName: fileName,
           ),

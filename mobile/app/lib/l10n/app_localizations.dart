@@ -944,6 +944,18 @@ abstract class AppLocalizations {
   /// **'Сгенерированные первые кадры для видео.'**
   String get storage_category_video_thumbs_subtitle;
 
+  /// No description provided for @storage_category_chat_images.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото в чатах'**
+  String get storage_category_chat_images;
+
+  /// No description provided for @storage_category_chat_images_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кэшированные фотографии и стикеры из открытых чатов.'**
+  String get storage_category_chat_images_subtitle;
+
   /// No description provided for @storage_media_type_video.
   ///
   /// In ru, this message translates to:
@@ -1069,6 +1081,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выберите файлы для удаления'**
   String get storage_chat_detail_clear_button_empty;
+
+  /// No description provided for @storage_chat_detail_tab_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'В этой вкладке ничего нет.'**
+  String get storage_chat_detail_tab_empty;
 
   /// No description provided for @storage_chat_detail_delete_title.
   ///

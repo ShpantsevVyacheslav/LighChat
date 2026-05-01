@@ -510,6 +510,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Сгенерированные первые кадры для видео.';
 
   @override
+  String get storage_category_chat_images => 'Фото в чатах';
+
+  @override
+  String get storage_category_chat_images_subtitle =>
+      'Кэшированные фотографии и стикеры из открытых чатов.';
+
+  @override
   String get storage_media_type_video => 'Видео';
 
   @override
@@ -580,6 +587,9 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get storage_chat_detail_clear_button_empty =>
       'Выберите файлы для удаления';
+
+  @override
+  String get storage_chat_detail_tab_empty => 'В этой вкладке ничего нет.';
 
   @override
   String get storage_chat_detail_delete_title => 'Удалить выбранные файлы?';

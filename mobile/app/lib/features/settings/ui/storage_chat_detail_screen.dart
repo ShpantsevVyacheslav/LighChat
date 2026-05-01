@@ -10,6 +10,8 @@ import 'storage_donut_chart.dart';
 
 const double _kMutedTextSize = 13;
 
+enum _MediaTab { photos, videos, files }
+
 class StorageChatDetailScreen extends StatefulWidget {
   const StorageChatDetailScreen({
     super.key,
@@ -29,17 +31,74 @@ class StorageChatDetailScreen extends StatefulWidget {
       _StorageChatDetailScreenState();
 }
 
-class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
-  late final List<LocalStorageEntry> _allEntries = [...widget.usage.entries];
-  late final List<LocalStorageEntry> _mediaEntries = _allEntries
-      .where((e) => e.source == LocalStorageEntrySource.file && e.filePath != null)
-      .toList();
-  late final Set<String> _selectedIds = {..._mediaEntries.map((e) => e.id)};
+class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late List<LocalStorageEntry> _allEntries;
+  late List<LocalStorageEntry> _photoEntries;
+  late List<LocalStorageEntry> _videoEntries;
+  late List<LocalStorageEntry> _fileEntries;
+
+  /// Selected entry IDs across all tabs.
+  late Set<String> _selectedIds;
   bool _busy = false;
 
-  int get _selectedBytes => _mediaEntries
-      .where((e) => _selectedIds.contains(e.id))
-      .fold<int>(0, (sum, e) => sum + e.bytes);
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _allEntries = [...widget.usage.entries];
+    _rebuildBuckets();
+    _selectedIds = _allTrackedIds().toSet();
+  }
+
+  Iterable<String> _allTrackedIds() => [
+    ..._photoEntries.map((e) => e.id),
+    ..._videoEntries.map((e) => e.id),
+    ..._fileEntries.map((e) => e.id),
+  ];
+
+  void _rebuildBuckets() {
+    _photoEntries = [];
+    _videoEntries = [];
+    _fileEntries = [];
+    for (final e in _allEntries) {
+      if (e.source != LocalStorageEntrySource.file) continue;
+      if (e.filePath == null) continue;
+      switch (classifyEntryMediaType(e)) {
+        case StorageMediaType.photo:
+          _photoEntries.add(e);
+        case StorageMediaType.video:
+          _videoEntries.add(e);
+        case StorageMediaType.file:
+          _fileEntries.add(e);
+        case StorageMediaType.other:
+          // Skip thumbs / drafts / snapshots.
+          break;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  List<LocalStorageEntry> _activeBucket(_MediaTab tab) => switch (tab) {
+    _MediaTab.photos => _photoEntries,
+    _MediaTab.videos => _videoEntries,
+    _MediaTab.files => _fileEntries,
+  };
+
+  int get _selectedBytes {
+    final tracked = {..._allTrackedIds()};
+    return _allEntries
+        .where((e) => tracked.contains(e.id) && _selectedIds.contains(e.id))
+        .fold<int>(0, (sum, e) => sum + e.bytes);
+  }
+
+  int get _trackedTotal => _photoEntries.length + _videoEntries.length + _fileEntries.length;
 
   List<DonutSegment> _buildSegments() {
     final bd = widget.usage.mediaTypeBreakdown;
@@ -83,14 +142,26 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
     return '<0.1%';
   }
 
-  void _toggleAll() {
+  void _toggleAllInActiveTab() {
+    final bucket = _activeBucket(_MediaTab.values[_tabController.index]);
     setState(() {
-      if (_selectedIds.length == _mediaEntries.length) {
-        _selectedIds.clear();
+      final allSelected = bucket.every((e) => _selectedIds.contains(e.id));
+      if (allSelected) {
+        for (final e in bucket) {
+          _selectedIds.remove(e.id);
+        }
       } else {
-        _selectedIds.addAll(_mediaEntries.map((e) => e.id));
+        for (final e in bucket) {
+          _selectedIds.add(e.id);
+        }
       }
     });
+  }
+
+  bool _allSelectedInActiveTab() {
+    final bucket = _activeBucket(_MediaTab.values[_tabController.index]);
+    if (bucket.isEmpty) return false;
+    return bucket.every((e) => _selectedIds.contains(e.id));
   }
 
   void _toggle(String id) {
@@ -106,9 +177,11 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
   Future<void> _deleteSelected() async {
     if (_busy || _selectedIds.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
-    final toDelete = _mediaEntries
-        .where((e) => _selectedIds.contains(e.id))
+    final tracked = {..._allTrackedIds()};
+    final toDelete = _allEntries
+        .where((e) => tracked.contains(e.id) && _selectedIds.contains(e.id))
         .toList();
+    if (toDelete.isEmpty) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -137,9 +210,9 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
       setState(() {
         for (final entry in toDelete) {
           _allEntries.removeWhere((e) => e.id == entry.id);
-          _mediaEntries.removeWhere((e) => e.id == entry.id);
           _selectedIds.remove(entry.id);
         }
+        _rebuildBuckets();
       });
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -147,13 +220,7 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
   }
 
   bool _isImageEntry(LocalStorageEntry entry) {
-    final path = (entry.filePath ?? entry.label).toLowerCase();
-    return path.endsWith('.jpg') ||
-        path.endsWith('.jpeg') ||
-        path.endsWith('.png') ||
-        path.endsWith('.webp') ||
-        path.endsWith('.heic') ||
-        path.endsWith('.gif');
+    return classifyEntryMediaType(entry) == StorageMediaType.photo;
   }
 
   @override
@@ -182,18 +249,15 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
                     Center(
                       child: StorageDonutChart(
                         segments: _buildSegments(),
-                        centerText: widget.formatBytes(
-                          widget.usage.totalBytes,
-                        ),
+                        centerText:
+                            widget.formatBytes(widget.usage.totalBytes),
                         size: 180,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Center(
                       child: Text(
-                        l10n.storage_chat_detail_share(
-                          chatPct,
-                        ),
+                        l10n.storage_chat_detail_share(chatPct),
                         style: TextStyle(
                           fontSize: _kMutedTextSize,
                           color: dark
@@ -205,16 +269,15 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
                     const SizedBox(height: 4),
                     _UsageBar(
                       fraction: widget.totalAppCacheBytes > 0
-                          ? widget.usage.totalBytes / widget.totalAppCacheBytes
+                          ? widget.usage.totalBytes /
+                              widget.totalAppCacheBytes
                           : 0,
                     ),
                     const SizedBox(height: 16),
                     _GlassCard(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                            horizontal: 16, vertical: 12),
                         child: Column(
                           children: [
                             if (bd.videoBytes > 0)
@@ -249,51 +312,79 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
                         ),
                       ),
                     ),
-                    if (_mediaEntries.isNotEmpty) ...[
+                    if (_trackedTotal > 0) ...[
                       const SizedBox(height: 16),
+                      _MediaTabBar(
+                        controller: _tabController,
+                        photos: _photoEntries.length,
+                        videos: _videoEntries.length,
+                        files: _fileEntries.length,
+                      ),
+                      const SizedBox(height: 4),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text(
-                            l10n.storage_chat_detail_media_tab,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: dark
-                                  ? Colors.white.withValues(alpha: 0.92)
-                                  : scheme.onSurface.withValues(alpha: 0.90),
-                            ),
-                          ),
-                          const Spacer(),
                           TextButton(
-                            onPressed: _toggleAll,
+                            onPressed: _toggleAllInActiveTab,
                             child: Text(
-                              _selectedIds.length == _mediaEntries.length
+                              _allSelectedInActiveTab()
                                   ? l10n.storage_chat_detail_deselect_all
                                   : l10n.storage_chat_detail_select_all,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                        itemCount: _mediaEntries.length,
-                        itemBuilder: (context, i) {
-                          final entry = _mediaEntries[i];
-                          final selected = _selectedIds.contains(entry.id);
-                          return _MediaGridItem(
-                            entry: entry,
-                            selected: selected,
-                            isImage: _isImageEntry(entry),
-                            formatBytes: widget.formatBytes,
-                            onToggle: () => _toggle(entry.id),
+                      AnimatedBuilder(
+                        animation: _tabController,
+                        builder: (context, _) {
+                          final tab = _MediaTab.values[_tabController.index];
+                          final bucket = _activeBucket(tab);
+                          if (bucket.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Text(
+                                  l10n.storage_chat_detail_tab_empty,
+                                  style: TextStyle(
+                                    fontSize: _kMutedTextSize,
+                                    color: dark
+                                        ? Colors.white.withValues(alpha: 0.55)
+                                        : scheme.onSurface
+                                            .withValues(alpha: 0.50),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          if (tab == _MediaTab.files) {
+                            return _FilesList(
+                              entries: bucket,
+                              selectedIds: _selectedIds,
+                              onToggle: _toggle,
+                              formatBytes: widget.formatBytes,
+                            );
+                          }
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: bucket.length,
+                            itemBuilder: (context, i) {
+                              final entry = bucket[i];
+                              final selected = _selectedIds.contains(entry.id);
+                              return _MediaGridItem(
+                                entry: entry,
+                                selected: selected,
+                                isImage: _isImageEntry(entry),
+                                formatBytes: widget.formatBytes,
+                                onToggle: () => _toggle(entry.id),
+                              );
+                            },
                           );
                         },
                       ),
@@ -302,10 +393,11 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
                   ],
                 ),
               ),
-              if (_mediaEntries.isNotEmpty)
+              if (_trackedTotal > 0)
                 _BottomDeleteBar(
                   busy: _busy,
-                  selectedCount: _selectedIds.length,
+                  selectedCount:
+                      _selectedIds.where(_allTrackedIds().contains).length,
                   selectedBytes: _selectedBytes,
                   formatBytes: widget.formatBytes,
                   onDelete: _deleteSelected,
@@ -314,6 +406,131 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MediaTabBar extends StatelessWidget {
+  const _MediaTabBar({
+    required this.controller,
+    required this.photos,
+    required this.videos,
+    required this.files,
+  });
+
+  final TabController controller;
+  final int photos;
+  final int videos;
+  final int files;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    return TabBar(
+      controller: controller,
+      indicatorColor: const Color(0xFF2F86FF),
+      indicatorWeight: 3,
+      labelColor: dark ? Colors.white : scheme.onSurface,
+      unselectedLabelColor: dark
+          ? Colors.white.withValues(alpha: 0.50)
+          : scheme.onSurface.withValues(alpha: 0.45),
+      labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      unselectedLabelStyle:
+          const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      tabs: [
+        Tab(text: '${l10n.storage_media_type_photo} · $photos'),
+        Tab(text: '${l10n.storage_media_type_video} · $videos'),
+        Tab(text: '${l10n.storage_media_type_files} · $files'),
+      ],
+    );
+  }
+}
+
+class _FilesList extends StatelessWidget {
+  const _FilesList({
+    required this.entries,
+    required this.selectedIds,
+    required this.onToggle,
+    required this.formatBytes,
+  });
+
+  final List<LocalStorageEntry> entries;
+  final Set<String> selectedIds;
+  final void Function(String id) onToggle;
+  final String Function(int) formatBytes;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    return Column(
+      children: [
+        for (final entry in entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => onToggle(entry.id),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: kStorageFileColor.withValues(alpha: 0.18),
+                      ),
+                      child: Icon(
+                        Icons.insert_drive_file_rounded,
+                        color: kStorageFileColor,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: dark
+                                  ? Colors.white.withValues(alpha: 0.92)
+                                  : scheme.onSurface.withValues(alpha: 0.90),
+                            ),
+                          ),
+                          Text(
+                            formatBytes(entry.bytes),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: dark
+                                  ? Colors.white.withValues(alpha: 0.55)
+                                  : scheme.onSurface.withValues(alpha: 0.50),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Checkbox(
+                      value: selectedIds.contains(entry.id),
+                      onChanged: (_) => onToggle(entry.id),
+                      shape: const CircleBorder(),
+                      activeColor: const Color(0xFF2F86FF),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

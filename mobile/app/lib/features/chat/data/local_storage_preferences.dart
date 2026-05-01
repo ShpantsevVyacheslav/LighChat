@@ -12,12 +12,14 @@ enum LocalStorageCategory {
   profileCards,
   videoDownloads,
   videoThumbs,
+  chatImages,
 }
 
 /// Categories the user can toggle on/off (heavy files).
 const kUserToggleableCategories = <LocalStorageCategory>[
   LocalStorageCategory.e2eeMedia,
   LocalStorageCategory.videoDownloads,
+  LocalStorageCategory.chatImages,
 ];
 
 /// Categories always kept locally (lightweight data, no user toggle).
@@ -61,6 +63,7 @@ class LocalStoragePreferences {
   const LocalStoragePreferences({
     required this.e2eeMediaEnabled,
     required this.videoDownloadsEnabled,
+    required this.chatImagesEnabled,
     required this.cacheBudgetGb,
     required this.autoDeletePersonal,
     required this.autoDeleteGroups,
@@ -68,6 +71,7 @@ class LocalStoragePreferences {
 
   final bool e2eeMediaEnabled;
   final bool videoDownloadsEnabled;
+  final bool chatImagesEnabled;
   final int cacheBudgetGb;
   final AutoDeletePeriod autoDeletePersonal;
   final AutoDeletePeriod autoDeleteGroups;
@@ -105,6 +109,7 @@ class LocalStoragePreferences {
     return const LocalStoragePreferences(
       e2eeMediaEnabled: true,
       videoDownloadsEnabled: true,
+      chatImagesEnabled: true,
       cacheBudgetGb: 8,
       autoDeletePersonal: AutoDeletePeriod.never,
       autoDeleteGroups: AutoDeletePeriod.oneMonth,
@@ -114,6 +119,7 @@ class LocalStoragePreferences {
   LocalStoragePreferences copyWith({
     bool? e2eeMediaEnabled,
     bool? videoDownloadsEnabled,
+    bool? chatImagesEnabled,
     int? cacheBudgetGb,
     AutoDeletePeriod? autoDeletePersonal,
     AutoDeletePeriod? autoDeleteGroups,
@@ -121,6 +127,7 @@ class LocalStoragePreferences {
     return LocalStoragePreferences(
       e2eeMediaEnabled: e2eeMediaEnabled ?? this.e2eeMediaEnabled,
       videoDownloadsEnabled: videoDownloadsEnabled ?? this.videoDownloadsEnabled,
+      chatImagesEnabled: chatImagesEnabled ?? this.chatImagesEnabled,
       cacheBudgetGb: (cacheBudgetGb ?? this.cacheBudgetGb).clamp(
         minCacheBudgetGb,
         maxCacheBudgetGb,
@@ -136,6 +143,8 @@ class LocalStoragePreferences {
         return e2eeMediaEnabled;
       case LocalStorageCategory.videoDownloads:
         return videoDownloadsEnabled;
+      case LocalStorageCategory.chatImages:
+        return chatImagesEnabled;
       case LocalStorageCategory.e2eeText:
       case LocalStorageCategory.chatDrafts:
       case LocalStorageCategory.chatListSnapshot:
@@ -149,6 +158,7 @@ class LocalStoragePreferences {
     return <String, Object?>{
       'e2eeMediaEnabled': e2eeMediaEnabled,
       'videoDownloadsEnabled': videoDownloadsEnabled,
+      'chatImagesEnabled': chatImagesEnabled,
       'cacheBudgetGb': cacheBudgetGb,
       'autoDeletePersonal': autoDeletePersonal.toJsonValue(),
       'autoDeleteGroups': autoDeleteGroups.toJsonValue(),
@@ -172,6 +182,9 @@ class LocalStoragePreferences {
       videoDownloadsEnabled: raw['videoDownloadsEnabled'] is bool
           ? raw['videoDownloadsEnabled'] as bool
           : defaults.videoDownloadsEnabled,
+      chatImagesEnabled: raw['chatImagesEnabled'] is bool
+          ? raw['chatImagesEnabled'] as bool
+          : defaults.chatImagesEnabled,
       cacheBudgetGb: budget.clamp(minCacheBudgetGb, maxCacheBudgetGb),
       autoDeletePersonal: AutoDeletePeriodDuration.fromJsonValue(
         raw['autoDeletePersonal'] as String?,

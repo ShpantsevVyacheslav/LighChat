@@ -141,6 +141,8 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
         return l10n.storage_category_video_downloads_subtitle;
       case LocalStorageCategory.videoThumbs:
         return l10n.storage_category_video_thumbs_subtitle;
+      case LocalStorageCategory.chatImages:
+        return l10n.storage_category_chat_images_subtitle;
     }
   }
 
@@ -160,6 +162,8 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
         return l10n.storage_category_video_downloads;
       case LocalStorageCategory.videoThumbs:
         return l10n.storage_category_video_thumbs;
+      case LocalStorageCategory.chatImages:
+        return l10n.storage_category_chat_images;
     }
   }
 
@@ -203,6 +207,8 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           category == LocalStorageCategory.e2eeMedia ? enabled : null,
       videoDownloadsEnabled:
           category == LocalStorageCategory.videoDownloads ? enabled : null,
+      chatImagesEnabled:
+          category == LocalStorageCategory.chatImages ? enabled : null,
     );
     await _withBusy(() async {
       await LocalStoragePreferencesStore.save(updated);
@@ -218,13 +224,10 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
     required List<ConversationWithId> conversations,
     required int budgetGb,
   }) async {
+    if (_preferences.cacheBudgetGb == budgetGb) return;
     final updated = _preferences.copyWith(cacheBudgetGb: budgetGb);
-    await _withBusy(() async {
-      await LocalStoragePreferencesStore.save(updated);
-      if (!mounted) return;
-      setState(() => _preferences = updated);
-      await _reload(uid: uid, conversations: conversations);
-    });
+    setState(() => _preferences = updated);
+    await LocalStoragePreferencesStore.save(updated);
   }
 
   Future<void> _updateAutoDelete({
@@ -237,11 +240,15 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       autoDeletePersonal: personal,
       autoDeleteGroups: groups,
     );
-    await _withBusy(() async {
-      await LocalStoragePreferencesStore.save(updated);
-      if (!mounted) return;
-      setState(() => _preferences = updated);
-    });
+    setState(() => _preferences = updated);
+    await LocalStoragePreferencesStore.save(updated);
+    if (mounted) {
+      await _manager.applyAutoDelete(
+        userId: uid,
+        conversations: conversations,
+        preferences: updated,
+      );
+    }
   }
 
   Future<void> _confirmAndClearAll({

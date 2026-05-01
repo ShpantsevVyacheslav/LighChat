@@ -266,7 +266,13 @@ class _ConversationMediaLinksFilesScreenState
                     fit: BoxFit.cover,
                   )
                 else
-                  ChatCachedNetworkImage(url: att.url, fit: BoxFit.cover),
+                  ChatCachedNetworkImage(
+                    url: att.url,
+                    fit: BoxFit.cover,
+                    conversationId: widget.conversationId,
+                    messageId: item.message.id,
+                    attachmentName: att.name,
+                  ),
                 if (isVideo)
                   Align(
                     alignment: Alignment.center,
