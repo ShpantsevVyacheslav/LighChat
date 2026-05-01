@@ -395,8 +395,10 @@ export const makeDurakMove = onCall(
                 status: (t.status === "finished" ? "finished" : "active") as any,
                 conversationId: String(t.conversationId ?? ""),
                 gameIds: Array.isArray(t.gameIds) ? t.gameIds.map((x: any) => String(x)) : [],
+                finishedGameIds: Array.isArray(t.finishedGameIds) ? t.finishedGameIds.map((x: any) => String(x)) : [],
                 pointsByUid: (t.pointsByUid && typeof t.pointsByUid === "object") ? t.pointsByUid : {},
                 gamesPlayedByUid: (t.gamesPlayedByUid && typeof t.gamesPlayedByUid === "object") ? t.gamesPlayedByUid : {},
+                totalGames: typeof t.totalGames === "number" ? t.totalGames : undefined,
                 lastUpdatedAt: String(t.lastUpdatedAt ?? ""),
               },
               gameId,
@@ -407,12 +409,24 @@ export const makeDurakMove = onCall(
               tRef,
               {
                 gameIds: updated.gameIds,
+                finishedGameIds: updated.finishedGameIds,
                 pointsByUid: updated.pointsByUid,
                 gamesPlayedByUid: updated.gamesPlayedByUid,
+                status: updated.status,
                 lastUpdatedAt: nowIso,
               },
               { merge: true },
             );
+            if (updated.status === "finished" && t.status !== "finished") {
+              const convIdForIdx = String(t.conversationId ?? "");
+              if (convIdForIdx) {
+                tx.set(
+                  db.doc(`conversations/${convIdForIdx}/tournaments/${tournamentId}`),
+                  { status: "finished", lastUpdatedAt: nowIso },
+                  { merge: true },
+                );
+              }
+            }
             tx.set(
               tgRef,
               {

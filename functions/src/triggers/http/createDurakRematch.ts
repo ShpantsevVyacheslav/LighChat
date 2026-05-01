@@ -55,6 +55,11 @@ export const createDurakRematch = onCall(
         const prev = prevSnap.data() || {};
         if (prev.type !== "durak") throw new HttpsError("failed-precondition", "GAME_TYPE_UNSUPPORTED");
         if (typeof (prev as any).tournamentId === "string" && ((prev as any).tournamentId as string).trim()) {
+          logger.warn("[createDurakRematch] tournament rematch attempted", {
+            gameId,
+            tournamentId: (prev as any).tournamentId,
+            uid,
+          });
           throw new HttpsError("failed-precondition", "TOURNAMENT_REMATCH_UNSUPPORTED");
         }
 

@@ -21,7 +21,9 @@ class DurakTableFlyFx extends StatefulWidget {
 class _DurakTableFlyFxState extends State<DurakTableFlyFx>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
+  late final Animation<double> _anim;
   late final List<_FlyCard> _cards;
+  bool _doneInvoked = false;
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _DurakTableFlyFxState extends State<DurakTableFlyFx>
       vsync: this,
       duration: const Duration(milliseconds: 720),
     );
+    _anim = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
     final n = widget.cardCount.clamp(1, 12);
     final r = Random();
     _cards = List.generate(n, (i) {
@@ -39,8 +42,13 @@ class _DurakTableFlyFxState extends State<DurakTableFlyFx>
       return _FlyCard(offset: Offset(dx, dy), rotation: rot);
     });
 
+    _c.addStatusListener((status) {
+      if (status == AnimationStatus.completed && !_doneInvoked) {
+        _doneInvoked = true;
+        widget.onDone();
+      }
+    });
     _c.forward();
-    Future<void>.delayed(const Duration(milliseconds: 720), widget.onDone);
   }
 
   @override
@@ -51,7 +59,7 @@ class _DurakTableFlyFxState extends State<DurakTableFlyFx>
 
   @override
   Widget build(BuildContext context) {
-    final anim = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+    final anim = _anim;
 
     Alignment endAlignment() {
       switch (widget.kind) {
@@ -70,8 +78,10 @@ class _DurakTableFlyFxState extends State<DurakTableFlyFx>
     return AnimatedBuilder(
       animation: anim,
       builder: (context, _) {
-        final t = anim.value;
-        if (!t.isFinite) return const SizedBox.shrink();
+        final raw = anim.value;
+        if (!raw.isFinite) return const SizedBox.shrink();
+        final t = raw.clamp(0.0, 1.0).toDouble();
+        if (t >= 1.0) return const SizedBox.shrink();
         double ld(double a, double b) => a + (b - a) * t;
         final alignment = Alignment.lerp(Alignment.center, end, t);
         if (alignment == null ||
@@ -84,19 +94,29 @@ class _DurakTableFlyFxState extends State<DurakTableFlyFx>
           child: Stack(
             children: [
               for (final c in _cards)
-                Align(
-                  alignment: alignment,
-                  child: Transform.translate(
-                    offset: Offset.lerp(c.offset, Offset.zero, t)!,
-                    child: Transform.rotate(
-                      angle: ld(c.rotation, 0.0),
-                      child: Opacity(
-                        opacity: (1.0 - t).clamp(0.0, 1.0),
-                        child: _CardBack(scale: 1.0 - t * 0.12),
+                Builder(builder: (_) {
+                  final off = Offset.lerp(c.offset, Offset.zero, t);
+                  final angle = ld(c.rotation, 0.0);
+                  if (off == null ||
+                      !off.dx.isFinite ||
+                      !off.dy.isFinite ||
+                      !angle.isFinite) {
+                    return const SizedBox.shrink();
+                  }
+                  return Align(
+                    alignment: alignment,
+                    child: Transform.translate(
+                      offset: off,
+                      child: Transform.rotate(
+                        angle: angle,
+                        child: Opacity(
+                          opacity: (1.0 - t).clamp(0.0, 1.0),
+                          child: _CardBack(scale: 1.0 - t * 0.12),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
             ],
           ),
         );

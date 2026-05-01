@@ -229,6 +229,32 @@ class _ConversationDurakGameScreenState
     }
   }
 
+  Future<void> _handleNextTournamentGamePressed({
+    required String tournamentId,
+    Map<String, dynamic>? settings,
+  }) async {
+    if (_isRematchBusy) return;
+    if (!mounted) return;
+    setState(() => _isRematchBusy = true);
+    try {
+      final res = await GamesCallables().createTournamentDurakLobby(
+        tournamentId: tournamentId,
+        settings: settings ?? const <String, dynamic>{},
+      );
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => ConversationDurakLobbyScreen(gameId: res.gameId),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _toast(friendlyGamesCallableError(e));
+    } finally {
+      if (mounted) setState(() => _isRematchBusy = false);
+    }
+  }
+
   String _cardLabel(Map<String, dynamic> c) {
     final r = c['r'];
     final s = c['s'];
@@ -1052,6 +1078,12 @@ class _ConversationDurakGameScreenState
                   final loserName = loserUid.isEmpty
                       ? ''
                       : (byUid[loserUid]?.name ?? fallback(loserUid));
+                  final tournamentId =
+                      (g['tournamentId'] ?? '').toString().trim();
+                  final isTournamentGame = tournamentId.isNotEmpty;
+                  final settingsMap = g['settings'] is Map
+                      ? Map<String, dynamic>.from(g['settings'] as Map)
+                      : <String, dynamic>{};
                   return _DurakFinishedCard(
                     winnerName: winnerName,
                     winnerAvatarUrl:
@@ -1062,9 +1094,19 @@ class _ConversationDurakGameScreenState
                             loserName,
                           ),
                     rematchBusy: _isRematchBusy,
+                    isTournamentGame: isTournamentGame,
+                    tournamentId: isTournamentGame ? tournamentId : null,
                     onRematch: () => unawaited(
                       _handleRematchPressed(conversationId: conversationId),
                     ),
+                    onNextTournamentGame: isTournamentGame
+                        ? () => unawaited(
+                              _handleNextTournamentGamePressed(
+                                tournamentId: tournamentId,
+                                settings: settingsMap,
+                              ),
+                            )
+                        : null,
                   );
                 },
               );
@@ -2041,6 +2083,9 @@ class _DurakFinishedCard extends StatelessWidget {
     required this.loserLabel,
     required this.rematchBusy,
     required this.onRematch,
+    this.isTournamentGame = false,
+    this.tournamentId,
+    this.onNextTournamentGame,
   });
 
   final String winnerName;
@@ -2048,6 +2093,9 @@ class _DurakFinishedCard extends StatelessWidget {
   final String loserLabel;
   final bool rematchBusy;
   final VoidCallback onRematch;
+  final bool isTournamentGame;
+  final String? tournamentId;
+  final VoidCallback? onNextTournamentGame;
 
   @override
   Widget build(BuildContext context) {
@@ -2121,6 +2169,13 @@ class _DurakFinishedCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
+              if (isTournamentGame && tournamentId != null)
+                _TournamentNextGameSection(
+                  tournamentId: tournamentId!,
+                  busy: rematchBusy,
+                  onNextGame: onNextTournamentGame,
+                )
+              else
               SizedBox(
                 width: 240,
                 height: 52,
@@ -2224,6 +2279,105 @@ class _TableFxOverlayState extends State<_TableFxOverlay>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TournamentNextGameSection extends StatelessWidget {
+  const _TournamentNextGameSection({
+    required this.tournamentId,
+    required this.busy,
+    required this.onNextGame,
+  });
+
+  final String tournamentId;
+  final bool busy;
+  final VoidCallback? onNextGame;
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = FirebaseFirestore.instance
+        .collection('tournaments')
+        .doc(tournamentId)
+        .snapshots();
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: stream,
+      builder: (context, snap) {
+        final data = snap.data?.data();
+        final status = (data?['status'] ?? 'active').toString();
+        final totalGames = (data?['totalGames'] is num)
+            ? (data!['totalGames'] as num).toInt()
+            : 0;
+        final finishedCount =
+            (data?['finishedGameIds'] is List)
+                ? (data!['finishedGameIds'] as List).length
+                : 0;
+        final createdCount = (data?['gameIds'] is List)
+            ? (data!['gameIds'] as List).length
+            : 0;
+        final limitReached = status == 'finished' ||
+            (totalGames > 0 && createdCount >= totalGames);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (totalGames > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Сыграно $finishedCount из $totalGames',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.65),
+                  ),
+                ),
+              ),
+            if (limitReached)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  'Турнир завершён',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                width: 260,
+                height: 52,
+                child: FilledButton(
+                  onPressed: (busy || onNextGame == null) ? null : onNextGame,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF66798C),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
+                  child: busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                        )
+                      : const Text(
+                          'Следующая партия турнира',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
