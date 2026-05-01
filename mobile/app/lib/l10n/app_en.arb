@@ -1438,5 +1438,18 @@
   "register_date_picker_help": "Date of birth",
   "register_date_picker_cancel": "Cancel",
   "register_date_picker_confirm": "Select",
-  "register_pick_avatar_title": "Choose avatar"
+  "register_pick_avatar_title": "Choose avatar",
+  "edit_group_title": "Edit group",
+  "edit_group_save": "Save",
+  "edit_group_cancel": "Cancel",
+  "edit_group_name_label": "Group name",
+  "edit_group_name_hint": "Name",
+  "edit_group_description_label": "Description",
+  "edit_group_description_hint": "Optional",
+  "edit_group_pick_photo_tooltip": "Tap to pick a group photo. Long-press to remove it.",
+  "edit_group_error_name_required": "Please enter a group name.",
+  "edit_group_error_save_failed": "Failed to save group.",
+  "edit_group_error_not_found": "Group not found.",
+  "edit_group_error_permission_denied": "You don't have permission to edit this group.",
+  "edit_group_success": "Group updated."
 }

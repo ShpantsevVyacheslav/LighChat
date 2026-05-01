@@ -2753,7 +2753,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edit_group_pick_photo_tooltip =>
-      'Tap to pick a group photo. Long‑press to remove it.';
+      'Tap to pick a group photo. Long-press to remove it.';
 
   @override
   String get edit_group_error_name_required => 'Please enter a group name.';

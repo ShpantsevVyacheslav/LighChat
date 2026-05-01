@@ -1438,5 +1438,18 @@
   "register_date_picker_help": "Дата рождения",
   "register_date_picker_cancel": "Отмена",
   "register_date_picker_confirm": "Выбрать",
-  "register_pick_avatar_title": "Выбрать аватар"
+  "register_pick_avatar_title": "Выбрать аватар",
+  "edit_group_title": "Редактировать группу",
+  "edit_group_save": "Сохранить",
+  "edit_group_cancel": "Отмена",
+  "edit_group_name_label": "Название группы",
+  "edit_group_name_hint": "Название",
+  "edit_group_description_label": "Описание",
+  "edit_group_description_hint": "Необязательно",
+  "edit_group_pick_photo_tooltip": "Нажмите, чтобы выбрать фото группы. Удерживайте, чтобы убрать.",
+  "edit_group_error_name_required": "Пожалуйста, введите название группы.",
+  "edit_group_error_save_failed": "Ошибка при сохранении группы",
+  "edit_group_error_not_found": "Группа не найдена",
+  "edit_group_error_permission_denied": "У вас нет прав для редактирования этой группы",
+  "edit_group_success": "Группа обновлена"
 }

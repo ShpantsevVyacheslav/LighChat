@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
@@ -16,10 +15,7 @@ import 'group_chat_avatar_button.dart';
 import '../../../l10n/app_localizations.dart';
 
 class EditGroupChatScreen extends ConsumerStatefulWidget {
-  const EditGroupChatScreen({
-    super.key,
-    required this.conversationId,
-  });
+  const EditGroupChatScreen({super.key, required this.conversationId});
 
   final String conversationId;
 
@@ -165,10 +161,7 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
     );
   }
 
-  Widget _bottomActions(
-    BuildContext context, {
-    required VoidCallback onSave,
-  }) {
+  Widget _bottomActions(BuildContext context, {required VoidCallback onSave}) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
@@ -242,13 +235,13 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
     );
   }
 
-  Future<void> _submit({
-    required String uid,
-  }) async {
+  Future<void> _submit({required String uid}) async {
     final name = _name.text.trim();
     if (name.isEmpty) {
       setState(
-        () => _error = AppLocalizations.of(context)!.edit_group_error_name_required,
+        () => _error = AppLocalizations.of(
+          context,
+        )!.edit_group_error_name_required,
       );
       return;
     }
@@ -341,48 +334,46 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  return StreamBuilder<DocumentSnapshot<Conversation>>(
+                  return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                     stream: FirebaseFirestore.instance
                         .collection('conversations')
                         .doc(widget.conversationId)
-                        .withConverter(
-                          fromFirestore: (snap, _) =>
-                              Conversation.fromJson(snap.data() ?? {}),
-                          toFirestore: (conv, _) => conv.toJson(),
-                        )
                         .snapshots(),
                     builder: (context, snap) {
                       if (snap.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (!snap.hasData || snap.data?.data() == null) {
                         return Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
-                            AppLocalizations.of(context)!
-                                .edit_group_error_not_found,
+                            AppLocalizations.of(
+                              context,
+                            )!.edit_group_error_not_found,
                           ),
                         );
                       }
 
-                      final conv = snap.data!.data()!;
+                      final conv = Conversation.fromJson(
+                        snap.data!.data() ?? const <String, dynamic>{},
+                      );
 
                       // Инициализируем поля при первой загрузке
                       _initializeFields(conv);
 
                       // Проверяем, является ли пользователь администратором
-                      final isAdmin = conv.createdByUserId == u.uid ||
-                          (conv.adminIds?.contains(u.uid) ?? false);
+                      final isAdmin =
+                          conv.createdByUserId == u.uid ||
+                          conv.adminIds.contains(u.uid);
 
                       if (!isAdmin) {
                         return Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
-                            AppLocalizations.of(context)!
-                                .edit_group_error_permission_denied,
+                            AppLocalizations.of(
+                              context,
+                            )!.edit_group_error_permission_denied,
                           ),
                         );
                       }
@@ -414,7 +405,10 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 22),
-                                _fieldLabel(context, l10n.edit_group_name_label),
+                                _fieldLabel(
+                                  context,
+                                  l10n.edit_group_name_label,
+                                ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: _hPad,
@@ -451,9 +445,10 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.withValues(alpha: 0.1),
-                                        borderRadius:
-                                            BorderRadius.circular(12),
+                                        color: Colors.red.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                           color: Colors.red.withValues(
                                             alpha: 0.3,
@@ -475,17 +470,14 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                           ),
                           _bottomActions(
                             context,
-                            onSave: () => _submit(
-                              uid: u.uid,
-                            ),
+                            onSave: () => _submit(uid: u.uid),
                           ),
                         ],
                       );
                     },
                   );
                 },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, st) => Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text('Error: $err'),
