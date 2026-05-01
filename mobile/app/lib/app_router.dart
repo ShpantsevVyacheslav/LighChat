@@ -36,6 +36,7 @@ import 'features/chat/ui/secret_chat_compose_screen.dart';
 import 'features/chat/ui/secret_chats_inbox_screen.dart';
 import 'features/chat/ui/new_group_chat_screen.dart';
 import 'features/chat/ui/edit_group_chat_screen.dart';
+import 'features/chat/ui/group_members_screen.dart';
 import 'features/chat/ui/thread_screen.dart';
 import 'features/chat/ui/thread_route_payload.dart';
 
@@ -172,6 +173,13 @@ GoRouter createRouter() {
         builder: (context, state) {
           final conversationId = state.pathParameters['conversationId'] ?? '';
           return EditGroupChatScreen(conversationId: conversationId);
+        },
+      ),
+      GoRoute(
+        path: '/chats/group/:conversationId/members',
+        builder: (context, state) {
+          final conversationId = state.pathParameters['conversationId'] ?? '';
+          return GroupMembersScreen(conversationId: conversationId);
         },
       ),
       GoRoute(

@@ -70,7 +70,6 @@ import '../data/pending_image_album_send.dart';
 import 'outgoing_pending_media_album.dart';
 import 'live_location_stop_banner.dart';
 import 'dm_game_lobby_banner.dart';
-import 'conversation_durak_lobby_screen.dart';
 import 'location_send_preview_sheet.dart';
 import 'message_context_menu.dart';
 import 'message_html_text.dart';
@@ -214,11 +213,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String? _chatDraftRestoredForConvId;
   bool _callScreenOpening = false;
   String? _handledIncomingCallId;
-  String? _autoOpenedDurakGameId;
-  bool _autoOpenDurakInFlight = false;
-  final Set<String> _invalidDurakGameIds = <String>{};
-  final Set<String> _closedDurakGameIds = <String>{};
-
   List<ChatMessage> _holdPendingE2eeAlbumPreviewUntilHydrated({
     required List<ChatMessage> hydratedMsgs,
     required PendingImageAlbumSend? pendingAlbum,
@@ -261,78 +255,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         .toList(growable: false);
   }
 
-  Future<void> _cleanupDeadDurakLobbyLink(String gameId) async {
-    final gid = gameId.trim();
-    if (gid.isEmpty) return;
-    try {
-      await FirebaseFirestore.instance
-          .collection('conversations')
-          .doc(widget.conversationId)
-          .collection('gameLobbies')
-          .doc(gid)
-          .delete();
-    } on FirebaseException catch (_) {
-      // Best-effort cleanup: ignore permission/race errors.
-    }
-  }
-
   double _chatBottomOffset(ScrollController c) {
     if (!c.hasClients) return 0;
     return _messageListReversed
         ? c.position.minScrollExtent
         : c.position.maxScrollExtent;
-  }
-
-  Future<void> _maybeAutoOpenDurakOnGameStarted({
-    required String? gameId,
-    required bool isGroup,
-  }) async {
-    if (!mounted) return;
-    final gid = (gameId ?? '').trim();
-    if (gid.isEmpty) return;
-    if (gid == _autoOpenedDurakGameId) return;
-    if (_autoOpenDurakInFlight) return;
-    if (_invalidDurakGameIds.contains(gid)) return;
-    if (_closedDurakGameIds.contains(gid)) return;
-    if (isGroup) return; // requirement: DM auto-open
-
-    _autoOpenDurakInFlight = true;
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('games')
-          .doc(gid)
-          .get();
-      if (!mounted) return;
-      if (!doc.exists) {
-        _invalidDurakGameIds.add(gid);
-        unawaited(_cleanupDeadDurakLobbyLink(gid));
-        return;
-      }
-      _autoOpenedDurakGameId = gid;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        unawaited(
-          Navigator.of(context)
-              .push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => ConversationDurakLobbyScreen(gameId: gid),
-                ),
-              )
-              .then((_) {
-                if (!mounted) return;
-                _closedDurakGameIds.add(gid);
-              }),
-        );
-      });
-    } on FirebaseException catch (e) {
-      final code = (e.code).toLowerCase();
-      if (code == 'not-found') {
-        _invalidDurakGameIds.add(gid);
-        unawaited(_cleanupDeadDurakLobbyLink(gid));
-      }
-    } finally {
-      _autoOpenDurakInFlight = false;
-    }
   }
 
   void _jumpToChatBottom() {
@@ -1562,43 +1489,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             child: Column(
                               children: [
                                 SizedBox(height: belowHeaderGap),
-                                StreamBuilder<
-                                  QuerySnapshot<Map<String, dynamic>>
-                                >(
-                                  stream: FirebaseFirestore.instance
-                                      .collection('conversations')
-                                      .doc(conversationId)
-                                      .collection('messages')
-                                      .orderBy('createdAt', descending: true)
-                                      .limit(20)
-                                      .snapshots(),
-                                  builder: (context, s) {
-                                    final docs = s.data?.docs ?? const [];
-                                    for (final d in docs) {
-                                      final m = d.data();
-                                      final se = m['systemEvent'];
-                                      if (se is! Map) continue;
-                                      final type = (se['type'] ?? '')
-                                          .toString();
-                                      if (type != 'gameStarted') continue;
-                                      final data = se['data'];
-                                      if (data is! Map) continue;
-                                      final gameType = (data['gameType'] ?? '')
-                                          .toString();
-                                      if (gameType != 'durak') continue;
-                                      final gid = (data['gameId'] ?? '')
-                                          .toString();
-                                      unawaited(
-                                        _maybeAutoOpenDurakOnGameStarted(
-                                          gameId: gid,
-                                          isGroup: conv?.data.isGroup ?? true,
-                                        ),
-                                      );
-                                      break;
-                                    }
-                                    return const SizedBox.shrink();
-                                  },
-                                ),
                                 if (conv != null)
                                   DmGameLobbyBanner(
                                     conversationId: conversationId,

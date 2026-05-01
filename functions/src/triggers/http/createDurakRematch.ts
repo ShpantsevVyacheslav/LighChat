@@ -30,6 +30,7 @@ export const createDurakRematch = onCall(
     const db = admin.firestore();
     const gameRef = db.doc(`games/${previousGameId}`);
     const gameId = previousGameId;
+    let responseGameId = gameId;
     const nowIso = new Date().toISOString();
     const deadline = readyDeadlineFrom(Date.now());
     let conversationId = "";
@@ -44,7 +45,10 @@ export const createDurakRematch = onCall(
       }
 
       const status = typeof prev.status === "string" ? prev.status : "";
-      if (status === "active") throw new HttpsError("failed-precondition", "GAME_ALREADY_ACTIVE");
+      if (status === "active" || status === "lobby") {
+        responseGameId = gameId;
+        return;
+      }
       if (status !== "finished" && status !== "lobby") {
         throw new HttpsError("failed-precondition", "GAME_NOT_FINISHED");
       }
@@ -72,7 +76,18 @@ export const createDurakRematch = onCall(
           .limit(10),
       );
       const hasAnotherActiveGame = existing.docs.some((docSnap) => docSnap.id !== gameId);
-      if (hasAnotherActiveGame) throw new HttpsError("failed-precondition", "ACTIVE_GAME_ALREADY_EXISTS");
+      if (hasAnotherActiveGame) {
+        const existingDurakLobby = existing.docs.find((docSnap) => {
+          if (docSnap.id === gameId) return false;
+          const data = docSnap.data() || {};
+          return String(data.type ?? "durak") === "durak";
+        });
+        if (existingDurakLobby) {
+          responseGameId = existingDurakLobby.id;
+          return;
+        }
+        throw new HttpsError("failed-precondition", "ACTIVE_GAME_ALREADY_EXISTS");
+      }
 
       const privateHands = await tx.get(db.collection(`games/${gameId}/privateHands`));
       for (const hand of privateHands.docs) tx.delete(hand.ref);
@@ -123,7 +138,12 @@ export const createDurakRematch = onCall(
       );
     });
 
-    logger.info("[createDurakRematch] restarted", { gameId, conversationId, uid });
-    return { gameId };
+    logger.info("[createDurakRematch] completed", {
+      requestedGameId: gameId,
+      responseGameId,
+      conversationId,
+      uid,
+    });
+    return { gameId: responseGameId };
   },
 );

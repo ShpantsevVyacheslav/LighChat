@@ -148,6 +148,11 @@ class Conversation {
     this.disappearingMessageTtlSec,
     this.disappearingMessagesUpdatedAt,
     this.disappearingMessagesUpdatedBy,
+    this.forwardingAllowed,
+    this.screenshotsAllowed,
+    this.copyAllowed,
+    this.saveMediaAllowed,
+    this.shareMediaAllowed,
   });
 
   final bool isGroup;
@@ -186,6 +191,13 @@ class Conversation {
   final int? disappearingMessageTtlSec;
   final String? disappearingMessagesUpdatedAt;
   final String? disappearingMessagesUpdatedBy;
+
+  /// Privacy settings for group chats
+  final bool? forwardingAllowed;
+  final bool? screenshotsAllowed;
+  final bool? copyAllowed;
+  final bool? saveMediaAllowed;
+  final bool? shareMediaAllowed;
 
   static Conversation fromJson(JsonMap json) {
     final rawParticipants = json['participantIds'];
@@ -347,6 +359,21 @@ class Conversation {
           json['disappearingMessagesUpdatedBy'] is String
           ? json['disappearingMessagesUpdatedBy'] as String
           : null,
+      forwardingAllowed: json['forwardingAllowed'] == true
+          ? true
+          : (json['forwardingAllowed'] == false ? false : null),
+      screenshotsAllowed: json['screenshotsAllowed'] == true
+          ? true
+          : (json['screenshotsAllowed'] == false ? false : null),
+      copyAllowed: json['copyAllowed'] == true
+          ? true
+          : (json['copyAllowed'] == false ? false : null),
+      saveMediaAllowed: json['saveMediaAllowed'] == true
+          ? true
+          : (json['saveMediaAllowed'] == false ? false : null),
+      shareMediaAllowed: json['shareMediaAllowed'] == true
+          ? true
+          : (json['shareMediaAllowed'] == false ? false : null),
     );
   }
 }

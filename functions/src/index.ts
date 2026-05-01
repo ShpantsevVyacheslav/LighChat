@@ -68,3 +68,4 @@ export { cleanupExpiredSecretChats } from './triggers/scheduler/cleanupExpiredSe
 export { cleanupExpiredDisappearingMessages } from './triggers/scheduler/cleanupExpiredDisappearingMessages';
 export { cleanupSecretMediaRequests } from './triggers/scheduler/cleanupSecretMediaRequests';
 export { cleanupDurakReadyRooms } from './triggers/scheduler/cleanupDurakReadyRooms';
+export { cleanupDurakTurnTimeouts } from './triggers/scheduler/cleanupDurakTurnTimeouts';

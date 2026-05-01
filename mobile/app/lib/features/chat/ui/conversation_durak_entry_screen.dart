@@ -42,13 +42,15 @@ class ConversationDurakEntryScreen extends StatelessWidget {
       final settingsRes = await showModalBottomSheet<DurakLobbySettingsResult>(
         context: context,
         isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        useSafeArea: true,
         builder: (_) => ConversationDurakCreateLobbySheet(
-          initial: const <String, dynamic>{
-            'maxPlayers': 6,
+          initial: <String, dynamic>{
+            'maxPlayers': isGroup ? 6 : 2,
             'deckSize': 36,
             'mode': 'podkidnoy',
             'withJokers': false,
-            'turnTimeSec': null,
+            'turnTimeSec': 15,
             'throwInPolicy': 'all',
             'shulerEnabled': false,
           },

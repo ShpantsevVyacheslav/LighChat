@@ -1171,7 +1171,9 @@ class _ChatPartnerProfileSheetState
                   icon: Icons.group_rounded,
                   title: l10n.partner_profile_menu_members,
                   trailing: '${widget.conversation.participantIds.length}',
-                  onTap: () => _toast(l10n.common_soon),
+                  onTap: () {
+                    context.push('/chats/group/${widget.conversationId}/members');
+                  },
                 ),
                 if (_isGroupAdmin())
                   _menuButton(

@@ -29,7 +29,7 @@
 - `functions/src/triggers/auth/*` - auth lifecycle.
 - `functions/src/triggers/http/*` - callable endpoints.
 - `functions/src/triggers/firestore/*` - реакция на изменения коллекций.
-- `functions/src/triggers/scheduler/*` - периодические задачи.
+- `functions/src/triggers/scheduler/*` - периодические задачи (в т.ч. `cleanupDurakReadyRooms`, `cleanupDurakTurnTimeouts` для game-lobby/turn-timeout жизненного цикла “Дурака”).
 
 ## Rules and infra files
 

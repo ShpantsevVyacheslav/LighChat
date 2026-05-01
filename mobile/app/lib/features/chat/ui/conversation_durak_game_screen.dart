@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -67,6 +68,7 @@ class _ConversationDurakGameScreenState
   late final Timer _turnTimerTicker;
   DateTime _turnTimerNow = DateTime.now();
   _PendingDurakMove? _pendingMove;
+  bool _isRematchBusy = false;
 
   final _deckKey = GlobalKey();
   final _handKey = GlobalKey();
@@ -75,6 +77,8 @@ class _ConversationDurakGameScreenState
   final _tableDefenseKeys = <int, GlobalKey>{};
   final _handCardKeys = <String, GlobalKey>{};
   int _prevMyHandCount = 0;
+  FlutterExceptionHandler? _prevFlutterOnError;
+  late final FlutterExceptionHandler _durakFlutterOnError;
 
   @override
   void initState() {
@@ -82,10 +86,30 @@ class _ConversationDurakGameScreenState
     _turnTimerTicker = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (mounted) setState(() => _turnTimerNow = DateTime.now());
     });
+    _prevFlutterOnError = FlutterError.onError;
+    _durakFlutterOnError = (FlutterErrorDetails details) {
+      final msg = details.exceptionAsString();
+      if (msg.contains(
+        'TransformLayer is constructed with an invalid matrix',
+      )) {
+        debugPrint(
+          '[DurakMatrix][${widget.gameId}] invalid matrix; '
+          'publicRev=$_publicRevision '
+          'legalRev=$_legalRevision '
+          'selectedCard=${_selectedCardId ?? "-"} '
+          'pendingMove=${_pendingMove?.actionType ?? "-"}',
+        );
+      }
+      _prevFlutterOnError?.call(details);
+    };
+    FlutterError.onError = _durakFlutterOnError;
   }
 
   @override
   void dispose() {
+    if (FlutterError.onError == _durakFlutterOnError) {
+      FlutterError.onError = _prevFlutterOnError;
+    }
     _turnTimerTicker.cancel();
     super.dispose();
   }
@@ -93,6 +117,71 @@ class _ConversationDurakGameScreenState
   void _toast(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  bool _isActiveGameAlreadyExistsError(Object error) {
+    final upper = error.toString().toUpperCase();
+    return upper.contains("ACTIVE_GAME_ALREADY_EXISTS") ||
+        upper.contains("GAME_ALREADY_ACTIVE");
+  }
+
+  Future<bool> _openLatestDurakLobby({required String conversationId}) async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('gameLobbies')
+          .orderBy('createdAt', descending: true)
+          .limit(20)
+          .get();
+      String? gameId;
+      for (final d in snap.docs) {
+        final data = d.data();
+        final status = (data['status'] ?? '').toString();
+        final type = (data['type'] ?? 'durak').toString();
+        if (type == 'durak' && (status == 'lobby' || status == 'active')) {
+          gameId = d.id;
+          break;
+        }
+      }
+      if (!mounted || gameId == null) return false;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => ConversationDurakLobbyScreen(gameId: gameId!),
+        ),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _handleRematchPressed({required String conversationId}) async {
+    if (_isRematchBusy) return;
+    if (!mounted) return;
+    setState(() => _isRematchBusy = true);
+    try {
+      final res = await GamesCallables().createDurakRematch(
+        gameId: widget.gameId,
+      );
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => ConversationDurakLobbyScreen(gameId: res.gameId),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      if (_isActiveGameAlreadyExistsError(e) && conversationId.isNotEmpty) {
+        final opened = await _openLatestDurakLobby(
+          conversationId: conversationId,
+        );
+        if (opened) return;
+      }
+      _toast(friendlyGamesCallableError(e));
+    } finally {
+      if (mounted) setState(() => _isRematchBusy = false);
+    }
   }
 
   String _cardLabel(Map<String, dynamic> c) {
@@ -445,6 +534,10 @@ class _ConversationDurakGameScreenState
 
             final g = game.data() ?? const <String, dynamic>{};
             final status = (g['status'] ?? '').toString();
+            final conversationId = (g['conversationId'] ?? '').toString();
+            if (status == 'lobby') {
+              return ConversationDurakLobbyScreen(gameId: widget.gameId);
+            }
             final publicView = g['publicView'] is Map
                 ? g['publicView'] as Map
                 : null;
@@ -898,62 +991,33 @@ class _ConversationDurakGameScreenState
                 ...winners,
                 loserUid,
               }.where((s) => s.isNotEmpty).toList();
-              return DurakPlayerNames(
+              final winnerUid = winners.isNotEmpty ? winners.first : '';
+              return DurakPlayerProfiles(
                 uids: allUids,
-                builder: (context, nameByUid) {
+                builder: (context, byUid) {
+                  String fallback(String uid) {
+                    if (uid.isEmpty) return '—';
+                    if (uid.length <= 10) return uid;
+                    return '${uid.substring(0, 5)}…${uid.substring(uid.length - 3)}';
+                  }
+
+                  final winnerProfile = byUid[winnerUid];
+                  final winnerName = winnerProfile?.name ?? fallback(winnerUid);
                   final loserName = loserUid.isEmpty
                       ? ''
-                      : (nameByUid[loserUid] ?? loserUid);
-                  final winnerNames = winners
-                      .map((u) => nameByUid[u] ?? u)
-                      .toList();
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            l10n.conversation_durak_game_finished_title,
-                            style: Theme.of(context).textTheme.headlineSmall,
-                            textAlign: TextAlign.center,
+                      : (byUid[loserUid]?.name ?? fallback(loserUid));
+                  return _DurakFinishedCard(
+                    winnerName: winnerName,
+                    winnerAvatarUrl:
+                        winnerProfile?.avatarThumb ?? winnerProfile?.avatar,
+                    loserLabel: loserUid.isEmpty
+                        ? l10n.conversation_durak_game_finished_no_loser
+                        : l10n.conversation_durak_game_finished_loser(
+                            loserName,
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            loserUid.isEmpty
-                                ? l10n.conversation_durak_game_finished_no_loser
-                                : l10n.conversation_durak_game_finished_loser(
-                                    loserName,
-                                  ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            l10n.conversation_durak_game_finished_winners(
-                              winnerNames.isEmpty
-                                  ? '—'
-                                  : winnerNames.join(', '),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: () => unawaited(() async {
-                              final res = await GamesCallables()
-                                  .createDurakRematch(gameId: widget.gameId);
-                              if (!context.mounted) return;
-                              await Navigator.of(context).pushReplacement(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => ConversationDurakLobbyScreen(
-                                    gameId: res.gameId,
-                                  ),
-                                ),
-                              );
-                            }()),
-                            child: const Text('Сыграть ещё раз'),
-                          ),
-                        ],
-                      ),
+                    rematchBusy: _isRematchBusy,
+                    onRematch: () => unawaited(
+                      _handleRematchPressed(conversationId: conversationId),
                     ),
                   );
                 },
@@ -1199,27 +1263,8 @@ class _ConversationDurakGameScreenState
                       ),
                       Positioned(
                         right: 12,
-                        top: 118,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: Colors.white.withValues(alpha: 0.05),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.10),
-                            ),
-                          ),
-                          child: Text(
-                            'Сброс: $discardCount',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.72),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
+                        top: 112,
+                        child: _DurakDiscardPile(discardCount: discardCount),
                       ),
                       Positioned.fill(
                         top: 140,
@@ -1571,12 +1616,51 @@ class _DurakTopOpponent extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.84),
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  _DurakOpponentCardsFan(count: count),
                 ],
               ),
             );
           },
         );
       },
+    );
+  }
+}
+
+class _DurakOpponentCardsFan extends StatelessWidget {
+  const _DurakOpponentCardsFan({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = count <= 0 ? 0 : (count > 6 ? 6 : count);
+    if (visible == 0) return const SizedBox(height: 12);
+    return SizedBox(
+      width: 84,
+      height: 26,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var i = 0; i < visible; i++)
+            Positioned(
+              left: i * 10.0,
+              child: Transform.rotate(
+                angle: (-0.18 + i * 0.06),
+                child: const DurakCardWidget(
+                  rankLabel: '',
+                  suitLabel: '',
+                  isRed: false,
+                  faceUp: false,
+                  disabled: true,
+                  width: 26,
+                  height: 36,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1655,6 +1739,68 @@ class _DurakSideDeck extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DurakDiscardPile extends StatelessWidget {
+  const _DurakDiscardPile({required this.discardCount});
+
+  final int discardCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final stacks = discardCount <= 0
+        ? 0
+        : (discardCount > 4 ? 4 : discardCount);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            'Сброс: $discardCount',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.92),
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 48,
+            height: 46,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                for (var i = 0; i < stacks; i++)
+                  Positioned(
+                    right: i * 6.0,
+                    top: i * 1.5,
+                    child: Transform.rotate(
+                      angle: -0.18 + i * 0.08,
+                      child: const DurakCardWidget(
+                        rankLabel: '',
+                        suitLabel: '',
+                        isRed: false,
+                        faceUp: false,
+                        disabled: true,
+                        width: 26,
+                        height: 36,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -1811,6 +1957,139 @@ class _PendingResolutionBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DurakFinishedCard extends StatelessWidget {
+  const _DurakFinishedCard({
+    required this.winnerName,
+    required this.winnerAvatarUrl,
+    required this.loserLabel,
+    required this.rematchBusy,
+    required this.onRematch,
+  });
+
+  final String winnerName;
+  final String? winnerAvatarUrl;
+  final String loserLabel;
+  final bool rematchBusy;
+  final VoidCallback onRematch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 84,
+                height: 84,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  color: const Color(0xFFB8EC5C),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: winnerAvatarUrl != null && winnerAvatarUrl!.isNotEmpty
+                      ? Image.network(
+                          winnerAvatarUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _winnerFallbackAvatar(),
+                        )
+                      : _winnerFallbackAvatar(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB8EC5C),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'Победитель',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: Color(0xFF173217),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                winnerName,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 28,
+                  height: 1.06,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                loserLabel,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.76),
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: 240,
+                height: 52,
+                child: FilledButton(
+                  onPressed: rematchBusy ? null : onRematch,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF66798C),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
+                  child: rematchBusy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                        )
+                      : const Text(
+                          'Сыграть ещё раз',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _winnerFallbackAvatar() {
+    return Container(
+      color: const Color(0xFF293F4F),
+      alignment: Alignment.center,
+      child: const Icon(Icons.person_rounded, color: Colors.white, size: 44),
     );
   }
 }

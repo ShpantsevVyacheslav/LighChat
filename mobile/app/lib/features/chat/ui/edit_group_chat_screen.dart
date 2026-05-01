@@ -35,6 +35,13 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
   String? _error;
   bool _initialized = false;
 
+  // Privacy settings
+  bool _forwardingAllowed = true;
+  bool _screenshotsAllowed = true;
+  bool _copyAllowed = true;
+  bool _saveMediaAllowed = true;
+  bool _shareMediaAllowed = true;
+
   @override
   void dispose() {
     _name.dispose();
@@ -104,6 +111,53 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
           border: InputBorder.none,
           isDense: true,
         ),
+      ),
+    );
+  }
+
+  Widget _privacySwitch({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _hPad, vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(
+            value: value,
+            onChanged: _busy ? null : onChanged,
+            activeThumbColor: scheme.primary,
+          ),
+        ],
       ),
     );
   }
@@ -255,6 +309,11 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
       final updates = <String, dynamic>{
         'name': name,
         'description': _description.text.trim(),
+        'forwardingAllowed': _forwardingAllowed,
+        'screenshotsAllowed': _screenshotsAllowed,
+        'copyAllowed': _copyAllowed,
+        'saveMediaAllowed': _saveMediaAllowed,
+        'shareMediaAllowed': _shareMediaAllowed,
       };
 
       // Upload avatar if changed
@@ -302,6 +361,12 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
     if (_initialized) return;
     _name.text = conv.name ?? '';
     _description.text = conv.description ?? '';
+    // Initialize privacy settings with defaults or existing values
+    _forwardingAllowed = conv.forwardingAllowed ?? true;
+    _screenshotsAllowed = conv.screenshotsAllowed ?? true;
+    _copyAllowed = conv.copyAllowed ?? true;
+    _saveMediaAllowed = conv.saveMediaAllowed ?? true;
+    _shareMediaAllowed = conv.shareMediaAllowed ?? true;
     _initialized = true;
   }
 
@@ -435,6 +500,46 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                                     maxLines: 3,
                                     action: TextInputAction.done,
                                   ),
+                                ),
+                                const SizedBox(height: 24),
+                                _fieldLabel(
+                                  context,
+                                  l10n.edit_group_privacy_section,
+                                ),
+                                _privacySwitch(
+                                  context: context,
+                                  title: l10n.edit_group_privacy_forwarding,
+                                  description: l10n.edit_group_privacy_forwarding_desc,
+                                  value: _forwardingAllowed,
+                                  onChanged: (v) => setState(() => _forwardingAllowed = v),
+                                ),
+                                _privacySwitch(
+                                  context: context,
+                                  title: l10n.edit_group_privacy_screenshots,
+                                  description: l10n.edit_group_privacy_screenshots_desc,
+                                  value: _screenshotsAllowed,
+                                  onChanged: (v) => setState(() => _screenshotsAllowed = v),
+                                ),
+                                _privacySwitch(
+                                  context: context,
+                                  title: l10n.edit_group_privacy_copy,
+                                  description: l10n.edit_group_privacy_copy_desc,
+                                  value: _copyAllowed,
+                                  onChanged: (v) => setState(() => _copyAllowed = v),
+                                ),
+                                _privacySwitch(
+                                  context: context,
+                                  title: l10n.edit_group_privacy_save_media,
+                                  description: l10n.edit_group_privacy_save_media_desc,
+                                  value: _saveMediaAllowed,
+                                  onChanged: (v) => setState(() => _saveMediaAllowed = v),
+                                ),
+                                _privacySwitch(
+                                  context: context,
+                                  title: l10n.edit_group_privacy_share_media,
+                                  description: l10n.edit_group_privacy_share_media_desc,
+                                  value: _shareMediaAllowed,
+                                  onChanged: (v) => setState(() => _shareMediaAllowed = v),
                                 ),
                                 if (_error != null) ...[
                                   const SizedBox(height: 16),

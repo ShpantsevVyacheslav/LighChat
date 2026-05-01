@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'durak_card_widget.dart';
@@ -33,10 +34,18 @@ class DurakHandFan extends StatelessWidget {
   final String? selectedId;
   final void Function(Map<String, dynamic> card, String id) onTap;
 
-  /// Kept for API compatibility with the table screen. The mobile hand uses
-  /// tap-to-play to avoid Flutter overlay transform glitches on iOS.
+  /// Kept for API compatibility with the table screen.
   final void Function(Map<String, dynamic> card) onDragAcceptedByTable;
   final void Function(Map<String, dynamic> card) onDragRejected;
+
+  static final Set<String> _loggedLayoutIssues = <String>{};
+
+  void _logLayoutIssue(String key, String message) {
+    if (!kDebugMode) return;
+    if (_loggedLayoutIssues.contains(key)) return;
+    _loggedLayoutIssues.add(key);
+    debugPrint('[DurakHandFan][$key] $message');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +57,12 @@ class DurakHandFan extends StatelessWidget {
         final w = c.maxWidth.isFinite && c.maxWidth > 0
             ? c.maxWidth
             : max(1.0, mediaWidth - 16);
+        if (!c.maxWidth.isFinite || c.maxWidth <= 0) {
+          _logLayoutIssue(
+            'invalid_constraints',
+            'maxWidth=${c.maxWidth}, mediaWidth=$mediaWidth, cards=${cards.length}',
+          );
+        }
         final n = cards.length;
         final baseW = 68.0;
         final cardW = min(baseW, max(46.0, w / max(4.7, n * 0.68)));
@@ -65,10 +80,21 @@ class DurakHandFan extends StatelessWidget {
             !cardH.isFinite ||
             !step.isFinite ||
             !startX.isFinite) {
+          _logLayoutIssue(
+            'non_finite_geometry',
+            'w=$w cardW=$cardW cardH=$cardH step=$step startX=$startX cards=$n',
+          );
           return const SizedBox(height: 116);
+        }
+        if (step <= 0) {
+          _logLayoutIssue(
+            'non_positive_step',
+            'step=$step cardW=$cardW overlap=$overlap cards=$n width=$w',
+          );
         }
 
         return SizedBox(
+          width: w,
           height: cardH + 24,
           child: Stack(
             clipBehavior: Clip.none,
@@ -160,7 +186,25 @@ class _HandFanCard extends StatelessWidget {
     }
 
     final childCard = buildCard(withFlightKey: true);
+    if (!enabled) return childCard;
 
-    return childCard;
+    return LongPressDraggable<Map<String, dynamic>>(
+      data: card,
+      maxSimultaneousDrags: 1,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Opacity(opacity: 0.94, child: buildCard(withFlightKey: false)),
+      ),
+      childWhenDragging: Opacity(opacity: 0.24, child: childCard),
+      onDragEnd: (details) {
+        if (details.wasAccepted) {
+          onDragAcceptedByTable();
+        } else {
+          onDragRejected();
+        }
+      },
+      child: childCard,
+    );
   }
 }

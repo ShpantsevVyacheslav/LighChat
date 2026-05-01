@@ -20,6 +20,13 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
     return createdBy == uid;
   }
 
+  bool _isBenignStartTransitionError(Object error) {
+    final upper = error.toString().toUpperCase();
+    return upper.contains('NOT_IN_LOBBY') ||
+        upper.contains('GAME_NOT_ACTIVE') ||
+        upper.contains('GAME_ALREADY_ACTIVE');
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -87,7 +94,7 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
             me != null && iAmPlayer && status == 'lobby' && playerCount >= 2;
         final canCancel = me != null && status == 'lobby' && _isOwner(data, me);
 
-        if (status == 'active') {
+        if (status == 'active' || status == 'finished') {
           return ConversationDurakGameScreen(gameId: gameId);
         }
 
@@ -139,6 +146,10 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                                       );
                                     } catch (e) {
                                       if (!context.mounted) return;
+                                      if (_isBenignStartTransitionError(e)) {
+                                        // Race-safe: someone already switched lobby to active.
+                                        return;
+                                      }
                                       _toast(
                                         context,
                                         l10n.conversation_game_lobby_start_failed(

@@ -62,7 +62,8 @@ export const makeDurakMove = onCall(
     const moveRef = gameRef.collection("moves").doc(clientMoveId);
     const nowIso = new Date().toISOString();
 
-    await db.runTransaction(async (tx) => {
+    try {
+      await db.runTransaction(async (tx) => {
       const gameSnap = await tx.get(gameRef);
       if (!gameSnap.exists) throw new HttpsError("not-found", "GAME_NOT_FOUND");
       const g = gameSnap.data() || {};
@@ -396,7 +397,20 @@ export const makeDurakMove = onCall(
           }
         }
       }
-    });
+      });
+    } catch (error) {
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+      logger.error("[makeDurakMove] unexpected failure", {
+        gameId,
+        uid,
+        actionType,
+        clientMoveId,
+        error: (error as Error)?.message ?? String(error),
+      });
+      throw new HttpsError("failed-precondition", "MOVE_REJECTED_RETRY");
+    }
 
     logger.info("[makeDurakMove] accepted", { gameId, uid, clientMoveId, actionType });
     return { gameId, accepted: true };

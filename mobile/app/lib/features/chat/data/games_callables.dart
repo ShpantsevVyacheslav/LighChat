@@ -285,6 +285,12 @@ String friendlyGamesCallableError(Object error) {
       return 'Отбивающийся уже берет карты';
     case 'GAME_NOT_ACTIVE':
       return 'Партия уже не активна';
+    case 'NOT_IN_LOBBY':
+      return 'Лобби уже стартовало';
+    case 'GAME_ALREADY_ACTIVE':
+      return 'Партия уже началась';
+    case 'ACTIVE_GAME_ALREADY_EXISTS':
+      return 'В этом чате уже есть активная партия';
     case 'ROUND_RESOLUTION_PENDING':
       return 'Сначала завершите спорный ход';
   }
@@ -316,6 +322,9 @@ String _extractRuleMarker(String message) {
     'ONLY_DEFENDER_CAN_DEFEND',
     'DEFENDER_ALREADY_TAKING',
     'GAME_NOT_ACTIVE',
+    'NOT_IN_LOBBY',
+    'GAME_ALREADY_ACTIVE',
+    'ACTIVE_GAME_ALREADY_EXISTS',
     'ROUND_RESOLUTION_PENDING',
   ];
   for (final marker in markers) {
