@@ -506,6 +506,85 @@ class AppLocalizationsEn extends AppLocalizations {
       'Generated first-frame thumbnails for videos.';
 
   @override
+  String get storage_media_type_video => 'Video';
+
+  @override
+  String get storage_media_type_photo => 'Photos';
+
+  @override
+  String get storage_media_type_files => 'Files';
+
+  @override
+  String get storage_media_type_other => 'Other';
+
+  @override
+  String storage_settings_device_usage(Object pct) {
+    return 'Uses $pct% of cache budget';
+  }
+
+  @override
+  String get storage_settings_clear_all_hint =>
+      'All media will stay in cloud. You can re-download any time.';
+
+  @override
+  String get storage_auto_delete_title => 'Auto-delete cached media';
+
+  @override
+  String get storage_auto_delete_personal => 'Personal chats';
+
+  @override
+  String get storage_auto_delete_groups => 'Groups';
+
+  @override
+  String get storage_auto_delete_never => 'Never';
+
+  @override
+  String get storage_auto_delete_3_days => '3 days';
+
+  @override
+  String get storage_auto_delete_1_week => '1 week';
+
+  @override
+  String get storage_auto_delete_1_month => '1 month';
+
+  @override
+  String get storage_auto_delete_3_months => '3 months';
+
+  @override
+  String get storage_auto_delete_hint =>
+      'Photos, videos and files you haven\'t opened during this period will be removed from the device to save space.';
+
+  @override
+  String storage_chat_detail_share(Object pct) {
+    return 'This chat uses $pct% of your cache';
+  }
+
+  @override
+  String get storage_chat_detail_media_tab => 'Media';
+
+  @override
+  String get storage_chat_detail_select_all => 'Select all';
+
+  @override
+  String get storage_chat_detail_deselect_all => 'Deselect all';
+
+  @override
+  String storage_chat_detail_clear_button(Object size) {
+    return 'Clear cache $size';
+  }
+
+  @override
+  String get storage_chat_detail_clear_button_empty => 'Select files to delete';
+
+  @override
+  String get storage_chat_detail_delete_title => 'Delete selected files?';
+
+  @override
+  String storage_chat_detail_delete_body(Object count, Object size) {
+    return '$count files ($size) will be removed from the device. Cloud copies stay intact.';
+  }
+
+  @override
   String get profile_delete_account => 'Delete account';
 
   @override

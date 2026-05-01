@@ -510,6 +510,86 @@ class AppLocalizationsRu extends AppLocalizations {
       'Сгенерированные первые кадры для видео.';
 
   @override
+  String get storage_media_type_video => 'Видео';
+
+  @override
+  String get storage_media_type_photo => 'Фотографии';
+
+  @override
+  String get storage_media_type_files => 'Файлы';
+
+  @override
+  String get storage_media_type_other => 'Другое';
+
+  @override
+  String storage_settings_device_usage(Object pct) {
+    return 'Занимает $pct% от лимита кэша';
+  }
+
+  @override
+  String get storage_settings_clear_all_hint =>
+      'Все медиа останутся в облаке. При необходимости вы сможете загрузить их снова.';
+
+  @override
+  String get storage_auto_delete_title => 'Автоудаление кэшированных медиа';
+
+  @override
+  String get storage_auto_delete_personal => 'Личные чаты';
+
+  @override
+  String get storage_auto_delete_groups => 'Группы';
+
+  @override
+  String get storage_auto_delete_never => 'Никогда';
+
+  @override
+  String get storage_auto_delete_3_days => '3 дня';
+
+  @override
+  String get storage_auto_delete_1_week => '1 нед.';
+
+  @override
+  String get storage_auto_delete_1_month => '1 месяц';
+
+  @override
+  String get storage_auto_delete_3_months => '3 месяца';
+
+  @override
+  String get storage_auto_delete_hint =>
+      'Фотографии, видео и другие файлы, которые вы не открывали в течение этого срока, будут удалены с устройства для экономии места.';
+
+  @override
+  String storage_chat_detail_share(Object pct) {
+    return 'На этот чат приходится $pct% кэша';
+  }
+
+  @override
+  String get storage_chat_detail_media_tab => 'Медиа';
+
+  @override
+  String get storage_chat_detail_select_all => 'Выбрать все';
+
+  @override
+  String get storage_chat_detail_deselect_all => 'Снять все';
+
+  @override
+  String storage_chat_detail_clear_button(Object size) {
+    return 'Очистить кэш $size';
+  }
+
+  @override
+  String get storage_chat_detail_clear_button_empty =>
+      'Выберите файлы для удаления';
+
+  @override
+  String get storage_chat_detail_delete_title => 'Удалить выбранные файлы?';
+
+  @override
+  String storage_chat_detail_delete_body(Object count, Object size) {
+    return '$count файлов ($size) будет удалено с устройства. Облачные копии не затрагиваются.';
+  }
+
+  @override
   String get profile_delete_account => 'Удалить аккаунт';
 
   @override

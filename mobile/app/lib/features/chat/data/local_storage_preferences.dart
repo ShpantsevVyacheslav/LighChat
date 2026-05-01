@@ -29,16 +29,48 @@ const kAlwaysOnCategories = <LocalStorageCategory>[
   LocalStorageCategory.videoThumbs,
 ];
 
+enum AutoDeletePeriod { never, threeDays, oneWeek, oneMonth, threeMonths }
+
+extension AutoDeletePeriodDuration on AutoDeletePeriod {
+  Duration? toDuration() => switch (this) {
+    AutoDeletePeriod.never => null,
+    AutoDeletePeriod.threeDays => const Duration(days: 3),
+    AutoDeletePeriod.oneWeek => const Duration(days: 7),
+    AutoDeletePeriod.oneMonth => const Duration(days: 30),
+    AutoDeletePeriod.threeMonths => const Duration(days: 90),
+  };
+
+  String toJsonValue() => switch (this) {
+    AutoDeletePeriod.never => 'never',
+    AutoDeletePeriod.threeDays => '3d',
+    AutoDeletePeriod.oneWeek => '1w',
+    AutoDeletePeriod.oneMonth => '1m',
+    AutoDeletePeriod.threeMonths => '3m',
+  };
+
+  static AutoDeletePeriod fromJsonValue(String? value) => switch (value) {
+    '3d' => AutoDeletePeriod.threeDays,
+    '1w' => AutoDeletePeriod.oneWeek,
+    '1m' => AutoDeletePeriod.oneMonth,
+    '3m' => AutoDeletePeriod.threeMonths,
+    _ => AutoDeletePeriod.never,
+  };
+}
+
 class LocalStoragePreferences {
   const LocalStoragePreferences({
     required this.e2eeMediaEnabled,
     required this.videoDownloadsEnabled,
     required this.cacheBudgetGb,
+    required this.autoDeletePersonal,
+    required this.autoDeleteGroups,
   });
 
   final bool e2eeMediaEnabled;
   final bool videoDownloadsEnabled;
   final int cacheBudgetGb;
+  final AutoDeletePeriod autoDeletePersonal;
+  final AutoDeletePeriod autoDeleteGroups;
 
   static const int minCacheBudgetGb = 1;
   static const int defaultMaxCacheBudgetGb = 128;
@@ -74,6 +106,8 @@ class LocalStoragePreferences {
       e2eeMediaEnabled: true,
       videoDownloadsEnabled: true,
       cacheBudgetGb: 8,
+      autoDeletePersonal: AutoDeletePeriod.never,
+      autoDeleteGroups: AutoDeletePeriod.oneMonth,
     );
   }
 
@@ -81,6 +115,8 @@ class LocalStoragePreferences {
     bool? e2eeMediaEnabled,
     bool? videoDownloadsEnabled,
     int? cacheBudgetGb,
+    AutoDeletePeriod? autoDeletePersonal,
+    AutoDeletePeriod? autoDeleteGroups,
   }) {
     return LocalStoragePreferences(
       e2eeMediaEnabled: e2eeMediaEnabled ?? this.e2eeMediaEnabled,
@@ -89,6 +125,8 @@ class LocalStoragePreferences {
         minCacheBudgetGb,
         maxCacheBudgetGb,
       ),
+      autoDeletePersonal: autoDeletePersonal ?? this.autoDeletePersonal,
+      autoDeleteGroups: autoDeleteGroups ?? this.autoDeleteGroups,
     );
   }
 
@@ -112,6 +150,8 @@ class LocalStoragePreferences {
       'e2eeMediaEnabled': e2eeMediaEnabled,
       'videoDownloadsEnabled': videoDownloadsEnabled,
       'cacheBudgetGb': cacheBudgetGb,
+      'autoDeletePersonal': autoDeletePersonal.toJsonValue(),
+      'autoDeleteGroups': autoDeleteGroups.toJsonValue(),
     };
   }
 
@@ -133,6 +173,12 @@ class LocalStoragePreferences {
           ? raw['videoDownloadsEnabled'] as bool
           : defaults.videoDownloadsEnabled,
       cacheBudgetGb: budget.clamp(minCacheBudgetGb, maxCacheBudgetGb),
+      autoDeletePersonal: AutoDeletePeriodDuration.fromJsonValue(
+        raw['autoDeletePersonal'] as String?,
+      ),
+      autoDeleteGroups: AutoDeletePeriodDuration.fromJsonValue(
+        raw['autoDeleteGroups'] as String?,
+      ),
     );
   }
 }

@@ -232,6 +232,50 @@
   "storage_category_video_downloads_subtitle": "Локальные копии видео из просмотрщика медиа.",
   "storage_category_video_thumbs": "Превью-кадры видео",
   "storage_category_video_thumbs_subtitle": "Сгенерированные первые кадры для видео.",
+  "storage_media_type_video": "Видео",
+  "storage_media_type_photo": "Фотографии",
+  "storage_media_type_files": "Файлы",
+  "storage_media_type_other": "Другое",
+  "storage_settings_device_usage": "Занимает {pct}% от лимита кэша",
+  "@storage_settings_device_usage": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_settings_clear_all_hint": "Все медиа останутся в облаке. При необходимости вы сможете загрузить их снова.",
+  "storage_auto_delete_title": "Автоудаление кэшированных медиа",
+  "storage_auto_delete_personal": "Личные чаты",
+  "storage_auto_delete_groups": "Группы",
+  "storage_auto_delete_never": "Никогда",
+  "storage_auto_delete_3_days": "3 дня",
+  "storage_auto_delete_1_week": "1 нед.",
+  "storage_auto_delete_1_month": "1 месяц",
+  "storage_auto_delete_3_months": "3 месяца",
+  "storage_auto_delete_hint": "Фотографии, видео и другие файлы, которые вы не открывали в течение этого срока, будут удалены с устройства для экономии места.",
+  "storage_chat_detail_share": "На этот чат приходится {pct}% кэша",
+  "@storage_chat_detail_share": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_chat_detail_media_tab": "Медиа",
+  "storage_chat_detail_select_all": "Выбрать все",
+  "storage_chat_detail_deselect_all": "Снять все",
+  "storage_chat_detail_clear_button": "Очистить кэш {size}",
+  "@storage_chat_detail_clear_button": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_chat_detail_clear_button_empty": "Выберите файлы для удаления",
+  "storage_chat_detail_delete_title": "Удалить выбранные файлы?",
+  "storage_chat_detail_delete_body": "{count} файлов ({size}) будет удалено с устройства. Облачные копии не затрагиваются.",
+  "@storage_chat_detail_delete_body": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
   "profile_delete_account": "Удалить аккаунт",
   "profile_delete_account_confirm_title": "Удалить аккаунт безвозвратно?",
   "profile_delete_account_confirm_body": "Ваш аккаунт будет удалён из Firebase Auth и все ваши документы в Firestore будут удалены без возможности восстановления. У собеседников останутся ваши чаты в режиме только чтение.",
