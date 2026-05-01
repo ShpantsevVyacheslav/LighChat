@@ -27,6 +27,22 @@ class ConversationDurakGameScreen extends StatefulWidget {
       _ConversationDurakGameScreenState();
 }
 
+class _PendingDurakMove {
+  const _PendingDurakMove({
+    required this.clientMoveId,
+    required this.actionType,
+    required this.card,
+    required this.baseRevision,
+    this.attackIndex,
+  });
+
+  final String clientMoveId;
+  final String actionType;
+  final Map<String, dynamic> card;
+  final int baseRevision;
+  final int? attackIndex;
+}
+
 class _ConversationDurakGameScreenState
     extends State<ConversationDurakGameScreen> {
   Map<String, dynamic>? _selectedCard;
@@ -42,6 +58,7 @@ class _ConversationDurakGameScreenState
   String _flyFxKind = '';
   int _flyFxCount = 0;
   int _legalRevision = -1;
+  int _publicRevision = -1;
   bool _legalCanTake = false;
   bool _legalCanPass = false;
   bool _legalCanFinishTurn = false;
@@ -50,6 +67,7 @@ class _ConversationDurakGameScreenState
   Map<int, Set<String>> _legalDefenseTargets = const <int, Set<String>>{};
   late final Timer _turnTimerTicker;
   DateTime _turnTimerNow = DateTime.now();
+  _PendingDurakMove? _pendingMove;
 
   final _deckKey = GlobalKey();
   final _handKey = GlobalKey();
@@ -203,6 +221,7 @@ class _ConversationDurakGameScreenState
     await _sendMove(
       actionType: 'attack',
       payload: <String, dynamic>{'card': _cardPayload(card)},
+      optimisticCard: card,
     );
   }
 
@@ -210,6 +229,7 @@ class _ConversationDurakGameScreenState
     await _sendMove(
       actionType: 'transfer',
       payload: <String, dynamic>{'card': _cardPayload(card)},
+      optimisticCard: card,
     );
   }
 
@@ -223,22 +243,8 @@ class _ConversationDurakGameScreenState
         'attackIndex': attackIndex,
         'card': _cardPayload(card),
       },
-    );
-  }
-
-  void _flySelectedTo(GlobalKey to, {required String trumpSuit}) {
-    final id = _selectedCardId;
-    final card = _selectedCard;
-    if (id == null || card == null) return;
-    final flight = DurakCardFlightLayer.of(context);
-    if (flight == null) return;
-    final from = _handKeyFor(id);
-    flight.flyCard(
-      from: from,
-      to: to,
-      rankLabel: _rankLabel(card),
-      suitLabel: _suitLabel(card),
-      isRed: _isRedSuit(_suitOf(card)),
+      optimisticCard: card,
+      optimisticAttackIndex: attackIndex,
     );
   }
 
@@ -257,11 +263,27 @@ class _ConversationDurakGameScreenState
   Future<void> _sendMove({
     required String actionType,
     Map<String, dynamic>? payload,
+    Map<String, dynamic>? optimisticCard,
+    int? optimisticAttackIndex,
   }) async {
+    final clientMoveId = DateTime.now().microsecondsSinceEpoch.toString();
+    if (optimisticCard != null) {
+      setState(() {
+        _pendingMove = _PendingDurakMove(
+          clientMoveId: clientMoveId,
+          actionType: actionType,
+          card: Map<String, dynamic>.from(optimisticCard),
+          attackIndex: optimisticAttackIndex,
+          baseRevision: _publicRevision,
+        );
+        _selectedCard = null;
+        _selectedCardId = null;
+      });
+    }
     try {
       await GamesCallables().makeDurakMove(
         gameId: widget.gameId,
-        clientMoveId: DateTime.now().microsecondsSinceEpoch.toString(),
+        clientMoveId: clientMoveId,
         actionType: actionType,
         payload: payload,
       );
@@ -272,8 +294,60 @@ class _ConversationDurakGameScreenState
       });
     } catch (e) {
       if (!mounted) return;
+      if (optimisticCard != null) {
+        setState(() => _pendingMove = null);
+      }
       _toast(friendlyGamesCallableError(e));
     }
+  }
+
+  bool _sameCard(Map<String, dynamic> a, Map<String, dynamic> b) {
+    return _cardKey(a) == _cardKey(b);
+  }
+
+  List<Map<String, dynamic>> _hidePendingCardFromHand(
+    List<Map<String, dynamic>> cards,
+  ) {
+    final pending = _pendingMove;
+    if (pending == null) return cards;
+    if (pending.actionType != 'attack' &&
+        pending.actionType != 'transfer' &&
+        pending.actionType != 'defend') {
+      return cards;
+    }
+    var removed = false;
+    final visible = <Map<String, dynamic>>[];
+    for (final card in cards) {
+      if (!removed && _sameCard(card, pending.card)) {
+        removed = true;
+        continue;
+      }
+      visible.add(card);
+    }
+    return visible;
+  }
+
+  ({List attacks, List defenses}) _optimisticTable({
+    required List attacks,
+    required List defenses,
+  }) {
+    final pending = _pendingMove;
+    if (pending == null) return (attacks: attacks, defenses: defenses);
+    final nextAttacks = List<dynamic>.from(attacks);
+    final nextDefenses = List<dynamic>.from(defenses);
+    if (pending.actionType == 'attack' || pending.actionType == 'transfer') {
+      nextAttacks.add(pending.card);
+      nextDefenses.add(null);
+    } else if (pending.actionType == 'defend') {
+      final idx = pending.attackIndex;
+      if (idx != null && idx >= 0 && idx < nextAttacks.length) {
+        while (nextDefenses.length <= idx) {
+          nextDefenses.add(null);
+        }
+        nextDefenses[idx] = pending.card;
+      }
+    }
+    return (attacks: nextAttacks, defenses: nextDefenses);
   }
 
   void _syncLegalMoves(Map<String, dynamic>? legal) {
@@ -726,47 +800,24 @@ class _ConversationDurakGameScreenState
               if (canAttack && hasSelected) {
                 overflowActions.add((
                   label: l10n.conversation_durak_action_attack,
-                  onTap: () => unawaited(() async {
-                    _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
-                    await _sendMove(
-                      actionType: 'attack',
-                      payload: <String, dynamic>{
-                        'card': _cardPayload(_selectedCard!),
-                      },
-                    );
-                  }()),
+                  onTap: () => unawaited(_tryAttack(_selectedCard!)),
                 ));
               }
               if (canDefend && hasSelected) {
                 overflowActions.add((
                   label: l10n.conversation_durak_action_defend,
-                  onTap: () => unawaited(() async {
-                    _flySelectedTo(
-                      _pairKeyForFlight(_selectedAttackIndex, defense: true),
-                      trumpSuit: trumpSuit,
-                    );
-                    await _sendMove(
-                      actionType: 'defend',
-                      payload: <String, dynamic>{
-                        'attackIndex': _selectedAttackIndex,
-                        'card': _cardPayload(_selectedCard!),
-                      },
-                    );
-                  }()),
+                  onTap: () => unawaited(
+                    _tryDefend(
+                      attackIndex: _selectedAttackIndex,
+                      card: _selectedCard!,
+                    ),
+                  ),
                 ));
               }
               if (canTransfer && hasSelected) {
                 overflowActions.add((
                   label: l10n.conversation_durak_action_transfer,
-                  onTap: () => unawaited(() async {
-                    _flySelectedTo(_nextAttackSlotKey, trumpSuit: trumpSuit);
-                    await _sendMove(
-                      actionType: 'transfer',
-                      payload: <String, dynamic>{
-                        'card': _cardPayload(_selectedCard!),
-                      },
-                    );
-                  }()),
+                  onTap: () => unawaited(_tryTransfer(_selectedCard!)),
                 ));
               }
               if (canFoul) {
@@ -801,6 +852,19 @@ class _ConversationDurakGameScreenState
                               .toString(),
                         ) ??
                         -1;
+              _publicRevision = rev;
+              if (_pendingMove != null && rev > _pendingMove!.baseRevision) {
+                scheduleMicrotask(() {
+                  if (!mounted) return;
+                  setState(() => _pendingMove = null);
+                });
+              }
+              final optimisticTable = _optimisticTable(
+                attacks: attacks,
+                defenses: defenses,
+              );
+              final tableAttacks = optimisticTable.attacks;
+              final tableDefenses = optimisticTable.defenses;
 
               // AAA-ish FX: detect table clear and fly cards to discard/hand.
               scheduleMicrotask(() {
@@ -1027,30 +1091,33 @@ class _ConversationDurakGameScreenState
                               if (suitCmp != 0) return suitCmp;
                               return _rankValue(a).compareTo(_rankValue(b));
                             });
+                            final visibleMaps = _hidePendingCardFromHand(maps);
 
                             return Align(
                               alignment: Alignment.bottomCenter,
                               child: DurakHandFan(
-                                cards: maps,
+                                cards: visibleMaps,
                                 cardId: _cardId,
                                 keyForCardId: _handKeyFor,
                                 rankLabel: _rankLabel,
                                 suitLabel: _suitLabel,
                                 isRedSuit: _isRedSuit,
                                 enabled: (card) =>
-                                    serverCanAttack(card) ||
-                                    serverCanDefend(
-                                      card,
-                                      _selectedAttackIndex,
-                                    ) ||
-                                    serverCanTransfer(card),
+                                    _pendingMove == null &&
+                                    (serverCanAttack(card) ||
+                                        serverCanDefend(
+                                          card,
+                                          _selectedAttackIndex,
+                                        ) ||
+                                        serverCanTransfer(card)),
                                 highlight: (card) =>
-                                    serverCanAttack(card) ||
-                                    serverCanDefend(
-                                      card,
-                                      _selectedAttackIndex,
-                                    ) ||
-                                    serverCanTransfer(card),
+                                    _pendingMove == null &&
+                                    (serverCanAttack(card) ||
+                                        serverCanDefend(
+                                          card,
+                                          _selectedAttackIndex,
+                                        ) ||
+                                        serverCanTransfer(card)),
                                 selectedId: _selectedCardId,
                                 onTap: (card, id) {
                                   final canA = serverCanAttack(card);
@@ -1059,6 +1126,7 @@ class _ConversationDurakGameScreenState
                                   );
                                   final canD = defenseIndex != null;
                                   final canT = serverCanTransfer(card);
+                                  if (_pendingMove != null) return;
                                   if (!canA && !canD && !canT) return;
                                   final options = <String>[
                                     if (canA) 'attack',
@@ -1207,54 +1275,22 @@ class _ConversationDurakGameScreenState
                             ),
                             pairKeyForFlight: _pairKeyForFlight,
                             nextAttackSlotKey: _nextAttackSlotKey,
-                            attacks: attacks,
-                            defenses: defenses,
+                            attacks: tableAttacks,
+                            defenses: tableDefenses,
                             selectedAttackIndex: _selectedAttackIndex,
                             onSelectAttackIndex: (i) =>
                                 setState(() => _selectedAttackIndex = i),
                             canAcceptDefense: (card, idx) =>
+                                _pendingMove == null &&
                                 cardCanDefendAt(card, idx),
-                            canAcceptAttack: cardCanAttack,
-                            onAttackDropped: (card) {
-                              final flight = DurakCardFlightLayer.of(context);
-                              if (flight != null) {
-                                flight.flyCard(
-                                  from: _handKey,
-                                  to: _nextAttackSlotKey,
-                                  rankLabel: _rankLabel(card),
-                                  suitLabel: _suitLabel(card),
-                                  isRed: _isRedSuit(_suitOf(card)),
-                                );
-                              }
-                              return _tryAttack(card);
-                            },
-                            canAcceptTransfer: cardCanTransfer,
-                            onTransferDropped: (card) {
-                              final flight = DurakCardFlightLayer.of(context);
-                              if (flight != null) {
-                                flight.flyCard(
-                                  from: _handKey,
-                                  to: _nextAttackSlotKey,
-                                  rankLabel: _rankLabel(card),
-                                  suitLabel: _suitLabel(card),
-                                  isRed: _isRedSuit(_suitOf(card)),
-                                );
-                              }
-                              return _tryTransfer(card);
-                            },
-                            onDefenseDropped: (idx, card) {
-                              final flight = DurakCardFlightLayer.of(context);
-                              if (flight != null) {
-                                flight.flyCard(
-                                  from: _handKey,
-                                  to: _pairKeyForFlight(idx, defense: true),
-                                  rankLabel: _rankLabel(card),
-                                  suitLabel: _suitLabel(card),
-                                  isRed: _isRedSuit(_suitOf(card)),
-                                );
-                              }
-                              return _tryDefend(attackIndex: idx, card: card);
-                            },
+                            canAcceptAttack: (card) =>
+                                _pendingMove == null && cardCanAttack(card),
+                            onAttackDropped: _tryAttack,
+                            canAcceptTransfer: (card) =>
+                                _pendingMove == null && cardCanTransfer(card),
+                            onTransferDropped: _tryTransfer,
+                            onDefenseDropped: (idx, card) =>
+                                _tryDefend(attackIndex: idx, card: card),
                             rankLabel: _rankLabel,
                             suitLabel: _suitLabel,
                             isRedSuit: _isRedSuit,

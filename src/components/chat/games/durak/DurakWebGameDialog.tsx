@@ -30,6 +30,14 @@ type DragState = {
   y: number;
 };
 
+type PendingMove = {
+  clientMoveId: string;
+  actionType: 'attack' | 'transfer' | 'defend';
+  card: DurakCard;
+  attackIndex?: number;
+  baseRevision: number;
+};
+
 const suitSymbol: Record<string, string> = {
   S: '♠',
   H: '♥',
@@ -93,6 +101,7 @@ export function DurakWebGameDialog({
   const [selectedAttackIndex, setSelectedAttackIndex] = useState(0);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const moveInFlightRef = useRef(false);
 
@@ -116,16 +125,18 @@ export function DurakWebGameDialog({
 
   const call = useCallback(
     async (name: string, data: Record<string, unknown>) => {
-      if (!firestore) return;
-      if (name === 'makeDurakMove' && moveInFlightRef.current) return;
+      if (!firestore) return false;
+      if (name === 'makeDurakMove' && moveInFlightRef.current) return false;
       if (name === 'makeDurakMove') moveInFlightRef.current = true;
       setBusy(name);
       try {
         const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), name);
         await fn(data);
+        return true;
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        return false;
       } finally {
         if (name === 'makeDurakMove') moveInFlightRef.current = false;
         setBusy(null);
@@ -155,24 +166,78 @@ export function DurakWebGameDialog({
       setBusy(null);
     }
   }, [firestore, gameId, onOpenChange, toast]);
-  const makeMove = useCallback(
-    (actionType: string, payload?: Record<string, unknown>) =>
-      call('makeDurakMove', {
-        gameId,
-        clientMoveId: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-        actionType,
-        payload: payload ?? null,
-      }),
-    [call, gameId]
-  );
-
   const publicView = game?.publicView ?? null;
   const status = game?.status ?? '';
   const isOwner = game?.createdBy === currentUser.id;
   const attacks = publicView?.table?.attacks ?? [];
   const defenses = publicView?.table?.defenses ?? [];
+  const publicRevision = Number(publicView?.revision ?? -1);
+
+  const makeMove = useCallback(
+    async (
+      actionType: string,
+      payload?: Record<string, unknown>,
+      optimistic?: Omit<PendingMove, 'clientMoveId' | 'baseRevision' | 'actionType'> & {
+        actionType: PendingMove['actionType'];
+      }
+    ) => {
+      const clientMoveId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      if (optimistic) {
+        setPendingMove({
+          clientMoveId,
+          actionType: optimistic.actionType,
+          card: optimistic.card,
+          attackIndex: optimistic.attackIndex,
+          baseRevision: publicRevision,
+        });
+        setSelectedCardIdx(null);
+      }
+      const ok = await call('makeDurakMove', {
+        gameId,
+        clientMoveId,
+        actionType,
+        payload: payload ?? null,
+      });
+      if (!ok && optimistic) setPendingMove(null);
+    },
+    [call, gameId, publicRevision]
+  );
+
+  useEffect(() => {
+    if (pendingMove && publicRevision > pendingMove.baseRevision) {
+      setPendingMove(null);
+    }
+  }, [pendingMove, publicRevision]);
   const trumpSuit = String(publicView?.trumpSuit ?? '');
   const myCards = hand?.cards ?? [];
+  const visibleMyCards = useMemo(() => {
+    if (!pendingMove) return myCards;
+    let removed = false;
+    return myCards.filter((card) => {
+      if (!removed && cardKey(card) === cardKey(pendingMove.card)) {
+        removed = true;
+        return false;
+      }
+      return true;
+    });
+  }, [myCards, pendingMove]);
+  const optimisticTable = useMemo(() => {
+    if (!pendingMove) return { attacks, defenses };
+    const nextAttacks = [...attacks];
+    const nextDefenses = [...defenses];
+    if (pendingMove.actionType === 'attack' || pendingMove.actionType === 'transfer') {
+      nextAttacks.push(pendingMove.card);
+      nextDefenses.push(null);
+    }
+    if (pendingMove.actionType === 'defend' && pendingMove.attackIndex != null) {
+      const idx = pendingMove.attackIndex;
+      if (idx >= 0 && idx < nextAttacks.length) {
+        while (nextDefenses.length <= idx) nextDefenses.push(null);
+        nextDefenses[idx] = pendingMove.card;
+      }
+    }
+    return { attacks: nextAttacks, defenses: nextDefenses };
+  }, [attacks, defenses, pendingMove]);
   const legalMoves = hand?.legalMoves ?? null;
   const legalAttackKeys = useMemo(() => new Set(legalMoves?.attackCardKeys ?? []), [legalMoves]);
   const legalTransferKeys = useMemo(() => new Set(legalMoves?.transferCardKeys ?? []), [legalMoves]);
@@ -183,7 +248,7 @@ export function DurakWebGameDialog({
     }
     return map;
   }, [legalMoves]);
-  const selectedCard = selectedCardIdx == null ? null : myCards[selectedCardIdx] ?? null;
+  const selectedCard = selectedCardIdx == null ? null : visibleMyCards[selectedCardIdx] ?? null;
   const seats = publicView?.seats?.length ? publicView.seats : gamePlayerIds;
   const attackerUid = publicView?.attackerUid ?? '';
   const defenderUid = publicView?.defenderUid ?? '';
@@ -210,9 +275,12 @@ export function DurakWebGameDialog({
   }
 
   const defenseSlotOpen = (idx: number) => idx >= 0 && idx < attacks.length && !defenses[idx];
+  const renderDefenseSlotOpen = (idx: number) =>
+    idx >= 0 && idx < optimisticTable.attacks.length && !optimisticTable.defenses[idx];
 
   const canAttackCard = useCallback(
     (card: DurakCard) => {
+      if (pendingMove) return false;
       if (legalMoves) return legalAttackKeys.has(cardKey(card));
       if (status !== 'active') return false;
       if (currentUser.id === defenderUid) return false;
@@ -231,21 +299,23 @@ export function DurakWebGameDialog({
         (isJoker(card) || tableRanks.has(rankKey(card)))
       );
     },
-    [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, handCounts, legalAttackKeys, legalMoves, publicView, status, tableRanks]
+    [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, handCounts, legalAttackKeys, legalMoves, pendingMove, publicView, status, tableRanks]
   );
 
   const canDefendCardAt = useCallback(
     (card: DurakCard, idx: number) => {
+      if (pendingMove) return false;
       if (legalMoves) return legalDefenseTargets.get(idx)?.has(cardKey(card)) ?? false;
       if (status !== 'active' || currentUser.id !== defenderUid || !trumpSuit || !defenseSlotOpen(idx)) return false;
       const attack = attacks[idx];
       return Boolean(attack && beats({ attack, defense: card, trumpSuit }));
     },
-    [attacks, currentUser.id, defenderUid, legalDefenseTargets, legalMoves, status, trumpSuit]
+    [attacks, currentUser.id, defenderUid, legalDefenseTargets, legalMoves, pendingMove, status, trumpSuit]
   );
 
   const canTransferCard = useCallback(
     (card: DurakCard) => {
+      if (pendingMove) return false;
       if (legalMoves) return legalTransferKeys.has(cardKey(card));
       if (status !== 'active' || currentUser.id !== defenderUid || game?.publicView == null) return false;
       const mode = (game as any)?.settings?.mode ?? 'podkidnoy';
@@ -255,7 +325,7 @@ export function DurakWebGameDialog({
       if (attacks.length >= 6 || attacks.length >= roundLimit) return false;
       return isJoker(card) || tableRanks.has(rankKey(card));
     },
-    [attacks.length, currentUser.id, defenderUid, defenses, game, handCounts, legalMoves, legalTransferKeys, publicView, status, tableRanks]
+    [attacks.length, currentUser.id, defenderUid, defenses, game, handCounts, legalMoves, legalTransferKeys, pendingMove, publicView, status, tableRanks]
   );
 
   const firstDefenseIndexForCard = useCallback(
@@ -281,9 +351,15 @@ export function DurakWebGameDialog({
       ].filter(Boolean);
       if (actions.length === 1) {
         const action = actions[0];
-        if (action === 'attack') void makeMove('attack', { card });
-        if (action === 'transfer') void makeMove('transfer', { card });
-        if (action === 'defend' && defenseIndex != null) void makeMove('defend', { attackIndex: defenseIndex, card });
+        if (action === 'attack') void makeMove('attack', { card }, { actionType: 'attack', card });
+        if (action === 'transfer') void makeMove('transfer', { card }, { actionType: 'transfer', card });
+        if (action === 'defend' && defenseIndex != null) {
+          void makeMove(
+            'defend',
+            { attackIndex: defenseIndex, card },
+            { actionType: 'defend', card, attackIndex: defenseIndex }
+          );
+        }
         return;
       }
       setSelectedCardIdx((old) => (old === idx ? null : idx));
@@ -300,17 +376,21 @@ export function DurakWebGameDialog({
       }
       const kind = target.dataset.durakDrop;
       if (kind === 'attack' && canAttackCard(d.card)) {
-        await makeMove('attack', { card: d.card });
+        await makeMove('attack', { card: d.card }, { actionType: 'attack', card: d.card });
         return;
       }
       if (kind === 'transfer' && canTransferCard(d.card)) {
-        await makeMove('transfer', { card: d.card });
+        await makeMove('transfer', { card: d.card }, { actionType: 'transfer', card: d.card });
         return;
       }
       if (kind === 'defense') {
         const idx = Number(target.dataset.attackIndex ?? -1);
         if (Number.isFinite(idx) && canDefendCardAt(d.card, idx)) {
-          await makeMove('defend', { attackIndex: idx, card: d.card });
+          await makeMove(
+            'defend',
+            { attackIndex: idx, card: d.card },
+            { actionType: 'defend', card: d.card, attackIndex: idx }
+          );
           return;
         }
       }
@@ -517,7 +597,7 @@ export function DurakWebGameDialog({
             </div>
 
             <div className="absolute inset-x-4 top-[20%] flex flex-wrap items-center justify-center gap-8">
-              {attacks.map((attack, idx) => (
+              {optimisticTable.attacks.map((attack, idx) => (
                 <div
                   key={`${cardLabel(attack)}-${idx}`}
                   className={cn(
@@ -534,11 +614,11 @@ export function DurakWebGameDialog({
                     data-attack-index={idx}
                     className={cn(
                       'absolute left-8 top-7 h-[104px] w-[74px] rounded-xl border-2 border-dashed border-white/45',
-                      defenseSlotOpen(idx) && 'bg-white/10'
+                      renderDefenseSlotOpen(idx) && 'bg-white/10'
                     )}
                   >
-                    {defenses[idx] ? (
-                      <DurakCardView card={defenses[idx] as DurakCard} className="rotate-6" />
+                    {optimisticTable.defenses[idx] ? (
+                      <DurakCardView card={optimisticTable.defenses[idx] as DurakCard} className="rotate-6" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs font-black text-white/55">
                         <Shield className="h-5 w-5" />
@@ -603,13 +683,13 @@ export function DurakWebGameDialog({
             </div>
             <div className="relative h-[118px] overflow-visible">
               <div className="absolute left-1/2 top-2 flex -translate-x-1/2 items-end justify-center">
-                {myCards.map((card, idx) => {
+                {visibleMyCards.map((card, idx) => {
                   const enabled = enabledCard(card);
                   const selected = idx === selectedCardIdx;
-                  const offset = idx - (myCards.length - 1) / 2;
-                  const cardWidth = Math.max(50, Math.min(74, 960 / Math.max(8, myCards.length + 5)));
+                  const offset = idx - (visibleMyCards.length - 1) / 2;
+                  const cardWidth = Math.max(50, Math.min(74, 960 / Math.max(8, visibleMyCards.length + 5)));
                   const cardHeight = cardWidth * (104 / 74);
-                  const margin = myCards.length > 10 ? -Math.max(20, cardWidth * 0.42) : -12;
+                  const margin = visibleMyCards.length > 10 ? -Math.max(20, cardWidth * 0.42) : -12;
                   return (
                     <button
                       key={`${cardLabel(card)}-${idx}`}
