@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum LocalStorageCategory {
@@ -12,67 +14,119 @@ enum LocalStorageCategory {
   videoThumbs,
 }
 
+/// Categories the user can toggle on/off (heavy files).
+const kUserToggleableCategories = <LocalStorageCategory>[
+  LocalStorageCategory.e2eeMedia,
+  LocalStorageCategory.videoDownloads,
+];
+
+/// Categories always kept locally (lightweight data, no user toggle).
+const kAlwaysOnCategories = <LocalStorageCategory>[
+  LocalStorageCategory.e2eeText,
+  LocalStorageCategory.chatDrafts,
+  LocalStorageCategory.chatListSnapshot,
+  LocalStorageCategory.profileCards,
+  LocalStorageCategory.videoThumbs,
+];
+
+enum AutoDeletePeriod { never, threeDays, oneWeek, oneMonth, threeMonths }
+
+extension AutoDeletePeriodDuration on AutoDeletePeriod {
+  Duration? toDuration() => switch (this) {
+    AutoDeletePeriod.never => null,
+    AutoDeletePeriod.threeDays => const Duration(days: 3),
+    AutoDeletePeriod.oneWeek => const Duration(days: 7),
+    AutoDeletePeriod.oneMonth => const Duration(days: 30),
+    AutoDeletePeriod.threeMonths => const Duration(days: 90),
+  };
+
+  String toJsonValue() => switch (this) {
+    AutoDeletePeriod.never => 'never',
+    AutoDeletePeriod.threeDays => '3d',
+    AutoDeletePeriod.oneWeek => '1w',
+    AutoDeletePeriod.oneMonth => '1m',
+    AutoDeletePeriod.threeMonths => '3m',
+  };
+
+  static AutoDeletePeriod fromJsonValue(String? value) => switch (value) {
+    '3d' => AutoDeletePeriod.threeDays,
+    '1w' => AutoDeletePeriod.oneWeek,
+    '1m' => AutoDeletePeriod.oneMonth,
+    '3m' => AutoDeletePeriod.threeMonths,
+    _ => AutoDeletePeriod.never,
+  };
+}
+
 class LocalStoragePreferences {
   const LocalStoragePreferences({
     required this.e2eeMediaEnabled,
-    required this.e2eeTextEnabled,
-    required this.chatDraftsEnabled,
-    required this.chatListSnapshotEnabled,
-    required this.profileCardsEnabled,
     required this.videoDownloadsEnabled,
-    required this.videoThumbsEnabled,
-    required this.cacheBudgetMb,
+    required this.cacheBudgetGb,
+    required this.autoDeletePersonal,
+    required this.autoDeleteGroups,
   });
 
   final bool e2eeMediaEnabled;
-  final bool e2eeTextEnabled;
-  final bool chatDraftsEnabled;
-  final bool chatListSnapshotEnabled;
-  final bool profileCardsEnabled;
   final bool videoDownloadsEnabled;
-  final bool videoThumbsEnabled;
-  final int cacheBudgetMb;
+  final int cacheBudgetGb;
+  final AutoDeletePeriod autoDeletePersonal;
+  final AutoDeletePeriod autoDeleteGroups;
 
-  static const int minCacheBudgetMb = 128;
-  static const int maxCacheBudgetMb = 8192;
+  static const int minCacheBudgetGb = 1;
+  static const int defaultMaxCacheBudgetGb = 128;
+
+  static int _detectedMaxGb = defaultMaxCacheBudgetGb;
+  static bool _maxDetected = false;
+
+  static int get maxCacheBudgetGb => _detectedMaxGb;
+
+  static Future<void> detectDeviceStorage() async {
+    if (_maxDetected) return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final result = await Process.run('df', ['-k', dir.path]);
+      if (result.exitCode == 0) {
+        final lines = (result.stdout as String).split('\n');
+        if (lines.length >= 2) {
+          final parts = lines[1].trim().split(RegExp(r'\s+'));
+          if (parts.length >= 2) {
+            final totalKb = int.tryParse(parts[1]);
+            if (totalKb != null && totalKb > 0) {
+              _detectedMaxGb = (totalKb / (1024 * 1024)).ceil().clamp(1, 2048);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    _maxDetected = true;
+  }
 
   factory LocalStoragePreferences.defaults() {
     return const LocalStoragePreferences(
       e2eeMediaEnabled: true,
-      e2eeTextEnabled: true,
-      chatDraftsEnabled: true,
-      chatListSnapshotEnabled: true,
-      profileCardsEnabled: true,
       videoDownloadsEnabled: true,
-      videoThumbsEnabled: true,
-      cacheBudgetMb: 1024,
+      cacheBudgetGb: 8,
+      autoDeletePersonal: AutoDeletePeriod.never,
+      autoDeleteGroups: AutoDeletePeriod.oneMonth,
     );
   }
 
   LocalStoragePreferences copyWith({
     bool? e2eeMediaEnabled,
-    bool? e2eeTextEnabled,
-    bool? chatDraftsEnabled,
-    bool? chatListSnapshotEnabled,
-    bool? profileCardsEnabled,
     bool? videoDownloadsEnabled,
-    bool? videoThumbsEnabled,
-    int? cacheBudgetMb,
+    int? cacheBudgetGb,
+    AutoDeletePeriod? autoDeletePersonal,
+    AutoDeletePeriod? autoDeleteGroups,
   }) {
     return LocalStoragePreferences(
       e2eeMediaEnabled: e2eeMediaEnabled ?? this.e2eeMediaEnabled,
-      e2eeTextEnabled: e2eeTextEnabled ?? this.e2eeTextEnabled,
-      chatDraftsEnabled: chatDraftsEnabled ?? this.chatDraftsEnabled,
-      chatListSnapshotEnabled:
-          chatListSnapshotEnabled ?? this.chatListSnapshotEnabled,
-      profileCardsEnabled: profileCardsEnabled ?? this.profileCardsEnabled,
-      videoDownloadsEnabled:
-          videoDownloadsEnabled ?? this.videoDownloadsEnabled,
-      videoThumbsEnabled: videoThumbsEnabled ?? this.videoThumbsEnabled,
-      cacheBudgetMb: (cacheBudgetMb ?? this.cacheBudgetMb).clamp(
-        minCacheBudgetMb,
-        maxCacheBudgetMb,
+      videoDownloadsEnabled: videoDownloadsEnabled ?? this.videoDownloadsEnabled,
+      cacheBudgetGb: (cacheBudgetGb ?? this.cacheBudgetGb).clamp(
+        minCacheBudgetGb,
+        maxCacheBudgetGb,
       ),
+      autoDeletePersonal: autoDeletePersonal ?? this.autoDeletePersonal,
+      autoDeleteGroups: autoDeleteGroups ?? this.autoDeleteGroups,
     );
   }
 
@@ -80,65 +134,51 @@ class LocalStoragePreferences {
     switch (category) {
       case LocalStorageCategory.e2eeMedia:
         return e2eeMediaEnabled;
-      case LocalStorageCategory.e2eeText:
-        return e2eeTextEnabled;
-      case LocalStorageCategory.chatDrafts:
-        return chatDraftsEnabled;
-      case LocalStorageCategory.chatListSnapshot:
-        return chatListSnapshotEnabled;
-      case LocalStorageCategory.profileCards:
-        return profileCardsEnabled;
       case LocalStorageCategory.videoDownloads:
         return videoDownloadsEnabled;
+      case LocalStorageCategory.e2eeText:
+      case LocalStorageCategory.chatDrafts:
+      case LocalStorageCategory.chatListSnapshot:
+      case LocalStorageCategory.profileCards:
       case LocalStorageCategory.videoThumbs:
-        return videoThumbsEnabled;
+        return true;
     }
   }
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'e2eeMediaEnabled': e2eeMediaEnabled,
-      'e2eeTextEnabled': e2eeTextEnabled,
-      'chatDraftsEnabled': chatDraftsEnabled,
-      'chatListSnapshotEnabled': chatListSnapshotEnabled,
-      'profileCardsEnabled': profileCardsEnabled,
       'videoDownloadsEnabled': videoDownloadsEnabled,
-      'videoThumbsEnabled': videoThumbsEnabled,
-      'cacheBudgetMb': cacheBudgetMb,
+      'cacheBudgetGb': cacheBudgetGb,
+      'autoDeletePersonal': autoDeletePersonal.toJsonValue(),
+      'autoDeleteGroups': autoDeleteGroups.toJsonValue(),
     };
   }
 
   factory LocalStoragePreferences.fromJson(Map<String, Object?> raw) {
     final defaults = LocalStoragePreferences.defaults();
-    final budgetRaw = raw['cacheBudgetMb'];
-    final budget = budgetRaw is int
-        ? budgetRaw
-        : budgetRaw is num
-        ? budgetRaw.toInt()
-        : defaults.cacheBudgetMb;
+
+    int budget = defaults.cacheBudgetGb;
+    if (raw['cacheBudgetGb'] is num) {
+      budget = (raw['cacheBudgetGb'] as num).toInt();
+    } else if (raw['cacheBudgetMb'] is num) {
+      budget = ((raw['cacheBudgetMb'] as num) / 1024).ceil().clamp(1, 2048);
+    }
+
     return LocalStoragePreferences(
       e2eeMediaEnabled: raw['e2eeMediaEnabled'] is bool
           ? raw['e2eeMediaEnabled'] as bool
           : defaults.e2eeMediaEnabled,
-      e2eeTextEnabled: raw['e2eeTextEnabled'] is bool
-          ? raw['e2eeTextEnabled'] as bool
-          : defaults.e2eeTextEnabled,
-      chatDraftsEnabled: raw['chatDraftsEnabled'] is bool
-          ? raw['chatDraftsEnabled'] as bool
-          : defaults.chatDraftsEnabled,
-      chatListSnapshotEnabled: raw['chatListSnapshotEnabled'] is bool
-          ? raw['chatListSnapshotEnabled'] as bool
-          : defaults.chatListSnapshotEnabled,
-      profileCardsEnabled: raw['profileCardsEnabled'] is bool
-          ? raw['profileCardsEnabled'] as bool
-          : defaults.profileCardsEnabled,
       videoDownloadsEnabled: raw['videoDownloadsEnabled'] is bool
           ? raw['videoDownloadsEnabled'] as bool
           : defaults.videoDownloadsEnabled,
-      videoThumbsEnabled: raw['videoThumbsEnabled'] is bool
-          ? raw['videoThumbsEnabled'] as bool
-          : defaults.videoThumbsEnabled,
-      cacheBudgetMb: budget.clamp(minCacheBudgetMb, maxCacheBudgetMb),
+      cacheBudgetGb: budget.clamp(minCacheBudgetGb, maxCacheBudgetGb),
+      autoDeletePersonal: AutoDeletePeriodDuration.fromJsonValue(
+        raw['autoDeletePersonal'] as String?,
+      ),
+      autoDeleteGroups: AutoDeletePeriodDuration.fromJsonValue(
+        raw['autoDeleteGroups'] as String?,
+      ),
     );
   }
 }
@@ -155,6 +195,7 @@ class LocalStoragePreferencesStore {
 
   static Future<LocalStoragePreferences> load() async {
     if (_loaded) return _cached;
+    await LocalStoragePreferences.detectDeviceStorage();
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_prefsKey);
     if (raw == null || raw.trim().isEmpty) {

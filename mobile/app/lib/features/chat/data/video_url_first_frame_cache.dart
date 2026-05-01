@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'local_cache_entry_registry.dart';
-import 'local_storage_preferences.dart';
 
 /// Кэш первого кадра сетевого видео (jpg) для превью в ленте и сетке «Медиа».
 class VideoUrlFirstFrameCache {
@@ -41,10 +40,6 @@ class VideoUrlFirstFrameCache {
     String? attachmentName,
   }) {
     return () async {
-      final prefs = await LocalStoragePreferencesStore.load();
-      if (!prefs.videoThumbsEnabled) {
-        return null;
-      }
       final trimmed = videoUrl.trim();
       if (trimmed.isEmpty) {
         return null;

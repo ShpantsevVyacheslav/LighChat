@@ -14,6 +14,76 @@ import '../../chat/data/user_profiles_disk_cache.dart';
 
 enum LocalStorageEntrySource { file, draftItem, chatListSnapshot, profileCard }
 
+enum StorageMediaType { video, photo, file, other }
+
+const _kVideoExtensions = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'};
+const _kPhotoExtensions = {
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.bmp',
+};
+
+StorageMediaType classifyEntryMediaType(LocalStorageEntry entry) {
+  switch (entry.category) {
+    case LocalStorageCategory.videoDownloads:
+      return StorageMediaType.video;
+    case LocalStorageCategory.e2eeMedia:
+      final ext = _fileExtension(entry.filePath ?? entry.label);
+      if (_kVideoExtensions.contains(ext)) return StorageMediaType.video;
+      if (_kPhotoExtensions.contains(ext)) return StorageMediaType.photo;
+      return StorageMediaType.file;
+    case LocalStorageCategory.videoThumbs:
+    case LocalStorageCategory.e2eeText:
+    case LocalStorageCategory.chatDrafts:
+    case LocalStorageCategory.chatListSnapshot:
+    case LocalStorageCategory.profileCards:
+      return StorageMediaType.other;
+  }
+}
+
+String _fileExtension(String path) {
+  final dot = path.lastIndexOf('.');
+  if (dot < 0 || dot == path.length - 1) return '';
+  return path.substring(dot).toLowerCase();
+}
+
+class StorageMediaTypeBreakdown {
+  const StorageMediaTypeBreakdown({
+    required this.videoBytes,
+    required this.photoBytes,
+    required this.fileBytes,
+    required this.otherBytes,
+    required this.totalBytes,
+  });
+
+  final int videoBytes;
+  final int photoBytes;
+  final int fileBytes;
+  final int otherBytes;
+  final int totalBytes;
+
+  factory StorageMediaTypeBreakdown.fromEntries(List<LocalStorageEntry> entries) {
+    int video = 0, photo = 0, file = 0, other = 0;
+    for (final e in entries) {
+      switch (classifyEntryMediaType(e)) {
+        case StorageMediaType.video:
+          video += e.bytes;
+        case StorageMediaType.photo:
+          photo += e.bytes;
+        case StorageMediaType.file:
+          file += e.bytes;
+        case StorageMediaType.other:
+          other += e.bytes;
+      }
+    }
+    return StorageMediaTypeBreakdown(
+      videoBytes: video,
+      photoBytes: photo,
+      fileBytes: file,
+      otherBytes: other,
+      totalBytes: video + photo + file + other,
+    );
+  }
+}
+
 class LocalStorageEntry {
   const LocalStorageEntry({
     required this.id,
@@ -46,12 +116,14 @@ class LocalStorageConversationUsage {
     required this.conversationTitle,
     required this.totalBytes,
     required this.entries,
+    required this.mediaTypeBreakdown,
   });
 
   final String conversationId;
   final String conversationTitle;
   final int totalBytes;
   final List<LocalStorageEntry> entries;
+  final StorageMediaTypeBreakdown mediaTypeBreakdown;
 }
 
 class LocalStorageSnapshot {
@@ -61,6 +133,7 @@ class LocalStorageSnapshot {
     required this.conversationUsages,
     required this.generalEntries,
     required this.allEntries,
+    required this.mediaTypeBreakdown,
   });
 
   final int totalBytes;
@@ -68,6 +141,7 @@ class LocalStorageSnapshot {
   final List<LocalStorageConversationUsage> conversationUsages;
   final List<LocalStorageEntry> generalEntries;
   final List<LocalStorageEntry> allEntries;
+  final StorageMediaTypeBreakdown mediaTypeBreakdown;
 }
 
 class StorageCacheManager {
@@ -116,15 +190,13 @@ class StorageCacheManager {
     for (final entry in entries) {
       final cid = entry.conversationId?.trim();
       if (cid == null || cid.isEmpty) {
+        if (kAlwaysOnCategories.contains(entry.category)) continue;
         generalEntries.add(entry);
       } else {
         conversationEntries
             .putIfAbsent(cid, () => <LocalStorageEntry>[])
             .add(entry);
       }
-    }
-    for (final c in conversations) {
-      conversationEntries.putIfAbsent(c.id, () => <LocalStorageEntry>[]);
     }
 
     final conversationUsages =
@@ -145,8 +217,11 @@ class StorageCacheManager {
                     _fallbackConversationTitle(e.key),
                 totalBytes: total,
                 entries: sorted,
+                mediaTypeBreakdown:
+                    StorageMediaTypeBreakdown.fromEntries(sorted),
               );
             })
+            .where((u) => u.totalBytes > 0)
             .toList(growable: false)
           ..sort((a, b) {
             if (a.totalBytes != b.totalBytes) {
@@ -165,6 +240,7 @@ class StorageCacheManager {
       conversationUsages: conversationUsages,
       generalEntries: generalEntries,
       allEntries: entries,
+      mediaTypeBreakdown: StorageMediaTypeBreakdown.fromEntries(entries),
     );
   }
 
@@ -315,6 +391,39 @@ class StorageCacheManager {
       await clearEntry(entry);
       current -= entry.bytes;
       freed += entry.bytes;
+    }
+    return freed;
+  }
+
+  Future<int> applyAutoDelete({
+    required String userId,
+    required List<ConversationWithId> conversations,
+    required LocalStoragePreferences preferences,
+  }) async {
+    final now = DateTime.now();
+    final snapshot = await inspect(
+      userId: userId,
+      conversations: conversations,
+    );
+    var freed = 0;
+    for (final usage in snapshot.conversationUsages) {
+      final conv = conversations
+          .where((c) => c.id == usage.conversationId)
+          .firstOrNull;
+      if (conv == null) continue;
+      final period = conv.data.isGroup
+          ? preferences.autoDeleteGroups
+          : preferences.autoDeletePersonal;
+      final maxAge = period.toDuration();
+      if (maxAge == null) continue;
+
+      final cutoff = now.subtract(maxAge);
+      for (final entry in usage.entries) {
+        final modified = entry.modifiedAt;
+        if (modified == null || modified.isAfter(cutoff)) continue;
+        await clearEntry(entry);
+        freed += entry.bytes;
+      }
     }
     return freed;
   }

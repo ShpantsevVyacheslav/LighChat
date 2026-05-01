@@ -173,12 +173,13 @@
   "storage_settings_title": "Storage",
   "storage_settings_subtitle": "Control what data is cached on this device and clean up by chats or files.",
   "storage_settings_total_label": "Used on this device",
-  "storage_settings_budget_label": "Target cache budget: {mb} MB",
+  "storage_settings_budget_label": "Cache limit: {gb} GB",
   "@storage_settings_budget_label": {
     "placeholders": {
-      "mb": {}
+      "gb": {}
     }
   },
+  "storage_unit_gb": "GB",
   "storage_settings_clear_all_button": "Clear all cache",
   "storage_settings_trim_button": "Trim to budget",
   "storage_settings_policy_title": "What to keep locally",
@@ -231,6 +232,50 @@
   "storage_category_video_downloads_subtitle": "Locally downloaded videos from gallery views.",
   "storage_category_video_thumbs": "Video preview frames",
   "storage_category_video_thumbs_subtitle": "Generated first-frame thumbnails for videos.",
+  "storage_media_type_video": "Video",
+  "storage_media_type_photo": "Photos",
+  "storage_media_type_files": "Files",
+  "storage_media_type_other": "Other",
+  "storage_settings_device_usage": "Uses {pct}% of cache budget",
+  "@storage_settings_device_usage": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_settings_clear_all_hint": "All media will stay in cloud. You can re-download any time.",
+  "storage_auto_delete_title": "Auto-delete cached media",
+  "storage_auto_delete_personal": "Personal chats",
+  "storage_auto_delete_groups": "Groups",
+  "storage_auto_delete_never": "Never",
+  "storage_auto_delete_3_days": "3 days",
+  "storage_auto_delete_1_week": "1 week",
+  "storage_auto_delete_1_month": "1 month",
+  "storage_auto_delete_3_months": "3 months",
+  "storage_auto_delete_hint": "Photos, videos and files you haven't opened during this period will be removed from the device to save space.",
+  "storage_chat_detail_share": "This chat uses {pct}% of your cache",
+  "@storage_chat_detail_share": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_chat_detail_media_tab": "Media",
+  "storage_chat_detail_select_all": "Select all",
+  "storage_chat_detail_deselect_all": "Deselect all",
+  "storage_chat_detail_clear_button": "Clear cache {size}",
+  "@storage_chat_detail_clear_button": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_chat_detail_clear_button_empty": "Select files to delete",
+  "storage_chat_detail_delete_title": "Delete selected files?",
+  "storage_chat_detail_delete_body": "{count} files ({size}) will be removed from the device. Cloud copies stay intact.",
+  "@storage_chat_detail_delete_body": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
   "profile_delete_account": "Delete account",
   "profile_delete_account_confirm_title": "Delete your account permanently?",
   "profile_delete_account_confirm_body": "Your account will be removed from Firebase Auth and all your Firestore documents will be deleted permanently. Your chats will remain visible to others in read-only mode.",

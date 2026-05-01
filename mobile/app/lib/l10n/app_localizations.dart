@@ -719,8 +719,14 @@ abstract class AppLocalizations {
   /// No description provided for @storage_settings_budget_label.
   ///
   /// In ru, this message translates to:
-  /// **'Целевой лимит кэша: {mb} МБ'**
-  String storage_settings_budget_label(Object mb);
+  /// **'Лимит кэша: {gb} ГБ'**
+  String storage_settings_budget_label(Object gb);
+
+  /// No description provided for @storage_unit_gb.
+  ///
+  /// In ru, this message translates to:
+  /// **'ГБ'**
+  String get storage_unit_gb;
 
   /// No description provided for @storage_settings_clear_all_button.
   ///
@@ -937,6 +943,144 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сгенерированные первые кадры для видео.'**
   String get storage_category_video_thumbs_subtitle;
+
+  /// No description provided for @storage_media_type_video.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео'**
+  String get storage_media_type_video;
+
+  /// No description provided for @storage_media_type_photo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фотографии'**
+  String get storage_media_type_photo;
+
+  /// No description provided for @storage_media_type_files.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файлы'**
+  String get storage_media_type_files;
+
+  /// No description provided for @storage_media_type_other.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другое'**
+  String get storage_media_type_other;
+
+  /// No description provided for @storage_settings_device_usage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Занимает {pct}% от лимита кэша'**
+  String storage_settings_device_usage(Object pct);
+
+  /// No description provided for @storage_settings_clear_all_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все медиа останутся в облаке. При необходимости вы сможете загрузить их снова.'**
+  String get storage_settings_clear_all_hint;
+
+  /// No description provided for @storage_auto_delete_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автоудаление кэшированных медиа'**
+  String get storage_auto_delete_title;
+
+  /// No description provided for @storage_auto_delete_personal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Личные чаты'**
+  String get storage_auto_delete_personal;
+
+  /// No description provided for @storage_auto_delete_groups.
+  ///
+  /// In ru, this message translates to:
+  /// **'Группы'**
+  String get storage_auto_delete_groups;
+
+  /// No description provided for @storage_auto_delete_never.
+  ///
+  /// In ru, this message translates to:
+  /// **'Никогда'**
+  String get storage_auto_delete_never;
+
+  /// No description provided for @storage_auto_delete_3_days.
+  ///
+  /// In ru, this message translates to:
+  /// **'3 дня'**
+  String get storage_auto_delete_3_days;
+
+  /// No description provided for @storage_auto_delete_1_week.
+  ///
+  /// In ru, this message translates to:
+  /// **'1 нед.'**
+  String get storage_auto_delete_1_week;
+
+  /// No description provided for @storage_auto_delete_1_month.
+  ///
+  /// In ru, this message translates to:
+  /// **'1 месяц'**
+  String get storage_auto_delete_1_month;
+
+  /// No description provided for @storage_auto_delete_3_months.
+  ///
+  /// In ru, this message translates to:
+  /// **'3 месяца'**
+  String get storage_auto_delete_3_months;
+
+  /// No description provided for @storage_auto_delete_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фотографии, видео и другие файлы, которые вы не открывали в течение этого срока, будут удалены с устройства для экономии места.'**
+  String get storage_auto_delete_hint;
+
+  /// No description provided for @storage_chat_detail_share.
+  ///
+  /// In ru, this message translates to:
+  /// **'На этот чат приходится {pct}% кэша'**
+  String storage_chat_detail_share(Object pct);
+
+  /// No description provided for @storage_chat_detail_media_tab.
+  ///
+  /// In ru, this message translates to:
+  /// **'Медиа'**
+  String get storage_chat_detail_media_tab;
+
+  /// No description provided for @storage_chat_detail_select_all.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать все'**
+  String get storage_chat_detail_select_all;
+
+  /// No description provided for @storage_chat_detail_deselect_all.
+  ///
+  /// In ru, this message translates to:
+  /// **'Снять все'**
+  String get storage_chat_detail_deselect_all;
+
+  /// No description provided for @storage_chat_detail_clear_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить кэш {size}'**
+  String storage_chat_detail_clear_button(Object size);
+
+  /// No description provided for @storage_chat_detail_clear_button_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите файлы для удаления'**
+  String get storage_chat_detail_clear_button_empty;
+
+  /// No description provided for @storage_chat_detail_delete_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить выбранные файлы?'**
+  String get storage_chat_detail_delete_title;
+
+  /// No description provided for @storage_chat_detail_delete_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} файлов ({size}) будет удалено с устройства. Облачные копии не затрагиваются.'**
+  String storage_chat_detail_delete_body(Object count, Object size);
 
   /// No description provided for @profile_delete_account.
   ///

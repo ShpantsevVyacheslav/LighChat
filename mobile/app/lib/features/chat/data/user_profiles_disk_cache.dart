@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'user_profile.dart';
-import 'local_storage_preferences.dart';
 
 const kUserProfileDiskCacheKeyPrefix = 'mobile_user_profile_cache_v1_';
 
@@ -38,8 +37,6 @@ Future<Map<String, UserProfile>> loadCachedProfiles(
 }
 
 Future<void> persistProfile(UserProfile profile) async {
-  final localPrefs = await LocalStoragePreferencesStore.load();
-  if (!localPrefs.profileCardsEnabled) return;
   try {
     final prefs = await SharedPreferences.getInstance();
     final m = <String, Object?>{
