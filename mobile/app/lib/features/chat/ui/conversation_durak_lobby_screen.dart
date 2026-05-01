@@ -235,7 +235,7 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                                           );
                                         }
                                       }
-                                    : (canStart
+                                    : ((canReady && !iAmReady) || canStart
                                           ? () async {
                                               try {
                                                 await GamesCallables()
@@ -255,27 +255,7 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                                                 );
                                               }
                                             }
-                                          : (canReady && !iAmReady
-                                                ? () async {
-                                                    try {
-                                                      await _toggleReady(
-                                                        gameId: gameId,
-                                                        uid: me,
-                                                        ready: true,
-                                                      );
-                                                    } catch (e) {
-                                                      if (!context.mounted) {
-                                                        return;
-                                                      }
-                                                      _toast(
-                                                        context,
-                                                        l10n.conversation_game_lobby_start_failed(
-                                                          e,
-                                                        ),
-                                                      );
-                                                    }
-                                                  }
-                                                : null))),
+                                          : null)),
                           child: Text(
                             canJoin
                                 ? l10n.conversation_game_lobby_join
@@ -300,19 +280,6 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _toggleReady({
-    required String gameId,
-    required String uid,
-    required bool ready,
-  }) async {
-    final ref = FirebaseFirestore.instance.collection('games').doc(gameId);
-    await ref.update({
-      'readyUids': ready
-          ? FieldValue.arrayUnion(<String>[uid])
-          : FieldValue.arrayRemove(<String>[uid]),
-      'lastUpdatedAt': DateTime.now().toIso8601String(),
-    });
-  }
 }
 
 class _LobbyShell extends StatelessWidget {
