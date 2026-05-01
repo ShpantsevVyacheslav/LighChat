@@ -26,6 +26,7 @@ import 'message_bubble_delivery_icons.dart';
 import 'message_chat_poll.dart';
 import 'message_deleted_stub.dart';
 import 'message_location_card.dart';
+import 'link_webview_screen.dart';
 import 'message_html_text.dart';
 import 'message_link_preview_card.dart';
 import 'message_reactions_row.dart';
@@ -1242,18 +1243,20 @@ class _ChatMessageBubble extends StatelessWidget {
               }
               context.push('/contacts/user/${Uri.encodeComponent(uid)}');
             },
+            onLinkTap: (url) {
+              if (!context.mounted) return;
+              LinkWebViewScreen.open(context, url);
+            },
           );
 
       Widget? textBlock;
       if (hasVisibleText) {
         final innerMax =
             ChatMediaLayoutTokens.messageBubbleMaxWidth - (compact ? 20 : 24);
-        final textWidget = html.contains('<')
-            ? RichText(
-                textAlign: TextAlign.left,
-                text: TextSpan(children: htmlSpans()),
-              )
-            : Text(displayPlain, textAlign: TextAlign.left, style: baseStyle);
+        final textWidget = RichText(
+          textAlign: TextAlign.left,
+          text: TextSpan(children: htmlSpans()),
+        );
         textBlock = ConstrainedBox(
           constraints: BoxConstraints(maxWidth: innerMax),
           child: Column(

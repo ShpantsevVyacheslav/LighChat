@@ -5,10 +5,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/composer_html_editing.dart';
+import '../data/link_preview_url_extractor.dart';
 import '../../../l10n/app_localizations.dart';
 import 'composer_attachment_menu.dart';
 import 'composer_editing_banner.dart';
 import 'composer_formatting_toolbar.dart';
+import 'composer_link_preview.dart';
 import 'composer_pending_attachments_strip.dart';
 import 'composer_clipboard_selection_controls.dart';
 import 'composer_reply_banner.dart';
@@ -113,6 +115,8 @@ class _ChatComposerState extends State<ChatComposer> {
   int? _mentionAtStartOffset;
   List<GroupMentionCandidate> _mentionFiltered = const [];
   bool _holdRecordOverlayVisible = false;
+  String? _linkPreviewUrl;
+  final Set<String> _dismissedLinkPreviewUrls = <String>{};
 
   bool _computeHasTypedText() {
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
@@ -125,12 +129,25 @@ class _ChatComposerState extends State<ChatComposer> {
   void _onComposerTextChanged() {
     final next = _computeHasTypedText();
     final mentionChanged = _recomputeMentionState();
-    if (next == _hasTypedText && !mentionChanged) return;
+    final linkChanged = _recomputeLinkPreview();
+    if (next == _hasTypedText && !mentionChanged && !linkChanged) return;
     if (mounted) {
       setState(() {
         _hasTypedText = next;
       });
     }
+  }
+
+  bool _recomputeLinkPreview() {
+    final plain = messageHtmlToPlainText(widget.controller.text);
+    final extracted = extractFirstHttpUrl(plain);
+    final next = (extracted == null ||
+            _dismissedLinkPreviewUrls.contains(extracted))
+        ? null
+        : extracted;
+    if (next == _linkPreviewUrl) return false;
+    _linkPreviewUrl = next;
+    return true;
   }
 
   bool _recomputeMentionState() {
@@ -244,6 +261,7 @@ class _ChatComposerState extends State<ChatComposer> {
     super.initState();
     _hasTypedText = _computeHasTypedText();
     _recomputeMentionState();
+    _recomputeLinkPreview();
     widget.controller.addListener(_onComposerTextChanged);
   }
 
@@ -259,6 +277,7 @@ class _ChatComposerState extends State<ChatComposer> {
       _hasTypedText = next;
     }
     _recomputeMentionState();
+    _recomputeLinkPreview();
   }
 
   @override
@@ -446,6 +465,20 @@ class _ChatComposerState extends State<ChatComposer> {
                   items: _mentionFiltered,
                   onPick: _pickMention,
                 ),
+              ),
+            if (_linkPreviewUrl != null &&
+                widget.e2eeDisabledBanner == null &&
+                _mentionQuery == null)
+              ComposerLinkPreview(
+                url: _linkPreviewUrl!,
+                onDismiss: () {
+                  final url = _linkPreviewUrl;
+                  if (url == null) return;
+                  setState(() {
+                    _dismissedLinkPreviewUrls.add(url);
+                    _linkPreviewUrl = null;
+                  });
+                },
               ),
             if (widget.e2eeDisabledBanner != null)
               // Phase 0: если чат зашифрован — полностью заменяем input‑строку

@@ -36,6 +36,7 @@ class MessageHtmlRenderOpts {
     this.quoteMaxWidth = 280,
     this.onMentionTap,
     this.mentionLabelResolver,
+    this.onLinkTap,
   });
 
   final Color? linkColor;
@@ -44,6 +45,7 @@ class MessageHtmlRenderOpts {
   final Future<void> Function(String userId)? onMentionTap;
   final String Function(String userId, String fallbackLabel)?
   mentionLabelResolver;
+  final void Function(String url)? onLinkTap;
 
   static const defaults = MessageHtmlRenderOpts();
 }
@@ -184,6 +186,7 @@ List<InlineSpan> _plainTextToLinkSpans(
   String text,
   TextStyle base, {
   Color? linkColor,
+  void Function(String url)? onLinkTap,
 }) {
   final out = <InlineSpan>[];
   final re = RegExp(r'(https?:\/\/[^\s<>"]+)', caseSensitive: false);
@@ -201,9 +204,14 @@ List<InlineSpan> _plainTextToLinkSpans(
       continue;
     }
     final lc = linkColor ?? const Color(0xFF7DD3FC);
+    final linkTap = onLinkTap;
     final rec = TapGestureRecognizer()
       ..onTap = () {
-        unawaited(_openExternalUrl(url));
+        if (linkTap != null) {
+          linkTap(url);
+        } else {
+          unawaited(_openExternalUrl(url));
+        }
       };
     out.add(
       TextSpan(
@@ -235,11 +243,11 @@ List<InlineSpan> messageHtmlToStyledSpans(
   double quoteMaxWidth = 280,
   Future<void> Function(String userId)? onMentionTap,
   String Function(String userId, String fallbackLabel)? mentionLabelResolver,
+  void Function(String url)? onLinkTap,
 }) {
   if (input.trim().isEmpty) return const [];
   if (!input.contains('<')) {
-    // Plain text: auto-linkify http(s) URLs.
-    return _plainTextToLinkSpans(input, base, linkColor: linkColor);
+    return _plainTextToLinkSpans(input, base, linkColor: linkColor, onLinkTap: onLinkTap);
   }
   try {
     final frag = html_parser.parseFragment(input);
@@ -249,6 +257,7 @@ List<InlineSpan> messageHtmlToStyledSpans(
       quoteMaxWidth: quoteMaxWidth,
       onMentionTap: onMentionTap,
       mentionLabelResolver: mentionLabelResolver,
+      onLinkTap: onLinkTap,
     );
     final spans = _nodesToSpans(frag.nodes, base, const _ComposeStyle(), opts);
     return _trimTrailingLineBreaks(spans);
@@ -319,9 +328,14 @@ List<InlineSpan> _nodesToSpans(
       TapGestureRecognizer? rec;
       final href = st.linkHref;
       if (href != null && href.isNotEmpty) {
+        final linkTap = opts.onLinkTap;
         rec = TapGestureRecognizer()
           ..onTap = () {
-            unawaited(_openExternalUrl(href));
+            if (linkTap != null) {
+              linkTap(href);
+            } else {
+              unawaited(_openExternalUrl(href));
+            }
           };
       } else {
         final mid = st.mentionUserId;
@@ -335,7 +349,7 @@ List<InlineSpan> _nodesToSpans(
       }
       if (rec == null && !st.mention && display.contains('http')) {
         out.addAll(
-          _plainTextToLinkSpans(display, style, linkColor: opts.linkColor),
+          _plainTextToLinkSpans(display, style, linkColor: opts.linkColor, onLinkTap: opts.onLinkTap),
         );
       } else {
         out.add(TextSpan(text: display, style: style, recognizer: rec));

@@ -1,9 +1,7 @@
-import 'dart:async' show unawaited;
-
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../data/link_preview_metadata.dart';
+import 'link_webview_screen.dart';
 
 final LinkPreviewMetadataCache _linkPreviewCache = LinkPreviewMetadataCache();
 
@@ -19,10 +17,10 @@ class MessageLinkPreviewCard extends StatelessWidget {
   final bool isMine;
   final double maxWidth;
 
-  Future<void> _open() async {
+  void _open(BuildContext context) {
     final u = Uri.tryParse(url.trim());
     if (u == null || !(u.isScheme('http') || u.isScheme('https'))) return;
-    await launchUrl(u, mode: LaunchMode.externalApplication);
+    LinkWebViewScreen.open(context, url.trim());
   }
 
   @override
@@ -53,7 +51,7 @@ class MessageLinkPreviewCard extends StatelessWidget {
           return Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => unawaited(_open()),
+              onTap: () => _open(context),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 decoration: BoxDecoration(
