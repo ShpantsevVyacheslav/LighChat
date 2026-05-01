@@ -1054,22 +1054,21 @@ class _ChatPartnerProfileSheetState
           )
         : false;
     final allConversations = allConversationsAsync.asData?.value;
-    final sharedGroups =
-        (partnerId == null || allConversations == null)
-              ? const <ConversationWithId>[]
-              : allConversations
-                    .where(
-                      (c) =>
-                          c.id != widget.conversationId &&
-                          c.data.isGroup &&
-                          c.data.participantIds.contains(partnerId),
-                    )
-                    .toList()
+    final sharedGroups = (partnerId == null || allConversations == null)
+        ? const <ConversationWithId>[]
+        : (allConversations
+              .where(
+                (c) =>
+                    c.id != widget.conversationId &&
+                    c.data.isGroup &&
+                    c.data.participantIds.contains(partnerId),
+              )
+              .toList()
           ..sort((a, b) {
             final an = (a.data.name ?? '').trim().toLowerCase();
             final bn = (b.data.name ?? '').trim().toLowerCase();
             return an.compareTo(bn);
-          });
+          }));
     final sharedGroupsLoading =
         !_isSaved &&
         !_isGroup &&
