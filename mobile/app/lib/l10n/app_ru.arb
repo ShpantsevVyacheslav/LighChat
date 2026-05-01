@@ -173,12 +173,13 @@
   "storage_settings_title": "Хранилище",
   "storage_settings_subtitle": "Управляйте локальным кэшем на устройстве: что хранить, что чистить и сколько места выделять.",
   "storage_settings_total_label": "Занято на устройстве",
-  "storage_settings_budget_label": "Целевой лимит кэша: {mb} МБ",
+  "storage_settings_budget_label": "Лимит кэша: {gb} ГБ",
   "@storage_settings_budget_label": {
     "placeholders": {
-      "mb": {}
+      "gb": {}
     }
   },
+  "storage_unit_gb": "ГБ",
   "storage_settings_clear_all_button": "Очистить весь кэш",
   "storage_settings_trim_button": "Поджать до лимита",
   "storage_settings_policy_title": "Что хранить локально",

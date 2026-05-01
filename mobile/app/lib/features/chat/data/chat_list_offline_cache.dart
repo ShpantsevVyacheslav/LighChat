@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'local_storage_preferences.dart';
 
 /// Локальный снимок `userChats/{uid}` + последних известных `conversations/{id}`
 /// для мгновенного списка чатов без сети (после хотя бы одного успешного онлайн-сеанса).
@@ -166,8 +165,6 @@ Future<void> persistChatListOfflineSnapshot({
   final uid = userId.trim();
   if (uid.isEmpty) return;
   if (index == null) return;
-  final localPrefs = await LocalStoragePreferencesStore.load();
-  if (!localPrefs.chatListSnapshotEnabled) return;
   try {
     final prefs = await SharedPreferences.getInstance();
     final payload = <String, Object?>{

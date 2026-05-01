@@ -374,9 +374,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get storage_settings_total_label => 'Занято на устройстве';
 
   @override
-  String storage_settings_budget_label(Object mb) {
-    return 'Целевой лимит кэша: $mb МБ';
+  String storage_settings_budget_label(Object gb) {
+    return 'Лимит кэша: $gb ГБ';
   }
+
+  @override
+  String get storage_unit_gb => 'ГБ';
 
   @override
   String get storage_settings_clear_all_button => 'Очистить весь кэш';

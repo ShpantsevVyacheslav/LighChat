@@ -116,15 +116,13 @@ class StorageCacheManager {
     for (final entry in entries) {
       final cid = entry.conversationId?.trim();
       if (cid == null || cid.isEmpty) {
+        if (kAlwaysOnCategories.contains(entry.category)) continue;
         generalEntries.add(entry);
       } else {
         conversationEntries
             .putIfAbsent(cid, () => <LocalStorageEntry>[])
             .add(entry);
       }
-    }
-    for (final c in conversations) {
-      conversationEntries.putIfAbsent(c.id, () => <LocalStorageEntry>[]);
     }
 
     final conversationUsages =
@@ -147,6 +145,7 @@ class StorageCacheManager {
                 entries: sorted,
               );
             })
+            .where((u) => u.totalBytes > 0)
             .toList(growable: false)
           ..sort((a, b) {
             if (a.totalBytes != b.totalBytes) {

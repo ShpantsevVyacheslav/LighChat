@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'local_storage_preferences.dart';
 
 /// Префикс как на вебе: [src/lib/chat-message-draft-storage.ts].
 const String kChatDraftStoragePrefix = 'lighchat:chatDrafts:v1:';
@@ -118,8 +117,6 @@ Future<void> saveChatMessageDraft(
   String scopeKey,
   StoredChatMessageDraft draft,
 ) async {
-  final localPrefs = await LocalStoragePreferencesStore.load();
-  if (!localPrefs.chatDraftsEnabled) return;
   final map = await _readMap(userId);
   var html = draft.html;
   if (html.length > _kMaxHtmlChars) {

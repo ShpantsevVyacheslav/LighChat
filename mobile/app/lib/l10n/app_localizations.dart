@@ -719,8 +719,14 @@ abstract class AppLocalizations {
   /// No description provided for @storage_settings_budget_label.
   ///
   /// In ru, this message translates to:
-  /// **'Целевой лимит кэша: {mb} МБ'**
-  String storage_settings_budget_label(Object mb);
+  /// **'Лимит кэша: {gb} ГБ'**
+  String storage_settings_budget_label(Object gb);
+
+  /// No description provided for @storage_unit_gb.
+  ///
+  /// In ru, this message translates to:
+  /// **'ГБ'**
+  String get storage_unit_gb;
 
   /// No description provided for @storage_settings_clear_all_button.
   ///

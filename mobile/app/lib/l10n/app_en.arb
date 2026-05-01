@@ -173,12 +173,13 @@
   "storage_settings_title": "Storage",
   "storage_settings_subtitle": "Control what data is cached on this device and clean up by chats or files.",
   "storage_settings_total_label": "Used on this device",
-  "storage_settings_budget_label": "Target cache budget: {mb} MB",
+  "storage_settings_budget_label": "Cache limit: {gb} GB",
   "@storage_settings_budget_label": {
     "placeholders": {
-      "mb": {}
+      "gb": {}
     }
   },
+  "storage_unit_gb": "GB",
   "storage_settings_clear_all_button": "Clear all cache",
   "storage_settings_trim_button": "Trim to budget",
   "storage_settings_policy_title": "What to keep locally",

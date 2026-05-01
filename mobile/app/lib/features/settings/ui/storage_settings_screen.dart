@@ -174,22 +174,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       e2eeMediaEnabled: category == LocalStorageCategory.e2eeMedia
           ? enabled
           : null,
-      e2eeTextEnabled: category == LocalStorageCategory.e2eeText
-          ? enabled
-          : null,
-      chatDraftsEnabled: category == LocalStorageCategory.chatDrafts
-          ? enabled
-          : null,
-      chatListSnapshotEnabled: category == LocalStorageCategory.chatListSnapshot
-          ? enabled
-          : null,
-      profileCardsEnabled: category == LocalStorageCategory.profileCards
-          ? enabled
-          : null,
       videoDownloadsEnabled: category == LocalStorageCategory.videoDownloads
-          ? enabled
-          : null,
-      videoThumbsEnabled: category == LocalStorageCategory.videoThumbs
           ? enabled
           : null,
     );
@@ -205,9 +190,9 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
   Future<void> _updateBudget({
     required String uid,
     required List<ConversationWithId> conversations,
-    required int budgetMb,
+    required int budgetGb,
   }) async {
-    final updated = _preferences.copyWith(cacheBudgetMb: budgetMb);
+    final updated = _preferences.copyWith(cacheBudgetGb: budgetGb);
     await _withBusy(() async {
       await LocalStoragePreferencesStore.save(updated);
       if (!mounted) return;
@@ -272,7 +257,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       final freed = await _manager.trimToBudget(
         userId: uid,
         conversations: conversations,
-        budgetBytes: _preferences.cacheBudgetMb * 1024 * 1024,
+        budgetBytes: _preferences.cacheBudgetGb * 1024 * 1024 * 1024,
       );
       await _reload(uid: uid, conversations: conversations);
       if (!mounted) return;
@@ -478,7 +463,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                             const SizedBox(height: 6),
                             Text(
                               l10n.storage_settings_budget_label(
-                                _preferences.cacheBudgetMb,
+                                _preferences.cacheBudgetGb,
                               ),
                               style: TextStyle(
                                 fontSize: _kMutedTextSize,
@@ -532,7 +517,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                           title: l10n.storage_settings_policy_title,
                           leadingIcon: Icons.tune_rounded,
                           children: [
-                            for (final category in LocalStorageCategory.values)
+                            for (final category in kUserToggleableCategories)
                               _SwitchRow(
                                 title: _categoryTitle(category, l10n),
                                 subtitle: _categorySubtitle(category, l10n),
@@ -558,34 +543,24 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                               ),
                             ),
                             Slider(
-                              value: _preferences.cacheBudgetMb.toDouble(),
-                              min: LocalStoragePreferences.minCacheBudgetMb
+                              value: _preferences.cacheBudgetGb.toDouble(),
+                              min: LocalStoragePreferences.minCacheBudgetGb
                                   .toDouble(),
-                              max: LocalStoragePreferences.maxCacheBudgetMb
+                              max: LocalStoragePreferences.maxCacheBudgetGb
                                   .toDouble(),
-                              divisions: 62,
-                              label: '${_preferences.cacheBudgetMb} MB',
+                              divisions:
+                                  LocalStoragePreferences.maxCacheBudgetGb -
+                                  LocalStoragePreferences.minCacheBudgetGb,
+                              label:
+                                  '${_preferences.cacheBudgetGb} ${l10n.storage_unit_gb}',
                               onChanged: _busy
                                   ? null
                                   : (value) => _updateBudget(
                                       uid: user.uid,
                                       conversations: conversations,
-                                      budgetMb: value.round(),
+                                      budgetGb: value.round(),
                                     ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        _SettingsCard(
-                          title: l10n.storage_settings_breakdown_title,
-                          leadingIcon: Icons.pie_chart_outline_rounded,
-                          children: [
-                            for (final category in LocalStorageCategory.values)
-                              _NavRow(
-                                title: _categoryTitle(category, l10n),
-                                subtitle:
-                                    '${_categorySubtitle(category, l10n)} · ${_formatBytes(snapshot.categoryBytes[category] ?? 0)}',
-                              ),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -621,35 +596,6 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                                             uid: user.uid,
                                             conversations: conversations,
                                             usage: usage,
-                                          ),
-                                  ),
-                                ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        _SettingsCard(
-                          title: l10n.storage_settings_general_title,
-                          subtitle: l10n.storage_settings_general_hint,
-                          leadingIcon: Icons.layers_outlined,
-                          children: [
-                            if (snapshot.generalEntries.isEmpty)
-                              _MutedText(l10n.storage_settings_general_empty)
-                            else
-                              for (final entry in snapshot.generalEntries)
-                                _ActionRow(
-                                  title: entry.label,
-                                  subtitle:
-                                      '${_categoryTitle(entry.category, l10n)} · ${_formatBytes(entry.bytes)}',
-                                  trailing: IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline_rounded,
-                                    ),
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _deleteEntryAndRefresh(
-                                            uid: user.uid,
-                                            conversations: conversations,
-                                            entry: entry,
                                           ),
                                   ),
                                 ),
@@ -969,56 +915,6 @@ class _SwitchRow extends StatelessWidget {
                 .withValues(alpha: dark ? 0.9 : 1),
             inactiveTrackColor: (dark ? Colors.white : scheme.onSurface)
                 .withValues(alpha: dark ? 0.2 : 0.2),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavRow extends StatelessWidget {
-  const _NavRow({required this.title, this.subtitle});
-
-  final String title;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: _kBodyTextSize,
-                    fontWeight: FontWeight.w600,
-                    color: dark
-                        ? Colors.white.withValues(alpha: 0.95)
-                        : scheme.onSurface.withValues(alpha: 0.94),
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      fontSize: _kMutedTextSize,
-                      color: dark
-                          ? Colors.white.withValues(alpha: 0.68)
-                          : scheme.onSurface.withValues(alpha: 0.64),
-                    ),
-                  ),
-                ],
-              ],
-            ),
           ),
         ],
       ),

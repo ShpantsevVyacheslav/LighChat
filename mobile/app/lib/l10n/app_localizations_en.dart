@@ -372,9 +372,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storage_settings_total_label => 'Used on this device';
 
   @override
-  String storage_settings_budget_label(Object mb) {
-    return 'Target cache budget: $mb MB';
+  String storage_settings_budget_label(Object gb) {
+    return 'Cache limit: $gb GB';
   }
+
+  @override
+  String get storage_unit_gb => 'GB';
 
   @override
   String get storage_settings_clear_all_button => 'Clear all cache';
