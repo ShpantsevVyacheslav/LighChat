@@ -20,6 +20,7 @@ import 'dart:convert';
 import 'dart:math' show Random;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:pointycastle/export.dart';
 
 const String _aadSep = '\u001F';
@@ -372,13 +373,33 @@ Future<String> decryptMessageV2({
     aad.messageId,
     aad.epoch,
   ]);
-  final plain = await aesGcmDecryptV2(
-    key: chatKey,
-    iv: Uint8List.fromList(base64.decode(ivB64)),
-    ciphertextPlusTag: Uint8List.fromList(base64.decode(ciphertextB64)),
-    aad: aadBytes,
-  );
-  return utf8.decode(plain);
+  final ivBytes = Uint8List.fromList(base64.decode(ivB64));
+  final ctBytes = Uint8List.fromList(base64.decode(ciphertextB64));
+  try {
+    final plain = await aesGcmDecryptV2(
+      key: chatKey,
+      iv: ivBytes,
+      ciphertextPlusTag: ctBytes,
+      aad: aadBytes,
+    );
+    return utf8.decode(plain);
+  } catch (e) {
+    if (kDebugMode) {
+      final keyHash = SHA256Digest().process(chatKey);
+      String hex(List<int> b) =>
+          b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+      debugPrint('[E2EE DIAG] decryptMessageV2 failed: $e');
+      debugPrint('  conversationId: ${aad.conversationId}');
+      debugPrint('  messageId:      ${aad.messageId}');
+      debugPrint('  epoch:          ${aad.epoch}');
+      debugPrint('  key sha256(8):  ${hex(keyHash.sublist(0, 8))}');
+      debugPrint('  iv (hex):       ${hex(ivBytes)}');
+      debugPrint('  ct len:         ${ctBytes.length} (tag = last 16)');
+      debugPrint('  aad bytes(hex): ${hex(aadBytes)}');
+      debugPrint('  aad utf8:       ${utf8.decode(aadBytes, allowMalformed: true)}');
+    }
+    rethrow;
+  }
 }
 
 Uint8List randomChatKeyRawV2() => randomBytes(32);
