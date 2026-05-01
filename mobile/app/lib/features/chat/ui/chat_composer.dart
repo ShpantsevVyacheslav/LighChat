@@ -360,7 +360,10 @@ class _ChatComposerState extends State<ChatComposer> {
         ),
         border: InputBorder.none,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        // Сдвинуто на 2 px вниз: визуальный центр глифов Roboto/SF выше
+        // геометрического из-за более короткого descender'а; асимметричный
+        // padding компенсирует эту оптическую несимметрию в капсуле 40 px.
+        contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
         isCollapsed: false,
         suffixIcon: keyboardOpen
             ? IconButton(
