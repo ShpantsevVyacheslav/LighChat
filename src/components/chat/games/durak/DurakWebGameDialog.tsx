@@ -156,6 +156,7 @@ export function DurakWebGameDialog({
       const res = await fn({ gameId });
       const nextGameId = (res.data as any)?.gameId as string | undefined;
       if (nextGameId) {
+        if (nextGameId === gameId) return;
         onOpenChange(false);
         window.open(`/games/durak/${encodeURIComponent(nextGameId)}`, `durak_${nextGameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
       }
@@ -261,6 +262,7 @@ export function DurakWebGameDialog({
   const tableRanks = new Set([...attacks, ...defenses.filter(Boolean)].map((c) => rankKey(c as DurakCard)));
   const canFinishTurn = publicView?.canFinishTurn ?? fallbackCanFinishTurn();
   const serverTurnKind = publicView?.turnKind ?? '';
+  const hasUndefendedAttacks = attacks.some((_, idx) => !defenses[idx]);
 
   function fallbackCurrentThrower(): string | null {
     if (attacks.length === 0) return null;
@@ -452,15 +454,15 @@ export function DurakWebGameDialog({
   const primaryLabel = useMemo(() => {
     if (status !== 'active') return '';
     if (legalMoves?.canFinishTurn) return 'Бито';
-    if (legalMoves?.canTake) return 'Беру';
+    if (legalMoves?.canTake && hasUndefendedAttacks) return 'Беру';
     if (legalMoves?.canPass) return 'Пас';
     if (serverTurnKind === 'attack' && publicView?.turnUid === currentUser.id) return 'Твой ход';
-    if (currentUser.id === defenderUid) return attacks.length > 0 ? 'Беру' : '';
+    if (currentUser.id === defenderUid) return hasUndefendedAttacks ? 'Беру' : '';
     if (canFinishTurn && currentUser.id === attackerUid) return 'Бито';
     if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
     if (currentUser.id === currentThrowerUid) return 'Пас';
     return '';
-  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, legalMoves, publicView?.turnUid, serverTurnKind, status]);
+  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, hasUndefendedAttacks, legalMoves, publicView?.turnUid, serverTurnKind, status]);
 
   const enabledCard = (card: DurakCard) =>
     canAttackCard(card) || canTransferCard(card) || firstDefenseIndexForCard(card) != null;
@@ -548,16 +550,29 @@ export function DurakWebGameDialog({
 
         <div className="relative z-10 flex h-full flex-col">
           <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
-            <Button
-              type="button"
-              size="icon"
-              className="h-11 w-11 rounded-xl bg-white/16 text-white hover:bg-white/24"
-              onClick={() => void makeMove('surrender')}
-              disabled={busy != null}
-              title="Сдаться"
-            >
-              <Flag className="h-5 w-5" />
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                size="icon"
+                className="h-11 w-11 rounded-xl bg-white/16 text-white hover:bg-white/24"
+                onClick={() => void makeMove('surrender')}
+                disabled={busy != null}
+                title="Сдаться"
+              >
+                <Flag className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-11 w-11 rounded-xl bg-white/10 text-white hover:bg-white/18"
+                onClick={() => void makeMove('surrender')}
+                disabled={busy != null || status !== 'active'}
+                title="Завершить игру"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
             <div className="flex min-w-0 flex-1 items-center justify-center gap-3">
               {seats.filter((u) => u !== currentUser.id).slice(0, 5).map((uid) => (
                 <PlayerSeat
@@ -571,6 +586,7 @@ export function DurakWebGameDialog({
                   turnDeadlineAt={publicView?.turnDeadlineAt ?? null}
                   nowMs={nowMs}
                   role={uid === defenderUid ? 'БЬЕТ' : uid === attackerUid ? 'ХОД' : uid === currentThrowerUid ? 'ПОДК' : ''}
+                  showHandBacks
                 />
               ))}
             </div>
@@ -587,7 +603,7 @@ export function DurakWebGameDialog({
 
           <div className="relative min-h-0 flex-1">
             <div className="absolute left-4 top-6 flex items-center gap-2">
-              <div className="relative h-24 w-16 rotate-[-14deg] rounded-xl border border-white/40 bg-[repeating-linear-gradient(45deg,#d9efe2_0_4px,#87b999_4px_7px,#f7fff9_7px_10px)] shadow-lg" />
+              <DurakCardBackView compact className="rotate-[-14deg]" />
               {publicView?.trumpCard ? (
                 <DurakCardView card={publicView.trumpCard} compact />
               ) : trumpSuit ? (
@@ -649,6 +665,18 @@ export function DurakWebGameDialog({
 
           <div className="relative z-20 shrink-0 rounded-t-[28px] bg-white/88 px-4 pb-4 pt-3 text-[#db4a68] shadow-[0_-18px_40px_rgba(0,0,0,.18)] backdrop-blur-xl">
             <div className="mb-2 flex items-center gap-3">
+              <PlayerSeat
+                uid={currentUser.id}
+                allUsers={allUsers}
+                count={visibleMyCards.length}
+                active={publicView?.turnUid === currentUser.id || currentUser.id === attackerUid || currentUser.id === defenderUid}
+                timerActive={publicView?.turnUid === currentUser.id}
+                turnStartedAt={publicView?.turnStartedAt ?? null}
+                turnDeadlineAt={publicView?.turnDeadlineAt ?? null}
+                nowMs={nowMs}
+                role={currentUser.id === defenderUid ? 'БЬЮ' : currentUser.id === attackerUid ? 'ХОД' : currentUser.id === currentThrowerUid ? 'ПОДК' : ''}
+                tone="panel"
+              />
               {primaryLabel ? (
                 <button
                   type="button"
@@ -668,18 +696,6 @@ export function DurakWebGameDialog({
                   {myTurnLabel}
                 </div>
               ) : null}
-              <div className="flex items-center gap-2 rounded-xl border border-[#db4a68]/20 bg-white px-3 py-2 text-sm text-zinc-600">
-                <span className="font-black text-[#db4a68]">{displayName(currentUser.id, allUsers)}</span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-[#db4a68]/35 bg-white text-[#db4a68] hover:bg-[#fff6f8]"
-                disabled={busy != null || status !== 'active'}
-                onClick={() => void makeMove('surrender')}
-              >
-                Завершить игру
-              </Button>
             </div>
             <div className="relative h-[118px] overflow-visible">
               <div className="absolute left-1/2 top-2 flex -translate-x-1/2 items-end justify-center">
@@ -767,6 +783,8 @@ function PlayerSeat({
   turnDeadlineAt,
   nowMs,
   role,
+  showHandBacks = false,
+  tone = 'felt',
 }: {
   uid: string;
   allUsers: User[];
@@ -777,8 +795,12 @@ function PlayerSeat({
   turnDeadlineAt: string | null;
   nowMs: number;
   role: string;
+  showHandBacks?: boolean;
+  tone?: 'felt' | 'panel';
 }) {
   const avatar = avatarUrl(uid, allUsers);
+  const handBacks = Math.max(0, Math.min(6, Number(count) || 0));
+  const panelTone = tone === 'panel';
   const startMs = turnStartedAt ? Date.parse(turnStartedAt) : Number.NaN;
   const endMs = turnDeadlineAt ? Date.parse(turnDeadlineAt) : Number.NaN;
   const progress =
@@ -791,28 +813,82 @@ function PlayerSeat({
       }
     : undefined;
   return (
-    <div className="flex min-w-[78px] flex-col items-center gap-1">
-      <div className="relative">
+    <div className={cn('flex min-w-[78px] flex-col items-center gap-1', panelTone && 'min-w-[88px]')}>
+      <div className={cn('relative', showHandBacks && 'pb-5')}>
+        {showHandBacks ? (
+          <div className="absolute left-1/2 top-10 z-0 h-12 w-20 -translate-x-1/2">
+            {Array.from({ length: handBacks }).map((_, i) => {
+              const offset = i - (handBacks - 1) / 2;
+              return (
+                <div
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={i}
+                  className="absolute left-1/2 top-0 h-14 w-10 origin-top rounded-lg border border-white/45 bg-[repeating-linear-gradient(45deg,#e8f7ef_0_3px,#8bbf9c_3px_6px,#f8fff9_6px_9px)] shadow-md"
+                  style={{
+                    transform: `translateX(-50%) translateX(${offset * 7}px) rotate(${offset * 8}deg)`,
+                    zIndex: i,
+                  }}
+                />
+              );
+            })}
+          </div>
+        ) : null}
         <div className="rounded-[18px] p-1" style={ring}>
-        <div className={cn('h-16 w-16 rounded-xl border-4 bg-white/20 p-1 shadow-lg', active ? 'border-lime-400' : 'border-white/20')}>
-          {avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatar} alt="" className="h-full w-full rounded-lg object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-300 text-zinc-600">
-              {displayName(uid, allUsers).slice(0, 1).toUpperCase()}
-            </div>
+          <div
+            className={cn(
+              'relative z-10 rounded-xl border-4 p-1 shadow-lg',
+              panelTone ? 'h-12 w-12 bg-white' : 'h-16 w-16 bg-white/20',
+              active ? 'border-lime-400' : panelTone ? 'border-[#db4a68]/25' : 'border-white/20'
+            )}
+          >
+            {avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatar} alt="" className="h-full w-full rounded-lg object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-300 text-zinc-600">
+                {displayName(uid, allUsers).slice(0, 1).toUpperCase()}
+              </div>
+            )}
+          </div>
+        </div>
+        <div
+          className={cn(
+            'absolute -right-2 -top-2 z-20 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black text-zinc-700',
+            panelTone && 'border border-[#db4a68]/15'
           )}
-        </div>
-        </div>
-        <div className="absolute -right-2 -top-2 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black text-zinc-700">
+        >
           {count}
         </div>
       </div>
-      <div className="max-w-[92px] truncate rounded bg-black/25 px-2 py-0.5 text-[11px] font-bold text-white">
+      <div
+        className={cn(
+          'max-w-[92px] truncate rounded px-2 py-0.5 text-[11px] font-bold',
+          panelTone ? 'bg-white text-[#db4a68] shadow-sm' : 'bg-black/25 text-white'
+        )}
+      >
         {displayName(uid, allUsers)}
       </div>
-      {role ? <div className="text-[10px] font-black text-white/72">{role}</div> : null}
+      {role ? (
+        <div className={cn('text-[10px] font-black text-white/72', panelTone && 'text-[#db4a68]/72')}>
+          {role}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DurakCardBackView({ compact = false, className }: { compact?: boolean; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'rounded-xl border border-white/45 bg-[repeating-linear-gradient(45deg,#e8f7ef_0_4px,#8bbf9c_4px_7px,#f8fff9_7px_10px)] shadow-lg',
+        compact ? 'h-20 w-14' : 'h-[104px] w-[74px]',
+        className
+      )}
+    >
+      <div className="flex h-full w-full items-center justify-center rounded-[inherit] bg-white/10">
+        <div className="h-6 w-6 rounded-full border border-emerald-800/20 bg-white/30" />
+      </div>
     </div>
   );
 }

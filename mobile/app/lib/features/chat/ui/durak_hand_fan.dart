@@ -33,7 +33,8 @@ class DurakHandFan extends StatelessWidget {
   final String? selectedId;
   final void Function(Map<String, dynamic> card, String id) onTap;
 
-  /// Called after successful drag end (table accepted). We use it to trigger fly animation.
+  /// Kept for API compatibility with the table screen. The mobile hand uses
+  /// tap-to-play to avoid Flutter overlay transform glitches on iOS.
   final void Function(Map<String, dynamic> card) onDragAcceptedByTable;
   final void Function(Map<String, dynamic> card) onDragRejected;
 
@@ -43,7 +44,10 @@ class DurakHandFan extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, c) {
-        final w = c.maxWidth;
+        final mediaWidth = MediaQuery.sizeOf(context).width;
+        final w = c.maxWidth.isFinite && c.maxWidth > 0
+            ? c.maxWidth
+            : max(1.0, mediaWidth - 16);
         final n = cards.length;
         final baseW = 68.0;
         final cardW = min(baseW, max(46.0, w / max(4.7, n * 0.68)));
@@ -57,6 +61,12 @@ class DurakHandFan extends StatelessWidget {
         final step = cardW - overlap;
         final fanW = cardW + (n - 1) * step;
         final startX = max(0.0, (w - fanW) / 2);
+        if (!cardW.isFinite ||
+            !cardH.isFinite ||
+            !step.isFinite ||
+            !startX.isFinite) {
+          return const SizedBox(height: 116);
+        }
 
         return SizedBox(
           height: cardH + 24,
@@ -151,29 +161,6 @@ class _HandFanCard extends StatelessWidget {
 
     final childCard = buildCard(withFlightKey: true);
 
-    if (!enabled) return childCard;
-
-    return Draggable<Map<String, dynamic>>(
-      data: card,
-      maxSimultaneousDrags: 1,
-      rootOverlay: true,
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: Material(
-        color: Colors.transparent,
-        child: buildCard(withFlightKey: false),
-      ),
-      childWhenDragging: Visibility(
-        visible: false,
-        maintainSize: true,
-        maintainAnimation: true,
-        maintainState: true,
-        child: buildCard(withFlightKey: true),
-      ),
-      child: childCard,
-      onDragEnd: (d) {
-        if (d.wasAccepted) onDragAcceptedByTable();
-      },
-      onDraggableCanceled: (velocity, offset) => onDragRejected(),
-    );
+    return childCard;
   }
 }

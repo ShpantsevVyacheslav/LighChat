@@ -71,7 +71,7 @@ class DurakCardWidget extends StatelessWidget {
                   rankLabel: rankLabel,
                   suitLabel: suitLabel,
                   color: textColor,
-                  scale: width / 68,
+                  scale: width.isFinite && width > 0 ? width / 68 : 1,
                 )
               : _Back(disabled: disabled),
         ),

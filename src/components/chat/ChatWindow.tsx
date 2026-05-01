@@ -288,6 +288,7 @@ export function ChatWindow({
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
+  const optimisticObjectUrlsRef = useRef<Map<string, string[]>>(new Map());
   const [editingMessage, setEditingMessage] = useState<{ id: string; text: string; attachments?: ChatAttachment[] } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
   const [selection, setSelection] = useState({ active: false, ids: new Set<string>() });
@@ -351,6 +352,32 @@ export function ChatWindow({
   const setVideoCircleTailReservePx = useCallback((px: number) => {
     setVideoCircleTailReservePxState(Math.max(0, Math.round(px)));
   }, []);
+
+  const revokeOptimisticObjectUrls = useCallback((messageId: string) => {
+    const urls = optimisticObjectUrlsRef.current.get(messageId);
+    if (!urls) return;
+    for (const url of urls) URL.revokeObjectURL(url);
+    optimisticObjectUrlsRef.current.delete(messageId);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      optimisticObjectUrlsRef.current.forEach((urls) => {
+        for (const url of urls) URL.revokeObjectURL(url);
+      });
+      optimisticObjectUrlsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    const optimisticIds = new Set(optimisticMessages.map((m) => m.id));
+    const remoteIds = new Set(messages.map((m) => m.id));
+    for (const id of Array.from(optimisticObjectUrlsRef.current.keys())) {
+      if (!optimisticIds.has(id) || remoteIds.has(id)) {
+        revokeOptimisticObjectUrls(id);
+      }
+    }
+  }, [messages, optimisticMessages, revokeOptimisticObjectUrls]);
 
   useEffect(() => {
     hasScrolledToUnreadRef.current = hasScrolledToUnread;
@@ -1229,10 +1256,18 @@ export function ChatWindow({
     const messageId = newDocRef.id;
     const now = new Date().toISOString();
     
+    const optimisticBlobUrls: string[] = [];
     const optimisticAttachments: ChatAttachment[] = [
       ...prebuilt.map((a) => ({ ...a })),
-      ...files.map((f) => ({ url: URL.createObjectURL(f), name: f.name, type: f.type, size: f.size })),
+      ...files.map((f) => {
+        const url = URL.createObjectURL(f);
+        optimisticBlobUrls.push(url);
+        return { url, name: f.name, type: f.type, size: f.size };
+      }),
     ];
+    if (optimisticBlobUrls.length > 0) {
+      optimisticObjectUrlsRef.current.set(messageId, optimisticBlobUrls);
+    }
     
     pendingScrollToBottomAfterSendRef.current = true;
     setOptimisticMessages(prev => [...prev, {

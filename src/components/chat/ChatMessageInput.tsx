@@ -185,6 +185,20 @@ const ChatMessageInputInner = (
         });
     }, [groupMentionCandidates, mentionSearch]);
 
+    // Preview URL must not be created inside render loop; keep lifecycle explicit.
+    const attachmentPreviewUrls = useMemo(
+        () => attachments.map((file) => (file.type.startsWith('image/') ? URL.createObjectURL(file) : null)),
+        [attachments]
+    );
+
+    useEffect(() => {
+        return () => {
+            for (const url of attachmentPreviewUrls) {
+                if (url) URL.revokeObjectURL(url);
+            }
+        };
+    }, [attachmentPreviewUrls]);
+
     useEffect(() => {
         return () => {
             if (audioPreview?.url) URL.revokeObjectURL(audioPreview.url);
@@ -680,7 +694,7 @@ const ChatMessageInputInner = (
                                             return (
                                                 <div key={idx} className="relative h-16 w-16 rounded-xl overflow-hidden border border-black/10 shrink-0 animate-in zoom-in-95 duration-200 group/item">
                                                     {file.type.startsWith('image/') ? (
-                                                        <img src={URL.createObjectURL(file)} className="h-full w-full object-cover" alt="" />
+                                                        <img src={attachmentPreviewUrls[idx] ?? ''} className="h-full w-full object-cover" alt="" />
                                                     ) : (
                                                         <div className="h-full w-full flex flex-col items-center justify-center bg-background text-[8px] font-bold uppercase p-1 text-center">
                                                             <FileIcon className="h-5 w-5 text-primary mb-1" />

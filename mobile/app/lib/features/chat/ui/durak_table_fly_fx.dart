@@ -26,7 +26,10 @@ class _DurakTableFlyFxState extends State<DurakTableFlyFx>
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 720));
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    );
     final n = widget.cardCount.clamp(1, 12);
     final r = Random();
     _cards = List.generate(n, (i) {
@@ -68,14 +71,21 @@ class _DurakTableFlyFxState extends State<DurakTableFlyFx>
       animation: anim,
       builder: (context, _) {
         final t = anim.value;
+        if (!t.isFinite) return const SizedBox.shrink();
         double ld(double a, double b) => a + (b - a) * t;
+        final alignment = Alignment.lerp(Alignment.center, end, t);
+        if (alignment == null ||
+            !alignment.x.isFinite ||
+            !alignment.y.isFinite) {
+          return const SizedBox.shrink();
+        }
         return IgnorePointer(
           ignoring: true,
           child: Stack(
             children: [
               for (final c in _cards)
                 Align(
-                  alignment: Alignment.lerp(Alignment.center, end, t)!,
+                  alignment: alignment,
                   child: Transform.translate(
                     offset: Offset.lerp(c.offset, Offset.zero, t)!,
                     child: Transform.rotate(
@@ -141,4 +151,3 @@ class _CardBack extends StatelessWidget {
     );
   }
 }
-

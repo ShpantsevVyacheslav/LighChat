@@ -28,78 +28,102 @@ export const createDurakRematch = onCall(
     if (!previousGameId) throw new HttpsError("invalid-argument", "BAD_INPUT");
 
     const db = admin.firestore();
-    const prevRef = db.doc(`games/${previousGameId}`);
-    const prevSnap = await prevRef.get();
-    if (!prevSnap.exists) throw new HttpsError("not-found", "GAME_NOT_FOUND");
-    const prev = prevSnap.data() || {};
-    if (prev.type !== "durak") throw new HttpsError("failed-precondition", "GAME_TYPE_UNSUPPORTED");
-    const previousPlayerIds = Array.isArray(prev.playerIds) ? prev.playerIds.map((x: any) => String(x)) : [];
-    if (!previousPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "NOT_A_PLAYER");
-    const conversationId = typeof prev.conversationId === "string" ? prev.conversationId : "";
-    if (!conversationId) throw new HttpsError("internal", "GAME_MISSING_CONVERSATION");
-
-    const convSnap = await db.doc(`conversations/${conversationId}`).get();
-    if (!convSnap.exists) throw new HttpsError("not-found", "CONVERSATION_NOT_FOUND");
-    const conv = convSnap.data() || {};
-    const participantIds = Array.isArray(conv.participantIds) ? new Set(conv.participantIds.map((x: any) => String(x))) : new Set<string>();
-    if (!participantIds.has(uid)) throw new HttpsError("permission-denied", "NOT_A_MEMBER");
-
-    const settings = normalizeDurakSettings(prev.settings);
-    const nextPlayerIds = previousPlayerIds.filter((id) => participantIds.has(id)).slice(0, settings.maxPlayers);
-    if (nextPlayerIds.length < 2) throw new HttpsError("failed-precondition", "NEED_AT_LEAST_2_PLAYERS");
-
+    const gameRef = db.doc(`games/${previousGameId}`);
+    const gameId = previousGameId;
     const nowIso = new Date().toISOString();
     const deadline = readyDeadlineFrom(Date.now());
-    const gameRef = db.collection("games").doc();
-    const gameId = gameRef.id;
-    const isGroup = conv.isGroup === true;
-    const gameDoc: Record<string, unknown> = {
-      id: gameId,
-      type: "durak",
-      status: "lobby",
-      createdAt: nowIso,
-      createdBy: uid,
-      conversationId,
-      isGroup,
-      playerIds: nextPlayerIds,
-      readyUids: [],
-      readyDeadlineAt: deadline,
-      players: nextPlayerIds.map((puid) => ({
-        uid: puid,
-        joinedAt: nowIso,
-        isOwner: puid === uid,
-      })),
-      settings,
-      rematchOfGameId: previousGameId,
-      lastUpdatedAt: nowIso,
-    };
+    let conversationId = "";
 
     await db.runTransaction(async (tx) => {
+      const prevSnap = await tx.get(gameRef);
+      if (!prevSnap.exists) throw new HttpsError("not-found", "GAME_NOT_FOUND");
+      const prev = prevSnap.data() || {};
+      if (prev.type !== "durak") throw new HttpsError("failed-precondition", "GAME_TYPE_UNSUPPORTED");
+      if (typeof (prev as any).tournamentId === "string" && ((prev as any).tournamentId as string).trim()) {
+        throw new HttpsError("failed-precondition", "TOURNAMENT_REMATCH_UNSUPPORTED");
+      }
+
+      const status = typeof prev.status === "string" ? prev.status : "";
+      if (status === "active") throw new HttpsError("failed-precondition", "GAME_ALREADY_ACTIVE");
+      if (status !== "finished" && status !== "lobby") {
+        throw new HttpsError("failed-precondition", "GAME_NOT_FINISHED");
+      }
+
+      const previousPlayerIds = Array.isArray(prev.playerIds) ? prev.playerIds.map((x: any) => String(x)) : [];
+      if (!previousPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "NOT_A_PLAYER");
+      conversationId = typeof prev.conversationId === "string" ? prev.conversationId : "";
+      if (!conversationId) throw new HttpsError("internal", "GAME_MISSING_CONVERSATION");
+
+      const convRef = db.doc(`conversations/${conversationId}`);
+      const convSnap = await tx.get(convRef);
+      if (!convSnap.exists) throw new HttpsError("not-found", "CONVERSATION_NOT_FOUND");
+      const conv = convSnap.data() || {};
+      const participantIds = Array.isArray(conv.participantIds) ? new Set(conv.participantIds.map((x: any) => String(x))) : new Set<string>();
+      if (!participantIds.has(uid)) throw new HttpsError("permission-denied", "NOT_A_MEMBER");
+
+      const settings = normalizeDurakSettings(prev.settings);
+      const nextPlayerIds = previousPlayerIds.filter((id) => participantIds.has(id)).slice(0, settings.maxPlayers);
+      if (nextPlayerIds.length < 2) throw new HttpsError("failed-precondition", "NEED_AT_LEAST_2_PLAYERS");
+
       const existing = await tx.get(
         db
           .collection(`conversations/${conversationId}/gameLobbies`)
           .where("status", "in", ["lobby", "active"])
-          .limit(1),
+          .limit(10),
       );
-      if (!existing.empty) throw new HttpsError("failed-precondition", "ACTIVE_GAME_ALREADY_EXISTS");
-      tx.create(gameRef, gameDoc);
-      tx.create(db.doc(`conversations/${conversationId}/gameLobbies/${gameId}`), {
-        gameId,
-        type: "durak",
+      const hasAnotherActiveGame = existing.docs.some((docSnap) => docSnap.id !== gameId);
+      if (hasAnotherActiveGame) throw new HttpsError("failed-precondition", "ACTIVE_GAME_ALREADY_EXISTS");
+
+      const privateHands = await tx.get(db.collection(`games/${gameId}/privateHands`));
+      for (const hand of privateHands.docs) tx.delete(hand.ref);
+
+      const moves = await tx.get(db.collection(`games/${gameId}/moves`));
+      for (const move of moves.docs) tx.delete(move.ref);
+
+      tx.update(gameRef, {
         status: "lobby",
-        conversationId,
-        createdAt: nowIso,
         createdBy: uid,
-        maxPlayers: settings.maxPlayers,
-        playerCount: nextPlayerIds.length,
+        playerIds: nextPlayerIds,
+        players: nextPlayerIds.map((puid) => ({
+          uid: puid,
+          joinedAt: nowIso,
+          isOwner: puid === uid,
+        })),
+        settings,
         readyUids: [],
         readyDeadlineAt: deadline,
-        rematchOfGameId: previousGameId,
+        result: admin.firestore.FieldValue.delete(),
+        startedAt: admin.firestore.FieldValue.delete(),
+        finishedAt: admin.firestore.FieldValue.delete(),
+        serverState: admin.firestore.FieldValue.delete(),
+        publicView: admin.firestore.FieldValue.delete(),
+        spectatorIds: admin.firestore.FieldValue.delete(),
+        rematchOfGameId: gameId,
+        rematchRequestedAt: nowIso,
         lastUpdatedAt: nowIso,
       });
+
+      tx.set(
+        db.doc(`conversations/${conversationId}/gameLobbies/${gameId}`),
+        {
+          gameId,
+          type: "durak",
+          status: "lobby",
+          conversationId,
+          createdAt: nowIso,
+          createdBy: uid,
+          maxPlayers: settings.maxPlayers,
+          playerCount: nextPlayerIds.length,
+          readyUids: [],
+          readyDeadlineAt: deadline,
+          rematchOfGameId: gameId,
+          lastUpdatedAt: nowIso,
+        },
+        { merge: true },
+      );
     });
 
-    logger.info("[createDurakRematch] created", { previousGameId, gameId, conversationId, uid });
+    logger.info("[createDurakRematch] restarted", { gameId, conversationId, uid });
     return { gameId };
   },
 );

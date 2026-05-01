@@ -13,17 +13,13 @@ import '../data/chat_attachment_mosaic_layout.dart';
 import '../data/chat_attachment_upload.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/e2ee_attachment_send_helper.dart';
-import '../data/e2ee_runtime.dart';
 import '../data/outgoing_album_e2ee_context.dart';
 import 'message_html_text.dart';
 import 'message_reply_preview.dart';
 import 'video_first_frame.dart';
 
 /// Совпадает с эвристикой превью в `ComposerPendingAttachmentsStrip`.
-Widget _captionBody({
-  required String caption,
-  required Color color,
-}) {
+Widget _captionBody({required String caption, required Color color}) {
   final base = TextStyle(
     color: color,
     fontSize: 15,
@@ -133,52 +129,54 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
       // Слот остаётся null, если файл ушёл plaintext (стикеры/GIFs/не-E2EE чат).
       final e2eeEnvelopes = List<Map<String, Object?>?>.filled(n, null);
       final e2eeCtx = widget.e2eeContext;
-      await Future.wait(
-        List.generate(n, (i) async {
-          if (_skipped[i]) return;
+      if (e2eeCtx != null) {
+        // Stability-first: E2EE batch encrypt/upload runs strictly one file at a time.
+        await validateE2eeBatchLimitsOrThrow(widget.files);
+        for (var i = 0; i < n; i++) {
+          if (_skipped[i]) continue;
+          E2eePreparedSendFile? prepared;
           try {
-            final bytes = await widget.files[i].readAsBytes();
+            prepared = await prepareE2eeFileForSend(widget.files[i]);
+            final shouldEncrypt = isEncryptableMimeV2(prepared.effectiveMime);
+
+            if (shouldEncrypt) {
+              final bytes = await prepared.file.readAsBytes();
+              final envelope = await e2eeCtx.runtime.encryptMediaForSend(
+                storage: storage,
+                conversationId: widget.conversationId,
+                messageId: e2eeCtx.messageId,
+                epoch: e2eeCtx.epoch,
+                data: bytes,
+                mime: prepared.effectiveMime,
+              );
+              if (!mounted) return;
+              e2eeEnvelopes[i] = envelope.toWireJson();
+              setState(() => _progress[i] = 1.0);
+              if (prepared.effectiveMime.startsWith('image/')) {
+                final asp = await _decodeAspect(bytes);
+                if (mounted && asp != null) {
+                  setState(() => _aspects[i] = asp);
+                }
+              }
+              continue;
+            }
+
+            final bytes = await prepared.file.readAsBytes();
             final asp = await _decodeAspect(bytes);
             if (mounted && asp != null) {
               setState(() => _aspects[i] = asp);
             }
             if (!mounted) return;
-
-            final mime = _effectiveMime(widget.files[i]);
-            final shouldEncrypt =
-                e2eeCtx != null && isEncryptableMimeV2(mime);
-
-            if (shouldEncrypt) {
-              // Прогресс у encryptMediaForSend не трекается гранулярно —
-              // отображаем бесконечный-стиль (0 → 1 по факту завершения).
-              try {
-                final envelope = await e2eeCtx.runtime.encryptMediaForSend(
-                  storage: storage,
-                  conversationId: widget.conversationId,
-                  messageId: e2eeCtx.messageId,
-                  epoch: e2eeCtx.epoch,
-                  data: bytes,
-                  mime: mime,
-                );
-                if (!mounted) return;
-                e2eeEnvelopes[i] = envelope.toWireJson();
-                setState(() => _progress[i] = 1.0);
-              } on MobileE2eeEncryptException {
-                rethrow;
-              }
-              return;
-            }
-
-            final name = widget.files[i].name.isNotEmpty
-                ? widget.files[i].name
-                : widget.files[i].path.split('/').last;
+            final name = prepared.file.name.isNotEmpty
+                ? prepared.file.name
+                : prepared.file.path.split('/').last;
             final att = await uploadChatAttachmentBytesWithProgress(
               storage: storage,
               conversationId: widget.conversationId,
               bytes: bytes,
               pathUniqueSegment: 'p$i',
               displayName: name,
-              mimeType: widget.files[i].mimeType,
+              mimeType: prepared.effectiveMime,
               onProgress: (p) {
                 if (mounted) setState(() => _progress[i] = p);
               },
@@ -190,12 +188,55 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
           } catch (e) {
             if (e is FirebaseException &&
                 (e.code == 'canceled' || e.code == 'cancelled')) {
-              return;
+              continue;
             }
             rethrow;
+          } finally {
+            if (prepared != null) {
+              await cleanupPreparedE2eeFile(prepared);
+            }
           }
-        }),
-      );
+        }
+      } else {
+        await Future.wait(
+          List.generate(n, (i) async {
+            if (_skipped[i]) return;
+            try {
+              final bytes = await widget.files[i].readAsBytes();
+              final asp = await _decodeAspect(bytes);
+              if (mounted && asp != null) {
+                setState(() => _aspects[i] = asp);
+              }
+              if (!mounted) return;
+
+              final name = widget.files[i].name.isNotEmpty
+                  ? widget.files[i].name
+                  : widget.files[i].path.split('/').last;
+              final att = await uploadChatAttachmentBytesWithProgress(
+                storage: storage,
+                conversationId: widget.conversationId,
+                bytes: bytes,
+                pathUniqueSegment: 'p$i',
+                displayName: name,
+                mimeType: widget.files[i].mimeType,
+                onProgress: (p) {
+                  if (mounted) setState(() => _progress[i] = p);
+                },
+                onTaskCreated: (t) {
+                  if (mounted) _tasks[i] = t;
+                },
+              );
+              if (mounted) attachments[i] = att;
+            } catch (e) {
+              if (e is FirebaseException &&
+                  (e.code == 'canceled' || e.code == 'cancelled')) {
+                return;
+              }
+              rethrow;
+            }
+          }),
+        );
+      }
       if (!mounted) return;
       final uploaded = <ChatAttachment>[];
       final envelopesOut = <Map<String, Object?>>[];
@@ -241,20 +282,6 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
     }
   }
 
-  String _effectiveMime(XFile f) {
-    final m = (f.mimeType ?? '').trim();
-    if (m.isNotEmpty) return m.toLowerCase();
-    final p = f.path.toLowerCase();
-    if (p.endsWith('.jpg') || p.endsWith('.jpeg')) return 'image/jpeg';
-    if (p.endsWith('.png')) return 'image/png';
-    if (p.endsWith('.webp')) return 'image/webp';
-    if (p.endsWith('.heic') || p.endsWith('.heif')) return 'image/heic';
-    if (p.endsWith('.gif')) return 'image/gif';
-    if (p.endsWith('.mp4')) return 'video/mp4';
-    if (p.endsWith('.mov') || p.endsWith('.qt')) return 'video/quicktime';
-    return 'application/octet-stream';
-  }
-
   Future<double?> _decodeAspect(Uint8List bytes) async {
     try {
       final codec = await ui.instantiateImageCodec(bytes);
@@ -282,7 +309,8 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final bubbleColor = widget.outgoingBubbleColor ??
+    final bubbleColor =
+        widget.outgoingBubbleColor ??
         scheme.primary.withValues(
           alpha: scheme.brightness == Brightness.dark ? 0.45 : 0.28,
         );
@@ -294,14 +322,14 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
         : baseGrid;
     final displayCount = total > _maxCells ? _maxCells : total;
     final slice = widget.files.take(displayCount).toList(growable: false);
-    final extraBeyond =
-        total > _maxCells ? total - _maxCells : 0;
+    final extraBeyond = total > _maxCells ? total - _maxCells : 0;
     final lastIdx = displayCount - 1;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          widget.isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: widget.isMine
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         if (widget.replyTo != null)
           Padding(
@@ -347,9 +375,7 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               color: bubbleColor,
-              border: Border.all(
-                color: scheme.primary.withValues(alpha: 0.18),
-              ),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.18)),
             ),
             child: _captionBody(
               caption: widget.captionText.trim(),
@@ -376,7 +402,8 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
     Widget tile(int idx) {
       final showPlus = extraBeyond > 0 && idx == lastIdx;
       final f = slice[idx];
-      final isVideo = _isOutgoingAlbumLocalVideo(f) && !isOutgoingAlbumLocalImage(f);
+      final isVideo =
+          _isOutgoingAlbumLocalVideo(f) && !isOutgoingAlbumLocalImage(f);
       return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         clipBehavior: Clip.antiAlias,
@@ -392,9 +419,8 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
                 : Image.file(
                     File(f.path),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => ColoredBox(
-                      color: Colors.grey.shade900,
-                    ),
+                    errorBuilder: (_, _, _) =>
+                        ColoredBox(color: Colors.grey.shade900),
                   ),
             if (showPlus)
               Container(
@@ -462,11 +488,7 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
     Widget oneFullWidth(int index) {
       final r = _ar(index);
       final h = mosaicFullWidthRowHeight(maxWidth: maxWidth, aspectRatio: r);
-      return SizedBox(
-        width: maxWidth,
-        height: h,
-        child: tile(index),
-      );
+      return SizedBox(width: maxWidth, height: h, child: tile(index));
     }
 
     final List<Widget> colChildren;
@@ -519,7 +541,9 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(ChatMediaLayoutTokens.mediaCardRadius),
+      borderRadius: BorderRadius.circular(
+        ChatMediaLayoutTokens.mediaCardRadius,
+      ),
       clipBehavior: Clip.antiAliasWithSaveLayer,
       child: SizedBox(
         width: boxW,
@@ -527,7 +551,8 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            (_isOutgoingAlbumLocalVideo(file) && !isOutgoingAlbumLocalImage(file))
+            (_isOutgoingAlbumLocalVideo(file) &&
+                    !isOutgoingAlbumLocalImage(file))
                 ? VideoFirstFrame(
                     file: File(file.path),
                     fit: isLandscape ? BoxFit.cover : BoxFit.contain,
@@ -563,9 +588,7 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ColoredBox(
-            color: Colors.black.withValues(alpha: 0.42),
-          ),
+          ColoredBox(color: Colors.black.withValues(alpha: 0.42)),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,

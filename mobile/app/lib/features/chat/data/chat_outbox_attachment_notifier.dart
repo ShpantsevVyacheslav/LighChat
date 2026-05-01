@@ -19,11 +19,7 @@ import '../ui/message_html_text.dart';
 /// Префикс id синтетических сообщений в ленте (см. [buildDescWithOutboxMessages]).
 const String kLocalOutboxMessageIdPrefix = 'local-outbox-';
 
-enum OutboxAttachmentPhase {
-  uploading,
-  sending,
-  failed,
-}
+enum OutboxAttachmentPhase { uploading, sending, failed }
 
 @immutable
 class OutboxAttachmentJob {
@@ -58,6 +54,7 @@ class OutboxAttachmentJob {
   final int? e2eeEpoch;
   final String effectiveMessageId;
   final DateTime createdAt;
+
   /// Если задан — отправка в `messages/{id}/thread`, иначе в основной ленте.
   final String? threadParentMessageId;
   final OutboxAttachmentPhase phase;
@@ -162,8 +159,9 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
     int? e2eeEpoch,
     String? threadParentMessageId,
   }) async {
-    final prepared =
-        ComposerHtmlEditing.prepareChatMessageHtmlForSend(rawCaptionHtml);
+    final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
+      rawCaptionHtml,
+    );
     final plainPreview = messageHtmlToPlainText(prepared).trim();
     if (plainPreview.isEmpty && files.isEmpty) {
       debugPrint('ChatOutboxAttachmentNotifier: skip empty enqueue');
@@ -211,8 +209,9 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       e2eeEpoch: e2eeEpoch,
       effectiveMessageId: effectiveMessageId,
       createdAt: DateTime.now(),
-      threadParentMessageId:
-          threadOpt != null && threadOpt.isNotEmpty ? threadOpt : null,
+      threadParentMessageId: threadOpt != null && threadOpt.isNotEmpty
+          ? threadOpt
+          : null,
     );
     state = [...state, job];
     unawaited(_runJob(jobId));
@@ -300,11 +299,13 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
 
       final storage = FirebaseStorage.instance;
       final files = job.stagedAbsolutePaths.map((p) => XFile(p)).toList();
-      final textSave =
-          ComposerHtmlEditing.prepareChatMessageHtmlForSend(job.captionHtml);
+      final textSave = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
+        job.captionHtml,
+      );
 
-      final MobileE2eeRuntime? e2eeRuntime =
-          job.convIsE2ee ? ref.read(mobileE2eeRuntimeProvider) : null;
+      final MobileE2eeRuntime? e2eeRuntime = job.convIsE2ee
+          ? ref.read(mobileE2eeRuntimeProvider)
+          : null;
       final epoch = job.e2eeEpoch;
 
       E2eeAttachmentPrepareResult prep;
@@ -412,10 +413,20 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
     } on MobileE2eeEncryptException catch (e) {
       final cur = _byId(jobId);
       if (cur != null) {
+        final message = (e.message != null && e.message!.trim().isNotEmpty)
+            ? e.message!.trim()
+            : 'Шифрование: ${e.code}';
+        _replace(
+          cur.copyWith(phase: OutboxAttachmentPhase.failed, lastError: message),
+        );
+      }
+    } on E2eeAttachmentSendLimitException catch (e) {
+      final cur = _byId(jobId);
+      if (cur != null) {
         _replace(
           cur.copyWith(
             phase: OutboxAttachmentPhase.failed,
-            lastError: 'Шифрование: ${e.code}',
+            lastError: e.message,
           ),
         );
       }
@@ -427,10 +438,7 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       final cur = _byId(jobId);
       if (cur != null) {
         _replace(
-          cur.copyWith(
-            phase: OutboxAttachmentPhase.failed,
-            lastError: fe,
-          ),
+          cur.copyWith(phase: OutboxAttachmentPhase.failed, lastError: fe),
         );
       }
     } finally {
@@ -441,7 +449,8 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
 
 final chatOutboxAttachmentNotifierProvider =
     NotifierProvider<ChatOutboxAttachmentNotifier, List<OutboxAttachmentJob>>(
-        ChatOutboxAttachmentNotifier.new);
+      ChatOutboxAttachmentNotifier.new,
+    );
 
 List<ChatMessage> buildDescWithOutboxMessages({
   required List<ChatMessage> hydratedDesc,

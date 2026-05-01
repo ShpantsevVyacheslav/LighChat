@@ -20,13 +20,88 @@
 /// файлы в plaintext-путь.
 library;
 
-import 'dart:typed_data';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
 import 'e2ee_runtime.dart';
+import 'video_send_compress_720p.dart';
+
+/// Stability-first guardrails for E2EE multi-media send.
+const int e2eeSendMaxFilesPerMessage = 5;
+const int e2eeSendMaxTotalBytes = 96 * 1024 * 1024;
+
+class E2eeAttachmentSendLimitException implements Exception {
+  const E2eeAttachmentSendLimitException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+class E2eePreparedSendFile {
+  const E2eePreparedSendFile({
+    required this.file,
+    required this.effectiveMime,
+    required this.temporaryCompressedFile,
+  });
+
+  final XFile file;
+  final String effectiveMime;
+  final bool temporaryCompressedFile;
+}
+
+Future<void> validateE2eeBatchLimitsOrThrow(List<XFile> files) async {
+  if (files.length > e2eeSendMaxFilesPerMessage) {
+    throw const E2eeAttachmentSendLimitException(
+      'Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.',
+    );
+  }
+  var totalBytes = 0;
+  for (final f in files) {
+    totalBytes += await f.length();
+    if (totalBytes > e2eeSendMaxTotalBytes) {
+      throw const E2eeAttachmentSendLimitException(
+        'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.',
+      );
+    }
+  }
+}
+
+Future<void> cleanupPreparedE2eeFile(E2eePreparedSendFile prepared) async {
+  if (!prepared.temporaryCompressedFile) return;
+  final p = prepared.file.path.trim();
+  if (p.isEmpty) return;
+  try {
+    final f = File(p);
+    if (await f.exists()) await f.delete();
+  } catch (e) {
+    debugPrint('cleanupPreparedE2eeFile failed: $e');
+  }
+}
+
+Future<E2eePreparedSendFile> prepareE2eeFileForSend(XFile file) async {
+  final originalMime = _effectiveMime(file);
+  if (!isEncryptableMimeV2(originalMime) ||
+      !originalMime.startsWith('video/')) {
+    return E2eePreparedSendFile(
+      file: file,
+      effectiveMime: originalMime,
+      temporaryCompressedFile: false,
+    );
+  }
+  final compressed = await maybeCompressVideoForSend720p(file);
+  final effective = compressed.file;
+  final effectiveMime = _effectiveMime(effective);
+  return E2eePreparedSendFile(
+    file: effective,
+    effectiveMime: effectiveMime,
+    temporaryCompressedFile: compressed.didCompress,
+  );
+}
 
 class E2eeAttachmentPrepareResult {
   const E2eeAttachmentPrepareResult({
@@ -61,26 +136,31 @@ Future<E2eeAttachmentPrepareResult> prepareE2eeAttachmentsForSend({
       encryptedEnvelopes: [],
     );
   }
+  await validateE2eeBatchLimitsOrThrow(files);
 
   final plaintextFiles = <XFile>[];
   final envelopes = <Map<String, Object?>>[];
 
   for (final f in files) {
-    final mime = _effectiveMime(f);
-    if (!isEncryptableMimeV2(mime)) {
-      plaintextFiles.add(f);
-      continue;
+    final prepared = await prepareE2eeFileForSend(f);
+    try {
+      if (!isEncryptableMimeV2(prepared.effectiveMime)) {
+        plaintextFiles.add(prepared.file);
+        continue;
+      }
+      final bytes = await prepared.file.readAsBytes();
+      final envelope = await runtime.encryptMediaForSend(
+        storage: storage,
+        conversationId: conversationId,
+        messageId: messageId,
+        epoch: epoch,
+        data: Uint8List.fromList(bytes),
+        mime: prepared.effectiveMime,
+      );
+      envelopes.add(envelope.toWireJson());
+    } finally {
+      await cleanupPreparedE2eeFile(prepared);
     }
-    final bytes = await f.readAsBytes();
-    final envelope = await runtime.encryptMediaForSend(
-      storage: storage,
-      conversationId: conversationId,
-      messageId: messageId,
-      epoch: epoch,
-      data: Uint8List.fromList(bytes),
-      mime: mime,
-    );
-    envelopes.add(envelope.toWireJson());
   }
 
   return E2eeAttachmentPrepareResult(
@@ -119,10 +199,7 @@ Map<String, Object?> mergeE2eeEnvelopeWithMedia({
     return textEnvelope ?? const <String, Object?>{};
   }
   if (textEnvelope != null && textEnvelope.isNotEmpty) {
-    return <String, Object?>{
-      ...textEnvelope,
-      'attachments': mediaEnvelopes,
-    };
+    return <String, Object?>{...textEnvelope, 'attachments': mediaEnvelopes};
   }
   return <String, Object?>{
     'protocolVersion': v2Protocol,
