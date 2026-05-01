@@ -266,11 +266,11 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
         return Dialog(
           backgroundColor: const Color(0xFF17191D),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(22),
             side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -280,32 +280,32 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
-                    fontSize: 21,
-                    height: 1.15,
+                    fontSize: 16.5,
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Text(
                   'Всё, кроме выделенного фрагмента, будет удалено. Запись сообщения продолжится сразу после нажатия кнопки.',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 19,
-                    height: 1.18,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    height: 1.25,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 16),
                 SizedBox(
-                  height: 62,
+                  height: 46,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF37C8EF),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(23),
                       ),
                       textStyle: const TextStyle(
-                        fontSize: 19,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -313,18 +313,18 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                     child: const Text('Продолжить'),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 SizedBox(
-                  height: 58,
+                  height: 44,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white.withValues(alpha: 0.11),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(22),
                       ),
                       textStyle: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -367,6 +367,48 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: _hasTrim && widget.onContinueRecording != null
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(52, 0, 54, 6),
+                    child: SizedBox(
+                      height: 32,
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: fg.withValues(alpha: 0.92),
+                          side: BorderSide(
+                            color: const Color(
+                              0xFF37C8EF,
+                            ).withValues(alpha: 0.55),
+                            width: 1.1,
+                          ),
+                          backgroundColor: const Color(
+                            0xFF37C8EF,
+                          ).withValues(alpha: 0.12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        onPressed: busy ? null : _continueAfterTrim,
+                        icon: Icon(
+                          Icons.keyboard_voice_rounded,
+                          size: 15,
+                          color: fg.withValues(alpha: 0.9),
+                        ),
+                        label: const Text('Продолжить запись'),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -464,38 +506,6 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                 busy: busy,
               ),
             ],
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            child: _hasTrim && widget.onContinueRecording != null
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(48, 8, 50, 0),
-                    child: SizedBox(
-                      height: 40,
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF37C8EF),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
-                        ),
-                        onPressed: busy ? null : _continueAfterTrim,
-                        icon: const Icon(
-                          Icons.keyboard_voice_rounded,
-                          size: 18,
-                        ),
-                        label: const Text('Продолжить запись'),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
           ),
         ],
       ),

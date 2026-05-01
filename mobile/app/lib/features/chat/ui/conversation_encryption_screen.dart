@@ -6,6 +6,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/e2ee_data_type_policy.dart';
+import 'profile_subpage_header.dart';
 
 /// Экран включения / отключения сквозного шифрования для конкретного личного чата.
 class ConversationEncryptionScreen extends StatefulWidget {
@@ -192,40 +193,9 @@ class _ConversationEncryptionScreenState
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                children: [
-                  Material(
-                    color: scheme.surfaceContainerHighest.withValues(
-                      alpha: 0.55,
-                    ),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => Navigator.of(context).maybePop(),
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Icon(
-                          Icons.chevron_left_rounded,
-                          size: 30,
-                          color: scheme.onSurface.withValues(alpha: 0.92),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Шифрование',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onSurface.withValues(alpha: 0.94),
-                    ),
-                  ),
-                ],
-              ),
+            ChatProfileSubpageHeader(
+              title: 'Шифрование',
+              onBack: () => Navigator.of(context).maybePop(),
             ),
             const SizedBox(height: 16),
             Text(

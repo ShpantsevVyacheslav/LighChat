@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'durak_card_widget.dart';
@@ -47,6 +48,13 @@ class DurakTableWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void traceDrop(String where, Map<String, dynamic> card) {
+      if (!kDebugMode) return;
+      final r = (card['r'] ?? '').toString();
+      final s = (card['s'] ?? '').toString();
+      debugPrint('[DurakDrop][$where] $r$s');
+    }
+
     final pairs = <_Pair>[];
     for (var i = 0; i < attacks.length; i++) {
       final aRaw = attacks[i];
@@ -64,6 +72,7 @@ class DurakTableWidget extends StatelessWidget {
             canAcceptAttack(d.data) || canAcceptTransfer(d.data),
         onAcceptWithDetails: (d) {
           final card = d.data;
+          traceDrop('empty', card);
           if (canAcceptTransfer(card)) {
             unawaited(onTransferDropped(card));
           } else {
@@ -124,6 +133,7 @@ class DurakTableWidget extends StatelessWidget {
               canAcceptAttack(d.data) || canAcceptTransfer(d.data),
           onAcceptWithDetails: (d) {
             final card = d.data;
+            traceDrop('table', card);
             if (canAcceptTransfer(card)) {
               unawaited(onTransferDropped(card));
             } else {
@@ -215,6 +225,13 @@ class _NextAttackSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void traceDrop(Map<String, dynamic> card) {
+      if (!kDebugMode) return;
+      final r = (card['r'] ?? '').toString();
+      final s = (card['s'] ?? '').toString();
+      debugPrint('[DurakDrop][next-slot] $r$s');
+    }
+
     return Container(
       width: width,
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
@@ -224,6 +241,7 @@ class _NextAttackSlot extends StatelessWidget {
               canAcceptAttack(d.data) || canAcceptTransfer(d.data),
           onAcceptWithDetails: (d) {
             final card = d.data;
+            traceDrop(card);
             if (canAcceptTransfer(card)) {
               unawaited(onTransferDropped(card));
             } else {

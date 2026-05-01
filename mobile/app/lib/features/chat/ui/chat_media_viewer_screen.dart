@@ -116,6 +116,7 @@ class ChatMediaViewerScreen extends StatefulWidget {
     super.key,
     required this.items,
     required this.initialIndex,
+    this.conversationId,
     required this.currentUserId,
     required this.senderLabel,
     this.onReply,
@@ -129,6 +130,7 @@ class ChatMediaViewerScreen extends StatefulWidget {
 
   final List<ChatMediaGalleryItem> items;
   final int initialIndex;
+  final String? conversationId;
   final String currentUserId;
   final String Function(String senderId) senderLabel;
 
@@ -261,7 +263,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
       } else if (uri.scheme == 'http' || uri.scheme == 'https') {
         final res = await http.get(uri);
         if (res.statusCode != 200) {
-          throw HttpException(l10n.media_viewer_error_http_status(res.statusCode));
+          throw HttpException(
+            l10n.media_viewer_error_http_status(res.statusCode),
+          );
         }
         await f.writeAsBytes(res.bodyBytes);
       } else {
@@ -276,12 +280,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
-          SnackBar(
-            content: Text(l10n.media_viewer_error_save_failed(e)),
-          ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.media_viewer_error_save_failed(e))),
         );
       }
     }
@@ -338,8 +338,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     final ext = _shareExtFromAttachment(item.attachment);
     final video = isChatGridGalleryVideo(item.attachment);
     final fallbackName = video ? '$safeBaseName.$ext' : '$safeBaseName.$ext';
-    final mimeType =
-        (item.attachment.type ?? '').trim().isEmpty ? null : item.attachment.type;
+    final mimeType = (item.attachment.type ?? '').trim().isEmpty
+        ? null
+        : item.attachment.type;
 
     File? f;
     try {
@@ -358,7 +359,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
       } else if (uri.scheme == 'http' || uri.scheme == 'https') {
         final res = await http.get(uri);
         if (res.statusCode != 200) {
-          throw HttpException(l10n.media_viewer_error_http_status(res.statusCode));
+          throw HttpException(
+            l10n.media_viewer_error_http_status(res.statusCode),
+          );
         }
         await f.writeAsBytes(res.bodyBytes, flush: true);
       } else {
@@ -375,12 +378,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
-          SnackBar(
-            content: Text(l10n.media_viewer_error_send_failed(e)),
-          ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.media_viewer_error_send_failed(e))),
         );
       }
     }
@@ -542,6 +541,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                             key: ValueKey<String>('v-${att.url}'),
                             pageIndex: i,
                             url: att.url,
+                            conversationId: widget.conversationId,
+                            messageId: it.message.id,
+                            attachmentName: att.name,
                             mimeType: att.type,
                             topOverlayInset: i == _index
                                 ? topBarControlsInset
@@ -736,7 +738,10 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                       value: 'forward',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.forward_rounded, color: hi),
+                                          Icon(
+                                            Icons.forward_rounded,
+                                            color: hi,
+                                          ),
                                           const SizedBox(width: 12),
                                           Text(
                                             l10n.media_viewer_action_forward,
@@ -770,7 +775,10 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                       value: 'save',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.download_rounded, color: hi),
+                                          Icon(
+                                            Icons.download_rounded,
+                                            color: hi,
+                                          ),
                                           const SizedBox(width: 12),
                                           Text(
                                             l10n.media_viewer_action_save,
@@ -985,6 +993,9 @@ class _GalleryVideoPage extends StatefulWidget {
     super.key,
     required this.pageIndex,
     required this.url,
+    this.conversationId,
+    this.messageId,
+    this.attachmentName,
     this.mimeType,
     this.topOverlayInset = 0,
     this.showEdgeNavigation = true,
@@ -996,6 +1007,9 @@ class _GalleryVideoPage extends StatefulWidget {
 
   final int pageIndex;
   final String url;
+  final String? conversationId;
+  final String? messageId;
+  final String? attachmentName;
   final String? mimeType;
   final double topOverlayInset;
   final bool showEdgeNavigation;
@@ -1071,6 +1085,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
                 setState(() => _cacheProgress = p ?? _cacheProgress);
               },
               isCancelled: () => _downloadCancelled || !mounted,
+              conversationId: widget.conversationId,
+              messageId: widget.messageId,
+              attachmentName: widget.attachmentName,
             ).whenComplete(() {
               if (!mounted || _downloadCancelled) return;
               setState(() => _cacheProgress = null);
@@ -1365,6 +1382,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
             url: nextUrl,
             onProgress: (_) {},
             isCancelled: () => !mounted,
+            conversationId: widget.conversationId,
+            messageId: widget.messageId,
+            attachmentName: widget.attachmentName,
           ),
         );
         replacement = VideoPlayerController.networkUrl(
@@ -1375,7 +1395,8 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       await replacement.initialize();
       if (replacement.value.hasError) {
         throw Exception(
-          replacement.value.errorDescription ?? l10n.media_viewer_video_playback_failed,
+          replacement.value.errorDescription ??
+              l10n.media_viewer_video_playback_failed,
         );
       }
       await replacement.setLooping(false);
@@ -1406,9 +1427,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.media_viewer_error_quality_switch_failed),
-        ),
+        SnackBar(content: Text(l10n.media_viewer_error_quality_switch_failed)),
       );
     } finally {
       await replacement?.dispose();
@@ -1453,9 +1472,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
         if (mounted) {
           final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.media_viewer_error_pip_open_failed),
-            ),
+            SnackBar(content: Text(l10n.media_viewer_error_pip_open_failed)),
           );
         }
       }
@@ -1861,7 +1878,9 @@ enum _ViewerVideoQuality {
 }
 
 String _videoQualityLabel(AppLocalizations l10n, _ViewerVideoQuality q) {
-  if (q == _ViewerVideoQuality.auto) return l10n.media_viewer_video_quality_auto;
+  if (q == _ViewerVideoQuality.auto) {
+    return l10n.media_viewer_video_quality_auto;
+  }
   final h = q.targetHeight;
   return h == null ? l10n.media_viewer_video_quality_auto : '${h}p';
 }

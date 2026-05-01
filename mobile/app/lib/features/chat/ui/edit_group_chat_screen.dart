@@ -12,6 +12,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import 'chat_shell_backdrop.dart';
 import 'group_chat_avatar_button.dart';
+import 'profile_subpage_header.dart';
 import '../../../l10n/app_localizations.dart';
 
 class EditGroupChatScreen extends ConsumerStatefulWidget {
@@ -162,56 +163,11 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
     );
   }
 
-  Widget _closeButton(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.white.withValues(
-        alpha: scheme.brightness == Brightness.dark ? 0.10 : 0.18,
-      ),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _closeScreen,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(
-            Icons.close_rounded,
-            size: 22,
-            color: scheme.onSurface.withValues(alpha: 0.95),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _header(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              l10n.edit_group_title,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-                color: scheme.onSurface,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: _closeButton(context),
-          ),
-        ],
-      ),
+    return ChatProfileSubpageHeader(
+      title: l10n.edit_group_title,
+      onBack: _closeScreen,
     );
   }
 
@@ -509,37 +465,47 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                                 _privacySwitch(
                                   context: context,
                                   title: l10n.edit_group_privacy_forwarding,
-                                  description: l10n.edit_group_privacy_forwarding_desc,
+                                  description:
+                                      l10n.edit_group_privacy_forwarding_desc,
                                   value: _forwardingAllowed,
-                                  onChanged: (v) => setState(() => _forwardingAllowed = v),
+                                  onChanged: (v) =>
+                                      setState(() => _forwardingAllowed = v),
                                 ),
                                 _privacySwitch(
                                   context: context,
                                   title: l10n.edit_group_privacy_screenshots,
-                                  description: l10n.edit_group_privacy_screenshots_desc,
+                                  description:
+                                      l10n.edit_group_privacy_screenshots_desc,
                                   value: _screenshotsAllowed,
-                                  onChanged: (v) => setState(() => _screenshotsAllowed = v),
+                                  onChanged: (v) =>
+                                      setState(() => _screenshotsAllowed = v),
                                 ),
                                 _privacySwitch(
                                   context: context,
                                   title: l10n.edit_group_privacy_copy,
-                                  description: l10n.edit_group_privacy_copy_desc,
+                                  description:
+                                      l10n.edit_group_privacy_copy_desc,
                                   value: _copyAllowed,
-                                  onChanged: (v) => setState(() => _copyAllowed = v),
+                                  onChanged: (v) =>
+                                      setState(() => _copyAllowed = v),
                                 ),
                                 _privacySwitch(
                                   context: context,
                                   title: l10n.edit_group_privacy_save_media,
-                                  description: l10n.edit_group_privacy_save_media_desc,
+                                  description:
+                                      l10n.edit_group_privacy_save_media_desc,
                                   value: _saveMediaAllowed,
-                                  onChanged: (v) => setState(() => _saveMediaAllowed = v),
+                                  onChanged: (v) =>
+                                      setState(() => _saveMediaAllowed = v),
                                 ),
                                 _privacySwitch(
                                   context: context,
                                   title: l10n.edit_group_privacy_share_media,
-                                  description: l10n.edit_group_privacy_share_media_desc,
+                                  description:
+                                      l10n.edit_group_privacy_share_media_desc,
                                   value: _shareMediaAllowed,
-                                  onChanged: (v) => setState(() => _shareMediaAllowed = v),
+                                  onChanged: (v) =>
+                                      setState(() => _shareMediaAllowed = v),
                                 ),
                                 if (_error != null) ...[
                                   const SizedBox(height: 16),

@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
+import '../data/local_cache_entry_registry.dart';
+import '../data/local_storage_preferences.dart';
+
 /// Локальный кэш видео из галереи чата: один файл на URL, повторное открытие без повторной загрузки.
 class ChatGalleryVideoLocalCache {
   ChatGalleryVideoLocalCache._();
@@ -56,27 +59,45 @@ class ChatGalleryVideoLocalCache {
 
   /// Фоновый подогрев кэша без прогресса и без проброса ошибки в UI.
   /// Дедуплицирует одновременные запросы по одному URL.
-  static Future<void> warmUp(String url) {
-    final trimmed = url.trim();
-    if (trimmed.isEmpty) return Future<void>.value();
-    if (_warmUpInFlight.containsKey(trimmed)) {
-      return _warmUpInFlight[trimmed]!;
-    }
-    final task = () async {
-      try {
-        await downloadToCache(
-          url: trimmed,
-          onProgress: (_) {},
-          isCancelled: () => false,
+  static Future<void> warmUp(
+    String url, {
+    String? conversationId,
+    String? messageId,
+    String? attachmentName,
+  }) {
+    return () async {
+      final prefs = await LocalStoragePreferencesStore.load();
+      if (!prefs.videoDownloadsEnabled) return;
+      final cid = conversationId?.trim();
+      if (cid != null && cid.isNotEmpty) {
+        await LocalCacheEntryRegistry.registerVideoContext(
+          url: url,
+          conversationId: cid,
+          messageId: messageId,
+          attachmentName: attachmentName,
         );
-      } catch (_) {
-        // best-effort: при ошибке просто оставляем без локального файла.
-      } finally {
-        _warmUpInFlight.remove(trimmed);
       }
+      final trimmed = url.trim();
+      if (trimmed.isEmpty) return;
+      if (_warmUpInFlight.containsKey(trimmed)) {
+        return _warmUpInFlight[trimmed]!;
+      }
+      final task = () async {
+        try {
+          await downloadToCache(
+            url: trimmed,
+            onProgress: (_) {},
+            isCancelled: () => false,
+          );
+        } catch (_) {
+          // best-effort: при ошибке просто оставляем без локального файла.
+        } finally {
+          _warmUpInFlight.remove(trimmed);
+        }
+      }();
+      _warmUpInFlight[trimmed] = task;
+      return task;
     }();
-    _warmUpInFlight[trimmed] = task;
-    return task;
   }
 
   /// Скачивает по [url] в файл кэша. [onProgress]: 0..1 или `null`, если длина неизвестна.
@@ -84,7 +105,24 @@ class ChatGalleryVideoLocalCache {
     required String url,
     required void Function(double? progress) onProgress,
     required bool Function() isCancelled,
+    String? conversationId,
+    String? messageId,
+    String? attachmentName,
   }) async {
+    final prefs = await LocalStoragePreferencesStore.load();
+    if (!prefs.videoDownloadsEnabled) {
+      onProgress(null);
+      return;
+    }
+    final cid = conversationId?.trim();
+    if (cid != null && cid.isNotEmpty) {
+      await LocalCacheEntryRegistry.registerVideoContext(
+        url: url,
+        conversationId: cid,
+        messageId: messageId,
+        attachmentName: attachmentName,
+      );
+    }
     if (await hasCachedFile(url)) {
       onProgress(1);
       return;

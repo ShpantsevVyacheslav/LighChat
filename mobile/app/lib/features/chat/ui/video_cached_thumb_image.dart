@@ -10,10 +10,16 @@ class VideoCachedThumbImage extends StatefulWidget {
   const VideoCachedThumbImage({
     super.key,
     required this.videoUrl,
+    this.conversationId,
+    this.messageId,
+    this.attachmentName,
     this.fit = BoxFit.cover,
   });
 
   final String videoUrl;
+  final String? conversationId;
+  final String? messageId;
+  final String? attachmentName;
   final BoxFit fit;
 
   @override
@@ -40,6 +46,9 @@ class _VideoCachedThumbImageState extends State<VideoCachedThumbImage> {
   Future<void> _load() async {
     final f = await VideoUrlFirstFrameCache.instance.getOrCreate(
       widget.videoUrl,
+      conversationId: widget.conversationId,
+      messageId: widget.messageId,
+      attachmentName: widget.attachmentName,
     );
     if (!mounted) return;
     setState(() => _file = f);

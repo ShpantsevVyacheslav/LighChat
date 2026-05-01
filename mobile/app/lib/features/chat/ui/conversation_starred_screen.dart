@@ -8,6 +8,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import 'message_html_text.dart';
+import 'profile_subpage_header.dart';
 
 class ConversationStarredScreen extends ConsumerWidget {
   const ConversationStarredScreen({
@@ -81,38 +82,9 @@ class ConversationStarredScreen extends ConsumerWidget {
   }
 
   Widget _topBar(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-      child: _glass(
-        context,
-        child: SizedBox(
-          height: 52,
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: scheme.onSurface.withValues(alpha: 0.92),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'Избранное',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: scheme.onSurface.withValues(alpha: 0.95),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 48),
-            ],
-          ),
-        ),
-      ),
+    return ChatProfileSubpageHeader(
+      title: 'Избранное',
+      onBack: () => Navigator.of(context).pop(),
     );
   }
 
@@ -129,35 +101,6 @@ class ConversationStarredScreen extends ConsumerWidget {
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _glass(
-    BuildContext context, {
-    required Widget child,
-    double radius = 20,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          decoration: BoxDecoration(
-            color: (dark ? Colors.black : Colors.white).withValues(
-              alpha: dark ? 0.24 : 0.42,
-            ),
-            border: Border.all(
-              color: (dark ? Colors.white : Colors.black).withValues(
-                alpha: dark ? 0.14 : 0.10,
-              ),
-            ),
-            borderRadius: BorderRadius.circular(radius),
-          ),
-          child: child,
         ),
       ),
     );

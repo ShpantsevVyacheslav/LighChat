@@ -680,6 +680,12 @@ abstract class AppLocalizations {
   /// **'Язык'**
   String get account_menu_language;
 
+  /// No description provided for @account_menu_storage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Хранилище'**
+  String get account_menu_storage;
+
   /// No description provided for @account_menu_theme.
   ///
   /// In ru, this message translates to:
@@ -691,6 +697,246 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выйти'**
   String get account_menu_sign_out;
+
+  /// No description provided for @storage_settings_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Хранилище'**
+  String get storage_settings_title;
+
+  /// No description provided for @storage_settings_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Управляйте локальным кэшем на устройстве: что хранить, что чистить и сколько места выделять.'**
+  String get storage_settings_subtitle;
+
+  /// No description provided for @storage_settings_total_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Занято на устройстве'**
+  String get storage_settings_total_label;
+
+  /// No description provided for @storage_settings_budget_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Целевой лимит кэша: {mb} МБ'**
+  String storage_settings_budget_label(Object mb);
+
+  /// No description provided for @storage_settings_clear_all_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить весь кэш'**
+  String get storage_settings_clear_all_button;
+
+  /// No description provided for @storage_settings_trim_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поджать до лимита'**
+  String get storage_settings_trim_button;
+
+  /// No description provided for @storage_settings_policy_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Что хранить локально'**
+  String get storage_settings_policy_title;
+
+  /// No description provided for @storage_settings_budget_slider_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лимит кэша'**
+  String get storage_settings_budget_slider_title;
+
+  /// No description provided for @storage_settings_breakdown_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разбивка по типам'**
+  String get storage_settings_breakdown_title;
+
+  /// No description provided for @storage_settings_breakdown_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Локальный кэш пока пуст.'**
+  String get storage_settings_breakdown_empty;
+
+  /// No description provided for @storage_settings_chats_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разбивка по чатам'**
+  String get storage_settings_chats_title;
+
+  /// No description provided for @storage_settings_chats_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет кэша, привязанного к чатам.'**
+  String get storage_settings_chats_empty;
+
+  /// No description provided for @storage_settings_chat_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} элементов · {size}'**
+  String storage_settings_chat_subtitle(Object count, Object size);
+
+  /// No description provided for @storage_settings_general_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кэш без привязки к чату'**
+  String get storage_settings_general_title;
+
+  /// No description provided for @storage_settings_general_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Записи, которые не удалось однозначно связать с конкретным чатом (legacy/глобальный кэш).'**
+  String get storage_settings_general_hint;
+
+  /// No description provided for @storage_settings_general_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Общий кэш пуст.'**
+  String get storage_settings_general_empty;
+
+  /// No description provided for @storage_settings_chat_files_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Локальных файлов для этого чата пока нет.'**
+  String get storage_settings_chat_files_empty;
+
+  /// No description provided for @storage_settings_clear_chat_action.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить кэш чата'**
+  String get storage_settings_clear_chat_action;
+
+  /// No description provided for @storage_settings_clear_all_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить локальный кэш?'**
+  String get storage_settings_clear_all_title;
+
+  /// No description provided for @storage_settings_clear_all_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Будут удалены кэшированные файлы, превью, черновики и офлайн-снимки списка чатов на этом устройстве.'**
+  String get storage_settings_clear_all_body;
+
+  /// No description provided for @storage_settings_clear_chat_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить кэш «{chat}»?'**
+  String storage_settings_clear_chat_title(Object chat);
+
+  /// No description provided for @storage_settings_clear_chat_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалится только локальный кэш этого чата. Облачные сообщения не затрагиваются.'**
+  String get storage_settings_clear_chat_body;
+
+  /// No description provided for @storage_settings_snackbar_cleared.
+  ///
+  /// In ru, this message translates to:
+  /// **'Локальный кэш очищен'**
+  String get storage_settings_snackbar_cleared;
+
+  /// No description provided for @storage_settings_snackbar_budget_already_ok.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кэш уже укладывается в лимит'**
+  String get storage_settings_snackbar_budget_already_ok;
+
+  /// No description provided for @storage_settings_snackbar_budget_trimmed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Освобождено: {size}'**
+  String storage_settings_snackbar_budget_trimmed(Object size);
+
+  /// No description provided for @storage_settings_error_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось собрать статистику хранилища'**
+  String get storage_settings_error_empty;
+
+  /// No description provided for @storage_category_e2ee_media.
+  ///
+  /// In ru, this message translates to:
+  /// **'E2EE медиа-кэш'**
+  String get storage_category_e2ee_media;
+
+  /// No description provided for @storage_category_e2ee_media_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расшифрованные медиа секретных чатов для быстрого повторного открытия.'**
+  String get storage_category_e2ee_media_subtitle;
+
+  /// No description provided for @storage_category_e2ee_text.
+  ///
+  /// In ru, this message translates to:
+  /// **'E2EE текст-кэш'**
+  String get storage_category_e2ee_text;
+
+  /// No description provided for @storage_category_e2ee_text_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расшифрованный текст сообщений по чатам для мгновенного рендера.'**
+  String get storage_category_e2ee_text_subtitle;
+
+  /// No description provided for @storage_category_drafts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Черновики сообщений'**
+  String get storage_category_drafts;
+
+  /// No description provided for @storage_category_drafts_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неотправленные черновики по чатам.'**
+  String get storage_category_drafts_subtitle;
+
+  /// No description provided for @storage_category_chat_list_snapshot.
+  ///
+  /// In ru, this message translates to:
+  /// **'Офлайн-список чатов'**
+  String get storage_category_chat_list_snapshot;
+
+  /// No description provided for @storage_category_chat_list_snapshot_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Последний снимок списка чатов для быстрого старта без сети.'**
+  String get storage_category_chat_list_snapshot_subtitle;
+
+  /// No description provided for @storage_category_profile_cards.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мини-кэш профилей'**
+  String get storage_category_profile_cards;
+
+  /// No description provided for @storage_category_profile_cards_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имена и аватары для ускорения интерфейса.'**
+  String get storage_category_profile_cards_subtitle;
+
+  /// No description provided for @storage_category_video_downloads.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кэш загруженных видео'**
+  String get storage_category_video_downloads;
+
+  /// No description provided for @storage_category_video_downloads_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Локальные копии видео из просмотрщика медиа.'**
+  String get storage_category_video_downloads_subtitle;
+
+  /// No description provided for @storage_category_video_thumbs.
+  ///
+  /// In ru, this message translates to:
+  /// **'Превью-кадры видео'**
+  String get storage_category_video_thumbs;
+
+  /// No description provided for @storage_category_video_thumbs_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сгенерированные первые кадры для видео.'**
+  String get storage_category_video_thumbs_subtitle;
 
   /// No description provided for @profile_delete_account.
   ///
@@ -2497,6 +2743,54 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Создать'**
   String get new_group_action_create;
+
+  /// No description provided for @group_members_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участники'**
+  String get group_members_title;
+
+  /// No description provided for @group_members_invite_link.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пригласить по ссылке'**
+  String get group_members_invite_link;
+
+  /// No description provided for @group_members_admin_badge.
+  ///
+  /// In ru, this message translates to:
+  /// **'АДМИН'**
+  String get group_members_admin_badge;
+
+  /// No description provided for @group_members_invite_text.
+  ///
+  /// In ru, this message translates to:
+  /// **'Присоединяйся к группе {groupName} в LighChat: {inviteLink}'**
+  String group_members_invite_text(Object groupName, Object inviteLink);
+
+  /// No description provided for @group_members_error_min_admin.
+  ///
+  /// In ru, this message translates to:
+  /// **'В группе должен остаться хотя бы один администратор.'**
+  String get group_members_error_min_admin;
+
+  /// No description provided for @group_members_error_cannot_remove_creator.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нельзя снять права администратора с создателя группы.'**
+  String get group_members_error_cannot_remove_creator;
+
+  /// No description provided for @group_members_remove_admin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Администратор снят'**
+  String get group_members_remove_admin;
+
+  /// No description provided for @group_members_make_admin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначен администратор'**
+  String get group_members_make_admin;
 
   /// No description provided for @auth_brand_tagline.
   ///
@@ -4879,6 +5173,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Группа обновлена'**
   String get edit_group_success;
+
+  /// No description provided for @edit_group_privacy_section.
+  ///
+  /// In ru, this message translates to:
+  /// **'КОНФИДЕНЦИАЛЬНОСТЬ'**
+  String get edit_group_privacy_section;
+
+  /// No description provided for @edit_group_privacy_forwarding.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пересылка сообщений'**
+  String get edit_group_privacy_forwarding;
+
+  /// No description provided for @edit_group_privacy_forwarding_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить участникам пересылать сообщения из этой группы.'**
+  String get edit_group_privacy_forwarding_desc;
+
+  /// No description provided for @edit_group_privacy_screenshots.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скриншоты'**
+  String get edit_group_privacy_screenshots;
+
+  /// No description provided for @edit_group_privacy_screenshots_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить скриншоты внутри группы (ограничение зависит от платформы).'**
+  String get edit_group_privacy_screenshots_desc;
+
+  /// No description provided for @edit_group_privacy_copy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Копирование текста'**
+  String get edit_group_privacy_copy;
+
+  /// No description provided for @edit_group_privacy_copy_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить копирование текста сообщений.'**
+  String get edit_group_privacy_copy_desc;
+
+  /// No description provided for @edit_group_privacy_save_media.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранение медиа'**
+  String get edit_group_privacy_save_media;
+
+  /// No description provided for @edit_group_privacy_save_media_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить сохранять фото и видео на устройство.'**
+  String get edit_group_privacy_save_media_desc;
+
+  /// No description provided for @edit_group_privacy_share_media.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделиться медиа'**
+  String get edit_group_privacy_share_media;
+
+  /// No description provided for @edit_group_privacy_share_media_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить делиться медиафайлами вне приложения.'**
+  String get edit_group_privacy_share_media_desc;
 }
 
 class _AppLocalizationsDelegate

@@ -56,6 +56,9 @@
   - `lib/features/chat/data/device_contact_lookup_keys.dart` - генерация lookup-ключей `registrationIndex` из контактов устройства (`p_*`, `e_*`).
   - `lib/features/chat/ui/chat_bottom_nav.dart`, `lib/features/chat/ui/chat_account_menu_sheet.dart` - нижняя навигация и аккаунт-меню по аватару.
   - `lib/features/chat/ui/chat_settings_screen.dart` - экран «Настройки чатов» (пресеты/превью/загрузка своих фонов).
+  - `lib/features/settings/ui/storage_settings_screen.dart`, `lib/features/settings/data/storage_cache_manager.dart` - экран «Хранилище» с разбивкой кэша по чатам/файлам, очисткой (весь кэш/по чату/по файлу), лимитом объёма и политиками локального хранения.
+  - `lib/features/chat/data/local_storage_preferences.dart` - централизованные флаги того, какие типы данных можно сохранять локально (E2EE media/text, черновики, офлайн-снимки, видеокэш и т.д.).
+  - `lib/features/chat/data/local_cache_entry_registry.dart` - локальный реестр соответствий `cache-file -> conversationId/messageId` для корректной привязки video/thumbnail кэша к чатам в экране «Хранилище».
   - `lib/features/chat/ui/conversation_games_screen.dart`, `conversation_durak_entry_screen.dart`, `conversation_durak_*`, `durak_*` - mobile-вход `Игры -> Дурак`, лобби/турниры и игровой стол “Дурака”.
   - `lib/features/chat/data/chat_settings_repository.dart` - чтение/запись `users.chatSettings` и `users.customBackgrounds`, upload фонов в Storage.
   - `lib/features/chat/data/secret_chat_callables.dart` - mobile callable-клиент секретных чатов; на iOS использует прямой HTTPS-POST через `firebase_callable_http.dart`, чтобы не вызывать `cloud_functions` SDK в Release-сборке.

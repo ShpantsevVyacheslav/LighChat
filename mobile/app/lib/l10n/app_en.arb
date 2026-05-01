@@ -167,8 +167,70 @@
   "account_menu_privacy": "Privacy",
   "account_menu_blacklist": "Blacklist",
   "account_menu_language": "Language",
+  "account_menu_storage": "Storage",
   "account_menu_theme": "Theme",
   "account_menu_sign_out": "Sign out",
+  "storage_settings_title": "Storage",
+  "storage_settings_subtitle": "Control what data is cached on this device and clean up by chats or files.",
+  "storage_settings_total_label": "Used on this device",
+  "storage_settings_budget_label": "Target cache budget: {mb} MB",
+  "@storage_settings_budget_label": {
+    "placeholders": {
+      "mb": {}
+    }
+  },
+  "storage_settings_clear_all_button": "Clear all cache",
+  "storage_settings_trim_button": "Trim to budget",
+  "storage_settings_policy_title": "What to keep locally",
+  "storage_settings_budget_slider_title": "Cache budget",
+  "storage_settings_breakdown_title": "By data type",
+  "storage_settings_breakdown_empty": "No local cached data yet.",
+  "storage_settings_chats_title": "By chats",
+  "storage_settings_chats_empty": "No chat-specific cache yet.",
+  "storage_settings_chat_subtitle": "{count} items · {size}",
+  "@storage_settings_chat_subtitle": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "storage_settings_general_title": "Unassigned cache",
+  "storage_settings_general_hint": "Entries not linked to a specific chat (legacy/global cache).",
+  "storage_settings_general_empty": "No shared cache entries.",
+  "storage_settings_chat_files_empty": "No local files in this chat cache.",
+  "storage_settings_clear_chat_action": "Clear chat cache",
+  "storage_settings_clear_all_title": "Clear local cache?",
+  "storage_settings_clear_all_body": "This will remove cached files, previews, drafts, and offline snapshots from this device.",
+  "storage_settings_clear_chat_title": "Clear cache for “{chat}”?",
+  "@storage_settings_clear_chat_title": {
+    "placeholders": {
+      "chat": {}
+    }
+  },
+  "storage_settings_clear_chat_body": "Only this chat cache will be deleted. Messages in cloud stay intact.",
+  "storage_settings_snackbar_cleared": "Local cache cleared",
+  "storage_settings_snackbar_budget_already_ok": "Cache already fits the target budget",
+  "storage_settings_snackbar_budget_trimmed": "Freed: {size}",
+  "@storage_settings_snackbar_budget_trimmed": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_settings_error_empty": "Unable to build storage statistics",
+  "storage_category_e2ee_media": "E2EE media cache",
+  "storage_category_e2ee_media_subtitle": "Decrypted secret media files per chat for faster reopening.",
+  "storage_category_e2ee_text": "E2EE text cache",
+  "storage_category_e2ee_text_subtitle": "Decrypted text snippets per chat for instant rendering.",
+  "storage_category_drafts": "Message drafts",
+  "storage_category_drafts_subtitle": "Unsent draft text by chats.",
+  "storage_category_chat_list_snapshot": "Offline chat list",
+  "storage_category_chat_list_snapshot_subtitle": "Recent chat list snapshot for quick startup offline.",
+  "storage_category_profile_cards": "Profile mini-cache",
+  "storage_category_profile_cards_subtitle": "Names and avatars saved for faster UI.",
+  "storage_category_video_downloads": "Downloaded video cache",
+  "storage_category_video_downloads_subtitle": "Locally downloaded videos from gallery views.",
+  "storage_category_video_thumbs": "Video preview frames",
+  "storage_category_video_thumbs_subtitle": "Generated first-frame thumbnails for videos.",
   "profile_delete_account": "Delete account",
   "profile_delete_account_confirm_title": "Delete your account permanently?",
   "profile_delete_account_confirm_body": "Your account will be removed from Firebase Auth and all your Firestore documents will be deleted permanently. Your chats will remain visible to others in read-only mode.",
@@ -683,7 +745,21 @@
   "new_group_empty_not_found": "No matches found.",
   "new_group_error_name_required": "Please enter a group name.",
   "new_group_error_members_required": "Add at least one member.",
-  "new_group_action_create": "Create"
+  "new_group_action_create": "Create",
+  "group_members_title": "Members",
+  "group_members_invite_link": "Invite via link",
+  "group_members_admin_badge": "ADMIN",
+  "group_members_invite_text": "Join the group {groupName} on LighChat: {inviteLink}",
+  "@group_members_invite_text": {
+    "placeholders": {
+      "groupName": {},
+      "inviteLink": {}
+    }
+  },
+  "group_members_error_min_admin": "At least one administrator must remain in the group.",
+  "group_members_error_cannot_remove_creator": "You can't remove admin rights from the group creator.",
+  "group_members_remove_admin": "Admin rights removed",
+  "group_members_make_admin": "User promoted to admin"
   ,
   "auth_brand_tagline": "A safer messenger",
   "auth_firebase_not_ready": "Firebase isn’t ready. Check `firebase_options.dart` and GoogleService-Info.plist.",
@@ -1451,5 +1527,16 @@
   "edit_group_error_save_failed": "Failed to save group.",
   "edit_group_error_not_found": "Group not found.",
   "edit_group_error_permission_denied": "You don't have permission to edit this group.",
-  "edit_group_success": "Group updated."
+  "edit_group_success": "Group updated.",
+  "edit_group_privacy_section": "PRIVACY",
+  "edit_group_privacy_forwarding": "Message forwarding",
+  "edit_group_privacy_forwarding_desc": "Allow members to forward messages from this group.",
+  "edit_group_privacy_screenshots": "Screenshots",
+  "edit_group_privacy_screenshots_desc": "Allow screenshots in this group (platform-dependent).",
+  "edit_group_privacy_copy": "Text copying",
+  "edit_group_privacy_copy_desc": "Allow copying message text.",
+  "edit_group_privacy_save_media": "Save media",
+  "edit_group_privacy_save_media_desc": "Allow saving photos and videos to the device.",
+  "edit_group_privacy_share_media": "Share media",
+  "edit_group_privacy_share_media_desc": "Allow sharing media files outside the app."
 }

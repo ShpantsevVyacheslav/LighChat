@@ -30,6 +30,8 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import 'local_storage_preferences.dart';
+
 class E2eePlaintextCache {
   E2eePlaintextCache._();
 
@@ -132,13 +134,16 @@ class E2eePlaintextCache {
     return _textMemCache[conversationId]?[messageId];
   }
 
-  Future<void> warmUp(String conversationId) => _ensureTextLoaded(conversationId);
+  Future<void> warmUp(String conversationId) =>
+      _ensureTextLoaded(conversationId);
 
   Future<void> putText({
     required String conversationId,
     required String messageId,
     required String plaintext,
   }) async {
+    final prefs = await LocalStoragePreferencesStore.load();
+    if (!prefs.e2eeTextEnabled) return;
     await _ensureTextLoaded(conversationId);
     final bucket = _textMemCache.putIfAbsent(
       conversationId,

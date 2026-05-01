@@ -28,6 +28,7 @@ void main() {
               highlight: (_) => false,
               selectedId: null,
               onTap: (_, __) {},
+              onDragStarted: null,
               onDragAcceptedByTable: (_) {},
               onDragRejected: (_) {},
             ),

@@ -23,6 +23,24 @@ const FONT_SIZES = [
   { value: "large" as const, label: "Крупный", textClass: "text-base" },
 ];
 
+const EMOJI_BURST_PROFILES = [
+  {
+    value: "lite" as const,
+    label: "Lite",
+    description: "Минимальная нагрузка и мягкая анимация.",
+  },
+  {
+    value: "balanced" as const,
+    label: "Balanced",
+    description: "Автобаланс между вау-эффектом и производительностью.",
+  },
+  {
+    value: "cinematic" as const,
+    label: "Cinematic",
+    description: "Максимум глубины, частиц и динамики.",
+  },
+];
+
 const BUBBLE_COLORS = [
   { value: null, label: "По умолчанию" },
   { value: "#3B82F6", label: "Синий" },
@@ -410,6 +428,37 @@ export default function ChatSettingsPage() {
       <section className="space-y-4">
         <h2 className="text-base font-semibold leading-none tracking-tight">Дополнительно</h2>
         <div className="space-y-5">
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm font-medium">Эффекты эмодзи</Label>
+              <p className="text-xs text-muted-foreground">
+                Профиль fullscreen-анимации при тапе по одиночному эмодзи в чате.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {EMOJI_BURST_PROFILES.map((opt) => {
+                const active = chatSettings.emojiBurstAnimationProfile === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleUpdate({ emojiBurstAnimationProfile: opt.value })}
+                    className={cn(
+                      "rounded-xl border p-3 text-left transition-colors",
+                      active
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-card hover:bg-muted/40"
+                    )}
+                  >
+                    <div className="text-sm font-semibold">{opt.label}</div>
+                    <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                      {opt.description}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label className="text-sm font-medium">Показывать время</Label>

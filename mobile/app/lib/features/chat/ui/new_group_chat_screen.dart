@@ -22,8 +22,21 @@ import 'group_chat_avatar_button.dart';
 import 'new_chat_user_picker_row.dart';
 import '../../../l10n/app_localizations.dart';
 
+class NewGroupChatScreenArgs {
+  const NewGroupChatScreenArgs({
+    this.initialSelectedUserIds = const <String>[],
+  });
+
+  final List<String> initialSelectedUserIds;
+}
+
 class NewGroupChatScreen extends ConsumerStatefulWidget {
-  const NewGroupChatScreen({super.key});
+  const NewGroupChatScreen({
+    super.key,
+    this.initialSelectedUserIds = const <String>[],
+  });
+
+  final List<String> initialSelectedUserIds;
 
   @override
   ConsumerState<NewGroupChatScreen> createState() => _NewGroupChatScreenState();
@@ -49,6 +62,11 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedIds.addAll(
+      widget.initialSelectedUserIds
+          .map((id) => id.trim())
+          .where((id) => id.isNotEmpty),
+    );
     _search.addListener(_onSearchChanged);
   }
 
@@ -566,7 +584,9 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                       _usersFuture == null) {
                     return Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Text(AppLocalizations.of(context)!.auth_firebase_not_ready),
+                      child: Text(
+                        AppLocalizations.of(context)!.auth_firebase_not_ready,
+                      ),
                     );
                   }
 
@@ -962,7 +982,9 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                     error: (e, _) => Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        AppLocalizations.of(context)!.new_chat_error_contacts(e),
+                        AppLocalizations.of(
+                          context,
+                        )!.new_chat_error_contacts(e),
                       ),
                     ),
                   );
@@ -971,7 +993,9 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    AppLocalizations.of(context)!.new_group_error_auth_session(e),
+                    AppLocalizations.of(
+                      context,
+                    )!.new_group_error_auth_session(e),
                   ),
                 ),
               ),

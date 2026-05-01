@@ -13,6 +13,7 @@ import '../../auth/ui/auth_glass.dart';
 import 'chat_wallpaper_preview_styles.dart';
 import 'effective_chat_wallpaper.dart';
 import 'notification_settings_ui.dart';
+import 'profile_subpage_header.dart';
 
 /// Фон только для одного чата: `users/{uid}/chatConversationPrefs/{conversationId}.chatWallpaper`
 /// (как [`ConversationThemePanel`] на вебе).
@@ -46,9 +47,9 @@ class _ChatConversationThemeScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось сохранить фон: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Не удалось сохранить фон: $e')));
     }
   }
 
@@ -81,9 +82,9 @@ class _ChatConversationThemeScreenState
       await _savePatch(<String, Object?>{'chatWallpaper': url});
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки фона: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки фона: $e')));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -129,11 +130,7 @@ class _ChatConversationThemeScreenState
     try {
       // `wasActive` в репозитории сбрасывает **глобальный** `chatSettings.chatWallpaper`;
       // для чата используем только `arrayRemove`, затем при необходимости чистим prefs.
-      await repo.removeCustomBackground(
-        user.uid,
-        url,
-        wasActive: false,
-      );
+      await repo.removeCustomBackground(user.uid, url, wasActive: false);
       if (convActive == url) {
         await _savePatch(<String, Object?>{
           'chatWallpaper': FieldValue.delete(),
@@ -141,9 +138,9 @@ class _ChatConversationThemeScreenState
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка удаления: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка удаления: $e')));
     }
   }
 
@@ -197,9 +194,8 @@ class _ChatConversationThemeScreenState
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 8),
-                        NotificationSettingsPageHeader(
+                        ChatProfileSubpageHeader(
                           title: 'Тема чата',
-                          leadingIcon: Icons.palette_rounded,
                           onBack: () => Navigator.of(context).maybePop(),
                         ),
                         Expanded(
@@ -217,7 +213,8 @@ class _ChatConversationThemeScreenState
                                 Text(
                                   'Текущий фон',
                                   style: TextStyle(
-                                    fontSize: kNotificationSettingsCardTitleSize,
+                                    fontSize:
+                                        kNotificationSettingsCardTitleSize,
                                     fontWeight: FontWeight.w700,
                                     color: dark
                                         ? Colors.white.withValues(alpha: 0.94)
@@ -231,8 +228,13 @@ class _ChatConversationThemeScreenState
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(22),
                                     border: Border.all(
-                                      color: (dark ? Colors.white : scheme.onSurface)
-                                          .withValues(alpha: dark ? 0.14 : 0.12),
+                                      color:
+                                          (dark
+                                                  ? Colors.white
+                                                  : scheme.onSurface)
+                                              .withValues(
+                                                alpha: dark ? 0.14 : 0.12,
+                                              ),
                                     ),
                                   ),
                                   child: ClipRRect(
@@ -240,10 +242,13 @@ class _ChatConversationThemeScreenState
                                     child: SizedBox(
                                       height: 120,
                                       width: double.infinity,
-                                      child: effective == null || effective.isEmpty
+                                      child:
+                                          effective == null || effective.isEmpty
                                           ? Center(
                                               child: Padding(
-                                                padding: const EdgeInsets.all(12),
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
                                                 child: Text(
                                                   'По умолчанию (общие настройки)',
                                                   textAlign: TextAlign.center,
@@ -258,14 +263,18 @@ class _ChatConversationThemeScreenState
                                           : DecoratedBox(
                                               decoration:
                                                   wallpaperPreviewDecoration(
-                                                context,
-                                                effective,
-                                              ),
-                                              child: effective.startsWith('http')
+                                                    context,
+                                                    effective,
+                                                  ),
+                                              child:
+                                                  effective.startsWith('http')
                                                   ? ColoredBox(
                                                       color: Colors.black
-                                                          .withValues(alpha: 0.25),
-                                                      child: const SizedBox.expand(),
+                                                          .withValues(
+                                                            alpha: 0.25,
+                                                          ),
+                                                      child:
+                                                          const SizedBox.expand(),
                                                     )
                                                   : const SizedBox.expand(),
                                             ),
@@ -276,7 +285,8 @@ class _ChatConversationThemeScreenState
                                 Text(
                                   'Пресеты',
                                   style: TextStyle(
-                                    fontSize: kNotificationSettingsCardTitleSize,
+                                    fontSize:
+                                        kNotificationSettingsCardTitleSize,
                                     fontWeight: FontWeight.w700,
                                     color: dark
                                         ? Colors.white.withValues(alpha: 0.94)
@@ -296,11 +306,11 @@ class _ChatConversationThemeScreenState
                                       1,
                                   gridDelegate:
                                       const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 3,
-                                    mainAxisSpacing: 10,
-                                    crossAxisSpacing: 10,
-                                    childAspectRatio: 1.04,
-                                  ),
+                                        crossAxisCount: 3,
+                                        mainAxisSpacing: 10,
+                                        crossAxisSpacing: 10,
+                                        childAspectRatio: 1.04,
+                                      ),
                                   itemBuilder: (context, index) {
                                     if (index == 0) {
                                       final selected = !hasOverride;
@@ -311,9 +321,11 @@ class _ChatConversationThemeScreenState
                                           null,
                                         ),
                                         centerLabel: 'Общие',
-                                        onTap: () => _savePatch(<String, Object?>{
-                                          'chatWallpaper': FieldValue.delete(),
-                                        }),
+                                        onTap: () =>
+                                            _savePatch(<String, Object?>{
+                                              'chatWallpaper':
+                                                  FieldValue.delete(),
+                                            }),
                                       );
                                     }
                                     final presetStart = 1;
@@ -321,10 +333,11 @@ class _ChatConversationThemeScreenState
                                         kChatWallpaperGradientPresets.length;
                                     if (index < presetStart + presetCount) {
                                       final preset =
-                                          kChatWallpaperGradientPresets[
-                                              index - presetStart];
+                                          kChatWallpaperGradientPresets[index -
+                                              presetStart];
                                       final v = preset.value;
-                                      final selected = hasOverride && local == v;
+                                      final selected =
+                                          hasOverride && local == v;
                                       return _WallpaperTile(
                                         selected: selected,
                                         decoration: wallpaperPreviewDecoration(
@@ -332,33 +345,39 @@ class _ChatConversationThemeScreenState
                                           v,
                                         ),
                                         centerLabel: preset.label,
-                                        onTap: () => _savePatch(<String, Object?>{
-                                          'chatWallpaper': v,
-                                        }),
+                                        onTap: () => _savePatch(
+                                          <String, Object?>{'chatWallpaper': v},
+                                        ),
                                       );
                                     }
-                                    final customStart = presetStart + presetCount;
+                                    final customStart =
+                                        presetStart + presetCount;
                                     final customIdx = index - customStart;
-                                    final customCount = customBackgrounds.length;
+                                    final customCount =
+                                        customBackgrounds.length;
                                     if (customIdx < customCount) {
                                       final url = customBackgrounds[customIdx];
-                                      final selected = hasOverride && local == url;
+                                      final selected =
+                                          hasOverride && local == url;
                                       return _WallpaperTile(
                                         selected: selected,
                                         decoration: wallpaperPreviewDecoration(
                                           context,
                                           url,
                                         ),
-                                        onTap: () => _savePatch(<String, Object?>{
-                                          'chatWallpaper': url,
-                                        }),
+                                        onTap: () =>
+                                            _savePatch(<String, Object?>{
+                                              'chatWallpaper': url,
+                                            }),
                                         onDelete: () =>
                                             _confirmRemoveCustomWallpaper(url),
                                       );
                                     }
                                     return _AddWallpaperTile(
                                       uploading: _uploading,
-                                      onTap: _uploading ? null : _pickAndUploadWallpaper,
+                                      onTap: _uploading
+                                          ? null
+                                          : _pickAndUploadWallpaper,
                                     );
                                   },
                                 ),

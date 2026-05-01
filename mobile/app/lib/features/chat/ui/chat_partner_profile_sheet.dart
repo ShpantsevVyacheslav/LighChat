@@ -41,6 +41,7 @@ import 'conversation_media_links_files_screen.dart';
 import 'conversation_starred_screen.dart';
 import 'chat_shell_backdrop.dart';
 import 'chat_video_call_screen.dart';
+import 'new_group_chat_screen.dart';
 import 'user_avatar_fullscreen_viewer.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -739,6 +740,36 @@ class _ChatPartnerProfileSheetState
     );
   }
 
+  void _openGroupConversationFromProfile(String conversationId) {
+    final id = conversationId.trim();
+    if (id.isEmpty) return;
+    if (!widget.fullScreen) {
+      Navigator.of(context).pop();
+    }
+    final router = GoRouter.of(context);
+    unawaited(
+      Future<void>.delayed(Duration.zero, () => router.push('/chats/$id')),
+    );
+  }
+
+  void _openCreateGroupWithPartner(String partnerId) {
+    final id = partnerId.trim();
+    if (id.isEmpty) return;
+    if (!widget.fullScreen) {
+      Navigator.of(context).pop();
+    }
+    final router = GoRouter.of(context);
+    unawaited(
+      Future<void>.delayed(
+        Duration.zero,
+        () => router.push(
+          '/chats/new/group',
+          extra: NewGroupChatScreenArgs(initialSelectedUserIds: <String>[id]),
+        ),
+      ),
+    );
+  }
+
   Future<void> _toggleBlockPartner(
     String partnerId,
     bool currentlyBlocked,
@@ -777,23 +808,7 @@ class _ChatPartnerProfileSheetState
       return;
     }
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.partner_profile_block_confirm_title),
-        content: Text(l10n.partner_profile_block_confirm_body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.common_cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.partner_profile_block_action),
-          ),
-        ],
-      ),
-    );
+    final ok = await _showBlockConfirmDialog(l10n);
     if (ok != true || !mounted) return;
     try {
       await FirebaseFirestore.instance
@@ -806,6 +821,90 @@ class _ChatPartnerProfileSheetState
     } catch (e) {
       if (mounted) _toast(l10n.partner_profile_block_error(e));
     }
+  }
+
+  Future<bool?> _showBlockConfirmDialog(AppLocalizations l10n) {
+    return showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.38),
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: const Color(0xFF17191D),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.partner_profile_block_confirm_title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.partner_profile_block_confirm_body,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: 13.5,
+                      height: 1.24,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 42,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFE24D59),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(21),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: Text(l10n.partner_profile_block_action),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.11),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text(l10n.common_cancel),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -822,6 +921,14 @@ class _ChatPartnerProfileSheetState
           widget.conversationId,
         ) ??
         widget.conversation;
+    final chatIndexAsync = ref.watch(
+      userChatIndexProvider(widget.currentUserId),
+    );
+    final allConversationIds =
+        chatIndexAsync.asData?.value?.conversationIds ?? const <String>[];
+    final allConversationsAsync = ref.watch(
+      conversationsProvider((key: conversationIdsCacheKey(allConversationIds))),
+    );
     final partnerId = _dmPartnerId;
     final fresh = widget.partnerProfile;
     final statusDm = partnerPresenceLine(fresh);
@@ -946,6 +1053,28 @@ class _ChatPartnerProfileSheetState
             buildSecretDirectConversationId(widget.currentUserId, partnerId),
           )
         : false;
+    final allConversations = allConversationsAsync.asData?.value;
+    final sharedGroups =
+        (partnerId == null || allConversations == null)
+              ? const <ConversationWithId>[]
+              : allConversations
+                    .where(
+                      (c) =>
+                          c.id != widget.conversationId &&
+                          c.data.isGroup &&
+                          c.data.participantIds.contains(partnerId),
+                    )
+                    .toList()
+          ..sort((a, b) {
+            final an = (a.data.name ?? '').trim().toLowerCase();
+            final bn = (b.data.name ?? '').trim().toLowerCase();
+            return an.compareTo(bn);
+          });
+    final sharedGroupsLoading =
+        !_isSaved &&
+        !_isGroup &&
+        partnerId != null &&
+        (chatIndexAsync.isLoading || allConversationsAsync.isLoading);
 
     List<Widget> buildScrollChildren() {
       return [
@@ -1172,7 +1301,9 @@ class _ChatPartnerProfileSheetState
                   title: l10n.partner_profile_menu_members,
                   trailing: '${widget.conversation.participantIds.length}',
                   onTap: () {
-                    context.push('/chats/group/${widget.conversationId}/members');
+                    context.push(
+                      '/chats/group/${widget.conversationId}/members',
+                    );
                   },
                 ),
                 if (_isGroupAdmin())
@@ -1392,24 +1523,53 @@ class _ChatPartnerProfileSheetState
               ],
               if (!_isSaved && !_isGroup && partnerId != null) ...[
                 const SizedBox(height: 18),
-                Text(
-                  l10n.partner_profile_no_common_groups,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.9,
-                    color: hiFaint.withValues(alpha: 0.95),
+                if (sharedGroupsLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else if (sharedGroups.isEmpty) ...[
+                  Text(
+                    l10n.partner_profile_no_common_groups,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.9,
+                      color: hiFaint.withValues(alpha: 0.95),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
+                ] else ...[
+                  ...sharedGroups.map(
+                    (group) => _menuButton(
+                      context,
+                      icon: Icons.group_rounded,
+                      title: (group.data.name ?? '').trim().isNotEmpty
+                          ? group.data.name!.trim()
+                          : l10n.partner_profile_title_fallback_group,
+                      subtitle: l10n
+                          .partner_profile_subtitle_group_member_count(
+                            group.data.participantIds.length,
+                          ),
+                      onTap: () => _openGroupConversationFromProfile(group.id),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 _menuButton(
                   context,
                   icon: Icons.group_add_rounded,
                   title: l10n.partner_profile_create_group_with(
                     fresh?.name ?? displayTitle,
                   ),
-                  onTap: () => _toast(l10n.common_soon),
+                  onTap: () => _openCreateGroupWithPartner(partnerId),
                 ),
               ],
               if (_isGroup) ...[

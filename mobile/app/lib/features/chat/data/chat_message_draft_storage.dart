@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'local_storage_preferences.dart';
+
 /// Префикс как на вебе: [src/lib/chat-message-draft-storage.ts].
 const String kChatDraftStoragePrefix = 'lighchat:chatDrafts:v1:';
 
@@ -76,7 +78,9 @@ String chatDraftPlainFromHtml(String html) {
 Future<Map<String, StoredChatMessageDraft>> _readMap(String userId) async {
   final p = await SharedPreferences.getInstance();
   final raw = p.getString(chatDraftStorageKey(userId));
-  if (raw == null || raw.trim().isEmpty) return <String, StoredChatMessageDraft>{};
+  if (raw == null || raw.trim().isEmpty) {
+    return <String, StoredChatMessageDraft>{};
+  }
   try {
     final decoded = jsonDecode(raw);
     if (decoded is! Map) return <String, StoredChatMessageDraft>{};
@@ -97,9 +101,7 @@ Future<void> _writeMap(
   Map<String, StoredChatMessageDraft> map,
 ) async {
   final p = await SharedPreferences.getInstance();
-  final jsonMap = map.map(
-    (k, v) => MapEntry(k, v.toJson()),
-  );
+  final jsonMap = map.map((k, v) => MapEntry(k, v.toJson()));
   await p.setString(chatDraftStorageKey(userId), jsonEncode(jsonMap));
 }
 
@@ -116,6 +118,8 @@ Future<void> saveChatMessageDraft(
   String scopeKey,
   StoredChatMessageDraft draft,
 ) async {
+  final localPrefs = await LocalStoragePreferencesStore.load();
+  if (!localPrefs.chatDraftsEnabled) return;
   final map = await _readMap(userId);
   var html = draft.html;
   if (html.length > _kMaxHtmlChars) {
@@ -141,14 +145,12 @@ Future<void> clearChatMessageDraft(String userId, String scopeKey) async {
 Future<StoredChatMessageDraft?> getMainChatDraftForList(
   String userId,
   String conversationId,
-) =>
-    getChatMessageDraft(userId, conversationId);
+) => getChatMessageDraft(userId, conversationId);
 
 /// Все черновики пользователя (для списка чатов).
 Future<Map<String, StoredChatMessageDraft>> loadAllChatDraftsForUser(
   String userId,
-) =>
-    _readMap(userId);
+) => _readMap(userId);
 
 /// Короткая строка превью (паритет [useChatMainDraftPreview] на вебе).
 String? chatMainDraftPreviewLine(StoredChatMessageDraft d) {

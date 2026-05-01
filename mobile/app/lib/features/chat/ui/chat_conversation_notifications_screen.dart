@@ -5,6 +5,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import 'notification_settings_ui.dart';
+import 'profile_subpage_header.dart';
 
 /// Уведомления для одной беседы: `users/{uid}/chatConversationPrefs/{conversationId}`.
 class ChatConversationNotificationsScreen extends ConsumerWidget {
@@ -68,7 +69,7 @@ class ChatConversationNotificationsScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 8),
-                        NotificationSettingsPageHeader(
+                        ChatProfileSubpageHeader(
                           title: 'Уведомления в этом чате',
                           onBack: () => Navigator.of(context).maybePop(),
                         ),
@@ -92,9 +93,10 @@ class ChatConversationNotificationsScreen extends ConsumerWidget {
                                       subtitle:
                                           'Не беспокоить по этому чату на этом устройстве.',
                                       value: muted,
-                                      onChanged: (v) => savePatch(<String, Object?>{
-                                        'notificationsMuted': v,
-                                      }),
+                                      onChanged: (v) =>
+                                          savePatch(<String, Object?>{
+                                            'notificationsMuted': v,
+                                          }),
                                     ),
                                     const SizedBox(height: 4),
                                     NotificationSettingsSwitchRow(
@@ -102,9 +104,10 @@ class ChatConversationNotificationsScreen extends ConsumerWidget {
                                       subtitle:
                                           'Если выключено — заголовок без фрагмента сообщения (где это поддерживается).',
                                       value: preview,
-                                      onChanged: (v) => savePatch(<String, Object?>{
-                                        'notificationShowPreview': v,
-                                      }),
+                                      onChanged: (v) =>
+                                          savePatch(<String, Object?>{
+                                            'notificationShowPreview': v,
+                                          }),
                                     ),
                                     const SizedBox(height: 12),
                                   ],

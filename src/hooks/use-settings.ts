@@ -18,6 +18,7 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   chatWallpaper: null,
   bubbleRadius: "rounded",
   showTimestamps: true,
+  emojiBurstAnimationProfile: "balanced",
   bottomNavAppearance: "colorful",
   bottomNavIconNames: {},
   bottomNavIconGlobalStyle: {},
@@ -54,6 +55,14 @@ function normalizeChatWallpaperStored(value: unknown): string | null {
   return s === "" ? null : s;
 }
 
+function normalizeEmojiBurstAnimationProfileStored(
+  value: unknown
+): NonNullable<ChatSettings["emojiBurstAnimationProfile"]> {
+  const v = String(value ?? "").trim().toLowerCase();
+  if (v === "lite" || v === "cinematic" || v === "balanced") return v;
+  return "balanced";
+}
+
 export function useSettings() {
   const { user } = useAuth();
   const firestore = useFirestore();
@@ -67,6 +76,9 @@ export function useSettings() {
       ...rest,
       chatWallpaper: normalizeChatWallpaperStored(rest.chatWallpaper),
       bubbleRadius: normalizeBubbleRadius(merged.bubbleRadius as string | undefined),
+      emojiBurstAnimationProfile: normalizeEmojiBurstAnimationProfileStored(
+        (rest as { emojiBurstAnimationProfile?: unknown }).emojiBurstAnimationProfile
+      ),
       bottomNavIconNames:
         rest.bottomNavIconNames && typeof rest.bottomNavIconNames === "object"
           ? rest.bottomNavIconNames

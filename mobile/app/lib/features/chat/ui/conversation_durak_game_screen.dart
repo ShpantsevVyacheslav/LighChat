@@ -45,6 +45,7 @@ class _PendingDurakMove {
 
 class _ConversationDurakGameScreenState
     extends State<ConversationDurakGameScreen> {
+  static const bool _durakTraceLayout = kDebugMode;
   Map<String, dynamic>? _selectedCard;
   String? _selectedCardId;
   int _selectedAttackIndex = 0;
@@ -69,6 +70,7 @@ class _ConversationDurakGameScreenState
   DateTime _turnTimerNow = DateTime.now();
   _PendingDurakMove? _pendingMove;
   bool _isRematchBusy = false;
+  double? _lastHandGlobalY;
 
   final _deckKey = GlobalKey();
   final _handKey = GlobalKey();
@@ -117,6 +119,45 @@ class _ConversationDurakGameScreenState
   void _toast(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  void _traceLayoutJump({
+    required int tableCards,
+    required int handCards,
+    required int deckCount,
+    required int discardCount,
+  }) {
+    if (!_durakTraceLayout) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _handKey.currentContext;
+      final ro = ctx?.findRenderObject();
+      if (ro is! RenderBox || !ro.hasSize) return;
+      final top = ro.localToGlobal(Offset.zero);
+      if (!top.dx.isFinite || !top.dy.isFinite) {
+        debugPrint(
+          '[DurakLayoutJump][${widget.gameId}] non-finite hand origin: '
+          'x=${top.dx} y=${top.dy}',
+        );
+        return;
+      }
+      final prev = _lastHandGlobalY;
+      _lastHandGlobalY = top.dy;
+      if (prev == null) return;
+      final delta = (top.dy - prev).abs();
+      if (delta < 90) return;
+      final screen = MediaQuery.sizeOf(context);
+      final safe = MediaQuery.paddingOf(context);
+      debugPrint(
+        '[DurakLayoutJump][${widget.gameId}] handY jump: '
+        'from=${prev.toStringAsFixed(1)} to=${top.dy.toStringAsFixed(1)} '
+        'delta=${delta.toStringAsFixed(1)} '
+        'screen=${screen.width.toStringAsFixed(1)}x${screen.height.toStringAsFixed(1)} '
+        'safeT=${safe.top.toStringAsFixed(1)} safeB=${safe.bottom.toStringAsFixed(1)} '
+        'tableCards=$tableCards handCards=$handCards deck=$deckCount discard=$discardCount '
+        'pending=${_pendingMove?.actionType ?? '-'}',
+      );
+    });
   }
 
   bool _isActiveGameAlreadyExistsError(Object error) {
@@ -172,7 +213,11 @@ class _ConversationDurakGameScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      if (_isActiveGameAlreadyExistsError(e) && conversationId.isNotEmpty) {
+      final upper = e.toString().toUpperCase();
+      if (conversationId.isNotEmpty &&
+          (_isActiveGameAlreadyExistsError(e) ||
+              upper.contains('INTERNAL') ||
+              upper.contains('REMATCH_FAILED_RETRY'))) {
         final opened = await _openLatestDurakLobby(
           conversationId: conversationId,
         );
@@ -197,12 +242,13 @@ class _ConversationDurakGameScreenState
 
   String _rankLabel(Map<String, dynamic> c) {
     final r = c['r'];
-    if (r == 'JOKER') return 'J';
+    if (r == 'JOKER') return 'JKR';
     final rr = (r ?? '').toString();
     return {'11': 'J', '12': 'Q', '13': 'K', '14': 'A'}[rr] ?? rr;
   }
 
   String _suitLabel(Map<String, dynamic> c) {
+    if (c['r'] == 'JOKER') return '*';
     final suit = (c['s'] ?? '').toString();
     return {'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[suit] ?? suit;
   }
@@ -1121,6 +1167,12 @@ class _ConversationDurakGameScreenState
                         return _rankValue(a).compareTo(_rankValue(b));
                       });
                       final visibleMaps = _hidePendingCardFromHand(maps);
+                      _traceLayoutJump(
+                        tableCards: tableAttacks.length + tableDefenses.length,
+                        handCards: visibleMaps.length,
+                        deckCount: deckCount,
+                        discardCount: discardCount,
+                      );
 
                       return Align(
                         alignment: Alignment.bottomCenter,
@@ -1177,6 +1229,27 @@ class _ConversationDurakGameScreenState
                               _selectedCard = card;
                               _selectedCardId = id;
                             });
+                          },
+                          onDragStarted: (card, id) {
+                            if (!_durakTraceLayout) return;
+                            final ctx = _handKeyFor(id).currentContext;
+                            final ro = ctx?.findRenderObject();
+                            if (ro is RenderBox && ro.hasSize) {
+                              final p = ro.localToGlobal(Offset.zero);
+                              debugPrint(
+                                '[DurakDrag][${widget.gameId}] start '
+                                'id=$id card=${_cardLabel(card)} '
+                                'x=${p.dx.toStringAsFixed(1)} '
+                                'y=${p.dy.toStringAsFixed(1)} '
+                                'w=${ro.size.width.toStringAsFixed(1)} '
+                                'h=${ro.size.height.toStringAsFixed(1)}',
+                              );
+                            } else {
+                              debugPrint(
+                                '[DurakDrag][${widget.gameId}] start id=$id '
+                                'card=${_cardLabel(card)} renderBox=none',
+                              );
+                            }
                           },
                           onDragAcceptedByTable: (_) {},
                           onDragRejected: (_) => _toast('Ход недоступен'),

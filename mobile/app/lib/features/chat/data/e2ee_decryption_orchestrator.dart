@@ -31,9 +31,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'e2ee_plaintext_cache.dart';
 import 'e2ee_runtime.dart';
+import 'local_storage_preferences.dart';
 import 'secret_chat_media_open_service.dart';
 import 'secret_chat_callables.dart';
 
@@ -187,117 +189,117 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
           toFirestore: (v, _) => v,
         );
 
-    _issuerSub = col
-        .where('status', isEqualTo: 'pending')
-        .limit(50)
-        .snapshots()
-        .listen((snap) {
-          for (final doc in snap.docs) {
-            final d = doc.data();
-            final recipientUid = d['recipientUid'];
-            if (recipientUid is! String || recipientUid.isEmpty) continue;
-            if (recipientUid == runtime.userId) continue; // don't fulfill own requests
+    _issuerSub = col.where('status', isEqualTo: 'pending').limit(50).snapshots().listen((
+      snap,
+    ) {
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        final recipientUid = d['recipientUid'];
+        if (recipientUid is! String || recipientUid.isEmpty) continue;
+        if (recipientUid == runtime.userId) {
+          continue; // don't fulfill own requests
+        }
 
-            final expiresAtTs = d['expiresAtTs'];
-            if (expiresAtTs is Timestamp) {
-              if (expiresAtTs.toDate().isBefore(DateTime.now())) continue;
+        final expiresAtTs = d['expiresAtTs'];
+        if (expiresAtTs is Timestamp) {
+          if (expiresAtTs.toDate().isBefore(DateTime.now())) continue;
+        }
+
+        final key = doc.id;
+        if (_issuerInFlight.contains(key)) continue;
+        _issuerInFlight.add(key);
+
+        unawaited(() async {
+          try {
+            final recipientDeviceId = d['recipientDeviceId'];
+            final messageId = d['messageId'];
+            final fileId = d['fileId'];
+            if (recipientDeviceId is! String ||
+                recipientDeviceId.isEmpty ||
+                messageId is! String ||
+                messageId.isEmpty ||
+                fileId is! String ||
+                fileId.isEmpty) {
+              return;
             }
 
-            final key = doc.id;
-            if (_issuerInFlight.contains(key)) continue;
-            _issuerInFlight.add(key);
+            // 1) Fetch message + envelope (issuer must not trust client input).
+            final msgSnap = await runtime.firestore
+                .collection('conversations')
+                .doc(widget.conversationId)
+                .collection('messages')
+                .doc(messageId)
+                .get();
+            final msg = msgSnap.data() ?? const <String, Object?>{};
+            final e2ee = msg['e2ee'];
+            if (e2ee is! Map) return;
+            final epochRaw = e2ee['epoch'];
+            final epoch = epochRaw is int
+                ? epochRaw
+                : (epochRaw is num ? epochRaw.toInt() : null);
+            if (epoch == null || epoch <= 0) return;
 
-            unawaited(() async {
-              try {
-                final recipientDeviceId = d['recipientDeviceId'];
-                final messageId = d['messageId'];
-                final fileId = d['fileId'];
-                if (recipientDeviceId is! String ||
-                    recipientDeviceId.isEmpty ||
-                    messageId is! String ||
-                    messageId.isEmpty ||
-                    fileId is! String ||
-                    fileId.isEmpty) {
-                  return;
-                }
-
-                // 1) Fetch message + envelope (issuer must not trust client input).
-                final msgSnap = await runtime.firestore
-                    .collection('conversations')
-                    .doc(widget.conversationId)
-                    .collection('messages')
-                    .doc(messageId)
-                    .get();
-                final msg = msgSnap.data() ?? const <String, Object?>{};
-                final e2ee = msg['e2ee'];
-                if (e2ee is! Map) return;
-                final epochRaw = e2ee['epoch'];
-                final epoch = epochRaw is int
-                    ? epochRaw
-                    : (epochRaw is num ? epochRaw.toInt() : null);
-                if (epoch == null || epoch <= 0) return;
-
-                final attsRaw = e2ee['attachments'];
-                if (attsRaw is! List) return;
-                Map<String, Object?>? envJson;
-                for (final one in attsRaw) {
-                  if (one is! Map) continue;
-                  final m = one.map((k, v) => MapEntry(k.toString(), v));
-                  if (m['fileId'] == fileId) {
-                    envJson = m;
-                    break;
-                  }
-                }
-                if (envJson == null) return;
-                final env = MediaEnvelopeV2.fromWireJson(envJson!);
-
-                // 2) Unwrap file-key from envelope using chat-key(epoch).
-                final chatKeyRaw = await runtime.tryGetChatKeyForEpoch(
-                  conversationId: widget.conversationId,
-                  epoch: epoch,
-                );
-                if (chatKeyRaw == null) return;
-                final fileKeyRaw = await unwrapFileKeySymmetricV2(
-                  wrap: env.wrap,
-                  chatKeyRaw: chatKeyRaw,
-                  fileId: env.fileId,
-                );
-
-                // 3) Fetch recipient device public key.
-                final devSnap = await runtime.firestore
-                    .collection('users')
-                    .doc(recipientUid)
-                    .collection('e2eeDevices')
-                    .doc(recipientDeviceId)
-                    .get();
-                final dev = devSnap.data() ?? const <String, Object?>{};
-                final spkiB64 = dev['publicKeySpki'];
-                if (spkiB64 is! String || spkiB64.trim().isEmpty) return;
-                final spki = base64.decode(spkiB64.trim());
-
-                // 4) Wrap file-key for the recipient device (ECDH + HKDF + AES-GCM).
-                final epochId = 'scmv|${widget.conversationId}|$messageId|$fileId';
-                final wrap = await wrapChatKeyForDeviceV2(
-                  chatKey32: fileKeyRaw,
-                  recipientPublicSpki: Uint8List.fromList(spki),
-                  epochId: epochId,
-                  deviceId: recipientDeviceId,
-                );
-
-                final callables = SecretChatCallables();
-                await callables.fulfillSecretMediaViewRequest(
-                  conversationId: widget.conversationId,
-                  requestId: doc.id,
-                  wrappedFileKeyForDevice: jsonEncode(wrap.toJson()),
-                );
-              } catch (_) {
-                // best-effort: issuer may be offline or race with another device.
-              } finally {
-                _issuerInFlight.remove(key);
+            final attsRaw = e2ee['attachments'];
+            if (attsRaw is! List) return;
+            Map<String, Object?>? envJson;
+            for (final one in attsRaw) {
+              if (one is! Map) continue;
+              final m = one.map((k, v) => MapEntry(k.toString(), v));
+              if (m['fileId'] == fileId) {
+                envJson = m;
+                break;
               }
-            }());
+            }
+            if (envJson == null) return;
+            final env = MediaEnvelopeV2.fromWireJson(envJson);
+
+            // 2) Unwrap file-key from envelope using chat-key(epoch).
+            final chatKeyRaw = await runtime.tryGetChatKeyForEpoch(
+              conversationId: widget.conversationId,
+              epoch: epoch,
+            );
+            if (chatKeyRaw == null) return;
+            final fileKeyRaw = await unwrapFileKeySymmetricV2(
+              wrap: env.wrap,
+              chatKeyRaw: chatKeyRaw,
+              fileId: env.fileId,
+            );
+
+            // 3) Fetch recipient device public key.
+            final devSnap = await runtime.firestore
+                .collection('users')
+                .doc(recipientUid)
+                .collection('e2eeDevices')
+                .doc(recipientDeviceId)
+                .get();
+            final dev = devSnap.data() ?? const <String, Object?>{};
+            final spkiB64 = dev['publicKeySpki'];
+            if (spkiB64 is! String || spkiB64.trim().isEmpty) return;
+            final spki = base64.decode(spkiB64.trim());
+
+            // 4) Wrap file-key for the recipient device (ECDH + HKDF + AES-GCM).
+            final epochId = 'scmv|${widget.conversationId}|$messageId|$fileId';
+            final wrap = await wrapChatKeyForDeviceV2(
+              chatKey32: fileKeyRaw,
+              recipientPublicSpki: Uint8List.fromList(spki),
+              epochId: epochId,
+              deviceId: recipientDeviceId,
+            );
+
+            final callables = SecretChatCallables();
+            await callables.fulfillSecretMediaViewRequest(
+              conversationId: widget.conversationId,
+              requestId: doc.id,
+              wrappedFileKeyForDevice: jsonEncode(wrap.toJson()),
+            );
+          } catch (_) {
+            // best-effort: issuer may be offline or race with another device.
+          } finally {
+            _issuerInFlight.remove(key);
           }
-        });
+        }());
+      }
+    });
   }
 
   /// Persistent дир для расшифрованных медиа-файлов. Ранее мы держали их в
@@ -377,7 +379,8 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
                 messageId: m.id,
                 fileId: env.fileId,
               ),
-              name: '${_prefixForKind(env.kind)}${env.fileId}${_extensionForMime(env.mime)}',
+              name:
+                  '${_prefixForKind(env.kind)}${env.fileId}${_extensionForMime(env.mime)}',
               type: env.mime,
               size: env.size,
             ),
@@ -452,10 +455,21 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
     final key = '$messageId:${envelope.fileId}';
     final ext = _extensionForMime(envelope.mime);
     try {
-      final dir = await _ensureMediaCacheDir();
+      final localPrefs = await LocalStoragePreferencesStore.load();
+      final usePersistentCache = localPrefs.e2eeMediaEnabled;
+      final dir = usePersistentCache
+          ? await _ensureMediaCacheDir()
+          : await (() async {
+              final base = await getTemporaryDirectory();
+              final tmp = Directory('${base.path}/e2ee_media_ephemeral');
+              if (!await tmp.exists()) {
+                await tmp.create(recursive: true);
+              }
+              return tmp;
+            })();
       final file = File('${dir.path}/$messageId-${envelope.fileId}$ext');
       // Если файл уже лежит в кэше (напр. при rebuild экрана) — просто переиспользуем.
-      if (!await file.exists()) {
+      if (!usePersistentCache || !await file.exists()) {
         final result = await runtime.decryptMediaForView(
           storage: FirebaseStorage.instance,
           conversationId: widget.conversationId,

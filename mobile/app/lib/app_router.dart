@@ -30,6 +30,7 @@ import 'features/settings/ui/e2ee_recovery_screen.dart';
 import 'features/settings/ui/e2ee_qr_pairing_screen.dart';
 import 'features/settings/ui/language_screen.dart';
 import 'features/settings/ui/blacklist_screen.dart';
+import 'features/settings/ui/storage_settings_screen.dart';
 import 'features/chat/ui/secret_chat_settings_screen.dart';
 import 'features/chat/ui/new_chat_screen.dart';
 import 'features/chat/ui/secret_chat_compose_screen.dart';
@@ -166,7 +167,15 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: '/chats/new/group',
-        builder: (context, state) => const NewGroupChatScreen(),
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is NewGroupChatScreenArgs) {
+            return NewGroupChatScreen(
+              initialSelectedUserIds: extra.initialSelectedUserIds,
+            );
+          }
+          return const NewGroupChatScreen();
+        },
       ),
       GoRoute(
         path: '/chats/edit/group/:conversationId',
@@ -221,6 +230,10 @@ GoRouter createRouter() {
       GoRoute(
         path: '/settings/blacklist',
         builder: (context, state) => const BlacklistScreen(),
+      ),
+      GoRoute(
+        path: '/settings/storage',
+        builder: (context, state) => const StorageSettingsScreen(),
       ),
       // Phase 6: recovery (password backup + QR pairing entry point).
       GoRoute(

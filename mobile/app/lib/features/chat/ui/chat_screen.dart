@@ -32,6 +32,7 @@ import '../data/reply_preview_builder.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/group_mention_candidates.dart';
 import '../data/contact_display_name.dart';
+import '../data/emoji_burst_animation_profile.dart';
 import '../data/user_profile.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/chat_message_draft_storage.dart';
@@ -916,6 +917,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             (rawChatSettings['bubbleRadius'] as String?) ?? 'rounded';
         final showTimestamps =
             (rawChatSettings['showTimestamps'] as bool?) ?? true;
+        final emojiBurstAnimationProfile =
+            normalizeChatEmojiBurstAnimationProfile(
+              rawChatSettings['emojiBurstAnimationProfile'] as String?,
+            );
         final wallpaper = rawChatSettings['chatWallpaper'] as String?;
         final bubbleColor = _parseHexColor(rawChatSettings['bubbleColor']);
         final incomingBubbleColor = _parseHexColor(
@@ -1699,6 +1704,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               bubbleRadius,
                                                           showTimestamps:
                                                               showTimestamps,
+                                                          emojiBurstAnimationProfile:
+                                                              emojiBurstAnimationProfile,
                                                           outgoingBubbleColor:
                                                               bubbleColor,
                                                           incomingBubbleColor:
@@ -2873,6 +2880,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ChatMediaGalleryItem(attachment: resolved, message: msg),
                 ],
                 initialIndex: 0,
+                conversationId: widget.conversationId,
                 currentUserId: user.uid,
                 senderLabel: (sid) => _senderLabelForMediaViewer(
                   sid,
@@ -2908,6 +2916,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ChatMediaViewerScreen(
           items: items,
           initialIndex: ix,
+          conversationId: widget.conversationId,
           currentUserId: user.uid,
           senderLabel: (sid) => _senderLabelForMediaViewer(
             sid,

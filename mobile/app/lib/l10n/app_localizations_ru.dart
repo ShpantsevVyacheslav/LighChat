@@ -355,10 +355,156 @@ class AppLocalizationsRu extends AppLocalizations {
   String get account_menu_language => 'Язык';
 
   @override
+  String get account_menu_storage => 'Хранилище';
+
+  @override
   String get account_menu_theme => 'Тема';
 
   @override
   String get account_menu_sign_out => 'Выйти';
+
+  @override
+  String get storage_settings_title => 'Хранилище';
+
+  @override
+  String get storage_settings_subtitle =>
+      'Управляйте локальным кэшем на устройстве: что хранить, что чистить и сколько места выделять.';
+
+  @override
+  String get storage_settings_total_label => 'Занято на устройстве';
+
+  @override
+  String storage_settings_budget_label(Object mb) {
+    return 'Целевой лимит кэша: $mb МБ';
+  }
+
+  @override
+  String get storage_settings_clear_all_button => 'Очистить весь кэш';
+
+  @override
+  String get storage_settings_trim_button => 'Поджать до лимита';
+
+  @override
+  String get storage_settings_policy_title => 'Что хранить локально';
+
+  @override
+  String get storage_settings_budget_slider_title => 'Лимит кэша';
+
+  @override
+  String get storage_settings_breakdown_title => 'Разбивка по типам';
+
+  @override
+  String get storage_settings_breakdown_empty => 'Локальный кэш пока пуст.';
+
+  @override
+  String get storage_settings_chats_title => 'Разбивка по чатам';
+
+  @override
+  String get storage_settings_chats_empty =>
+      'Пока нет кэша, привязанного к чатам.';
+
+  @override
+  String storage_settings_chat_subtitle(Object count, Object size) {
+    return '$count элементов · $size';
+  }
+
+  @override
+  String get storage_settings_general_title => 'Кэш без привязки к чату';
+
+  @override
+  String get storage_settings_general_hint =>
+      'Записи, которые не удалось однозначно связать с конкретным чатом (legacy/глобальный кэш).';
+
+  @override
+  String get storage_settings_general_empty => 'Общий кэш пуст.';
+
+  @override
+  String get storage_settings_chat_files_empty =>
+      'Локальных файлов для этого чата пока нет.';
+
+  @override
+  String get storage_settings_clear_chat_action => 'Очистить кэш чата';
+
+  @override
+  String get storage_settings_clear_all_title => 'Очистить локальный кэш?';
+
+  @override
+  String get storage_settings_clear_all_body =>
+      'Будут удалены кэшированные файлы, превью, черновики и офлайн-снимки списка чатов на этом устройстве.';
+
+  @override
+  String storage_settings_clear_chat_title(Object chat) {
+    return 'Очистить кэш «$chat»?';
+  }
+
+  @override
+  String get storage_settings_clear_chat_body =>
+      'Удалится только локальный кэш этого чата. Облачные сообщения не затрагиваются.';
+
+  @override
+  String get storage_settings_snackbar_cleared => 'Локальный кэш очищен';
+
+  @override
+  String get storage_settings_snackbar_budget_already_ok =>
+      'Кэш уже укладывается в лимит';
+
+  @override
+  String storage_settings_snackbar_budget_trimmed(Object size) {
+    return 'Освобождено: $size';
+  }
+
+  @override
+  String get storage_settings_error_empty =>
+      'Не удалось собрать статистику хранилища';
+
+  @override
+  String get storage_category_e2ee_media => 'E2EE медиа-кэш';
+
+  @override
+  String get storage_category_e2ee_media_subtitle =>
+      'Расшифрованные медиа секретных чатов для быстрого повторного открытия.';
+
+  @override
+  String get storage_category_e2ee_text => 'E2EE текст-кэш';
+
+  @override
+  String get storage_category_e2ee_text_subtitle =>
+      'Расшифрованный текст сообщений по чатам для мгновенного рендера.';
+
+  @override
+  String get storage_category_drafts => 'Черновики сообщений';
+
+  @override
+  String get storage_category_drafts_subtitle =>
+      'Неотправленные черновики по чатам.';
+
+  @override
+  String get storage_category_chat_list_snapshot => 'Офлайн-список чатов';
+
+  @override
+  String get storage_category_chat_list_snapshot_subtitle =>
+      'Последний снимок списка чатов для быстрого старта без сети.';
+
+  @override
+  String get storage_category_profile_cards => 'Мини-кэш профилей';
+
+  @override
+  String get storage_category_profile_cards_subtitle =>
+      'Имена и аватары для ускорения интерфейса.';
+
+  @override
+  String get storage_category_video_downloads => 'Кэш загруженных видео';
+
+  @override
+  String get storage_category_video_downloads_subtitle =>
+      'Локальные копии видео из просмотрщика медиа.';
+
+  @override
+  String get storage_category_video_thumbs => 'Превью-кадры видео';
+
+  @override
+  String get storage_category_video_thumbs_subtitle =>
+      'Сгенерированные первые кадры для видео.';
 
   @override
   String get profile_delete_account => 'Удалить аккаунт';
@@ -1402,6 +1548,34 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get new_group_action_create => 'Создать';
+
+  @override
+  String get group_members_title => 'Участники';
+
+  @override
+  String get group_members_invite_link => 'Пригласить по ссылке';
+
+  @override
+  String get group_members_admin_badge => 'АДМИН';
+
+  @override
+  String group_members_invite_text(Object groupName, Object inviteLink) {
+    return 'Присоединяйся к группе $groupName в LighChat: $inviteLink';
+  }
+
+  @override
+  String get group_members_error_min_admin =>
+      'В группе должен остаться хотя бы один администратор.';
+
+  @override
+  String get group_members_error_cannot_remove_creator =>
+      'Нельзя снять права администратора с создателя группы.';
+
+  @override
+  String get group_members_remove_admin => 'Администратор снят';
+
+  @override
+  String get group_members_make_admin => 'Назначен администратор';
 
   @override
   String get auth_brand_tagline => 'Безопасный мессенджер';
@@ -2792,4 +2966,42 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get edit_group_success => 'Группа обновлена';
+
+  @override
+  String get edit_group_privacy_section => 'КОНФИДЕНЦИАЛЬНОСТЬ';
+
+  @override
+  String get edit_group_privacy_forwarding => 'Пересылка сообщений';
+
+  @override
+  String get edit_group_privacy_forwarding_desc =>
+      'Разрешить участникам пересылать сообщения из этой группы.';
+
+  @override
+  String get edit_group_privacy_screenshots => 'Скриншоты';
+
+  @override
+  String get edit_group_privacy_screenshots_desc =>
+      'Разрешить скриншоты внутри группы (ограничение зависит от платформы).';
+
+  @override
+  String get edit_group_privacy_copy => 'Копирование текста';
+
+  @override
+  String get edit_group_privacy_copy_desc =>
+      'Разрешить копирование текста сообщений.';
+
+  @override
+  String get edit_group_privacy_save_media => 'Сохранение медиа';
+
+  @override
+  String get edit_group_privacy_save_media_desc =>
+      'Разрешить сохранять фото и видео на устройство.';
+
+  @override
+  String get edit_group_privacy_share_media => 'Поделиться медиа';
+
+  @override
+  String get edit_group_privacy_share_media_desc =>
+      'Разрешить делиться медиафайлами вне приложения.';
 }

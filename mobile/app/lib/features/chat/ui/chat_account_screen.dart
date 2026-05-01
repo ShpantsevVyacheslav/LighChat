@@ -107,6 +107,7 @@ class ChatAccountScreen extends ConsumerWidget {
                     onPrivacyTap: () => context.push('/settings/privacy'),
                     onBlacklistTap: () => context.push('/settings/blacklist'),
                     onLanguageTap: () => context.push('/settings/language'),
+                    onStorageTap: () => context.push('/settings/storage'),
                     onThemeTap: () async {
                       final repo = ref.read(chatSettingsRepositoryProvider);
                       if (repo == null) return;
@@ -182,6 +183,7 @@ class _AccountView extends StatelessWidget {
     required this.onPrivacyTap,
     required this.onBlacklistTap,
     required this.onLanguageTap,
+    required this.onStorageTap,
     required this.onThemeTap,
     required this.onSignOutTap,
   });
@@ -199,6 +201,7 @@ class _AccountView extends StatelessWidget {
   final VoidCallback onPrivacyTap;
   final VoidCallback onBlacklistTap;
   final VoidCallback onLanguageTap;
+  final VoidCallback onStorageTap;
   final VoidCallback onThemeTap;
   final VoidCallback onSignOutTap;
 
@@ -336,6 +339,11 @@ class _AccountView extends StatelessWidget {
                         title: l10n.account_menu_language,
                         trailing: '· $languageLabel',
                         onTap: onLanguageTap,
+                      ),
+                      _MenuItem(
+                        icon: Icons.storage_rounded,
+                        title: l10n.account_menu_storage,
+                        onTap: onStorageTap,
                       ),
                       _MenuItem(
                         icon: Icons.auto_awesome_outlined,

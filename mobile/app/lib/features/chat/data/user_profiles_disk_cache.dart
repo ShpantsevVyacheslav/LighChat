@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'user_profile.dart';
+import 'local_storage_preferences.dart';
 
-const _kKeyPrefix = 'mobile_user_profile_cache_v1_';
+const kUserProfileDiskCacheKeyPrefix = 'mobile_user_profile_cache_v1_';
 
-String _key(String userId) => '$_kKeyPrefix$userId';
+String userProfileDiskCacheKey(String userId) =>
+    '$kUserProfileDiskCacheKeyPrefix$userId';
 
 /// Последние известные профили (имя, аватар, username) для мгновенного UI без сети.
 Future<Map<String, UserProfile>> loadCachedProfiles(
@@ -19,7 +21,7 @@ Future<Map<String, UserProfile>> loadCachedProfiles(
     for (final rawId in userIds) {
       final id = rawId.trim();
       if (id.isEmpty) continue;
-      final s = prefs.getString(_key(id));
+      final s = prefs.getString(userProfileDiskCacheKey(id));
       if (s == null || s.trim().isEmpty) continue;
       final decoded = jsonDecode(s);
       if (decoded is! Map) continue;
@@ -36,6 +38,8 @@ Future<Map<String, UserProfile>> loadCachedProfiles(
 }
 
 Future<void> persistProfile(UserProfile profile) async {
+  final localPrefs = await LocalStoragePreferencesStore.load();
+  if (!localPrefs.profileCardsEnabled) return;
   try {
     final prefs = await SharedPreferences.getInstance();
     final m = <String, Object?>{
@@ -52,7 +56,7 @@ Future<void> persistProfile(UserProfile profile) async {
       if (profile.lastSeenAt != null)
         'lastSeen': profile.lastSeenAt!.toUtc().toIso8601String(),
     };
-    await prefs.setString(_key(profile.id), jsonEncode(m));
+    await prefs.setString(userProfileDiskCacheKey(profile.id), jsonEncode(m));
   } catch (e, st) {
     if (kDebugMode) {
       debugPrint('persistProfile failed: $e\n$st');

@@ -1030,6 +1030,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                   ChatMediaGalleryItem(attachment: resolved, message: msg),
                 ],
                 initialIndex: 0,
+                conversationId: widget.conversationId,
                 currentUserId: user.uid,
                 senderLabel: (sid) => _threadSenderLabel(sid, user, conv, l10n),
                 onReply: null,
@@ -1068,6 +1069,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         ChatMediaViewerScreen(
           items: items,
           initialIndex: ix,
+          conversationId: widget.conversationId,
           currentUserId: user.uid,
           senderLabel: (sid) => _threadSenderLabel(
             sid,

@@ -12,6 +12,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/bottom_nav_icon_settings.dart';
+import '../data/emoji_burst_animation_profile.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../../../l10n/app_localizations.dart';
 
@@ -35,6 +36,7 @@ class _EditableChatSettings {
     required this.incomingBubbleColor,
     required this.chatWallpaper,
     required this.customBackgrounds,
+    required this.emojiBurstAnimationProfile,
   });
 
   String fontSize;
@@ -48,6 +50,7 @@ class _EditableChatSettings {
   String? incomingBubbleColor;
   String? chatWallpaper;
   List<String> customBackgrounds;
+  String emojiBurstAnimationProfile;
 }
 
 const Map<String, Object?> _defaultChatSettings = <String, Object?>{
@@ -57,6 +60,7 @@ const Map<String, Object?> _defaultChatSettings = <String, Object?>{
   'chatWallpaper': null,
   'bubbleRadius': 'rounded',
   'showTimestamps': true,
+  'emojiBurstAnimationProfile': chatEmojiBurstAnimationProfileBalanced,
   'bottomNavAppearance': 'colorful',
   'bottomNavIconNames': <String, String>{},
   'bottomNavIconGlobalStyle': <String, Object?>{},
@@ -161,6 +165,9 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       fontSize: (chat['fontSize'] as String?) ?? 'medium',
       bubbleRadius: (chat['bubbleRadius'] as String?) ?? 'rounded',
       showTimestamps: (chat['showTimestamps'] as bool?) ?? true,
+      emojiBurstAnimationProfile: normalizeChatEmojiBurstAnimationProfile(
+        chat['emojiBurstAnimationProfile'] as String?,
+      ),
       bottomNavAppearance:
           (chat['bottomNavAppearance'] as String?) ?? 'colorful',
       bottomNavIconNames: parseBottomNavIconNames(chat['bottomNavIconNames']),
@@ -1567,6 +1574,99 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       Text(
                         'Выберите фото из галереи или настройте',
                         textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: _kBodyTextSize,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Эффекты эмодзи',
+                        style: TextStyle(
+                          fontSize: _kBlockTitleSize,
+                          fontWeight: FontWeight.w600,
+                          color: textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.',
+                        style: TextStyle(
+                          fontSize: _kMutedTextSize,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _SegmentButton(
+                              label: 'Lite',
+                              active:
+                                  s.emojiBurstAnimationProfile ==
+                                  chatEmojiBurstAnimationProfileLite,
+                              onTap: () {
+                                setState(
+                                  () => s.emojiBurstAnimationProfile =
+                                      chatEmojiBurstAnimationProfileLite,
+                                );
+                                _savePatch(<String, Object?>{
+                                  'emojiBurstAnimationProfile':
+                                      chatEmojiBurstAnimationProfileLite,
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _SegmentButton(
+                              label: 'Balanced',
+                              active:
+                                  s.emojiBurstAnimationProfile ==
+                                  chatEmojiBurstAnimationProfileBalanced,
+                              onTap: () {
+                                setState(
+                                  () => s.emojiBurstAnimationProfile =
+                                      chatEmojiBurstAnimationProfileBalanced,
+                                );
+                                _savePatch(<String, Object?>{
+                                  'emojiBurstAnimationProfile':
+                                      chatEmojiBurstAnimationProfileBalanced,
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _SegmentButton(
+                              label: 'Cinematic',
+                              active:
+                                  s.emojiBurstAnimationProfile ==
+                                  chatEmojiBurstAnimationProfileCinematic,
+                              onTap: () {
+                                setState(
+                                  () => s.emojiBurstAnimationProfile =
+                                      chatEmojiBurstAnimationProfileCinematic,
+                                );
+                                _savePatch(<String, Object?>{
+                                  'emojiBurstAnimationProfile':
+                                      chatEmojiBurstAnimationProfileCinematic,
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        switch (s.emojiBurstAnimationProfile) {
+                          chatEmojiBurstAnimationProfileLite =>
+                            'Lite: минимум нагрузки и максимально плавно на слабых устройствах.',
+                          chatEmojiBurstAnimationProfileCinematic =>
+                            'Cinematic: максимум частиц и глубины для вау-эффекта.',
+                          _ =>
+                            'Balanced: автоматический компромисс между производительностью и выразительностью.',
+                        },
                         style: TextStyle(
                           fontSize: _kBodyTextSize,
                           color: textSecondary,

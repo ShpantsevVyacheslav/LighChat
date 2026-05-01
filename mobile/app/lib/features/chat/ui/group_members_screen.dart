@@ -10,7 +10,10 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../data/contact_display_name.dart';
+import '../data/user_contacts_repository.dart';
 import 'chat_shell_backdrop.dart';
+import 'profile_subpage_header.dart';
 import '../../../l10n/app_localizations.dart';
 
 class GroupMembersScreen extends ConsumerStatefulWidget {
@@ -19,8 +22,7 @@ class GroupMembersScreen extends ConsumerStatefulWidget {
   final String conversationId;
 
   @override
-  ConsumerState<GroupMembersScreen> createState() =>
-      _GroupMembersScreenState();
+  ConsumerState<GroupMembersScreen> createState() => _GroupMembersScreenState();
 }
 
 class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
@@ -71,9 +73,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                       if (!snap.hasData || snap.data?.data() == null) {
                         return Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Text(
-                            'Group not found.',
-                          ),
+                          child: Text('Group not found.'),
                         );
                       }
 
@@ -85,9 +85,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                       if (!conv.participantIds.contains(u.uid)) {
                         return Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Text(
-                            'You are not a member of this group.',
-                          ),
+                          child: Text('You are not a member of this group.'),
                         );
                       }
 
@@ -119,54 +117,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
   }
 
   Widget _header(BuildContext context, AppLocalizations l10n) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              l10n.group_members_title,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-                color: scheme.onSurface,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: _closeButton(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _closeButton(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.white.withValues(
-        alpha: scheme.brightness == Brightness.dark ? 0.10 : 0.18,
-      ),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.canPop() ? context.pop() : context.go('/chats'),
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(
-            Icons.close_rounded,
-            size: 22,
-            color: scheme.onSurface.withValues(alpha: 0.95),
-          ),
-        ),
-      ),
+    return ChatProfileSubpageHeader(
+      title: l10n.group_members_title,
+      onBack: () => context.canPop() ? context.pop() : context.go('/chats'),
     );
   }
 
@@ -177,6 +130,12 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     AppLocalizations l10n,
   ) {
     final isCreator = conv.createdByUserId == currentUserId;
+    final contactProfiles = ref
+            .watch(userContactsIndexProvider(currentUserId))
+            .asData
+            ?.value
+            .contactProfiles ??
+        const <String, ContactLocalProfile>{};
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 16),
@@ -188,7 +147,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
           child: SizedBox(
             height: 48,
             child: FilledButton(
-              onPressed: _busy ? null : () => _shareInviteLink(context, conv, l10n),
+              onPressed: _busy
+                  ? null
+                  : () => _shareInviteLink(context, conv, l10n),
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -209,13 +170,20 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
             context: context,
             participantId: participantId,
             participantInfo: participantInfo,
+            contactProfiles: contactProfiles,
             isAdmin: isParticipantAdmin,
             isCreator: conv.createdByUserId == participantId,
             canManageAdmin: isCreator && !isCurrentUser,
             l10n: l10n,
             onTap: () => _openProfile(context, participantId),
             onAdminToggle: isCreator && !isCurrentUser
-                ? () => _toggleAdmin(context, conv, participantId, isParticipantAdmin, l10n)
+                ? () => _toggleAdmin(
+                    context,
+                    conv,
+                    participantId,
+                    isParticipantAdmin,
+                    l10n,
+                  )
                 : null,
           );
         }),
@@ -228,16 +196,11 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
               decoration: BoxDecoration(
                 color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.red.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: Text(
                 _error!,
-                style: TextStyle(
-                  color: Colors.red.shade400,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: Colors.red.shade400, fontSize: 13),
               ),
             ),
           ),
@@ -250,6 +213,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     required BuildContext context,
     required String participantId,
     required ConversationParticipantInfo? participantInfo,
+    required Map<String, ContactLocalProfile> contactProfiles,
     required bool isAdmin,
     required bool isCreator,
     required bool canManageAdmin,
@@ -258,6 +222,15 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     required VoidCallback? onAdminToggle,
   }) {
     final scheme = Theme.of(context).colorScheme;
+    final displayName = resolveContactDisplayName(
+      contactProfiles: contactProfiles,
+      contactUserId: participantId,
+      fallbackName: participantInfo?.name ?? 'Unknown',
+    );
+    final avatarUrl = (participantInfo?.avatarThumb?.trim().isNotEmpty == true
+            ? participantInfo!.avatarThumb
+            : participantInfo?.avatar)
+        ?.trim();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _hPad, vertical: 4),
@@ -274,12 +247,12 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                 // Avatar
                 CircleAvatar(
                   radius: 24,
-                  backgroundImage: participantInfo?.avatarThumb != null
-                      ? NetworkImage(participantInfo!.avatarThumb!)
-                      : null,
-                  child: participantInfo?.avatarThumb == null
+                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                  child: avatarUrl == null
                       ? Text(
-                          participantInfo?.name.substring(0, 1).toUpperCase() ?? '?',
+                          displayName.isNotEmpty
+                              ? displayName.substring(0, 1).toUpperCase()
+                              : '?',
                           style: TextStyle(
                             color: scheme.onSurface,
                             fontWeight: FontWeight.w600,
@@ -297,7 +270,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              participantInfo?.name ?? 'Unknown',
+                              displayName,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -350,7 +323,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                     child: IconButton(
                       onPressed: onAdminToggle,
                       icon: Icon(
-                        isAdmin ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                        isAdmin
+                            ? Icons.remove_circle_outline
+                            : Icons.add_circle_outline,
                         size: 20,
                         color: scheme.primary,
                       ),
@@ -371,14 +346,27 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     Conversation conv,
     AppLocalizations l10n,
   ) async {
-    final inviteLink = 'https://lighchat.online/join?group=${widget.conversationId}';
+    final inviteLink =
+        'https://lighchat.online/join?group=${widget.conversationId}';
     final groupName = conv.name ?? 'Group';
-    final text = l10n.group_members_invite_text
-        .replaceAll('{groupName}', groupName)
-        .replaceAll('{inviteLink}', inviteLink);
+    final text = l10n.group_members_invite_text(groupName, inviteLink);
+    final mq = MediaQuery.maybeOf(context);
+    final origin = mq == null
+        ? const Rect.fromLTWH(0, 0, 1, 1)
+        : Rect.fromCenter(
+            center: Offset(mq.size.width / 2, mq.size.height / 2),
+            width: 1,
+            height: 1,
+          );
 
     try {
-      await Share.share(text, subject: 'Join $groupName on LighChat');
+      await SharePlus.instance.share(
+        ShareParams(
+          text: text,
+          subject: 'Join $groupName on LighChat',
+          sharePositionOrigin: origin,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = 'Failed to share invite link: $e');
@@ -386,7 +374,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
   }
 
   void _openProfile(BuildContext context, String participantId) {
-    context.push('/chats/contact/$participantId');
+    context.push('/contacts/user/${Uri.encodeComponent(participantId)}');
   }
 
   Future<void> _toggleAdmin(
@@ -401,7 +389,8 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     // Validate admin count
-    final currentAdminCount = conv.adminIds.length + (conv.createdByUserId != null ? 1 : 0);
+    final currentAdminCount =
+        conv.adminIds.length + (conv.createdByUserId != null ? 1 : 0);
     if (isCurrentlyAdmin && currentAdminCount <= 1) {
       setState(() => _error = l10n.group_members_error_min_admin);
       return;

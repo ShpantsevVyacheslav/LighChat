@@ -4,11 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'local_storage_preferences.dart';
+
 /// Локальный снимок `userChats/{uid}` + последних известных `conversations/{id}`
 /// для мгновенного списка чатов без сети (после хотя бы одного успешного онлайн-сеанса).
-const _kPrefsKeyPrefix = 'mobile_chat_list_cache_v1_';
+const kChatListOfflineSnapshotKeyPrefix = 'mobile_chat_list_cache_v1_';
 
-String _prefsKey(String userId) => '$_kPrefsKeyPrefix$userId';
+String chatListOfflineSnapshotPrefsKey(String userId) =>
+    '$kChatListOfflineSnapshotKeyPrefix$userId';
 
 Map<String, Object?> _userChatIndexToJson(UserChatIndex idx) {
   return <String, Object?>{
@@ -23,8 +26,7 @@ Map<String, Object?> _userChatIndexToJson(UserChatIndex idx) {
             },
           )
           .toList(growable: false),
-    if (idx.sidebarFolderOrder != null &&
-        idx.sidebarFolderOrder!.isNotEmpty)
+    if (idx.sidebarFolderOrder != null && idx.sidebarFolderOrder!.isNotEmpty)
       'sidebarFolderOrder': idx.sidebarFolderOrder,
     if (idx.folderPins != null && idx.folderPins!.isNotEmpty)
       'folderPins': idx.folderPins,
@@ -63,7 +65,8 @@ Map<String, Object?> _conversationToFirestoreShape(Conversation c) {
     if (c.name != null && c.name!.trim().isNotEmpty) 'name': c.name,
     if (c.description != null && c.description!.trim().isNotEmpty)
       'description': c.description,
-    if (c.photoUrl != null && c.photoUrl!.trim().isNotEmpty) 'photoUrl': c.photoUrl,
+    if (c.photoUrl != null && c.photoUrl!.trim().isNotEmpty)
+      'photoUrl': c.photoUrl,
     if (c.createdByUserId != null && c.createdByUserId!.trim().isNotEmpty)
       'createdByUserId': c.createdByUserId,
     if (c.adminIds.isNotEmpty) 'adminIds': c.adminIds,
@@ -93,7 +96,8 @@ Map<String, Object?> _conversationToFirestoreShape(Conversation c) {
       'lastReactionParentId': c.lastReactionParentId,
     if (c.lastReactionSeenAt != null && c.lastReactionSeenAt!.isNotEmpty)
       'lastReactionSeenAt': c.lastReactionSeenAt,
-    if (c.clearedAt != null && c.clearedAt!.isNotEmpty) 'clearedAt': c.clearedAt,
+    if (c.clearedAt != null && c.clearedAt!.isNotEmpty)
+      'clearedAt': c.clearedAt,
     if (pins() != null) 'pinnedMessages': pins(),
     if (c.legacyPinnedMessage != null)
       'pinnedMessage': c.legacyPinnedMessage!.toFirestoreMap(),
@@ -114,9 +118,7 @@ List<ConversationWithId>? _parseConversationsList(Object? raw) {
     if (dataRaw is! Map) continue;
     final dataMap = dataRaw.map((k, v) => MapEntry(k.toString(), v));
     try {
-      out.add(
-        ConversationWithId(id: id, data: Conversation.fromJson(dataMap)),
-      );
+      out.add(ConversationWithId(id: id, data: Conversation.fromJson(dataMap)));
     } catch (_) {}
   }
   return out.isEmpty ? null : out;
@@ -129,7 +131,7 @@ loadChatListOfflineSnapshot(String userId) async {
   if (uid.isEmpty) return null;
   try {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_prefsKey(uid));
+    final raw = prefs.getString(chatListOfflineSnapshotPrefsKey(uid));
     if (raw == null || raw.trim().isEmpty) return null;
     final decoded = jsonDecode(raw);
     if (decoded is! Map) return null;
@@ -143,7 +145,8 @@ loadChatListOfflineSnapshot(String userId) async {
         );
       } catch (_) {}
     }
-    final convs = _parseConversationsList(root['conversations']) ??
+    final convs =
+        _parseConversationsList(root['conversations']) ??
         const <ConversationWithId>[];
     return (index: idx, conversations: convs);
   } catch (e, st) {
@@ -163,6 +166,8 @@ Future<void> persistChatListOfflineSnapshot({
   final uid = userId.trim();
   if (uid.isEmpty) return;
   if (index == null) return;
+  final localPrefs = await LocalStoragePreferencesStore.load();
+  if (!localPrefs.chatListSnapshotEnabled) return;
   try {
     final prefs = await SharedPreferences.getInstance();
     final payload = <String, Object?>{
@@ -176,7 +181,10 @@ Future<void> persistChatListOfflineSnapshot({
           )
           .toList(growable: false),
     };
-    await prefs.setString(_prefsKey(uid), jsonEncode(payload));
+    await prefs.setString(
+      chatListOfflineSnapshotPrefsKey(uid),
+      jsonEncode(payload),
+    );
   } catch (e, st) {
     if (kDebugMode) {
       debugPrint('persistChatListOfflineSnapshot failed: $e\n$st');

@@ -31,7 +31,7 @@
 ## Уведомления и настройки
 
 - `Notification` - in-app уведомление пользователя.
-- `ChatSettings`, `NotificationSettings`, `PrivacySettings` - пользовательские настройки клиента (`PrivacySettings.e2eeForNewDirectChats` — авто-E2E для новых личных чатов).
+- `ChatSettings`, `NotificationSettings`, `PrivacySettings` - пользовательские настройки клиента (`PrivacySettings.e2eeForNewDirectChats` — авто-E2E для новых личных чатов). В `ChatSettings` добавлен `emojiBurstAnimationProfile: 'lite' | 'balanced' | 'cinematic'` для управления fullscreen single-emoji эффектом.
 - `GroupInvitePolicy` - политика приглашения в групповые чаты.
 
 ## Индексы и служебные документы

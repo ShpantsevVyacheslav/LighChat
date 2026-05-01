@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
+import 'profile_subpage_header.dart';
 
-const double _kHeaderTitleSize = 16;
 const double _kCardTitleSize = 18;
 const double _kBodyTextSize = 14;
 
@@ -31,10 +31,15 @@ class ChatAdvancedPrivacyScreen extends ConsumerWidget {
               }
 
               final repo = ref.read(chatSettingsRepositoryProvider);
-              final userDocAsync = ref.watch(userChatSettingsDocProvider(user.uid));
-              final userDoc = userDocAsync.asData?.value ?? const <String, dynamic>{};
+              final userDocAsync = ref.watch(
+                userChatSettingsDocProvider(user.uid),
+              );
+              final userDoc =
+                  userDocAsync.asData?.value ?? const <String, dynamic>{};
               final raw = userDoc['privacySettings'];
-              final rawMap = raw is Map ? raw.map((k, v) => MapEntry(k.toString(), v)) : const <String, Object?>{};
+              final rawMap = raw is Map
+                  ? raw.map((k, v) => MapEntry(k.toString(), v))
+                  : const <String, Object?>{};
               final st = _AdvancedPrivacyState.fromRaw(rawMap);
 
               Future<void> patch(Map<String, Object?> privacyPatch) async {
@@ -46,7 +51,9 @@ class ChatAdvancedPrivacyScreen extends ConsumerWidget {
                 } catch (e) {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Не удалось сохранить настройки: $e')),
+                    SnackBar(
+                      content: Text('Не удалось сохранить настройки: $e'),
+                    ),
                   );
                 }
               }
@@ -62,7 +69,8 @@ class ChatAdvancedPrivacyScreen extends ConsumerWidget {
                 },
                 onShowOnlineChanged: (v) => patch({'showOnlineStatus': v}),
                 onShowLastSeenChanged: (v) => patch({'showLastSeen': v}),
-                onShowReadReceiptsChanged: (v) => patch({'showReadReceipts': v}),
+                onShowReadReceiptsChanged: (v) =>
+                    patch({'showReadReceipts': v}),
                 onShowEmailChanged: (v) => patch({'showEmailToOthers': v}),
                 onShowPhoneChanged: (v) => patch({'showPhoneToOthers': v}),
                 onShowDobChanged: (v) => patch({'showDateOfBirthToOthers': v}),
@@ -108,48 +116,11 @@ class _AdvancedPrivacyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final titleColor = dark ? Colors.white.withValues(alpha: 0.95) : scheme.onSurface.withValues(alpha: 0.94);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Material(
-                color: (dark ? Colors.white : scheme.surface).withValues(alpha: dark ? 0.08 : 0.74),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: onBack,
-                  child: SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: Icon(
-                      Icons.chevron_left_rounded,
-                      size: 30,
-                      color: titleColor,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Приватность чата',
-                style: TextStyle(
-                  fontSize: _kHeaderTitleSize,
-                  height: 1.1,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ChatProfileSubpageHeader(title: 'Приватность чата', onBack: onBack),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
@@ -239,8 +210,12 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        color: (dark ? const Color(0xFF08111B) : Colors.white).withValues(alpha: dark ? 0.86 : 0.84),
-        border: Border.all(color: Colors.white.withValues(alpha: dark ? 0.12 : 0.44)),
+        color: (dark ? const Color(0xFF08111B) : Colors.white).withValues(
+          alpha: dark ? 0.86 : 0.84,
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: dark ? 0.12 : 0.44),
+        ),
       ),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Column(
@@ -252,7 +227,9 @@ class _SettingsCard extends StatelessWidget {
                 Icon(
                   leadingIcon,
                   size: 18,
-                  color: dark ? Colors.white.withValues(alpha: 0.72) : scheme.onSurface.withValues(alpha: 0.62),
+                  color: dark
+                      ? Colors.white.withValues(alpha: 0.72)
+                      : scheme.onSurface.withValues(alpha: 0.62),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -304,7 +281,9 @@ class _SwitchRow extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 20,
-                color: dark ? Colors.white.withValues(alpha: 0.70) : scheme.onSurface.withValues(alpha: 0.60),
+                color: dark
+                    ? Colors.white.withValues(alpha: 0.70)
+                    : scheme.onSurface.withValues(alpha: 0.60),
               ),
             ),
             const SizedBox(width: 10),
@@ -315,7 +294,9 @@ class _SwitchRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: _kBodyTextSize,
                 fontWeight: FontWeight.w600,
-                color: dark ? Colors.white.withValues(alpha: 0.95) : scheme.onSurface.withValues(alpha: 0.94),
+                color: dark
+                    ? Colors.white.withValues(alpha: 0.95)
+                    : scheme.onSurface.withValues(alpha: 0.94),
               ),
             ),
           ),
@@ -325,8 +306,10 @@ class _SwitchRow extends StatelessWidget {
             onChanged: onChanged,
             activeThumbColor: Colors.white,
             activeTrackColor: const Color(0xFF2F86FF),
-            inactiveThumbColor: (dark ? Colors.white : scheme.surface).withValues(alpha: dark ? 0.9 : 1),
-            inactiveTrackColor: (dark ? Colors.white : scheme.onSurface).withValues(alpha: dark ? 0.2 : 0.2),
+            inactiveThumbColor: (dark ? Colors.white : scheme.surface)
+                .withValues(alpha: dark ? 0.9 : 1),
+            inactiveTrackColor: (dark ? Colors.white : scheme.onSurface)
+                .withValues(alpha: dark ? 0.2 : 0.2),
           ),
         ],
       ),
@@ -365,4 +348,3 @@ class _AdvancedPrivacyState {
     );
   }
 }
-

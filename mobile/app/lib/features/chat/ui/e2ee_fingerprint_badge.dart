@@ -168,10 +168,7 @@ class _E2eeFingerprintBadgeState extends State<E2eeFingerprintBadge> {
       );
     }
     if (_fingerprint == null || _devicesCount == 0) {
-      return Text(
-        'У ${widget.userLabel ?? 'пользователя'} нет активных E2EE-устройств.',
-        style: labelStyle,
-      );
+      return const SizedBox.shrink();
     }
     final displayHex = _fingerprint!.substring(0, 32);
     return Row(

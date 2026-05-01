@@ -58,6 +58,7 @@ class ChatMessageList extends StatefulWidget {
     this.onMessageTap,
     this.onMessageLongPress,
     this.showTimestamps = true,
+    this.emojiBurstAnimationProfile = 'balanced',
     this.fontSize = 'medium',
     this.bubbleRadius = 'rounded',
     this.outgoingBubbleColor,
@@ -111,6 +112,7 @@ class ChatMessageList extends StatefulWidget {
   final void Function(ChatMessage message)? onMessageTap;
   final void Function(ChatMessage message)? onMessageLongPress;
   final bool showTimestamps;
+  final String emojiBurstAnimationProfile;
   final String fontSize;
   final String bubbleRadius;
   final Color? outgoingBubbleColor;
@@ -685,6 +687,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
               child: _EmojiBurstOverlay(
                 key: ValueKey<int>(burst.runId),
                 emoji: burst.emoji,
+                profile: widget.emojiBurstAnimationProfile,
                 onFinished: () {
                   if (!mounted) return;
                   if (_emojiBurstTrigger?.runId == burst.runId) {
@@ -1560,7 +1563,8 @@ class _ChatMessageBubble extends StatelessWidget {
     // На iOS/web engine сочетание IntrinsicWidth + RichText(WidgetSpan) может
     // падать в dry-layout/baseline (debugCannotComputeDryLayout). Поэтому
     // не используем IntrinsicWidth для пузыря.
-    final outboxFail = isMine &&
+    final outboxFail =
+        isMine &&
         message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
         (message.deliveryStatus ?? '') == 'failed';
     final wrappedBody = outboxFail
@@ -1625,7 +1629,9 @@ class _ChatMessageBubble extends StatelessWidget {
                             !selectionMode &&
                                 onMessageLongPress != null &&
                                 !message.isDeleted &&
-                                !message.id.startsWith(kLocalOutboxMessageIdPrefix)
+                                !message.id.startsWith(
+                                  kLocalOutboxMessageIdPrefix,
+                                )
                             ? () => onMessageLongPress!(message)
                             : null,
                         child: wrappedBody,
@@ -1772,11 +1778,13 @@ class _EmojiBurstTrigger {
 class _EmojiBurstOverlay extends StatefulWidget {
   const _EmojiBurstOverlay({
     required this.emoji,
+    required this.profile,
     required this.onFinished,
     super.key,
   });
 
   final String emoji;
+  final String profile;
   final VoidCallback onFinished;
 
   @override
@@ -1785,88 +1793,108 @@ class _EmojiBurstOverlay extends StatefulWidget {
 
 class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
     with SingleTickerProviderStateMixin {
-  static const int _particleCount = 118;
-  static const List<double> _saturationBoostMatrix = <double>[
-    1.27545,
-    -0.25025,
-    -0.0252,
-    0,
-    0,
-    -0.07455,
-    1.09975,
-    -0.0252,
-    0,
-    0,
-    -0.07455,
-    -0.25025,
-    1.3248,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ];
+  static const int _particleCountLite = 24;
+  static const int _particleCountBalanced = 62;
+  static const int _particleCountCinematic = 90;
   late final AnimationController _controller;
   late final List<_BurstParticle> _particles;
+  late final bool _liteMode;
+  late final bool _cinematicMode;
+  late final List<String> _emojiPalette;
 
   @override
   void initState() {
     super.initState();
+    final reducedMotion = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations;
+    final normalizedProfile = _normalizeBurstProfile(widget.profile);
+    _cinematicMode = !reducedMotion && normalizedProfile == 'cinematic';
+    _liteMode =
+        reducedMotion ||
+        normalizedProfile == 'lite' ||
+        (normalizedProfile == 'balanced' && _shouldPreferLiteMode());
+    final particleCount = _liteMode
+        ? _particleCountLite
+        : (_cinematicMode ? _particleCountCinematic : _particleCountBalanced);
+    _emojiPalette = _buildAccentEmojiPalette(widget.emoji);
     final rnd = math.Random();
-    _particles = List<_BurstParticle>.generate(_particleCount, (i) {
-      final edge = rnd.nextInt(4);
-      late final double startX;
-      late final double startY;
-      switch (edge) {
-        case 0: // bottom
-          startX = rnd.nextDouble() * 1.2 - 0.1;
-          startY = 1.06 + rnd.nextDouble() * 0.24;
-          break;
-        case 1: // top
-          startX = rnd.nextDouble() * 1.2 - 0.1;
-          startY = -0.28 - rnd.nextDouble() * 0.22;
-          break;
-        case 2: // left
-          startX = -0.28 - rnd.nextDouble() * 0.25;
-          startY = rnd.nextDouble() * 1.2 - 0.1;
-          break;
-        default: // right
-          startX = 1.06 + rnd.nextDouble() * 0.25;
-          startY = rnd.nextDouble() * 1.2 - 0.1;
-      }
-
-      final hubX = 0.5 + (rnd.nextDouble() - 0.5) * 0.72;
-      final hubY = 0.5 + (rnd.nextDouble() - 0.5) * 0.86;
-      final endX = (hubX + (rnd.nextDouble() - 0.5) * 0.34).clamp(-0.2, 1.2);
-      final endY = (hubY + (rnd.nextDouble() - 0.5) * 0.32).clamp(-0.2, 1.2);
-      final size = 14 + rnd.nextDouble() * 86;
-      final wobbleAmp = 0.008 + rnd.nextDouble() * 0.034;
-      final wobbleSpeed = 0.42 + rnd.nextDouble() * 1.45;
+    _particles = List<_BurstParticle>.generate(particleCount, (i) {
+      final start = _sampleStartPoint(rnd);
+      final startX = start.dx;
+      final startY = start.dy;
+      final depth = rnd.nextDouble();
+      final flyOutProb = _liteMode ? 0.16 : (_cinematicMode ? 0.36 : 0.28);
+      final flyOut = rnd.nextDouble() < flyOutProb;
+      final centerX = 0.5 + (rnd.nextDouble() - 0.5) * 0.24;
+      final centerY = 0.48 + (rnd.nextDouble() - 0.5) * 0.3;
+      final towardCenterX = centerX - startX;
+      final towardCenterY = centerY - startY;
+      final len = math.max(
+        0.001,
+        math.sqrt(
+          towardCenterX * towardCenterX + towardCenterY * towardCenterY,
+        ),
+      );
+      final dirX = towardCenterX / len;
+      final dirY = towardCenterY / len;
+      final baseTravel = _liteMode
+          ? (0.46 + rnd.nextDouble() * 0.32)
+          : (_cinematicMode
+                ? (0.74 + rnd.nextDouble() * 0.52)
+                : (0.6 + rnd.nextDouble() * 0.42));
+      final endX = startX + dirX * baseTravel + (rnd.nextDouble() - 0.5) * 0.24;
+      final endY = startY + dirY * baseTravel + (rnd.nextDouble() - 0.5) * 0.24;
+      final clampedEndX = endX.clamp(flyOut ? -0.5 : -0.2, flyOut ? 1.5 : 1.2);
+      final clampedEndY = endY.clamp(flyOut ? -0.6 : -0.24, flyOut ? 1.5 : 1.2);
+      final wobbleAmp =
+          (_liteMode ? 0.0025 : 0.006) +
+          rnd.nextDouble() * (_liteMode ? 0.004 : 0.014);
+      final wobbleSpeed =
+          (_liteMode ? 0.32 : (_cinematicMode ? 0.48 : 0.44)) +
+          rnd.nextDouble() *
+              (_liteMode ? 0.36 : (_cinematicMode ? 0.96 : 0.78));
       final spinTurns =
-          (0.45 + rnd.nextDouble() * 1.45) * (rnd.nextBool() ? 1 : -1);
-      final delay = rnd.nextDouble() * 0.38;
-      final life = 0.78 + rnd.nextDouble() * 0.34;
-      final displaySize = size * (0.62 + rnd.nextDouble() * 0.72);
+          (_liteMode
+              ? 0.1
+              : (_cinematicMode ? 0.24 : 0.18) + rnd.nextDouble() * 0.62) *
+          (rnd.nextBool() ? 1 : -1);
+      final delay =
+          rnd.nextDouble() *
+          (_liteMode ? 0.08 : (_cinematicMode ? 0.24 : 0.18));
+      final life =
+          (_liteMode ? 0.64 : (_cinematicMode ? 0.74 : 0.68)) +
+          rnd.nextDouble() * (_liteMode ? 0.08 : 0.18);
+      final displaySize =
+          (_liteMode ? 14.0 : 16.0) +
+          rnd.nextDouble() *
+              (_liteMode ? 16.0 : (_cinematicMode ? 36.0 : 28.0)) +
+          depth * (_liteMode ? 5.0 : (_cinematicMode ? 14.0 : 10.0));
+      final emoji = _pickBurstEmoji(rnd);
       return _BurstParticle(
         startX: startX,
-        endX: endX,
+        endX: clampedEndX,
         startY: startY,
-        endY: endY,
-        size: size,
-        displaySize: displaySize,
+        endY: clampedEndY,
+        baseSize: displaySize,
+        depth: depth,
+        flyOut: flyOut,
         wobbleAmp: wobbleAmp,
         wobbleSpeed: wobbleSpeed,
         rotationTurns: spinTurns,
         delay: delay,
         life: life,
+        emoji: emoji,
       );
     });
     _controller =
         AnimationController(
             vsync: this,
-            duration: const Duration(milliseconds: 4400),
+            duration: Duration(
+              milliseconds: _liteMode ? 1550 : (_cinematicMode ? 3150 : 2600),
+            ),
           )
           ..addStatusListener((s) {
             if (s == AnimationStatus.completed) widget.onFinished();
@@ -1899,10 +1927,10 @@ class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
                         var local = (t - p.delay) / p.life;
                         local = local.clamp(0.0, 1.0);
                         if (local <= 0) return const SizedBox.shrink();
-                        final eased = Curves.easeInOutCubic.transform(local);
+                        final travelT = _travelProgress(local);
                         final x =
                             (p.startX +
-                                (p.endX - p.startX) * eased +
+                                (p.endX - p.startX) * travelT +
                                 math.sin(
                                       (local + p.delay) *
                                           p.wobbleSpeed *
@@ -1913,7 +1941,7 @@ class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
                             w;
                         final y =
                             (p.startY +
-                                (p.endY - p.startY) * eased +
+                                (p.endY - p.startY) * travelT +
                                 math.cos(
                                       (local + p.delay * 0.7) *
                                           p.wobbleSpeed *
@@ -1923,20 +1951,31 @@ class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
                                     (p.wobbleAmp * 0.85)) *
                             h;
                         final fadeIn = Curves.easeOut.transform(
-                          (local / 0.2).clamp(0.0, 1.0),
+                          (local / (_liteMode ? 0.12 : 0.18)).clamp(0.0, 1.0),
                         );
-                        final fadeOut = local < 0.58
+                        final fadeOut = local < (p.flyOut ? 0.52 : 0.62)
                             ? 1.0
                             : Curves.easeInOutCubic.transform(
-                                (1.0 - (local - 0.58) / 0.42).clamp(0.0, 1.0),
+                                (1.0 - (local - (p.flyOut ? 0.52 : 0.62)) / 0.4)
+                                    .clamp(0.0, 1.0),
                               );
-                        final fade = (fadeIn * fadeOut).clamp(0.0, 1.0);
+                        final fade = (fadeIn * fadeOut * (0.82 + p.depth * 0.2))
+                            .clamp(0.0, 1.0);
+                        if (fade <= 0.02) return const SizedBox.shrink();
+                        final growT = Curves.easeOutCubic.transform(
+                          (local / (p.flyOut ? 0.46 : 0.56)).clamp(0.0, 1.0),
+                        );
+                        final nearBoost =
+                            1.0 +
+                            p.depth *
+                                (p.flyOut
+                                    ? (_cinematicMode ? 1.06 : 0.88)
+                                    : (_cinematicMode ? 0.82 : 0.68));
                         final pulse =
-                            1 + 0.06 * math.sin(local * math.pi * 2.4);
-                        final scale =
-                            (0.52 +
-                                0.62 * Curves.easeOutCubic.transform(local)) *
-                            pulse;
+                            1 +
+                            (p.flyOut ? 0.05 : 0.035) *
+                                math.sin(local * math.pi * 2.0);
+                        final scale = (0.52 + 0.58 * growT) * nearBoost * pulse;
                         return Positioned(
                           left: x,
                           top: y,
@@ -1950,23 +1989,11 @@ class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
                                   Curves.easeOut.transform(local),
                               child: Transform.scale(
                                 scale: scale,
-                                child: ColorFiltered(
-                                  colorFilter: const ColorFilter.matrix(
-                                    _saturationBoostMatrix,
-                                  ),
-                                  child: Text(
-                                    widget.emoji,
-                                    style: TextStyle(
-                                      fontSize: p.displaySize,
-                                      height: 1,
-                                      shadows: const [
-                                        Shadow(
-                                          blurRadius: 14,
-                                          color: Color(0x60000000),
-                                          offset: Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
+                                child: Text(
+                                  p.emoji,
+                                  style: TextStyle(
+                                    fontSize: p.baseSize,
+                                    height: 1,
                                   ),
                                 ),
                               ),
@@ -1983,34 +2010,112 @@ class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
       ),
     );
   }
+
+  double _travelProgress(double local) {
+    final eased = Curves.easeInOutCubic.transform(local);
+    return (0.08 + eased * 0.98).clamp(0.0, 1.06);
+  }
+
+  Offset _sampleStartPoint(math.Random rnd) {
+    final zone = rnd.nextInt(6);
+    switch (zone) {
+      case 0:
+        return Offset(rnd.nextDouble(), -0.22 + rnd.nextDouble() * 0.24);
+      case 1:
+        return Offset(rnd.nextDouble(), 0.98 + rnd.nextDouble() * 0.22);
+      case 2:
+        return Offset(-0.22 + rnd.nextDouble() * 0.24, rnd.nextDouble());
+      case 3:
+        return Offset(0.98 + rnd.nextDouble() * 0.22, rnd.nextDouble());
+      case 4:
+        return Offset(
+          0.08 + rnd.nextDouble() * 0.84,
+          0.02 + rnd.nextDouble() * 0.28,
+        );
+      default:
+        return Offset(
+          0.08 + rnd.nextDouble() * 0.84,
+          0.7 + rnd.nextDouble() * 0.26,
+        );
+    }
+  }
+
+  List<String> _buildAccentEmojiPalette(String base) {
+    switch (base) {
+      case '❤️':
+      case '💖':
+      case '💘':
+        return const <String>['❤️', '💖', '💞', '✨', '💫'];
+      case '🔥':
+        return const <String>['🔥', '✨', '⚡', '💥'];
+      case '🎉':
+      case '🥳':
+        return const <String>['🎉', '🎊', '✨', '🥳'];
+      case '😂':
+      case '🤣':
+        return const <String>['😂', '🤣', '😆', '✨'];
+      case '👍':
+      case '👏':
+        return const <String>['👍', '👏', '✨'];
+      default:
+        return <String>[base, '✨', '💫'];
+    }
+  }
+
+  String _pickBurstEmoji(math.Random rnd) {
+    if (_emojiPalette.isEmpty) return widget.emoji;
+    final baseChance = _liteMode ? 0.84 : (_cinematicMode ? 0.52 : 0.64);
+    if (rnd.nextDouble() < baseChance) return widget.emoji;
+    return _emojiPalette[rnd.nextInt(_emojiPalette.length)];
+  }
+
+  String _normalizeBurstProfile(String raw) {
+    final v = raw.trim().toLowerCase();
+    if (v == 'lite' || v == 'cinematic' || v == 'balanced') return v;
+    return 'balanced';
+  }
+
+  bool _shouldPreferLiteMode() {
+    final view = WidgetsBinding.instance.platformDispatcher.implicitView;
+    if (view == null) return false;
+    final pxArea = view.physicalSize.width * view.physicalSize.height;
+    final dpr = view.devicePixelRatio <= 0 ? 1.0 : view.devicePixelRatio;
+    final logicalShortest =
+        math.min(view.physicalSize.width, view.physicalSize.height) / dpr;
+    return pxArea >= 3600000 || (dpr >= 3.2 && logicalShortest <= 430);
+  }
 }
 
 class _BurstParticle {
-  const _BurstParticle({
+  _BurstParticle({
     required this.startX,
     required this.endX,
     required this.startY,
     required this.endY,
-    required this.size,
-    required this.displaySize,
+    required this.baseSize,
+    required this.depth,
+    required this.flyOut,
     required this.wobbleAmp,
     required this.wobbleSpeed,
     required this.rotationTurns,
     required this.delay,
     required this.life,
+    required this.emoji,
   });
 
   final double startX;
   final double endX;
   final double startY;
   final double endY;
-  final double size;
-  final double displaySize;
+  final double baseSize;
+  final double depth;
+  final bool flyOut;
   final double wobbleAmp;
   final double wobbleSpeed;
   final double rotationTurns;
   final double delay;
   final double life;
+  final String emoji;
 }
 
 class _SyncedEmojiBurstCandidate {

@@ -353,10 +353,154 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account_menu_language => 'Language';
 
   @override
+  String get account_menu_storage => 'Storage';
+
+  @override
   String get account_menu_theme => 'Theme';
 
   @override
   String get account_menu_sign_out => 'Sign out';
+
+  @override
+  String get storage_settings_title => 'Storage';
+
+  @override
+  String get storage_settings_subtitle =>
+      'Control what data is cached on this device and clean up by chats or files.';
+
+  @override
+  String get storage_settings_total_label => 'Used on this device';
+
+  @override
+  String storage_settings_budget_label(Object mb) {
+    return 'Target cache budget: $mb MB';
+  }
+
+  @override
+  String get storage_settings_clear_all_button => 'Clear all cache';
+
+  @override
+  String get storage_settings_trim_button => 'Trim to budget';
+
+  @override
+  String get storage_settings_policy_title => 'What to keep locally';
+
+  @override
+  String get storage_settings_budget_slider_title => 'Cache budget';
+
+  @override
+  String get storage_settings_breakdown_title => 'By data type';
+
+  @override
+  String get storage_settings_breakdown_empty => 'No local cached data yet.';
+
+  @override
+  String get storage_settings_chats_title => 'By chats';
+
+  @override
+  String get storage_settings_chats_empty => 'No chat-specific cache yet.';
+
+  @override
+  String storage_settings_chat_subtitle(Object count, Object size) {
+    return '$count items · $size';
+  }
+
+  @override
+  String get storage_settings_general_title => 'Unassigned cache';
+
+  @override
+  String get storage_settings_general_hint =>
+      'Entries not linked to a specific chat (legacy/global cache).';
+
+  @override
+  String get storage_settings_general_empty => 'No shared cache entries.';
+
+  @override
+  String get storage_settings_chat_files_empty =>
+      'No local files in this chat cache.';
+
+  @override
+  String get storage_settings_clear_chat_action => 'Clear chat cache';
+
+  @override
+  String get storage_settings_clear_all_title => 'Clear local cache?';
+
+  @override
+  String get storage_settings_clear_all_body =>
+      'This will remove cached files, previews, drafts, and offline snapshots from this device.';
+
+  @override
+  String storage_settings_clear_chat_title(Object chat) {
+    return 'Clear cache for “$chat”?';
+  }
+
+  @override
+  String get storage_settings_clear_chat_body =>
+      'Only this chat cache will be deleted. Messages in cloud stay intact.';
+
+  @override
+  String get storage_settings_snackbar_cleared => 'Local cache cleared';
+
+  @override
+  String get storage_settings_snackbar_budget_already_ok =>
+      'Cache already fits the target budget';
+
+  @override
+  String storage_settings_snackbar_budget_trimmed(Object size) {
+    return 'Freed: $size';
+  }
+
+  @override
+  String get storage_settings_error_empty =>
+      'Unable to build storage statistics';
+
+  @override
+  String get storage_category_e2ee_media => 'E2EE media cache';
+
+  @override
+  String get storage_category_e2ee_media_subtitle =>
+      'Decrypted secret media files per chat for faster reopening.';
+
+  @override
+  String get storage_category_e2ee_text => 'E2EE text cache';
+
+  @override
+  String get storage_category_e2ee_text_subtitle =>
+      'Decrypted text snippets per chat for instant rendering.';
+
+  @override
+  String get storage_category_drafts => 'Message drafts';
+
+  @override
+  String get storage_category_drafts_subtitle => 'Unsent draft text by chats.';
+
+  @override
+  String get storage_category_chat_list_snapshot => 'Offline chat list';
+
+  @override
+  String get storage_category_chat_list_snapshot_subtitle =>
+      'Recent chat list snapshot for quick startup offline.';
+
+  @override
+  String get storage_category_profile_cards => 'Profile mini-cache';
+
+  @override
+  String get storage_category_profile_cards_subtitle =>
+      'Names and avatars saved for faster UI.';
+
+  @override
+  String get storage_category_video_downloads => 'Downloaded video cache';
+
+  @override
+  String get storage_category_video_downloads_subtitle =>
+      'Locally downloaded videos from gallery views.';
+
+  @override
+  String get storage_category_video_thumbs => 'Video preview frames';
+
+  @override
+  String get storage_category_video_thumbs_subtitle =>
+      'Generated first-frame thumbnails for videos.';
 
   @override
   String get profile_delete_account => 'Delete account';
@@ -1389,6 +1533,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get new_group_action_create => 'Create';
+
+  @override
+  String get group_members_title => 'Members';
+
+  @override
+  String get group_members_invite_link => 'Invite via link';
+
+  @override
+  String get group_members_admin_badge => 'ADMIN';
+
+  @override
+  String group_members_invite_text(Object groupName, Object inviteLink) {
+    return 'Join the group $groupName on LighChat: $inviteLink';
+  }
+
+  @override
+  String get group_members_error_min_admin =>
+      'At least one administrator must remain in the group.';
+
+  @override
+  String get group_members_error_cannot_remove_creator =>
+      'You can\'t remove admin rights from the group creator.';
+
+  @override
+  String get group_members_remove_admin => 'Admin rights removed';
+
+  @override
+  String get group_members_make_admin => 'User promoted to admin';
 
   @override
   String get auth_brand_tagline => 'A safer messenger';
@@ -2770,4 +2942,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edit_group_success => 'Group updated.';
+
+  @override
+  String get edit_group_privacy_section => 'PRIVACY';
+
+  @override
+  String get edit_group_privacy_forwarding => 'Message forwarding';
+
+  @override
+  String get edit_group_privacy_forwarding_desc =>
+      'Allow members to forward messages from this group.';
+
+  @override
+  String get edit_group_privacy_screenshots => 'Screenshots';
+
+  @override
+  String get edit_group_privacy_screenshots_desc =>
+      'Allow screenshots in this group (platform-dependent).';
+
+  @override
+  String get edit_group_privacy_copy => 'Text copying';
+
+  @override
+  String get edit_group_privacy_copy_desc => 'Allow copying message text.';
+
+  @override
+  String get edit_group_privacy_save_media => 'Save media';
+
+  @override
+  String get edit_group_privacy_save_media_desc =>
+      'Allow saving photos and videos to the device.';
+
+  @override
+  String get edit_group_privacy_share_media => 'Share media';
+
+  @override
+  String get edit_group_privacy_share_media_desc =>
+      'Allow sharing media files outside the app.';
 }

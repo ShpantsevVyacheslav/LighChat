@@ -904,6 +904,11 @@ export type ChatSettings = {
   bubbleRadius: "rounded" | "square";
   showTimestamps: boolean;
   /**
+   * Профиль fullscreen-анимации при тапе по single-emoji сообщению (mobile/web-parity):
+   * `lite` — минимум нагрузки, `balanced` — авто-баланс, `cinematic` — максимальный вау-эффект.
+   */
+  emojiBurstAnimationProfile?: "lite" | "balanced" | "cinematic";
+  /**
    * Внешний вид нижней навигации: цветные градиентные плитки или монохромные иконки.
    */
   bottomNavAppearance?: 'colorful' | 'minimal';

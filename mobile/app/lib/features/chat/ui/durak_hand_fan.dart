@@ -18,6 +18,7 @@ class DurakHandFan extends StatelessWidget {
     required this.highlight,
     required this.selectedId,
     required this.onTap,
+    required this.onDragStarted,
     required this.onDragAcceptedByTable,
     required this.onDragRejected,
   });
@@ -33,6 +34,7 @@ class DurakHandFan extends StatelessWidget {
   final bool Function(Map<String, dynamic>) highlight;
   final String? selectedId;
   final void Function(Map<String, dynamic> card, String id) onTap;
+  final void Function(Map<String, dynamic> card, String id)? onDragStarted;
 
   /// Kept for API compatibility with the table screen.
   final void Function(Map<String, dynamic> card) onDragAcceptedByTable;
@@ -116,6 +118,7 @@ class DurakHandFan extends StatelessWidget {
                     selected:
                         selectedId != null && selectedId == cardId(cards[i], i),
                     onTap: () => onTap(cards[i], cardId(cards[i], i)),
+                    onDragStarted: onDragStarted,
                     onDragAcceptedByTable: () =>
                         onDragAcceptedByTable(cards[i]),
                     onDragRejected: () => onDragRejected(cards[i]),
@@ -144,6 +147,7 @@ class _HandFanCard extends StatelessWidget {
     required this.highlight,
     required this.selected,
     required this.onTap,
+    required this.onDragStarted,
     required this.onDragAcceptedByTable,
     required this.onDragRejected,
     required this.cardWidth,
@@ -160,6 +164,7 @@ class _HandFanCard extends StatelessWidget {
   final bool highlight;
   final bool selected;
   final VoidCallback onTap;
+  final void Function(Map<String, dynamic> card, String id)? onDragStarted;
   final VoidCallback onDragAcceptedByTable;
   final VoidCallback onDragRejected;
   final double cardWidth;
@@ -188,13 +193,15 @@ class _HandFanCard extends StatelessWidget {
     final childCard = buildCard(withFlightKey: true);
     if (!enabled) return childCard;
 
-    return LongPressDraggable<Map<String, dynamic>>(
+    return Draggable<Map<String, dynamic>>(
       data: card,
       maxSimultaneousDrags: 1,
-      dragAnchorStrategy: pointerDragAnchorStrategy,
+      dragAnchorStrategy: childDragAnchorStrategy,
+      rootOverlay: true,
+      onDragStarted: () => onDragStarted?.call(card, id),
       feedback: Material(
         color: Colors.transparent,
-        child: Opacity(opacity: 0.94, child: buildCard(withFlightKey: false)),
+        child: Opacity(opacity: 0.96, child: buildCard(withFlightKey: false)),
       ),
       childWhenDragging: Opacity(opacity: 0.24, child: childCard),
       onDragEnd: (details) {

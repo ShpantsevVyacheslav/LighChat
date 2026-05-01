@@ -44,6 +44,19 @@ function asNonEmptyString(v: unknown): string | null {
   return t ? t : null;
 }
 
+function normalizeUidList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const uid = String(item ?? "").trim();
+    if (!uid || seen.has(uid)) continue;
+    seen.add(uid);
+    out.push(uid);
+  }
+  return out;
+}
+
 export const makeDurakMove = onCall(
   { region: "us-central1" },
   async (request: CallableRequest<RequestData>): Promise<ResponseData> => {
@@ -70,12 +83,33 @@ export const makeDurakMove = onCall(
       if (g.type !== "durak") throw new HttpsError("failed-precondition", "GAME_TYPE_UNSUPPORTED");
       if (g.status !== "active") throw new HttpsError("failed-precondition", "GAME_NOT_ACTIVE");
 
-      const playerIds = Array.isArray(g.playerIds) ? g.playerIds : [];
+      const playerIds = normalizeUidList(g.playerIds);
+      if (playerIds.length < 2) throw new HttpsError("failed-precondition", "NEED_AT_LEAST_2_PLAYERS");
       if (!playerIds.includes(uid)) throw new HttpsError("permission-denied", "NOT_A_PLAYER");
 
       const state = (g.serverState && typeof g.serverState === "object") ? (g.serverState as any) : null;
       if (!state) throw new HttpsError("failed-precondition", "GAME_STATE_MISSING");
       const settings = (g.settings && typeof g.settings === "object") ? (g.settings as any) : {};
+
+      // Heal potentially stale/invalid seat data before move processing.
+      {
+        const rawSeats = normalizeUidList(state.seats);
+        const seats = rawSeats.filter((id) => playerIds.includes(id));
+        const mergedSeats = seats.length > 0 ? seats : [...playerIds];
+        for (const id of playerIds) {
+          if (!mergedSeats.includes(id)) mergedSeats.push(id);
+        }
+        state.seats = mergedSeats;
+
+        const attackerUid = typeof state.attackerUid === "string" ? state.attackerUid : "";
+        const defenderUid = typeof state.defenderUid === "string" ? state.defenderUid : "";
+        if (!mergedSeats.includes(attackerUid)) {
+          state.attackerUid = mergedSeats[0];
+        }
+        if (!mergedSeats.includes(defenderUid) || state.defenderUid === state.attackerUid) {
+          state.defenderUid = mergedSeats[(mergedSeats.indexOf(state.attackerUid) + 1) % mergedSeats.length];
+        }
+      }
 
       const existingMove = await tx.get(moveRef);
       if (existingMove.exists) {
@@ -409,7 +443,8 @@ export const makeDurakMove = onCall(
         clientMoveId,
         error: (error as Error)?.message ?? String(error),
       });
-      throw new HttpsError("failed-precondition", "MOVE_REJECTED_RETRY");
+      const message = ((error as Error)?.message ?? String(error)).slice(0, 180);
+      throw new HttpsError("failed-precondition", `MOVE_REJECTED_RETRY:${message}`);
     }
 
     logger.info("[makeDurakMove] accepted", { gameId, uid, clientMoveId, actionType });

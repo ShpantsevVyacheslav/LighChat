@@ -167,8 +167,70 @@
   "account_menu_privacy": "Конфиденциальность",
   "account_menu_blacklist": "Черный список",
   "account_menu_language": "Язык",
+  "account_menu_storage": "Хранилище",
   "account_menu_theme": "Тема",
   "account_menu_sign_out": "Выйти",
+  "storage_settings_title": "Хранилище",
+  "storage_settings_subtitle": "Управляйте локальным кэшем на устройстве: что хранить, что чистить и сколько места выделять.",
+  "storage_settings_total_label": "Занято на устройстве",
+  "storage_settings_budget_label": "Целевой лимит кэша: {mb} МБ",
+  "@storage_settings_budget_label": {
+    "placeholders": {
+      "mb": {}
+    }
+  },
+  "storage_settings_clear_all_button": "Очистить весь кэш",
+  "storage_settings_trim_button": "Поджать до лимита",
+  "storage_settings_policy_title": "Что хранить локально",
+  "storage_settings_budget_slider_title": "Лимит кэша",
+  "storage_settings_breakdown_title": "Разбивка по типам",
+  "storage_settings_breakdown_empty": "Локальный кэш пока пуст.",
+  "storage_settings_chats_title": "Разбивка по чатам",
+  "storage_settings_chats_empty": "Пока нет кэша, привязанного к чатам.",
+  "storage_settings_chat_subtitle": "{count} элементов · {size}",
+  "@storage_settings_chat_subtitle": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "storage_settings_general_title": "Кэш без привязки к чату",
+  "storage_settings_general_hint": "Записи, которые не удалось однозначно связать с конкретным чатом (legacy/глобальный кэш).",
+  "storage_settings_general_empty": "Общий кэш пуст.",
+  "storage_settings_chat_files_empty": "Локальных файлов для этого чата пока нет.",
+  "storage_settings_clear_chat_action": "Очистить кэш чата",
+  "storage_settings_clear_all_title": "Очистить локальный кэш?",
+  "storage_settings_clear_all_body": "Будут удалены кэшированные файлы, превью, черновики и офлайн-снимки списка чатов на этом устройстве.",
+  "storage_settings_clear_chat_title": "Очистить кэш «{chat}»?",
+  "@storage_settings_clear_chat_title": {
+    "placeholders": {
+      "chat": {}
+    }
+  },
+  "storage_settings_clear_chat_body": "Удалится только локальный кэш этого чата. Облачные сообщения не затрагиваются.",
+  "storage_settings_snackbar_cleared": "Локальный кэш очищен",
+  "storage_settings_snackbar_budget_already_ok": "Кэш уже укладывается в лимит",
+  "storage_settings_snackbar_budget_trimmed": "Освобождено: {size}",
+  "@storage_settings_snackbar_budget_trimmed": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_settings_error_empty": "Не удалось собрать статистику хранилища",
+  "storage_category_e2ee_media": "E2EE медиа-кэш",
+  "storage_category_e2ee_media_subtitle": "Расшифрованные медиа секретных чатов для быстрого повторного открытия.",
+  "storage_category_e2ee_text": "E2EE текст-кэш",
+  "storage_category_e2ee_text_subtitle": "Расшифрованный текст сообщений по чатам для мгновенного рендера.",
+  "storage_category_drafts": "Черновики сообщений",
+  "storage_category_drafts_subtitle": "Неотправленные черновики по чатам.",
+  "storage_category_chat_list_snapshot": "Офлайн-список чатов",
+  "storage_category_chat_list_snapshot_subtitle": "Последний снимок списка чатов для быстрого старта без сети.",
+  "storage_category_profile_cards": "Мини-кэш профилей",
+  "storage_category_profile_cards_subtitle": "Имена и аватары для ускорения интерфейса.",
+  "storage_category_video_downloads": "Кэш загруженных видео",
+  "storage_category_video_downloads_subtitle": "Локальные копии видео из просмотрщика медиа.",
+  "storage_category_video_thumbs": "Превью-кадры видео",
+  "storage_category_video_thumbs_subtitle": "Сгенерированные первые кадры для видео.",
   "profile_delete_account": "Удалить аккаунт",
   "profile_delete_account_confirm_title": "Удалить аккаунт безвозвратно?",
   "profile_delete_account_confirm_body": "Ваш аккаунт будет удалён из Firebase Auth и все ваши документы в Firestore будут удалены без возможности восстановления. У собеседников останутся ваши чаты в режиме только чтение.",
@@ -683,7 +745,21 @@
   "new_group_empty_not_found": "Никого не найдено.",
   "new_group_error_name_required": "Введите название группы.",
   "new_group_error_members_required": "Добавьте хотя бы одного участника.",
-  "new_group_action_create": "Создать"
+  "new_group_action_create": "Создать",
+  "group_members_title": "Участники",
+  "group_members_invite_link": "Пригласить по ссылке",
+  "group_members_admin_badge": "АДМИН",
+  "group_members_invite_text": "Присоединяйся к группе {groupName} в LighChat: {inviteLink}",
+  "@group_members_invite_text": {
+    "placeholders": {
+      "groupName": {},
+      "inviteLink": {}
+    }
+  },
+  "group_members_error_min_admin": "В группе должен остаться хотя бы один администратор.",
+  "group_members_error_cannot_remove_creator": "Нельзя снять права администратора с создателя группы.",
+  "group_members_remove_admin": "Администратор снят",
+  "group_members_make_admin": "Назначен администратор"
   ,
   "auth_brand_tagline": "Безопасный мессенджер",
   "auth_firebase_not_ready": "Firebase не готов. Проверь `firebase_options.dart` и GoogleService-Info.plist.",
@@ -1451,5 +1527,16 @@
   "edit_group_error_save_failed": "Ошибка при сохранении группы",
   "edit_group_error_not_found": "Группа не найдена",
   "edit_group_error_permission_denied": "У вас нет прав для редактирования этой группы",
-  "edit_group_success": "Группа обновлена"
+  "edit_group_success": "Группа обновлена",
+  "edit_group_privacy_section": "КОНФИДЕНЦИАЛЬНОСТЬ",
+  "edit_group_privacy_forwarding": "Пересылка сообщений",
+  "edit_group_privacy_forwarding_desc": "Разрешить участникам пересылать сообщения из этой группы.",
+  "edit_group_privacy_screenshots": "Скриншоты",
+  "edit_group_privacy_screenshots_desc": "Разрешить скриншоты внутри группы (ограничение зависит от платформы).",
+  "edit_group_privacy_copy": "Копирование текста",
+  "edit_group_privacy_copy_desc": "Разрешить копирование текста сообщений.",
+  "edit_group_privacy_save_media": "Сохранение медиа",
+  "edit_group_privacy_save_media_desc": "Разрешить сохранять фото и видео на устройство.",
+  "edit_group_privacy_share_media": "Поделиться медиа",
+  "edit_group_privacy_share_media_desc": "Разрешить делиться медиафайлами вне приложения."
 }

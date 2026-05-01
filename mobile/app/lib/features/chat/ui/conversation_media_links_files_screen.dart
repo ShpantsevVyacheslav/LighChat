@@ -16,6 +16,7 @@ import '../data/secret_chat_media_open_service.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_media_viewer_screen.dart';
+import 'profile_subpage_header.dart';
 import 'video_cached_thumb_image.dart';
 import 'video_circle_gallery.dart';
 
@@ -80,7 +81,7 @@ class _ConversationMediaLinksFilesScreenState
                   data: (msgsDesc) => E2eeMessagesResolver(
                     conversationId: widget.conversationId,
                     // Secret media view limits apply inside secret chats too.
-                    secretChat: widget.conversation?.secretChat,
+                    secretChat: widget.conversation.secretChat,
                     messages: msgsDesc,
                     builder:
                         (
@@ -112,44 +113,9 @@ class _ConversationMediaLinksFilesScreenState
   }
 
   Widget _topBar(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 16, 0),
-      child: SizedBox(
-        height: 48,
-        child: Row(
-          children: [
-            IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: IconButton.styleFrom(
-                backgroundColor: scheme.onSurface.withValues(alpha: 0.06),
-                shape: const CircleBorder(),
-                padding: const EdgeInsets.all(9),
-                minimumSize: const Size(36, 36),
-              ),
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 18,
-                color: scheme.onSurface.withValues(alpha: 0.95),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                'Медиа, ссылки и файлы',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.1,
-                  color: scheme.onSurface.withValues(alpha: 0.98),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ChatProfileSubpageHeader(
+      title: 'Медиа, ссылки и файлы',
+      onBack: () => Navigator.of(context).pop(),
     );
   }
 
@@ -278,23 +244,29 @@ class _ConversationMediaLinksFilesScreenState
             child: Stack(
               fit: StackFit.expand,
               children: [
-                    if (SecretChatMediaOpenService.isLockedSecretAttachment(att))
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.28),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.lock_rounded,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                        ),
-                      )
-                    else if (isVideo)
-                      VideoCachedThumbImage(videoUrl: att.url, fit: BoxFit.cover)
-                    else
-                      ChatCachedNetworkImage(url: att.url, fit: BoxFit.cover),
+                if (SecretChatMediaOpenService.isLockedSecretAttachment(att))
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.28),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.lock_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  )
+                else if (isVideo)
+                  VideoCachedThumbImage(
+                    videoUrl: att.url,
+                    conversationId: widget.conversationId,
+                    messageId: item.message.id,
+                    attachmentName: att.name,
+                    fit: BoxFit.cover,
+                  )
+                else
+                  ChatCachedNetworkImage(url: att.url, fit: BoxFit.cover),
                 if (isVideo)
                   Align(
                     alignment: Alignment.center,
@@ -325,9 +297,10 @@ class _ConversationMediaLinksFilesScreenState
   ) async {
     if (items.isEmpty) return;
     final conv = widget.conversation;
-    final isSecret = conv?.secretChat?.enabled == true;
+    final isSecret = conv.secretChat?.enabled == true;
     final tapped = items[index].attachment;
-    if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(tapped)) {
+    if (isSecret &&
+        SecretChatMediaOpenService.isLockedSecretAttachment(tapped)) {
       final rt = ref.read(mobileE2eeRuntimeProvider);
       if (rt == null) return;
       try {
@@ -341,11 +314,13 @@ class _ConversationMediaLinksFilesScreenState
           attachment: resolved,
           message: items[index].message,
         );
+        if (!mounted) return;
         await Navigator.of(context).push(
           chatMediaViewerPageRoute(
             ChatMediaViewerScreen(
               items: [one],
               initialIndex: 0,
+              conversationId: widget.conversationId,
               currentUserId: widget.currentUserId,
               senderLabel: _senderLabel,
               onReply: null,
@@ -372,6 +347,7 @@ class _ConversationMediaLinksFilesScreenState
         ChatMediaViewerScreen(
           items: items,
           initialIndex: index,
+          conversationId: widget.conversationId,
           currentUserId: widget.currentUserId,
           senderLabel: _senderLabel,
           onReply: null,

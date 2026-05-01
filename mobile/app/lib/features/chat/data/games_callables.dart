@@ -293,6 +293,8 @@ String friendlyGamesCallableError(Object error) {
       return 'В этом чате уже есть активная партия';
     case 'ROUND_RESOLUTION_PENDING':
       return 'Сначала завершите спорный ход';
+    case 'REMATCH_FAILED_RETRY':
+      return 'Не удалось подготовить реванш. Попробуйте еще раз';
   }
 
   if (code == 'unauthenticated') return 'Нужно войти в аккаунт';
@@ -326,6 +328,7 @@ String _extractRuleMarker(String message) {
     'GAME_ALREADY_ACTIVE',
     'ACTIVE_GAME_ALREADY_EXISTS',
     'ROUND_RESOLUTION_PENDING',
+    'REMATCH_FAILED_RETRY',
   ];
   for (final marker in markers) {
     if (upper.contains(marker)) return marker;

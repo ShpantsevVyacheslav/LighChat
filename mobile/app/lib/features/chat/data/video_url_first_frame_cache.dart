@@ -7,6 +7,9 @@ import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'local_cache_entry_registry.dart';
+import 'local_storage_preferences.dart';
+
 /// Кэш первого кадра сетевого видео (jpg) для превью в ленте и сетке «Медиа».
 class VideoUrlFirstFrameCache {
   VideoUrlFirstFrameCache._();
@@ -31,15 +34,35 @@ class VideoUrlFirstFrameCache {
     return trimmed;
   }
 
-  Future<File?> getOrCreate(String videoUrl) {
-    final trimmed = videoUrl.trim();
-    if (trimmed.isEmpty) {
-      return Future<File?>.value(null);
-    }
-    if (_memory.containsKey(trimmed)) {
-      return Future<File?>.value(_memory[trimmed]);
-    }
-    return _inFlight.putIfAbsent(trimmed, () => _createOnce(trimmed));
+  Future<File?> getOrCreate(
+    String videoUrl, {
+    String? conversationId,
+    String? messageId,
+    String? attachmentName,
+  }) {
+    return () async {
+      final prefs = await LocalStoragePreferencesStore.load();
+      if (!prefs.videoThumbsEnabled) {
+        return null;
+      }
+      final trimmed = videoUrl.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+      final cid = conversationId?.trim();
+      if (cid != null && cid.isNotEmpty) {
+        await LocalCacheEntryRegistry.registerVideoThumbContext(
+          url: trimmed,
+          conversationId: cid,
+          messageId: messageId,
+          attachmentName: attachmentName,
+        );
+      }
+      if (_memory.containsKey(trimmed)) {
+        return _memory[trimmed];
+      }
+      return _inFlight.putIfAbsent(trimmed, () => _createOnce(trimmed));
+    }();
   }
 
   Future<File?> _createOnce(String videoUrl) async {
