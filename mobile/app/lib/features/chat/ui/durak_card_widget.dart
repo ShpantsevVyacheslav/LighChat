@@ -148,36 +148,34 @@ class _Back extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final line = const Color(
-      0xFF7CB69A,
-    ).withValues(alpha: disabled ? 0.28 : 0.50);
-    final base = const Color(
-      0xFFE9F5EF,
-    ).withValues(alpha: disabled ? 0.72 : 1.0);
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: base,
-          backgroundBlendMode: BlendMode.multiply,
           gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Colors.white.withValues(alpha: disabled ? 0.35 : 0.65),
-              const Color(0xFFCDE7D8).withValues(alpha: disabled ? 0.35 : 0.75),
+              const Color(0xFF2C3E66).withValues(alpha: disabled ? 0.85 : 1.0),
+              const Color(0xFF1A2540).withValues(alpha: disabled ? 0.85 : 1.0),
             ],
           ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: disabled ? 0.10 : 0.18),
+            width: 1,
+          ),
         ),
-        child: CustomPaint(
-          painter: _BackPatternPainter(line),
-          child: Center(
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: disabled ? 0.22 : 0.46),
-                border: Border.all(color: line.withValues(alpha: 0.7)),
+        child: Center(
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.32),
+                width: 1.2,
               ),
             ),
           ),
@@ -185,33 +183,4 @@ class _Back extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BackPatternPainter extends CustomPainter {
-  const _BackPatternPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.2;
-    for (double x = -size.height; x < size.width; x += 8) {
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x + size.height, size.height),
-        paint,
-      );
-      canvas.drawLine(
-        Offset(x + 4, size.height),
-        Offset(x + size.height + 4, 0),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BackPatternPainter oldDelegate) =>
-      oldDelegate.color != color;
 }

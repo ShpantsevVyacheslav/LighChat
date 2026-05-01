@@ -834,14 +834,13 @@ class _ConversationDurakGameScreenState
               return isJoker || ranksOnTable.contains(rank);
             }
 
-            final canPass = _legalRevision >= 0
-                ? _legalCanPass
-                : status == 'active' &&
-                      me != null &&
-                      me != defenderUid &&
-                      tableHasAttacks &&
-                      !passedUids.contains(me) &&
-                      (activeThrowerUid != null && me == activeThrowerUid);
+            final canPassClient = status == 'active' &&
+                me != null &&
+                me != defenderUid &&
+                tableHasAttacks &&
+                !passedUids.contains(me) &&
+                (activeThrowerUid != null && me == activeThrowerUid);
+            final canPass = (_legalRevision >= 0 && _legalCanPass) || canPassClient;
 
             final canAttack =
                 status == 'active' &&
@@ -855,21 +854,20 @@ class _ConversationDurakGameScreenState
                 hasSelected &&
                 cardCanDefendAt(_selectedCard!, _selectedAttackIndex);
 
-            final canTake = _legalRevision >= 0
-                ? _legalCanTake
-                : status == 'active' &&
-                      me != null &&
-                      me == defenderUid &&
-                      tableHasAttacks;
+            final canTakeClient = status == 'active' &&
+                me != null &&
+                me == defenderUid &&
+                tableHasAttacks;
+            final canTake = (_legalRevision >= 0 && _legalCanTake) || canTakeClient;
 
             final canFinishTurnRaw = publicView == null
                 ? null
                 : publicView['canFinishTurn'];
-            final canFinishTurn = _legalRevision >= 0
-                ? _legalCanFinishTurn
-                : canFinishTurnRaw is bool
+            final canFinishTurnClient = canFinishTurnRaw is bool
                 ? canFinishTurnRaw
                 : allDefended && activeThrowerUid == null;
+            final canFinishTurn =
+                (_legalRevision >= 0 && _legalCanFinishTurn) || canFinishTurnClient;
 
             final canBeat =
                 status == 'active' &&
@@ -1606,43 +1604,43 @@ class _DurakTopOpponent extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       SizedBox(
-                        width: 70,
-                        height: 70,
+                        width: 76,
+                        height: 76,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             if (timerActive)
                               SizedBox(
-                                width: 70,
-                                height: 70,
+                                width: 76,
+                                height: 76,
                                 child: CircularProgressIndicator(
                                   value: progress,
                                   strokeWidth: 4,
                                   backgroundColor: Colors.white.withValues(
-                                    alpha: 0.22,
+                                    alpha: 0.18,
                                   ),
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
                                         Color(0xFFA3E635),
                                       ),
                                 ),
-                              ),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              width: 64,
-                              height: 64,
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: active
-                                      ? const Color(0xFFA3E635)
-                                      : Colors.white.withValues(alpha: 0.5),
-                                  width: 4,
+                              )
+                            else if (active)
+                              Container(
+                                width: 76,
+                                height: 76,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFA3E635),
+                                    width: 3,
+                                  ),
                                 ),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
+                            ClipOval(
+                              child: SizedBox(
+                                width: 64,
+                                height: 64,
                                 child: avatarUrl.isNotEmpty
                                     ? Image.network(
                                         avatarUrl,
@@ -1803,17 +1801,17 @@ class _DurakSideDeck extends StatelessWidget {
     final isRed = suitSource == 'H' || suitSource == 'D';
 
     return SizedBox(
-      width: 108,
-      height: 124,
+      width: 132,
+      height: 132,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           if (trumpSuit.isNotEmpty)
             Positioned(
-              left: 34,
-              top: 16,
+              left: 56,
+              top: 22,
               child: Transform.rotate(
-                angle: -0.32,
+                angle: -1.18,
                 child: DurakCardWidget(
                   rankLabel: rank,
                   suitLabel: suit,
@@ -1825,10 +1823,10 @@ class _DurakSideDeck extends StatelessWidget {
             ),
           for (var i = 0; i < 3; i++)
             Positioned(
-              left: i * 4.0,
-              top: 16 + i * 3.0,
+              left: i * 3.0,
+              top: 12 + i * 2.0,
               child: Transform.rotate(
-                angle: -0.12 + i * 0.04,
+                angle: -0.08 + i * 0.03,
                 child: const DurakCardWidget(
                   rankLabel: '',
                   suitLabel: '',
@@ -1840,7 +1838,7 @@ class _DurakSideDeck extends StatelessWidget {
             ),
           Positioned(
             left: 2,
-            top: 8,
+            top: 6,
             child: Text(
               deckCount.toString(),
               style: TextStyle(
