@@ -55,6 +55,11 @@ export const createDurakRematch = onCall(
         const prev = prevSnap.data() || {};
         if (prev.type !== "durak") throw new HttpsError("failed-precondition", "GAME_TYPE_UNSUPPORTED");
         if (typeof (prev as any).tournamentId === "string" && ((prev as any).tournamentId as string).trim()) {
+          logger.warn("[createDurakRematch] tournament rematch attempted", {
+            gameId,
+            tournamentId: (prev as any).tournamentId,
+            uid,
+          });
           throw new HttpsError("failed-precondition", "TOURNAMENT_REMATCH_UNSUPPORTED");
         }
 
@@ -103,10 +108,11 @@ export const createDurakRematch = onCall(
           throw new HttpsError("failed-precondition", "ACTIVE_GAME_ALREADY_EXISTS");
         }
 
-        const privateHands = await tx.get(db.collection(`games/${gameId}/privateHands`));
+        const [privateHands, moves] = await Promise.all([
+          tx.get(db.collection(`games/${gameId}/privateHands`)),
+          tx.get(db.collection(`games/${gameId}/moves`)),
+        ]);
         for (const hand of privateHands.docs) tx.delete(hand.ref);
-
-        const moves = await tx.get(db.collection(`games/${gameId}/moves`));
         for (const move of moves.docs) tx.delete(move.ref);
 
         tx.update(gameRef, {

@@ -111,6 +111,18 @@ export function DurakWebGameDialog({
   );
   const { data: game, error: gameError, isLoading: gameLoading } = useDoc<DurakGameSession>(gameRef);
 
+  const tournamentId = (game as any)?.tournamentId as string | undefined;
+  const tournamentRef = useMemoFirebase(
+    () => (firestore && tournamentId ? doc(firestore, 'tournaments', tournamentId) : null),
+    [firestore, tournamentId]
+  );
+  const { data: tournament } = useDoc<{
+    status?: string;
+    totalGames?: number;
+    finishedGameIds?: string[];
+    gameIds?: string[];
+  }>(tournamentRef);
+
   const gamePlayerIds = game?.playerIds ?? [];
   const inGame = gamePlayerIds.includes(currentUser.id);
 
@@ -148,6 +160,34 @@ export function DurakWebGameDialog({
   const joinLobby = useCallback(() => call('joinGameLobby', { gameId }), [call, gameId]);
   const startGame = useCallback(() => call('startDurakGame', { gameId }), [call, gameId]);
   const cancelLobby = useCallback(() => call('cancelGameLobby', { gameId }), [call, gameId]);
+  const openInPopup = useCallback(
+    (nextGameId: string) => {
+      onOpenChange(false);
+      window.open(
+        `/games/durak/${encodeURIComponent(nextGameId)}`,
+        `durak_${nextGameId}`,
+        'popup=yes,width=980,height=760,resizable=yes,scrollbars=no'
+      );
+    },
+    [onOpenChange]
+  );
+  const nextTournamentGame = useCallback(async () => {
+    if (!firestore) return;
+    const tournamentId = (game as any)?.tournamentId as string | undefined;
+    if (!tournamentId) return;
+    setBusy('createTournamentGameLobby');
+    try {
+      const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), 'createTournamentGameLobby');
+      const res = await fn({ tournamentId, settings: (game as any)?.settings ?? undefined });
+      const nextGameId = (res.data as any)?.gameId as string | undefined;
+      if (nextGameId) openInPopup(nextGameId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Ошибка';
+      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+      setBusy(null);
+    }
+  }, [firestore, game, openInPopup, toast]);
   const rematch = useCallback(async () => {
     if (!firestore) return;
     setBusy('createDurakRematch');
@@ -157,8 +197,7 @@ export function DurakWebGameDialog({
       const nextGameId = (res.data as any)?.gameId as string | undefined;
       if (nextGameId) {
         if (nextGameId === gameId) return;
-        onOpenChange(false);
-        window.open(`/games/durak/${encodeURIComponent(nextGameId)}`, `durak_${nextGameId}`, 'popup=yes,width=980,height=760,resizable=yes,scrollbars=no');
+        openInPopup(nextGameId);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Ошибка';
@@ -498,9 +537,39 @@ export function DurakWebGameDialog({
             {winners.map((uid) => displayName(uid, allUsers)).join(', ') || 'Победителей нет'}
           </div>
           {loserUid ? <div className="text-sm text-white/70">Проиграл: {displayName(loserUid, allUsers)}</div> : null}
-          <Button onClick={() => void rematch()} disabled={busy != null} className="mt-2">
-            Сыграть ещё раз
-          </Button>
+          {tournamentId ? (
+            (() => {
+              const totalGames = tournament?.totalGames ?? 0;
+              const finishedCount = tournament?.finishedGameIds?.length ?? 0;
+              const createdCount = tournament?.gameIds?.length ?? 0;
+              const limitReached =
+                tournament?.status === 'finished' ||
+                (totalGames > 0 && createdCount >= totalGames);
+              return (
+                <div className="mt-2 flex flex-col items-center gap-2">
+                  {totalGames > 0 ? (
+                    <div className="text-xs text-white/60">
+                      Сыграно {finishedCount} из {totalGames}
+                    </div>
+                  ) : null}
+                  {limitReached ? (
+                    <div className="text-sm text-white/70">Турнир завершён</div>
+                  ) : (
+                    <Button
+                      onClick={() => void nextTournamentGame()}
+                      disabled={busy != null}
+                    >
+                      Следующая партия турнира
+                    </Button>
+                  )}
+                </div>
+              );
+            })()
+          ) : (
+            <Button onClick={() => void rematch()} disabled={busy != null} className="mt-2">
+              Сыграть ещё раз
+            </Button>
+          )}
         </div>
       );
     }

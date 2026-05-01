@@ -229,6 +229,32 @@ class _ConversationDurakGameScreenState
     }
   }
 
+  Future<void> _handleNextTournamentGamePressed({
+    required String tournamentId,
+    Map<String, dynamic>? settings,
+  }) async {
+    if (_isRematchBusy) return;
+    if (!mounted) return;
+    setState(() => _isRematchBusy = true);
+    try {
+      final res = await GamesCallables().createTournamentDurakLobby(
+        tournamentId: tournamentId,
+        settings: settings ?? const <String, dynamic>{},
+      );
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => ConversationDurakLobbyScreen(gameId: res.gameId),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _toast(friendlyGamesCallableError(e));
+    } finally {
+      if (mounted) setState(() => _isRematchBusy = false);
+    }
+  }
+
   String _cardLabel(Map<String, dynamic> c) {
     final r = c['r'];
     final s = c['s'];
@@ -808,14 +834,13 @@ class _ConversationDurakGameScreenState
               return isJoker || ranksOnTable.contains(rank);
             }
 
-            final canPass = _legalRevision >= 0
-                ? _legalCanPass
-                : status == 'active' &&
-                      me != null &&
-                      me != defenderUid &&
-                      tableHasAttacks &&
-                      !passedUids.contains(me) &&
-                      (activeThrowerUid != null && me == activeThrowerUid);
+            final canPassClient = status == 'active' &&
+                me != null &&
+                me != defenderUid &&
+                tableHasAttacks &&
+                !passedUids.contains(me) &&
+                (activeThrowerUid != null && me == activeThrowerUid);
+            final canPass = (_legalRevision >= 0 && _legalCanPass) || canPassClient;
 
             final canAttack =
                 status == 'active' &&
@@ -829,21 +854,20 @@ class _ConversationDurakGameScreenState
                 hasSelected &&
                 cardCanDefendAt(_selectedCard!, _selectedAttackIndex);
 
-            final canTake = _legalRevision >= 0
-                ? _legalCanTake
-                : status == 'active' &&
-                      me != null &&
-                      me == defenderUid &&
-                      tableHasAttacks;
+            final canTakeClient = status == 'active' &&
+                me != null &&
+                me == defenderUid &&
+                tableHasAttacks;
+            final canTake = (_legalRevision >= 0 && _legalCanTake) || canTakeClient;
 
             final canFinishTurnRaw = publicView == null
                 ? null
                 : publicView['canFinishTurn'];
-            final canFinishTurn = _legalRevision >= 0
-                ? _legalCanFinishTurn
-                : canFinishTurnRaw is bool
+            final canFinishTurnClient = canFinishTurnRaw is bool
                 ? canFinishTurnRaw
                 : allDefended && activeThrowerUid == null;
+            final canFinishTurn =
+                (_legalRevision >= 0 && _legalCanFinishTurn) || canFinishTurnClient;
 
             final canBeat =
                 status == 'active' &&
@@ -1052,6 +1076,12 @@ class _ConversationDurakGameScreenState
                   final loserName = loserUid.isEmpty
                       ? ''
                       : (byUid[loserUid]?.name ?? fallback(loserUid));
+                  final tournamentId =
+                      (g['tournamentId'] ?? '').toString().trim();
+                  final isTournamentGame = tournamentId.isNotEmpty;
+                  final settingsMap = g['settings'] is Map
+                      ? Map<String, dynamic>.from(g['settings'] as Map)
+                      : <String, dynamic>{};
                   return _DurakFinishedCard(
                     winnerName: winnerName,
                     winnerAvatarUrl:
@@ -1062,9 +1092,19 @@ class _ConversationDurakGameScreenState
                             loserName,
                           ),
                     rematchBusy: _isRematchBusy,
+                    isTournamentGame: isTournamentGame,
+                    tournamentId: isTournamentGame ? tournamentId : null,
                     onRematch: () => unawaited(
                       _handleRematchPressed(conversationId: conversationId),
                     ),
+                    onNextTournamentGame: isTournamentGame
+                        ? () => unawaited(
+                              _handleNextTournamentGamePressed(
+                                tournamentId: tournamentId,
+                                settings: settingsMap,
+                              ),
+                            )
+                        : null,
                   );
                 },
               );
@@ -1564,43 +1604,43 @@ class _DurakTopOpponent extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       SizedBox(
-                        width: 70,
-                        height: 70,
+                        width: 76,
+                        height: 76,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             if (timerActive)
                               SizedBox(
-                                width: 70,
-                                height: 70,
+                                width: 76,
+                                height: 76,
                                 child: CircularProgressIndicator(
                                   value: progress,
                                   strokeWidth: 4,
                                   backgroundColor: Colors.white.withValues(
-                                    alpha: 0.22,
+                                    alpha: 0.18,
                                   ),
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
                                         Color(0xFFA3E635),
                                       ),
                                 ),
-                              ),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              width: 64,
-                              height: 64,
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: active
-                                      ? const Color(0xFFA3E635)
-                                      : Colors.white.withValues(alpha: 0.5),
-                                  width: 4,
+                              )
+                            else if (active)
+                              Container(
+                                width: 76,
+                                height: 76,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFA3E635),
+                                    width: 3,
+                                  ),
                                 ),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
+                            ClipOval(
+                              child: SizedBox(
+                                width: 64,
+                                height: 64,
                                 child: avatarUrl.isNotEmpty
                                     ? Image.network(
                                         avatarUrl,
@@ -1761,17 +1801,17 @@ class _DurakSideDeck extends StatelessWidget {
     final isRed = suitSource == 'H' || suitSource == 'D';
 
     return SizedBox(
-      width: 108,
-      height: 124,
+      width: 132,
+      height: 132,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           if (trumpSuit.isNotEmpty)
             Positioned(
-              left: 34,
-              top: 16,
+              left: 56,
+              top: 22,
               child: Transform.rotate(
-                angle: -0.32,
+                angle: -1.18,
                 child: DurakCardWidget(
                   rankLabel: rank,
                   suitLabel: suit,
@@ -1783,10 +1823,10 @@ class _DurakSideDeck extends StatelessWidget {
             ),
           for (var i = 0; i < 3; i++)
             Positioned(
-              left: i * 4.0,
-              top: 16 + i * 3.0,
+              left: i * 3.0,
+              top: 12 + i * 2.0,
               child: Transform.rotate(
-                angle: -0.12 + i * 0.04,
+                angle: -0.08 + i * 0.03,
                 child: const DurakCardWidget(
                   rankLabel: '',
                   suitLabel: '',
@@ -1798,7 +1838,7 @@ class _DurakSideDeck extends StatelessWidget {
             ),
           Positioned(
             left: 2,
-            top: 8,
+            top: 6,
             child: Text(
               deckCount.toString(),
               style: TextStyle(
@@ -2041,6 +2081,9 @@ class _DurakFinishedCard extends StatelessWidget {
     required this.loserLabel,
     required this.rematchBusy,
     required this.onRematch,
+    this.isTournamentGame = false,
+    this.tournamentId,
+    this.onNextTournamentGame,
   });
 
   final String winnerName;
@@ -2048,6 +2091,9 @@ class _DurakFinishedCard extends StatelessWidget {
   final String loserLabel;
   final bool rematchBusy;
   final VoidCallback onRematch;
+  final bool isTournamentGame;
+  final String? tournamentId;
+  final VoidCallback? onNextTournamentGame;
 
   @override
   Widget build(BuildContext context) {
@@ -2121,6 +2167,13 @@ class _DurakFinishedCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
+              if (isTournamentGame && tournamentId != null)
+                _TournamentNextGameSection(
+                  tournamentId: tournamentId!,
+                  busy: rematchBusy,
+                  onNextGame: onNextTournamentGame,
+                )
+              else
               SizedBox(
                 width: 240,
                 height: 52,
@@ -2224,6 +2277,105 @@ class _TableFxOverlayState extends State<_TableFxOverlay>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TournamentNextGameSection extends StatelessWidget {
+  const _TournamentNextGameSection({
+    required this.tournamentId,
+    required this.busy,
+    required this.onNextGame,
+  });
+
+  final String tournamentId;
+  final bool busy;
+  final VoidCallback? onNextGame;
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = FirebaseFirestore.instance
+        .collection('tournaments')
+        .doc(tournamentId)
+        .snapshots();
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: stream,
+      builder: (context, snap) {
+        final data = snap.data?.data();
+        final status = (data?['status'] ?? 'active').toString();
+        final totalGames = (data?['totalGames'] is num)
+            ? (data!['totalGames'] as num).toInt()
+            : 0;
+        final finishedCount =
+            (data?['finishedGameIds'] is List)
+                ? (data!['finishedGameIds'] as List).length
+                : 0;
+        final createdCount = (data?['gameIds'] is List)
+            ? (data!['gameIds'] as List).length
+            : 0;
+        final limitReached = status == 'finished' ||
+            (totalGames > 0 && createdCount >= totalGames);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (totalGames > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Сыграно $finishedCount из $totalGames',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.65),
+                  ),
+                ),
+              ),
+            if (limitReached)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  'Турнир завершён',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                width: 260,
+                height: 52,
+                child: FilledButton(
+                  onPressed: (busy || onNextGame == null) ? null : onNextGame,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF66798C),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
+                  child: busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                        )
+                      : const Text(
+                          'Следующая партия турнира',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

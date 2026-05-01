@@ -32,6 +32,9 @@ type TournamentDoc = {
   conversationId: string;
   pointsByUid?: Record<string, number>;
   gamesPlayedByUid?: Record<string, number>;
+  totalGames?: number;
+  finishedGameIds?: string[];
+  gameIds?: string[];
   createdAt?: string;
 };
 
@@ -85,6 +88,8 @@ export function ConversationGamesPanel({
   const [selectedGame, setSelectedGame] = useState<'durak' | null>(null);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [showSingleSettings, setShowSingleSettings] = useState(false);
+  const [showTournamentSettings, setShowTournamentSettings] = useState(false);
+  const [tournamentTotalGames, setTournamentTotalGames] = useState<number>(3);
   const [settings, setSettings] = useState<DurakSettings>(() => ({
     ...defaultDurakSettings,
     maxPlayers: isGroup ? 6 : 2,
@@ -166,17 +171,18 @@ export function ConversationGamesPanel({
     setBusy('createTournament');
     try {
       const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), 'createDurakTournament');
-      const res = await fn({ conversationId });
+      const res = await fn({ conversationId, totalGames: tournamentTotalGames });
       const tid = (res.data as any)?.tournamentId as string | undefined;
       if (tid) setSelectedTournamentId(tid);
       toast({ title: 'Турнир создан' });
+      setShowTournamentSettings(false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Не удалось создать турнир';
       toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
       setBusy(null);
     }
-  }, [conversationId, firestore, toast]);
+  }, [conversationId, firestore, toast, tournamentTotalGames]);
 
   const createTournamentGame = useCallback(async () => {
     if (!firestore || !selectedTournamentId) return;
@@ -263,7 +269,17 @@ export function ConversationGamesPanel({
             <ArrowLeft className="h-4 w-4" />
             Назад
           </Button>
-          <Button onClick={createTournamentGame} disabled={busy != null} className="gap-2">
+          <Button
+            onClick={createTournamentGame}
+            disabled={
+              busy != null ||
+              t?.status === 'finished' ||
+              (typeof t?.totalGames === 'number' &&
+                t.totalGames > 0 &&
+                (t?.gameIds?.length ?? 0) >= t.totalGames)
+            }
+            className="gap-2"
+          >
             <PlusCircle className="h-4 w-4" />
             Новая партия
           </Button>
@@ -275,6 +291,11 @@ export function ConversationGamesPanel({
             <div className="text-sm font-bold">{t?.title ?? 'Турнир'}</div>
             <Badge variant="secondary" className="ml-auto">{t?.status ?? 'active'}</Badge>
           </div>
+          {typeof t?.totalGames === 'number' && t.totalGames > 0 ? (
+            <div className="mt-1 text-xs text-muted-foreground">
+              Сыграно {t?.finishedGameIds?.length ?? 0} из {t.totalGames}
+            </div>
+          ) : null}
           <div className="mt-3 space-y-2">
             {standingsUids.length === 0 ? (
               <div className="text-xs text-muted-foreground">Пока нет результатов</div>
@@ -340,11 +361,54 @@ export function ConversationGamesPanel({
             <Settings2 className="h-4 w-4" />
             Одиночная партия
           </Button>
-          <Button variant="outline" onClick={createTournament} disabled={busy != null} className="justify-start gap-2">
+          <Button variant="outline" onClick={() => setShowTournamentSettings((v) => !v)} className="justify-start gap-2">
             <Trophy className="h-4 w-4" />
             Турнир
           </Button>
         </div>
+        {showTournamentSettings ? (
+          <div className="mt-4 space-y-3 rounded-2xl border border-border/60 bg-background/45 p-3">
+            <label className="block text-xs font-bold uppercase text-muted-foreground">
+              Игр в турнире
+            </label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setTournamentTotalGames((n) => Math.max(1, n - 1))}
+                disabled={busy != null || tournamentTotalGames <= 1}
+              >
+                −
+              </Button>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={tournamentTotalGames}
+                onChange={(e) => {
+                  const n = Math.floor(Number(e.target.value));
+                  if (Number.isFinite(n)) setTournamentTotalGames(Math.min(50, Math.max(1, n)));
+                }}
+                className="w-20 rounded-md border border-border/60 bg-background/60 px-3 py-1 text-center text-sm"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setTournamentTotalGames((n) => Math.min(50, n + 1))}
+                disabled={busy != null || tournamentTotalGames >= 50}
+              >
+                +
+              </Button>
+              <span className="text-xs text-muted-foreground">партий</span>
+            </div>
+            <Button onClick={createTournament} disabled={busy != null} className="w-full gap-2">
+              <Trophy className="h-4 w-4" />
+              Создать турнир
+            </Button>
+          </div>
+        ) : null}
         {showSingleSettings ? (
           <DurakSettingsForm
             value={settings}

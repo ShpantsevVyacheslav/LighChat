@@ -38,10 +38,12 @@ class GamesCallables {
   Future<CreateTournamentResult> createDurakTournament({
     required String conversationId,
     String? title,
+    int? totalGames,
   }) async {
     final data = <String, dynamic>{
       'conversationId': conversationId,
       'title': title,
+      'totalGames': ?totalGames,
     };
 
     if (Platform.isIOS) {

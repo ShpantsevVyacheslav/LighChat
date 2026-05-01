@@ -8,8 +8,10 @@ export type TournamentDoc = {
   status: "active" | "finished";
   conversationId: string;
   gameIds: string[];
+  finishedGameIds?: string[];
   pointsByUid: Record<string, number>;
   gamesPlayedByUid: Record<string, number>;
+  totalGames?: number;
   lastUpdatedAt?: string;
 };
 
@@ -45,11 +47,24 @@ export function applyFinishedGameToTournament({
     nextPoints[uid] = (nextPoints[uid] ?? 0) + pts;
   }
 
+  const nextGameIds = tournament.gameIds.includes(gameId) ?
+    tournament.gameIds :
+    [...tournament.gameIds, gameId];
+
+  const prevFinished = tournament.finishedGameIds ?? [];
+  const nextFinishedGameIds = prevFinished.includes(gameId) ? prevFinished : [...prevFinished, gameId];
+
+  const totalGames = tournament.totalGames ?? 0;
+  const nextStatus: TournamentDoc["status"] =
+    totalGames > 0 && nextFinishedGameIds.length >= totalGames ? "finished" : tournament.status;
+
   return {
     ...tournament,
-    gameIds: tournament.gameIds.includes(gameId) ? tournament.gameIds : [...tournament.gameIds, gameId],
+    gameIds: nextGameIds,
+    finishedGameIds: nextFinishedGameIds,
     pointsByUid: nextPoints,
     gamesPlayedByUid: nextPlayed,
+    status: nextStatus,
   };
 }
 

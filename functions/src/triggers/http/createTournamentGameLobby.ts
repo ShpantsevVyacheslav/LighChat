@@ -36,6 +36,12 @@ export const createTournamentGameLobby = onCall(
     if (!tSnap.exists) throw new HttpsError("not-found", "TOURNAMENT_NOT_FOUND");
     const t = tSnap.data() || {};
     if (t.type !== "durak") throw new HttpsError("failed-precondition", "TOURNAMENT_TYPE_UNSUPPORTED");
+    if (t.status === "finished") throw new HttpsError("failed-precondition", "TOURNAMENT_FINISHED");
+    const totalGames = typeof t.totalGames === "number" ? t.totalGames : 0;
+    const playedCount = Array.isArray(t.gameIds) ? t.gameIds.length : 0;
+    if (totalGames > 0 && playedCount >= totalGames) {
+      throw new HttpsError("failed-precondition", "TOURNAMENT_LIMIT_REACHED");
+    }
 
     const conversationId = typeof t.conversationId === "string" ? t.conversationId : "";
     if (!conversationId) throw new HttpsError("internal", "TOURNAMENT_MISSING_CONVERSATION");

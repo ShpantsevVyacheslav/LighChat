@@ -77,9 +77,16 @@ class ConversationDurakEntryScreen extends StatelessWidget {
 
   Future<void> _createTournament(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
+    final totalGames = await showDialog<int>(
+      context: context,
+      builder: (ctx) => const _TournamentTotalGamesDialog(),
+    );
+    if (totalGames == null) return;
+    if (!context.mounted) return;
     try {
       final res = await GamesCallables().createDurakTournament(
         conversationId: conversationId,
+        totalGames: totalGames,
       );
       if (!context.mounted) return;
       await Navigator.of(context).push<void>(
@@ -250,6 +257,60 @@ class _DurakActionTile extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
       ),
+    );
+  }
+}
+
+class _TournamentTotalGamesDialog extends StatefulWidget {
+  const _TournamentTotalGamesDialog();
+
+  @override
+  State<_TournamentTotalGamesDialog> createState() =>
+      _TournamentTotalGamesDialogState();
+}
+
+class _TournamentTotalGamesDialogState
+    extends State<_TournamentTotalGamesDialog> {
+  int _value = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Сколько игр в турнире?'),
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: _value > 1 ? () => setState(() => _value -= 1) : null,
+            icon: const Icon(Icons.remove_circle_outline_rounded),
+          ),
+          SizedBox(
+            width: 56,
+            child: Text(
+              '$_value',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _value < 50 ? () => setState(() => _value += 1) : null,
+            icon: const Icon(Icons.add_circle_outline_rounded),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_value),
+          child: const Text('Создать'),
+        ),
+      ],
     );
   }
 }

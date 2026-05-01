@@ -5,16 +5,29 @@ import * as admin from "firebase-admin";
 type RequestData = {
   conversationId?: unknown;
   title?: unknown;
+  totalGames?: unknown;
 };
 
 type ResponseData = {
   tournamentId: string;
 };
 
+const DEFAULT_TOTAL_GAMES = 3;
+const MAX_TOTAL_GAMES = 50;
+
 function asNonEmptyString(v: unknown): string | null {
   if (typeof v !== "string") return null;
   const t = v.trim();
   return t ? t : null;
+}
+
+function asTotalGames(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return DEFAULT_TOTAL_GAMES;
+  const i = Math.floor(n);
+  if (i < 1) return 1;
+  if (i > MAX_TOTAL_GAMES) return MAX_TOTAL_GAMES;
+  return i;
 }
 
 export const createDurakTournament = onCall(
@@ -27,6 +40,7 @@ export const createDurakTournament = onCall(
     if (!conversationId) throw new HttpsError("invalid-argument", "BAD_INPUT");
 
     const title = asNonEmptyString(request.data?.title) ?? "Durak tournament";
+    const totalGames = asTotalGames(request.data?.totalGames);
 
     const db = admin.firestore();
     const convRef = db.doc(`conversations/${conversationId}`);
@@ -51,6 +65,7 @@ export const createDurakTournament = onCall(
       gameIds: [],
       pointsByUid: {},
       gamesPlayedByUid: {},
+      totalGames,
       lastUpdatedAt: nowIso,
     };
 
@@ -62,6 +77,7 @@ export const createDurakTournament = onCall(
       status: "active",
       createdAt: nowIso,
       createdBy: uid,
+      totalGames,
       lastUpdatedAt: nowIso,
     };
 
@@ -78,7 +94,7 @@ export const createDurakTournament = onCall(
       tx.create(convIndexRef, convIndexDoc);
     });
 
-    logger.info("[createDurakTournament] created", { tournamentId, conversationId, uid });
+    logger.info("[createDurakTournament] created", { tournamentId, conversationId, uid, totalGames });
     return { tournamentId };
   },
 );
