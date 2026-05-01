@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../data/recent_stickers_store.dart';
 import '../data/user_sticker_item_attachment.dart';
 import '../data/user_sticker_packs_repository.dart';
 
@@ -31,30 +32,108 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<UserStickerPackRow>>(
-      stream: repo.watchMyPacks(userId),
-      builder: (context, packsSnap) {
-        final myPacks = packsSnap.data ?? const <UserStickerPackRow>[];
-        if (myPacks.isNotEmpty) {
-          return StreamBuilder<List<StickerItemRow>>(
-            stream: repo.watchMyPackItems(userId, myPacks.first.id),
-            builder: (c, s) =>
-                _buildForItems(s.data ?? const <StickerItemRow>[]),
-          );
+    return FutureBuilder<List<ChatAttachment>>(
+      future: RecentStickersStore.instance.getRecents(),
+      builder: (context, recentSnap) {
+        final recents = recentSnap.data ?? const <ChatAttachment>[];
+        if (recents.isNotEmpty) {
+          return _buildForRecents(recents);
         }
-        return StreamBuilder<List<PublicStickerPackRow>>(
-          stream: repo.watchPublicPacks(),
-          builder: (context, pubSnap) {
-            final publics = pubSnap.data ?? const <PublicStickerPackRow>[];
-            if (publics.isEmpty) return const SizedBox.shrink();
-            return StreamBuilder<List<StickerItemRow>>(
-              stream: repo.watchPublicPackItems(publics.first.id),
-              builder: (c, s) =>
-                  _buildForItems(s.data ?? const <StickerItemRow>[]),
+        return StreamBuilder<List<UserStickerPackRow>>(
+          stream: repo.watchMyPacks(userId),
+          builder: (context, packsSnap) {
+            final myPacks = packsSnap.data ?? const <UserStickerPackRow>[];
+            if (myPacks.isNotEmpty) {
+              return StreamBuilder<List<StickerItemRow>>(
+                stream: repo.watchMyPackItems(userId, myPacks.first.id),
+                builder: (c, s) =>
+                    _buildForItems(s.data ?? const <StickerItemRow>[]),
+              );
+            }
+            return StreamBuilder<List<PublicStickerPackRow>>(
+              stream: repo.watchPublicPacks(),
+              builder: (context, pubSnap) {
+                final publics =
+                    pubSnap.data ?? const <PublicStickerPackRow>[];
+                if (publics.isEmpty) return const SizedBox.shrink();
+                return StreamBuilder<List<StickerItemRow>>(
+                  stream: repo.watchPublicPackItems(publics.first.id),
+                  builder: (c, s) =>
+                      _buildForItems(s.data ?? const <StickerItemRow>[]),
+                );
+              },
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildForRecents(List<ChatAttachment> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    final take = items.take(maxCount).toList(growable: false);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SizedBox(
+        height: 64,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          itemCount: take.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (context, i) {
+            final att = take[i];
+            final isGif = att.name.toLowerCase().startsWith('gif_') ||
+                (att.type ?? '').toLowerCase() == 'image/gif';
+            final tile = Material(
+              color: Colors.white.withValues(alpha: 0.06),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => onPickAttachment(att),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: CachedNetworkImage(
+                    imageUrl: att.url,
+                    fit: BoxFit.contain,
+                    placeholder: (_, _) => const SizedBox.shrink(),
+                    errorWidget: (_, _, _) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            );
+            if (!isGif) return tile;
+            return Stack(
+              alignment: Alignment.topRight,
+              children: [
+                tile,
+                Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    child: const Text(
+                      'GIF',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 

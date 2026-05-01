@@ -529,13 +529,29 @@ class _SingleVisualAttachment extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = attachment;
     if (_isStickerAttachment(a)) {
-      final side = (150.0).clamp(96.0, maxWidth);
+      final maxSide = (200.0).clamp(96.0, maxWidth);
+      final w = a.width;
+      final h = a.height;
+      double boxW, boxH;
+      if (w != null && h != null && w > 0 && h > 0) {
+        final aspect = w / h;
+        if (aspect >= 1) {
+          boxW = maxSide;
+          boxH = maxSide / aspect;
+        } else {
+          boxH = maxSide;
+          boxW = maxSide * aspect;
+        }
+      } else {
+        boxW = maxSide;
+        boxH = maxSide;
+      }
       return ClipRRect(
         borderRadius: borderRadius,
         clipBehavior: Clip.antiAliasWithSaveLayer,
         child: SizedBox(
-          width: side,
-          height: side,
+          width: boxW,
+          height: boxH,
           child: ChatCachedNetworkImage(
             url: a.url,
             fit: BoxFit.contain,

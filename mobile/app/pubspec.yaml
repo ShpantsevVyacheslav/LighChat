@@ -88,6 +88,7 @@ dependencies:
   permission_handler: ^11.3.1
   gal: ^2.3.2
   shared_preferences: ^2.5.3
+  emoji_picker_flutter: ^4.1.0
   flutter_contacts: ^2.0.2
   flutter_webrtc: ^1.2.0
   record: ^6.1.2

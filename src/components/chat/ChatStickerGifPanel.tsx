@@ -61,7 +61,7 @@ export function ChatStickerGifPanel({
     }
     setGifLoading(true);
     try {
-      const res = await fetch(`/api/tenor/search?q=${encodeURIComponent(t)}`);
+      const res = await fetch(`/api/giphy/search?q=${encodeURIComponent(t)}`);
       const data = (await res.json()) as TenorResponse;
       if (data.error === 'missing_key') setTenorMissing(true);
       else setTenorMissing(false);

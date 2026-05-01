@@ -36,6 +36,7 @@ import '../data/emoji_burst_animation_profile.dart';
 import '../data/user_profile.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/chat_message_draft_storage.dart';
+import '../data/recent_stickers_store.dart';
 import '../../../l10n/app_localizations.dart';
 import 'chat_html_composer_controller.dart';
 import 'chat_audio_call_screen.dart';
@@ -4029,6 +4030,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       onPickAttachment: (att) {
         unawaited(_sendStickerOrGifAttachment(uid, chatRepo, att));
       },
+      onEmojiTapped: _insertEmojiIntoComposer,
+    );
+  }
+
+  void _insertEmojiIntoComposer(String emoji) {
+    final ctrl = _controller;
+    final sel = ctrl.selection;
+    final text = ctrl.text;
+    final start = sel.isValid ? sel.start : text.length;
+    final end = sel.isValid ? sel.end : text.length;
+    final newText = text.replaceRange(start, end, emoji);
+    final newOffset = start + emoji.length;
+    ctrl.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newOffset),
     );
   }
 
@@ -4071,6 +4087,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         e2eeEnvelope: outgoingEnvelope,
         messageIdOverride: msgIdOverride,
       );
+      unawaited(RecentStickersStore.instance.addRecent(att));
       if (mounted) {
         unawaited(clearChatMessageDraft(uid, widget.conversationId));
         setState(() => _replyingTo = null);

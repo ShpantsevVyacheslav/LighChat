@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:lighchat_models/lighchat_models.dart';
 
-import 'tenor_proxy_config.dart';
+import 'giphy_proxy_config.dart';
 
-class TenorGifItem {
-  const TenorGifItem({
+class GiphyGifItem {
+  const GiphyGifItem({
     required this.id,
     required this.url,
     this.width,
@@ -19,14 +19,15 @@ class TenorGifItem {
   final int? height;
 }
 
-/// Паритет ответа `src/app/api/tenor/search/route.ts`.
-class TenorSearchOutcome {
-  const TenorSearchOutcome({
+/// Паритет ответа `src/app/api/tenor/search/route.ts` (исторически endpoint
+/// называется `tenor`, фактически это GIPHY API).
+class GiphySearchOutcome {
+  const GiphySearchOutcome({
     required this.items,
     this.missingKey = false,
   });
 
-  final List<TenorGifItem> items;
+  final List<GiphyGifItem> items;
   final bool missingKey;
 }
 
@@ -38,39 +39,46 @@ String _normalizeBaseUrl(String raw) {
   return s;
 }
 
-/// Запрос к веб-прокси Tenor (`TENOR_PROXY_BASE_URL`).
-Future<TenorSearchOutcome> searchTenorGifs(String query) async {
-  final base = _normalizeBaseUrl(kTenorProxyBaseUrl);
+enum GiphyType { gifs, stickers }
+
+/// Запрос к веб-прокси GIF (`GIPHY_PROXY_BASE_URL`).
+/// При пустом запросе возвращает trending GIF.
+/// [type] = stickers даёт анимированные эмодзи/стикеры GIPHY.
+Future<GiphySearchOutcome> searchGifs(
+  String query, {
+  GiphyType type = GiphyType.gifs,
+}) async {
+  final base = _normalizeBaseUrl(kGiphyProxyBaseUrl);
   if (base.isEmpty) {
-    return const TenorSearchOutcome(items: []);
+    return const GiphySearchOutcome(items: []);
   }
   final q = query.trim();
-  if (q.isEmpty) {
-    return const TenorSearchOutcome(items: []);
-  }
-
-  final uri = Uri.parse('$base/api/tenor/search').replace(
-    queryParameters: <String, String>{'q': q},
+  final params = <String, String>{
+    if (q.isNotEmpty) 'q': q,
+    if (type == GiphyType.stickers) 'type': 'stickers',
+  };
+  final uri = Uri.parse('$base/api/giphy/search').replace(
+    queryParameters: params.isEmpty ? null : params,
   );
 
   try {
     final res = await http.get(uri).timeout(const Duration(seconds: 20));
     final body = jsonDecode(res.body);
     if (body is! Map<String, dynamic>) {
-      return const TenorSearchOutcome(items: []);
+      return const GiphySearchOutcome(items: []);
     }
     final err = body['error'];
     if (err == 'missing_key') {
-      return const TenorSearchOutcome(items: [], missingKey: true);
+      return const GiphySearchOutcome(items: [], missingKey: true);
     }
     final rawItems = body['items'];
     if (rawItems is! List) {
-      return TenorSearchOutcome(
+      return GiphySearchOutcome(
         items: const [],
         missingKey: err == 'missing_key',
       );
     }
-    final out = <TenorGifItem>[];
+    final out = <GiphyGifItem>[];
     for (final e in rawItems) {
       if (e is! Map<String, dynamic>) continue;
       final id = e['id'];
@@ -80,20 +88,20 @@ Future<TenorSearchOutcome> searchTenorGifs(String query) async {
       }
       final w = e['width'];
       final h = e['height'];
-      out.add(TenorGifItem(
+      out.add(GiphyGifItem(
         id: id,
         url: url,
         width: w is int ? w : (w is num ? w.toInt() : null),
         height: h is int ? h : (h is num ? h.toInt() : null),
       ));
     }
-    return TenorSearchOutcome(items: out, missingKey: err == 'missing_key');
+    return GiphySearchOutcome(items: out, missingKey: err == 'missing_key');
   } catch (_) {
-    return const TenorSearchOutcome(items: []);
+    return const GiphySearchOutcome(items: []);
   }
 }
 
-ChatAttachment tenorItemToSendAttachment(TenorGifItem item) {
+ChatAttachment giphyItemToSendAttachment(GiphyGifItem item) {
   return ChatAttachment(
     url: item.url,
     name: 'gif_${item.id}.gif',

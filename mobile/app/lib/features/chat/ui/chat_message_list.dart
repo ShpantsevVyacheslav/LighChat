@@ -1450,6 +1450,68 @@ class _ChatMessageBubble extends StatelessWidget {
           ),
         ),
       );
+    } else if (!hasText &&
+        !hasPoll &&
+        !hasLocation &&
+        message.attachments.length == 1 &&
+        message.attachments.first.name
+            .toLowerCase()
+            .startsWith('sticker_')) {
+      body = Align(
+        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment:
+              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MessageAttachments(
+              attachments: message.attachments,
+              alignRight: isMine,
+              conversationId: conversationId,
+              messageId: message.id,
+              messageCreatedAt: message.createdAt,
+              isMine: isMine,
+              deliveryStatus: message.deliveryStatus,
+              readAt: message.readAt,
+              showTimestamps: showTimestamps,
+              mediaNorm: message.mediaNorm,
+              onRetryMediaNorm: onRetryMediaNorm == null
+                  ? null
+                  : () => onRetryMediaNorm!(message),
+            ),
+            if (showTimestamps)
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: ChatMediaLayoutTokens.captionToStatusGap,
+                  right: 2,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _timeHm(message.createdAt.toLocal()),
+                      style: TextStyle(
+                        fontSize: editedTimeSize,
+                        fontWeight: FontWeight.w800,
+                        color: (isMine ? outgoingMetaBase : incomingMetaBase)
+                            .withValues(alpha: 0.72),
+                      ),
+                    ),
+                    if (isMine) ...[
+                      const SizedBox(width: 4),
+                      MessageBubbleDeliveryIcons(
+                        deliveryStatus: message.deliveryStatus,
+                        readAt: message.readAt,
+                        iconColor: outgoingMetaBase.withValues(alpha: 0.72),
+                        size: 11,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
     } else if (hasMedia && !hasText) {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

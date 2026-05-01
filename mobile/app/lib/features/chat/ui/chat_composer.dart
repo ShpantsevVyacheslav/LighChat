@@ -365,8 +365,7 @@ class _ChatComposerState extends State<ChatComposer> {
         // padding компенсирует эту оптическую несимметрию в капсуле 40 px.
         contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
         isCollapsed: false,
-        suffixIcon: keyboardOpen
-            ? IconButton(
+        suffixIcon: IconButton(
                 tooltip: l10n.chat_composer_tooltip_stickers,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
@@ -378,8 +377,7 @@ class _ChatComposerState extends State<ChatComposer> {
                       ? hintFg.withValues(alpha: 0.65)
                       : fg.withValues(alpha: 0.88),
                 ),
-              )
-            : null,
+              ),
         suffixIconConstraints: const BoxConstraints(
           minWidth: 34,
           minHeight: 34,
