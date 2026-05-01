@@ -2750,4 +2750,46 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get register_pick_avatar_title => 'Выбрать аватар';
+
+  @override
+  String get edit_group_title => 'Редактировать группу';
+
+  @override
+  String get edit_group_save => 'Сохранить';
+
+  @override
+  String get edit_group_cancel => 'Отмена';
+
+  @override
+  String get edit_group_name_label => 'Название группы';
+
+  @override
+  String get edit_group_name_hint => 'Название';
+
+  @override
+  String get edit_group_description_label => 'Описание';
+
+  @override
+  String get edit_group_description_hint => 'Необязательно';
+
+  @override
+  String get edit_group_pick_photo_tooltip =>
+      'Нажмите, чтобы выбрать фото группы. Удерживайте, чтобы убрать.';
+
+  @override
+  String get edit_group_error_name_required =>
+      'Пожалуйста, введите название группы.';
+
+  @override
+  String get edit_group_error_save_failed => 'Ошибка при сохранении группы';
+
+  @override
+  String get edit_group_error_not_found => 'Группа не найдена';
+
+  @override
+  String get edit_group_error_permission_denied =>
+      'У вас нет прав для редактирования этой группы';
+
+  @override
+  String get edit_group_success => 'Группа обновлена';
 }

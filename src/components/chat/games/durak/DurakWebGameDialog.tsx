@@ -463,7 +463,7 @@ export function DurakWebGameDialog({
   }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, legalMoves, publicView?.turnUid, serverTurnKind, status]);
 
   const enabledCard = (card: DurakCard) =>
-    canAttackCard(card) || canTransferCard(card) || canDefendCardAt(card, selectedAttackIndex);
+    canAttackCard(card) || canTransferCard(card) || firstDefenseIndexForCard(card) != null;
 
   const gameBody = () => {
     if (gameLoading) return <div className="text-sm text-white/70">Загрузка…</div>;
@@ -686,6 +686,7 @@ export function DurakWebGameDialog({
                 {visibleMyCards.map((card, idx) => {
                   const enabled = enabledCard(card);
                   const selected = idx === selectedCardIdx;
+                  const draggingThisCard = drag?.index === idx && cardKey(drag.card) === cardKey(card);
                   const offset = idx - (visibleMyCards.length - 1) / 2;
                   const cardWidth = Math.max(50, Math.min(74, 960 / Math.max(8, visibleMyCards.length + 5)));
                   const cardHeight = cardWidth * (104 / 74);
@@ -697,7 +698,8 @@ export function DurakWebGameDialog({
                       className={cn(
                         'relative first:ml-0 touch-none transition-transform',
                         enabled ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
-                        selected && 'drop-shadow-[0_0_12px_rgba(110,231,183,.65)]'
+                        selected && 'drop-shadow-[0_0_12px_rgba(110,231,183,.65)]',
+                        draggingThisCard && 'opacity-0'
                       )}
                       style={{
                         marginLeft: idx === 0 ? 0 : margin,

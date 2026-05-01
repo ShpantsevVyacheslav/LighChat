@@ -1,7 +1,10 @@
 import 'dart:async' show Timer, unawaited;
 import 'dart:io';
 
+import 'package:ffmpeg_kit_min_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
@@ -65,6 +68,8 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   bool _tapMode = false;
   double _dragDx = 0;
   double _dragDy = 0;
+  VoiceMessageRecordResult? _continuePrefix;
+
   /// Точка старта long press (глобальные координаты) — для `Listener` на весь экран,
   /// пока палец ушёл с маленькой кнопки микрофона.
   Offset? _dragOriginGlobal;
@@ -126,6 +131,14 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   Future<String> _newTempPath() async {
     final dir = await getTemporaryDirectory();
     return '${dir.path}/audio_${DateTime.now().microsecondsSinceEpoch}.m4a';
+  }
+
+  String _ffQuote(String path) => '"${path.replaceAll('"', r'\"')}"';
+
+  Future<void> _lightHaptic() async {
+    try {
+      await HapticFeedback.lightImpact();
+    } catch (_) {}
   }
 
   void _startTicker() {
@@ -218,65 +231,65 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                       ),
                     ),
                     const Spacer(),
-                  if (_tapMode) ...[
-                    _RecMiniBtn(
-                      icon: _paused
-                          ? Icons.play_arrow_rounded
-                          : Icons.pause_rounded,
-                      onTap: _paused ? _resume : _pause,
-                    ),
-                    const SizedBox(width: 6),
-                    _RecMiniBtn(icon: Icons.stop_rounded, onTap: _finish),
-                    const SizedBox(width: 6),
-                    _RecMiniBtn(icon: Icons.close_rounded, onTap: _cancel),
-                  ] else ...[
-                    Opacity(
-                      opacity: 0.32 + 0.68 * pauseHintT,
-                      child: Icon(
-                        Icons.keyboard_arrow_up_rounded,
-                        size: 22,
-                        color: Colors.white.withValues(
-                          alpha: 0.55 + 0.4 * pauseHintT,
-                        ),
+                    if (_tapMode) ...[
+                      _RecMiniBtn(
+                        icon: _paused
+                            ? Icons.play_arrow_rounded
+                            : Icons.pause_rounded,
+                        onTap: _paused ? _resume : _pause,
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    _RecMiniBtn(
-                      icon: _paused
-                          ? Icons.play_arrow_rounded
-                          : Icons.pause_rounded,
-                      onTap: _paused ? _resume : _pause,
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.chevron_left_rounded,
-                      size: 18,
-                      color: Colors.white.withValues(
-                        alpha: armed ? 0.95 : 0.72,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    Flexible(
-                      child: Text(
-                        armed
-                            ? 'Отпустите — отмена'
-                            : 'Влево — отмена · Вверх — пауза',
-                        maxLines: 2,
-                        overflow: TextOverflow.fade,
-                        softWrap: true,
-                        style: TextStyle(
+                      const SizedBox(width: 6),
+                      _RecMiniBtn(icon: Icons.stop_rounded, onTap: _finish),
+                      const SizedBox(width: 6),
+                      _RecMiniBtn(icon: Icons.close_rounded, onTap: _cancel),
+                    ] else ...[
+                      Opacity(
+                        opacity: 0.32 + 0.68 * pauseHintT,
+                        child: Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          size: 22,
                           color: Colors.white.withValues(
-                            alpha: armed ? 0.95 : 0.72,
+                            alpha: 0.55 + 0.4 * pauseHintT,
                           ),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.5,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      _RecMiniBtn(
+                        icon: _paused
+                            ? Icons.play_arrow_rounded
+                            : Icons.pause_rounded,
+                        onTap: _paused ? _resume : _pause,
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.chevron_left_rounded,
+                        size: 18,
+                        color: Colors.white.withValues(
+                          alpha: armed ? 0.95 : 0.72,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text(
+                          armed
+                              ? 'Отпустите — отмена'
+                              : 'Влево — отмена · Вверх — пауза',
+                          maxLines: 2,
+                          overflow: TextOverflow.fade,
+                          softWrap: true,
+                          style: TextStyle(
+                            color: Colors.white.withValues(
+                              alpha: armed ? 0.95 : 0.72,
+                            ),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
             ),
           ),
           builder: (context, t, child) {
@@ -332,14 +345,15 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   Future<void> _start({required bool tapMode}) async {
     if (!widget.enabled || _busy || _recording) return;
     if (tapMode) _dragOriginGlobal = null;
+    final baseElapsed = _continuePrefix?.duration ?? Duration.zero;
     setState(() {
       _busy = true;
       _tapMode = tapMode;
       _paused = false;
       _dragDx = 0;
       _dragDy = 0;
-      _elapsedBeforePause = Duration.zero;
-      _elapsed = Duration.zero;
+      _elapsedBeforePause = baseElapsed;
+      _elapsed = baseElapsed;
     });
     try {
       final ok = await _recorder.hasPermission();
@@ -356,6 +370,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       if (!mounted) return;
       _activeRunStartedAt = DateTime.now();
       _recording = true;
+      unawaited(_lightHaptic());
       _showRecordingOverlay();
       _startTicker();
       setState(() {});
@@ -373,7 +388,12 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       if (p != null && p.trim().isNotEmpty) {
         await _deleteSilently(p);
       }
+      final prefix = _continuePrefix;
+      if (prefix != null) {
+        await _deleteSilently(prefix.filePath);
+      }
     } catch (_) {}
+    unawaited(_lightHaptic());
     _stopTicker();
     _recOverlay?.remove();
     _recOverlay = null;
@@ -386,6 +406,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     _dragDx = 0;
     _dragDy = 0;
     _dragOriginGlobal = null;
+    _continuePrefix = null;
     _notifyOverlayVisibility();
     if (mounted) setState(() {});
   }
@@ -397,6 +418,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     try {
       final elapsed = _currentElapsed();
       final path = await _recorder.stop();
+      unawaited(_lightHaptic());
       _stopTicker();
       _recOverlay?.remove();
       _recOverlay = null;
@@ -417,6 +439,11 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         if (path != null && path.trim().isNotEmpty) {
           await _deleteSilently(path);
         }
+        final prefix = _continuePrefix;
+        if (prefix != null) {
+          await _deleteSilently(prefix.filePath);
+          _continuePrefix = null;
+        }
         return;
       }
       // Too short — discard silently (parity with the bottom sheet).
@@ -424,12 +451,21 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         if (path != null && path.trim().isNotEmpty) {
           await _deleteSilently(path);
         }
+        final prefix = _continuePrefix;
+        if (prefix != null) {
+          _continuePrefix = null;
+          _showPreviewOverlay(result: prefix);
+          _notifyOverlayVisibility();
+          return;
+        }
         _notifyOverlayVisibility();
         return;
       }
-      _showPreviewOverlay(
-        result: VoiceMessageRecordResult(filePath: path, duration: elapsed),
+      final result = await _resultAfterContinuation(
+        currentPath: path,
+        elapsed: elapsed,
       );
+      _showPreviewOverlay(result: result);
       _notifyOverlayVisibility();
     } catch (_) {
       // ignore
@@ -463,16 +499,23 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                 _dismissPreview();
                 await _deleteSilently(result.filePath);
               },
-              onSend: () async {
+              onSend: (selected) async {
                 if (_previewBusy) return;
                 _previewBusy = true;
                 _previewOverlay?.markNeedsBuild();
                 try {
-                  await widget.onRecorded(result);
+                  await widget.onRecorded(selected);
                 } finally {
                   _previewBusy = false;
                   _dismissPreview();
                 }
+              },
+              onContinueRecording: (selected) async {
+                if (_previewBusy) return;
+                _previewBusy = true;
+                _previewOverlay?.markNeedsBuild();
+                _dismissPreview();
+                await _startContinuation(selected);
               },
             ),
           ),
@@ -494,6 +537,70 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       final f = File(path);
       if (await f.exists()) await f.delete();
     } catch (_) {}
+  }
+
+  Future<VoiceMessageRecordResult> _resultAfterContinuation({
+    required String currentPath,
+    required Duration elapsed,
+  }) async {
+    final prefix = _continuePrefix;
+    _continuePrefix = null;
+    if (prefix == null) {
+      return VoiceMessageRecordResult(filePath: currentPath, duration: elapsed);
+    }
+
+    final dir = await getTemporaryDirectory();
+    final outPath =
+        '${dir.path}/audio_join_${DateTime.now().microsecondsSinceEpoch}.m4a';
+    final cmd = <String>[
+      '-y',
+      '-i',
+      _ffQuote(prefix.filePath),
+      '-i',
+      _ffQuote(currentPath),
+      '-filter_complex',
+      '"[0:a][1:a]concat=n=2:v=0:a=1[a]"',
+      '-map',
+      '"[a]"',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '96k',
+      '-movflags',
+      '+faststart',
+      _ffQuote(outPath),
+    ].join(' ');
+    try {
+      final session = await FFmpegKit.execute(cmd);
+      final code = await session.getReturnCode();
+      if (ReturnCode.isSuccess(code) && await File(outPath).exists()) {
+        await _deleteSilently(prefix.filePath);
+        await _deleteSilently(currentPath);
+        return VoiceMessageRecordResult(filePath: outPath, duration: elapsed);
+      }
+    } catch (_) {}
+
+    await _deleteSilently(prefix.filePath);
+    final currentDuration = elapsed - prefix.duration;
+    return VoiceMessageRecordResult(
+      filePath: currentPath,
+      duration: currentDuration > Duration.zero ? currentDuration : elapsed,
+    );
+  }
+
+  Future<void> _startContinuation(VoiceMessageRecordResult prefix) async {
+    if (_recording || _busy) return;
+    _continuePrefix = prefix;
+    _elapsedBeforePause = prefix.duration;
+    _elapsed = prefix.duration;
+    await _start(tapMode: true);
+    if (!_recording) {
+      final pending = _continuePrefix;
+      _continuePrefix = null;
+      if (pending != null) {
+        _showPreviewOverlay(result: pending);
+      }
+    }
   }
 
   // ───────────────────────────── Gesture surface ───────────────────────────
@@ -548,6 +655,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       _elapsed = _elapsedBeforePause;
       if (mounted) setState(() {});
       _recOverlay?.markNeedsBuild();
+      unawaited(_lightHaptic());
     } catch (_) {}
   }
 
@@ -559,6 +667,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       _paused = false;
       if (mounted) setState(() {});
       _recOverlay?.markNeedsBuild();
+      unawaited(_lightHaptic());
     } catch (_) {}
   }
 }

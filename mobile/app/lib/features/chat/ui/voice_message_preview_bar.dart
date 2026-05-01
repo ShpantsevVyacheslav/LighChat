@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:ffmpeg_kit_min_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'message_audio_waveform.dart';
+import 'voice_message_record_sheet.dart';
 
 /// Telegram‑style preview bar for a just‑recorded voice message.
 ///
@@ -27,13 +32,16 @@ class VoiceMessagePreviewBar extends StatefulWidget {
     required this.duration,
     required this.onCancel,
     required this.onSend,
+    this.onContinueRecording,
     this.busy = false,
   });
 
   final String filePath;
   final Duration duration;
   final VoidCallback onCancel;
-  final VoidCallback onSend;
+  final Future<void> Function(VoiceMessageRecordResult result) onSend;
+  final Future<void> Function(VoiceMessageRecordResult result)?
+  onContinueRecording;
 
   /// If true — "send" is displayed as a spinner and both actions are disabled.
   /// Used by the caller during async upload to prevent double‑sends.
@@ -52,8 +60,11 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
   bool _ready = false;
   bool _failed = false;
   bool _playing = false;
+  bool _trimBusy = false;
   Duration _position = Duration.zero;
   Duration _effectiveDuration = Duration.zero;
+  double _trimStart = 0;
+  double _trimEnd = 1;
 
   @override
   void initState() {
@@ -133,6 +144,202 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
+  bool get _hasTrim =>
+      _trimStart > 0.005 || _trimEnd < 0.995 || (_trimEnd - _trimStart) < 0.99;
+
+  Duration get _trimStartDuration => Duration(
+    milliseconds: (_effectiveDuration.inMilliseconds * _trimStart).round(),
+  );
+
+  Duration get _trimEndDuration => Duration(
+    milliseconds: (_effectiveDuration.inMilliseconds * _trimEnd).round(),
+  );
+
+  Duration get _trimmedDuration {
+    final d = _trimEndDuration - _trimStartDuration;
+    return d > Duration.zero ? d : _effectiveDuration;
+  }
+
+  double get _minTrimFraction {
+    final ms = _effectiveDuration.inMilliseconds;
+    if (ms <= 0) return 0.02;
+    return (350 / ms).clamp(0.02, 0.24);
+  }
+
+  String _ffQuote(String path) => '"${path.replaceAll('"', r'\"')}"';
+
+  void _setTrimStart(double value) {
+    final max = _trimEnd - _minTrimFraction;
+    setState(() => _trimStart = value.clamp(0.0, max.clamp(0.0, 1.0)));
+  }
+
+  void _setTrimEnd(double value) {
+    final min = _trimStart + _minTrimFraction;
+    setState(() => _trimEnd = value.clamp(min.clamp(0.0, 1.0), 1.0));
+  }
+
+  Future<VoiceMessageRecordResult> _selectedResult() async {
+    if (!_hasTrim || _effectiveDuration <= Duration.zero) {
+      return VoiceMessageRecordResult(
+        filePath: widget.filePath,
+        duration: _effectiveDuration > Duration.zero
+            ? _effectiveDuration
+            : widget.duration,
+      );
+    }
+
+    final dir = await getTemporaryDirectory();
+    final outPath =
+        '${dir.path}/audio_trim_${DateTime.now().microsecondsSinceEpoch}.m4a';
+    final start = _trimStartDuration.inMilliseconds / 1000.0;
+    final len = _trimmedDuration.inMilliseconds / 1000.0;
+    final cmd = <String>[
+      '-y',
+      '-i',
+      _ffQuote(widget.filePath),
+      '-ss',
+      start.toStringAsFixed(3),
+      '-t',
+      len.toStringAsFixed(3),
+      '-vn',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '96k',
+      '-movflags',
+      '+faststart',
+      _ffQuote(outPath),
+    ].join(' ');
+    final session = await FFmpegKit.execute(cmd);
+    final code = await session.getReturnCode();
+    if (!ReturnCode.isSuccess(code) || !await File(outPath).exists()) {
+      return VoiceMessageRecordResult(
+        filePath: widget.filePath,
+        duration: _effectiveDuration,
+      );
+    }
+    unawaited(_deleteSilently(widget.filePath));
+    return VoiceMessageRecordResult(
+      filePath: outPath,
+      duration: _trimmedDuration,
+    );
+  }
+
+  Future<void> _deleteSilently(String path) async {
+    try {
+      final f = File(path);
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
+  }
+
+  Future<void> _sendSelected() async {
+    if (_trimBusy || widget.busy) return;
+    setState(() => _trimBusy = true);
+    try {
+      final result = await _selectedResult();
+      await widget.onSend(result);
+    } finally {
+      if (mounted) setState(() => _trimBusy = false);
+    }
+  }
+
+  Future<void> _continueAfterTrim() async {
+    final cb = widget.onContinueRecording;
+    if (cb == null || !_hasTrim || _trimBusy || widget.busy) return;
+    final confirmed = await _showContinueConfirmDialog();
+    if (confirmed != true || !mounted) return;
+    setState(() => _trimBusy = true);
+    try {
+      await _player.pause();
+      final result = await _selectedResult();
+      await cb(result);
+    } finally {
+      if (mounted) setState(() => _trimBusy = false);
+    }
+  }
+
+  Future<bool?> _showContinueConfirmDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.38),
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: const Color(0xFF17191D),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(26),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Оставить только выбранный фрагмент?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 21,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Всё, кроме выделенного фрагмента, будет удалено. Запись сообщения продолжится сразу после нажатия кнопки.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 19,
+                    height: 1.18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  height: 62,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF37C8EF),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text('Продолжить'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 58,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.11),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Отмена'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -147,126 +354,332 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
         : Colors.black.withValues(alpha: 0.08);
     final accent = const Color(0xFF2A79FF);
 
+    final busy = widget.busy || _trimBusy;
     final displayDuration = _playing || _position > Duration.zero
         ? _position
-        : _effectiveDuration;
+        : (_hasTrim ? _trimmedDuration : _effectiveDuration);
     final progressPct = _effectiveDuration.inMilliseconds > 0
         ? (_position.inMilliseconds / _effectiveDuration.inMilliseconds) * 100.0
         : 0.0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Trash (cancel) — left.
-          _CircleIconButton(
-            icon: Icons.delete_outline_rounded,
-            tooltip: l10n.voice_preview_tooltip_cancel,
-            onTap: widget.busy ? null : widget.onCancel,
-            color: fg.withValues(alpha: 0.82),
-            background: Colors.transparent,
-            size: 40,
-            iconSize: 22,
-          ),
-          const SizedBox(width: 4),
-          // Main pill: play + waveform + time.
-          Expanded(
-            child: Material(
-              color: Colors.transparent,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
-                  child: Row(
-                    children: [
-                      Material(
-                        color: accent,
-                        shape: const CircleBorder(),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: widget.busy ? null : _toggle,
-                          child: SizedBox(
-                            width: 34,
-                            height: 34,
-                            child: Icon(
-                              _failed
-                                  ? Icons.error_outline_rounded
-                                  : (_playing
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded),
-                              color: Colors.white,
-                              size: 22,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _CircleIconButton(
+                icon: Icons.delete_outline_rounded,
+                tooltip: l10n.voice_preview_tooltip_cancel,
+                onTap: busy ? null : widget.onCancel,
+                color: fg.withValues(alpha: 0.82),
+                background: Colors.transparent,
+                size: 40,
+                iconSize: 22,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: border),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+                      child: Row(
+                        children: [
+                          Material(
+                            color: accent,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: busy ? null : _toggle,
+                              child: SizedBox(
+                                width: 34,
+                                height: 34,
+                                child: Icon(
+                                  _failed
+                                      ? Icons.error_outline_rounded
+                                      : (_playing
+                                            ? Icons.pause_rounded
+                                            : Icons.play_arrow_rounded),
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, cons) {
-                          return GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTapUp: (d) => _seekFromLocal(
-                              d.localPosition.dx,
-                              cons.maxWidth,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _VoiceTrimTimeline(
+                              trimStart: _trimStart,
+                              trimEnd: _trimEnd,
+                              progress: (progressPct / 100).clamp(0.0, 1.0),
+                              seed: widget.filePath,
+                              onSeekFraction: (f) => _seekFromLocal(f, 1),
+                              onTrimStartChanged: (f) {
+                                unawaited(_player.pause());
+                                _setTrimStart(f);
+                              },
+                              onTrimEndChanged: (f) {
+                                unawaited(_player.pause());
+                                _setTrimEnd(f);
+                              },
                             ),
-                            onHorizontalDragStart: (d) => _seekFromLocal(
-                              d.localPosition.dx,
-                              cons.maxWidth,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _fmt(displayDuration),
+                            style: TextStyle(
+                              color: meta,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.5,
+                              decoration: TextDecoration.none,
+                              decorationThickness: 0,
+                              fontFeatures: const <FontFeature>[
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
-                            onHorizontalDragUpdate: (d) => _seekFromLocal(
-                              d.localPosition.dx,
-                              cons.maxWidth,
-                            ),
-                            child: AudioMessageWaveformBars(
-                              progressPercent: progressPct.clamp(0.0, 100.0),
-                              // Slightly higher contrast for the composer
-                              // preview than for incoming bubbles.
-                              isMine: true,
-                              seedUrl: widget.filePath,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _fmt(displayDuration),
-                      style: TextStyle(
-                        color: meta,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.5,
-                        decoration: TextDecoration.none,
-                        decorationThickness: 0,
-                        fontFeatures: const <FontFeature>[
-                          FontFeature.tabularFigures(),
+                          ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            ),
+              const SizedBox(width: 6),
+              _CircleIconButton(
+                icon: Icons.send_rounded,
+                tooltip: l10n.voice_preview_tooltip_send,
+                onTap: busy ? null : _sendSelected,
+                color: Colors.white,
+                background: accent,
+                size: 44,
+                iconSize: 20,
+                busy: busy,
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          // Send — right.
-          _CircleIconButton(
-            icon: Icons.send_rounded,
-            tooltip: l10n.voice_preview_tooltip_send,
-            onTap: widget.busy ? null : widget.onSend,
-            color: Colors.white,
-            background: accent,
-            size: 44,
-            iconSize: 20,
-            busy: widget.busy,
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: _hasTrim && widget.onContinueRecording != null
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(48, 8, 50, 0),
+                    child: SizedBox(
+                      height: 40,
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF37C8EF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                        onPressed: busy ? null : _continueAfterTrim,
+                        icon: const Icon(
+                          Icons.keyboard_voice_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('Продолжить запись'),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VoiceTrimTimeline extends StatelessWidget {
+  const _VoiceTrimTimeline({
+    required this.trimStart,
+    required this.trimEnd,
+    required this.progress,
+    required this.seed,
+    required this.onSeekFraction,
+    required this.onTrimStartChanged,
+    required this.onTrimEndChanged,
+  });
+
+  final double trimStart;
+  final double trimEnd;
+  final double progress;
+  final String seed;
+  final ValueChanged<double> onSeekFraction;
+  final ValueChanged<double> onTrimStartChanged;
+  final ValueChanged<double> onTrimEndChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final bars = audioMessageWaveformBarFactors(seed);
+    const height = 34.0;
+    const radius = 17.0;
+    return LayoutBuilder(
+      builder: (context, cons) {
+        final w = cons.maxWidth.isFinite ? cons.maxWidth : 160.0;
+        double fractionFromDx(double dx) => (dx / w).clamp(0.0, 1.0);
+        return SizedBox(
+          height: height,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (d) => onSeekFraction(fractionFromDx(d.localPosition.dx)),
+            onHorizontalDragStart: (d) =>
+                onSeekFraction(fractionFromDx(d.localPosition.dx)),
+            onHorizontalDragUpdate: (d) =>
+                onSeekFraction(fractionFromDx(d.localPosition.dx)),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1D2429),
+                      borderRadius: BorderRadius.circular(radius),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: w * trimStart,
+                  width: (w * (trimEnd - trimStart)).clamp(1.0, w),
+                  top: 0,
+                  bottom: 0,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF35C3E8),
+                      borderRadius: BorderRadius.circular(radius),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: List<Widget>.generate(bars.length, (i) {
+                        final f = bars.length <= 1
+                            ? 0.0
+                            : i / (bars.length - 1);
+                        final selected = f >= trimStart && f <= trimEnd;
+                        final played = f <= progress;
+                        final color = selected
+                            ? Colors.white.withValues(
+                                alpha: played ? 0.98 : 0.72,
+                              )
+                            : Colors.white.withValues(alpha: 0.26);
+                        return Expanded(
+                          child: Center(
+                            child: Container(
+                              width: 2,
+                              height: 7 + bars[i] * 20,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: (w * progress).clamp(0.0, w) - 1,
+                  top: 5,
+                  bottom: 5,
+                  child: Container(
+                    width: 2,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                ),
+                _TimelineHandle(
+                  x: w * trimStart,
+                  alignRight: false,
+                  onChanged: onTrimStartChanged,
+                  width: w,
+                ),
+                _TimelineHandle(
+                  x: w * trimEnd,
+                  alignRight: true,
+                  onChanged: onTrimEndChanged,
+                  width: w,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TimelineHandle extends StatelessWidget {
+  const _TimelineHandle({
+    required this.x,
+    required this.alignRight,
+    required this.onChanged,
+    required this.width,
+  });
+
+  final double x;
+  final bool alignRight;
+  final ValueChanged<double> onChanged;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: x - 18,
+      top: -4,
+      bottom: -4,
+      width: 36,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragStart: (d) {
+          final box = context.findRenderObject() as RenderBox?;
+          if (box == null) return;
+          final local = box.globalToLocal(d.globalPosition);
+          onChanged(((x - 18 + local.dx) / width).clamp(0.0, 1.0));
+        },
+        onHorizontalDragUpdate: (d) {
+          final box = context.findRenderObject() as RenderBox?;
+          if (box == null) return;
+          final local = box.globalToLocal(d.globalPosition);
+          onChanged(((x - 18 + local.dx) / width).clamp(0.0, 1.0));
+        },
+        child: Align(
+          alignment: alignRight ? Alignment.centerLeft : Alignment.centerRight,
+          child: Container(
+            width: 6,
+            height: 28,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(3),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.24),
+                  blurRadius: 8,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

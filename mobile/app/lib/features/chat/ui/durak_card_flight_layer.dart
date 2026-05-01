@@ -123,6 +123,7 @@ class _DurakCardFlightLayerState extends State<DurakCardFlightLayer> {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      fit: StackFit.expand,
       children: [
         widget.child,
         ..._flights.map((f) => _FlightWidget(f: f, onDone: () => _finish(f))),

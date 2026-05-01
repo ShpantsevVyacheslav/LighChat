@@ -4801,6 +4801,84 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выбрать аватар'**
   String get register_pick_avatar_title;
+
+  /// No description provided for @edit_group_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактировать группу'**
+  String get edit_group_title;
+
+  /// No description provided for @edit_group_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get edit_group_save;
+
+  /// No description provided for @edit_group_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get edit_group_cancel;
+
+  /// No description provided for @edit_group_name_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название группы'**
+  String get edit_group_name_label;
+
+  /// No description provided for @edit_group_name_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название'**
+  String get edit_group_name_hint;
+
+  /// No description provided for @edit_group_description_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Описание'**
+  String get edit_group_description_label;
+
+  /// No description provided for @edit_group_description_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Необязательно'**
+  String get edit_group_description_hint;
+
+  /// No description provided for @edit_group_pick_photo_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нажмите, чтобы выбрать фото группы. Удерживайте, чтобы убрать.'**
+  String get edit_group_pick_photo_tooltip;
+
+  /// No description provided for @edit_group_error_name_required.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожалуйста, введите название группы.'**
+  String get edit_group_error_name_required;
+
+  /// No description provided for @edit_group_error_save_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка при сохранении группы'**
+  String get edit_group_error_save_failed;
+
+  /// No description provided for @edit_group_error_not_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'Группа не найдена'**
+  String get edit_group_error_not_found;
+
+  /// No description provided for @edit_group_error_permission_denied.
+  ///
+  /// In ru, this message translates to:
+  /// **'У вас нет прав для редактирования этой группы'**
+  String get edit_group_error_permission_denied;
+
+  /// No description provided for @edit_group_success.
+  ///
+  /// In ru, this message translates to:
+  /// **'Группа обновлена'**
+  String get edit_group_success;
 }
 
 class _AppLocalizationsDelegate

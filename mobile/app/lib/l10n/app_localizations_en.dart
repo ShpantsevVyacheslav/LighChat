@@ -2729,4 +2729,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get register_pick_avatar_title => 'Choose avatar';
+
+  @override
+  String get edit_group_title => 'Edit group';
+
+  @override
+  String get edit_group_save => 'Save';
+
+  @override
+  String get edit_group_cancel => 'Cancel';
+
+  @override
+  String get edit_group_name_label => 'Group name';
+
+  @override
+  String get edit_group_name_hint => 'Name';
+
+  @override
+  String get edit_group_description_label => 'Description';
+
+  @override
+  String get edit_group_description_hint => 'Optional';
+
+  @override
+  String get edit_group_pick_photo_tooltip =>
+      'Tap to pick a group photo. Long‑press to remove it.';
+
+  @override
+  String get edit_group_error_name_required => 'Please enter a group name.';
+
+  @override
+  String get edit_group_error_save_failed => 'Failed to save group.';
+
+  @override
+  String get edit_group_error_not_found => 'Group not found.';
+
+  @override
+  String get edit_group_error_permission_denied =>
+      'You don\'t have permission to edit this group.';
+
+  @override
+  String get edit_group_success => 'Group updated.';
 }

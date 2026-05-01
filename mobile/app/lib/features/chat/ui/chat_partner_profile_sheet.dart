@@ -1178,7 +1178,11 @@ class _ChatPartnerProfileSheetState
                     context,
                     icon: Icons.edit_rounded,
                     title: l10n.partner_profile_menu_edit_group,
-                    onTap: () => _toast(l10n.common_soon),
+                    onTap: () {
+                      context.push(
+                        '/chats/edit/group/${widget.conversationId}',
+                      );
+                    },
                   ),
                 _sectionDivider(),
               ],

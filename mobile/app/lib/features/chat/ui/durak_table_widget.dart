@@ -161,7 +161,6 @@ class DurakTableWidget extends StatelessWidget {
                           index: p.index,
                           attack: p.attack,
                           defense: p.defense,
-                          selected: p.index == selectedAttackIndex,
                           onSelect: () => onSelectAttackIndex(p.index),
                           canAcceptDefense: canAcceptDefense,
                           onDefenseDropped: onDefenseDropped,
@@ -279,7 +278,6 @@ class _DurakTablePair extends StatelessWidget {
     required this.index,
     required this.attack,
     required this.defense,
-    required this.selected,
     required this.onSelect,
     required this.canAcceptDefense,
     required this.onDefenseDropped,
@@ -294,7 +292,6 @@ class _DurakTablePair extends StatelessWidget {
   final int index;
   final Map<String, dynamic> attack;
   final Map<String, dynamic>? defense;
-  final bool selected;
   final VoidCallback onSelect;
 
   final bool Function(Map<String, dynamic> card, int attackIndex)
@@ -337,18 +334,28 @@ class _DurakTablePair extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: selected
-                    ? Colors.white.withValues(alpha: 0.22)
-                    : Colors.transparent,
-                width: selected ? 1.5 : 1,
-              ),
+              border: Border.all(color: Colors.transparent),
             ),
             child: SizedBox(
               height: 138,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
+                  if (defense == null)
+                    Positioned(
+                      left: 48,
+                      top: 28,
+                      child: _DefenseDropSlot(
+                        keyForFlight: defenseKeyForFlight,
+                        index: index,
+                        defense: null,
+                        canAcceptDefense: canAcceptDefense,
+                        onDefenseDropped: onDefenseDropped,
+                        rankLabel: rankLabel,
+                        suitLabel: suitLabel,
+                        isRedSuit: isRedSuit,
+                      ),
+                    ),
                   Positioned(
                     left: 10,
                     top: 0,
@@ -363,65 +370,98 @@ class _DurakTablePair extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(
-                    left: 48,
-                    top: 28,
-                    child: DragTarget<Map<String, dynamic>>(
-                      onWillAcceptWithDetails: (d) =>
-                          canAcceptDefense(d.data, index),
-                      onAcceptWithDetails: (d) =>
-                          unawaited(onDefenseDropped(index, d.data)),
-                      builder: (context, candidate, rejected) {
-                        if (defense == null) {
-                          final active = candidate.isNotEmpty;
-                          return Container(
-                            key: defenseKeyForFlight,
-                            width: 68,
-                            height: 96,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color:
-                                    (active
-                                            ? const Color(0xFF6EE7B7)
-                                            : Colors.white.withValues(
-                                                alpha: 0.28,
-                                              ))
-                                        .withValues(alpha: 0.9),
-                                width: active ? 2 : 1,
-                              ),
-                              color: Colors.white.withValues(
-                                alpha: active ? 0.07 : 0.015,
-                              ),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.shield_outlined,
-                                size: 24,
-                                color: Colors.white.withValues(alpha: 0.42),
-                              ),
-                            ),
-                          );
-                        }
-                        return Container(
-                          key: defenseKeyForFlight,
-                          child: DurakCardWidget(
-                            rankLabel: rankLabel(defense!),
-                            suitLabel: suitLabel(defense!),
-                            isRed: isRedSuit((defense!['s'] ?? '').toString()),
-                            faceUp: true,
-                            disabled: true,
-                          ),
-                        );
-                      },
+                  if (defense != null)
+                    Positioned(
+                      left: 48,
+                      top: 28,
+                      child: _DefenseDropSlot(
+                        keyForFlight: defenseKeyForFlight,
+                        index: index,
+                        defense: defense,
+                        canAcceptDefense: canAcceptDefense,
+                        onDefenseDropped: onDefenseDropped,
+                        rankLabel: rankLabel,
+                        suitLabel: suitLabel,
+                        isRedSuit: isRedSuit,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DefenseDropSlot extends StatelessWidget {
+  const _DefenseDropSlot({
+    required this.keyForFlight,
+    required this.index,
+    required this.defense,
+    required this.canAcceptDefense,
+    required this.onDefenseDropped,
+    required this.rankLabel,
+    required this.suitLabel,
+    required this.isRedSuit,
+  });
+
+  final GlobalKey keyForFlight;
+  final int index;
+  final Map<String, dynamic>? defense;
+  final bool Function(Map<String, dynamic> card, int attackIndex)
+  canAcceptDefense;
+  final Future<void> Function(int attackIndex, Map<String, dynamic> card)
+  onDefenseDropped;
+  final String Function(Map<String, dynamic>) rankLabel;
+  final String Function(Map<String, dynamic>) suitLabel;
+  final bool Function(String) isRedSuit;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<Map<String, dynamic>>(
+      onWillAcceptWithDetails: (d) => canAcceptDefense(d.data, index),
+      onAcceptWithDetails: (d) => unawaited(onDefenseDropped(index, d.data)),
+      builder: (context, candidate, rejected) {
+        if (defense == null) {
+          final active = candidate.isNotEmpty;
+          return Container(
+            key: keyForFlight,
+            width: 68,
+            height: 96,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color:
+                    (active
+                            ? const Color(0xFF6EE7B7)
+                            : Colors.white.withValues(alpha: 0.28))
+                        .withValues(alpha: 0.9),
+                width: active ? 2 : 1,
+              ),
+              color: Colors.white.withValues(alpha: active ? 0.07 : 0.015),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.shield_outlined,
+                size: 24,
+                color: Colors.white.withValues(alpha: 0.42),
+              ),
+            ),
+          );
+        }
+        return Container(
+          key: keyForFlight,
+          child: DurakCardWidget(
+            rankLabel: rankLabel(defense!),
+            suitLabel: suitLabel(defense!),
+            isRed: isRedSuit((defense!['s'] ?? '').toString()),
+            faceUp: true,
+            disabled: true,
+          ),
+        );
+      },
     );
   }
 }

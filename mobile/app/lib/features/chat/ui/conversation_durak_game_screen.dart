@@ -1032,15 +1032,6 @@ class _ConversationDurakGameScreenState
                                 legal == null
                                 ? cardCanTransfer(card)
                                 : transferKeys.contains(_cardKey(card));
-                            bool serverCanDefend(
-                              Map<String, dynamic> card,
-                              int idx,
-                            ) => legal == null
-                                ? cardCanDefendAt(card, idx)
-                                : (defenseTargets[idx]?.contains(
-                                        _cardKey(card),
-                                      ) ??
-                                      false);
                             int? serverDefenseIndexFor(
                               Map<String, dynamic> card,
                             ) {
@@ -1054,6 +1045,10 @@ class _ConversationDurakGameScreenState
                               }
                               return null;
                             }
+
+                            bool serverCanDefendAny(
+                              Map<String, dynamic> card,
+                            ) => serverDefenseIndexFor(card) != null;
 
                             final flight = DurakCardFlightLayer.of(context);
                             scheduleMicrotask(() {
@@ -1105,18 +1100,12 @@ class _ConversationDurakGameScreenState
                                 enabled: (card) =>
                                     _pendingMove == null &&
                                     (serverCanAttack(card) ||
-                                        serverCanDefend(
-                                          card,
-                                          _selectedAttackIndex,
-                                        ) ||
+                                        serverCanDefendAny(card) ||
                                         serverCanTransfer(card)),
                                 highlight: (card) =>
                                     _pendingMove == null &&
                                     (serverCanAttack(card) ||
-                                        serverCanDefend(
-                                          card,
-                                          _selectedAttackIndex,
-                                        ) ||
+                                        serverCanDefendAny(card) ||
                                         serverCanTransfer(card)),
                                 selectedId: _selectedCardId,
                                 onTap: (card, id) {
@@ -1172,6 +1161,7 @@ class _ConversationDurakGameScreenState
               final bottomPanelHeight = 174.0 + safe.bottom;
 
               return Stack(
+                fit: StackFit.expand,
                 children: [
                   if (foulAt.isNotEmpty && foulAt != _lastFoulAtShown)
                     Builder(

@@ -16,6 +16,7 @@ class GroupChatAvatarButton extends StatefulWidget {
     this.diameter = 96,
     this.placeholderIcon = Icons.add_a_photo_rounded,
     this.showCaptionRow = true,
+    this.existingPhotoUrl,
   });
 
   final bool enabled;
@@ -29,6 +30,9 @@ class GroupChatAvatarButton extends StatefulWidget {
 
   /// Подписи «Добавить фото» / «Сменить» под кругом.
   final bool showCaptionRow;
+
+  /// URL существующего фото группы (например на экране редактирования).
+  final String? existingPhotoUrl;
 
   @override
   State<GroupChatAvatarButton> createState() => _GroupChatAvatarButtonState();
@@ -151,6 +155,20 @@ class _GroupChatAvatarButtonState extends State<GroupChatAvatarButton> {
                     width: d,
                     height: d,
                     fit: BoxFit.cover,
+                  ),
+                )
+              : (widget.existingPhotoUrl != null && widget.existingPhotoUrl!.trim().isNotEmpty)
+              ? ClipOval(
+                  child: Image.network(
+                    widget.existingPhotoUrl!,
+                    width: d,
+                    height: d,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      widget.placeholderIcon,
+                      size: iconSize,
+                      color: scheme.onSurface.withValues(alpha: 0.42),
+                    ),
                   ),
                 )
               : Icon(
