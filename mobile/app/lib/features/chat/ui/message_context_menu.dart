@@ -40,6 +40,8 @@ enum MessageMenuActionType {
   select,
   delete,
   react,
+  outboxRetry,
+  outboxCancel,
 }
 
 class MessageMenuResult {
@@ -844,6 +846,160 @@ class _MenuTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+Future<MessageMenuResult?> showOutboxFailedContextMenu(
+  BuildContext context, {
+  required ChatMessage message,
+  String chatFontSize = 'medium',
+  Color? outgoingBubbleColor,
+}) {
+  final initiatorPureEmojiSize = pureEmojiMessageFontSize(chatFontSize);
+  return showGeneralDialog<MessageMenuResult>(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Colors.transparent,
+    transitionDuration: const Duration(milliseconds: 200),
+    pageBuilder: (ctx, anim, secAnim) {
+      return _OutboxFailedContextMenuPage(
+        message: message,
+        initiatorPureEmojiSize: initiatorPureEmojiSize,
+        outgoingBubbleColor: outgoingBubbleColor,
+      );
+    },
+    transitionBuilder: (ctx, anim, secAnim, child) {
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+        child: ScaleTransition(
+          scale: Tween<double>(
+            begin: 0.96,
+            end: 1,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+class _OutboxFailedContextMenuPage extends StatelessWidget {
+  const _OutboxFailedContextMenuPage({
+    required this.message,
+    required this.initiatorPureEmojiSize,
+    this.outgoingBubbleColor,
+  });
+
+  final ChatMessage message;
+  final double initiatorPureEmojiSize;
+  final Color? outgoingBubbleColor;
+
+  void _pop(BuildContext context, MessageMenuResult r) {
+    Navigator.of(context).pop(r);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final maxH = MediaQuery.sizeOf(context).height * 0.78;
+
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _pop(context, MessageMenuResult.dismissed),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(color: Colors.black.withValues(alpha: 0.40)),
+              ),
+            ),
+          ),
+          Center(
+            child: GestureDetector(
+              onTap: () {},
+              behavior: HitTestBehavior.deferToChild,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 272, maxHeight: maxH),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ContextMenuInitiatorPreview(
+                        message: message,
+                        isCurrentUser: true,
+                        menuPureEmojiFontSize: initiatorPureEmojiSize,
+                        outgoingBubbleColor: outgoingBubbleColor,
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                          child: Container(
+                            width: 272,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  blurRadius: 28,
+                                  offset: const Offset(0, 12),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _MenuTile(
+                                    icon: Icons.refresh_rounded,
+                                    label: l10n.chat_outbox_retry,
+                                    onTap: () => _pop(
+                                      context,
+                                      const MessageMenuResult(
+                                        MessageMenuActionType.outboxRetry,
+                                      ),
+                                    ),
+                                  ),
+                                  _MenuTile(
+                                    icon: Icons.close_rounded,
+                                    label: l10n.chat_outbox_cancel,
+                                    danger: true,
+                                    onTap: () => _pop(
+                                      context,
+                                      const MessageMenuResult(
+                                        MessageMenuActionType.outboxCancel,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

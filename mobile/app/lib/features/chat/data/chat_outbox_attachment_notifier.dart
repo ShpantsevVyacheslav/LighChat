@@ -432,11 +432,21 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       }
     } catch (e, st) {
       debugPrint('ChatOutboxAttachmentNotifier job=$jobId error=$e $st');
-      final fe = e is FirebaseException
-          ? '${e.code}: ${e.message ?? ''}'
-          : '$e';
       final cur = _byId(jobId);
       if (cur != null) {
+        final elapsed = DateTime.now().difference(cur.createdAt);
+        if (elapsed < const Duration(seconds: 30) && !cur.cancelRequested) {
+          _inFlight.remove(jobId);
+          await Future<void>.delayed(const Duration(seconds: 3));
+          final still = _byId(jobId);
+          if (still != null && !still.cancelRequested) {
+            unawaited(_runJob(jobId));
+          }
+          return;
+        }
+        final fe = e is FirebaseException
+            ? '${e.code}: ${e.message ?? ''}'
+            : '$e';
         _replace(
           cur.copyWith(phase: OutboxAttachmentPhase.failed, lastError: fe),
         );

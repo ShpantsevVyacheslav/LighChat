@@ -3144,6 +3144,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required Color? incomingBubbleColor,
     required Set<String> starredMessageIds,
   }) async {
+    if (m.id.startsWith(kLocalOutboxMessageIdPrefix) &&
+        (m.deliveryStatus ?? '') == 'failed') {
+      final result = await showOutboxFailedContextMenu(
+        context,
+        message: m,
+        chatFontSize: fontSize,
+        outgoingBubbleColor: outgoingBubbleColor,
+      );
+      if (!mounted ||
+          result == null ||
+          result.type == MessageMenuActionType.dismissed) {
+        return;
+      }
+      switch (result.type) {
+        case MessageMenuActionType.outboxRetry:
+          handleOutboxRetry(ref, m.id);
+        case MessageMenuActionType.outboxCancel:
+          unawaited(handleOutboxDismiss(ref, m.id));
+        default:
+          break;
+      }
+      return;
+    }
     final isMine = m.senderId == user.uid;
     final canEdit =
         isMine && !m.isDeleted && (m.text?.trim().isNotEmpty ?? false);
@@ -3262,6 +3285,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
           }
         }
+      case MessageMenuActionType.outboxRetry:
+      case MessageMenuActionType.outboxCancel:
+        break;
     }
   }
 

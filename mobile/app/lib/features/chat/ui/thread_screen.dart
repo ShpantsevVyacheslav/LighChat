@@ -30,6 +30,7 @@ import '../data/chat_poll_stub_text.dart';
 import '../data/reply_preview_builder.dart';
 import '../data/chat_attachment_upload.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
+import 'message_context_menu.dart';
 import '../data/chat_message_search.dart';
 import '../data/user_block_providers.dart';
 import '../data/composer_clipboard_paste.dart';
@@ -1656,6 +1657,44 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                               onSwipeBack: () {
                                                 if (context.canPop()) {
                                                   context.pop();
+                                                }
+                                              },
+                                              onMessageLongPress: (m) async {
+                                                if (m.id.startsWith(
+                                                      kLocalOutboxMessageIdPrefix,
+                                                    ) &&
+                                                    (m.deliveryStatus ?? '') ==
+                                                        'failed') {
+                                                  final result =
+                                                      await showOutboxFailedContextMenu(
+                                                        context,
+                                                        message: m,
+                                                      );
+                                                  if (!mounted ||
+                                                      result == null ||
+                                                      result.type ==
+                                                          MessageMenuActionType
+                                                              .dismissed) {
+                                                    return;
+                                                  }
+                                                  switch (result.type) {
+                                                    case MessageMenuActionType
+                                                          .outboxRetry:
+                                                      handleOutboxRetry(
+                                                        ref,
+                                                        m.id,
+                                                      );
+                                                    case MessageMenuActionType
+                                                          .outboxCancel:
+                                                      unawaited(
+                                                        handleOutboxDismiss(
+                                                          ref,
+                                                          m.id,
+                                                        ),
+                                                      );
+                                                    default:
+                                                      break;
+                                                  }
                                                 }
                                               },
                                               onOutboxRetry: (mid) {

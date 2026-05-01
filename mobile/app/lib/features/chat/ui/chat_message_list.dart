@@ -1630,11 +1630,8 @@ class _ChatMessageBubble extends StatelessWidget {
                             : null,
                         onLongPress:
                             !selectionMode &&
-                                onMessageLongPress != null &&
                                 !message.isDeleted &&
-                                !message.id.startsWith(
-                                  kLocalOutboxMessageIdPrefix,
-                                )
+                                onMessageLongPress != null
                             ? () => onMessageLongPress!(message)
                             : null,
                         child: wrappedBody,
@@ -1642,36 +1639,16 @@ class _ChatMessageBubble extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (outboxFail) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.error_rounded,
+                    size: 20,
+                    color: scheme.error,
+                  ),
+                ],
               ],
             ),
-            if (isMine &&
-                onOutboxRetry != null &&
-                onOutboxDismiss != null &&
-                message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
-                (message.deliveryStatus ?? '') == 'failed') ...[
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 0,
-                    alignment: WrapAlignment.end,
-                    children: [
-                      if ((message.deliveryStatus ?? '') == 'failed')
-                        TextButton(
-                          onPressed: () => onOutboxRetry!(message.id),
-                          child: Text(l10n.chat_outbox_retry),
-                        ),
-                      TextButton(
-                        onPressed: () => onOutboxDismiss!(message.id),
-                        child: Text(l10n.chat_outbox_remove),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
             if (reactions.isNotEmpty)
               MessageReactionsRow(
                 reactions: reactions,
