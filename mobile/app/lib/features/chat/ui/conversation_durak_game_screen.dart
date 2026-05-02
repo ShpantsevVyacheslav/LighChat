@@ -80,6 +80,7 @@ class _ConversationDurakGameScreenState
   int _prevMyHandCount = 0;
   final List<_DrawFlight> _drawFlights = <_DrawFlight>[];
   int _drawFlightSeq = 0;
+  bool _actionInFlight = false;
   FlutterExceptionHandler? _prevFlutterOnError;
   late final FlutterExceptionHandler _durakFlutterOnError;
 
@@ -471,9 +472,11 @@ class _ConversationDurakGameScreenState
     Map<String, dynamic>? optimisticCard,
     int? optimisticAttackIndex,
   }) async {
+    if (_actionInFlight) return;
     final clientMoveId = DateTime.now().microsecondsSinceEpoch.toString();
-    if (optimisticCard != null) {
-      setState(() {
+    setState(() {
+      _actionInFlight = true;
+      if (optimisticCard != null) {
         _pendingMove = _PendingDurakMove(
           clientMoveId: clientMoveId,
           actionType: actionType,
@@ -483,8 +486,8 @@ class _ConversationDurakGameScreenState
         );
         _selectedCard = null;
         _selectedCardId = null;
-      });
-    }
+      }
+    });
     try {
       await GamesCallables().makeDurakMove(
         gameId: widget.gameId,
@@ -503,6 +506,8 @@ class _ConversationDurakGameScreenState
         setState(() => _pendingMove = null);
       }
       _toast(friendlyGamesCallableError(e));
+    } finally {
+      if (mounted) setState(() => _actionInFlight = false);
     }
   }
 
@@ -1341,7 +1346,7 @@ class _ConversationDurakGameScreenState
                             }
                           },
                           onDragAcceptedByTable: (_) {},
-                          onDragRejected: (_) => _toast('Ход недоступен'),
+                          onDragRejected: (_) {},
                         ),
                       );
                     },
@@ -1510,8 +1515,10 @@ class _ConversationDurakGameScreenState
                           ),
                         DurakPrimaryActionsBar(
                           l10n: l10n,
-                          primaryActions: primaryActions,
-                          overflowActions: overflowActions,
+                          primaryActions:
+                              _actionInFlight ? const [] : primaryActions,
+                          overflowActions:
+                              _actionInFlight ? const [] : overflowActions,
                         ),
                         buildHand(),
                       ],

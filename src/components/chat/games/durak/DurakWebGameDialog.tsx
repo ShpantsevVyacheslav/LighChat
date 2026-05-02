@@ -578,45 +578,154 @@ export function DurakWebGameDialog({
     if (status !== 'active') {
       const readyUids = Array.isArray((game as any).readyUids) ? ((game as any).readyUids as string[]) : [];
       const iAmReady = readyUids.includes(currentUser.id);
+      const maxPlayers = Number((game as any)?.settings?.maxPlayers ?? 2) || 2;
+      const allReady =
+        gamePlayerIds.length > 0 && readyUids.length >= gamePlayerIds.length;
+      const canStart =
+        inGame && status === 'lobby' && gamePlayerIds.length >= 2 && allReady;
+      const canJoin =
+        !inGame && status === 'lobby' && gamePlayerIds.length < maxPlayers;
+      const slots: (string | null)[] = [];
+      for (let i = 0; i < maxPlayers; i++) {
+        slots.push(gamePlayerIds[i] ?? null);
+      }
       return (
-        <div className="mx-auto flex w-full max-w-xl flex-col gap-4 rounded-[28px] border border-white/12 bg-white/10 p-5 text-white shadow-2xl backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <Swords className="h-6 w-6 text-emerald-300" />
-            <div>
-              <div className="text-lg font-black">Лобби “Дурак”</div>
-              <div className="text-sm text-white/60">
-                {gamePlayerIds.length} игроков · готовы {readyUids.length}/{gamePlayerIds.length}
+        <div className="relative h-full min-h-0 overflow-hidden rounded-[30px] border border-white/10 text-white shadow-[inset_0_0_80px_rgba(0,0,0,0.32)]">
+          <div className="absolute inset-0 [background:radial-gradient(circle_at_30%_25%,#5f86a1_0%,#253f52_55%,#0e1620_100%)]" />
+          <div className="relative z-10 flex h-full flex-col">
+            <div className="flex items-center justify-between px-4 py-4">
+              <div className="w-12" />
+              <div className="text-base font-extrabold tracking-wide text-white">
+                Лобби
+              </div>
+              {isOwner ? (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-10 w-10 rounded-xl bg-white/10 text-white hover:bg-white/18"
+                  onClick={cancelLobby}
+                  disabled={busy != null || status !== 'lobby'}
+                  title="Завершить ожидание"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              ) : (
+                <div className="w-12" />
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-start justify-center gap-6 px-6 pt-6">
+              {slots.map((uid, idx) => {
+                if (uid == null) {
+                  return (
+                    <div key={`empty-${idx}`} className="flex w-24 flex-col items-center gap-2">
+                      <div className="flex h-[70px] w-[70px] items-center justify-center rounded-full border-2 border-dashed border-white/30 text-white/55">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
+                      </div>
+                      <div className="text-xs font-semibold text-white/55">
+                        Ждём…
+                      </div>
+                    </div>
+                  );
+                }
+                const ready = readyUids.includes(uid);
+                const isMe = uid === currentUser.id;
+                const av = avatarUrl(uid, allUsers);
+                return (
+                  <div key={uid} className="flex w-24 flex-col items-center gap-2">
+                    <div className="relative">
+                      <div
+                        className={cn(
+                          'h-[70px] w-[70px] overflow-hidden rounded-full border-[3px]',
+                          ready ? 'border-lime-400' : 'border-white/45'
+                        )}
+                      >
+                        {av ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={av} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-white/15 text-2xl font-extrabold text-white">
+                            {displayName(uid, allUsers).slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      {ready ? (
+                        <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-lime-400 text-[#173217]">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div
+                      className={cn(
+                        'max-w-[88px] truncate text-xs font-extrabold',
+                        isMe ? 'text-white' : 'text-white/85'
+                      )}
+                    >
+                      {displayName(uid, allUsers)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-10 flex justify-center">
+              <div className="relative h-28 w-24">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="absolute h-24 w-16 rounded-xl border border-white/15 bg-gradient-to-br from-[#2c3e66] to-[#1a2540] shadow-md"
+                    style={{
+                      left: 14 + i * 3,
+                      top: 6 + i * 2,
+                      transform: `rotate(${-0.05 + i * 0.025}rad)`,
+                    }}
+                  />
+                ))}
               </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {!inGame ? (
-              <Button onClick={joinLobby} disabled={busy != null || status !== 'lobby'} className="gap-2">
-                <LogOut className="h-4 w-4" />
-                Присоединиться
-              </Button>
-            ) : (
-              <Badge className="bg-white/15 text-white">Ты в игре</Badge>
-            )}
-            <Button
-              onClick={startGame}
-              disabled={busy != null || status !== 'lobby' || !inGame || gamePlayerIds.length < 2}
-              className="gap-2"
-            >
-              <Play className="h-4 w-4" />
-              {iAmReady ? 'Готов' : 'Ready'}
-            </Button>
-            <Button variant="outline" onClick={cancelLobby} disabled={busy != null || status !== 'lobby' || !isOwner}>
-              Завершить ожидание
-            </Button>
+
+            <div className="mt-auto flex flex-col items-center gap-3 px-6 pb-6">
+              {inGame && gamePlayerIds.length < 2 ? (
+                <div className="text-sm text-white/60">
+                  Ждём, пока подключится соперник…
+                </div>
+              ) : null}
+              <button
+                type="button"
+                disabled={
+                  busy != null ||
+                  (!canJoin && !canStart && (!inGame || iAmReady))
+                }
+                onClick={() => {
+                  if (canJoin) void joinLobby();
+                  else void startGame();
+                }}
+                className={cn(
+                  'h-14 w-full max-w-md rounded-full text-base font-extrabold shadow-lg transition disabled:cursor-not-allowed disabled:opacity-60',
+                  canStart
+                    ? 'bg-lime-400 text-[#173217] hover:bg-lime-300'
+                    : iAmReady
+                      ? 'bg-[#4b6477] text-white'
+                      : 'bg-[#8fb2c8] text-white hover:bg-[#9fc1d6]'
+                )}
+              >
+                {canJoin
+                  ? 'Войти'
+                  : canStart
+                    ? 'Начать игру'
+                    : iAmReady
+                      ? 'Ждём…'
+                      : 'Готов'}
+              </button>
+            </div>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="relative h-full min-h-0 overflow-hidden rounded-[30px] border border-white/10 bg-[#496f88] text-white shadow-[inset_0_0_80px_rgba(0,0,0,0.22)]">
-        <div className="absolute inset-0 opacity-[0.16] [background-image:radial-gradient(circle_at_20%_20%,white_0_1px,transparent_1px),linear-gradient(135deg,rgba(255,255,255,.16),transparent_30%,rgba(0,0,0,.18))] [background-size:7px_7px,100%_100%]" />
+      <div className="relative h-full min-h-0 overflow-hidden rounded-[30px] border border-white/10 text-white shadow-[inset_0_0_80px_rgba(0,0,0,0.32)]">
+        <div className="absolute inset-0 [background:radial-gradient(circle_at_30%_25%,#5f86a1_0%,#253f52_55%,#0e1620_100%)]" />
 
         <div className="relative z-10 flex h-full flex-col">
           <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
@@ -672,15 +781,30 @@ export function DurakWebGameDialog({
           </div>
 
           <div className="relative min-h-0 flex-1">
-            <div className="absolute left-4 top-6 flex items-center gap-2">
-              <DurakCardBackView compact className="rotate-[-14deg]" />
-              {publicView?.trumpCard ? (
-                <DurakCardView card={publicView.trumpCard} compact />
-              ) : trumpSuit ? (
-                <DurakCardView card={{ r: 6, s: trumpSuit as any }} compact />
-              ) : null}
-              <div className="text-lg font-black drop-shadow">{publicView?.deckCount ?? 0}</div>
-            </div>
+            {(publicView?.deckCount ?? 0) > 0 ? (
+              <div className="absolute left-4 top-6 flex items-center gap-2">
+                <DurakCardBackView compact className="rotate-[-14deg]" />
+                {publicView?.trumpCard ? (
+                  <DurakCardView card={publicView.trumpCard} compact />
+                ) : trumpSuit ? (
+                  <DurakCardView card={{ r: 6, s: trumpSuit as any }} compact />
+                ) : null}
+                <div className="text-lg font-black drop-shadow">{publicView?.deckCount ?? 0}</div>
+              </div>
+            ) : null}
+            {(publicView?.discardCount ?? 0) > 0 ? (
+              <div className="absolute right-4 top-6 flex items-center">
+                {Array.from({ length: Math.min(5, publicView?.discardCount ?? 0) }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="-ml-6 first:ml-0"
+                    style={{ transform: `translateY(${i * 2}px) rotate(${-12 + i * 5}deg)` }}
+                  >
+                    <DurakCardBackView compact />
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             <div className="absolute inset-x-4 top-[20%] flex flex-wrap items-center justify-center gap-8">
               {optimisticTable.attacks.map((attack, idx) => (
@@ -882,20 +1006,22 @@ function PlayerSeat({
         background: `conic-gradient(#a3e635 ${Math.round(progress * 360)}deg, rgba(255,255,255,.25) 0deg)`,
       }
     : undefined;
+  const avatarSize = panelTone ? 48 : 70;
+  const ringPadding = panelTone ? 3 : 4;
   return (
     <div className={cn('flex min-w-[78px] flex-col items-center gap-1', panelTone && 'min-w-[88px]')}>
       <div className={cn('relative', showHandBacks && 'pb-5')}>
         {showHandBacks ? (
-          <div className="absolute left-1/2 top-10 z-0 h-12 w-20 -translate-x-1/2">
+          <div className="pointer-events-none absolute left-1/2 top-[78%] z-0 h-10 w-24 -translate-x-1/2">
             {Array.from({ length: handBacks }).map((_, i) => {
               const offset = i - (handBacks - 1) / 2;
               return (
                 <div
                   // eslint-disable-next-line react/no-array-index-key
                   key={i}
-                  className="absolute left-1/2 top-0 h-14 w-10 origin-top rounded-lg border border-white/45 bg-[repeating-linear-gradient(45deg,#e8f7ef_0_3px,#8bbf9c_3px_6px,#f8fff9_6px_9px)] shadow-md"
+                  className="absolute left-1/2 top-0 h-10 w-7 origin-top rounded-md border border-white/15 bg-gradient-to-br from-[#2c3e66] to-[#1a2540] shadow-md"
                   style={{
-                    transform: `translateX(-50%) translateX(${offset * 7}px) rotate(${offset * 8}deg)`,
+                    transform: `translateX(-50%) translateX(${offset * 8}px) rotate(${offset * 6}deg)`,
                     zIndex: i,
                   }}
                 />
@@ -903,19 +1029,26 @@ function PlayerSeat({
             })}
           </div>
         ) : null}
-        <div className="rounded-[18px] p-1" style={ring}>
+        <div
+          className="relative rounded-full"
+          style={{
+            width: avatarSize + ringPadding * 2,
+            height: avatarSize + ringPadding * 2,
+            padding: ringPadding,
+            background: timerActive
+              ? `conic-gradient(#a3e635 ${Math.round(progress * 360)}deg, rgba(255,255,255,.18) 0deg)`
+              : (active ? '#a3e635' : 'rgba(255,255,255,0.45)'),
+          }}
+        >
           <div
-            className={cn(
-              'relative z-10 rounded-xl border-4 p-1 shadow-lg',
-              panelTone ? 'h-12 w-12 bg-white' : 'h-16 w-16 bg-white/20',
-              active ? 'border-lime-400' : panelTone ? 'border-[#db4a68]/25' : 'border-white/20'
-            )}
+            className="relative z-10 h-full w-full overflow-hidden rounded-full"
+            style={{ background: 'rgba(255,255,255,0.15)' }}
           >
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatar} alt="" className="h-full w-full rounded-lg object-cover" />
+              <img src={avatar} alt="" className="h-full w-full rounded-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-300 text-zinc-600">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-white/15 text-white">
                 {displayName(uid, allUsers).slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -923,8 +1056,7 @@ function PlayerSeat({
         </div>
         <div
           className={cn(
-            'absolute -right-2 -top-2 z-20 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black text-zinc-700',
-            panelTone && 'border border-[#db4a68]/15'
+            'absolute -right-1 -top-1 z-20 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black text-zinc-700',
           )}
         >
           {count}

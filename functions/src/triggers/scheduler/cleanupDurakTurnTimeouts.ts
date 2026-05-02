@@ -16,6 +16,22 @@ import {
 import type { Card } from "../../lib/games/durak/cards";
 import type { DurakGameResult, DurakServerState } from "../../lib/games/durak/state";
 
+function stripUndefined<T>(input: T): T {
+  if (input === null || input === undefined) return input;
+  if (Array.isArray(input)) {
+    return input.map((v) => stripUndefined(v)).filter((v) => v !== undefined) as unknown as T;
+  }
+  if (typeof input === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out as T;
+  }
+  return input;
+}
+
 /**
  * Auto-handles expired Durak turn timers.
  *
@@ -159,15 +175,17 @@ export const cleanupDurakTurnTimeouts = onSchedule({
         tx.update(gameRef, {
           status: nextStatus,
           playerIds: nextPlayerIds,
-          serverState: state,
-          publicView: buildPublicView({
-            state,
-            handsByUid,
-            playerIds: nextPlayerIds,
-            settings,
-            nowIso,
-            result,
-          }),
+          serverState: stripUndefined(state),
+          publicView: stripUndefined(
+            buildPublicView({
+              state,
+              handsByUid,
+              playerIds: nextPlayerIds,
+              settings,
+              nowIso,
+              result,
+            }),
+          ),
           result: result ?? null,
           lastUpdatedAt: nowIso,
           finishedAt: nextStatus === "finished" ? nowIso : admin.firestore.FieldValue.delete(),
