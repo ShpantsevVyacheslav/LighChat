@@ -21,6 +21,8 @@ class ChatHeader extends StatelessWidget {
     this.searchController,
     this.searchFocusNode,
     this.onSearchClose,
+    this.scheduledCount = 0,
+    this.onScheduledTap,
   });
 
   final String title;
@@ -42,6 +44,11 @@ class ChatHeader extends StatelessWidget {
   final TextEditingController? searchController;
   final FocusNode? searchFocusNode;
   final VoidCallback? onSearchClose;
+
+  /// Количество запланированных сообщений текущего пользователя в этом чате.
+  /// Иконка-будильник в шапке появляется только если > 0.
+  final int scheduledCount;
+  final VoidCallback? onScheduledTap;
 
   @override
   Widget build(BuildContext context) {
@@ -235,6 +242,33 @@ class ChatHeader extends StatelessWidget {
             onTap: onSearchTap,
             icon: Icons.search_rounded,
           ),
+          if (scheduledCount > 0 && onScheduledTap != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Badge.count(
+                count: scheduledCount,
+                isLabelVisible: scheduledCount > 0,
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.16),
+                    ),
+                  ),
+                  child: IconButton(
+                    tooltip: 'Запланированные сообщения',
+                    onPressed: onScheduledTap,
+                    iconSize: 17,
+                    color: fg,
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.schedule_send_rounded),
+                  ),
+                ),
+              ),
+            ),
           if (showCalls) ...[
             iconButton(
               tooltip: l10n.chat_header_tooltip_video_call,

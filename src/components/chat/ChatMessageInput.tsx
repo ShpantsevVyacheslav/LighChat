@@ -38,6 +38,7 @@ import { ImageEditorModal } from './ImageEditorModal';
 import { VideoEditorModal } from './VideoEditorModal';
 import { ChatAttachLocationDialog } from '@/components/chat/ChatAttachLocationDialog';
 import { ChatAttachPollDialog, type ChatPollCreateInput } from '@/components/chat/ChatAttachPollDialog';
+import { ChatScheduleMessageDialog } from '@/components/chat/ChatScheduleMessageDialog';
 import { AudioMessagePreviewBar } from '@/components/chat/AudioMessagePreviewBar';
 import { normalizeFilesAsStickersIfApplicable } from '@/lib/ios-sticker-detect';
 import { chatDraftPlainFromHtml,
@@ -76,6 +77,7 @@ const ChatMessageInputInner = (
     onSendMessage,
     onSendLocationShare,
     onSendPoll,
+    onScheduleMessage,
     onUpdateMessage,
     replyingTo,
     onCancelReply,
@@ -90,6 +92,7 @@ const ChatMessageInputInner = (
     composerLockedHint,
     draftScopeKey,
     onRestoreDraftReply,
+    e2eeEnabled = false,
   }: ChatMessageInputProps,
   ref: React.ForwardedRef<ChatMessageInputHandle>
 ) => {
@@ -109,6 +112,7 @@ const ChatMessageInputInner = (
     const [audioPreview, setAudioPreview] = useState<{ url: string; file: File } | null>(null);
     const [locationDialogOpen, setLocationDialogOpen] = useState(false);
     const [pollDialogOpen, setPollDialogOpen] = useState(false);
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
     const [attachmentSubview, setAttachmentSubview] = useState<'main' | 'sticker-gif'>('main');
 
     const draftKey = draftScopeKey ?? conversation.id;
@@ -124,6 +128,8 @@ const ChatMessageInputInner = (
     const videoChunksRef = useRef<Blob[]>([]);
     const videoStreamRef = useRef<MediaStream | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const longPressTriggeredRef = useRef(false);
     const editingMessageRef = useRef(editingMessage);
     editingMessageRef.current = editingMessage;
     const replyingToRef = useRef(replyingTo);
@@ -334,13 +340,91 @@ const ChatMessageInputInner = (
         };
     }, [draftKey, currentUser.id, editingMessage]);
 
+    const canScheduleNow = useCallback(() => {
+        if (!onScheduleMessage || isSending || inputFrozen || editingMessage) return false;
+        const editor = editorInstance.current;
+        if (!editor) return false;
+        const hasText = editor.getText().trim().length > 0;
+        return hasText || attachments.length > 0 || !!videoPreview;
+    }, [onScheduleMessage, isSending, inputFrozen, editingMessage, attachments, videoPreview]);
+
+    const handleOpenScheduleDialog = useCallback(() => {
+        if (!canScheduleNow()) return;
+        setScheduleDialogOpen(true);
+    }, [canScheduleNow]);
+
+    const handleConfirmSchedule = async (sendAt: Date) => {
+        const editor = editorInstance.current;
+        if (!editor || !onScheduleMessage) return;
+        const text = editor.getHTML();
+        const hasText = editor.getText().trim().length > 0;
+        if (!hasText && attachments.length === 0 && !videoPreview) return;
+
+        const finalFiles = [...attachments];
+        if (videoPreview) {
+            const videoFile = new File([videoPreview.blob], `video-circle_${Date.now()}.webm`, { type: 'video/webm' });
+            finalFiles.push(videoFile);
+        }
+        const currentReplyingTo = replyingTo;
+
+        try {
+            await onScheduleMessage(
+                hasText ? text : undefined,
+                finalFiles,
+                currentReplyingTo,
+                undefined,
+                sendAt,
+            );
+            editor.commands.clearContent();
+            setHasContent(false);
+            setAttachments([]);
+            setVideoPreview(null);
+            setDetectedUrl(null);
+            if (currentReplyingTo) onCancelReply();
+            clearChatMessageDraft(currentUser.id, draftKey);
+        } catch (e) {
+            console.error('Failed to schedule message:', e);
+        }
+    };
+
+    const handleSendButtonPointerDown = (e: React.PointerEvent) => {
+        if (!onScheduleMessage || e.button !== 0) return;
+        longPressTriggeredRef.current = false;
+        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = setTimeout(() => {
+            if (canScheduleNow()) {
+                longPressTriggeredRef.current = true;
+                handleOpenScheduleDialog();
+            }
+        }, 450);
+    };
+
+    const handleSendButtonPointerUp = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
+
+    const handleSendButtonContextMenu = (e: React.MouseEvent) => {
+        if (!onScheduleMessage) return;
+        e.preventDefault();
+        if (canScheduleNow()) handleOpenScheduleDialog();
+    };
+
     const handleSend = async () => {
         const editor = editorInstance.current;
         if (isSending || inputFrozen || !editor) return;
-        
+
+        // long-press уже открыл диалог — не отправляем как обычное сообщение.
+        if (longPressTriggeredRef.current) {
+            longPressTriggeredRef.current = false;
+            return;
+        }
+
         const text = editor.getHTML();
         const hasText = editor.getText().trim().length > 0;
-        
+
         if (!hasText && attachments.length === 0 && !videoPreview) return;
 
         // Фиксируем текущие данные для отправки перед очисткой UI
@@ -890,7 +974,12 @@ const ChatMessageInputInner = (
                                             size="icon"
                                             className="h-9 w-9 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                                             onClick={handleSend}
+                                            onPointerDown={handleSendButtonPointerDown}
+                                            onPointerUp={handleSendButtonPointerUp}
+                                            onPointerLeave={handleSendButtonPointerUp}
+                                            onContextMenu={handleSendButtonContextMenu}
                                             disabled={isSending || inputFrozen}
+                                            title={onScheduleMessage && !editingMessage ? 'Отправить (удерживайте для планирования)' : undefined}
                                         >
                                     {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
                                 </Button>
@@ -960,6 +1049,14 @@ const ChatMessageInputInner = (
                     onCreate={(input: ChatPollCreateInput) => onSendPoll(input, replyingTo)}
                 />
             )}
+            {onScheduleMessage && (
+                <ChatScheduleMessageDialog
+                    open={scheduleDialogOpen}
+                    onOpenChange={setScheduleDialogOpen}
+                    showE2eeWarning={e2eeEnabled}
+                    onConfirm={handleConfirmSchedule}
+                />
+            )}
         </div>
     );
 };
@@ -982,6 +1079,17 @@ export interface ChatMessageInputProps {
     ) => Promise<void>;
     /** Опрос в чате (документы в conversations/.../polls). */
     onSendPoll?: (input: ChatPollCreateInput, replyTo: ReplyContext | null) => Promise<void>;
+    /**
+     * Запланировать сообщение на дату/время (long-press на send-кнопке).
+     * Если пропс не передан — long-press отключён.
+     */
+    onScheduleMessage?: (
+        text: string | undefined,
+        attachments: File[],
+        replyTo: ReplyContext | null,
+        prebuiltAttachments: ChatAttachment[] | undefined,
+        sendAt: Date,
+    ) => Promise<void>;
     onUpdateMessage: (id: string, text: string, attachments?: ChatAttachment[]) => Promise<void>;
     replyingTo: ReplyContext | null;
     onCancelReply: () => void;
@@ -1001,4 +1109,6 @@ export interface ChatMessageInputProps {
     draftScopeKey?: string;
     /** Восстановить «Ответ» из черновика при открытии чата. */
     onRestoreDraftReply?: (reply: ReplyContext | null) => void;
+    /** В E2EE-чате диалог планирования покажет предупреждение про plaintext. */
+    e2eeEnabled?: boolean;
 }

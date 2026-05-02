@@ -1097,6 +1097,161 @@ class ChatMessage {
   }
 }
 
+/// Статус отложенного сообщения (зеркало TS-типа `ScheduledChatMessageStatus`).
+enum ScheduledChatMessageStatus {
+  pending('pending'),
+  sending('sending'),
+  sent('sent'),
+  failed('failed');
+
+  const ScheduledChatMessageStatus(this.wire);
+  final String wire;
+
+  static ScheduledChatMessageStatus fromWire(String? wire) {
+    for (final v in values) {
+      if (v.wire == wire) return v;
+    }
+    return ScheduledChatMessageStatus.pending;
+  }
+}
+
+/// Заготовка опроса для отложенной отправки. При публикации
+/// scheduler-CF создаст реальный документ `polls/{id}` и привяжет его
+/// к message через `chatPollId`.
+class ScheduledChatPendingPoll {
+  const ScheduledChatPendingPoll({
+    required this.question,
+    required this.options,
+    this.allowMultiple = false,
+    this.isAnonymous = false,
+  });
+
+  final String question;
+  final List<String> options;
+  final bool allowMultiple;
+  final bool isAnonymous;
+
+  Map<String, Object?> toFirestoreMap() => <String, Object?>{
+    'question': question,
+    'options': options,
+    'allowMultiple': allowMultiple,
+    'isAnonymous': isAnonymous,
+  };
+
+  static ScheduledChatPendingPoll? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final q = raw['question'];
+    final optsRaw = raw['options'];
+    if (q is! String || q.trim().isEmpty) return null;
+    final opts = (optsRaw is List ? optsRaw : const <Object?>[])
+        .whereType<String>()
+        .where((s) => s.trim().isNotEmpty)
+        .toList(growable: false);
+    if (opts.length < 2) return null;
+    return ScheduledChatPendingPoll(
+      question: q.trim(),
+      options: opts,
+      allowMultiple: raw['allowMultiple'] == true,
+      isAnonymous: raw['isAnonymous'] == true,
+    );
+  }
+}
+
+/// Отложенное сообщение, документ из `conversations/{id}/scheduledMessages/{id}`.
+/// Видно только отправителю; публикуется scheduler-CF в момент `sendAt`.
+/// E2EE compromise: даже в E2EE-чате сохраняется plaintext.
+class ScheduledChatMessage {
+  const ScheduledChatMessage({
+    required this.id,
+    required this.senderId,
+    this.text,
+    this.attachments = const <ChatAttachment>[],
+    this.replyTo,
+    this.pendingPoll,
+    this.locationShare,
+    required this.scheduledAt,
+    required this.sendAt,
+    required this.status,
+    this.failureReason,
+    required this.createdAt,
+    this.updatedAt,
+    this.publishedMessageId,
+  });
+
+  final String id;
+  final String senderId;
+  final String? text;
+  final List<ChatAttachment> attachments;
+  final ReplyContext? replyTo;
+  final ScheduledChatPendingPoll? pendingPoll;
+  final ChatLocationShare? locationShare;
+  final DateTime scheduledAt;
+  final DateTime sendAt;
+  final ScheduledChatMessageStatus status;
+  final String? failureReason;
+  final DateTime createdAt;
+  final String? updatedAt;
+  final String? publishedMessageId;
+
+  static DateTime _parseDate(Object? raw) {
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is String && raw.isNotEmpty) {
+      return DateTime.tryParse(raw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+    }
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  static ScheduledChatMessage? fromDoc(
+    DocumentSnapshot<Map<String, Object?>> doc,
+  ) {
+    if (!doc.exists) return null;
+    final data = doc.data();
+    if (data == null) return null;
+
+    final senderId = data['senderId'];
+    if (senderId is! String || senderId.isEmpty) return null;
+
+    final text = data['text'];
+    final attachmentsRaw = data['attachments'];
+    final attachments =
+        (attachmentsRaw is List ? attachmentsRaw : const <Object?>[])
+            .whereType<Map>()
+            .map((m) => m.map((k, v) => MapEntry(k.toString(), v)))
+            .map(ChatAttachment.fromJson)
+            .whereType<ChatAttachment>()
+            .toList(growable: false);
+
+    final replyTo = ReplyContext.fromJson(data['replyTo']);
+    final pendingPoll = ScheduledChatPendingPoll.fromJson(data['pendingPoll']);
+    final locationShare = ChatLocationShare.fromJson(data['locationShare']);
+
+    return ScheduledChatMessage(
+      id: doc.id,
+      senderId: senderId,
+      text: text is String ? text : null,
+      attachments: attachments,
+      replyTo: replyTo,
+      pendingPoll: pendingPoll,
+      locationShare: locationShare,
+      scheduledAt: _parseDate(data['scheduledAt']),
+      sendAt: _parseDate(data['sendAt']),
+      status: ScheduledChatMessageStatus.fromWire(
+        data['status'] is String ? data['status'] as String : null,
+      ),
+      failureReason: data['failureReason'] is String
+          ? data['failureReason'] as String
+          : null,
+      createdAt: _parseDate(data['createdAt']),
+      updatedAt: data['updatedAt'] is String
+          ? data['updatedAt'] as String
+          : null,
+      publishedMessageId: data['publishedMessageId'] is String
+          ? data['publishedMessageId'] as String
+          : null,
+    );
+  }
+}
+
 /// Phase 8 — system-маркер E2EE в timeline чата.
 /// Зеркало `ChatSystemEvent` в `src/lib/types.ts`.
 enum ChatSystemEventType {

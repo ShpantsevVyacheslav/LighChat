@@ -705,6 +705,44 @@ export type ChatMessage = {
   expireAt?: unknown;
 };
 
+/**
+ * Отложенное сообщение (scheduled message): хранится в
+ * `conversations/{conversationId}/scheduledMessages/{id}` и публикуется
+ * scheduler-функцией `sendScheduledMessages` в момент `sendAt`.
+ *
+ * Видно только отправителю; в общую ленту чата документ не попадает.
+ * E2EE: отложенные сообщения сохраняются в plaintext и публикуются как
+ * обычное сообщение даже в E2EE-чатах (compromise — UI должен предупреждать).
+ */
+export type ScheduledChatPendingPoll = {
+  question: string;
+  options: string[];
+  allowMultiple?: boolean;
+  isAnonymous?: boolean;
+};
+
+export type ScheduledChatMessageStatus = 'pending' | 'sending' | 'sent' | 'failed';
+
+export type ScheduledChatMessage = {
+  id: string;
+  senderId: string;
+  text?: string;
+  attachments?: ChatAttachment[];
+  replyTo?: ReplyContext;
+  pendingPoll?: ScheduledChatPendingPoll;
+  locationShare?: ChatLocationShare;
+  /** ISO UTC — момент создания запланированного сообщения. */
+  scheduledAt: string;
+  /** ISO UTC — желаемый момент публикации. */
+  sendAt: string;
+  status: ScheduledChatMessageStatus;
+  failureReason?: string;
+  createdAt: string;
+  updatedAt?: string;
+  /** Заполняется server-side после успешной публикации. */
+  publishedMessageId?: string;
+};
+
 /** Phase 8 (§9.4 RFC E2EE v2): типизированные system-маркеры timeline'а. */
 export type ChatSystemEventType =
   | 'e2ee.v2.enabled'

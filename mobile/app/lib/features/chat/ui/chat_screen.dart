@@ -42,6 +42,8 @@ import 'chat_html_composer_controller.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_video_call_screen.dart';
 import 'chat_header.dart';
+import 'schedule_message_sheet.dart';
+import 'scheduled_messages_screen.dart';
 import 'chat_message_search_overlay.dart';
 import 'effective_chat_wallpaper.dart';
 import 'chat_wallpaper_background.dart';
@@ -157,6 +159,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Паритет веба: какой закреп показан в полосе + индекс после тапа (см. `ChatWindow` / `pickPinnedBarIndexForViewport`).
   int _barPinIndex = 0;
   int _pinnedBarSkipSyncUntilMs = 0;
+
+  /// Счётчик собственных pending-scheduled сообщений в этом чате.
+  /// Подписка устанавливается в [didChangeDependencies] и переустанавливается
+  /// при смене conversationId.
+  int _scheduledPendingCount = 0;
+  StreamSubscription<List<ScheduledChatMessage>>? _scheduledCountSub;
+  String? _scheduledCountSubKey;
 
   List<ChatMessage> _filterByClearedAt(
     List<ChatMessage> messages,
@@ -816,6 +825,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void dispose() {
     _chatDraftDebounce?.cancel();
     _messageExpiryTimer?.cancel();
+    _scheduledCountSub?.cancel();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       unawaited(_persistChatDraftSnapshotForConv(uid, widget.conversationId));
@@ -829,6 +839,51 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _chatSearchController.dispose();
     _chatSearchFocus.dispose();
     super.dispose();
+  }
+
+  /// Подписка на счётчик запланированных сообщений.
+  /// Вызывается из build() с актуальным uid, чтобы переустанавливать подписку
+  /// при смене conversationId или авторизации.
+  void _ensureScheduledCountSub(String uid) {
+    final key = '$uid|${widget.conversationId}';
+    if (_scheduledCountSubKey == key) return;
+    _scheduledCountSub?.cancel();
+    _scheduledCountSubKey = key;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) {
+      _scheduledPendingCount = 0;
+      return;
+    }
+    _scheduledCountSub = repo
+        .watchScheduledMessages(
+          conversationId: widget.conversationId,
+          userId: uid,
+        )
+        .listen((items) {
+      if (!mounted) return;
+      final next = items.length;
+      if (next != _scheduledPendingCount) {
+        setState(() => _scheduledPendingCount = next);
+      }
+    });
+  }
+
+  void _openScheduledMessagesScreen(
+    String uid, {
+    required bool e2eeActive,
+  }) {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ScheduledMessagesScreen(
+          repository: repo,
+          conversationId: widget.conversationId,
+          currentUserId: uid,
+          e2eeEnabled: e2eeActive,
+        ),
+      ),
+    );
   }
 
   void _onPinnedBarScrollSync() {
@@ -888,6 +943,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return userAsync.when(
       data: (user) {
+        if (user != null) {
+          _ensureScheduledCountSub(user.uid);
+        }
         if (user == null) {
           return Scaffold(
             body: Padding(
@@ -1462,6 +1520,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 searchController: _chatSearchController,
                                 searchFocusNode: _chatSearchFocus,
                                 onSearchClose: _exitChatSearch,
+                                scheduledCount: _scheduledPendingCount,
+                                onScheduledTap: _scheduledPendingCount > 0
+                                    ? () => _openScheduledMessagesScreen(
+                                        user.uid,
+                                        e2eeActive: isConversationE2eeActive(
+                                          conv?.data,
+                                        ),
+                                      )
+                                    : null,
                               ),
                             ),
                           )
@@ -2063,6 +2130,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           user.uid,
                                           conv: convData,
                                           e2eePolicy: effectivePolicy,
+                                        ),
+                                      );
+                                    },
+                                    onSendLongPress: () {
+                                      unawaited(
+                                        _openScheduleSheet(
+                                          user.uid,
+                                          conv: conv?.data,
                                         ),
                                       );
                                     },
@@ -3449,6 +3524,61 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       text: null,
       mediaPreviewUrl: null,
     );
+  }
+
+  /// Открыть sheet «запланировать сообщение» (long-press на send).
+  /// MVP mobile: только текст без вложений. При наличии вложений — toast.
+  Future<void> _openScheduleSheet(String uid, {Conversation? conv}) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    final raw = _controller.text;
+    final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(raw);
+    final plain = prepared.isEmpty
+        ? ''
+        : messageHtmlToPlainText(prepared).trim();
+    if (plain.isEmpty) {
+      _toast('Сначала введите текст');
+      return;
+    }
+    if (_pendingAttachments.isNotEmpty) {
+      _toast('Планирование вложений пока поддерживается только в веб-клиенте');
+      return;
+    }
+    if (_editingMessageId != null) return;
+
+    final e2eeActive = isConversationE2eeActive(conv);
+    final picked = await showScheduleMessageSheet(
+      context: context,
+      showE2eeWarning: e2eeActive,
+    );
+    if (picked == null || !mounted) return;
+
+    final replyTo = _replyingTo;
+    try {
+      await repo.scheduleMessage(
+        conversationId: widget.conversationId,
+        senderId: uid,
+        sendAt: picked,
+        text: prepared,
+        replyTo: replyTo,
+      );
+      if (!mounted) return;
+      _controller.clear();
+      setState(() {
+        _replyingTo = null;
+      });
+      unawaited(clearChatMessageDraft(uid, widget.conversationId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Запланировано: '
+            '${picked.toLocal().toString().substring(0, 16)}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) _toast('Не удалось запланировать: $e');
+    }
   }
 
   Future<void> _submitComposer(

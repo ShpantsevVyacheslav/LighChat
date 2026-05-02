@@ -739,6 +739,42 @@ service cloud.firestore {
           && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
       }
 
+      /**
+       * Отложенные сообщения (scheduled messages).
+       * Видны только отправителю; публикуются scheduler-CF (sendScheduledMessages),
+       * который создаёт реальное `messages/{newId}` в момент `sendAt`.
+       *
+       * Ограничения:
+       *  - read/create/update/delete только для senderId == auth.uid;
+       *  - update разрешён только пока status == 'pending' (после claim к 'sending' клиент не правит);
+       *  - create требует status == 'pending', sendAt is string, senderId == auth.uid;
+       *  - не разрешаем планировать в DM, где есть взаимная блокировка;
+       *  - secret chat / E2EE проверки намеренно опущены: пользователь принял компромисс
+       *    (см. план — отложенные сообщения публикуются в plaintext).
+       */
+      match /scheduledMessages/{scheduledMessageId} {
+        allow read: if isSignedIn()
+          && isConversationMember(conversationId)
+          && resource.data.senderId == request.auth.uid;
+        allow create: if isSignedIn()
+          && isConversationMember(conversationId)
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.sendAt is string
+          && request.resource.data.scheduledAt is string
+          && request.resource.data.createdAt is string;
+        allow update: if isSignedIn()
+          && isConversationMember(conversationId)
+          && resource.data.senderId == request.auth.uid
+          && resource.data.status == 'pending'
+          && request.resource.data.senderId == resource.data.senderId
+          && !dmPairMessagingDeniedFromConvData(conversationData(conversationId));
+        allow delete: if isSignedIn()
+          && isConversationMember(conversationId)
+          && resource.data.senderId == request.auth.uid;
+      }
+
       /** Эпохи ключей E2E (ciphertext обёрток на участника). */
       match /e2eeSessions/{sessionId} {
         allow read: if isConversationMember(conversationId)

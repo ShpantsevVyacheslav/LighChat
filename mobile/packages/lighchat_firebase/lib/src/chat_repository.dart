@@ -2411,4 +2411,128 @@ class ChatRepository {
         })
         .join(' ');
   }
+
+  // ===== Scheduled messages =====
+
+  /// Подписка на список запланированных сообщений (status='pending') данного
+  /// пользователя в данном чате, отсортированных по `sendAt asc`.
+  Stream<List<ScheduledChatMessage>> watchScheduledMessages({
+    required String conversationId,
+    required String userId,
+  }) {
+    return _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('scheduledMessages')
+        .where('senderId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('sendAt')
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map(ScheduledChatMessage.fromDoc)
+              .whereType<ScheduledChatMessage>()
+              .toList(growable: false),
+        );
+  }
+
+  /// Создаёт запланированное сообщение. Файлы должны быть уже загружены
+  /// в Storage (передавайте готовые [ChatAttachment] с url/name/type/size).
+  /// При наступлении [sendAt] scheduler-CF опубликует обычное message-документ.
+  ///
+  /// E2EE: даже в E2EE-чате сохраняется plaintext (compromise — UI должен
+  /// явно предупредить пользователя в диалоге планирования).
+  Future<String> scheduleMessage({
+    required String conversationId,
+    required String senderId,
+    required DateTime sendAt,
+    String text = '',
+    List<ChatAttachment> attachments = const <ChatAttachment>[],
+    ReplyContext? replyTo,
+    ScheduledChatPendingPoll? pendingPoll,
+    ChatLocationShare? locationShare,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty &&
+        attachments.isEmpty &&
+        pendingPoll == null &&
+        locationShare == null) {
+      throw ArgumentError('scheduleMessage: empty payload');
+    }
+    final now = DateTime.now().toUtc();
+    if (sendAt.isBefore(now.add(const Duration(seconds: 30)))) {
+      throw ArgumentError('scheduleMessage: sendAt must be in the future');
+    }
+
+    final nowIso = now.toIso8601String();
+    final sendAtIso = sendAt.toUtc().toIso8601String();
+
+    final payload = <String, Object?>{
+      'senderId': senderId,
+      'status': 'pending',
+      'scheduledAt': nowIso,
+      'sendAt': sendAtIso,
+      'createdAt': nowIso,
+      if (trimmed.isNotEmpty) 'text': trimmed,
+      if (attachments.isNotEmpty)
+        'attachments': attachments.map((a) => a.toFirestoreMap()).toList(),
+      if (replyTo != null)
+        'replyTo': <String, Object?>{
+          'messageId': replyTo.messageId,
+          'senderName': replyTo.senderName,
+          if (replyTo.text != null && replyTo.text!.trim().isNotEmpty)
+            'text': replyTo.text!.trim(),
+          if (replyTo.mediaPreviewUrl != null &&
+              replyTo.mediaPreviewUrl!.trim().isNotEmpty)
+            'mediaPreviewUrl': replyTo.mediaPreviewUrl!.trim(),
+          if (replyTo.mediaType != null && replyTo.mediaType!.trim().isNotEmpty)
+            'mediaType': replyTo.mediaType!.trim(),
+        },
+      if (pendingPoll != null) 'pendingPoll': pendingPoll.toFirestoreMap(),
+      if (locationShare != null)
+        'locationShare': _locationShareToFirestore(locationShare),
+    };
+
+    final ref = await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('scheduledMessages')
+        .add(payload);
+    return ref.id;
+  }
+
+  /// Обновить время отправки запланированного сообщения. Доступно только
+  /// для сообщений в status='pending' (rules).
+  Future<void> rescheduleMessage({
+    required String conversationId,
+    required String scheduledMessageId,
+    required DateTime sendAt,
+  }) async {
+    final now = DateTime.now().toUtc();
+    if (sendAt.isBefore(now.add(const Duration(seconds: 30)))) {
+      throw ArgumentError('rescheduleMessage: sendAt must be in the future');
+    }
+    await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('scheduledMessages')
+        .doc(scheduledMessageId)
+        .update(<String, Object?>{
+          'sendAt': sendAt.toUtc().toIso8601String(),
+          'updatedAt': now.toIso8601String(),
+        });
+  }
+
+  /// Отменить (удалить) запланированное сообщение.
+  Future<void> cancelScheduledMessage({
+    required String conversationId,
+    required String scheduledMessageId,
+  }) async {
+    await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('scheduledMessages')
+        .doc(scheduledMessageId)
+        .delete();
+  }
 }

@@ -33,6 +33,7 @@ class ChatComposer extends StatefulWidget {
     required this.controller,
     required this.focusNode,
     required this.onSend,
+    this.onSendLongPress,
     required this.onAttachmentSelected,
     required this.pendingAttachments,
     required this.onRemovePending,
@@ -57,6 +58,10 @@ class ChatComposer extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onSend;
+
+  /// Долгое нажатие на кнопку «Отправить» — открывает диалог планирования
+  /// (Telegram-style). Если null — long-press отключён.
+  final VoidCallback? onSendLongPress;
   final void Function(ComposerAttachmentAction action) onAttachmentSelected;
   final List<XFile> pendingAttachments;
   final void Function(int index) onRemovePending;
@@ -595,12 +600,18 @@ class _ChatComposerState extends State<ChatComposer> {
                               ),
                             )
                           : (showSendButton
-                                ? IconButton(
-                                    onPressed: widget.onSend,
-                                    iconSize: 18,
-                                    icon: const Icon(
-                                      Icons.send_rounded,
-                                      color: Colors.white,
+                                ? GestureDetector(
+                                    onLongPress: widget.onSendLongPress,
+                                    child: IconButton(
+                                      onPressed: widget.onSend,
+                                      iconSize: 18,
+                                      tooltip: widget.onSendLongPress != null
+                                          ? 'Отправить (удерживайте для планирования)'
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.send_rounded,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   )
                                 : () {

@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useStorage } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { collection, query, doc, updateDoc, orderBy, setDoc, limit, onSnapshot, increment, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, orderBy, setDoc, limit, onSnapshot, increment, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField, where } from 'firebase/firestore';
 import { E2EE_LAST_MESSAGE_PREVIEW, autoEnableE2eeForNewDirectChat, isEncryptableMimeV2 } from '@/lib/e2ee';
 import { inferKindHintFromFileName } from '@/lib/e2ee/infer-kind-hint';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
@@ -59,6 +59,7 @@ import type { ChatProfileSource, ChatProfileSubMenu } from '@/components/chat/Ch
 import { DurakWebGameDialog } from '@/components/chat/games/durak/DurakWebGameDialog';
 import { ChatMessageItem } from './ChatMessageItem';
 import { ChatMessageInput, type ChatMessageInputHandle } from './ChatMessageInput';
+import { ScheduledMessagesSheet } from './ScheduledMessagesSheet';
 import { initiateCall } from './AudioCallOverlay';
 import { ChatSearchOverlay } from './ChatSearchOverlay';
 import { ChatAnchor } from './ChatAnchor';
@@ -71,7 +72,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle, Swords } from 'lucide-react';
+import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle, Swords, CalendarClock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettings } from '@/hooks/use-settings';
@@ -300,6 +301,7 @@ export function ChatWindow({
   const [profileSource, setProfileSource] = useState<ChatProfileSource>('chat');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [scheduledSheetOpen, setScheduledSheetOpen] = useState(false);
   /** Индекс в sortedPins: какой закреп показан в шапке (синхрон с viewport + клик). */
   const [barPinIndex, setBarPinIndex] = useState(0);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -633,6 +635,20 @@ export function ChatWindow({
     () => conversation.unreadThreadCounts?.[currentUser.id] || 0,
     [conversation.unreadThreadCounts, currentUser.id]
   );
+
+  const scheduledCountQuery = useMemoFirebase(
+    () =>
+      firestore && currentUser
+        ? query(
+            collection(firestore, `conversations/${conversation.id}/scheduledMessages`),
+            where('senderId', '==', currentUser.id),
+            where('status', '==', 'pending'),
+          )
+        : null,
+    [firestore, conversation.id, currentUser]
+  );
+  const { data: scheduledCountDocs } = useCollection(scheduledCountQuery);
+  const scheduledPendingCount = scheduledCountDocs?.length ?? 0;
 
   /** Снимаем индикатор @ в списке диалогов при открытии группового чата. */
   useEffect(() => {
@@ -1610,6 +1626,69 @@ export function ChatWindow({
     [firestore, currentUser, conversation.id, conversation.participantIds, e2eeConv.e2eeEnabled, toast]
   );
 
+  const handleScheduleMessage = useCallback(
+    async (
+      text: string | undefined,
+      files: File[],
+      replyContext: ReplyContext | null,
+      prebuilt: ChatAttachment[] | undefined,
+      sendAt: Date,
+    ) => {
+      if (!firestore || !currentUser) return;
+      const trimmedText = typeof text === 'string' ? text : undefined;
+      const hasText =
+        !!trimmedText && trimmedText.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
+      if (!hasText && (!files || files.length === 0) && (!prebuilt || prebuilt.length === 0)) return;
+
+      const scheduledCollection = collection(
+        firestore,
+        `conversations/${conversation.id}/scheduledMessages`,
+      );
+      const newDocRef = doc(scheduledCollection);
+      const nowIso = new Date().toISOString();
+      const sendAtIso = sendAt.toISOString();
+
+      try {
+        const uploadedAttachments: ChatAttachment[] = [...(prebuilt ?? [])];
+        if (files && files.length > 0) {
+          const { uploadFile: internalUpload } = await import('./ChatMessageInput');
+          for (const file of files) {
+            const path = `chat-attachments/${conversation.id}/scheduled-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+            const uploaded = await internalUpload(file, path, storage);
+            uploadedAttachments.push(uploaded);
+          }
+        }
+
+        const payload: Record<string, unknown> = {
+          senderId: currentUser.id,
+          status: 'pending',
+          scheduledAt: nowIso,
+          sendAt: sendAtIso,
+          createdAt: nowIso,
+        };
+        if (hasText && trimmedText) payload.text = trimmedText;
+        if (uploadedAttachments.length > 0) payload.attachments = uploadedAttachments;
+        if (replyContext) payload.replyTo = replyContext;
+
+        await setDoc(newDocRef, payload as Parameters<typeof setDoc>[1]);
+
+        toast({
+          title: 'Сообщение запланировано',
+          description: format(sendAt, 'd MMMM yyyy, HH:mm', { locale: ru }),
+        });
+      } catch (e) {
+        console.error('Failed to schedule message:', e);
+        toast({
+          variant: 'destructive',
+          title: 'Не удалось запланировать сообщение',
+          description: e instanceof Error ? e.message : String(e),
+        });
+        throw e;
+      }
+    },
+    [firestore, currentUser, conversation.id, storage, toast],
+  );
+
   const handleUpdateMessage = async (id: string, text: string, attachments?: ChatAttachment[]) => {
     if (!firestore || !conversation.id) return;
     const msgRef = doc(firestore, `conversations/${conversation.id}/messages`, id);
@@ -2186,6 +2265,26 @@ export function ChatWindow({
                               />
                             </Button>
                 </div>
+                        {scheduledPendingCount > 0 && (
+                          <div className={cn('relative p-0.5', chatHeaderIconGlass)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                              onClick={() => setScheduledSheetOpen(true)}
+                              aria-label="Запланированные сообщения"
+                              title="Запланированные сообщения"
+                            >
+                              <CalendarClock
+                                className="h-[22px] w-[22px] drop-shadow-sm dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)] text-primary"
+                                strokeWidth={2}
+                              />
+                            </Button>
+                            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 bg-primary text-primary-foreground text-[9px] font-black border-2 border-background flex items-center justify-center shadow-sm">
+                              {scheduledPendingCount > 9 ? '9+' : scheduledPendingCount}
+                            </Badge>
+                          </div>
+                        )}
                         {!conversation.isGroup && otherId && !isSelfSavedChat && !dmMessagingBlocked && (
                           <>
                             <div className={cn('p-0.5', chatHeaderIconGlass)}>
@@ -2358,6 +2457,7 @@ export function ChatWindow({
               onSendMessage={handleSendMessage}
               onSendLocationShare={handleSendLocationShare}
               onSendPoll={handleSendPoll}
+              onScheduleMessage={handleScheduleMessage}
               onUpdateMessage={handleUpdateMessage}
               replyingTo={replyingTo}
               onCancelReply={() => setReplyingTo(null)}
@@ -2371,9 +2471,17 @@ export function ChatWindow({
               composerLocked={composerLocked}
               composerLockedHint={composerLockedHint}
               onRestoreDraftReply={(reply) => setReplyingTo(reply)}
+              e2eeEnabled={e2eeConv.e2eeEnabled}
             />
           </div>
         )}
+        <ScheduledMessagesSheet
+          open={scheduledSheetOpen}
+          onOpenChange={setScheduledSheetOpen}
+          conversationId={conversation.id}
+          currentUserId={currentUser.id}
+          e2eeEnabled={e2eeConv.e2eeEnabled}
+        />
         </div>
         {selectedThreadMessage && (
           <>
