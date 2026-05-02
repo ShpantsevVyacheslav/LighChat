@@ -12,6 +12,8 @@ class LinkPreviewMetadata {
     this.description,
     this.imageUrl,
     this.siteName,
+    this.videoUrl,
+    this.videoType,
   });
 
   final String url;
@@ -19,6 +21,14 @@ class LinkPreviewMetadata {
   final String? description;
   final String? imageUrl;
   final String? siteName;
+
+  /// Direct media URL from `og:video` / `og:video:secure_url` / `og:video:url`.
+  /// May point to an mp4 stream or to an HTML player page.
+  final String? videoUrl;
+
+  /// MIME from `og:video:type` (e.g. `video/mp4`, `text/html`). Used to decide
+  /// between `video_player` (mp4/webm) and a fallback image+open-in-browser.
+  final String? videoType;
 }
 
 /// In-memory cache for link previews.
@@ -71,8 +81,11 @@ class LinkPreviewMetadataCache {
           .get(
             Uri.parse(url),
             headers: const {
+              // facebookexternalhit token is what Telegram/Slack/Discord
+              // imitate to get OpenGraph from social sites (IG/FB/Twitter).
               'User-Agent':
-                  'Mozilla/5.0 (compatible; LighChatMobile/1.0; +https://ligh.chat)',
+                  'Mozilla/5.0 (compatible; LighChatBot/1.0; +https://ligh.chat) '
+                  'facebookexternalhit/1.1',
               'Accept':
                   'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             },
@@ -114,6 +127,16 @@ class LinkPreviewMetadataCache {
       final image = og('og:image') ?? name('twitter:image');
       final resolvedImage = _resolveMaybeRelative(url, image);
 
+      // og:video — Twitter/X, TikTok, Reddit, YouTube Shorts, sometimes IG.
+      // Prefer secure_url > url > video; respect og:video:type when present.
+      final video = og('og:video:secure_url') ??
+          og('og:video:url') ??
+          og('og:video') ??
+          name('twitter:player:stream');
+      final videoType = og('og:video:type') ??
+          name('twitter:player:stream:content_type');
+      final resolvedVideo = _resolveMaybeRelative(url, video);
+
       return LinkPreviewMetadata(
         url: url,
         title: title.trim(),
@@ -121,6 +144,10 @@ class LinkPreviewMetadataCache {
         imageUrl: resolvedImage,
         siteName:
             (siteName == null || siteName.trim().isEmpty) ? null : siteName.trim(),
+        videoUrl: resolvedVideo,
+        videoType: (videoType == null || videoType.trim().isEmpty)
+            ? null
+            : videoType.trim().toLowerCase(),
       );
     } catch (e) {
       if (kDebugMode) {

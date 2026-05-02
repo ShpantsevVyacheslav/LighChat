@@ -1,4 +1,7 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../data/link_preview_metadata.dart';
 import 'link_webview_screen.dart';
@@ -48,24 +51,95 @@ class MessageLinkPreviewCard extends StatelessWidget {
           if (data == null) {
             return const SizedBox.shrink();
           }
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _open(context),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: bg,
-                  border: Border.all(color: border),
+          final hasPlayableVideo = _isPlayableVideo(data);
+          final textSection = Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (data.siteName != null) ...[
+                  Text(
+                    data.siteName!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                      color: (isMine ? Colors.white : scheme.onSurface)
+                          .withValues(alpha: 0.65),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                Text(
+                  data.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: (isMine ? Colors.white : scheme.onSurface)
+                        .withValues(alpha: 0.92),
+                    height: 1.15,
+                  ),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (data.imageUrl != null)
-                      SizedBox(
+                if (data.description != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    data.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: (isMine ? Colors.white : scheme.onSurface)
+                          .withValues(alpha: 0.68),
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  url,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: (isMine ? Colors.white : scheme.primary)
+                        .withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          // For the video case we want tap-on-video to control playback and
+          // tap-on-text to open the URL — so we don't wrap the whole card in
+          // a single InkWell.
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: bg,
+              border: Border.all(color: border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (hasPlayableVideo)
+                  _LinkPreviewInlineVideo(
+                    videoUrl: data.videoUrl!,
+                    posterUrl: data.imageUrl,
+                  )
+                else if (data.imageUrl != null)
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _open(context),
+                      child: SizedBox(
                         height: 140,
                         child: Image.network(
                           data.imageUrl!,
@@ -74,71 +148,16 @@ class MessageLinkPreviewCard extends StatelessWidget {
                               const SizedBox.shrink(),
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (data.siteName != null) ...[
-                            Text(
-                              data.siteName!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.2,
-                                color: (isMine ? Colors.white : scheme.onSurface)
-                                    .withValues(alpha: 0.65),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                          ],
-                          Text(
-                            data.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: (isMine ? Colors.white : scheme.onSurface)
-                                  .withValues(alpha: 0.92),
-                              height: 1.15,
-                            ),
-                          ),
-                          if (data.description != null) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              data.description!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: (isMine ? Colors.white : scheme.onSurface)
-                                    .withValues(alpha: 0.68),
-                                height: 1.2,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          Text(
-                            url,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: (isMine ? Colors.white : scheme.primary)
-                                  .withValues(alpha: 0.85),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
-                  ],
+                  ),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _open(context),
+                    child: textSection,
+                  ),
                 ),
-              ),
+              ],
             ),
           );
         },
@@ -189,3 +208,183 @@ class MessageLinkPreviewCard extends StatelessWidget {
   }
 }
 
+/// Decides whether `og:video` actually points to a stream we can feed
+/// `video_player`. Many sites set `og:video` to an HTML player page
+/// (`text/html`) — those we cannot play inline, so we keep the static image.
+bool _isPlayableVideo(LinkPreviewMetadata data) {
+  final v = data.videoUrl?.trim();
+  if (v == null || v.isEmpty) return false;
+  final type = data.videoType ?? '';
+  if (type.startsWith('video/')) return true;
+  if (type.startsWith('application/x-mpegurl') ||
+      type.startsWith('application/vnd.apple.mpegurl')) {
+    return true;
+  }
+  if (type.startsWith('text/html')) return false;
+  // No type — guess by extension.
+  final lower = Uri.tryParse(v)?.path.toLowerCase() ?? v.toLowerCase();
+  return lower.endsWith('.mp4') ||
+      lower.endsWith('.m4v') ||
+      lower.endsWith('.webm') ||
+      lower.endsWith('.mov');
+}
+
+/// Tap-to-play inline video. We deliberately do NOT auto-init the controller:
+/// 1) opening a chat with many video previews would hammer the network,
+/// 2) iOS can hold only a small number of concurrent video pipelines.
+class _LinkPreviewInlineVideo extends StatefulWidget {
+  const _LinkPreviewInlineVideo({
+    required this.videoUrl,
+    required this.posterUrl,
+  });
+
+  final String videoUrl;
+  final String? posterUrl;
+
+  @override
+  State<_LinkPreviewInlineVideo> createState() =>
+      _LinkPreviewInlineVideoState();
+}
+
+class _LinkPreviewInlineVideoState extends State<_LinkPreviewInlineVideo> {
+  VideoPlayerController? _controller;
+  bool _initializing = false;
+  bool _failed = false;
+
+  Future<void> _start() async {
+    if (_controller != null || _initializing) return;
+    setState(() => _initializing = true);
+    final c = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+    try {
+      await c.initialize();
+      if (!mounted) {
+        unawaited(c.dispose());
+        return;
+      }
+      c.setLooping(true);
+      unawaited(c.play());
+      setState(() {
+        _controller = c;
+        _initializing = false;
+      });
+    } catch (_) {
+      unawaited(c.dispose());
+      if (!mounted) return;
+      setState(() {
+        _initializing = false;
+        _failed = true;
+      });
+    }
+  }
+
+  void _togglePlayPause() {
+    final c = _controller;
+    if (c == null) return;
+    if (c.value.isPlaying) {
+      unawaited(c.pause());
+    } else {
+      unawaited(c.play());
+    }
+    setState(() {});
+  }
+
+  void _toggleMute() {
+    final c = _controller;
+    if (c == null) return;
+    c.setVolume(c.value.volume > 0 ? 0 : 1);
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _controller;
+    final aspect = (c != null && c.value.isInitialized)
+        ? c.value.aspectRatio
+        : 16 / 9;
+    return AspectRatio(
+      aspectRatio: aspect <= 0 ? 16 / 9 : aspect,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (c != null && c.value.isInitialized)
+            VideoPlayer(c)
+          else if (widget.posterUrl != null)
+            Image.network(
+              widget.posterUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const ColoredBox(color: Colors.black),
+            )
+          else
+            const ColoredBox(color: Colors.black),
+          // Dim overlay only when nothing is playing yet.
+          if (c == null)
+            Container(color: Colors.black.withValues(alpha: 0.25)),
+          // Controls.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: c == null ? () => unawaited(_start()) : _togglePlayPause,
+              child: Center(
+                child: _initializing
+                    ? const SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: Colors.white,
+                        ),
+                      )
+                    : (c == null || !c.value.isPlaying
+                          ? Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _failed
+                                    ? Icons.error_outline
+                                    : Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: 36,
+                              ),
+                            )
+                          : const SizedBox.shrink()),
+              ),
+            ),
+          ),
+          if (c != null && c.value.isInitialized)
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.55),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _toggleMute,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      c.value.volume > 0
+                          ? Icons.volume_up_rounded
+                          : Icons.volume_off_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
