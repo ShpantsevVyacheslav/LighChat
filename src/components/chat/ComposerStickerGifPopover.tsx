@@ -3,7 +3,13 @@
 import React, { useState } from 'react';
 import { Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { ChatStickerGifPanel } from '@/components/chat/ChatStickerGifPanel';
 import type { ChatAttachment } from '@/lib/types';
 
@@ -22,11 +28,11 @@ interface ComposerStickerGifPopoverProps {
 }
 
 /**
- * Кнопка emoji в композере → Telegram-style шторка с 3 вкладками
- * (Эмодзи / Стикеры / GIF), открывается над кнопкой как Popover слева.
+ * Кнопка emoji в композере → Telegram-style боковая шторка справа
+ * (Sheet side="right") c 3 вкладками: Эмодзи / Стикеры / GIF.
  *
- * Замена `MessageInputEmojiPicker` (был только эмодзи на белом фоне) и
- * дублирующего входа из меню вложений «Стикеры/GIF».
+ * Шторка не закрывается после отправки стикера/GIF — можно отправить
+ * подряд несколько; закрытие — клик вне или Esc.
  */
 export function ComposerStickerGifPopover({
   userId,
@@ -44,8 +50,8 @@ export function ComposerStickerGifPopover({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button
           type="button"
           variant="ghost"
@@ -53,32 +59,31 @@ export function ComposerStickerGifPopover({
           className="h-9 w-9 shrink-0"
           disabled={disabled}
           aria-label="Эмодзи, стикеры и GIF"
-          aria-haspopup="dialog"
         >
           <Smile className="h-4 w-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        // Шторка слева снизу-вверх (как в Telegram desktop): прикреплена к
-        // кнопке, всплывает над композером.
-        side="top"
-        align="start"
-        sideOffset={8}
-        className="w-[min(100vw-2rem,380px)] rounded-2xl border border-white/10 bg-popover/95 p-2 shadow-2xl backdrop-blur"
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 p-0 sm:w-[400px] sm:max-w-[400px]"
       >
-        <ChatStickerGifPanel
-          userId={userId}
-          onPickStickerAttachment={(att) => {
-            onPickStickerAttachment(att);
-            setOpen(false);
-          }}
-          onPickGifAttachment={(att) => {
-            onPickGifAttachment(att);
-            setOpen(false);
-          }}
-          onPickEmoji={insertEmoji}
-        />
-      </PopoverContent>
-    </Popover>
+        <SheetHeader className="border-b border-border/40 px-4 py-3">
+          <SheetTitle className="text-base">Эмодзи • Стикеры • GIF</SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto p-3">
+          <ChatStickerGifPanel
+            userId={userId}
+            onPickStickerAttachment={(att) => {
+              onPickStickerAttachment(att);
+              // Не закрываем — даём отправить подряд несколько.
+            }}
+            onPickGifAttachment={(att) => {
+              onPickGifAttachment(att);
+            }}
+            onPickEmoji={insertEmoji}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -58,7 +58,18 @@ String _normalizeBaseUrl(String raw) {
   return s;
 }
 
-enum GiphyType { gifs, stickers }
+enum GiphyType { gifs, stickers, emoji }
+
+String _typeParam(GiphyType type) {
+  switch (type) {
+    case GiphyType.gifs:
+      return 'gifs';
+    case GiphyType.stickers:
+      return 'stickers';
+    case GiphyType.emoji:
+      return 'emoji';
+  }
+}
 
 /// Запрос к веб-прокси GIF (`GIPHY_PROXY_BASE_URL`).
 /// При пустом запросе возвращает trending GIF.
@@ -76,7 +87,7 @@ Future<GiphySearchOutcome> searchGifs(
   final q = query.trim();
   final params = <String, String>{
     if (q.isNotEmpty) 'q': q,
-    if (type == GiphyType.stickers) 'type': 'stickers',
+    if (type != GiphyType.gifs) 'type': _typeParam(type),
     if (offset > 0) 'offset': '$offset',
   };
   final uri = Uri.parse('$base/api/giphy/search').replace(
@@ -134,10 +145,17 @@ Future<GiphySearchOutcome> searchGifs(
   }
 }
 
-ChatAttachment giphyItemToSendAttachment(GiphyGifItem item) {
+/// Преобразует GIPHY GIF/sticker в `ChatAttachment` для отправки.
+/// При [asSticker] = true имя начинается с `sticker_giphy_`, чтобы получатель
+/// рендерил вложение как стикер (без пузыря, фиксированный размер).
+ChatAttachment giphyItemToSendAttachment(
+  GiphyGifItem item, {
+  bool asSticker = false,
+}) {
+  final prefix = asSticker ? 'sticker_giphy_' : 'gif_';
   return ChatAttachment(
     url: item.url,
-    name: 'gif_${item.id}.gif',
+    name: '$prefix${item.id}.gif',
     type: 'image/gif',
     size: 0,
     width: item.width,
