@@ -26,22 +26,30 @@ import { applyFoul, applyFinishTurn, applyResolve } from "../../lib/games/durak/
 import type { DurakGameResult } from "../../lib/games/durak/state";
 import { applyFinishedGameToTournament } from "../../lib/games/tournamentEngine";
 
-// Recursively strips `undefined` values; Firestore rejects them with
-// "INVALID_ARGUMENT: Property contains an invalid nested entity".
-function stripUndefined<T>(input: T): T {
-  if (input === null || input === undefined) return input;
-  if (Array.isArray(input)) {
-    return input.map((v) => stripUndefined(v)).filter((v) => v !== undefined) as unknown as T;
+// Hard normalize for Firestore: drop undefined values, strip functions,
+// convert anything weird to a plain JSON-safe object. JSON roundtrip
+// catches class instances, BigInt, Symbol, NaN, Infinity, etc.
+function sanitizeForFirestore<T>(input: T, label: string): T {
+  try {
+    return JSON.parse(
+      JSON.stringify(input, (_key, value) => {
+        if (value === undefined) return null;
+        if (typeof value === "number") {
+          if (!Number.isFinite(value)) return null;
+        }
+        if (typeof value === "bigint") return Number(value);
+        if (typeof value === "function") return undefined;
+        if (typeof value === "symbol") return undefined;
+        return value;
+      }),
+    );
+  } catch (e) {
+    logger.error("[sanitizeForFirestore] failed", {
+      label,
+      error: (e as Error)?.message ?? String(e),
+    });
+    return input;
   }
-  if (typeof input === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
-      if (v === undefined) continue;
-      out[k] = stripUndefined(v);
-    }
-    return out as T;
-  }
-  return input;
 }
 
 type RequestData = {
@@ -353,20 +361,23 @@ export const makeDurakMove = onCall(
         );
       }
 
+      const sanitizedState = sanitizeForFirestore(state, "serverState");
+      const sanitizedPublicView = sanitizeForFirestore(
+        buildPublicView({
+          state,
+          handsByUid: handsByUid as any,
+          playerIds,
+          settings,
+          nowIso,
+          result,
+        }),
+        "publicView",
+      );
       tx.update(gameRef, {
         status: isFinished ? "finished" : "active",
         result: result ?? null,
-        serverState: stripUndefined(state),
-        publicView: stripUndefined(
-          buildPublicView({
-            state,
-            handsByUid: handsByUid as any,
-            playerIds,
-            settings,
-            nowIso,
-            result,
-          }),
-        ),
+        serverState: sanitizedState,
+        publicView: sanitizedPublicView,
         lastUpdatedAt: nowIso,
         finishedAt: isFinished ? nowIso : admin.firestore.FieldValue.delete(),
       });
@@ -476,6 +487,8 @@ export const makeDurakMove = onCall(
         actionType,
         clientMoveId,
         error: (error as Error)?.message ?? String(error),
+        errorName: (error as Error)?.name,
+        errorStack: (error as Error)?.stack?.split("\n").slice(0, 6).join("\n"),
       });
       const message = ((error as Error)?.message ?? String(error)).slice(0, 180);
       throw new HttpsError("failed-precondition", `MOVE_REJECTED_RETRY:${message}`);

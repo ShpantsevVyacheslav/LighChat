@@ -17,19 +17,19 @@ import type { Card } from "../../lib/games/durak/cards";
 import type { DurakGameResult, DurakServerState } from "../../lib/games/durak/state";
 
 function stripUndefined<T>(input: T): T {
-  if (input === null || input === undefined) return input;
-  if (Array.isArray(input)) {
-    return input.map((v) => stripUndefined(v)).filter((v) => v !== undefined) as unknown as T;
+  try {
+    return JSON.parse(
+      JSON.stringify(input, (_key, value) => {
+        if (value === undefined) return null;
+        if (typeof value === "number" && !Number.isFinite(value)) return null;
+        if (typeof value === "bigint") return Number(value);
+        if (typeof value === "function" || typeof value === "symbol") return undefined;
+        return value;
+      }),
+    );
+  } catch {
+    return input;
   }
-  if (typeof input === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
-      if (v === undefined) continue;
-      out[k] = stripUndefined(v);
-    }
-    return out as T;
-  }
-  return input;
 }
 
 /**
