@@ -13,6 +13,7 @@ import 'durak_felt_background.dart';
 import 'durak_hand_fan.dart';
 import 'durak_player_names.dart';
 import 'durak_player_profiles.dart';
+import 'durak_draw_flight.dart';
 import 'durak_primary_actions_bar.dart';
 import 'durak_table_widget.dart';
 
@@ -71,11 +72,14 @@ class _ConversationDurakGameScreenState
 
   final _deckKey = GlobalKey();
   final _handKey = GlobalKey();
+  final _tableOverlayKey = GlobalKey();
   final _nextAttackSlotKey = GlobalKey();
   final _tableAttackKeys = <int, GlobalKey>{};
   final _tableDefenseKeys = <int, GlobalKey>{};
   final _handCardKeys = <String, GlobalKey>{};
   int _prevMyHandCount = 0;
+  final List<_DrawFlight> _drawFlights = <_DrawFlight>[];
+  int _drawFlightSeq = 0;
   FlutterExceptionHandler? _prevFlutterOnError;
   late final FlutterExceptionHandler _durakFlutterOnError;
 
@@ -224,6 +228,50 @@ class _ConversationDurakGameScreenState
     } finally {
       if (mounted) setState(() => _isRematchBusy = false);
     }
+  }
+
+  void _scheduleDrawFlights(int count) {
+    if (count <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final deckCtx = _deckKey.currentContext;
+      final handCtx = _handKey.currentContext;
+      final overlayCtx = _tableOverlayKey.currentContext;
+      final deckBox = deckCtx?.findRenderObject();
+      final handBox = handCtx?.findRenderObject();
+      final overlayBox = overlayCtx?.findRenderObject();
+      if (deckBox is! RenderBox ||
+          handBox is! RenderBox ||
+          overlayBox is! RenderBox) {
+        return;
+      }
+      if (!deckBox.hasSize || !handBox.hasSize || !overlayBox.hasSize) return;
+      final from = deckBox.localToGlobal(Offset.zero) & deckBox.size;
+      final to = handBox.localToGlobal(Offset.zero) & handBox.size;
+      final overlayTopLeft = overlayBox.localToGlobal(Offset.zero);
+      final n = count.clamp(1, 6);
+      setState(() {
+        for (var i = 0; i < n; i++) {
+          _drawFlightSeq++;
+          _drawFlights.add(
+            _DrawFlight(
+              id: _drawFlightSeq,
+              from: from,
+              to: to,
+              overlayTopLeft: overlayTopLeft,
+              delay: Duration(milliseconds: i * 100),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  void _removeDrawFlight(int id) {
+    if (!mounted) return;
+    setState(() {
+      _drawFlights.removeWhere((f) => f.id == id);
+    });
   }
 
   Future<void> _handleNextTournamentGamePressed({
@@ -1184,6 +1232,9 @@ class _ConversationDurakGameScreenState
                           _prevMyHandCount = now;
                           return;
                         }
+                        if (now > _prevMyHandCount) {
+                          _scheduleDrawFlights(now - _prevMyHandCount);
+                        }
                         _prevMyHandCount = now;
                       });
 
@@ -1303,6 +1354,7 @@ class _ConversationDurakGameScreenState
             final bottomPanelHeight = 174.0 + safe.bottom;
 
             return Stack(
+              key: _tableOverlayKey,
               fit: StackFit.expand,
               children: [
                 if (foulAt.isNotEmpty && foulAt != _lastFoulAtShown)
@@ -1466,6 +1518,25 @@ class _ConversationDurakGameScreenState
                     ),
                   ),
                 ),
+                if (_drawFlights.isNotEmpty)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      ignoring: true,
+                      child: Stack(
+                        children: [
+                          for (final f in _drawFlights)
+                            DurakDrawFlight(
+                              key: ValueKey<int>(f.id),
+                              from: f.from,
+                              to: f.to,
+                              overlayTopLeft: f.overlayTopLeft,
+                              delay: f.delay,
+                              onDone: () => _removeDrawFlight(f.id),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             );
           },
@@ -1473,6 +1544,22 @@ class _ConversationDurakGameScreenState
       ),
     );
   }
+}
+
+class _DrawFlight {
+  const _DrawFlight({
+    required this.id,
+    required this.from,
+    required this.to,
+    required this.overlayTopLeft,
+    required this.delay,
+  });
+
+  final int id;
+  final Rect from;
+  final Rect to;
+  final Offset overlayTopLeft;
+  final Duration delay;
 }
 
 // _HandCard was replaced by DurakHandFan.
