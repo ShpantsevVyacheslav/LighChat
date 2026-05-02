@@ -1857,53 +1857,33 @@ class _DurakDiscardPile extends StatelessWidget {
   Widget build(BuildContext context) {
     final stacks = discardCount <= 0
         ? 0
-        : (discardCount > 4 ? 4 : discardCount);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        : (discardCount > 5 ? 5 : discardCount);
+    if (stacks == 0) {
+      return const SizedBox(width: 90, height: 110);
+    }
+    return SizedBox(
+      width: 90,
+      height: 110,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            'Сброс: $discardCount',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.92),
+          for (var i = 0; i < stacks; i++)
+            Positioned(
+              right: i * 4.0,
+              top: i * 2.0,
+              child: Transform.rotate(
+                angle: -0.18 + i * 0.05,
+                child: const DurakCardWidget(
+                  rankLabel: '',
+                  suitLabel: '',
+                  isRed: false,
+                  faceUp: false,
+                  disabled: true,
+                  width: 68,
+                  height: 96,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: 48,
-            height: 46,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                for (var i = 0; i < stacks; i++)
-                  Positioned(
-                    right: i * 6.0,
-                    top: i * 1.5,
-                    child: Transform.rotate(
-                      angle: -0.18 + i * 0.08,
-                      child: const DurakCardWidget(
-                        rankLabel: '',
-                        suitLabel: '',
-                        isRed: false,
-                        faceUp: false,
-                        disabled: true,
-                        width: 26,
-                        height: 36,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
     );

@@ -63,7 +63,7 @@ class DurakPrimaryActionsBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           for (var i = 0; i < prim.length; i++) ...[
             if (i > 0) const SizedBox(width: 10),
