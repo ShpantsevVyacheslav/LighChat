@@ -1530,6 +1530,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         ),
                                       )
                                     : null,
+                                disappearingMessagesEnabled:
+                                    (conv?.data.disappearingMessageTtlSec ?? 0) > 0,
                               ),
                             ),
                           )

@@ -23,6 +23,7 @@ class ChatHeader extends StatelessWidget {
     this.onSearchClose,
     this.scheduledCount = 0,
     this.onScheduledTap,
+    this.disappearingMessagesEnabled = false,
   });
 
   final String title;
@@ -49,6 +50,11 @@ class ChatHeader extends StatelessWidget {
   /// Иконка-будильник в шапке появляется только если > 0.
   final int scheduledCount;
   final VoidCallback? onScheduledTap;
+
+  /// Включён ли в чате таймер исчезающих сообщений
+  /// (`conversations.disappearingMessageTtlSec` > 0). Тогда рядом с названием
+  /// показываем иконку-пламя (паттерн как в Telegram).
+  final bool disappearingMessagesEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -187,15 +193,30 @@ class ChatHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: fg,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: fg,
+                          ),
+                        ),
+                      ),
+                      if (disappearingMessagesEnabled) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.local_fire_department_rounded,
+                          size: 15,
+                          color: const Color(0xFFFFB454),
+                        ),
+                      ],
+                    ],
                   ),
                   Text(
                     subtitle,

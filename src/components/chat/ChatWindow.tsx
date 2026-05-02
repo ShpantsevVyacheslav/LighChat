@@ -72,7 +72,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle, Swords, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle, Swords, CalendarClock, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettings } from '@/hooks/use-settings';
@@ -2215,7 +2215,17 @@ export function ChatWindow({
                             <AvatarFallback className="text-sm font-bold">{chatDisplayName.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col min-w-0">
-                            <h2 className="text-sm font-bold truncate leading-tight drop-shadow-sm">{chatDisplayName}</h2>
+                            <h2 className="text-sm font-bold truncate leading-tight drop-shadow-sm flex items-center gap-1.5">
+                              <span className="truncate">{chatDisplayName}</span>
+                              {!isSelfSavedChat &&
+                                typeof conversation.disappearingMessageTtlSec === 'number' &&
+                                conversation.disappearingMessageTtlSec > 0 && (
+                                <Flame
+                                  className="h-3.5 w-3.5 shrink-0 text-amber-500 drop-shadow-sm"
+                                  strokeWidth={2.4}
+                                />
+                              )}
+                            </h2>
                             <span className="text-[11px] text-muted-foreground drop-shadow-sm">
                               {conversation.isGroup
                                 ? `${conversation.participantIds.length} участников`

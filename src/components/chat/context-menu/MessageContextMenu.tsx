@@ -13,6 +13,7 @@ import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { FocusCircleHole } from '@/components/chat/context-menu/message-focus-hole';
 import { getExpireAtMillisFromUnknown } from '@/lib/message-expire-at';
+import { MessageDisappearingEta } from '@/components/chat/parts/MessageDisappearingEta';
 
 const REACTION_LIST = ['👌', '😁', '🤝', '😱', '❤️', '👍', '🔥', '😂', '😮', '😢', '👏', '🎉', '✅'];
 
@@ -171,10 +172,19 @@ export function MessageContextMenu({
                     </p>
                 )}
                 {expireDate && (
-                    <p className="text-[10px] font-bold uppercase tracking-wide flex justify-between">
-                        <span>Исчезнет:</span>
-                        <span className="text-amber-300">{expireDateStr} {expireTimeStr}</span>
-                    </p>
+                    <>
+                        <p className="text-[10px] font-bold uppercase tracking-wide flex justify-between">
+                            <span>Исчезнет:</span>
+                            <span className="text-amber-300">{expireDateStr} {expireTimeStr}</span>
+                        </p>
+                        <p className="text-[10px] flex justify-end -mt-0.5">
+                            <MessageDisappearingEta
+                                expireAt={message.expireAt}
+                                variant="inline"
+                                className="text-amber-300/80 normal-case"
+                            />
+                        </p>
+                    </>
                 )}
             </div>
           </div>
