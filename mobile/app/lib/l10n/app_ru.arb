@@ -3348,5 +3348,194 @@
   "google_complete_dob_label": "Дата рождения (YYYY-MM-DD, опционально)",
   "google_complete_bio_label": "О себе (до 200 символов, опционально)",
   "google_complete_save": "Сохранить и продолжить",
-  "google_complete_back": "Вернуться к авторизации"
+  "google_complete_back": "Вернуться к авторизации",
+  "game_error_defense_not_beat": "Эта карта не бьет атакующую",
+  "game_error_attacker_first": "Первым ходит атакующий игрок",
+  "game_error_defender_no_attack": "Отбивающийся сейчас не подкидывает",
+  "game_error_not_allowed_throwin": "Вы не можете подкинуть в этом раунде",
+  "game_error_throwin_not_turn": "Сейчас подкидывает другой игрок",
+  "game_error_rank_not_allowed": "Подкинуть можно только карту того же ранга",
+  "game_error_cannot_throw_in": "Больше карт подкинуть нельзя",
+  "game_error_card_not_in_hand": "Этой карты уже нет в руке",
+  "game_error_already_defended": "Эта карта уже отбита",
+  "game_error_bad_attack_index": "Выберите атакующую карту для защиты",
+  "game_error_only_defender": "Сейчас отбивается другой игрок",
+  "game_error_defender_taking": "Отбивающийся уже берет карты",
+  "game_error_game_not_active": "Партия уже не активна",
+  "game_error_not_in_lobby": "Лобби уже стартовало",
+  "game_error_game_already_active": "Партия уже началась",
+  "game_error_active_exists": "В этом чате уже есть активная партия",
+  "game_error_round_pending": "Сначала завершите спорный ход",
+  "game_error_rematch_failed": "Не удалось подготовить реванш. Попробуйте ��ще раз",
+  "game_error_unauthenticated": "Нужно войти в аккаунт",
+  "game_error_permission_denied": "Это действие вам недоступно",
+  "game_error_invalid_argument": "Некорректный ход",
+  "game_error_precondition": "Ход сейчас недоступен",
+  "game_error_server": "Не удалось выполнить ход. Попробуйте еще раз",
+  "reply_sticker": "Стикер",
+  "reply_gif": "GIF",
+  "reply_video_circle": "Кружок",
+  "reply_voice_message": "Голосовое сообщение",
+  "reply_video": "Видео",
+  "reply_photo": "Фотография",
+  "reply_file": "Файл",
+  "reply_location": "Локация",
+  "reply_poll": "Опрос",
+  "reply_link": "Ссылка",
+  "reply_message": "Сообщение",
+  "reply_sender_you": "Вы",
+  "reply_sender_member": "Участник",
+  "call_format_today": "Сегодня",
+  "call_format_yesterday": "Вчера",
+  "call_format_second_short": "с",
+  "call_format_minute_short": "м",
+  "call_format_hour_short": "ч",
+  "call_format_day_short": "д",
+  "call_month_january": "января",
+  "call_month_february": "февраля",
+  "call_month_march": "марта",
+  "call_month_april": "апреля",
+  "call_month_may": "мая",
+  "call_month_june": "июня",
+  "call_month_july": "июля",
+  "call_month_august": "августа",
+  "call_month_september": "сентября",
+  "call_month_october": "октября",
+  "call_month_november": "ноября",
+  "call_month_december": "декабря",
+  "push_incoming_call": "Входящий звонок",
+  "push_incoming_video_call": "Входящий видеозвонок",
+  "push_new_message": "Новое сообщение",
+  "push_channel_calls": "Звонки",
+  "push_channel_messages": "Сообщения",
+  "contacts_years_one": "{count} год",
+  "@contacts_years_one": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_few": "{count} года",
+  "@contacts_years_few": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_many": "{count} лет",
+  "@contacts_years_many": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_other": "{count} years",
+  "@contacts_years_other": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "durak_entry_single_game": "Одиночная партия",
+  "durak_entry_finish_game_tooltip": "Завершить игру",
+  "durak_entry_tournament_games_dialog_title": "Сколько игр в турнире?",
+  "durak_entry_cancel": "Отмена",
+  "durak_entry_create": "Создать",
+  "video_editor_load_failed": "Не удалось загрузить видео: {error}",
+  "@video_editor_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_process_failed": "Не удалось обработать видео: {error}",
+  "@video_editor_process_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_duration": "Длительность: {duration}",
+  "@video_editor_duration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "video_editor_brush": "Кисть",
+  "video_editor_caption_hint": "Добавить подпись...",
+  "share_location_title": "Поделиться геолокацией",
+  "share_location_how": "Как делиться",
+  "share_location_cancel": "Отмена",
+  "share_location_send": "Отправить",
+  "photo_source_gallery": "Галерея",
+  "photo_source_take_photo": "Сделать фото",
+  "photo_source_record_video": "Записать видео",
+  "video_attachment_media_kind": "видео",
+  "video_attachment_title": "Видео",
+  "video_attachment_playback_error": "Не удалось воспроизвести видео. Проверьте ссылку и сеть.",
+  "location_card_broadcast_ended_mine": "Трансляция геолокации завершена. Собеседник больше не видит ваше актуальное местоположение.",
+  "location_card_broadcast_ended_other": "Трансляция геолокации у этого контакта завершена. Актуальная позиция недоступна.",
+  "location_card_title": "Местоположение",
+  "location_card_accuracy": "±{meters} м",
+  "@location_card_accuracy": {
+    "placeholders": {
+      "meters": {}
+    }
+  },
+  "link_webview_copy_tooltip": "Скопировать ссылку",
+  "link_webview_copied_snackbar": "Ссылка скопирована",
+  "link_webview_open_browser_tooltip": "Открыть в браузере",
+  "hold_record_pause": "Пауза",
+  "hold_record_release_cancel": "Отпустите — отмена",
+  "hold_record_slide_hints": "Влево — отмена · Вверх — пауза",
+  "e2ee_badge_loading": "Загружаем отпечаток…",
+  "e2ee_badge_error": "Не удалось получить отпечаток: {error}",
+  "@e2ee_badge_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_badge_label": "Отпечаток E2EE",
+  "e2ee_badge_label_with_user": "Отпечаток E2EE • {user}",
+  "@e2ee_badge_label_with_user": {
+    "placeholders": {
+      "user": {}
+    }
+  },
+  "e2ee_badge_devices": "{count} устр.",
+  "@e2ee_badge_devices": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "composer_link_cancel": "Отмена",
+  "message_search_results_count": "РЕЗУЛЬТАТЫ ПОИСКА: {count}",
+  "@message_search_results_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "message_search_not_found": "НИЧЕГО НЕ НАЙДЕНО",
+  "message_search_participant_fallback": "Участник",
+  "wallpaper_purple": "Фиолетовый",
+  "wallpaper_pink": "Розовый",
+  "wallpaper_blue": "Голубой",
+  "wallpaper_green": "Зелёный",
+  "wallpaper_sunset": "Закат",
+  "wallpaper_tender": "Нежный",
+  "wallpaper_lime": "Лайм",
+  "wallpaper_graphite": "Графит",
+  "avatar_crop_title": "Настройка аватара",
+  "avatar_crop_hint": "Перетащите и масштабируйте — так круг будет в списках и сообщениях; полный кадр остаётся для профиля.",
+  "avatar_crop_cancel": "Отмена",
+  "avatar_crop_reset": "Сбросить",
+  "avatar_crop_save": "Сохранить",
+  "meeting_entry_connecting": "Подключаемся к митингу…",
+  "meeting_entry_auth_failed": "Не удалось войти: {error}",
+  "@meeting_entry_auth_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_entry_participant_fallback": "Участник",
+  "meeting_entry_back": "Назад",
+  "meeting_chat_copy": "Копировать",
+  "meeting_chat_edit": "Изменить",
+  "meeting_chat_delete": "Удалить",
+  "meeting_chat_deleted": "Сообщение удалено",
+  "meeting_chat_edited_mark": "• изм."
 }

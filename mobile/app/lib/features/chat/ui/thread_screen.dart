@@ -1645,7 +1645,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                 setState(() {
                                                   _replyingTo =
                                                       buildReplyPreview(
-                                                        message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
                                                         currentUserId: user.uid,
                                                         isGroup:
                                                             c?.isGroup ?? false,

@@ -3033,5 +3033,194 @@
   "google_complete_dob_label": "Date of birth (YYYY-MM-DD, optional)",
   "google_complete_bio_label": "About (up to 200 characters, optional)",
   "google_complete_save": "Save and continue",
-  "google_complete_back": "Back to sign in"
+  "google_complete_back": "Back to sign in",
+  "game_error_defense_not_beat": "This card doesn't beat the attacking card",
+  "game_error_attacker_first": "The attacker moves first",
+  "game_error_defender_no_attack": "The defender can't attack right now",
+  "game_error_not_allowed_throwin": "You can't throw in this round",
+  "game_error_throwin_not_turn": "Another player is throwing in now",
+  "game_error_rank_not_allowed": "You can only throw in a card of the same rank",
+  "game_error_cannot_throw_in": "No more cards can be thrown in",
+  "game_error_card_not_in_hand": "This card is no longer in your hand",
+  "game_error_already_defended": "This card is already defended",
+  "game_error_bad_attack_index": "Select an attacking card to defend against",
+  "game_error_only_defender": "Another player is defending now",
+  "game_error_defender_taking": "The defender is already taking cards",
+  "game_error_game_not_active": "The game is no longer active",
+  "game_error_not_in_lobby": "The lobby has already started",
+  "game_error_game_already_active": "The game has already started",
+  "game_error_active_exists": "There is already an active game in this chat",
+  "game_error_round_pending": "Finish the contested move first",
+  "game_error_rematch_failed": "Failed to prepare rematch. Try again",
+  "game_error_unauthenticated": "You need to sign in",
+  "game_error_permission_denied": "This action is not available to you",
+  "game_error_invalid_argument": "Invalid move",
+  "game_error_precondition": "Move is not available right now",
+  "game_error_server": "Failed to make move. Try again",
+  "reply_sticker": "Sticker",
+  "reply_gif": "GIF",
+  "reply_video_circle": "Video circle",
+  "reply_voice_message": "Voice message",
+  "reply_video": "Video",
+  "reply_photo": "Photo",
+  "reply_file": "File",
+  "reply_location": "Location",
+  "reply_poll": "Poll",
+  "reply_link": "Link",
+  "reply_message": "Message",
+  "reply_sender_you": "You",
+  "reply_sender_member": "Member",
+  "call_format_today": "Today",
+  "call_format_yesterday": "Yesterday",
+  "call_format_second_short": "s",
+  "call_format_minute_short": "m",
+  "call_format_hour_short": "h",
+  "call_format_day_short": "d",
+  "call_month_january": "January",
+  "call_month_february": "February",
+  "call_month_march": "March",
+  "call_month_april": "April",
+  "call_month_may": "May",
+  "call_month_june": "June",
+  "call_month_july": "July",
+  "call_month_august": "August",
+  "call_month_september": "September",
+  "call_month_october": "October",
+  "call_month_november": "November",
+  "call_month_december": "December",
+  "push_incoming_call": "Incoming call",
+  "push_incoming_video_call": "Incoming video call",
+  "push_new_message": "New message",
+  "push_channel_calls": "Calls",
+  "push_channel_messages": "Messages",
+  "contacts_years_one": "{count} year",
+  "@contacts_years_one": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_few": "{count} years",
+  "@contacts_years_few": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_many": "{count} years",
+  "@contacts_years_many": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_other": "{count} years",
+  "@contacts_years_other": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "durak_entry_single_game": "Single game",
+  "durak_entry_finish_game_tooltip": "Finish game",
+  "durak_entry_tournament_games_dialog_title": "How many games in tournament?",
+  "durak_entry_cancel": "Cancel",
+  "durak_entry_create": "Create",
+  "video_editor_load_failed": "Failed to load video: {error}",
+  "@video_editor_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_process_failed": "Failed to process video: {error}",
+  "@video_editor_process_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_duration": "Duration: {duration}",
+  "@video_editor_duration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "video_editor_brush": "Brush",
+  "video_editor_caption_hint": "Add caption...",
+  "share_location_title": "Share location",
+  "share_location_how": "Sharing method",
+  "share_location_cancel": "Cancel",
+  "share_location_send": "Send",
+  "photo_source_gallery": "Gallery",
+  "photo_source_take_photo": "Take photo",
+  "photo_source_record_video": "Record video",
+  "video_attachment_media_kind": "video",
+  "video_attachment_title": "Video",
+  "video_attachment_playback_error": "Unable to play video. Check the link and network connection.",
+  "location_card_broadcast_ended_mine": "Location broadcast ended. The other person can no longer see your current location.",
+  "location_card_broadcast_ended_other": "This contact's location broadcast has ended. Current position is unavailable.",
+  "location_card_title": "Location",
+  "location_card_accuracy": "±{meters} m",
+  "@location_card_accuracy": {
+    "placeholders": {
+      "meters": {}
+    }
+  },
+  "link_webview_copy_tooltip": "Copy link",
+  "link_webview_copied_snackbar": "Link copied",
+  "link_webview_open_browser_tooltip": "Open in browser",
+  "hold_record_pause": "Paused",
+  "hold_record_release_cancel": "Release to cancel",
+  "hold_record_slide_hints": "Slide left — cancel · Up — pause",
+  "e2ee_badge_loading": "Loading fingerprint…",
+  "e2ee_badge_error": "Failed to get fingerprint: {error}",
+  "@e2ee_badge_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_badge_label": "E2EE Fingerprint",
+  "e2ee_badge_label_with_user": "E2EE Fingerprint • {user}",
+  "@e2ee_badge_label_with_user": {
+    "placeholders": {
+      "user": {}
+    }
+  },
+  "e2ee_badge_devices": "{count} dev.",
+  "@e2ee_badge_devices": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "composer_link_cancel": "Cancel",
+  "message_search_results_count": "SEARCH RESULTS: {count}",
+  "@message_search_results_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "message_search_not_found": "NOTHING FOUND",
+  "message_search_participant_fallback": "Participant",
+  "wallpaper_purple": "Purple",
+  "wallpaper_pink": "Pink",
+  "wallpaper_blue": "Blue",
+  "wallpaper_green": "Green",
+  "wallpaper_sunset": "Sunset",
+  "wallpaper_tender": "Tender",
+  "wallpaper_lime": "Lime",
+  "wallpaper_graphite": "Graphite",
+  "avatar_crop_title": "Adjust avatar",
+  "avatar_crop_hint": "Drag and zoom — the circle will appear in lists and messages; the full frame stays for the profile.",
+  "avatar_crop_cancel": "Cancel",
+  "avatar_crop_reset": "Reset",
+  "avatar_crop_save": "Save",
+  "meeting_entry_connecting": "Connecting to meeting…",
+  "meeting_entry_auth_failed": "Failed to sign in: {error}",
+  "@meeting_entry_auth_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_entry_participant_fallback": "Participant",
+  "meeting_entry_back": "Back",
+  "meeting_chat_copy": "Copy",
+  "meeting_chat_edit": "Edit",
+  "meeting_chat_delete": "Delete",
+  "meeting_chat_deleted": "Message deleted",
+  "meeting_chat_edited_mark": "• edited"
 }

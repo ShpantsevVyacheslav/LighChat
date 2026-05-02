@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Выбор источника после пункта «Фото и видео»: галерея / камера / видео.
 Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
   return showModalBottomSheet<String>(
@@ -9,6 +11,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.45),
     builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
       final fg = Colors.white.withValues(alpha: 0.92);
       return SafeArea(
         child: Padding(

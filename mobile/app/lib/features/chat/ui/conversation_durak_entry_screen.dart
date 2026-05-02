@@ -32,7 +32,7 @@ class ConversationDurakEntryScreen extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      _toast(context, friendlyGamesCallableError(e));
+      _toast(context, friendlyGamesCallableError(e, AppLocalizations.of(context)!));
     }
   }
 
@@ -149,7 +149,7 @@ class ConversationDurakEntryScreen extends StatelessWidget {
                 children: [
                   _DurakActionTile(
                     icon: Icons.play_circle_outline_rounded,
-                    title: 'Одиночная партия',
+                    title: l10n.durak_entry_single_game,
                     subtitle: l10n.conversation_games_durak_subtitle,
                     onTap: () => unawaited(_openSingleGame(context)),
                   ),
@@ -177,7 +177,7 @@ class ConversationDurakEntryScreen extends StatelessWidget {
                           spacing: 8,
                           children: [
                             IconButton(
-                              tooltip: 'Завершить игру',
+                              tooltip: l10n.durak_entry_finish_game_tooltip,
                               onPressed: () =>
                                   unawaited(_finishGame(context, d.id)),
                               icon: const Icon(Icons.flag_rounded),
@@ -275,8 +275,9 @@ class _TournamentTotalGamesDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Сколько игр в турнире?'),
+      title: Text(l10n.durak_entry_tournament_games_dialog_title),
       content: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -304,11 +305,11 @@ class _TournamentTotalGamesDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Отмена'),
+          child: Text(l10n.durak_entry_cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_value),
-          child: const Text('Создать'),
+          child: Text(l10n.durak_entry_create),
         ),
       ],
     );

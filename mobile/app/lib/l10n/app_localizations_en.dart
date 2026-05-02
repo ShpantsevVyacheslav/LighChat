@@ -6434,4 +6434,416 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get google_complete_back => 'Back to sign in';
+
+  @override
+  String get game_error_defense_not_beat =>
+      'This card doesn\'t beat the attacking card';
+
+  @override
+  String get game_error_attacker_first => 'The attacker moves first';
+
+  @override
+  String get game_error_defender_no_attack =>
+      'The defender can\'t attack right now';
+
+  @override
+  String get game_error_not_allowed_throwin => 'You can\'t throw in this round';
+
+  @override
+  String get game_error_throwin_not_turn => 'Another player is throwing in now';
+
+  @override
+  String get game_error_rank_not_allowed =>
+      'You can only throw in a card of the same rank';
+
+  @override
+  String get game_error_cannot_throw_in => 'No more cards can be thrown in';
+
+  @override
+  String get game_error_card_not_in_hand =>
+      'This card is no longer in your hand';
+
+  @override
+  String get game_error_already_defended => 'This card is already defended';
+
+  @override
+  String get game_error_bad_attack_index =>
+      'Select an attacking card to defend against';
+
+  @override
+  String get game_error_only_defender => 'Another player is defending now';
+
+  @override
+  String get game_error_defender_taking =>
+      'The defender is already taking cards';
+
+  @override
+  String get game_error_game_not_active => 'The game is no longer active';
+
+  @override
+  String get game_error_not_in_lobby => 'The lobby has already started';
+
+  @override
+  String get game_error_game_already_active => 'The game has already started';
+
+  @override
+  String get game_error_active_exists =>
+      'There is already an active game in this chat';
+
+  @override
+  String get game_error_round_pending => 'Finish the contested move first';
+
+  @override
+  String get game_error_rematch_failed =>
+      'Failed to prepare rematch. Try again';
+
+  @override
+  String get game_error_unauthenticated => 'You need to sign in';
+
+  @override
+  String get game_error_permission_denied =>
+      'This action is not available to you';
+
+  @override
+  String get game_error_invalid_argument => 'Invalid move';
+
+  @override
+  String get game_error_precondition => 'Move is not available right now';
+
+  @override
+  String get game_error_server => 'Failed to make move. Try again';
+
+  @override
+  String get reply_sticker => 'Sticker';
+
+  @override
+  String get reply_gif => 'GIF';
+
+  @override
+  String get reply_video_circle => 'Video circle';
+
+  @override
+  String get reply_voice_message => 'Voice message';
+
+  @override
+  String get reply_video => 'Video';
+
+  @override
+  String get reply_photo => 'Photo';
+
+  @override
+  String get reply_file => 'File';
+
+  @override
+  String get reply_location => 'Location';
+
+  @override
+  String get reply_poll => 'Poll';
+
+  @override
+  String get reply_link => 'Link';
+
+  @override
+  String get reply_message => 'Message';
+
+  @override
+  String get reply_sender_you => 'You';
+
+  @override
+  String get reply_sender_member => 'Member';
+
+  @override
+  String get call_format_today => 'Today';
+
+  @override
+  String get call_format_yesterday => 'Yesterday';
+
+  @override
+  String get call_format_second_short => 's';
+
+  @override
+  String get call_format_minute_short => 'm';
+
+  @override
+  String get call_format_hour_short => 'h';
+
+  @override
+  String get call_format_day_short => 'd';
+
+  @override
+  String get call_month_january => 'January';
+
+  @override
+  String get call_month_february => 'February';
+
+  @override
+  String get call_month_march => 'March';
+
+  @override
+  String get call_month_april => 'April';
+
+  @override
+  String get call_month_may => 'May';
+
+  @override
+  String get call_month_june => 'June';
+
+  @override
+  String get call_month_july => 'July';
+
+  @override
+  String get call_month_august => 'August';
+
+  @override
+  String get call_month_september => 'September';
+
+  @override
+  String get call_month_october => 'October';
+
+  @override
+  String get call_month_november => 'November';
+
+  @override
+  String get call_month_december => 'December';
+
+  @override
+  String get push_incoming_call => 'Incoming call';
+
+  @override
+  String get push_incoming_video_call => 'Incoming video call';
+
+  @override
+  String get push_new_message => 'New message';
+
+  @override
+  String get push_channel_calls => 'Calls';
+
+  @override
+  String get push_channel_messages => 'Messages';
+
+  @override
+  String contacts_years_one(Object count) {
+    return '$count year';
+  }
+
+  @override
+  String contacts_years_few(Object count) {
+    return '$count years';
+  }
+
+  @override
+  String contacts_years_many(Object count) {
+    return '$count years';
+  }
+
+  @override
+  String contacts_years_other(Object count) {
+    return '$count years';
+  }
+
+  @override
+  String get durak_entry_single_game => 'Single game';
+
+  @override
+  String get durak_entry_finish_game_tooltip => 'Finish game';
+
+  @override
+  String get durak_entry_tournament_games_dialog_title =>
+      'How many games in tournament?';
+
+  @override
+  String get durak_entry_cancel => 'Cancel';
+
+  @override
+  String get durak_entry_create => 'Create';
+
+  @override
+  String video_editor_load_failed(Object error) {
+    return 'Failed to load video: $error';
+  }
+
+  @override
+  String video_editor_process_failed(Object error) {
+    return 'Failed to process video: $error';
+  }
+
+  @override
+  String video_editor_duration(Object duration) {
+    return 'Duration: $duration';
+  }
+
+  @override
+  String get video_editor_brush => 'Brush';
+
+  @override
+  String get video_editor_caption_hint => 'Add caption...';
+
+  @override
+  String get share_location_title => 'Share location';
+
+  @override
+  String get share_location_how => 'Sharing method';
+
+  @override
+  String get share_location_cancel => 'Cancel';
+
+  @override
+  String get share_location_send => 'Send';
+
+  @override
+  String get photo_source_gallery => 'Gallery';
+
+  @override
+  String get photo_source_take_photo => 'Take photo';
+
+  @override
+  String get photo_source_record_video => 'Record video';
+
+  @override
+  String get video_attachment_media_kind => 'video';
+
+  @override
+  String get video_attachment_title => 'Video';
+
+  @override
+  String get video_attachment_playback_error =>
+      'Unable to play video. Check the link and network connection.';
+
+  @override
+  String get location_card_broadcast_ended_mine =>
+      'Location broadcast ended. The other person can no longer see your current location.';
+
+  @override
+  String get location_card_broadcast_ended_other =>
+      'This contact\'s location broadcast has ended. Current position is unavailable.';
+
+  @override
+  String get location_card_title => 'Location';
+
+  @override
+  String location_card_accuracy(Object meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get link_webview_copy_tooltip => 'Copy link';
+
+  @override
+  String get link_webview_copied_snackbar => 'Link copied';
+
+  @override
+  String get link_webview_open_browser_tooltip => 'Open in browser';
+
+  @override
+  String get hold_record_pause => 'Paused';
+
+  @override
+  String get hold_record_release_cancel => 'Release to cancel';
+
+  @override
+  String get hold_record_slide_hints => 'Slide left — cancel · Up — pause';
+
+  @override
+  String get e2ee_badge_loading => 'Loading fingerprint…';
+
+  @override
+  String e2ee_badge_error(Object error) {
+    return 'Failed to get fingerprint: $error';
+  }
+
+  @override
+  String get e2ee_badge_label => 'E2EE Fingerprint';
+
+  @override
+  String e2ee_badge_label_with_user(Object user) {
+    return 'E2EE Fingerprint • $user';
+  }
+
+  @override
+  String e2ee_badge_devices(Object count) {
+    return '$count dev.';
+  }
+
+  @override
+  String get composer_link_cancel => 'Cancel';
+
+  @override
+  String message_search_results_count(Object count) {
+    return 'SEARCH RESULTS: $count';
+  }
+
+  @override
+  String get message_search_not_found => 'NOTHING FOUND';
+
+  @override
+  String get message_search_participant_fallback => 'Participant';
+
+  @override
+  String get wallpaper_purple => 'Purple';
+
+  @override
+  String get wallpaper_pink => 'Pink';
+
+  @override
+  String get wallpaper_blue => 'Blue';
+
+  @override
+  String get wallpaper_green => 'Green';
+
+  @override
+  String get wallpaper_sunset => 'Sunset';
+
+  @override
+  String get wallpaper_tender => 'Tender';
+
+  @override
+  String get wallpaper_lime => 'Lime';
+
+  @override
+  String get wallpaper_graphite => 'Graphite';
+
+  @override
+  String get avatar_crop_title => 'Adjust avatar';
+
+  @override
+  String get avatar_crop_hint =>
+      'Drag and zoom — the circle will appear in lists and messages; the full frame stays for the profile.';
+
+  @override
+  String get avatar_crop_cancel => 'Cancel';
+
+  @override
+  String get avatar_crop_reset => 'Reset';
+
+  @override
+  String get avatar_crop_save => 'Save';
+
+  @override
+  String get meeting_entry_connecting => 'Connecting to meeting…';
+
+  @override
+  String meeting_entry_auth_failed(Object error) {
+    return 'Failed to sign in: $error';
+  }
+
+  @override
+  String get meeting_entry_participant_fallback => 'Participant';
+
+  @override
+  String get meeting_entry_back => 'Back';
+
+  @override
+  String get meeting_chat_copy => 'Copy';
+
+  @override
+  String get meeting_chat_edit => 'Edit';
+
+  @override
+  String get meeting_chat_delete => 'Delete';
+
+  @override
+  String get meeting_chat_deleted => 'Message deleted';
+
+  @override
+  String get meeting_chat_edited_mark => '• edited';
 }

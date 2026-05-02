@@ -349,6 +349,7 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                                       final createdLocal = call.createdAt
                                           .toLocal();
                                       final subtitle = formatCallListSubtitle(
+                                      l10n: AppLocalizations.of(context)!,
                                         createdLocal: createdLocal,
                                         startedAt: call.startedAt?.toLocal(),
                                         endedAt: call.endedAt?.toLocal(),

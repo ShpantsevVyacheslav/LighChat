@@ -184,13 +184,14 @@ class ChatCallDetailScreen extends ConsumerWidget {
             final muted = fg.withValues(alpha: 0.62);
 
             final createdLocal = rawCall.createdAt.toLocal();
-            final dateLabel = formatCallDetailDateRu(createdLocal);
+            final dateLabel = formatCallDetailDateRu(createdLocal, AppLocalizations.of(context)!);
             final durationLabel =
                 rawCall.startedAt != null &&
                     rawCall.endedAt != null &&
                     rawCall.endedAt!.isAfter(rawCall.startedAt!)
                 ? formatCallDurationSeconds(
                     rawCall.endedAt!.difference(rawCall.startedAt!).inSeconds,
+                    AppLocalizations.of(context)!,
                   )
                 : null;
 

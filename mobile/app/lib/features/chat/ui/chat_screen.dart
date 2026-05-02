@@ -1733,7 +1733,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               _editingPreviewPlain =
                                                                   null;
                                                               _replyingTo = buildReplyPreview(
-                                                                message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
                                                                 currentUserId:
                                                                     user.uid,
                                                                 isGroup:
@@ -3013,7 +3014,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               _editingMessageId = null;
               _editingPreviewPlain = null;
               _replyingTo = buildReplyPreview(
-                message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
                 currentUserId: user.uid,
                 isGroup: isGroup,
                 otherUserId: dmOtherId,
@@ -3182,7 +3184,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     final entry = buildPinnedMessageFromChatMessage(
-      message: m,
+          l10n: AppLocalizations.of(context)!,
+          message: m,
       currentUserId: user.uid,
       isGroup: isGroup,
       otherUserId: otherId,
@@ -3338,7 +3341,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _editingMessageId = null;
           _editingPreviewPlain = null;
           _replyingTo = buildReplyPreview(
-            message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
             currentUserId: user.uid,
             isGroup: isGroup,
             otherUserId: otherId,

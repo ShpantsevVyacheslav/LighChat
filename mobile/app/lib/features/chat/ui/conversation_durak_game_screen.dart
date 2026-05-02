@@ -225,7 +225,7 @@ class _ConversationDurakGameScreenState
         );
         if (opened) return;
       }
-      _toast(friendlyGamesCallableError(e));
+      _toast(friendlyGamesCallableError(e, AppLocalizations.of(context)!));
     } finally {
       if (mounted) setState(() => _isRematchBusy = false);
     }
@@ -295,7 +295,7 @@ class _ConversationDurakGameScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      _toast(friendlyGamesCallableError(e));
+      _toast(friendlyGamesCallableError(e, AppLocalizations.of(context)!));
     } finally {
       if (mounted) setState(() => _isRematchBusy = false);
     }
@@ -505,7 +505,7 @@ class _ConversationDurakGameScreenState
       if (optimisticCard != null) {
         setState(() => _pendingMove = null);
       }
-      _toast(friendlyGamesCallableError(e));
+      _toast(friendlyGamesCallableError(e, AppLocalizations.of(context)!));
     } finally {
       if (mounted) setState(() => _actionInFlight = false);
     }

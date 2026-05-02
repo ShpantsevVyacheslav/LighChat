@@ -3,6 +3,7 @@
 import 'dart:io' show Platform;
 
 import 'package:cloud_functions/cloud_functions.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'package:lighchat_firebase/src/firebase_callable_http.dart';
@@ -245,7 +246,7 @@ class GamesCallables {
   }
 }
 
-String friendlyGamesCallableError(Object error) {
+String friendlyGamesCallableError(Object error, AppLocalizations l10n) {
   String code = '';
   String message = error.toString();
   int? statusCode;
@@ -262,50 +263,50 @@ String friendlyGamesCallableError(Object error) {
   final marker = _extractRuleMarker(message);
   switch (marker) {
     case 'DEFENSE_DOES_NOT_BEAT':
-      return 'Эта карта не бьет атакующую';
+      return l10n.game_error_defense_not_beat;
     case 'ONLY_ATTACKER_CAN_ATTACK_FIRST':
-      return 'Первым ходит атакующий игрок';
+      return l10n.game_error_attacker_first;
     case 'DEFENDER_CANNOT_ATTACK':
-      return 'Отбивающийся сейчас не подкидывает';
+      return l10n.game_error_defender_no_attack;
     case 'NOT_ALLOWED_TO_THROWIN':
-      return 'Вы не можете подкинуть в этом раунде';
+      return l10n.game_error_not_allowed_throwin;
     case 'THROWIN_NOT_YOUR_TURN':
-      return 'Сейчас подкидывает другой игрок';
+      return l10n.game_error_throwin_not_turn;
     case 'RANK_NOT_ALLOWED':
-      return 'Подкинуть можно только карту того же ранга';
+      return l10n.game_error_rank_not_allowed;
     case 'CANNOT_THROW_IN':
-      return 'Больше карт подкинуть нельзя';
+      return l10n.game_error_cannot_throw_in;
     case 'CARD_NOT_IN_HAND':
-      return 'Этой карты уже нет в руке';
+      return l10n.game_error_card_not_in_hand;
     case 'ALREADY_DEFENDED':
-      return 'Эта карта уже отбита';
+      return l10n.game_error_already_defended;
     case 'BAD_ATTACK_INDEX':
-      return 'Выберите атакующую карту для защиты';
+      return l10n.game_error_bad_attack_index;
     case 'ONLY_DEFENDER_CAN_DEFEND':
-      return 'Сейчас отбивается другой игрок';
+      return l10n.game_error_only_defender;
     case 'DEFENDER_ALREADY_TAKING':
-      return 'Отбивающийся уже берет карты';
+      return l10n.game_error_defender_taking;
     case 'GAME_NOT_ACTIVE':
-      return 'Партия уже не активна';
+      return l10n.game_error_game_not_active;
     case 'NOT_IN_LOBBY':
-      return 'Лобби уже стартовало';
+      return l10n.game_error_not_in_lobby;
     case 'GAME_ALREADY_ACTIVE':
-      return 'Партия уже началась';
+      return l10n.game_error_game_already_active;
     case 'ACTIVE_GAME_ALREADY_EXISTS':
-      return 'В этом чате уже есть активная партия';
+      return l10n.game_error_active_exists;
     case 'ROUND_RESOLUTION_PENDING':
-      return 'Сначала завершите спорный ход';
+      return l10n.game_error_round_pending;
     case 'REMATCH_FAILED_RETRY':
-      return 'Не удалось подготовить реванш. Попробуйте еще раз';
+      return l10n.game_error_rematch_failed;
   }
 
-  if (code == 'unauthenticated') return 'Нужно войти в аккаунт';
-  if (code == 'permission-denied') return 'Это действие вам недоступно';
-  if (code == 'invalid-argument') return 'Некорректный ход';
-  if (code == 'failed-precondition') return 'Ход сейчас недоступен';
+  if (code == 'unauthenticated') return l10n.game_error_unauthenticated;
+  if (code == 'permission-denied') return l10n.game_error_permission_denied;
+  if (code == 'invalid-argument') return l10n.game_error_invalid_argument;
+  if (code == 'failed-precondition') return l10n.game_error_precondition;
   if (code == 'network' || code == 'timeout') return message;
   if (statusCode != null && statusCode >= 500) {
-    return 'Не удалось выполнить ход. Попробуйте еще раз';
+    return l10n.game_error_server;
   }
   return message;
 }

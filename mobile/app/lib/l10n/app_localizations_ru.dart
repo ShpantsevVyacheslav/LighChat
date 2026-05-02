@@ -6461,4 +6461,413 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get google_complete_back => 'Вернуться к авторизации';
+
+  @override
+  String get game_error_defense_not_beat => 'Эта карта не бьет атакующую';
+
+  @override
+  String get game_error_attacker_first => 'Первым ходит атакующий игрок';
+
+  @override
+  String get game_error_defender_no_attack =>
+      'Отбивающийся сейчас не подкидывает';
+
+  @override
+  String get game_error_not_allowed_throwin =>
+      'Вы не можете подкинуть в этом раунде';
+
+  @override
+  String get game_error_throwin_not_turn => 'Сейчас подкидывает другой игрок';
+
+  @override
+  String get game_error_rank_not_allowed =>
+      'Подкинуть можно только карту того же ранга';
+
+  @override
+  String get game_error_cannot_throw_in => 'Больше карт подкинуть нельзя';
+
+  @override
+  String get game_error_card_not_in_hand => 'Этой карты уже нет в руке';
+
+  @override
+  String get game_error_already_defended => 'Эта карта уже отбита';
+
+  @override
+  String get game_error_bad_attack_index =>
+      'Выберите атакующую карту для защиты';
+
+  @override
+  String get game_error_only_defender => 'Сейчас отбивается другой игрок';
+
+  @override
+  String get game_error_defender_taking => 'Отбивающийся уже берет карты';
+
+  @override
+  String get game_error_game_not_active => 'Партия уже не активна';
+
+  @override
+  String get game_error_not_in_lobby => 'Лобби уже стартовало';
+
+  @override
+  String get game_error_game_already_active => 'Партия уже началась';
+
+  @override
+  String get game_error_active_exists => 'В этом чате уже есть активная партия';
+
+  @override
+  String get game_error_round_pending => 'Сначала завершите спорный ход';
+
+  @override
+  String get game_error_rematch_failed =>
+      'Не удалось подготовить реванш. Попробуйте ��ще раз';
+
+  @override
+  String get game_error_unauthenticated => 'Нужно войти в аккаунт';
+
+  @override
+  String get game_error_permission_denied => 'Это действие вам недоступно';
+
+  @override
+  String get game_error_invalid_argument => 'Некорректный ход';
+
+  @override
+  String get game_error_precondition => 'Ход сейчас недоступен';
+
+  @override
+  String get game_error_server =>
+      'Не удалось выполнить ход. Попробуйте еще раз';
+
+  @override
+  String get reply_sticker => 'Стикер';
+
+  @override
+  String get reply_gif => 'GIF';
+
+  @override
+  String get reply_video_circle => 'Кружок';
+
+  @override
+  String get reply_voice_message => 'Голосовое сообщение';
+
+  @override
+  String get reply_video => 'Видео';
+
+  @override
+  String get reply_photo => 'Фотография';
+
+  @override
+  String get reply_file => 'Файл';
+
+  @override
+  String get reply_location => 'Локация';
+
+  @override
+  String get reply_poll => 'Опрос';
+
+  @override
+  String get reply_link => 'Ссылка';
+
+  @override
+  String get reply_message => 'Сообщение';
+
+  @override
+  String get reply_sender_you => 'Вы';
+
+  @override
+  String get reply_sender_member => 'Участник';
+
+  @override
+  String get call_format_today => 'Сегодня';
+
+  @override
+  String get call_format_yesterday => 'Вчера';
+
+  @override
+  String get call_format_second_short => 'с';
+
+  @override
+  String get call_format_minute_short => 'м';
+
+  @override
+  String get call_format_hour_short => 'ч';
+
+  @override
+  String get call_format_day_short => 'д';
+
+  @override
+  String get call_month_january => 'января';
+
+  @override
+  String get call_month_february => 'февраля';
+
+  @override
+  String get call_month_march => 'марта';
+
+  @override
+  String get call_month_april => 'апреля';
+
+  @override
+  String get call_month_may => 'мая';
+
+  @override
+  String get call_month_june => 'июня';
+
+  @override
+  String get call_month_july => 'июля';
+
+  @override
+  String get call_month_august => 'августа';
+
+  @override
+  String get call_month_september => 'сентября';
+
+  @override
+  String get call_month_october => 'октября';
+
+  @override
+  String get call_month_november => 'ноября';
+
+  @override
+  String get call_month_december => 'декабря';
+
+  @override
+  String get push_incoming_call => 'Входящий звонок';
+
+  @override
+  String get push_incoming_video_call => 'Входящий видеозвонок';
+
+  @override
+  String get push_new_message => 'Новое сообщение';
+
+  @override
+  String get push_channel_calls => 'Звонки';
+
+  @override
+  String get push_channel_messages => 'Сообщения';
+
+  @override
+  String contacts_years_one(Object count) {
+    return '$count год';
+  }
+
+  @override
+  String contacts_years_few(Object count) {
+    return '$count года';
+  }
+
+  @override
+  String contacts_years_many(Object count) {
+    return '$count лет';
+  }
+
+  @override
+  String contacts_years_other(Object count) {
+    return '$count years';
+  }
+
+  @override
+  String get durak_entry_single_game => 'Одиночная партия';
+
+  @override
+  String get durak_entry_finish_game_tooltip => 'Завершить игру';
+
+  @override
+  String get durak_entry_tournament_games_dialog_title =>
+      'Сколько игр в турнире?';
+
+  @override
+  String get durak_entry_cancel => 'Отмена';
+
+  @override
+  String get durak_entry_create => 'Создать';
+
+  @override
+  String video_editor_load_failed(Object error) {
+    return 'Не удалось загрузить видео: $error';
+  }
+
+  @override
+  String video_editor_process_failed(Object error) {
+    return 'Не удалось обработать видео: $error';
+  }
+
+  @override
+  String video_editor_duration(Object duration) {
+    return 'Длительность: $duration';
+  }
+
+  @override
+  String get video_editor_brush => 'Кисть';
+
+  @override
+  String get video_editor_caption_hint => 'Добавить подпись...';
+
+  @override
+  String get share_location_title => 'Поделиться геолокацией';
+
+  @override
+  String get share_location_how => 'Как делиться';
+
+  @override
+  String get share_location_cancel => 'Отмена';
+
+  @override
+  String get share_location_send => 'Отправить';
+
+  @override
+  String get photo_source_gallery => 'Галерея';
+
+  @override
+  String get photo_source_take_photo => 'Сделать фото';
+
+  @override
+  String get photo_source_record_video => 'Записать видео';
+
+  @override
+  String get video_attachment_media_kind => 'видео';
+
+  @override
+  String get video_attachment_title => 'Видео';
+
+  @override
+  String get video_attachment_playback_error =>
+      'Не удалось воспроизвести видео. Проверьте ссылку и сеть.';
+
+  @override
+  String get location_card_broadcast_ended_mine =>
+      'Трансляция геолокации завершена. Собеседник больше не видит ваше актуальное местоположение.';
+
+  @override
+  String get location_card_broadcast_ended_other =>
+      'Трансляция геолокации у этого контакта завершена. Актуальная позиция недоступна.';
+
+  @override
+  String get location_card_title => 'Местоположение';
+
+  @override
+  String location_card_accuracy(Object meters) {
+    return '±$meters м';
+  }
+
+  @override
+  String get link_webview_copy_tooltip => 'Скопировать ссылку';
+
+  @override
+  String get link_webview_copied_snackbar => 'Ссылка скопирована';
+
+  @override
+  String get link_webview_open_browser_tooltip => 'Открыть в браузере';
+
+  @override
+  String get hold_record_pause => 'Пауза';
+
+  @override
+  String get hold_record_release_cancel => 'Отпустите — отмена';
+
+  @override
+  String get hold_record_slide_hints => 'Влево — отмена · Вверх — пауза';
+
+  @override
+  String get e2ee_badge_loading => 'Загружаем отпечаток…';
+
+  @override
+  String e2ee_badge_error(Object error) {
+    return 'Не удалось получить отпечаток: $error';
+  }
+
+  @override
+  String get e2ee_badge_label => 'Отпечаток E2EE';
+
+  @override
+  String e2ee_badge_label_with_user(Object user) {
+    return 'Отпечаток E2EE • $user';
+  }
+
+  @override
+  String e2ee_badge_devices(Object count) {
+    return '$count устр.';
+  }
+
+  @override
+  String get composer_link_cancel => 'Отмена';
+
+  @override
+  String message_search_results_count(Object count) {
+    return 'РЕЗУЛЬТАТЫ ПОИСКА: $count';
+  }
+
+  @override
+  String get message_search_not_found => 'НИЧЕГО НЕ НАЙДЕНО';
+
+  @override
+  String get message_search_participant_fallback => 'Участник';
+
+  @override
+  String get wallpaper_purple => 'Фиолетовый';
+
+  @override
+  String get wallpaper_pink => 'Розовый';
+
+  @override
+  String get wallpaper_blue => 'Голубой';
+
+  @override
+  String get wallpaper_green => 'Зелёный';
+
+  @override
+  String get wallpaper_sunset => 'Закат';
+
+  @override
+  String get wallpaper_tender => 'Нежный';
+
+  @override
+  String get wallpaper_lime => 'Лайм';
+
+  @override
+  String get wallpaper_graphite => 'Графит';
+
+  @override
+  String get avatar_crop_title => 'Настройка аватара';
+
+  @override
+  String get avatar_crop_hint =>
+      'Перетащите и масштабируйте — так круг будет в списках и сообщениях; полный кадр остаётся для профиля.';
+
+  @override
+  String get avatar_crop_cancel => 'Отмена';
+
+  @override
+  String get avatar_crop_reset => 'Сбросить';
+
+  @override
+  String get avatar_crop_save => 'Сохранить';
+
+  @override
+  String get meeting_entry_connecting => 'Подключаемся к митингу…';
+
+  @override
+  String meeting_entry_auth_failed(Object error) {
+    return 'Не удалось войти: $error';
+  }
+
+  @override
+  String get meeting_entry_participant_fallback => 'Участник';
+
+  @override
+  String get meeting_entry_back => 'Назад';
+
+  @override
+  String get meeting_chat_copy => 'Копировать';
+
+  @override
+  String get meeting_chat_edit => 'Изменить';
+
+  @override
+  String get meeting_chat_delete => 'Удалить';
+
+  @override
+  String get meeting_chat_deleted => 'Сообщение удалено';
+
+  @override
+  String get meeting_chat_edited_mark => '• изм.';
 }

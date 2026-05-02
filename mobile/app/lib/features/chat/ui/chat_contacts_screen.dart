@@ -296,13 +296,13 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     if (locale.languageCode == 'ru') {
       final mod10 = years % 10;
       final mod100 = years % 100;
-      if (mod10 == 1 && mod100 != 11) return '$years год';
+      if (mod10 == 1 && mod100 != 11) return l10n.contacts_years_one(years);
       if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-        return '$years года';
+        return l10n.contacts_years_few(years);
       }
-      return '$years лет';
+      return l10n.contacts_years_many(years);
     }
-    return '$years ${years == 1 ? 'year' : 'years'}';
+    return l10n.contacts_years_other(years);
   }
 
   List<_ContactListEntry> _buildEntries(List<_ContactRowData> rows) {

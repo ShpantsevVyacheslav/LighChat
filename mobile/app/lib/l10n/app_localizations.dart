@@ -11395,6 +11395,750 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Вернуться к авторизации'**
   String get google_complete_back;
+
+  /// No description provided for @game_error_defense_not_beat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эта карта не бьет атакующую'**
+  String get game_error_defense_not_beat;
+
+  /// No description provided for @game_error_attacker_first.
+  ///
+  /// In ru, this message translates to:
+  /// **'Первым ходит атакующий игрок'**
+  String get game_error_attacker_first;
+
+  /// No description provided for @game_error_defender_no_attack.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отбивающийся сейчас не подкидывает'**
+  String get game_error_defender_no_attack;
+
+  /// No description provided for @game_error_not_allowed_throwin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы не можете подкинуть в этом раунде'**
+  String get game_error_not_allowed_throwin;
+
+  /// No description provided for @game_error_throwin_not_turn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас подкидывает другой игрок'**
+  String get game_error_throwin_not_turn;
+
+  /// No description provided for @game_error_rank_not_allowed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подкинуть можно только карту того же ранга'**
+  String get game_error_rank_not_allowed;
+
+  /// No description provided for @game_error_cannot_throw_in.
+  ///
+  /// In ru, this message translates to:
+  /// **'Больше карт подкинуть нельзя'**
+  String get game_error_cannot_throw_in;
+
+  /// No description provided for @game_error_card_not_in_hand.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этой карты уже нет в руке'**
+  String get game_error_card_not_in_hand;
+
+  /// No description provided for @game_error_already_defended.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эта карта уже отбита'**
+  String get game_error_already_defended;
+
+  /// No description provided for @game_error_bad_attack_index.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите атакующую карту для защиты'**
+  String get game_error_bad_attack_index;
+
+  /// No description provided for @game_error_only_defender.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас отбивается другой игрок'**
+  String get game_error_only_defender;
+
+  /// No description provided for @game_error_defender_taking.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отбивающийся уже берет карты'**
+  String get game_error_defender_taking;
+
+  /// No description provided for @game_error_game_not_active.
+  ///
+  /// In ru, this message translates to:
+  /// **'Партия уже не активна'**
+  String get game_error_game_not_active;
+
+  /// No description provided for @game_error_not_in_lobby.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лобби уже стартовало'**
+  String get game_error_not_in_lobby;
+
+  /// No description provided for @game_error_game_already_active.
+  ///
+  /// In ru, this message translates to:
+  /// **'Партия уже началась'**
+  String get game_error_game_already_active;
+
+  /// No description provided for @game_error_active_exists.
+  ///
+  /// In ru, this message translates to:
+  /// **'В этом чате уже есть активная партия'**
+  String get game_error_active_exists;
+
+  /// No description provided for @game_error_round_pending.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала завершите спорный ход'**
+  String get game_error_round_pending;
+
+  /// No description provided for @game_error_rematch_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось подготовить реванш. Попробуйте ��ще раз'**
+  String get game_error_rematch_failed;
+
+  /// No description provided for @game_error_unauthenticated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нужно войти в аккаунт'**
+  String get game_error_unauthenticated;
+
+  /// No description provided for @game_error_permission_denied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это действие вам недоступно'**
+  String get game_error_permission_denied;
+
+  /// No description provided for @game_error_invalid_argument.
+  ///
+  /// In ru, this message translates to:
+  /// **'Некорректный ход'**
+  String get game_error_invalid_argument;
+
+  /// No description provided for @game_error_precondition.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ход сейчас недоступен'**
+  String get game_error_precondition;
+
+  /// No description provided for @game_error_server.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось выполнить ход. Попробуйте еще раз'**
+  String get game_error_server;
+
+  /// No description provided for @reply_sticker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стикер'**
+  String get reply_sticker;
+
+  /// No description provided for @reply_gif.
+  ///
+  /// In ru, this message translates to:
+  /// **'GIF'**
+  String get reply_gif;
+
+  /// No description provided for @reply_video_circle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кружок'**
+  String get reply_video_circle;
+
+  /// No description provided for @reply_voice_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голосовое сообщение'**
+  String get reply_voice_message;
+
+  /// No description provided for @reply_video.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео'**
+  String get reply_video;
+
+  /// No description provided for @reply_photo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фотография'**
+  String get reply_photo;
+
+  /// No description provided for @reply_file.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файл'**
+  String get reply_file;
+
+  /// No description provided for @reply_location.
+  ///
+  /// In ru, this message translates to:
+  /// **'Локация'**
+  String get reply_location;
+
+  /// No description provided for @reply_poll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опрос'**
+  String get reply_poll;
+
+  /// No description provided for @reply_link.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ссылка'**
+  String get reply_link;
+
+  /// No description provided for @reply_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get reply_message;
+
+  /// No description provided for @reply_sender_you.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы'**
+  String get reply_sender_you;
+
+  /// No description provided for @reply_sender_member.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get reply_sender_member;
+
+  /// No description provided for @call_format_today.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня'**
+  String get call_format_today;
+
+  /// No description provided for @call_format_yesterday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вчера'**
+  String get call_format_yesterday;
+
+  /// No description provided for @call_format_second_short.
+  ///
+  /// In ru, this message translates to:
+  /// **'с'**
+  String get call_format_second_short;
+
+  /// No description provided for @call_format_minute_short.
+  ///
+  /// In ru, this message translates to:
+  /// **'м'**
+  String get call_format_minute_short;
+
+  /// No description provided for @call_format_hour_short.
+  ///
+  /// In ru, this message translates to:
+  /// **'ч'**
+  String get call_format_hour_short;
+
+  /// No description provided for @call_format_day_short.
+  ///
+  /// In ru, this message translates to:
+  /// **'д'**
+  String get call_format_day_short;
+
+  /// No description provided for @call_month_january.
+  ///
+  /// In ru, this message translates to:
+  /// **'января'**
+  String get call_month_january;
+
+  /// No description provided for @call_month_february.
+  ///
+  /// In ru, this message translates to:
+  /// **'февраля'**
+  String get call_month_february;
+
+  /// No description provided for @call_month_march.
+  ///
+  /// In ru, this message translates to:
+  /// **'марта'**
+  String get call_month_march;
+
+  /// No description provided for @call_month_april.
+  ///
+  /// In ru, this message translates to:
+  /// **'апреля'**
+  String get call_month_april;
+
+  /// No description provided for @call_month_may.
+  ///
+  /// In ru, this message translates to:
+  /// **'мая'**
+  String get call_month_may;
+
+  /// No description provided for @call_month_june.
+  ///
+  /// In ru, this message translates to:
+  /// **'июня'**
+  String get call_month_june;
+
+  /// No description provided for @call_month_july.
+  ///
+  /// In ru, this message translates to:
+  /// **'июля'**
+  String get call_month_july;
+
+  /// No description provided for @call_month_august.
+  ///
+  /// In ru, this message translates to:
+  /// **'августа'**
+  String get call_month_august;
+
+  /// No description provided for @call_month_september.
+  ///
+  /// In ru, this message translates to:
+  /// **'сентября'**
+  String get call_month_september;
+
+  /// No description provided for @call_month_october.
+  ///
+  /// In ru, this message translates to:
+  /// **'октября'**
+  String get call_month_october;
+
+  /// No description provided for @call_month_november.
+  ///
+  /// In ru, this message translates to:
+  /// **'ноября'**
+  String get call_month_november;
+
+  /// No description provided for @call_month_december.
+  ///
+  /// In ru, this message translates to:
+  /// **'декабря'**
+  String get call_month_december;
+
+  /// No description provided for @push_incoming_call.
+  ///
+  /// In ru, this message translates to:
+  /// **'Входящий звонок'**
+  String get push_incoming_call;
+
+  /// No description provided for @push_incoming_video_call.
+  ///
+  /// In ru, this message translates to:
+  /// **'Входящий видеозвонок'**
+  String get push_incoming_video_call;
+
+  /// No description provided for @push_new_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новое сообщение'**
+  String get push_new_message;
+
+  /// No description provided for @push_channel_calls.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонки'**
+  String get push_channel_calls;
+
+  /// No description provided for @push_channel_messages.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения'**
+  String get push_channel_messages;
+
+  /// No description provided for @contacts_years_one.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} год'**
+  String contacts_years_one(Object count);
+
+  /// No description provided for @contacts_years_few.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} года'**
+  String contacts_years_few(Object count);
+
+  /// No description provided for @contacts_years_many.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} лет'**
+  String contacts_years_many(Object count);
+
+  /// No description provided for @contacts_years_other.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} years'**
+  String contacts_years_other(Object count);
+
+  /// No description provided for @durak_entry_single_game.
+  ///
+  /// In ru, this message translates to:
+  /// **'Одиночная партия'**
+  String get durak_entry_single_game;
+
+  /// No description provided for @durak_entry_finish_game_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершить игру'**
+  String get durak_entry_finish_game_tooltip;
+
+  /// No description provided for @durak_entry_tournament_games_dialog_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько игр в турнире?'**
+  String get durak_entry_tournament_games_dialog_title;
+
+  /// No description provided for @durak_entry_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get durak_entry_cancel;
+
+  /// No description provided for @durak_entry_create.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать'**
+  String get durak_entry_create;
+
+  /// No description provided for @video_editor_load_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить видео: {error}'**
+  String video_editor_load_failed(Object error);
+
+  /// No description provided for @video_editor_process_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось обработать видео: {error}'**
+  String video_editor_process_failed(Object error);
+
+  /// No description provided for @video_editor_duration.
+  ///
+  /// In ru, this message translates to:
+  /// **'Длительность: {duration}'**
+  String video_editor_duration(Object duration);
+
+  /// No description provided for @video_editor_brush.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кисть'**
+  String get video_editor_brush;
+
+  /// No description provided for @video_editor_caption_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить подпись...'**
+  String get video_editor_caption_hint;
+
+  /// No description provided for @share_location_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделиться геолокацией'**
+  String get share_location_title;
+
+  /// No description provided for @share_location_how.
+  ///
+  /// In ru, this message translates to:
+  /// **'Как делиться'**
+  String get share_location_how;
+
+  /// No description provided for @share_location_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get share_location_cancel;
+
+  /// No description provided for @share_location_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get share_location_send;
+
+  /// No description provided for @photo_source_gallery.
+  ///
+  /// In ru, this message translates to:
+  /// **'Галерея'**
+  String get photo_source_gallery;
+
+  /// No description provided for @photo_source_take_photo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сделать фото'**
+  String get photo_source_take_photo;
+
+  /// No description provided for @photo_source_record_video.
+  ///
+  /// In ru, this message translates to:
+  /// **'Записать видео'**
+  String get photo_source_record_video;
+
+  /// No description provided for @video_attachment_media_kind.
+  ///
+  /// In ru, this message translates to:
+  /// **'видео'**
+  String get video_attachment_media_kind;
+
+  /// No description provided for @video_attachment_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео'**
+  String get video_attachment_title;
+
+  /// No description provided for @video_attachment_playback_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось воспроизвести видео. Проверьте ссылку и сеть.'**
+  String get video_attachment_playback_error;
+
+  /// No description provided for @location_card_broadcast_ended_mine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Трансляция геолокации завершена. Собеседник больше не видит ваше актуальное местоположение.'**
+  String get location_card_broadcast_ended_mine;
+
+  /// No description provided for @location_card_broadcast_ended_other.
+  ///
+  /// In ru, this message translates to:
+  /// **'Трансляция геолокации у этого контакта завершена. Актуальная позиция недоступна.'**
+  String get location_card_broadcast_ended_other;
+
+  /// No description provided for @location_card_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Местоположение'**
+  String get location_card_title;
+
+  /// No description provided for @location_card_accuracy.
+  ///
+  /// In ru, this message translates to:
+  /// **'±{meters} м'**
+  String location_card_accuracy(Object meters);
+
+  /// No description provided for @link_webview_copy_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скопировать ссылку'**
+  String get link_webview_copy_tooltip;
+
+  /// No description provided for @link_webview_copied_snackbar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ссылка скопирована'**
+  String get link_webview_copied_snackbar;
+
+  /// No description provided for @link_webview_open_browser_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть в браузере'**
+  String get link_webview_open_browser_tooltip;
+
+  /// No description provided for @hold_record_pause.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пауза'**
+  String get hold_record_pause;
+
+  /// No description provided for @hold_record_release_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отпустите — отмена'**
+  String get hold_record_release_cancel;
+
+  /// No description provided for @hold_record_slide_hints.
+  ///
+  /// In ru, this message translates to:
+  /// **'Влево — отмена · Вверх — пауза'**
+  String get hold_record_slide_hints;
+
+  /// No description provided for @e2ee_badge_loading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загружаем отпечаток…'**
+  String get e2ee_badge_loading;
+
+  /// No description provided for @e2ee_badge_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось получить отпечаток: {error}'**
+  String e2ee_badge_error(Object error);
+
+  /// No description provided for @e2ee_badge_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отпечаток E2EE'**
+  String get e2ee_badge_label;
+
+  /// No description provided for @e2ee_badge_label_with_user.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отпечаток E2EE • {user}'**
+  String e2ee_badge_label_with_user(Object user);
+
+  /// No description provided for @e2ee_badge_devices.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} устр.'**
+  String e2ee_badge_devices(Object count);
+
+  /// No description provided for @composer_link_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get composer_link_cancel;
+
+  /// No description provided for @message_search_results_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'РЕЗУЛЬТАТЫ ПОИСКА: {count}'**
+  String message_search_results_count(Object count);
+
+  /// No description provided for @message_search_not_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'НИЧЕГО НЕ НАЙДЕНО'**
+  String get message_search_not_found;
+
+  /// No description provided for @message_search_participant_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get message_search_participant_fallback;
+
+  /// No description provided for @wallpaper_purple.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фиолетовый'**
+  String get wallpaper_purple;
+
+  /// No description provided for @wallpaper_pink.
+  ///
+  /// In ru, this message translates to:
+  /// **'Розовый'**
+  String get wallpaper_pink;
+
+  /// No description provided for @wallpaper_blue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голубой'**
+  String get wallpaper_blue;
+
+  /// No description provided for @wallpaper_green.
+  ///
+  /// In ru, this message translates to:
+  /// **'Зелёный'**
+  String get wallpaper_green;
+
+  /// No description provided for @wallpaper_sunset.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закат'**
+  String get wallpaper_sunset;
+
+  /// No description provided for @wallpaper_tender.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нежный'**
+  String get wallpaper_tender;
+
+  /// No description provided for @wallpaper_lime.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лайм'**
+  String get wallpaper_lime;
+
+  /// No description provided for @wallpaper_graphite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Графит'**
+  String get wallpaper_graphite;
+
+  /// No description provided for @avatar_crop_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройка аватара'**
+  String get avatar_crop_title;
+
+  /// No description provided for @avatar_crop_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перетащите и масштабируйте — так круг будет в списках и сообщениях; полный кадр остаётся для профиля.'**
+  String get avatar_crop_hint;
+
+  /// No description provided for @avatar_crop_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get avatar_crop_cancel;
+
+  /// No description provided for @avatar_crop_reset.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сбросить'**
+  String get avatar_crop_reset;
+
+  /// No description provided for @avatar_crop_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get avatar_crop_save;
+
+  /// No description provided for @meeting_entry_connecting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключаемся к митингу…'**
+  String get meeting_entry_connecting;
+
+  /// No description provided for @meeting_entry_auth_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось войти: {error}'**
+  String meeting_entry_auth_failed(Object error);
+
+  /// No description provided for @meeting_entry_participant_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get meeting_entry_participant_fallback;
+
+  /// No description provided for @meeting_entry_back.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назад'**
+  String get meeting_entry_back;
+
+  /// No description provided for @meeting_chat_copy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Копировать'**
+  String get meeting_chat_copy;
+
+  /// No description provided for @meeting_chat_edit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить'**
+  String get meeting_chat_edit;
+
+  /// No description provided for @meeting_chat_delete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get meeting_chat_delete;
+
+  /// No description provided for @meeting_chat_deleted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение удалено'**
+  String get meeting_chat_deleted;
+
+  /// No description provided for @meeting_chat_edited_mark.
+  ///
+  /// In ru, this message translates to:
+  /// **'• изм.'**
+  String get meeting_chat_edited_mark;
 }
 
 class _AppLocalizationsDelegate

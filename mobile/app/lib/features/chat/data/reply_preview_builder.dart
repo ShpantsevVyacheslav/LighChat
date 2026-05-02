@@ -1,4 +1,5 @@
 import 'package:lighchat_models/lighchat_models.dart';
+import '../../../l10n/app_localizations.dart';
 
 import '../ui/message_html_text.dart';
 
@@ -7,6 +8,7 @@ ReplyContext buildReplyPreview({
   required ChatMessage message,
   required String currentUserId,
   required bool isGroup,
+  required AppLocalizations l10n,
   String? otherUserId,
   String? otherUserName,
 }) {
@@ -14,6 +16,7 @@ ReplyContext buildReplyPreview({
     message.senderId,
     currentUserId: currentUserId,
     isGroup: isGroup,
+    l10n: l10n,
     otherUserId: otherUserId,
     otherUserName: otherUserName,
   );
@@ -44,19 +47,19 @@ ReplyContext buildReplyPreview({
 
     if (text.isEmpty) {
       if (isSticker) {
-        text = 'Стикер';
+        text = l10n.reply_sticker;
       } else if (isGif) {
-        text = 'GIF';
+        text = l10n.reply_gif;
       } else if (isVideoCircle) {
-        text = 'Кружок';
+        text = l10n.reply_video_circle;
       } else if (isAudio) {
-        text = 'Голосовое сообщение';
+        text = l10n.reply_voice_message;
       } else if (isVideo) {
-        text = 'Видео';
+        text = l10n.reply_video;
       } else if (isImage) {
-        text = 'Фотография';
+        text = l10n.reply_photo;
       } else {
-        text = 'Файл';
+        text = l10n.reply_file;
       }
     }
 
@@ -81,12 +84,12 @@ ReplyContext buildReplyPreview({
   if (hasLocation) {
     mediaType ??= 'location';
     if (text.isEmpty) {
-      text = 'Локация';
+      text = l10n.reply_location;
     }
   }
 
   if (text.isEmpty && hasPoll) {
-    text = 'Опрос';
+    text = l10n.reply_poll;
   }
   if (hasPoll) {
     mediaType ??= 'poll';
@@ -100,11 +103,11 @@ ReplyContext buildReplyPreview({
   if (hasLink && mediaType == null) {
     mediaType = 'link';
     if (text.isEmpty) {
-      text = 'Ссылка';
+      text = l10n.reply_link;
     }
   }
 
-  if (text.isEmpty) text = 'Сообщение';
+  if (text.isEmpty) text = l10n.reply_message;
 
   return ReplyContext(
     messageId: message.id,
@@ -120,6 +123,7 @@ PinnedMessage buildPinnedMessageFromChatMessage({
   required ChatMessage message,
   required String currentUserId,
   required bool isGroup,
+  required AppLocalizations l10n,
   String? otherUserId,
   String? otherUserName,
 }) {
@@ -127,12 +131,13 @@ PinnedMessage buildPinnedMessageFromChatMessage({
     message: message,
     currentUserId: currentUserId,
     isGroup: isGroup,
+    l10n: l10n,
     otherUserId: otherUserId,
     otherUserName: otherUserName,
   );
   return PinnedMessage(
     messageId: message.id,
-    text: preview.text ?? 'Сообщение',
+    text: preview.text ?? l10n.reply_message,
     senderName: preview.senderName,
     senderId: message.senderId,
     mediaPreviewUrl: preview.mediaPreviewUrl,
@@ -145,10 +150,11 @@ String _resolveSenderName(
   String senderId, {
   required String currentUserId,
   required bool isGroup,
+  required AppLocalizations l10n,
   String? otherUserId,
   String? otherUserName,
 }) {
-  if (senderId == currentUserId) return 'Вы';
+  if (senderId == currentUserId) return l10n.reply_sender_you;
   if (!isGroup &&
       otherUserId != null &&
       otherUserId.isNotEmpty &&
@@ -156,5 +162,5 @@ String _resolveSenderName(
       (otherUserName ?? '').trim().isNotEmpty) {
     return otherUserName!.trim();
   }
-  return 'Участник';
+  return l10n.reply_sender_member;
 }
