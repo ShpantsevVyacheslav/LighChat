@@ -97,14 +97,14 @@ class DurakHandFan extends StatelessWidget {
 
         return SizedBox(
           width: w,
-          height: cardH + 24,
+          height: cardH + 4,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               for (var i = 0; i < n; i++)
                 Positioned(
                   left: startX + i * step,
-                  top: 6 + (i % 2 == 0 ? 0 : 2),
+                  bottom: i % 2 == 0 ? 0 : 2,
                   child: _HandFanCard(
                     key: ValueKey<String>('hc:${cardId(cards[i], i)}'),
                     card: cards[i],
