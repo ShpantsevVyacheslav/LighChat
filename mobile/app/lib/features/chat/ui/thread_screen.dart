@@ -133,6 +133,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   final _searchFocus = FocusNode();
   final Map<String, GlobalKey> _messageItemKeys = <String, GlobalKey>{};
   final Set<String> _sessionReadIds = <String>{};
+  final Map<String, DateTime> _pendingRetryAt = <String, DateTime>{};
   List<ChatMessage> _sortedAscCache = const <ChatMessage>[];
   List<ChatMessage> _hydratedThreadMsgsDescCache = const <ChatMessage>[];
   ChatMessage? _hydratedParentCache;
@@ -1660,41 +1661,96 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                 }
                                               },
                                               onMessageLongPress: (m) async {
-                                                if (m.id.startsWith(
+                                                final isOutboxFailed =
+                                                    m.id.startsWith(
+                                                          kLocalOutboxMessageIdPrefix,
+                                                        ) &&
+                                                    (m.deliveryStatus ?? '') ==
+                                                        'failed';
+                                                final isStale =
+                                                    !m.id.startsWith(
                                                       kLocalOutboxMessageIdPrefix,
                                                     ) &&
                                                     (m.deliveryStatus ?? '') ==
-                                                        'failed') {
-                                                  final result =
-                                                      await showOutboxFailedContextMenu(
-                                                        context,
-                                                        message: m,
-                                                      );
-                                                  if (!mounted ||
-                                                      result == null ||
-                                                      result.type ==
-                                                          MessageMenuActionType
-                                                              .dismissed) {
-                                                    return;
-                                                  }
-                                                  switch (result.type) {
-                                                    case MessageMenuActionType
-                                                          .outboxRetry:
+                                                        'sending' &&
+                                                    DateTime.now()
+                                                            .difference(
+                                                              _pendingRetryAt[m
+                                                                      .id] ??
+                                                                  m.createdAt,
+                                                            ) >=
+                                                        const Duration(
+                                                          seconds: 30,
+                                                        );
+                                                if (!isOutboxFailed &&
+                                                    !isStale) {
+                                                  return;
+                                                }
+                                                final result =
+                                                    await showOutboxFailedContextMenu(
+                                                      context,
+                                                      message: m,
+                                                    );
+                                                if (!mounted ||
+                                                    result == null ||
+                                                    result.type ==
+                                                        MessageMenuActionType
+                                                            .dismissed) {
+                                                  return;
+                                                }
+                                                switch (result.type) {
+                                                  case MessageMenuActionType
+                                                        .outboxRetry:
+                                                    if (isOutboxFailed) {
                                                       handleOutboxRetry(
                                                         ref,
                                                         m.id,
                                                       );
-                                                    case MessageMenuActionType
-                                                          .outboxCancel:
+                                                    } else {
+                                                      setState(() {
+                                                        _pendingRetryAt[m.id] =
+                                                            DateTime.now();
+                                                      });
+                                                    }
+                                                  case MessageMenuActionType
+                                                        .outboxCancel:
+                                                    if (isOutboxFailed) {
                                                       unawaited(
                                                         handleOutboxDismiss(
                                                           ref,
                                                           m.id,
                                                         ),
                                                       );
-                                                    default:
-                                                      break;
-                                                  }
+                                                    } else {
+                                                      _pendingRetryAt.remove(
+                                                        m.id,
+                                                      );
+                                                      unawaited(
+                                                        FirebaseFirestore
+                                                            .instance
+                                                            .collection(
+                                                              'conversations',
+                                                            )
+                                                            .doc(
+                                                              widget
+                                                                  .conversationId,
+                                                            )
+                                                            .collection(
+                                                              'messages',
+                                                            )
+                                                            .doc(
+                                                              widget
+                                                                  .parentMessageId,
+                                                            )
+                                                            .collection(
+                                                              'thread',
+                                                            )
+                                                            .doc(m.id)
+                                                            .delete(),
+                                                      );
+                                                    }
+                                                  default:
+                                                    break;
                                                 }
                                               },
                                               onOutboxRetry: (mid) {
@@ -1705,6 +1761,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                   handleOutboxDismiss(ref, mid),
                                                 );
                                               },
+                                              pendingRetryAt: _pendingRetryAt,
                                             );
                                           },
                                     ),
