@@ -15,14 +15,13 @@ import type {
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-import { ChatStickerGifPanel } from '@/components/chat/ChatStickerGifPanel';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { 
     SendHorizonal, Paperclip, X, Reply, Mic, StopCircle, Video, 
-    File as FileIcon, Trash2, Pencil, UserX, Loader2, Type, MapPin, BarChart3, SmilePlus, Ban
+    File as FileIcon, Trash2, Pencil, UserX, Loader2, Type, MapPin, BarChart3, Ban
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -32,7 +31,7 @@ import { FormattingToolbar } from './editor/FormattingToolbar';
 import { MessageEditor, replaceActiveMentionWithLabel } from './editor/MessageEditor';
 import { buildGroupMentionCandidates } from '@/lib/group-mention-utils';
 import { buildMentionBoundaryNameList } from '@/lib/mention-editor-query';
-import { MessageInputEmojiPicker } from '@/components/chat/MessageInputEmojiPicker';
+import { ComposerStickerGifPopover } from '@/components/chat/ComposerStickerGifPopover';
 import { GroupMentionSuggestionsPortal } from '@/components/chat/GroupMentionSuggestionsPortal';
 import { ImageEditorModal } from './ImageEditorModal';
 import { VideoEditorModal } from './VideoEditorModal';
@@ -113,7 +112,6 @@ const ChatMessageInputInner = (
     const [locationDialogOpen, setLocationDialogOpen] = useState(false);
     const [pollDialogOpen, setPollDialogOpen] = useState(false);
     const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-    const [attachmentSubview, setAttachmentSubview] = useState<'main' | 'sticker-gif'>('main');
 
     const draftKey = draftScopeKey ?? conversation.id;
 
@@ -515,7 +513,6 @@ const ChatMessageInputInner = (
     const handleStartVideoRecording = async () => {
         if (inputFrozen) return;
         setIsAttachmentMenuOpen(false);
-        setAttachmentSubview('main');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480 }, audio: true });
             videoStreamRef.current = stream;
@@ -831,10 +828,7 @@ const ChatMessageInputInner = (
                             )}>
                                     <Popover
                                         open={isAttachmentMenuOpen}
-                                        onOpenChange={(open) => {
-                                            setIsAttachmentMenuOpen(open);
-                                            if (!open) setAttachmentSubview('main');
-                                        }}
+                                        onOpenChange={setIsAttachmentMenuOpen}
                                     >
                                     <PopoverTrigger asChild>
                                       <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" disabled={inputFrozen}>
@@ -843,8 +837,7 @@ const ChatMessageInputInner = (
                                     </PopoverTrigger>
                                         <PopoverContent
                                             className={cn(
-                                                attachmentSubview === 'sticker-gif' ? 'w-[min(100vw-1.5rem,20rem)]' : 'w-64',
-                                                'p-2 rounded-2xl mb-1 text-popover-foreground',
+                                                'w-64 p-2 rounded-2xl mb-1 text-popover-foreground',
                                                 'border border-white/30 dark:border-white/15',
                                                 'bg-background/50 dark:bg-background/40 backdrop-blur-xl backdrop-saturate-150',
                                                 'shadow-[0_12px_40px_-8px_rgba(0,0,0,0.25)] dark:shadow-[0_12px_48px_-8px_rgba(0,0,0,0.65)]',
@@ -855,42 +848,13 @@ const ChatMessageInputInner = (
                                         >
                                         {showFormatting ? (
                                             <FormattingToolbar editor={editorInstance.current} onBack={() => setShowFormatting(false)} />
-                                            ) : attachmentSubview === 'sticker-gif' ? (
-                                                <div className="space-y-2">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="h-9 w-full justify-start rounded-xl text-xs font-bold uppercase tracking-wide text-muted-foreground"
-                                                        onClick={() => setAttachmentSubview('main')}
-                                                    >
-                                                        ← Меню вложений
-                                                    </Button>
-                                                    <ChatStickerGifPanel
-                                                        userId={currentUser.id}
-                                                        onPickStickerAttachment={(att) => {
-                                                            void onSendMessage(undefined, [], replyingTo, [att]);
-                                                            setIsAttachmentMenuOpen(false);
-                                                            setAttachmentSubview('main');
-                                                        }}
-                                                        onPickGifAttachment={(att) => {
-                                                            void onSendMessage(undefined, [], replyingTo, [att]);
-                                                            setIsAttachmentMenuOpen(false);
-                                                            setAttachmentSubview('main');
-                                                        }}
-                                                        onPickEmoji={(emoji) => {
-                                                            const ed = editorInstance.current;
-                                                            if (ed) ed.chain().focus().insertContent(emoji).run();
-                                                        }}
-                                                    />
-                                                </div>
                                         ) : (
                                             <div className="space-y-0.5">
                                                     <Button
                                                         variant="ghost"
                                                         onClick={() => {
                                                             setIsAttachmentMenuOpen(false);
-                                                            setAttachmentSubview('main');
-                                                            fileInputRef.current?.click();
+                                                                                                                fileInputRef.current?.click();
                                                         }}
                                                         className="w-full justify-start rounded-xl h-11"
                                                     >
@@ -928,16 +892,6 @@ const ChatMessageInputInner = (
                                                             Опрос
                                                         </Button>
                                                     )}
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        disabled={inputFrozen}
-                                                        onClick={() => setAttachmentSubview('sticker-gif')}
-                                                        className="w-full justify-start rounded-xl h-11"
-                                                    >
-                                                        <SmilePlus className="mr-3 h-4 w-4 opacity-70" />
-                                                        Стикеры и GIF
-                                                    </Button>
                                                 <Separator className="my-1" />
                                                 <Button variant="ghost" onClick={() => setShowFormatting(true)} className="w-full justify-start rounded-xl h-11"><Type className="mr-3 h-4 w-4" />Форматировать</Button>
                                             </div>
@@ -945,7 +899,17 @@ const ChatMessageInputInner = (
                                     </PopoverContent>
                                 </Popover>
                                 
-                                    <MessageInputEmojiPicker editorRef={editorInstance} disabled={inputFrozen} />
+                                    <ComposerStickerGifPopover
+                                        userId={currentUser.id}
+                                        editorRef={editorInstance}
+                                        disabled={inputFrozen}
+                                        onPickStickerAttachment={(att) => {
+                                            void onSendMessage(undefined, [], replyingTo, [att]);
+                                        }}
+                                        onPickGifAttachment={(att) => {
+                                            void onSendMessage(undefined, [], replyingTo, [att]);
+                                        }}
+                                    />
 
                                     <div ref={mentionAnchorRef} className="relative flex-1 min-w-0 min-h-0">
                                         <GroupMentionSuggestionsPortal
@@ -1012,8 +976,7 @@ const ChatMessageInputInner = (
                     const list = Array.from(e.target.files);
                     void ingestAttachmentFiles(list, false);
                     setIsAttachmentMenuOpen(false);
-                    setAttachmentSubview('main');
-                    e.target.value = '';
+                                e.target.value = '';
                 }}
             />
 
