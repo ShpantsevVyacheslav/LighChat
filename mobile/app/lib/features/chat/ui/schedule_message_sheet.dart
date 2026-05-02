@@ -35,8 +35,8 @@ Future<DateTime?> showScheduleMessageSheet({
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Material(
-              color: (dark ? const Color(0xFF0D1A24) : Colors.white).withValues(
-                alpha: dark ? 0.78 : 0.92,
+              color: (dark ? const Color(0xFF08111B) : Colors.white).withValues(
+                alpha: dark ? 0.86 : 0.92,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -199,7 +199,12 @@ class _ScheduleMessageSheetContentState
         ),
         Row(
           children: [
-            Icon(Icons.schedule_send_rounded, color: scheme.primary),
+            Icon(
+              Icons.schedule_send_rounded,
+              color: dark
+                  ? Colors.white.withValues(alpha: 0.72)
+                  : scheme.onSurface.withValues(alpha: 0.62),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -223,7 +228,6 @@ class _ScheduleMessageSheetContentState
                 label: p.label,
                 onTap: p.at == null ? null : () => _applyPreset(p.at!),
                 dark: dark,
-                primary: scheme.primary,
               ),
           ],
         ),
@@ -237,7 +241,6 @@ class _ScheduleMessageSheetContentState
                 value: dateFmt.format(_selected),
                 onTap: _pickDate,
                 dark: dark,
-                primary: scheme.primary,
               ),
             ),
             const SizedBox(width: 10),
@@ -248,7 +251,6 @@ class _ScheduleMessageSheetContentState
                 value: timeFmt.format(_selected),
                 onTap: _pickTime,
                 dark: dark,
-                primary: scheme.primary,
               ),
             ),
           ],
@@ -259,12 +261,12 @@ class _ScheduleMessageSheetContentState
           decoration: BoxDecoration(
             color: _isInPast
                 ? scheme.error.withValues(alpha: dark ? 0.22 : 0.14)
-                : scheme.primary.withValues(alpha: dark ? 0.22 : 0.12),
+                : const Color(0xFF2E86FF).withValues(alpha: dark ? 0.14 : 0.08),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _isInPast
                   ? scheme.error.withValues(alpha: 0.55)
-                  : scheme.primary.withValues(alpha: 0.45),
+                  : Colors.white.withValues(alpha: dark ? 0.12 : 0.26),
             ),
           ),
           child: Row(
@@ -274,7 +276,9 @@ class _ScheduleMessageSheetContentState
                     ? Icons.error_outline_rounded
                     : Icons.send_time_extension_rounded,
                 size: 18,
-                color: _isInPast ? scheme.error : scheme.primary,
+                color: _isInPast
+                    ? scheme.error
+                    : const Color(0xFF38A3FF),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -333,29 +337,34 @@ class _ScheduleMessageSheetContentState
               child: OutlinedButton(
                 onPressed: widget.onCancel,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: Colors.white.withValues(alpha: dark ? 0.20 : 0.32),
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(
+                    color: Colors.white.withValues(alpha: dark ? 0.18 : 0.32),
+                  ),
+                  backgroundColor:
+                      Colors.white.withValues(alpha: dark ? 0.03 : 0.50),
+                  foregroundColor: dark ? Colors.white : scheme.onSurface,
                 ),
-                child: Text(l10n.schedule_message_cancel),
+                child: Text(
+                  l10n.schedule_message_cancel,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: FilledButton.icon(
-                onPressed: _isInPast
-                    ? null
-                    : () => widget.onConfirm(_selected),
-                icon: const Icon(Icons.schedule_send_rounded, size: 18),
-                label: Text(
-                  widget.initialSendAt != null
-                      ? l10n.schedule_message_save
-                      : l10n.schedule_message_confirm,
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
+              child: _GradientSendButton(
+                enabled: !_isInPast,
+                onTap: () => widget.onConfirm(_selected),
+                label: widget.initialSendAt != null
+                    ? l10n.schedule_message_save
+                    : l10n.schedule_message_confirm,
               ),
             ),
           ],
@@ -370,13 +379,11 @@ class _PresetChip extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.dark,
-    required this.primary,
   });
 
   final String label;
   final VoidCallback? onTap;
   final bool dark;
-  final Color primary;
 
   @override
   Widget build(BuildContext context) {
@@ -392,11 +399,13 @@ class _PresetChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             color: disabled
                 ? Colors.transparent
-                : primary.withValues(alpha: dark ? 0.18 : 0.10),
+                : Colors.white.withValues(alpha: dark ? 0.06 : 0.08),
             border: Border.all(
-              color: disabled
-                  ? Colors.white.withValues(alpha: dark ? 0.10 : 0.20)
-                  : primary.withValues(alpha: 0.55),
+              color: Colors.white.withValues(
+                alpha: disabled
+                    ? (dark ? 0.08 : 0.18)
+                    : (dark ? 0.16 : 0.32),
+              ),
             ),
           ),
           child: Text(
@@ -406,9 +415,11 @@ class _PresetChip extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: disabled
                   ? (dark
-                        ? Colors.white.withValues(alpha: 0.40)
-                        : Colors.black.withValues(alpha: 0.36))
-                  : (dark ? Colors.white.withValues(alpha: 0.92) : primary),
+                        ? Colors.white.withValues(alpha: 0.36)
+                        : Colors.black.withValues(alpha: 0.32))
+                  : (dark
+                        ? Colors.white.withValues(alpha: 0.90)
+                        : Colors.black.withValues(alpha: 0.82)),
             ),
           ),
         ),
@@ -424,7 +435,6 @@ class _PickerTile extends StatelessWidget {
     required this.value,
     required this.onTap,
     required this.dark,
-    required this.primary,
   });
 
   final IconData icon;
@@ -432,7 +442,6 @@ class _PickerTile extends StatelessWidget {
   final String value;
   final VoidCallback onTap;
   final bool dark;
-  final Color primary;
 
   @override
   Widget build(BuildContext context) {
@@ -456,7 +465,7 @@ class _PickerTile extends StatelessWidget {
                 ? Colors.white.withValues(alpha: 0.04)
                 : Colors.black.withValues(alpha: 0.03),
             border: Border.all(
-              color: Colors.white.withValues(alpha: dark ? 0.14 : 0.26),
+              color: Colors.white.withValues(alpha: dark ? 0.12 : 0.26),
             ),
           ),
           child: Column(
@@ -475,7 +484,13 @@ class _PickerTile extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(icon, color: primary, size: 18),
+                  Icon(
+                    icon,
+                    color: dark
+                        ? Colors.white.withValues(alpha: 0.72)
+                        : scheme.onSurface.withValues(alpha: 0.62),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -490,6 +505,73 @@ class _PickerTile extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GradientSendButton extends StatelessWidget {
+  const _GradientSendButton({
+    required this.enabled,
+    required this.onTap,
+    required this.label,
+  });
+
+  final bool enabled;
+  final VoidCallback onTap;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: enabled
+              ? const [Color(0xFF2E86FF), Color(0xFF5F90FF), Color(0xFF9A18FF)]
+              : [
+                  Colors.white.withValues(alpha: 0.18),
+                  Colors.white.withValues(alpha: 0.18),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: SizedBox(
+        height: 50,
+        child: TextButton(
+          onPressed: enabled ? onTap : null,
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            foregroundColor: Colors.white,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.schedule_send_rounded,
+                size: 18,
+                color: enabled
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.40),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: enabled
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.40),
+                ),
               ),
             ],
           ),

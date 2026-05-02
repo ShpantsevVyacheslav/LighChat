@@ -349,7 +349,7 @@ class _ChatComposerState extends State<ChatComposer> {
                     filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: (dark ? const Color(0xFF0D1A24) : Colors.white)
+                        color: (dark ? const Color(0xFF08111B) : Colors.white)
                             .withValues(alpha: dark ? 0.86 : 0.95),
                         border: Border.all(
                           color: Colors.white.withValues(
@@ -382,7 +382,9 @@ class _ChatComposerState extends State<ChatComposer> {
                               Icon(
                                 Icons.schedule_send_rounded,
                                 size: 18,
-                                color: scheme.primary,
+                                color: dark
+                                    ? Colors.white.withValues(alpha: 0.72)
+                                    : scheme.onSurface.withValues(alpha: 0.62),
                               ),
                               const SizedBox(width: 10),
                               Text(
