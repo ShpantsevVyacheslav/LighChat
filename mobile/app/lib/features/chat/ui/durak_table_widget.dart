@@ -88,10 +88,10 @@ class DurakTableWidget extends StatelessWidget {
               border: Border.all(
                 color: active
                     ? const Color(0xFF6EE7B7).withValues(alpha: 0.85)
-                    : Colors.white.withValues(alpha: 0.12),
-                width: active ? 2 : 1,
+                    : Colors.transparent,
+                width: active ? 2 : 0,
               ),
-              color: Colors.white.withValues(alpha: active ? 0.08 : 0.015),
+              color: Colors.white.withValues(alpha: active ? 0.08 : 0),
             ),
             child: Center(
               child: Container(
@@ -344,142 +344,121 @@ class _DurakTablePair extends StatelessWidget {
           'p:$index:a:${rankLabel(attack)}${suitLabel(attack)}:d:${defense == null ? '—' : '${rankLabel(defense!)}${suitLabel(defense!)}'}',
         ),
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onSelect,
-          child: Container(
-            width: width,
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-            decoration: BoxDecoration(
+        child: DragTarget<Map<String, dynamic>>(
+          onWillAcceptWithDetails: (d) =>
+              defense == null && canAcceptDefense(d.data, index),
+          onAcceptWithDetails: (d) =>
+              unawaited(onDefenseDropped(index, d.data)),
+          builder: (context, candidate, rejected) {
+            final active = candidate.isNotEmpty;
+            return InkWell(
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.transparent),
-            ),
-            child: SizedBox(
-              height: 138,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  if (defense == null)
-                    Positioned(
-                      left: 48,
-                      top: 28,
-                      child: _DefenseDropSlot(
-                        keyForFlight: defenseKeyForFlight,
-                        index: index,
-                        defense: null,
-                        canAcceptDefense: canAcceptDefense,
-                        onDefenseDropped: onDefenseDropped,
-                        rankLabel: rankLabel,
-                        suitLabel: suitLabel,
-                        isRedSuit: isRedSuit,
-                      ),
-                    ),
-                  Positioned(
-                    left: 10,
-                    top: 0,
-                    child: Container(
-                      key: attackKeyForFlight,
-                      child: DurakCardWidget(
-                        rankLabel: rankLabel(attack),
-                        suitLabel: suitLabel(attack),
-                        isRed: isRedSuit((attack['s'] ?? '').toString()),
-                        faceUp: true,
-                        disabled: true,
-                      ),
-                    ),
+              onTap: onSelect,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeOut,
+                width: width,
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: Colors.white.withValues(alpha: active ? 0.06 : 0),
+                  border: Border.all(
+                    color: active
+                        ? const Color(0xFF6EE7B7).withValues(alpha: 0.85)
+                        : Colors.transparent,
+                    width: active ? 2 : 0,
                   ),
-                  if (defense != null)
-                    Positioned(
-                      left: 48,
-                      top: 28,
-                      child: _DefenseDropSlot(
-                        keyForFlight: defenseKeyForFlight,
-                        index: index,
-                        defense: defense,
-                        canAcceptDefense: canAcceptDefense,
-                        onDefenseDropped: onDefenseDropped,
-                        rankLabel: rankLabel,
-                        suitLabel: suitLabel,
-                        isRedSuit: isRedSuit,
+                ),
+                child: SizedBox(
+                  height: 138,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      if (defense == null)
+                        Positioned(
+                          left: 48,
+                          top: 28,
+                          child: _DefenseSlotPlaceholder(
+                            keyForFlight: defenseKeyForFlight,
+                            active: active,
+                          ),
+                        ),
+                      Positioned(
+                        left: 10,
+                        top: 0,
+                        child: Container(
+                          key: attackKeyForFlight,
+                          child: DurakCardWidget(
+                            rankLabel: rankLabel(attack),
+                            suitLabel: suitLabel(attack),
+                            isRed: isRedSuit((attack['s'] ?? '').toString()),
+                            faceUp: true,
+                            disabled: true,
+                          ),
+                        ),
                       ),
-                    ),
-                ],
+                      if (defense != null)
+                        Positioned(
+                          left: 48,
+                          top: 28,
+                          child: Container(
+                            key: defenseKeyForFlight,
+                            child: DurakCardWidget(
+                              rankLabel: rankLabel(defense!),
+                              suitLabel: suitLabel(defense!),
+                              isRed: isRedSuit(
+                                (defense!['s'] ?? '').toString(),
+                              ),
+                              faceUp: true,
+                              disabled: true,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _DefenseDropSlot extends StatelessWidget {
-  const _DefenseDropSlot({
+class _DefenseSlotPlaceholder extends StatelessWidget {
+  const _DefenseSlotPlaceholder({
     required this.keyForFlight,
-    required this.index,
-    required this.defense,
-    required this.canAcceptDefense,
-    required this.onDefenseDropped,
-    required this.rankLabel,
-    required this.suitLabel,
-    required this.isRedSuit,
+    required this.active,
   });
 
   final GlobalKey keyForFlight;
-  final int index;
-  final Map<String, dynamic>? defense;
-  final bool Function(Map<String, dynamic> card, int attackIndex)
-  canAcceptDefense;
-  final Future<void> Function(int attackIndex, Map<String, dynamic> card)
-  onDefenseDropped;
-  final String Function(Map<String, dynamic>) rankLabel;
-  final String Function(Map<String, dynamic>) suitLabel;
-  final bool Function(String) isRedSuit;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
-    return DragTarget<Map<String, dynamic>>(
-      onWillAcceptWithDetails: (d) => canAcceptDefense(d.data, index),
-      onAcceptWithDetails: (d) => unawaited(onDefenseDropped(index, d.data)),
-      builder: (context, candidate, rejected) {
-        if (defense == null) {
-          final active = candidate.isNotEmpty;
-          return Container(
-            key: keyForFlight,
-            width: 68,
-            height: 96,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    (active
-                            ? const Color(0xFF6EE7B7)
-                            : Colors.white.withValues(alpha: 0.28))
-                        .withValues(alpha: 0.9),
-                width: active ? 2 : 1,
-              ),
-              color: Colors.white.withValues(alpha: active ? 0.07 : 0.015),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.shield_outlined,
-                size: 24,
-                color: Colors.white.withValues(alpha: 0.42),
-              ),
-            ),
-          );
-        }
-        return Container(
-          key: keyForFlight,
-          child: DurakCardWidget(
-            rankLabel: rankLabel(defense!),
-            suitLabel: suitLabel(defense!),
-            isRed: isRedSuit((defense!['s'] ?? '').toString()),
-            faceUp: true,
-            disabled: true,
-          ),
-        );
-      },
+    return Container(
+      key: keyForFlight,
+      width: 68,
+      height: 96,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: (active
+                  ? const Color(0xFF6EE7B7)
+                  : Colors.white.withValues(alpha: 0.22))
+              .withValues(alpha: 0.85),
+          width: active ? 2 : 1,
+        ),
+        color: Colors.white.withValues(alpha: active ? 0.07 : 0.012),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.shield_outlined,
+          size: 22,
+          color: Colors.white.withValues(alpha: 0.36),
+        ),
+      ),
     );
   }
 }

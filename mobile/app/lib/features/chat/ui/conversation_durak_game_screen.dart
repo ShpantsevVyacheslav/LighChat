@@ -897,23 +897,18 @@ class _ConversationDurakGameScreenState
 
             String myTurnLabel = '';
             if (status == 'active' && me != null) {
-              if (attacks.isEmpty && me == attackerUid && me != defenderUid) {
-                myTurnLabel = 'Твой ход — атакуй';
-              } else if (tableHasAttacks &&
-                  me == defenderUid &&
-                  phase == 'defense') {
-                myTurnLabel = 'Отбей или возьми';
-              } else if (canBeat) {
-                myTurnLabel = 'Можно объявить «Бито»';
-              } else if (canResolve) {
-                myTurnLabel = 'Разреши спорный ход';
-              } else if (activeThrowerUid != null &&
-                  me == activeThrowerUid &&
-                  me != defenderUid) {
-                myTurnLabel = 'Подкинь карту того же ранга или пасуй';
-              } else if (me == attackerUid && tableHasAttacks) {
-                myTurnLabel = 'Ждём ход соперника';
-              }
+              final isMyMove = (attacks.isEmpty &&
+                      me == attackerUid &&
+                      me != defenderUid) ||
+                  (tableHasAttacks &&
+                      me == defenderUid &&
+                      phase == 'defense') ||
+                  canBeat ||
+                  canResolve ||
+                  (activeThrowerUid != null &&
+                      me == activeThrowerUid &&
+                      me != defenderUid);
+              if (isMyMove) myTurnLabel = 'Твой ход';
             }
 
             final primaryCandidates =
@@ -1365,18 +1360,19 @@ class _ConversationDurakGameScreenState
                           handCounts: handCounts,
                         ),
                       ),
-                      Positioned(
-                        left: 12,
-                        top: 118,
-                        child: Container(
-                          key: _deckKey,
-                          child: _DurakSideDeck(
-                            deckCount: deckCount,
-                            trumpSuit: trumpSuit,
-                            trumpCard: trumpCard,
+                      if (deckCount > 0)
+                        Positioned(
+                          left: 12,
+                          top: 118,
+                          child: Container(
+                            key: _deckKey,
+                            child: _DurakSideDeck(
+                              deckCount: deckCount,
+                              trumpSuit: trumpSuit,
+                              trumpCard: trumpCard,
+                            ),
                           ),
                         ),
-                      ),
                       Positioned(
                         right: 12,
                         top: 112,

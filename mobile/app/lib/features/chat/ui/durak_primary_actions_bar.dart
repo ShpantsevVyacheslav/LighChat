@@ -38,22 +38,9 @@ class DurakPrimaryActionsBar extends StatelessWidget {
                   child: Text(overflowActions[j].label),
                 ),
             ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: Colors.white.withValues(alpha: 0.08),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-              ),
-              child: Text(
-                l10n.common_choose,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
+            child: _DurakActionButton(
+              label: l10n.common_choose,
+              onTap: () {},
             ),
           ),
         ),
@@ -68,34 +55,23 @@ class DurakPrimaryActionsBar extends StatelessWidget {
           for (var i = 0; i < prim.length; i++) ...[
             if (i > 0) const SizedBox(width: 10),
             Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: prim[i].onTap,
-                child: Text(prim[i].label),
+              child: _DurakActionButton(
+                label: prim[i].label,
+                onTap: prim[i].onTap,
               ),
             ),
           ],
           if (hasOverflow) ...[
             if (prim.isNotEmpty) const SizedBox(width: 8),
             Material(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(16),
+              color: Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
               child: PopupMenuButton<int>(
                 padding: EdgeInsets.zero,
                 icon: Icon(
                   Icons.more_horiz_rounded,
                   color: Colors.white.withValues(alpha: 0.88),
-                  size: 28,
+                  size: 26,
                 ),
                 onSelected: (i) => overflowActions[i].onTap(),
                 itemBuilder: (context) => [
@@ -109,6 +85,52 @@ class DurakPrimaryActionsBar extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _DurakActionButton extends StatelessWidget {
+  const _DurakActionButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFB8EC5C), Color(0xFF8FD43A)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF173217),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
       ),
     );
   }
