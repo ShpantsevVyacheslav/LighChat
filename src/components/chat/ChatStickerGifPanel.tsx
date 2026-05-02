@@ -129,21 +129,19 @@ export function ChatStickerGifPanel({
     }
   }, []);
 
-  // Дебаунс поиска GIF + учёт эмодзи-фильтра.
+  // Дебаунс поиска GIF + учёт эмодзи-фильтра. Кеш по (type, query) — TTL 24h.
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
       const q = gifQuery.trim();
-      // Если запрос пустой и фильтр не выбран — показываем кеш trending.
-      if (q.length < 1 && activeEmojiFilter === null) {
-        const cached = giphyCache.getTrending('gifs');
-        if (cached && cached.length > 0) {
-          setGifItems(cached);
-          return;
-        }
-      }
       const effective = q.length >= 1 ? q : (activeEmojiFilter ?? '');
+      const cached = giphyCache.get('gifs', effective);
+      if (cached && cached.length > 0) {
+        setGifItems(cached);
+        setGifLoading(false);
+        return;
+      }
       setGifLoading(true);
       const r = await fetchGifs(effective);
       setGifLoading(false);
@@ -151,9 +149,7 @@ export function ChatStickerGifPanel({
       else setGifMissingKey(false);
       const items = r.items ?? [];
       setGifItems(items);
-      if (q.length < 1 && activeEmojiFilter === null && items.length > 0) {
-        giphyCache.saveTrending('gifs', items);
-      }
+      if (items.length > 0) giphyCache.save('gifs', effective, items);
     }, 350);
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);

@@ -5,59 +5,75 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'giphy_gif_search.dart';
 
 /// Локальный кеш GIPHY-выдач:
-/// - trending по умолчанию (TTL 24 часа)
-/// - последние 30 «просмотренных» (отправленных) GIF
+/// - **query-cache**: результаты поиска по любой паре `(type, query)` с TTL 24h
+///   (trending = пустой query). LRU-лимит на 20 ключей чтобы кеш не разросся.
+/// - **recent**: последние 30 «просмотренных» (отправленных) GIF.
 ///
-/// Хранится в `SharedPreferences` как JSON. Ничего не отправляет на сервер
-/// без явного запроса.
+/// Хранится в `SharedPreferences` как JSON.
 class GiphyCacheStore {
   GiphyCacheStore._();
   static final instance = GiphyCacheStore._();
 
-  static const _kTrendingGifsKey = 'giphy_trending_gifs_v1';
-  static const _kTrendingStickersKey = 'giphy_trending_stickers_v1';
+  static const _kQueryCacheKey = 'giphy_query_cache_v2';
   static const _kRecentGifsKey = 'giphy_recent_gifs_v1';
-  static const Duration _kTrendingTtl = Duration(hours: 24);
+  static const Duration _kTtl = Duration(hours: 24);
+  static const int _kMaxKeys = 20;
   static const int _kRecentMax = 30;
 
-  String _key(GiphyType type) => switch (type) {
-        GiphyType.gifs => _kTrendingGifsKey,
-        GiphyType.stickers => _kTrendingStickersKey,
-      };
+  String _cacheKey(GiphyType type, String query) {
+    final t = type == GiphyType.stickers ? 'stickers' : 'gifs';
+    return '$t:${query.trim()}';
+  }
 
-  /// Возвращает trending из кеша, если он не старше 24h, иначе null.
-  Future<List<GiphyGifItem>?> getTrending(GiphyType type) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key(type));
-    if (raw == null || raw.isEmpty) return null;
-    try {
-      final m = jsonDecode(raw) as Map<String, dynamic>;
-      final ts = (m['ts'] as num?)?.toInt();
-      if (ts == null) return null;
-      final age = DateTime.now().millisecondsSinceEpoch - ts;
-      if (age > _kTrendingTtl.inMilliseconds) return null;
-      final list = m['items'] as List?;
-      if (list == null) return null;
-      return list
-          .whereType<Map<String, dynamic>>()
-          .map(_fromMap)
-          .whereType<GiphyGifItem>()
-          .toList(growable: false);
-    } catch (_) {
+  /// Возвращает закешированные items для пары `(type, query)`, если запись
+  /// не старше 24h. Иначе null.
+  Future<List<GiphyGifItem>?> get(GiphyType type, String query) async {
+    final all = await _loadAll();
+    final entry = all[_cacheKey(type, query)];
+    if (entry == null) return null;
+    if (DateTime.now().millisecondsSinceEpoch - entry.ts > _kTtl.inMilliseconds) {
       return null;
     }
+    return entry.items;
   }
 
-  Future<void> saveTrending(GiphyType type, List<GiphyGifItem> items) async {
-    final prefs = await SharedPreferences.getInstance();
-    final body = jsonEncode({
-      'ts': DateTime.now().millisecondsSinceEpoch,
-      'items': items.map(_toMap).toList(),
-    });
-    await prefs.setString(_key(type), body);
+  /// Сохраняет items по `(type, query)`. LRU: если ключей больше 20 —
+  /// удаляем самый старый по `ts` (а не по позиции).
+  Future<void> save(
+    GiphyType type,
+    String query,
+    List<GiphyGifItem> items,
+  ) async {
+    if (items.isEmpty) return;
+    final all = await _loadAll();
+    final key = _cacheKey(type, query);
+    all[key] = _CacheEntry(
+      ts: DateTime.now().millisecondsSinceEpoch,
+      items: items,
+    );
+    if (all.length > _kMaxKeys) {
+      final sorted = all.entries.toList()
+        ..sort((a, b) => a.value.ts.compareTo(b.value.ts));
+      final toRemove = sorted.length - _kMaxKeys;
+      for (var i = 0; i < toRemove; i++) {
+        all.remove(sorted[i].key);
+      }
+    }
+    await _saveAll(all);
   }
 
-  /// Последние просмотренные GIF (по убыванию новизны).
+  // ---- Backward-compatible trending API ----
+
+  /// Возвращает trending (`q=''`) из кеша.
+  Future<List<GiphyGifItem>?> getTrending(GiphyType type) =>
+      get(type, '');
+
+  /// Сохраняет trending (`q=''`).
+  Future<void> saveTrending(GiphyType type, List<GiphyGifItem> items) =>
+      save(type, '', items);
+
+  // ---- Recent (отправленные пользователем) ----
+
   Future<List<GiphyGifItem>> getRecent() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_kRecentGifsKey);
@@ -66,7 +82,7 @@ class GiphyCacheStore {
     for (final s in raw) {
       try {
         final m = jsonDecode(s) as Map<String, dynamic>;
-        final item = _fromMap(m);
+        final item = _itemFromMap(m);
         if (item != null) out.add(item);
       } catch (_) {}
     }
@@ -81,18 +97,45 @@ class GiphyCacheStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
       _kRecentGifsKey,
-      list.map((a) => jsonEncode(_toMap(a))).toList(),
+      list.map((a) => jsonEncode(_itemToMap(a))).toList(),
     );
   }
 
-  static Map<String, Object?> _toMap(GiphyGifItem a) => {
+  // ---- Internal ----
+
+  Future<Map<String, _CacheEntry>> _loadAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kQueryCacheKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final m = jsonDecode(raw) as Map<String, dynamic>;
+      final out = <String, _CacheEntry>{};
+      m.forEach((k, v) {
+        if (v is! Map) return;
+        final entry = _CacheEntry.fromMap(v.cast<String, dynamic>());
+        if (entry != null) out[k] = entry;
+      });
+      return out;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _saveAll(Map<String, _CacheEntry> all) async {
+    final prefs = await SharedPreferences.getInstance();
+    final m = <String, Object?>{};
+    all.forEach((k, v) => m[k] = v.toMap());
+    await prefs.setString(_kQueryCacheKey, jsonEncode(m));
+  }
+
+  static Map<String, Object?> _itemToMap(GiphyGifItem a) => {
         'id': a.id,
         'url': a.url,
         'width': a.width,
         'height': a.height,
       };
 
-  static GiphyGifItem? _fromMap(Map<String, dynamic> m) {
+  static GiphyGifItem? _itemFromMap(Map<String, dynamic> m) {
     final id = m['id'];
     final url = m['url'];
     if (id is! String || url is! String || id.isEmpty || url.isEmpty) {
@@ -106,5 +149,29 @@ class GiphyCacheStore {
       width: w is int ? w : (w is num ? w.toInt() : null),
       height: h is int ? h : (h is num ? h.toInt() : null),
     );
+  }
+}
+
+class _CacheEntry {
+  _CacheEntry({required this.ts, required this.items});
+  final int ts;
+  final List<GiphyGifItem> items;
+
+  Map<String, Object?> toMap() => {
+        'ts': ts,
+        'items': items.map(GiphyCacheStore._itemToMap).toList(),
+      };
+
+  static _CacheEntry? fromMap(Map<String, dynamic> m) {
+    final ts = m['ts'];
+    final raw = m['items'];
+    if (ts is! num || raw is! List) return null;
+    final items = <GiphyGifItem>[];
+    for (final e in raw) {
+      if (e is! Map) continue;
+      final it = GiphyCacheStore._itemFromMap(e.cast<String, dynamic>());
+      if (it != null) items.add(it);
+    }
+    return _CacheEntry(ts: ts.toInt(), items: items);
   }
 }

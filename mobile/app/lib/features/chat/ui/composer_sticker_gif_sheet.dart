@@ -193,18 +193,21 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifDebounce = Timer(const Duration(milliseconds: 350), () async {
       final q = _gifQueryController.text;
       if (!mounted) return;
-      // Если запрос пустой и фильтр не выбран — показываем кеш trending.
-      if (q.trim().isEmpty && _activeEmojiFilter == null) {
-        final cached =
-            await GiphyCacheStore.instance.getTrending(GiphyType.gifs);
-        if (cached != null && cached.isNotEmpty) {
-          if (mounted) setState(() => _gifItems = cached);
-          return;
+      final effectiveQuery =
+          q.trim().isEmpty ? (_activeEmojiFilter ?? '') : q.trim();
+      // Проверяем кеш по конкретному запросу/фильтру (TTL 24h, LRU 20 ключей).
+      final cached =
+          await GiphyCacheStore.instance.get(GiphyType.gifs, effectiveQuery);
+      if (cached != null && cached.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _gifItems = cached;
+            _gifLoading = false;
+          });
         }
+        return;
       }
       setState(() => _gifLoading = true);
-      final effectiveQuery =
-          q.trim().isEmpty ? (_activeEmojiFilter ?? '') : q;
       final r = await searchGifs(effectiveQuery);
       if (!mounted) return;
       setState(() {
@@ -212,12 +215,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
         _gifItems = r.items;
         _gifMissingKey = r.missingKey;
       });
-      // Кешируем только trending (без запроса и фильтра).
-      if (q.trim().isEmpty &&
-          _activeEmojiFilter == null &&
-          r.items.isNotEmpty) {
+      if (r.items.isNotEmpty) {
         unawaited(GiphyCacheStore.instance
-            .saveTrending(GiphyType.gifs, r.items));
+            .save(GiphyType.gifs, effectiveQuery, r.items));
       }
     });
   }
