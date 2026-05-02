@@ -895,20 +895,26 @@ class _ConversationDurakGameScreenState
                 me == attackerUid &&
                 hasPendingResolution;
 
-            final myTurnLabel =
-                status == 'active' &&
-                    me != null &&
-                    ((attacks.isEmpty &&
-                            me == attackerUid &&
-                            me != defenderUid) ||
-                        (tableHasAttacks &&
-                            me == defenderUid &&
-                            phase == 'defense') ||
-                        (activeThrowerUid != null && me == activeThrowerUid) ||
-                        canBeat ||
-                        canResolve)
-                ? 'Твой ход'
-                : '';
+            String myTurnLabel = '';
+            if (status == 'active' && me != null) {
+              if (attacks.isEmpty && me == attackerUid && me != defenderUid) {
+                myTurnLabel = 'Твой ход — атакуй';
+              } else if (tableHasAttacks &&
+                  me == defenderUid &&
+                  phase == 'defense') {
+                myTurnLabel = 'Отбей или возьми';
+              } else if (canBeat) {
+                myTurnLabel = 'Можно объявить «Бито»';
+              } else if (canResolve) {
+                myTurnLabel = 'Разреши спорный ход';
+              } else if (activeThrowerUid != null &&
+                  me == activeThrowerUid &&
+                  me != defenderUid) {
+                myTurnLabel = 'Подкинь карту того же ранга или пасуй';
+              } else if (me == attackerUid && tableHasAttacks) {
+                myTurnLabel = 'Ждём ход соперника';
+              }
+            }
 
             final primaryCandidates =
                 <({String id, String label, VoidCallback onTap})>[];
