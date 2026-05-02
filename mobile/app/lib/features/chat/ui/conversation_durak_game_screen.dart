@@ -1119,8 +1119,8 @@ class _ConversationDurakGameScreenState
                 child: Container(
                   key: _handKey,
                   width: double.infinity,
-                  height: 120,
-                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                  height: 110,
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
                   alignment: Alignment.bottomCenter,
                   child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                     stream: handRef.snapshots(),
@@ -1457,7 +1457,7 @@ class _ConversationDurakGameScreenState
                           ),
                         if (myTurnLabel.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
                             child: _TurnStatusPill(text: myTurnLabel),
                           ),
                         DurakPrimaryActionsBar(
