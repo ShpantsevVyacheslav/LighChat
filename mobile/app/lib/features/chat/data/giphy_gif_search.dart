@@ -19,16 +19,26 @@ class GiphyGifItem {
   final int? height;
 }
 
-/// Паритет ответа `src/app/api/tenor/search/route.ts` (исторически endpoint
-/// называется `tenor`, фактически это GIPHY API).
+/// Паритет ответа `src/app/api/giphy/search/route.ts`.
 class GiphySearchOutcome {
   const GiphySearchOutcome({
     required this.items,
     this.missingKey = false,
+    this.offset = 0,
+    this.total = 0,
   });
 
   final List<GiphyGifItem> items;
   final bool missingKey;
+
+  /// Смещение текущей страницы (echo от сервера).
+  final int offset;
+
+  /// Общее число доступных результатов на сервере (если известно).
+  final int total;
+
+  /// Можно ли загрузить ещё страницу.
+  bool get hasMore => offset + items.length < total;
 }
 
 String _normalizeBaseUrl(String raw) {
@@ -44,9 +54,11 @@ enum GiphyType { gifs, stickers }
 /// Запрос к веб-прокси GIF (`GIPHY_PROXY_BASE_URL`).
 /// При пустом запросе возвращает trending GIF.
 /// [type] = stickers даёт анимированные эмодзи/стикеры GIPHY.
+/// [offset] — смещение для пагинации (страница = 24 элемента).
 Future<GiphySearchOutcome> searchGifs(
   String query, {
   GiphyType type = GiphyType.gifs,
+  int offset = 0,
 }) async {
   final base = _normalizeBaseUrl(kGiphyProxyBaseUrl);
   if (base.isEmpty) {
@@ -56,6 +68,7 @@ Future<GiphySearchOutcome> searchGifs(
   final params = <String, String>{
     if (q.isNotEmpty) 'q': q,
     if (type == GiphyType.stickers) 'type': 'stickers',
+    if (offset > 0) 'offset': '$offset',
   };
   final uri = Uri.parse('$base/api/giphy/search').replace(
     queryParameters: params.isEmpty ? null : params,
@@ -95,7 +108,14 @@ Future<GiphySearchOutcome> searchGifs(
         height: h is int ? h : (h is num ? h.toInt() : null),
       ));
     }
-    return GiphySearchOutcome(items: out, missingKey: err == 'missing_key');
+    final off = body['offset'];
+    final total = body['total'];
+    return GiphySearchOutcome(
+      items: out,
+      missingKey: err == 'missing_key',
+      offset: off is num ? off.toInt() : offset,
+      total: total is num ? total.toInt() : out.length,
+    );
   } catch (_) {
     return const GiphySearchOutcome(items: []);
   }

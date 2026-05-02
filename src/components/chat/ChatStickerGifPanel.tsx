@@ -30,6 +30,9 @@ type GiphyResponse = {
   ok?: boolean;
   error?: string;
   items?: Array<GiphyItem>;
+  offset?: number;
+  count?: number;
+  total?: number;
 };
 
 type PendingSave =
@@ -49,10 +52,15 @@ type ChatStickerGifPanelProps = {
   className?: string;
 };
 
-async function fetchGifs(q: string, type: GiphyType = 'gifs'): Promise<GiphyResponse> {
+async function fetchGifs(
+  q: string,
+  type: GiphyType = 'gifs',
+  offset = 0,
+): Promise<GiphyResponse> {
   const params = new URLSearchParams();
   if (q.trim()) params.set('q', q.trim());
   if (type === 'stickers') params.set('type', 'stickers');
+  if (offset > 0) params.set('offset', String(offset));
   const qs = params.toString();
   try {
     const res = await fetch(`/api/giphy/search${qs ? `?${qs}` : ''}`);
@@ -79,10 +87,15 @@ export function ChatStickerGifPanel({
   const { toast } = useToast();
   const [gifQuery, setGifQuery] = useState('');
   const [gifLoading, setGifLoading] = useState(false);
+  const [gifLoadingMore, setGifLoadingMore] = useState(false);
+  const [gifHasMore, setGifHasMore] = useState(false);
+  const [gifTotal, setGifTotal] = useState(0);
+  const [gifLastQuery, setGifLastQuery] = useState('');
   const [gifItems, setGifItems] = useState<GiphyItem[]>([]);
   const [recentGifs, setRecentGifs] = useState<GiphyItem[]>([]);
   const [gifMissingKey, setGifMissingKey] = useState(false);
   const [activeEmojiFilter, setActiveEmojiFilter] = useState<string | null>(null);
+  const gifScrollRef = useRef<HTMLDivElement>(null);
 
   // Анимированные эмодзи (GIPHY stickers).
   const [animEmojis, setAnimEmojis] = useState<GiphyItem[]>([]);
@@ -136,10 +149,14 @@ export function ChatStickerGifPanel({
     searchTimer.current = setTimeout(async () => {
       const q = gifQuery.trim();
       const effective = q.length >= 1 ? q : (activeEmojiFilter ?? '');
+      setGifLastQuery(effective);
       const cached = giphyCache.get('gifs', effective);
       if (cached && cached.length > 0) {
         setGifItems(cached);
         setGifLoading(false);
+        // У кеша нет инфы о total — разрешаем дозагрузку, дочитаем при скролле.
+        setGifTotal(cached.length);
+        setGifHasMore(true);
         return;
       }
       setGifLoading(true);
@@ -148,13 +165,49 @@ export function ChatStickerGifPanel({
       if (r.error === 'missing_key') setGifMissingKey(true);
       else setGifMissingKey(false);
       const items = r.items ?? [];
+      const total = r.total ?? items.length;
       setGifItems(items);
+      setGifTotal(total);
+      setGifHasMore(items.length < total);
       if (items.length > 0) giphyCache.save('gifs', effective, items);
     }, 350);
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
     };
   }, [gifQuery, activeEmojiFilter]);
+
+  // Подгрузка следующей страницы при близости к концу скролла.
+  const loadMoreGifs = useCallback(async () => {
+    if (gifLoadingMore || !gifHasMore || gifLoading) return;
+    setGifLoadingMore(true);
+    const r = await fetchGifs(gifLastQuery, 'gifs', gifItems.length);
+    setGifLoadingMore(false);
+    const next = r.items ?? [];
+    if (!next.length) {
+      setGifHasMore(false);
+      return;
+    }
+    const merged = [...gifItems];
+    const existingIds = new Set(merged.map((a) => a.id));
+    for (const it of next) {
+      if (!existingIds.has(it.id)) merged.push(it);
+    }
+    setGifItems(merged);
+    const total = r.total ?? merged.length;
+    setGifTotal(total);
+    setGifHasMore(merged.length < total);
+    giphyCache.save('gifs', gifLastQuery, merged);
+  }, [gifLoadingMore, gifHasMore, gifLoading, gifLastQuery, gifItems]);
+
+  const handleGifScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
+        void loadMoreGifs();
+      }
+    },
+    [loadMoreGifs],
+  );
 
   // ============ Handlers ============
 
@@ -343,7 +396,11 @@ export function ChatStickerGifPanel({
             </p>
           )}
 
-          <ScrollArea className="h-72 pr-2">
+          <div
+            ref={gifScrollRef}
+            onScroll={handleGifScroll}
+            className="h-72 overflow-y-auto overflow-x-hidden pr-2"
+          >
             {gifLoading ? (
               <div className="flex h-32 items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -370,9 +427,14 @@ export function ChatStickerGifPanel({
                 ) : (
                   <GifGrid items={gifItems} onPick={handleGifPick} onSave={openSavePicker} />
                 )}
+                {gifLoadingMore && (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </TabsContent>
       </Tabs>
 
