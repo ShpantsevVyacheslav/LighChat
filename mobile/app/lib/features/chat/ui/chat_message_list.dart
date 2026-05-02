@@ -79,6 +79,7 @@ class ChatMessageList extends StatefulWidget {
     this.e2eeDecryptionFailedMessageIds,
     this.onOutboxRetry,
     this.onOutboxDismiss,
+    this.pendingRetryAt = const <String, DateTime>{},
   });
 
   final List<ChatMessage> messagesDesc;
@@ -168,6 +169,11 @@ class ChatMessageList extends StatefulWidget {
   final void Function(String messageId)? onOutboxRetry;
   final void Function(String messageId)? onOutboxDismiss;
 
+  /// Per-message override origin for the 30s stale-pending window. Set when
+  /// the user invoked «Повторить» on a stuck Firestore-pending message — we
+  /// reset the timer from this point.
+  final Map<String, DateTime> pendingRetryAt;
+
   static String dayKey(DateTime dt) {
     final d = dt.toLocal();
     final mm = d.month.toString().padLeft(2, '0');
@@ -212,6 +218,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
   int _emojiBurstEventSeq = 0;
   final Set<String> _seenEmojiBurstEventIds = <String>{};
   bool? _lastAtBottomReported;
+  Timer? _stalePendingTicker;
 
   @override
   void didUpdateWidget(covariant ChatMessageList oldWidget) {
@@ -249,6 +256,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
   void dispose() {
     widget.scrollController.removeListener(_onScrollControllerTick);
     _videoCirclePlayingSlotId.dispose();
+    _stalePendingTicker?.cancel();
     super.dispose();
   }
 
@@ -260,6 +268,30 @@ class _ChatMessageListState extends State<ChatMessageList> {
       if (!mounted) return;
       _notifyAtBottomByController();
     });
+    _stalePendingTicker = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) {
+        if (!mounted) return;
+        if (_hasFreshPendingMessages()) setState(() {});
+      },
+    );
+  }
+
+  bool _hasFreshPendingMessages() {
+    for (final m in widget.messagesDesc) {
+      if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) continue;
+      if ((m.deliveryStatus ?? '') != 'sending') continue;
+      return true;
+    }
+    return false;
+  }
+
+  bool _isStalePending(ChatMessage m) {
+    if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return false;
+    if ((m.deliveryStatus ?? '') != 'sending') return false;
+    final origin = widget.pendingRetryAt[m.id] ?? m.createdAt;
+    return DateTime.now().difference(origin) >=
+        const Duration(seconds: 30);
   }
 
   void _onScrollControllerTick() {
@@ -564,6 +596,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
                     false,
                 onOutboxRetry: widget.onOutboxRetry,
                 onOutboxDismiss: widget.onOutboxDismiss,
+                isStalePending: _isStalePending(m),
               ),
             );
             final rowKey = widget.messageItemKeys[m.id];
@@ -965,6 +998,7 @@ class _ChatMessageBubble extends StatelessWidget {
     this.e2eeDecryptionFailed = false,
     this.onOutboxRetry,
     this.onOutboxDismiss,
+    this.isStalePending = false,
   });
 
   final ChatMessage message;
@@ -1003,6 +1037,9 @@ class _ChatMessageBubble extends StatelessWidget {
 
   final void Function(String messageId)? onOutboxRetry;
   final void Function(String messageId)? onOutboxDismiss;
+
+  /// Real Firestore message stuck in `'sending'` for more than 30s.
+  final bool isStalePending;
 
   @override
   Widget build(BuildContext context) {
@@ -1630,8 +1667,9 @@ class _ChatMessageBubble extends StatelessWidget {
     // не используем IntrinsicWidth для пузыря.
     final outboxFail =
         isMine &&
-        message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
-        (message.deliveryStatus ?? '') == 'failed';
+        ((message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
+                (message.deliveryStatus ?? '') == 'failed') ||
+            isStalePending);
     final wrappedBody = outboxFail
         ? DecoratedBox(
             decoration: BoxDecoration(

@@ -101,6 +101,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scrollController = ScrollController();
   final _composerFocusNode = FocusNode();
 
+  /// Per-message override origin for the 30s stale-pending window. Set when
+  /// the user invokes «Повторить» on a stuck Firestore-pending message.
+  final Map<String, DateTime> _pendingRetryAt = <String, DateTime>{};
+
   /// Ключи строк сообщений — скролл к закреплённому / ответу и якорь подгрузки истории.
   final Map<String, GlobalKey> _messageItemKeys = <String, GlobalKey>{};
 
@@ -1770,6 +1774,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               ),
                                                             );
                                                           },
+                                                          pendingRetryAt:
+                                                              _pendingRetryAt,
                                                           fontSize: fontSize,
                                                           bubbleRadius:
                                                               bubbleRadius,
@@ -3211,6 +3217,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  bool _isMessageStalePending(ChatMessage m) {
+    if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return false;
+    if ((m.deliveryStatus ?? '') != 'sending') return false;
+    final origin = _pendingRetryAt[m.id] ?? m.createdAt;
+    return DateTime.now().difference(origin) >=
+        const Duration(seconds: 30);
+  }
+
+  Future<void> _cancelStalePendingMessage(ChatMessage m) async {
+    _pendingRetryAt.remove(m.id);
+    try {
+      await FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(widget.conversationId)
+          .collection('messages')
+          .doc(m.id)
+          .delete();
+    } catch (e) {
+      debugPrint('cancel stale-pending message $m.id failed: $e');
+    }
+  }
+
   Future<void> _onMessageLongPress(
     ChatMessage m,
     User user,
@@ -3241,6 +3269,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           handleOutboxRetry(ref, m.id);
         case MessageMenuActionType.outboxCancel:
           unawaited(handleOutboxDismiss(ref, m.id));
+        default:
+          break;
+      }
+      return;
+    }
+    if (_isMessageStalePending(m)) {
+      final result = await showOutboxFailedContextMenu(
+        context,
+        message: m,
+        chatFontSize: fontSize,
+        outgoingBubbleColor: outgoingBubbleColor,
+      );
+      if (!mounted ||
+          result == null ||
+          result.type == MessageMenuActionType.dismissed) {
+        return;
+      }
+      switch (result.type) {
+        case MessageMenuActionType.outboxRetry:
+          setState(() => _pendingRetryAt[m.id] = DateTime.now());
+        case MessageMenuActionType.outboxCancel:
+          unawaited(_cancelStalePendingMessage(m));
         default:
           break;
       }
