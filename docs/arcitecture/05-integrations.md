@@ -46,11 +46,15 @@
   - начисление очков: при завершении игры (в `makeDurakMove`) турнир обновляет
     `pointsByUid` и `gamesPlayedByUid` по “sport” схеме \(N..1\) с делением очков при ничьих.
 
-## Tenor API
+## GIPHY API
 
-- Точка: `src/app/api/tenor/search/route.ts`.
-- Назначение: серверный прокси к Tenor search API v2.
-- ENV: `TENOR_API_KEY`.
+- Точка: `src/app/api/giphy/search/route.ts`.
+- Назначение: серверный прокси к GIPHY API v1 (gifs/stickers), скрывает API key от клиента.
+- ENV: `GIPHY_API_KEY` (получить на https://developers.giphy.com → создать API key).
+- Параметры запроса: `q` (текст; пусто → trending), `type=stickers` (анимированные эмодзи) или `type=gifs` (по умолчанию).
+- Формат ответа: `{ ok, items: [{ id, url, width?, height? }], error? }`.
+- Используется веб-панелью `ChatStickerGifPanel.tsx` и мобильным `composer_sticker_gif_sheet.dart`.
+- Историческая заметка: ранее использовался Tenor API (Google), но он перестал быть доступен в Google Cloud Console — мигрировали на GIPHY с сохранением формата ответа.
 
 ## WebRTC stack
 

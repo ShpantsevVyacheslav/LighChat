@@ -793,6 +793,10 @@ const ChatMessageInputInner = (
                                                             setIsAttachmentMenuOpen(false);
                                                             setAttachmentSubview('main');
                                                         }}
+                                                        onPickEmoji={(emoji) => {
+                                                            const ed = editorInstance.current;
+                                                            if (ed) ed.chain().focus().insertContent(emoji).run();
+                                                        }}
                                                     />
                                                 </div>
                                         ) : (
