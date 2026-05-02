@@ -4,6 +4,22 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { normalizeDurakSettings } from "../gameSettings";
 import { buildInitialState, buildLegalMovesForUid, buildPublicView } from "./engine";
 
+function stripUndefined<T>(input: T): T {
+  if (input === null || input === undefined) return input;
+  if (Array.isArray(input)) {
+    return input.map((v) => stripUndefined(v)).filter((v) => v !== undefined) as unknown as T;
+  }
+  if (typeof input === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out as T;
+  }
+  return input;
+}
+
 export const DURAK_READY_TIMEOUT_MS = 30_000;
 
 export function readyDeadlineFrom(nowMs: number): string {
@@ -97,8 +113,8 @@ export function startDurakRoundInTransaction({
     playerIds,
     readyUids: admin.firestore.FieldValue.delete(),
     readyDeadlineAt: admin.firestore.FieldValue.delete(),
-    serverState: state,
-    publicView,
+    serverState: stripUndefined(state),
+    publicView: stripUndefined(publicView),
     result: null,
     lastUpdatedAt: nowIso,
   });

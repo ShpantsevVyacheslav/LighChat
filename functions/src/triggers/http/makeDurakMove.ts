@@ -26,6 +26,24 @@ import { applyFoul, applyFinishTurn, applyResolve } from "../../lib/games/durak/
 import type { DurakGameResult } from "../../lib/games/durak/state";
 import { applyFinishedGameToTournament } from "../../lib/games/tournamentEngine";
 
+// Recursively strips `undefined` values; Firestore rejects them with
+// "INVALID_ARGUMENT: Property contains an invalid nested entity".
+function stripUndefined<T>(input: T): T {
+  if (input === null || input === undefined) return input;
+  if (Array.isArray(input)) {
+    return input.map((v) => stripUndefined(v)).filter((v) => v !== undefined) as unknown as T;
+  }
+  if (typeof input === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out as T;
+  }
+  return input;
+}
+
 type RequestData = {
   gameId?: unknown;
   clientMoveId?: unknown;
@@ -338,15 +356,17 @@ export const makeDurakMove = onCall(
       tx.update(gameRef, {
         status: isFinished ? "finished" : "active",
         result: result ?? null,
-        serverState: state,
-        publicView: buildPublicView({
-          state,
-          handsByUid: handsByUid as any,
-          playerIds,
-          settings,
-          nowIso,
-          result,
-        }),
+        serverState: stripUndefined(state),
+        publicView: stripUndefined(
+          buildPublicView({
+            state,
+            handsByUid: handsByUid as any,
+            playerIds,
+            settings,
+            nowIso,
+            result,
+          }),
+        ),
         lastUpdatedAt: nowIso,
         finishedAt: isFinished ? nowIso : admin.firestore.FieldValue.delete(),
       });
