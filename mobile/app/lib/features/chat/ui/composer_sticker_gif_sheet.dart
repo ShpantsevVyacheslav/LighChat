@@ -1050,6 +1050,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SizedBox(height: 12),
         if (widget.directUploadConversationId != null) ...[
           _deviceDirectSection(),
           Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
@@ -1145,7 +1146,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           child: TextField(
             controller: _gifQueryController,
             textCapitalization: TextCapitalization.sentences,

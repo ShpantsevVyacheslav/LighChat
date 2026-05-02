@@ -13,4 +13,11 @@ runConfig:
   # more instances in response to increased traffic.
   maxInstances: 1
 
-env: []
+env:
+  # GIPHY API key для прокси /api/giphy/search.
+  # Создать секрет:  firebase apphosting:secrets:set GIPHY_API_KEY
+  # Дать доступ:     firebase apphosting:secrets:grantaccess GIPHY_API_KEY --backend <BACKEND_ID>
+  - variable: GIPHY_API_KEY
+    secret: GIPHY_API_KEY
+    availability:
+      - RUNTIME

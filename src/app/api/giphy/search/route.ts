@@ -25,6 +25,11 @@ export async function GET(req: NextRequest) {
     : 'gifs';
   const key = process.env.GIPHY_API_KEY;
   if (!key) {
+    console.warn(
+      '[giphy/search] GIPHY_API_KEY is not set. ' +
+        'Add it via `firebase apphosting:secrets:set GIPHY_API_KEY` ' +
+        'and update apphosting.yaml.',
+    );
     return NextResponse.json(
       { ok: false, error: 'missing_key', items: [] as GifSearchItem[] },
       { status: 200 },
