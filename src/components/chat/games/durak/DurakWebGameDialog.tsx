@@ -492,16 +492,17 @@ export function DurakWebGameDialog({
 
   const primaryLabel = useMemo(() => {
     if (status !== 'active') return '';
+    const isTaking = publicView?.phase === 'throwIn';
     if (legalMoves?.canFinishTurn) return 'Бито';
-    if (legalMoves?.canTake && hasUndefendedAttacks) return 'Беру';
+    if (legalMoves?.canTake && hasUndefendedAttacks && !isTaking) return 'Беру';
     if (legalMoves?.canPass) return 'Пас';
     if (serverTurnKind === 'attack' && publicView?.turnUid === currentUser.id) return 'Твой ход';
-    if (currentUser.id === defenderUid) return hasUndefendedAttacks ? 'Беру' : '';
+    if (currentUser.id === defenderUid) return (hasUndefendedAttacks && !isTaking) ? 'Беру' : '';
     if (canFinishTurn && currentUser.id === attackerUid) return 'Бито';
     if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
     if (currentUser.id === currentThrowerUid) return 'Пас';
     return '';
-  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, hasUndefendedAttacks, legalMoves, publicView?.turnUid, serverTurnKind, status]);
+  }, [attackerUid, attacks.length, canFinishTurn, currentThrowerUid, currentUser.id, defenderUid, hasUndefendedAttacks, legalMoves, publicView?.phase, publicView?.turnUid, serverTurnKind, status]);
 
   const enabledCard = (card: DurakCard) =>
     canAttackCard(card) || canTransferCard(card) || firstDefenseIndexForCard(card) != null;

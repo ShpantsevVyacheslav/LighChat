@@ -851,11 +851,13 @@ class _ConversationDurakGameScreenState
                 hasSelected &&
                 cardCanDefendAt(_selectedCard!, _selectedAttackIndex);
 
+            final isTaking = phase == 'throwIn';
             final canTakeClient = status == 'active' &&
                 me != null &&
                 me == defenderUid &&
-                tableHasAttacks;
-            final canTake = (_legalRevision >= 0 && _legalCanTake) || canTakeClient;
+                tableHasAttacks &&
+                !isTaking;
+            final canTake = ((_legalRevision >= 0 && _legalCanTake) || canTakeClient) && !isTaking;
 
             final canFinishTurnRaw = publicView == null
                 ? null
