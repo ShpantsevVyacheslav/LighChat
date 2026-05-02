@@ -7,6 +7,8 @@ import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/link_preview_url_extractor.dart';
+
 String messageHtmlToPlainText(String input) {
   var s = input;
   s = s.replaceAll(RegExp(r'</p\s*>', caseSensitive: false), '\n');
@@ -172,16 +174,6 @@ Future<void> _openExternalUrl(String href) async {
   await launchUrl(u, mode: LaunchMode.externalApplication);
 }
 
-final RegExp _urlTrailingPunctuationRe = RegExp(r'''[.,!?;:)\]}]+$''');
-
-({String url, String trailing}) _splitUrlAndTrailingPunctuation(String raw) {
-  final m = _urlTrailingPunctuationRe.firstMatch(raw);
-  if (m == null || m.start <= 0) {
-    return (url: raw, trailing: '');
-  }
-  return (url: raw.substring(0, m.start), trailing: raw.substring(m.start));
-}
-
 List<InlineSpan> _plainTextToLinkSpans(
   String text,
   TextStyle base, {
@@ -189,22 +181,15 @@ List<InlineSpan> _plainTextToLinkSpans(
   void Function(String url)? onLinkTap,
 }) {
   final out = <InlineSpan>[];
-  final re = RegExp(r'(https?:\/\/[^\s<>"]+)', caseSensitive: false);
+  final matches = findUrlMatches(text);
   var i = 0;
-  for (final m in re.allMatches(text)) {
+  for (final m in matches) {
     if (m.start > i) {
       out.add(TextSpan(text: text.substring(i, m.start), style: base));
     }
-    final candidate = (m.group(0) ?? '').trim();
-    final split = _splitUrlAndTrailingPunctuation(candidate);
-    final url = split.url.trim();
-    final trailing = split.trailing;
-    if (url.isEmpty) {
-      i = m.end;
-      continue;
-    }
     final lc = linkColor ?? const Color(0xFF7DD3FC);
     final linkTap = onLinkTap;
+    final url = m.normalized;
     final rec = TapGestureRecognizer()
       ..onTap = () {
         if (linkTap != null) {
@@ -215,7 +200,7 @@ List<InlineSpan> _plainTextToLinkSpans(
       };
     out.add(
       TextSpan(
-        text: url,
+        text: m.original,
         style: base.copyWith(
           color: lc,
           decoration: TextDecoration.underline,
@@ -224,9 +209,6 @@ List<InlineSpan> _plainTextToLinkSpans(
         recognizer: rec,
       ),
     );
-    if (trailing.isNotEmpty) {
-      out.add(TextSpan(text: trailing, style: base));
-    }
     i = m.end;
   }
   if (i < text.length) {
@@ -347,7 +329,7 @@ List<InlineSpan> _nodesToSpans(
             };
         }
       }
-      if (rec == null && !st.mention && display.contains('http')) {
+      if (rec == null && !st.mention && display.contains('.')) {
         out.addAll(
           _plainTextToLinkSpans(display, style, linkColor: opts.linkColor, onLinkTap: opts.onLinkTap),
         );
