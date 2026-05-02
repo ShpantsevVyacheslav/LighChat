@@ -99,6 +99,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   bool _gifHasMore = false;
   int _gifTotal = 0;
   String _gifLastQuery = '';
+  String? _gifTranslatedHint;
   bool _gifMissingKey = false;
   String? _activeEmojiFilter;
   List<GiphyGifItem> _recentGifs = [];
@@ -250,6 +251,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
             // У кеша нет инфы о total → разрешаем дозагрузку, дочитаем при скролле.
             _gifTotal = cached.length;
             _gifHasMore = true;
+            _gifTranslatedHint = null;
           });
         }
         return;
@@ -263,6 +265,11 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
         _gifMissingKey = r.missingKey;
         _gifTotal = r.total;
         _gifHasMore = r.hasMore;
+        _gifTranslatedHint = (r.translatedFrom != null &&
+                r.effectiveQuery != null &&
+                r.effectiveQuery != r.translatedFrom)
+            ? r.effectiveQuery
+            : null;
       });
       if (r.items.isNotEmpty) {
         unawaited(GiphyCacheStore.instance
@@ -1227,6 +1234,30 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
             ),
           ),
         ),
+        if (_gifTranslatedHint != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.translate_rounded,
+                  size: 12,
+                  color: Colors.white.withValues(alpha: 0.45),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Искали: $_gifTranslatedHint',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.55),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
         _gifEmojiFiltersRow(),
         if (_gifMissingKey)
           Padding(

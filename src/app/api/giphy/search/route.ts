@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { translateSearchQueryToEn } from '@/lib/translate-search-query';
 
 type GifSearchItem = {
   id: string;
@@ -52,17 +53,28 @@ export async function GET(req: NextRequest) {
   }
 
   const isTrending = q.length < 1;
+  // Если запрос не на латинице (например русский) — переводим на английский,
+  // т.к. GIPHY плохо ищет по кириллице даже с lang=ru.
+  let effectiveQuery = q;
+  let translatedFrom: string | null = null;
+  if (!isTrending) {
+    const t = await translateSearchQueryToEn(q);
+    if (t.translated !== t.original) {
+      effectiveQuery = t.translated;
+      translatedFrom = t.original;
+    }
+  }
   // GIPHY endpoints:
   //   gifs:     /v1/gifs/{trending,search}
   //   stickers: /v1/stickers/{trending,search}
   const path = `/v1/${type}/${isTrending ? 'trending' : 'search'}`;
   const giphyUrl = new URL(`https://api.giphy.com${path}`);
-  if (!isTrending) giphyUrl.searchParams.set('q', q);
+  if (!isTrending) giphyUrl.searchParams.set('q', effectiveQuery);
   giphyUrl.searchParams.set('api_key', key);
   giphyUrl.searchParams.set('limit', String(PAGE_SIZE));
   giphyUrl.searchParams.set('offset', String(offset));
   giphyUrl.searchParams.set('rating', 'g');
-  giphyUrl.searchParams.set('lang', 'ru');
+  giphyUrl.searchParams.set('lang', 'en');
 
   try {
     const res = await fetch(giphyUrl.toString(), { next: { revalidate: 0 } });
@@ -107,6 +119,10 @@ export async function GET(req: NextRequest) {
       offset: typeof pag.offset === 'number' ? pag.offset : offset,
       count: typeof pag.count === 'number' ? pag.count : items.length,
       total: typeof pag.total_count === 'number' ? pag.total_count : items.length,
+      // Если запрос был переведён — `translatedFrom` = оригинал пользователя,
+      // `query` = что реально ушло в GIPHY (английский). Клиент может показать.
+      query: effectiveQuery,
+      translatedFrom,
     });
   } catch (e) {
     console.error('[giphy/search]', e);

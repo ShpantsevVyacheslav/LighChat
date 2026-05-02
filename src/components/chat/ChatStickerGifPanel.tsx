@@ -33,6 +33,10 @@ type GiphyResponse = {
   offset?: number;
   count?: number;
   total?: number;
+  /** Если запрос был автоматически переведён — оригинал пользователя. */
+  translatedFrom?: string | null;
+  /** Что реально ушло в GIPHY (на английском, если был перевод). */
+  query?: string;
 };
 
 type PendingSave =
@@ -95,6 +99,7 @@ export function ChatStickerGifPanel({
   const [recentGifs, setRecentGifs] = useState<GiphyItem[]>([]);
   const [gifMissingKey, setGifMissingKey] = useState(false);
   const [activeEmojiFilter, setActiveEmojiFilter] = useState<string | null>(null);
+  const [translatedHint, setTranslatedHint] = useState<string | null>(null);
   const gifScrollRef = useRef<HTMLDivElement>(null);
 
   // Анимированные эмодзи (GIPHY stickers).
@@ -154,9 +159,9 @@ export function ChatStickerGifPanel({
       if (cached && cached.length > 0) {
         setGifItems(cached);
         setGifLoading(false);
-        // У кеша нет инфы о total — разрешаем дозагрузку, дочитаем при скролле.
         setGifTotal(cached.length);
         setGifHasMore(true);
+        setTranslatedHint(null);
         return;
       }
       setGifLoading(true);
@@ -169,6 +174,11 @@ export function ChatStickerGifPanel({
       setGifItems(items);
       setGifTotal(total);
       setGifHasMore(items.length < total);
+      setTranslatedHint(
+        r.translatedFrom && r.query && r.query !== r.translatedFrom
+          ? r.query
+          : null,
+      );
       if (items.length > 0) giphyCache.save('gifs', effective, items);
     }, 350);
     return () => {
@@ -393,6 +403,12 @@ export function ChatStickerGifPanel({
           {gifMissingKey && (
             <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
               Поиск GIF временно недоступен.
+            </p>
+          )}
+
+          {translatedHint && (
+            <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+              Искали: {translatedHint}
             </p>
           )}
 

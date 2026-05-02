@@ -26,6 +26,8 @@ class GiphySearchOutcome {
     this.missingKey = false,
     this.offset = 0,
     this.total = 0,
+    this.translatedFrom,
+    this.effectiveQuery,
   });
 
   final List<GiphyGifItem> items;
@@ -36,6 +38,13 @@ class GiphySearchOutcome {
 
   /// Общее число доступных результатов на сервере (если известно).
   final int total;
+
+  /// Если запрос был переведён на английский — здесь оригинал пользователя
+  /// (например "котики"), иначе null.
+  final String? translatedFrom;
+
+  /// Что реально ушло в GIPHY (на английском, если был перевод).
+  final String? effectiveQuery;
 
   /// Можно ли загрузить ещё страницу.
   bool get hasMore => offset + items.length < total;
@@ -110,11 +119,15 @@ Future<GiphySearchOutcome> searchGifs(
     }
     final off = body['offset'];
     final total = body['total'];
+    final translatedFrom = body['translatedFrom'];
+    final effectiveQuery = body['query'];
     return GiphySearchOutcome(
       items: out,
       missingKey: err == 'missing_key',
       offset: off is num ? off.toInt() : offset,
       total: total is num ? total.toInt() : out.length,
+      translatedFrom: translatedFrom is String ? translatedFrom : null,
+      effectiveQuery: effectiveQuery is String ? effectiveQuery : null,
     );
   } catch (_) {
     return const GiphySearchOutcome(items: []);
