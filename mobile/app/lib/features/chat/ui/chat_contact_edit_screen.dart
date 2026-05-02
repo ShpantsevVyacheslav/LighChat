@@ -2,6 +2,7 @@ import 'dart:async' show unawaited;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -41,7 +42,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Введите имя контакта.')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.contact_edit_name_required)));
       return;
     }
     final repo = ref.read(userContactsRepositoryProvider);
@@ -63,7 +64,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось сохранить контакт: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.contact_edit_save_error(e.toString()))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -114,7 +115,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                 final displayName = resolveContactDisplayName(
                   contactProfiles: contactProfiles,
                   contactUserId: widget.userId,
-                  fallbackName: fallback.isNotEmpty ? fallback : 'Пользователь',
+                  fallbackName: fallback.isNotEmpty ? fallback : AppLocalizations.of(context)!.contact_edit_user_fallback,
                 );
 
                 return Column(
@@ -135,7 +136,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                                       );
                                     }
                                   },
-                            child: const Text('Отмена'),
+                            child: Text(AppLocalizations.of(context)!.common_cancel),
                           ),
                           const Spacer(),
                           TextButton(
@@ -150,7 +151,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text('Готово'),
+                                : Text(AppLocalizations.of(context)!.common_done),
                           ),
                         ],
                       ),
@@ -193,9 +194,9 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  decoration: const InputDecoration(
-                                    hintText: 'Имя',
-                                    contentPadding: EdgeInsets.symmetric(
+                                  decoration: InputDecoration(
+                                    hintText: AppLocalizations.of(context)!.contact_edit_first_name_hint,
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 14,
                                       vertical: 14,
                                     ),
@@ -214,9 +215,9 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  decoration: const InputDecoration(
-                                    hintText: 'Фамилия',
-                                    contentPadding: EdgeInsets.symmetric(
+                                  decoration: InputDecoration(
+                                    hintText: AppLocalizations.of(context)!.contact_edit_last_name_hint,
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 14,
                                       vertical: 14,
                                     ),
@@ -227,9 +228,9 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          const Text(
-                            'Это имя видно только вам: в чатах, поиске и списке контактов.',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.contact_edit_description,
+                            style: const TextStyle(
                               color: Colors.white54,
                               fontSize: 12,
                             ),
@@ -245,7 +246,7 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
           loading: () => const Center(child: CupertinoActivityIndicator()),
           error: (e, _) => Center(
             child: Text(
-              'Ошибка: $e',
+              AppLocalizations.of(context)!.contact_edit_error(e.toString()),
               style: const TextStyle(color: Colors.white70),
             ),
           ),

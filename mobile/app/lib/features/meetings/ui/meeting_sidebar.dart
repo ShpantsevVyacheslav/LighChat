@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/meeting_chat_message.dart';
@@ -171,13 +172,14 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
       _ => 0,
     };
 
+    final l10n = AppLocalizations.of(context)!;
     final tabs = <Tab>[
-      Tab(text: 'Участники (${widget.participants.length})'),
+      Tab(text: l10n.meeting_tab_participants(widget.participants.length.toString())),
       Tab(
-        text: activePolls > 0 ? 'Опросы ($activePolls)' : 'Опросы',
+        text: activePolls > 0 ? l10n.meeting_tab_polls_count(activePolls.toString()) : l10n.meeting_tab_polls,
       ),
-      Tab(text: unread > 0 ? 'Чат ($unread)' : 'Чат'),
-      if (widget.isHostOrAdmin) Tab(text: 'Заявки (${widget.requests.length})'),
+      Tab(text: unread > 0 ? l10n.meeting_tab_chat_count(unread.toString()) : l10n.meeting_tab_chat),
+      if (widget.isHostOrAdmin) Tab(text: l10n.meeting_tab_requests(widget.requests.length.toString())),
     ];
     return SafeArea(
       top: true,
@@ -236,6 +238,7 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
   }
 
   Widget _participantsList(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: widget.participants.length,
@@ -262,8 +265,8 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
             style: const TextStyle(color: Colors.white),
           ),
           subtitle: isHost
-              ? const Text('Хост',
-                  style: TextStyle(color: Color(0xFF60A5FA)))
+              ? Text(l10n.meeting_host_label,
+                  style: const TextStyle(color: Color(0xFF60A5FA)))
               : null,
           trailing: canModerate
               ? PopupMenuButton<String>(
@@ -279,19 +282,19 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
                         widget.onKick(p.id);
                     }
                   },
-                  itemBuilder: (_) => const [
+                  itemBuilder: (_) => [
                     PopupMenuItem(
                       value: 'mute_audio',
-                      child: Text('Выключить микрофон'),
+                      child: Text(l10n.meeting_force_mute_mic),
                     ),
                     PopupMenuItem(
                       value: 'mute_video',
-                      child: Text('Выключить камеру'),
+                      child: Text(l10n.meeting_force_mute_camera),
                     ),
                     PopupMenuItem(
                       value: 'kick',
-                      child: Text('Удалить из комнаты',
-                          style: TextStyle(color: Colors.redAccent)),
+                      child: Text(l10n.meeting_kick,
+                          style: const TextStyle(color: Colors.redAccent)),
                     ),
                   ],
                 )
@@ -332,7 +335,7 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'Не удалось загрузить чат: $e',
+            AppLocalizations.of(context)!.meeting_chat_load_error(e.toString()),
             style: const TextStyle(color: Colors.redAccent),
             textAlign: TextAlign.center,
           ),
@@ -351,10 +354,10 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
 
   Widget _requestsList(BuildContext context) {
     if (widget.requests.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Нет новых заявок',
-          style: TextStyle(color: Colors.white54),
+          AppLocalizations.of(context)!.meeting_no_requests,
+          style: const TextStyle(color: Colors.white54),
         ),
       );
     }
@@ -519,7 +522,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
       if (b.length > maxBytes) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Файл слишком большой: ${f.name}')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.meeting_file_too_big(f.name))),
           );
         }
         continue;
@@ -561,7 +564,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось отправить: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.meeting_send_error(e.toString()))),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -573,7 +576,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     final r = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Изменить сообщение'),
+        title: Text(AppLocalizations.of(context)!.meeting_edit_message_title),
         content: TextField(
           controller: c,
           maxLines: 5,
@@ -583,11 +586,11 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.common_cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, c.text.trim()),
-            child: const Text('Сохранить'),
+            child: Text(AppLocalizations.of(context)!.common_save),
           ),
         ],
       ),
@@ -602,7 +605,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось сохранить: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.meeting_save_error(e.toString()))),
       );
     }
   }
@@ -611,17 +614,17 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить сообщение?'),
-        content: const Text('Участники увидят «Сообщение удалено».'),
+        title: Text(AppLocalizations.of(context)!.meeting_delete_message_title),
+        content: Text(AppLocalizations.of(context)!.meeting_delete_message_body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.common_cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить'),
+            child: Text(AppLocalizations.of(context)!.common_delete),
           ),
         ],
       ),
@@ -635,7 +638,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось удалить: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.meeting_delete_error(e.toString()))),
       );
     }
   }
@@ -647,10 +650,10 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
       children: [
         Expanded(
           child: emptyList
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'Пока нет сообщений',
-                    style: TextStyle(color: Colors.white54),
+                    AppLocalizations.of(context)!.meeting_no_messages,
+                    style: const TextStyle(color: Colors.white54),
                   ),
                 )
               : ListView.builder(
@@ -728,7 +731,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: const Color(0xFF60A5FA),
                     decoration: InputDecoration(
-                      hintText: 'Сообщение…',
+                      hintText: AppLocalizations.of(context)!.meeting_message_hint,
                       hintStyle: const TextStyle(color: Colors.white38),
                       filled: true,
                       fillColor: Colors.white10,

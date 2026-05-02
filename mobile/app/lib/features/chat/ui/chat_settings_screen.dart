@@ -67,52 +67,55 @@ const Map<String, Object?> _defaultChatSettings = <String, Object?>{
   'bottomNavIconStyles': <String, Object?>{},
 };
 
-const List<({String? value, String label, Color fallback})>
-_outgoingBubbleColors = <({String? value, String label, Color fallback})>[
-  (value: null, label: 'По умолчанию', fallback: Color(0xFF637FE1)),
-  (value: '#CF82DD', label: 'Лиловый', fallback: Color(0xFFCF82DD)),
-  (value: '#ED6897', label: 'Розовый', fallback: Color(0xFFED6897)),
-  (value: '#47D973', label: 'Зелёный', fallback: Color(0xFF47D973)),
-  (value: '#FC6A6A', label: 'Коралловый', fallback: Color(0xFFFC6A6A)),
-  (value: '#8CCCCC', label: 'Мята', fallback: Color(0xFF8CCCCC)),
-  (value: '#53A2E6', label: 'Небесный', fallback: Color(0xFF53A2E6)),
-];
+List<({String? value, String label, Color fallback})>
+_outgoingBubbleColors(AppLocalizations l10n) =>
+    <({String? value, String label, Color fallback})>[
+      (value: null, label: l10n.chat_settings_color_default, fallback: Color(0xFF637FE1)),
+      (value: '#CF82DD', label: l10n.chat_settings_color_lilac, fallback: Color(0xFFCF82DD)),
+      (value: '#ED6897', label: l10n.chat_settings_color_pink, fallback: Color(0xFFED6897)),
+      (value: '#47D973', label: l10n.chat_settings_color_green, fallback: Color(0xFF47D973)),
+      (value: '#FC6A6A', label: l10n.chat_settings_color_coral, fallback: Color(0xFFFC6A6A)),
+      (value: '#8CCCCC', label: l10n.chat_settings_color_mint, fallback: Color(0xFF8CCCCC)),
+      (value: '#53A2E6', label: l10n.chat_settings_color_sky, fallback: Color(0xFF53A2E6)),
+    ];
 
-const List<({String? value, String label, Color fallback})>
-_incomingBubbleColors = <({String? value, String label, Color fallback})>[
-  (value: null, label: 'По умолчанию', fallback: Color(0xFF53A2E6)),
-  (value: '#7650A8', label: 'Фиолетовый', fallback: Color(0xFF7650A8)),
-  (value: '#EE5572', label: 'Малиновый', fallback: Color(0xFFEE5572)),
-  (value: '#42DCC8', label: 'Тифани', fallback: Color(0xFF42DCC8)),
-  (value: '#F1DC40', label: 'Жёлтый', fallback: Color(0xFFF1DC40)),
-  (value: '#DFC0CF', label: 'Пудра', fallback: Color(0xFFDFC0CF)),
-  (value: '#1BD0DD', label: 'Бирюза', fallback: Color(0xFF1BD0DD)),
-];
+List<({String? value, String label, Color fallback})>
+_incomingBubbleColors(AppLocalizations l10n) =>
+    <({String? value, String label, Color fallback})>[
+      (value: null, label: l10n.chat_settings_color_default, fallback: Color(0xFF53A2E6)),
+      (value: '#7650A8', label: l10n.chat_settings_color_purple, fallback: Color(0xFF7650A8)),
+      (value: '#EE5572', label: l10n.chat_settings_color_crimson, fallback: Color(0xFFEE5572)),
+      (value: '#42DCC8', label: l10n.chat_settings_color_tiffany, fallback: Color(0xFF42DCC8)),
+      (value: '#F1DC40', label: l10n.chat_settings_color_yellow, fallback: Color(0xFFF1DC40)),
+      (value: '#DFC0CF', label: l10n.chat_settings_color_powder, fallback: Color(0xFFDFC0CF)),
+      (value: '#1BD0DD', label: l10n.chat_settings_color_turquoise, fallback: Color(0xFF1BD0DD)),
+    ];
 
-const List<({String? value, String label})>
-_wallpaperPresets = <({String? value, String label})>[
-  (
-    value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    label: 'Фиолетовый',
-  ),
-  (
-    value: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    label: 'Розовый',
-  ),
-  (
-    value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    label: 'Голубой',
-  ),
-  (
-    value: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    label: 'Зелёный',
-  ),
-  (value: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', label: 'Закат'),
-  (value: 'linear-gradient(135deg, #C6E8EB 0%, #E9D0DE 100%)', label: 'Нежный'),
-  (value: 'linear-gradient(135deg, #D9F904 0%, #6CEB00 100%)', label: 'Лайм'),
-  (value: 'linear-gradient(135deg, #151619 0%, #23242A 100%)', label: 'Графит'),
-  (value: null, label: 'Без фона'),
-];
+List<({String? value, String label})>
+_wallpaperPresets(AppLocalizations l10n) =>
+    <({String? value, String label})>[
+      (
+        value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        label: l10n.chat_settings_color_purple,
+      ),
+      (
+        value: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        label: l10n.chat_settings_color_pink,
+      ),
+      (
+        value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        label: l10n.chat_settings_color_blue,
+      ),
+      (
+        value: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        label: l10n.chat_settings_color_green,
+      ),
+      (value: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', label: l10n.chat_settings_color_sunset),
+      (value: 'linear-gradient(135deg, #C6E8EB 0%, #E9D0DE 100%)', label: l10n.chat_settings_color_tender),
+      (value: 'linear-gradient(135deg, #D9F904 0%, #6CEB00 100%)', label: l10n.chat_settings_color_lime),
+      (value: 'linear-gradient(135deg, #151619 0%, #23242A 100%)', label: l10n.chat_settings_color_graphite),
+      (value: null, label: l10n.chat_settings_color_no_bg),
+    ];
 
 const List<Color> _iconStyleColorSwatches = <Color>[
   Color(0xFFFFFFFF),
@@ -511,6 +514,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   }) async {
     var query = '';
     final baseDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: baseDark ? 0.62 : 0.32),
@@ -563,7 +567,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Иконка: «${item.label}»',
+                              l10n.chat_settings_icon_picker_title(item.label),
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -587,7 +591,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         onChanged: (v) => setLocalState(() => query = v),
                         textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(
-                          hintText: 'Поиск по названию (англ.)...',
+                          hintText: l10n.chat_settings_search_hint,
                           prefixIcon: const Icon(Icons.search_rounded),
                           filled: true,
                           fillColor:
@@ -623,7 +627,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       child: filtered.isEmpty
                           ? Center(
                               child: Text(
-                                'Ничего не найдено',
+                                l10n.common_nothing_found,
                                 style: TextStyle(
                                   color: fg.withValues(
                                     alpha: dark ? 0.62 : 0.56,
@@ -709,7 +713,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                               color: fg.withValues(alpha: dark ? 0.18 : 0.12),
                             ),
                           ),
-                          child: const Text('Отмена'),
+                          child: Text(l10n.common_cancel),
                         ),
                       ),
                     ),
@@ -811,6 +815,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
     required ValueChanged<BottomNavIconVisualStyle> onStyleChanged,
     required bool isGlobalEditor,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
@@ -862,7 +867,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Цвет иконки',
+            l10n.chat_settings_icon_color,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -874,13 +879,13 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
             selectedHex: _hexSwatchSelection(iconColor),
             onSelect: (hex) => onStyleChanged(apply(iconColor: hex)),
             onReset: () => onStyleChanged(apply(resetIconColor: true)),
-            resetLabel: 'По умолчанию',
+            resetLabel: l10n.chat_settings_color_default,
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Text(
-                'Размер иконки',
+                l10n.chat_settings_icon_size,
                 style: TextStyle(
                   fontSize: 14,
                   color: fg.withValues(alpha: dark ? 0.8 : 0.76),
@@ -907,14 +912,14 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
             alignment: Alignment.centerLeft,
             child: TextButton(
               onPressed: () => onStyleChanged(apply(resetSize: true)),
-              child: const Text('Сбросить размер'),
+              child: Text(l10n.chat_settings_reset_size),
             ),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
               Text(
-                'Толщина линии',
+                l10n.chat_settings_stroke_width,
                 style: TextStyle(
                   fontSize: 14,
                   color: fg.withValues(alpha: dark ? 0.8 : 0.76),
@@ -941,12 +946,12 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
             alignment: Alignment.centerLeft,
             child: TextButton(
               onPressed: () => onStyleChanged(apply(resetStrokeWidth: true)),
-              child: const Text('Сбросить толщину'),
+              child: Text(l10n.chat_settings_reset_stroke),
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Фон плитки под иконкой',
+            l10n.chat_settings_tile_background,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -959,8 +964,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
             onSelect: (hex) => onStyleChanged(apply(tileBackground: hex)),
             onReset: () => onStyleChanged(apply(resetTileBackground: true)),
             resetLabel: isGlobalEditor
-                ? 'Градиент по умолчанию'
-                : 'Наследовать от глобальных',
+                ? l10n.chat_settings_default_gradient
+                : l10n.chat_settings_inherit_global,
             betweenSwatchesAndReset: Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
@@ -970,8 +975,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         currentStyle.tileBackground ??
                             effectiveStyle.tileBackground,
                       )
-                      ? 'Без фона (вкл.)'
-                      : 'Без фона',
+                      ? l10n.chat_settings_no_bg_on
+                      : l10n.chat_settings_no_bg,
                 ),
               ),
             ),
@@ -982,6 +987,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   }
 
   Widget _buildBottomNavIconsSection(_EditableChatSettings s) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final textMain = (dark ? Colors.white : scheme.onSurface).withValues(
@@ -1001,7 +1007,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Иконки нижнего меню',
+          l10n.chat_settings_bottom_nav_icons,
           style: TextStyle(
             fontSize: _kBlockTitleSize,
             fontWeight: FontWeight.w600,
@@ -1010,7 +1016,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Выбор иконок и визуального стиля как на вебе.',
+          l10n.chat_settings_bottom_nav_description,
           style: TextStyle(fontSize: _kMutedTextSize, color: textSecondary),
         ),
         const SizedBox(height: 10),
@@ -1018,7 +1024,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           children: [
             Expanded(
               child: _SegmentButton(
-                label: 'Цветные',
+                label: l10n.chat_settings_colorful,
                 active: appearance != 'minimal',
                 onTap: () {
                   setState(() => s.bottomNavAppearance = 'colorful');
@@ -1031,7 +1037,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: _SegmentButton(
-                label: 'Минимализм',
+                label: l10n.chat_settings_minimalism,
                 active: appearance == 'minimal',
                 onTap: () {
                   setState(() => s.bottomNavAppearance = 'minimal');
@@ -1073,7 +1079,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Для всех иконок',
+                            l10n.chat_settings_for_all_icons,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -1082,7 +1088,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Общий слой: цвет, размер, толщина и фон плитки.',
+                            l10n.chat_settings_bottom_nav_global_description,
                             style: TextStyle(
                               fontSize: 12,
                               color: textSecondary,
@@ -1093,7 +1099,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                     ),
                     if (!s.bottomNavIconGlobalStyle.isEmpty)
                       IconButton(
-                        tooltip: 'Сброс',
+                        tooltip: l10n.chat_settings_reset,
                         onPressed: () =>
                             unawaited(_resetBottomNavGlobalStyle(s)),
                         icon: const Icon(Icons.undo_rounded, size: 20),
@@ -1105,7 +1111,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       icon: const Icon(Icons.palette_outlined, size: 17),
                       label: Text(
-                        _globalIconStyleExpanded ? 'Скрыть' : 'Настроить',
+                        _globalIconStyleExpanded ? l10n.chat_settings_hide : l10n.chat_settings_customize,
                       ),
                     ),
                   ],
@@ -1194,14 +1200,14 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       if (hasOverride)
                         IconButton(
-                          tooltip: 'Сбросить',
+                          tooltip: l10n.chat_settings_reset_item,
                           onPressed: () => unawaited(
                             _resetBottomNavIconOverride(s, href: item.href),
                           ),
                           icon: const Icon(Icons.undo_rounded, size: 20),
                         ),
                       IconButton(
-                        tooltip: 'Стиль',
+                        tooltip: l10n.chat_settings_style,
                         onPressed: () => setState(
                           () => _iconStyleExpandedHref = isExpanded
                               ? null
@@ -1213,7 +1219,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         onPressed: () =>
                             _openBottomNavIconPicker(s, item: item),
                         icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: const Text('Выбрать'),
+                        label: Text(l10n.chat_settings_select),
                       ),
                     ],
                   ),
@@ -1257,6 +1263,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final textMain = (dark ? Colors.white : scheme.onSurface).withValues(
@@ -1362,7 +1369,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       _buildBottomNavIconsSection(s),
                       const SizedBox(height: 20),
                       Text(
-                        'Исходящие сообщения',
+                        l10n.chat_settings_outgoing_messages,
                         style: TextStyle(
                           fontSize: _kBlockTitleSize,
                           fontWeight: FontWeight.w600,
@@ -1371,7 +1378,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 10),
                       _ColorPaletteRow(
-                        options: _outgoingBubbleColors,
+                        options: _outgoingBubbleColors(l10n),
                         selectedValue: s.bubbleColor,
                         resolveColor: (value, fallback) =>
                             _colorFromHex(value, fallback),
@@ -1382,7 +1389,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Входящие сообщения',
+                        l10n.chat_settings_incoming_messages,
                         style: TextStyle(
                           fontSize: _kBlockTitleSize,
                           fontWeight: FontWeight.w600,
@@ -1391,7 +1398,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 10),
                       _ColorPaletteRow(
-                        options: _incomingBubbleColors,
+                        options: _incomingBubbleColors(l10n),
                         selectedValue: s.incomingBubbleColor,
                         resolveColor: (value, fallback) =>
                             _colorFromHex(value, fallback),
@@ -1404,7 +1411,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Размер шрифта',
+                        l10n.chat_settings_font_size,
                         style: TextStyle(
                           fontSize: _kBlockTitleSize,
                           fontWeight: FontWeight.w600,
@@ -1416,7 +1423,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         children: [
                           Expanded(
                             child: _SegmentButton(
-                              label: 'Мелкий',
+                              label: l10n.chat_settings_font_small,
                               active: s.fontSize == 'small',
                               onTap: () {
                                 setState(() => s.fontSize = 'small');
@@ -1429,7 +1436,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _SegmentButton(
-                              label: 'Средний',
+                              label: l10n.chat_settings_font_medium,
                               active: s.fontSize == 'medium',
                               onTap: () {
                                 setState(() => s.fontSize = 'medium');
@@ -1442,7 +1449,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _SegmentButton(
-                              label: 'Крупный',
+                              label: l10n.chat_settings_font_large,
                               active: s.fontSize == 'large',
                               onTap: () {
                                 setState(() => s.fontSize = 'large');
@@ -1456,7 +1463,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Форма пузырьков',
+                        l10n.chat_settings_bubble_shape,
                         style: TextStyle(
                           fontSize: _kBlockTitleSize,
                           fontWeight: FontWeight.w600,
@@ -1468,7 +1475,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         children: [
                           Expanded(
                             child: _BubbleShapeCard(
-                              title: 'Округлённые',
+                              title: l10n.chat_settings_bubble_rounded,
                               selected: s.bubbleRadius == 'rounded',
                               rounded: true,
                               onTap: () {
@@ -1482,7 +1489,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _BubbleShapeCard(
-                              title: 'Квадратные',
+                              title: l10n.chat_settings_bubble_square,
                               selected: s.bubbleRadius == 'square',
                               rounded: false,
                               onTap: () {
@@ -1497,7 +1504,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Фон чата',
+                        l10n.chat_settings_chat_background,
                         style: TextStyle(
                           fontSize: _kBlockTitleSize,
                           fontWeight: FontWeight.w600,
@@ -1509,7 +1516,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount:
-                            _wallpaperPresets.length +
+                            _wallpaperPresets(l10n).length +
                             s.customBackgrounds.length +
                             1,
                         gridDelegate:
@@ -1520,7 +1527,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                               childAspectRatio: 1.04,
                             ),
                         itemBuilder: (context, index) {
-                          final presetCount = _wallpaperPresets.length;
+                          final presetCount = _wallpaperPresets(l10n).length;
                           final customCount = s.customBackgrounds.length;
 
                           if (index == presetCount + customCount) {
@@ -1533,7 +1540,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           }
 
                           if (index < presetCount) {
-                            final preset = _wallpaperPresets[index];
+                            final preset = _wallpaperPresets(l10n)[index];
                             final selected = s.chatWallpaper == preset.value;
                             return _WallpaperTile(
                               selected: selected,
@@ -1572,7 +1579,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Выберите фото из галереи или настройте',
+                        l10n.chat_settings_background_hint,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: _kBodyTextSize,
@@ -1581,7 +1588,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Эффекты эмодзи',
+                        l10n.chat_settings_emoji_effects,
                         style: TextStyle(
                           fontSize: _kBlockTitleSize,
                           fontWeight: FontWeight.w600,
@@ -1590,7 +1597,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.',
+                        l10n.chat_settings_emoji_description,
                         style: TextStyle(
                           fontSize: _kMutedTextSize,
                           color: textSecondary,
@@ -1674,7 +1681,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 22),
                       Text(
-                        'Дополнительно',
+                        l10n.chat_settings_additional,
                         style: TextStyle(
                           fontSize: _kSectionTitleSize,
                           fontWeight: FontWeight.w700,
@@ -1703,7 +1710,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Показывать время',
+                                    l10n.chat_settings_show_time,
                                     style: TextStyle(
                                       fontSize: _kBlockTitleSize,
                                       fontWeight: FontWeight.w600,
@@ -1712,7 +1719,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Время отправки под сообщениями',
+                                    l10n.chat_settings_show_time_hint,
                                     style: TextStyle(
                                       fontSize: _kBodyTextSize,
                                       color: textSecondary,
@@ -1761,7 +1768,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 .withValues(alpha: dark ? 0.82 : 0.68),
                           ),
                           label: Text(
-                            'Сбросить настройки',
+                            l10n.chat_settings_reset_all,
                             style: TextStyle(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w500,
@@ -1858,7 +1865,7 @@ class _ChatPreviewCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(isSquare ? 9 : 20),
                       ),
                       child: Text(
-                        'Привет! Как дела?',
+                        AppLocalizations.of(context)!.chat_settings_preview_incoming,
                         style: TextStyle(
                           fontSize: messageFontSize,
                           color: Colors.white.withValues(alpha: 0.95),
@@ -1888,7 +1895,7 @@ class _ChatPreviewCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(isSquare ? 9 : 20),
                       ),
                       child: Text(
-                        'Отлично, спасибо!',
+                        AppLocalizations.of(context)!.chat_settings_preview_outgoing,
                         style: TextStyle(
                           fontSize: messageFontSize,
                           color: Colors.white.withValues(alpha: 0.96),
@@ -2163,8 +2170,8 @@ class _BubbleShapeCard extends StatelessWidget {
                 color: const Color(0xFF2F86FF),
                 borderRadius: BorderRadius.circular(rounded ? 20 : 7),
               ),
-              child: const Text(
-                'Привет',
+              child: Text(
+                AppLocalizations.of(context)!.chat_settings_preview_hello,
                 style: TextStyle(color: Colors.white, fontSize: 14),
               ),
             ),
@@ -2309,7 +2316,7 @@ class _AddWallpaperTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Добавить',
+                      AppLocalizations.of(context)!.common_add,
                       style: TextStyle(
                         fontSize: 14,
                         color: fg.withValues(alpha: dark ? 0.64 : 0.62),

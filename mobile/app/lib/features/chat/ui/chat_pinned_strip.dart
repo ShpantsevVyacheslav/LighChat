@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'chat_cached_network_image.dart';
@@ -23,15 +24,16 @@ class ChatPinnedStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final effectiveMediaType = _effectivePinnedMediaType(pin);
-    final mediaTypeLabel = _mediaTypeLabel(effectiveMediaType);
+    final mediaTypeLabel = _mediaTypeLabel(effectiveMediaType, l10n);
     final contentLabel = mediaTypeLabel ?? pin.text;
     final preview = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          totalPins > 1 ? 'Закреплено: $totalPins' : 'Закреплено',
+          totalPins > 1 ? l10n.pinned_count(totalPins) : l10n.pinned_single,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -115,7 +117,7 @@ class ChatPinnedStrip extends StatelessWidget {
               width: 30,
               height: 30,
               child: IconButton(
-                tooltip: 'Открепить',
+                tooltip: l10n.pinned_unpin_tooltip,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
                 onPressed: onUnpin,
@@ -150,26 +152,26 @@ String? _effectivePinnedMediaType(PinnedMessage pin) {
   return null;
 }
 
-String? _mediaTypeLabel(String? mediaType) {
+String? _mediaTypeLabel(String? mediaType, AppLocalizations l10n) {
   switch ((mediaType ?? '').trim().toLowerCase()) {
     case 'image':
-      return 'Изображение';
+      return l10n.pinned_type_image;
     case 'video':
-      return 'Видео';
+      return l10n.pinned_type_video;
     case 'video-circle':
-      return 'Видеокружок';
+      return l10n.pinned_type_video_circle;
     case 'audio':
-      return 'Голосовое сообщение';
+      return l10n.pinned_type_voice;
     case 'poll':
-      return 'Опрос';
+      return l10n.pinned_type_poll;
     case 'link':
-      return 'Ссылка';
+      return l10n.pinned_type_link;
     case 'location':
-      return 'Локация';
+      return l10n.pinned_type_location;
     case 'sticker':
-      return 'Стикер';
+      return l10n.pinned_type_sticker;
     case 'file':
-      return 'Файл';
+      return l10n.pinned_type_file;
     default:
       return null;
   }

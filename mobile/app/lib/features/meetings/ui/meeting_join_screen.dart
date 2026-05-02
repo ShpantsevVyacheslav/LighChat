@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/meeting_models.dart';
@@ -78,7 +79,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
   Future<void> _submitRequest() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
-      setState(() => _lastError = 'Укажите имя');
+      setState(() => _lastError = AppLocalizations.of(context)!.meeting_join_enter_name);
       return;
     }
     setState(() {
@@ -108,7 +109,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
 
   void _goToRoom() {
     final name = _nameCtrl.text.trim().isEmpty
-        ? (widget.initialName ?? 'Гость')
+        ? (widget.initialName ?? AppLocalizations.of(context)!.meeting_join_guest)
         : _nameCtrl.text.trim();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
@@ -153,19 +154,19 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
           icon: const Icon(Icons.close_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text(
-          'Присоединиться',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          AppLocalizations.of(context)!.meeting_join_button,
+          style: const TextStyle(color: Colors.white),
         ),
       ),
       body: meetingAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: Colors.white),
         ),
-        error: (e, _) => _error('Ошибка загрузки митинга: $e'),
+        error: (e, _) => _error(AppLocalizations.of(context)!.meeting_join_load_error(e.toString())),
         data: (meeting) {
           if (meeting == null) {
-            return _error('Митинг не найден или закрыт');
+            return _error(AppLocalizations.of(context)!.meeting_not_found);
           }
           return Padding(
             padding: const EdgeInsets.all(24),
@@ -195,8 +196,8 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
         const SizedBox(height: 6),
         Text(
           meeting.isPrivate
-              ? 'Приватная встреча: после заявки хост решит, пустить ли вас.'
-              : 'Открытая встреча: присоединяйтесь по ссылке без ожидания.',
+              ? AppLocalizations.of(context)!.meeting_private_hint
+              : AppLocalizations.of(context)!.meeting_public_hint,
           style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const SizedBox(height: 20),
@@ -205,7 +206,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
           textCapitalization: TextCapitalization.words,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
-            labelText: 'Ваше имя',
+            labelText: AppLocalizations.of(context)!.meeting_name_label,
             labelStyle: const TextStyle(color: Colors.white70),
             filled: true,
             fillColor: Colors.white.withValues(alpha: 0.08),
@@ -235,8 +236,8 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
               ),
             ),
             onPressed: _goToRoom,
-            child: const Text(
-              'Войти в комнату',
+            child: Text(
+              AppLocalizations.of(context)!.meeting_enter_room,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -268,8 +269,8 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
                   strokeWidth: 2,
                 ),
               )
-            : const Text(
-                'Попросить присоединиться',
+            : Text(
+                AppLocalizations.of(context)!.meeting_request_join,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -279,31 +280,32 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
       );
     }
     final status = ownRequest?.status ?? 'pending';
+    final l10n = AppLocalizations.of(context)!;
     if (status == 'approved') {
-      return const _StatusBanner(
+      return _StatusBanner(
         icon: Icons.check_circle_rounded,
-        color: Color(0xFF34D399),
-        title: 'Одобрено',
-        subtitle: 'Перенаправляем в комнату…',
+        color: const Color(0xFF34D399),
+        title: l10n.meeting_approved_title,
+        subtitle: l10n.meeting_approved_subtitle,
       );
     }
     if (status == 'denied') {
       return Column(
-        children: const [
+        children: [
           _StatusBanner(
             icon: Icons.block_rounded,
             color: Colors.redAccent,
-            title: 'Отклонено',
-            subtitle: 'Хост отклонил вашу заявку.',
+            title: l10n.meeting_denied_title,
+            subtitle: l10n.meeting_denied_subtitle,
           ),
         ],
       );
     }
-    return const _StatusBanner(
+    return _StatusBanner(
       icon: Icons.hourglass_top_rounded,
-      color: Color(0xFFF59E0B),
-      title: 'Ожидаем подтверждения',
-      subtitle: 'Хост увидит вашу заявку и решит, когда впустить.',
+      color: const Color(0xFFF59E0B),
+      title: l10n.meeting_waiting_title,
+      subtitle: l10n.meeting_waiting_subtitle,
     );
   }
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/chat_poll_vote_utils.dart';
@@ -60,14 +61,15 @@ class MessageChatPoll extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot<Map<String, Object?>>>(
       stream: ref.snapshots(),
       builder: (context, snap) {
+        final l10n = AppLocalizations.of(context)!;
         Widget inner;
         if (snap.hasError) {
           inner = Text(
-            'Опрос недоступен',
+            l10n.poll_unavailable,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
           );
         } else if (!snap.hasData) {
-          inner = const Row(
+          inner = Row(
             children: [
               SizedBox(
                 width: 18,
@@ -78,15 +80,15 @@ class MessageChatPoll extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 10),
-              Text('Загрузка опроса…'),
+              Text(l10n.poll_loading),
             ],
           );
         } else if (!snap.data!.exists) {
-          inner = const Text('Опрос не найден');
+          inner = Text(l10n.poll_not_found);
         } else {
           final poll = MeetingPoll.fromDoc(snap.data!);
           if (poll == null) {
-            inner = const Text('Опрос недоступен');
+            inner = Text(l10n.poll_unavailable);
           } else {
             inner = _MessageChatPollBody(
               pollRef: ref,
@@ -240,7 +242,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Ошибка при голосовании')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.poll_vote_error)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -285,7 +287,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Ошибка')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.poll_error)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -304,7 +306,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось добавить вариант')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.poll_add_option_error)),
         );
       }
     } finally {
@@ -337,7 +339,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Ошибка')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.poll_error)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -346,6 +348,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final user = FirebaseAuth.instance.currentUser;
     final uid = user?.uid ?? '';
@@ -373,13 +376,13 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
 
     String statusLabel;
     if (isCancelled) {
-      statusLabel = 'Отменён';
+      statusLabel = l10n.poll_status_cancelled;
     } else if (isEnded) {
-      statusLabel = 'Завершён';
+      statusLabel = l10n.poll_status_ended;
     } else if (isDraft) {
-      statusLabel = 'Черновик';
+      statusLabel = l10n.poll_status_draft;
     } else {
-      statusLabel = 'Активен';
+      statusLabel = l10n.poll_status_active;
     }
 
     final quizReveal =
@@ -427,10 +430,10 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
                         isMuted: isEnded || isCancelled,
                       ),
                       if (!poll.isAnonymous)
-                        _badge(context, 'Публично', isPrimary: true),
-                      if (allowMulti) _badge(context, 'Несколько ответов'),
+                        _badge(context, l10n.poll_badge_public, isPrimary: true),
+                      if (allowMulti) _badge(context, l10n.poll_badge_multi),
                       if (poll.quizMode)
-                        _badge(context, 'Викторина', isQuiz: true),
+                        _badge(context, l10n.poll_badge_quiz, isQuiz: true),
                     ],
                   ),
                 ],
@@ -452,16 +455,16 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
                       if (isEnded)
                         PopupMenuItem(
                           value: 'restart',
-                          child: Text('Перезапустить', style: t),
+                          child: Text(l10n.poll_menu_restart, style: t),
                         ),
                       if (!isEnded && !isDraft)
                         PopupMenuItem(
                           value: 'end',
-                          child: Text('Завершить', style: t),
+                          child: Text(l10n.poll_menu_end, style: t),
                         ),
                       PopupMenuItem(
                         value: 'delete',
-                        child: Text('Удалить', style: t),
+                        child: Text(l10n.poll_menu_delete, style: t),
                       ),
                     ];
                   },
@@ -503,7 +506,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
             onPressed: _busy || _pendingMulti.isEmpty
                 ? null
                 : () => unawaited(_submitMulti()),
-            child: const Text('Отправить голос'),
+            child: Text(l10n.poll_submit_vote),
           ),
         ],
         if (quizReveal &&
@@ -530,8 +533,8 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
                   controller: _newOptionCtrl,
                   textCapitalization: TextCapitalization.sentences,
                   style: const TextStyle(fontSize: 13),
-                  decoration: const InputDecoration(
-                    hintText: 'Предложить вариант',
+                  decoration: InputDecoration(
+                    hintText: l10n.poll_suggest_hint,
                     isDense: true,
                   ),
                   onSubmitted: (_) => unawaited(_addSuggestedOption()),
@@ -542,7 +545,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
                 onPressed: _busy
                     ? null
                     : () => unawaited(_addSuggestedOption()),
-                child: const Text('Добавить'),
+                child: Text(l10n.poll_add_option),
               ),
             ],
           ),
@@ -553,13 +556,13 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
             alignment: Alignment.center,
             child: TextButton(
               onPressed: _busy ? null : () => unawaited(_revoteSelf()),
-              child: const Text('Переголосовать'),
+              child: Text(l10n.poll_revote),
             ),
           ),
         ],
         const SizedBox(height: 8),
         Text(
-          '$total голосов',
+          l10n.poll_votes_count(total),
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w800,
@@ -571,7 +574,7 @@ class _MessageChatPollBodyState extends State<_MessageChatPollBody> {
           const SizedBox(height: 4),
           TextButton(
             onPressed: () => setState(() => _expandedVoters = !_expandedVoters),
-            child: Text(_expandedVoters ? 'Скрыть' : 'Кто голосовал'),
+            child: Text(_expandedVoters ? l10n.poll_voters_toggle_hide : l10n.poll_voters_toggle_show),
           ),
           if (_expandedVoters) _votersList(context, poll),
         ],

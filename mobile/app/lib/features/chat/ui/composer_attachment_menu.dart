@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Действия меню скрепки (паритет веб-меню вложений + мобильные источники).
 enum ComposerAttachmentAction {
@@ -44,49 +45,49 @@ class ComposerAttachmentMenuPanel extends StatelessWidget {
           (
             action: ComposerAttachmentAction.photoVideo,
             icon: Icons.photo_camera_outlined,
-            label: 'Фото/Видео',
+            label: AppLocalizations.of(context)!.attach_photo_video,
             color: const Color(0xFF8B3DFF),
           ),
           (
             action: ComposerAttachmentAction.deviceFiles,
             icon: Icons.insert_drive_file_outlined,
-            label: 'Файлы',
+            label: AppLocalizations.of(context)!.attach_files,
             color: const Color(0xFF2D7BFF),
           ),
           (
             action: ComposerAttachmentAction.videoCircle,
             icon: Icons.radio_button_checked_rounded,
-            label: 'Кружок',
+            label: AppLocalizations.of(context)!.attach_circle,
             color: const Color(0xFFFF2C9C),
           ),
           (
             action: ComposerAttachmentAction.location,
             icon: Icons.location_on_outlined,
-            label: 'Локация',
+            label: AppLocalizations.of(context)!.attach_location,
             color: const Color(0xFF04C853),
           ),
           (
             action: ComposerAttachmentAction.poll,
             icon: Icons.receipt_long_rounded,
-            label: 'Опрос',
+            label: AppLocalizations.of(context)!.attach_poll,
             color: const Color(0xFFFF7A00),
           ),
           (
             action: ComposerAttachmentAction.stickersGif,
             icon: Icons.emoji_emotions_outlined,
-            label: 'Стикеры',
+            label: AppLocalizations.of(context)!.attach_stickers,
             color: const Color(0xFFE8AA00),
           ),
           (
             action: ComposerAttachmentAction.clipboard,
             icon: Icons.content_paste_rounded,
-            label: 'Буфер',
+            label: AppLocalizations.of(context)!.attach_clipboard,
             color: const Color(0xFF1AB6E6),
           ),
           (
             action: ComposerAttachmentAction.format,
             icon: Icons.text_fields_rounded,
-            label: 'Текст',
+            label: AppLocalizations.of(context)!.attach_text,
             color: const Color(0xFF5A56FF),
           ),
         ];
@@ -119,7 +120,7 @@ class ComposerAttachmentMenuPanel extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Прикрепить',
+                        AppLocalizations.of(context)!.attach_title,
                         style: TextStyle(
                           color: titleColor,
                           fontSize: 18,

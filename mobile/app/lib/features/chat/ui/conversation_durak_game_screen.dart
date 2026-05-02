@@ -961,7 +961,7 @@ class _ConversationDurakGameScreenState
                   (activeThrowerUid != null &&
                       me == activeThrowerUid &&
                       me != defenderUid);
-              if (isMyMove) myTurnLabel = 'Твой ход';
+              if (isMyMove) myTurnLabel = AppLocalizations.of(context)!.durak_your_turn;
             }
 
             final primaryCandidates =
@@ -1091,7 +1091,7 @@ class _ConversationDurakGameScreenState
               if (took || beat) {
                 setState(() {
                   _tableFxNonce++;
-                  _tableFxText = took ? 'Взял' : 'Бито';
+                  _tableFxText = took ? AppLocalizations.of(context)!.durak_took : AppLocalizations.of(context)!.durak_beaten;
                 });
               }
               _prevDefenderHandCount = defenderHandCount;
@@ -1384,7 +1384,7 @@ class _ConversationDurakGameScreenState
                           child: Row(
                             children: [
                               IconButton.filled(
-                                tooltip: 'Завершить игру',
+                                tooltip: AppLocalizations.of(context)!.durak_end_game_tooltip,
                                 onPressed: status == 'active' && me != null
                                     ? () => unawaited(_surrender())
                                     : null,
@@ -1392,7 +1392,7 @@ class _ConversationDurakGameScreenState
                               ),
                               const Spacer(),
                               IconButton.filledTonal(
-                                tooltip: 'Закрыть',
+                                tooltip: AppLocalizations.of(context)!.durak_close_tooltip,
                                 onPressed: () => Navigator.of(context).pop(),
                                 icon: const Icon(Icons.close_rounded),
                               ),
@@ -1640,10 +1640,10 @@ class _DurakTopOpponent extends StatelessWidget {
     );
     if (opponentUid.isEmpty) return const SizedBox.shrink();
     final role = opponentUid == defenderUid
-        ? 'БЬЕТ'
+        ? AppLocalizations.of(context)!.durak_role_beats
         : (opponentUid == attackerUid
-              ? 'ХОД'
-              : (opponentUid == activeThrowerUid ? 'ПОДК' : ''));
+              ? AppLocalizations.of(context)!.durak_role_move
+              : (opponentUid == activeThrowerUid ? AppLocalizations.of(context)!.durak_role_throw : ''));
     final count =
         int.tryParse(
           (handCounts == null ? '' : (handCounts![opponentUid] ?? ''))
@@ -2080,7 +2080,7 @@ class _FoulBannerState extends State<_FoulBanner>
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Шулер! Не заметили:',
+                        AppLocalizations.of(context)!.durak_cheater_label,
                         style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -2118,8 +2118,8 @@ class _PendingResolutionBanner extends StatelessWidget {
           Expanded(
             child: Text(
               isAttacker
-                  ? 'Ожидание фолла… Нажми «Подтвердить Бито», если все согласны.'
-                  : 'Ожидание фолла… Теперь можно нажать «Фолл!», если заметил шулерство.',
+                  ? AppLocalizations.of(context)!.durak_waiting_foll_confirm
+                  : AppLocalizations.of(context)!.durak_waiting_foll_call,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.88),
                 fontWeight: FontWeight.w700,
@@ -2193,8 +2193,8 @@ class _DurakFinishedCard extends StatelessWidget {
                   color: const Color(0xFFB8EC5C),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Text(
-                  'Победитель',
+                child: Text(
+                  AppLocalizations.of(context)!.durak_winner,
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 14,
@@ -2253,8 +2253,8 @@ class _DurakFinishedCard extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2.2),
                         )
-                      : const Text(
-                          'Сыграть ещё раз',
+                      : Text(
+                          AppLocalizations.of(context)!.durak_play_again,
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
@@ -2380,7 +2380,7 @@ class _TournamentNextGameSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
-                  'Сыграно $finishedCount из $totalGames',
+                  AppLocalizations.of(context)!.durak_games_progress(finishedCount.toString(), totalGames.toString()),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.65),
@@ -2391,7 +2391,7 @@ class _TournamentNextGameSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
-                  'Турнир завершён',
+                  AppLocalizations.of(context)!.durak_tournament_finished,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -2422,8 +2422,8 @@ class _TournamentNextGameSection extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2.2),
                         )
-                      : const Text(
-                          'Следующая партия турнира',
+                      : Text(
+                          AppLocalizations.of(context)!.durak_next_round,
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 15,

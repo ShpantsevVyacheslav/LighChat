@@ -362,7 +362,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
 
     if (vp == null) {
       return _stickyDayLabel ??
-          formatChatDayLabelRu(groups.last.first.createdAt.toLocal());
+          formatChatDayLabel(groups.last.first.createdAt.toLocal(), AppLocalizations.of(context)!);
     }
 
     const stickyLineY = 28.0;
@@ -375,12 +375,12 @@ class _ChatMessageListState extends State<ChatMessageList> {
       if (ro is! RenderBox || !ro.hasSize || !ro.attached) continue;
       final y = ro.localToGlobal(Offset.zero, ancestor: vp).dy;
       if (y <= stickyLineY) {
-        picked = formatChatDayLabelRu(g.first.createdAt.toLocal());
+        picked = formatChatDayLabel(g.first.createdAt.toLocal(), AppLocalizations.of(context)!);
       }
     }
 
     return picked ??
-        formatChatDayLabelRu(groups.first.first.createdAt.toLocal());
+        formatChatDayLabel(groups.first.first.createdAt.toLocal(), AppLocalizations.of(context)!);
   }
 
   List<List<ChatMessage>> _groupByDay(List<ChatMessage> asc) {
@@ -683,9 +683,10 @@ class _ChatMessageListState extends State<ChatMessageList> {
 
     final stickyFallback = groups.isEmpty
         ? null
-        : formatChatDayLabelRu(
+        : formatChatDayLabel(
             (widget.reversed ? groups.first : groups.last).first.createdAt
                 .toLocal(),
+            AppLocalizations.of(context)!,
           );
     // Без сообщений не показываем капсулу даты — иначе остаётся подпись от прошлого чата.
     final stickyDisplay = asc.isEmpty

@@ -736,7 +736,7 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get privacy_title => 'Конфиденциальность';
+  String get privacy_title => 'Приватность чата';
 
   @override
   String privacy_error_cannot_save(Object error) {
@@ -3231,4 +3231,2707 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get schedule_time_label => 'Время';
+
+  @override
+  String get common_done => 'Готово';
+
+  @override
+  String get common_send => 'Отправить';
+
+  @override
+  String get common_open => 'Открыть';
+
+  @override
+  String get common_add => 'Добавить';
+
+  @override
+  String get common_search => 'Поиск';
+
+  @override
+  String get common_edit => 'Редактировать';
+
+  @override
+  String get common_next => 'Далее';
+
+  @override
+  String get common_ok => 'OK';
+
+  @override
+  String get common_confirm => 'Подтвердить';
+
+  @override
+  String get common_ready => 'Готово';
+
+  @override
+  String get common_error => 'Ошибка';
+
+  @override
+  String get common_yes => 'Да';
+
+  @override
+  String get common_no => 'Нет';
+
+  @override
+  String get common_back => 'Назад';
+
+  @override
+  String get common_continue => 'Продолжить';
+
+  @override
+  String get common_loading => 'Загрузка…';
+
+  @override
+  String get common_copy => 'Скопировать';
+
+  @override
+  String get common_share => 'Поделиться';
+
+  @override
+  String get common_settings => 'Настройки';
+
+  @override
+  String get common_today => 'Сегодня';
+
+  @override
+  String get common_yesterday => 'Вчера';
+
+  @override
+  String get e2ee_qr_title => 'QR-pairing ключа';
+
+  @override
+  String get e2ee_qr_uid_error => 'Не удалось получить uid пользователя.';
+
+  @override
+  String get e2ee_qr_session_ended_error =>
+      'Сессия завершилась до ответа от второго устройства.';
+
+  @override
+  String get e2ee_qr_no_data_error => 'Нет данных для применения ключа.';
+
+  @override
+  String get e2ee_qr_key_transferred_toast =>
+      'Ключ перенесён. Перезайдите в чаты, чтобы обновить сессии.';
+
+  @override
+  String get e2ee_qr_wrong_account_error =>
+      'QR сгенерирован под другой аккаунт.';
+
+  @override
+  String get e2ee_qr_explainer_title => 'Что это';
+
+  @override
+  String get e2ee_qr_explainer_text =>
+      'Передача приватного ключа с одного вашего устройства на другое по ECDH + QR. Обе стороны видят 6-значный код для ручной сверки.';
+
+  @override
+  String get e2ee_qr_show_qr_label => 'Я на новом устройстве — показать QR';
+
+  @override
+  String get e2ee_qr_scan_qr_label => 'У меня уже есть ключ — сканировать QR';
+
+  @override
+  String get e2ee_qr_scan_hint =>
+      'Отсканируйте QR на старом устройстве, где уже есть ключ.';
+
+  @override
+  String get e2ee_qr_verify_code_label =>
+      'Сверьте 6-значный код со старым устройством:';
+
+  @override
+  String e2ee_qr_transfer_from_device_label(String label) {
+    return 'Перенос с устройства: $label';
+  }
+
+  @override
+  String get e2ee_qr_code_match_apply_label => 'Код совпал — применить';
+
+  @override
+  String get e2ee_qr_key_success_label =>
+      'Ключ успешно перенесён на это устройство. Перезайдите в чаты.';
+
+  @override
+  String get e2ee_qr_unknown_error => 'Неизвестная ошибка';
+
+  @override
+  String get e2ee_qr_back_to_pick_label => 'К выбору';
+
+  @override
+  String get e2ee_qr_donor_scan_hint =>
+      'Наведите камеру на QR, показанный на новом устройстве.';
+
+  @override
+  String get e2ee_qr_donor_verify_code_label =>
+      'Сверьте код с новым устройством:';
+
+  @override
+  String get e2ee_qr_donor_verify_hint =>
+      'Если код совпадает — подтвердите на новом устройстве. Если нет, немедленно нажмите «Отмена».';
+
+  @override
+  String get e2ee_encrypt_title => 'Шифрование';
+
+  @override
+  String get e2ee_encrypt_enable_dialog_title => 'Включить шифрование?';
+
+  @override
+  String get e2ee_encrypt_enable_dialog_body =>
+      'Новые сообщения будут доступны только на ваших устройствах и у собеседника. Старые сообщения останутся как есть.';
+
+  @override
+  String get e2ee_encrypt_enable_label => 'Включить';
+
+  @override
+  String get e2ee_encrypt_disable_dialog_title => 'Отключить шифрование?';
+
+  @override
+  String get e2ee_encrypt_disable_dialog_body =>
+      'Новые сообщения пойдут без сквозного шифрования. Ранее отправленные зашифрованные сообщения останутся в ленте.';
+
+  @override
+  String get e2ee_encrypt_disable_label => 'Отключить';
+
+  @override
+  String get e2ee_encrypt_status_on =>
+      'Сквозное шифрование включено для этого чата.';
+
+  @override
+  String get e2ee_encrypt_status_off => 'Сквозное шифрование выключено.';
+
+  @override
+  String get e2ee_encrypt_description =>
+      'Когда шифрование включено, содержимое новых сообщений доступно только участникам чата на их устройствах. Отключение влияет только на новые сообщения.';
+
+  @override
+  String get e2ee_encrypt_switch_title => 'Включить шифрование';
+
+  @override
+  String e2ee_encrypt_switch_on(int epoch) {
+    return 'Включено (эпоха ключа: $epoch)';
+  }
+
+  @override
+  String get e2ee_encrypt_switch_off => 'Выключено';
+
+  @override
+  String get e2ee_encrypt_already_on_toast =>
+      'Шифрование уже включено или не удалось создать ключи. Проверьте сеть и наличие ключей у собеседника.';
+
+  @override
+  String get e2ee_encrypt_no_device_toast =>
+      'Не удалось включить: у собеседника нет активного устройства с ключом.';
+
+  @override
+  String e2ee_encrypt_enable_failed_toast(String error) {
+    return 'Не удалось включить шифрование: $error';
+  }
+
+  @override
+  String e2ee_encrypt_disable_failed_toast(String error) {
+    return 'Не удалось отключить: $error';
+  }
+
+  @override
+  String get e2ee_encrypt_data_types_title => 'Типы данных';
+
+  @override
+  String get e2ee_encrypt_data_types_description =>
+      'Настройка не меняет протокол. Она управляет тем, какие типы данных отправлять в зашифрованном виде.';
+
+  @override
+  String get e2ee_encrypt_override_title =>
+      'Настройки шифрования для этого чата';
+
+  @override
+  String get e2ee_encrypt_override_on => 'Используются чатовые настройки.';
+
+  @override
+  String get e2ee_encrypt_override_off => 'Наследуются глобальные настройки.';
+
+  @override
+  String get e2ee_encrypt_text_title => 'Текст сообщений';
+
+  @override
+  String get e2ee_encrypt_media_title => 'Вложения (медиа/файлы)';
+
+  @override
+  String get e2ee_encrypt_override_hint =>
+      'Чтобы изменить для этого чата — включите «Переопределить».';
+
+  @override
+  String get sticker_default_pack_name => 'Мой пак';
+
+  @override
+  String get sticker_new_pack_dialog_title => 'Новый стикерпак';
+
+  @override
+  String get sticker_pack_name_hint => 'Название';
+
+  @override
+  String get sticker_save_to_pack => 'Сохранить в стикерпак';
+
+  @override
+  String get sticker_no_packs_hint =>
+      'Нет паков. Создайте пак на вкладке «Стикеры».';
+
+  @override
+  String get sticker_new_pack_option => 'Новый пак…';
+
+  @override
+  String get sticker_pick_image_or_gif => 'Выберите изображение или GIF';
+
+  @override
+  String sticker_send_failed(String error) {
+    return 'Не удалось отправить: $error';
+  }
+
+  @override
+  String get sticker_saved_to_pack => 'Сохранено в стикерпак';
+
+  @override
+  String get sticker_save_gif_failed => 'Не удалось скачать или сохранить GIF';
+
+  @override
+  String get sticker_delete_pack_title => 'Удалить пак?';
+
+  @override
+  String sticker_delete_pack_body(String name) {
+    return '«$name» и все стикеры в нём будут удалены.';
+  }
+
+  @override
+  String get sticker_pack_deleted => 'Пак удалён';
+
+  @override
+  String get sticker_pack_delete_failed => 'Не удалось удалить пак';
+
+  @override
+  String get sticker_tab_emoji => 'ЭМОДЗИ';
+
+  @override
+  String get sticker_tab_stickers => 'СТИКЕРЫ';
+
+  @override
+  String get sticker_tab_gif => 'GIF';
+
+  @override
+  String get sticker_scope_my => 'Мои';
+
+  @override
+  String get sticker_scope_public => 'Общие';
+
+  @override
+  String get sticker_new_pack_tooltip => 'Новый пак';
+
+  @override
+  String get sticker_pack_created => 'Стикерпак создан';
+
+  @override
+  String get sticker_no_packs_create => 'Нет стикерпаков. Создайте новый.';
+
+  @override
+  String get sticker_public_packs_empty => 'Общие паки не настроены';
+
+  @override
+  String get sticker_section_recent => 'НЕДАВНИЕ';
+
+  @override
+  String get sticker_pack_empty_hint =>
+      'Пак пуст. Добавьте с устройства (вкладка GIF — «В мой пак»).';
+
+  @override
+  String get sticker_delete_sticker_title => 'Удалить стикер?';
+
+  @override
+  String get sticker_deleted => 'Удалено';
+
+  @override
+  String get sticker_gallery => 'Галерея';
+
+  @override
+  String get sticker_gallery_subtitle =>
+      'Фото, PNG, GIF с устройства — сразу в чат';
+
+  @override
+  String get gif_search_hint => 'Поиск GIF…';
+
+  @override
+  String gif_translated_hint(String query) {
+    return 'Искали: $query';
+  }
+
+  @override
+  String get gif_search_unavailable => 'Поиск GIF временно недоступен.';
+
+  @override
+  String get gif_filter_all => 'Все';
+
+  @override
+  String get sticker_section_animated => 'АНИМИРОВАННЫЕ';
+
+  @override
+  String get sticker_emoji_unavailable =>
+      'Эмодзи в текст недоступны для этого окна.';
+
+  @override
+  String get sticker_create_pack_hint => 'Создайте пак кнопкой +';
+
+  @override
+  String get sticker_public_packs_unavailable => 'Общие паки пока недоступны';
+
+  @override
+  String get composer_link_title => 'Ссылка';
+
+  @override
+  String get composer_link_apply => 'Применить';
+
+  @override
+  String get composer_attach_title => 'Прикрепить';
+
+  @override
+  String get composer_attach_photo_video => 'Фото/Видео';
+
+  @override
+  String get composer_attach_files => 'Файлы';
+
+  @override
+  String get composer_attach_video_circle => 'Кружок';
+
+  @override
+  String get composer_attach_location => 'Локация';
+
+  @override
+  String get composer_attach_poll => 'Опрос';
+
+  @override
+  String get composer_attach_stickers => 'Стикеры';
+
+  @override
+  String get composer_attach_clipboard => 'Буфер';
+
+  @override
+  String get composer_attach_text => 'Текст';
+
+  @override
+  String get meeting_create_poll => 'Создать опрос';
+
+  @override
+  String get meeting_min_two_options => 'Минимум 2 варианта ответа';
+
+  @override
+  String meeting_error_with_details(String details) {
+    return 'Ошибка: $details';
+  }
+
+  @override
+  String meeting_polls_load_error(String details) {
+    return 'Не удалось загрузить опросы: $details';
+  }
+
+  @override
+  String get meeting_no_polls_yet => 'Пока нет опросов';
+
+  @override
+  String get meeting_question_label => 'Вопрос';
+
+  @override
+  String get meeting_options_label => 'Варианты';
+
+  @override
+  String meeting_option_hint(int index) {
+    return 'Вариант $index';
+  }
+
+  @override
+  String get meeting_add_option => 'Добавить вариант';
+
+  @override
+  String get meeting_anonymous => 'Анонимно';
+
+  @override
+  String get meeting_anonymous_subtitle => 'Кто увидит выбор других';
+
+  @override
+  String get meeting_save_as_draft => 'В черновики';
+
+  @override
+  String get meeting_publish => 'Опубликовать';
+
+  @override
+  String get meeting_action_start => 'Запустить';
+
+  @override
+  String get meeting_action_change_vote => 'Изменить голос';
+
+  @override
+  String get meeting_action_restart => 'Перезапустить';
+
+  @override
+  String get meeting_action_stop => 'Остановить';
+
+  @override
+  String meeting_vote_failed(String details) {
+    return 'Голос не засчитан: $details';
+  }
+
+  @override
+  String get meeting_status_ended => 'Завершено';
+
+  @override
+  String get meeting_status_draft => 'Черновик';
+
+  @override
+  String get meeting_status_active => 'Активно';
+
+  @override
+  String get meeting_status_public => 'Публичное';
+
+  @override
+  String meeting_votes_count(int count) {
+    return '$count голосов';
+  }
+
+  @override
+  String meeting_goal_count(int count) {
+    return 'Цель: $count';
+  }
+
+  @override
+  String get meeting_hide => 'Скрыть';
+
+  @override
+  String get meeting_who_voted => 'Кто голосовал';
+
+  @override
+  String meeting_participants_tab(int count) {
+    return 'Участники ($count)';
+  }
+
+  @override
+  String meeting_polls_tab_active(int count) {
+    return 'Опросы ($count)';
+  }
+
+  @override
+  String get meeting_polls_tab => 'Опросы';
+
+  @override
+  String meeting_chat_tab_unread(int count) {
+    return 'Чат ($count)';
+  }
+
+  @override
+  String get meeting_chat_tab => 'Чат';
+
+  @override
+  String meeting_requests_tab(int count) {
+    return 'Заявки ($count)';
+  }
+
+  @override
+  String meeting_you_suffix(String name) {
+    return '$name (Вы)';
+  }
+
+  @override
+  String get meeting_host_label => 'Хост';
+
+  @override
+  String get meeting_force_mute_mic => 'Выключить микрофон';
+
+  @override
+  String get meeting_force_mute_camera => 'Выключить камеру';
+
+  @override
+  String get meeting_kick_from_room => 'Удалить из комнаты';
+
+  @override
+  String meeting_chat_load_error(Object error) {
+    return 'Не удалось загрузить чат: $error';
+  }
+
+  @override
+  String get meeting_no_requests => 'Нет новых заявок';
+
+  @override
+  String get meeting_no_messages_yet => 'Пока нет сообщений';
+
+  @override
+  String meeting_file_too_large(String name) {
+    return 'Файл слишком большой: $name';
+  }
+
+  @override
+  String meeting_send_failed(String details) {
+    return 'Не удалось отправить: $details';
+  }
+
+  @override
+  String get meeting_edit_message_title => 'Изменить сообщение';
+
+  @override
+  String meeting_save_failed(String details) {
+    return 'Не удалось сохранить: $details';
+  }
+
+  @override
+  String get meeting_delete_message_title => 'Удалить сообщение?';
+
+  @override
+  String get meeting_delete_message_body =>
+      'Участники увидят «Сообщение удалено».';
+
+  @override
+  String meeting_delete_failed(String details) {
+    return 'Не удалось удалить: $details';
+  }
+
+  @override
+  String get meeting_message_hint => 'Сообщение…';
+
+  @override
+  String get meeting_message_deleted => 'Сообщение удалено';
+
+  @override
+  String get meeting_message_edited => '• изм.';
+
+  @override
+  String get meeting_copy_action => 'Копировать';
+
+  @override
+  String get meeting_edit_action => 'Изменить';
+
+  @override
+  String get meeting_join_title => 'Присоединиться';
+
+  @override
+  String meeting_loading_error(String details) {
+    return 'Ошибка загрузки митинга: $details';
+  }
+
+  @override
+  String get meeting_not_found => 'Митинг не найден или закрыт';
+
+  @override
+  String get meeting_private_description =>
+      'Приватная встреча: после заявки хост решит, пустить ли вас.';
+
+  @override
+  String get meeting_public_description =>
+      'Открытая встреча: присоединяйтесь по ссылке без ожидания.';
+
+  @override
+  String get meeting_your_name_label => 'Ваше имя';
+
+  @override
+  String get meeting_enter_name_error => 'Укажите имя';
+
+  @override
+  String get meeting_guest_name => 'Гость';
+
+  @override
+  String get meeting_enter_room => 'Войти в комнату';
+
+  @override
+  String get meeting_request_join => 'Попросить присоединиться';
+
+  @override
+  String get meeting_approved_title => 'Одобрено';
+
+  @override
+  String get meeting_approved_subtitle => 'Перенаправляем в комнату…';
+
+  @override
+  String get meeting_denied_title => 'Отклонено';
+
+  @override
+  String get meeting_denied_subtitle => 'Хост отклонил вашу заявку.';
+
+  @override
+  String get meeting_pending_title => 'Ожидаем подтверждения';
+
+  @override
+  String get meeting_pending_subtitle =>
+      'Хост увидит вашу заявку и решит, когда впустить.';
+
+  @override
+  String meeting_load_error(String details) {
+    return 'Не удалось загрузить митинг: $details';
+  }
+
+  @override
+  String meeting_init_error(Object error) {
+    return 'Ошибка инициализации: $error';
+  }
+
+  @override
+  String meeting_participants_error(Object error) {
+    return 'Участники: $error';
+  }
+
+  @override
+  String meeting_bg_unavailable(Object error) {
+    return 'Фон недоступен: $error';
+  }
+
+  @override
+  String get meeting_leave => 'Выйти';
+
+  @override
+  String get meeting_screen_share_ios =>
+      'Демонстрация экрана на iOS требует Broadcast Extension (будет в следующем релизе)';
+
+  @override
+  String meeting_screen_share_failed(String details) {
+    return 'Не удалось запустить демонстрацию: $details';
+  }
+
+  @override
+  String get meeting_tooltip_speaker_mode => 'Режим спикера';
+
+  @override
+  String get meeting_tooltip_grid_mode => 'Режим сетки';
+
+  @override
+  String get meeting_tooltip_copy_link =>
+      'Скопировать ссылку (вход с браузера)';
+
+  @override
+  String get meeting_mic_on => 'Включить';
+
+  @override
+  String get meeting_mic_off => 'Выключить';
+
+  @override
+  String get meeting_camera_on => 'Камера вкл';
+
+  @override
+  String get meeting_camera_off => 'Камера выкл';
+
+  @override
+  String get meeting_switch_camera => 'Сменить';
+
+  @override
+  String get meeting_hand_lower => 'Опустить';
+
+  @override
+  String get meeting_hand_raise => 'Рука';
+
+  @override
+  String get meeting_reaction => 'Реакция';
+
+  @override
+  String get meeting_screen_stop => 'Стоп';
+
+  @override
+  String get meeting_screen_label => 'Экран';
+
+  @override
+  String get meeting_bg_off => 'Фон';
+
+  @override
+  String get meeting_bg_blur => 'Размытие';
+
+  @override
+  String get meeting_bg_image => 'Картинка';
+
+  @override
+  String get meeting_participants_button => 'Участники';
+
+  @override
+  String get settings_chats_bottom_nav_icons_title => 'Иконки нижнего меню';
+
+  @override
+  String get settings_chats_bottom_nav_icons_subtitle =>
+      'Выбор иконок и визуального стиля как на вебе.';
+
+  @override
+  String get settings_chats_nav_colorful => 'Цветные';
+
+  @override
+  String get settings_chats_nav_minimal => 'Минимализм';
+
+  @override
+  String get settings_chats_nav_global_title => 'Для всех иконок';
+
+  @override
+  String get settings_chats_nav_global_subtitle =>
+      'Общий слой: цвет, размер, толщина и фон плитки.';
+
+  @override
+  String get settings_chats_reset_tooltip => 'Сброс';
+
+  @override
+  String get settings_chats_collapse => 'Скрыть';
+
+  @override
+  String get settings_chats_customize => 'Настроить';
+
+  @override
+  String get settings_chats_reset_item_tooltip => 'Сбросить';
+
+  @override
+  String get settings_chats_style_tooltip => 'Стиль';
+
+  @override
+  String get settings_chats_icon_size => 'Размер иконки';
+
+  @override
+  String get settings_chats_stroke_width => 'Толщина линии';
+
+  @override
+  String get settings_chats_default => 'По умолчанию';
+
+  @override
+  String get settings_chats_icon_search_hint_en =>
+      'Поиск по названию (англ.)...';
+
+  @override
+  String get settings_chats_emoji_effects => 'Эффекты эмодзи';
+
+  @override
+  String get settings_chats_emoji_effects_subtitle =>
+      'Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.';
+
+  @override
+  String get settings_chats_emoji_lite_desc =>
+      'Lite: минимум нагрузки и максимально плавно на слабых устройствах.';
+
+  @override
+  String get settings_chats_emoji_balanced_desc =>
+      'Balanced: автоматический компромисс между производительностью и выразительностью.';
+
+  @override
+  String get settings_chats_emoji_cinematic_desc =>
+      'Cinematic: максимум частиц и глубины для вау-эффекта.';
+
+  @override
+  String get settings_chats_preview_incoming_msg => 'Привет! Как дела?';
+
+  @override
+  String get settings_chats_preview_outgoing_msg => 'Отлично, спасибо!';
+
+  @override
+  String get settings_chats_preview_hello => 'Привет';
+
+  @override
+  String get chat_theme_title => 'Тема чата';
+
+  @override
+  String chat_theme_error_save(String error) {
+    return 'Не удалось сохранить фон: $error';
+  }
+
+  @override
+  String chat_theme_error_upload(String error) {
+    return 'Ошибка загрузки фона: $error';
+  }
+
+  @override
+  String get chat_theme_delete_title => 'Удалить фон из галереи?';
+
+  @override
+  String get chat_theme_delete_body =>
+      'Изображение пропадёт из списка своих фонов. Для этого чата можно выбрать другой.';
+
+  @override
+  String chat_theme_error_delete(String error) {
+    return 'Ошибка удаления: $error';
+  }
+
+  @override
+  String get chat_theme_banner =>
+      'Фон этой переписки только для вас. Общие настройки чатов в разделе «Настройки чатов» не меняются.';
+
+  @override
+  String get chat_theme_current_bg => 'Текущий фон';
+
+  @override
+  String get chat_theme_default_global => 'По умолчанию (общие настройки)';
+
+  @override
+  String get chat_theme_presets => 'Пресеты';
+
+  @override
+  String get chat_theme_global_tile => 'Общие';
+
+  @override
+  String get chat_theme_pick_hint => 'Выберите пресет или фото из галереи';
+
+  @override
+  String get contacts_title => 'Контакты';
+
+  @override
+  String get contacts_add_phone_prompt =>
+      'Добавьте телефон в профиле, чтобы искать контакты по номеру.';
+
+  @override
+  String get contacts_fallback_profile => 'Профиль';
+
+  @override
+  String get contacts_fallback_user => 'Пользователь';
+
+  @override
+  String get contacts_status_online => 'онлайн';
+
+  @override
+  String get contacts_status_recently => 'Был (а) недавно';
+
+  @override
+  String contacts_status_today_at(String time) {
+    return 'Был (а) в $time';
+  }
+
+  @override
+  String get contacts_status_yesterday => 'Был (а) вчера';
+
+  @override
+  String get contacts_status_year_ago => 'Был (а) год назад';
+
+  @override
+  String contacts_status_years_ago(String years) {
+    return 'Был (а) $years назад';
+  }
+
+  @override
+  String contacts_status_date(String date) {
+    return 'Был (а) $date';
+  }
+
+  @override
+  String get contacts_empty_state =>
+      'Контакты не найдены.\nНажмите кнопку справа, чтобы синхронизировать телефонную книгу.';
+
+  @override
+  String get add_contact_title => 'Новый контакт';
+
+  @override
+  String get add_contact_sync_off => 'Синхронизация выключена в приложении.';
+
+  @override
+  String get add_contact_enable_system_access =>
+      'Включите доступ к контактам для LighChat в настройках системы.';
+
+  @override
+  String get add_contact_sync_on => 'Синхронизация включена';
+
+  @override
+  String get add_contact_sync_failed =>
+      'Не удалось включить синхронизацию контактов';
+
+  @override
+  String get add_contact_invalid_phone => 'Введите корректный номер телефона';
+
+  @override
+  String get add_contact_not_found_by_phone =>
+      'Контакт по этому номеру не найден';
+
+  @override
+  String get add_contact_found => 'Контакт найден';
+
+  @override
+  String add_contact_search_error(String error) {
+    return 'Не удалось выполнить поиск: $error';
+  }
+
+  @override
+  String get add_contact_qr_no_profile => 'QR-код не содержит профиль LighChat';
+
+  @override
+  String get add_contact_qr_own_profile => 'Это ваш собственный профиль';
+
+  @override
+  String get add_contact_qr_profile_not_found => 'Профиль из QR-кода не найден';
+
+  @override
+  String get add_contact_qr_found => 'Контакт найден по QR-коду';
+
+  @override
+  String add_contact_qr_read_error(String error) {
+    return 'Не удалось прочитать QR-код: $error';
+  }
+
+  @override
+  String get add_contact_cannot_add_user =>
+      'Нельзя добавить этого пользователя';
+
+  @override
+  String add_contact_add_error(String error) {
+    return 'Не удалось добавить контакт: $error';
+  }
+
+  @override
+  String get add_contact_country_search_hint => 'Поиск страны или кода';
+
+  @override
+  String get add_contact_sync_with_phone => 'Синхронизировать с телефоном';
+
+  @override
+  String get add_contact_add_by_qr => 'Добавить по QR-коду';
+
+  @override
+  String get add_contact_results_unavailable => 'Результаты пока недоступны';
+
+  @override
+  String add_contact_profile_load_error(String error) {
+    return 'Ошибка загрузки контакта: $error';
+  }
+
+  @override
+  String get add_contact_profile_not_found => 'Профиль не найден';
+
+  @override
+  String get add_contact_badge_already_added => 'Уже в контактах';
+
+  @override
+  String get add_contact_badge_new => 'Новый контакт';
+
+  @override
+  String get add_contact_badge_unavailable => 'Недоступно';
+
+  @override
+  String get add_contact_open_contact => 'Открыть контакт';
+
+  @override
+  String get add_contact_add_to_contacts => 'Добавить в контакты';
+
+  @override
+  String get add_contact_add_unavailable => 'Добавление недоступно';
+
+  @override
+  String get add_contact_searching => 'Ищем контакт...';
+
+  @override
+  String get add_contact_scan_qr_title => 'Сканировать QR-код';
+
+  @override
+  String get add_contact_flash_tooltip => 'Вспышка';
+
+  @override
+  String get add_contact_scan_qr_hint =>
+      'Наведите камеру на QR-код профиля LighChat';
+
+  @override
+  String get contacts_edit_enter_name => 'Введите имя контакта.';
+
+  @override
+  String contacts_edit_save_error(String error) {
+    return 'Не удалось сохранить контакт: $error';
+  }
+
+  @override
+  String get contacts_edit_first_name_hint => 'Имя';
+
+  @override
+  String get contacts_edit_last_name_hint => 'Фамилия';
+
+  @override
+  String get contacts_edit_name_disclaimer =>
+      'Это имя видно только вам: в чатах, поиске и списке контактов.';
+
+  @override
+  String contacts_edit_error(String error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get chat_settings_color_default => 'По умолчанию';
+
+  @override
+  String get chat_settings_color_lilac => 'Лиловый';
+
+  @override
+  String get chat_settings_color_pink => 'Розовый';
+
+  @override
+  String get chat_settings_color_green => 'Зелёный';
+
+  @override
+  String get chat_settings_color_coral => 'Коралловый';
+
+  @override
+  String get chat_settings_color_mint => 'Мята';
+
+  @override
+  String get chat_settings_color_sky => 'Небесный';
+
+  @override
+  String get chat_settings_color_purple => 'Фиолетовый';
+
+  @override
+  String get chat_settings_color_crimson => 'Малиновый';
+
+  @override
+  String get chat_settings_color_tiffany => 'Тифани';
+
+  @override
+  String get chat_settings_color_yellow => 'Жёлтый';
+
+  @override
+  String get chat_settings_color_powder => 'Пудра';
+
+  @override
+  String get chat_settings_color_turquoise => 'Бирюза';
+
+  @override
+  String get chat_settings_color_blue => 'Голубой';
+
+  @override
+  String get chat_settings_color_sunset => 'Закат';
+
+  @override
+  String get chat_settings_color_tender => 'Нежный';
+
+  @override
+  String get chat_settings_color_lime => 'Лайм';
+
+  @override
+  String get chat_settings_color_graphite => 'Графит';
+
+  @override
+  String get chat_settings_color_no_bg => 'Без фона';
+
+  @override
+  String get chat_settings_icon_color => 'Цвет иконки';
+
+  @override
+  String get chat_settings_icon_size => 'Размер иконки';
+
+  @override
+  String get chat_settings_stroke_width => 'Толщина линии';
+
+  @override
+  String get chat_settings_tile_background => 'Фон плитки под иконкой';
+
+  @override
+  String get chat_settings_bottom_nav_icons => 'Иконки нижнего меню';
+
+  @override
+  String get chat_settings_bottom_nav_description =>
+      'Выбор иконок и визуального стиля как на вебе.';
+
+  @override
+  String get chat_settings_bottom_nav_global_description =>
+      'Общий слой: цвет, размер, толщина и фон плитки.';
+
+  @override
+  String get chat_settings_colorful => 'Цветные';
+
+  @override
+  String get chat_settings_minimalism => 'Минимализм';
+
+  @override
+  String get chat_settings_for_all_icons => 'Для всех иконок';
+
+  @override
+  String get chat_settings_customize => 'Настроить';
+
+  @override
+  String get chat_settings_hide => 'Скрыть';
+
+  @override
+  String get chat_settings_reset => 'Сброс';
+
+  @override
+  String get chat_settings_reset_item => 'Сбросить';
+
+  @override
+  String get chat_settings_style => 'Стиль';
+
+  @override
+  String get chat_settings_select => 'Выбрать';
+
+  @override
+  String get chat_settings_reset_size => 'Сбросить размер';
+
+  @override
+  String get chat_settings_reset_stroke => 'Сбросить толщину';
+
+  @override
+  String get chat_settings_default_gradient => 'Градиент по умолчанию';
+
+  @override
+  String get chat_settings_inherit_global => 'Наследовать от глобальных';
+
+  @override
+  String get chat_settings_no_bg_on => 'Без фона (вкл.)';
+
+  @override
+  String get chat_settings_no_bg => 'Без фона';
+
+  @override
+  String get chat_settings_outgoing_messages => 'Исходящие сообщения';
+
+  @override
+  String get chat_settings_incoming_messages => 'Входящие сообщения';
+
+  @override
+  String get chat_settings_font_size => 'Размер шрифта';
+
+  @override
+  String get chat_settings_font_small => 'Мелкий';
+
+  @override
+  String get chat_settings_font_medium => 'Средний';
+
+  @override
+  String get chat_settings_font_large => 'Крупный';
+
+  @override
+  String get chat_settings_bubble_shape => 'Форма пузырьков';
+
+  @override
+  String get chat_settings_bubble_rounded => 'Округлённые';
+
+  @override
+  String get chat_settings_bubble_square => 'Квадратные';
+
+  @override
+  String get chat_settings_chat_background => 'Фон чата';
+
+  @override
+  String get chat_settings_background_hint =>
+      'Выберите фото из галереи или настройте';
+
+  @override
+  String get chat_settings_emoji_effects => 'Эффекты эмодзи';
+
+  @override
+  String get chat_settings_emoji_description =>
+      'Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.';
+
+  @override
+  String get chat_settings_emoji_lite =>
+      'Lite: минимум нагрузки и максимально плавно на слабых устройствах.';
+
+  @override
+  String get chat_settings_emoji_cinematic =>
+      'Cinematic: максимум частиц и глубины для вау-эффекта.';
+
+  @override
+  String get chat_settings_emoji_balanced =>
+      'Balanced: автоматический компромисс между производительностью и выразительностью.';
+
+  @override
+  String get chat_settings_additional => 'Дополнительно';
+
+  @override
+  String get chat_settings_show_time => 'Показывать время';
+
+  @override
+  String get chat_settings_show_time_hint => 'Время отправки под сообщениями';
+
+  @override
+  String get chat_settings_reset_all => 'Сбросить настройки';
+
+  @override
+  String get chat_settings_preview_incoming => 'Привет! Как дела?';
+
+  @override
+  String get chat_settings_preview_outgoing => 'Отлично, спасибо!';
+
+  @override
+  String get chat_settings_preview_hello => 'Привет';
+
+  @override
+  String chat_settings_icon_picker_title(String label) {
+    return 'Иконка: «$label»';
+  }
+
+  @override
+  String get chat_settings_search_hint => 'Поиск по названию (англ.)...';
+
+  @override
+  String meeting_tab_participants(Object count) {
+    return 'Участники ($count)';
+  }
+
+  @override
+  String get meeting_tab_polls => 'Опросы';
+
+  @override
+  String meeting_tab_polls_count(Object count) {
+    return 'Опросы ($count)';
+  }
+
+  @override
+  String get meeting_tab_chat => 'Чат';
+
+  @override
+  String meeting_tab_chat_count(Object count) {
+    return 'Чат ($count)';
+  }
+
+  @override
+  String meeting_tab_requests(Object count) {
+    return 'Заявки ($count)';
+  }
+
+  @override
+  String get meeting_kick => 'Удалить из комнаты';
+
+  @override
+  String meeting_file_too_big(Object name) {
+    return 'Файл слишком большой: $name';
+  }
+
+  @override
+  String meeting_send_error(Object error) {
+    return 'Не удалось отправить: $error';
+  }
+
+  @override
+  String meeting_save_error(Object error) {
+    return 'Не удалось сохранить: $error';
+  }
+
+  @override
+  String meeting_delete_error(Object error) {
+    return 'Не удалось удалить: $error';
+  }
+
+  @override
+  String get meeting_no_messages => 'Пока нет сообщений';
+
+  @override
+  String get meeting_join_enter_name => 'Укажите имя';
+
+  @override
+  String get meeting_join_guest => 'Гость';
+
+  @override
+  String get meeting_join_button => 'Присоединиться';
+
+  @override
+  String meeting_join_load_error(Object error) {
+    return 'Ошибка загрузки митинга: $error';
+  }
+
+  @override
+  String get meeting_private_hint =>
+      'Приватная встреча: после заявки хост решит, пустить ли вас.';
+
+  @override
+  String get meeting_public_hint =>
+      'Открытая встреча: присоединяйтесь по ссылке без ожидания.';
+
+  @override
+  String get meeting_name_label => 'Ваше имя';
+
+  @override
+  String get meeting_waiting_title => 'Ожидаем подтверждения';
+
+  @override
+  String get meeting_waiting_subtitle =>
+      'Хост увидит вашу заявку и решит, когда впустить.';
+
+  @override
+  String get meeting_screen_share_ios_hint =>
+      'Демонстрация экрана на iOS требует Broadcast Extension (в разработке).';
+
+  @override
+  String meeting_screen_share_error(Object error) {
+    return 'Не удалось запустить демонстрацию: $error';
+  }
+
+  @override
+  String get meeting_speaker_mode => 'Режим спикера';
+
+  @override
+  String get meeting_grid_mode => 'Режим сетки';
+
+  @override
+  String get meeting_copy_link_tooltip =>
+      'Скопировать ссылку (вход с браузера)';
+
+  @override
+  String get group_members_subtitle_creator => 'Создатель группы';
+
+  @override
+  String get group_members_subtitle_admin => 'Администратор';
+
+  @override
+  String get group_members_subtitle_member => 'Участник';
+
+  @override
+  String group_members_total_count(int count) {
+    return 'Всего: $count';
+  }
+
+  @override
+  String get group_members_copy_invite_tooltip =>
+      'Скопировать ссылку-приглашение';
+
+  @override
+  String get group_members_add_member_tooltip => 'Добавить участника';
+
+  @override
+  String get group_members_invite_copied => 'Ссылка-приглашение скопирована';
+
+  @override
+  String group_members_copy_link_error(String error) {
+    return 'Не удалось скопировать ссылку: $error';
+  }
+
+  @override
+  String get group_members_added => 'Участники добавлены';
+
+  @override
+  String get group_members_revoke_admin_title => 'Снять права администратора?';
+
+  @override
+  String group_members_revoke_admin_body(String name) {
+    return 'У $name будут сняты права администратора. Участник останется в группе как обычный член.';
+  }
+
+  @override
+  String get group_members_grant_admin_title => 'Назначить администратором?';
+
+  @override
+  String group_members_grant_admin_body(String name) {
+    return '$name получит права администратора: сможет редактировать группу, исключать участников и управлять сообщениями.';
+  }
+
+  @override
+  String get group_members_revoke_admin_action => 'Снять права';
+
+  @override
+  String get group_members_grant_admin_action => 'Назначить';
+
+  @override
+  String get group_members_remove_title => 'Исключить участника?';
+
+  @override
+  String group_members_remove_body(String name) {
+    return '$name будет удалён из группы. Это действие можно отменить, добавив участника заново.';
+  }
+
+  @override
+  String get group_members_remove_action => 'Исключить';
+
+  @override
+  String get group_members_removed => 'Участник исключён';
+
+  @override
+  String get group_members_menu_revoke_admin => 'Снять админа';
+
+  @override
+  String get group_members_menu_grant_admin => 'Сделать админом';
+
+  @override
+  String get group_members_menu_remove => 'Исключить из группы';
+
+  @override
+  String get group_members_creator_badge => 'СОЗДАТЕЛЬ';
+
+  @override
+  String get group_members_add_title => 'Добавить участников';
+
+  @override
+  String get group_members_search_contacts => 'Поиск среди контактов';
+
+  @override
+  String get group_members_all_in_group => 'Все ваши контакты уже в группе.';
+
+  @override
+  String get group_members_nobody_found => 'Никого не найдено.';
+
+  @override
+  String get group_members_user_fallback => 'Пользователь';
+
+  @override
+  String get group_members_select_members => 'Выберите участников';
+
+  @override
+  String group_members_add_count(int count) {
+    return 'Добавить ($count)';
+  }
+
+  @override
+  String group_members_contacts_load_error(String error) {
+    return 'Не удалось загрузить контакты: $error';
+  }
+
+  @override
+  String group_members_auth_error(String error) {
+    return 'Ошибка авторизации: $error';
+  }
+
+  @override
+  String group_members_add_failed(String error) {
+    return 'Не удалось добавить участников: $error';
+  }
+
+  @override
+  String get group_not_found => 'Группа не найдена.';
+
+  @override
+  String get group_not_member => 'Вы не являетесь участником этой группы.';
+
+  @override
+  String get poll_create_title => 'Опрос в чате';
+
+  @override
+  String get poll_question_label => 'Вопрос';
+
+  @override
+  String get poll_question_hint => 'Например: Во сколько встречаемся?';
+
+  @override
+  String get poll_description_label => 'Пояснение (необязательно)';
+
+  @override
+  String get poll_options_title => 'Варианты';
+
+  @override
+  String poll_option_hint(int index) {
+    return 'Вариант $index';
+  }
+
+  @override
+  String get poll_add_option => 'Добавить вариант';
+
+  @override
+  String get poll_switch_anonymous => 'Анонимное голосование';
+
+  @override
+  String get poll_switch_anonymous_sub => 'Не показывать, кто за что голосовал';
+
+  @override
+  String get poll_switch_multi => 'Несколько ответов';
+
+  @override
+  String get poll_switch_multi_sub => 'Можно выбрать несколько вариантов';
+
+  @override
+  String get poll_switch_add_options => 'Добавление вариантов';
+
+  @override
+  String get poll_switch_add_options_sub =>
+      'Участники могут предложить свой вариант';
+
+  @override
+  String get poll_switch_revote => 'Можно изменить голос';
+
+  @override
+  String get poll_switch_revote_sub => 'Переголосование до закрытия';
+
+  @override
+  String get poll_switch_shuffle => 'Перемешать варианты';
+
+  @override
+  String get poll_switch_shuffle_sub => 'Свой порядок у каждого участника';
+
+  @override
+  String get poll_switch_quiz => 'Режим викторины';
+
+  @override
+  String get poll_switch_quiz_sub => 'Один правильный ответ';
+
+  @override
+  String get poll_correct_option_label => 'Правильный вариант';
+
+  @override
+  String get poll_quiz_explanation_label => 'Пояснение (необязательно)';
+
+  @override
+  String get poll_close_by_time => 'Закрыть по времени';
+
+  @override
+  String get poll_close_not_set => 'Не задано';
+
+  @override
+  String get poll_close_reset => 'Сбросить срок';
+
+  @override
+  String get poll_publish => 'Опубликовать';
+
+  @override
+  String get poll_error_empty_question => 'Введите вопрос';
+
+  @override
+  String get poll_error_min_options => 'Нужно минимум 2 варианта';
+
+  @override
+  String get poll_error_select_correct => 'Выберите правильный вариант';
+
+  @override
+  String get poll_error_future_time => 'Время закрытия должно быть в будущем';
+
+  @override
+  String get poll_unavailable => 'Опрос недоступен';
+
+  @override
+  String get poll_loading => 'Загрузка опроса…';
+
+  @override
+  String get poll_not_found => 'Опрос не найден';
+
+  @override
+  String get poll_status_cancelled => 'Отменён';
+
+  @override
+  String get poll_status_ended => 'Завершён';
+
+  @override
+  String get poll_status_draft => 'Черновик';
+
+  @override
+  String get poll_status_active => 'Активен';
+
+  @override
+  String get poll_badge_public => 'Публично';
+
+  @override
+  String get poll_badge_multi => 'Несколько ответов';
+
+  @override
+  String get poll_badge_quiz => 'Викторина';
+
+  @override
+  String get poll_menu_restart => 'Перезапустить';
+
+  @override
+  String get poll_menu_end => 'Завершить';
+
+  @override
+  String get poll_menu_delete => 'Удалить';
+
+  @override
+  String get poll_submit_vote => 'Отправить голос';
+
+  @override
+  String get poll_suggest_option_hint => 'Предложить вариант';
+
+  @override
+  String get poll_revote => 'Переголосовать';
+
+  @override
+  String poll_votes_count(int count) {
+    return '$count голосов';
+  }
+
+  @override
+  String get poll_show_voters => 'Кто голосовал';
+
+  @override
+  String get poll_hide_voters => 'Скрыть';
+
+  @override
+  String get poll_vote_error => 'Ошибка при голосовании';
+
+  @override
+  String get poll_add_option_error => 'Не удалось добавить вариант';
+
+  @override
+  String get poll_error_generic => 'Ошибка';
+
+  @override
+  String get durak_your_turn => 'Твой ход';
+
+  @override
+  String get durak_winner_label => 'Победитель';
+
+  @override
+  String get durak_rematch => 'Сыграть ещё раз';
+
+  @override
+  String get durak_surrender_tooltip => 'Завершить игру';
+
+  @override
+  String get durak_close_tooltip => 'Закрыть';
+
+  @override
+  String get durak_fx_took => 'Взял';
+
+  @override
+  String get durak_fx_beat => 'Бито';
+
+  @override
+  String get durak_opponent_role_defend => 'БЬЕТ';
+
+  @override
+  String get durak_opponent_role_attack => 'ХОД';
+
+  @override
+  String get durak_opponent_role_throwin => 'ПОДК';
+
+  @override
+  String get durak_foul_banner_title => 'Шулер! Не заметили:';
+
+  @override
+  String get durak_pending_resolution_attacker =>
+      'Ожидание фолла… Нажми «Подтвердить Бито», если все согласны.';
+
+  @override
+  String get durak_pending_resolution_other =>
+      'Ожидание фолла… Теперь можно нажать «Фолл!», если заметил шулерство.';
+
+  @override
+  String durak_tournament_played(int finished, int total) {
+    return 'Сыграно $finished из $total';
+  }
+
+  @override
+  String get durak_tournament_finished => 'Турнир завершён';
+
+  @override
+  String get durak_tournament_next => 'Следующая партия турнира';
+
+  @override
+  String get durak_single_game => 'Одиночная партия';
+
+  @override
+  String get durak_tournament_total_games_title => 'Сколько игр в турнире?';
+
+  @override
+  String get durak_finish_game_tooltip => 'Завершить игру';
+
+  @override
+  String get durak_lobby_game_unavailable => 'Игра недоступна или была удалена';
+
+  @override
+  String get durak_lobby_back_tooltip => 'Назад';
+
+  @override
+  String get durak_lobby_waiting => 'Ждём, пока подключится соперник…';
+
+  @override
+  String get durak_lobby_start => 'Начать игру';
+
+  @override
+  String get durak_lobby_waiting_short => 'Ждём…';
+
+  @override
+  String get durak_lobby_ready => 'Готов';
+
+  @override
+  String get durak_lobby_empty_slot => 'Ждём…';
+
+  @override
+  String get durak_settings_timer_subtitle => 'По умолчанию 15 секунд';
+
+  @override
+  String get durak_dm_game_active => 'Партия \"Дурак\" идёт';
+
+  @override
+  String get durak_dm_game_created => 'Игра \"Дурак\" создана';
+
+  @override
+  String get game_durak_subtitle => 'Одиночная партия или турнир';
+
+  @override
+  String get group_member_write_dm => 'Написать лично';
+
+  @override
+  String get group_member_open_dm_hint => 'Открыть личный чат с участником';
+
+  @override
+  String get group_member_profile_not_loaded =>
+      'Профиль участника ещё не загружен.';
+
+  @override
+  String group_member_open_dm_error(String error) {
+    return 'Не удалось открыть личный чат: $error';
+  }
+
+  @override
+  String get group_avatar_photo_title => 'Фото группы';
+
+  @override
+  String get group_avatar_add_photo => 'Добавить фото';
+
+  @override
+  String get group_avatar_change => 'Сменить';
+
+  @override
+  String get group_avatar_remove => 'Убрать';
+
+  @override
+  String group_avatar_process_error(String error) {
+    return 'Не удалось обработать фото: $error';
+  }
+
+  @override
+  String get group_mention_no_matches => 'Нет совпадений';
+
+  @override
+  String get durak_error_defense_does_not_beat => 'Эта карта не бьет атакующую';
+
+  @override
+  String get durak_error_only_attacker_first => 'Первым ходит атакующий игрок';
+
+  @override
+  String get durak_error_defender_cannot_attack =>
+      'Отбивающийся сейчас не подкидывает';
+
+  @override
+  String get durak_error_not_allowed_throwin =>
+      'Вы не можете подкинуть в этом раунде';
+
+  @override
+  String get durak_error_throwin_not_your_turn =>
+      'Сейчас подкидывает другой игрок';
+
+  @override
+  String get durak_error_rank_not_allowed =>
+      'Подкинуть можно только карту того же ранга';
+
+  @override
+  String get durak_error_cannot_throw_in => 'Больше карт подкинуть нельзя';
+
+  @override
+  String get durak_error_card_not_in_hand => 'Этой карты уже нет в руке';
+
+  @override
+  String get durak_error_already_defended => 'Эта карта уже отбита';
+
+  @override
+  String get durak_error_bad_attack_index =>
+      'Выберите атакующую карту для защиты';
+
+  @override
+  String get durak_error_only_defender => 'Сейчас отбивается другой игрок';
+
+  @override
+  String get durak_error_defender_already_taking =>
+      'Отбивающийся уже берет карты';
+
+  @override
+  String get durak_error_game_not_active => 'Партия уже не активна';
+
+  @override
+  String get durak_error_not_in_lobby => 'Лобби уже стартовало';
+
+  @override
+  String get durak_error_game_already_active => 'Партия уже началась';
+
+  @override
+  String get durak_error_active_game_exists =>
+      'В этом чате уже есть активная партия';
+
+  @override
+  String get durak_error_resolution_pending => 'Сначала завершите спорный ход';
+
+  @override
+  String get durak_error_rematch_failed =>
+      'Не удалось подготовить реванш. Попробуйте еще раз';
+
+  @override
+  String get durak_error_unauthenticated => 'Нужно войти в аккаунт';
+
+  @override
+  String get durak_error_permission_denied => 'Это действие вам недоступно';
+
+  @override
+  String get durak_error_invalid_argument => 'Некорректный ход';
+
+  @override
+  String get durak_error_failed_precondition => 'Ход сейчас недоступен';
+
+  @override
+  String get durak_error_server =>
+      'Не удалось выполнить ход. Попробуйте еще раз';
+
+  @override
+  String pinned_count(int count) {
+    return 'Закреплено: $count';
+  }
+
+  @override
+  String get pinned_single => 'Закреплено';
+
+  @override
+  String get pinned_unpin_tooltip => 'Открепить';
+
+  @override
+  String get pinned_type_image => 'Изображение';
+
+  @override
+  String get pinned_type_video => 'Видео';
+
+  @override
+  String get pinned_type_video_circle => 'Видеокружок';
+
+  @override
+  String get pinned_type_voice => 'Голосовое сообщение';
+
+  @override
+  String get pinned_type_poll => 'Опрос';
+
+  @override
+  String get pinned_type_link => 'Ссылка';
+
+  @override
+  String get pinned_type_location => 'Локация';
+
+  @override
+  String get pinned_type_sticker => 'Стикер';
+
+  @override
+  String get pinned_type_file => 'Файл';
+
+  @override
+  String get call_entry_login_required_title => 'Необходим вход';
+
+  @override
+  String get call_entry_login_required_subtitle =>
+      'Откройте приложение и войдите в аккаунт.';
+
+  @override
+  String get call_entry_not_found_title => 'Звонок не найден';
+
+  @override
+  String get call_entry_not_found_subtitle =>
+      'Вызов уже завершён или удалён. Возвращаемся к звонкам…';
+
+  @override
+  String get call_entry_to_calls => 'К звонкам';
+
+  @override
+  String get call_entry_ended_title => 'Звонок завершён';
+
+  @override
+  String get call_entry_ended_subtitle =>
+      'Этот вызов уже недоступен. Возвращаемся к звонкам…';
+
+  @override
+  String get call_entry_caller_fallback => 'Собеседник';
+
+  @override
+  String get call_entry_opening_title => 'Открываем звонок…';
+
+  @override
+  String get call_entry_connecting_video => 'Подключение к видеозвонку';
+
+  @override
+  String get call_entry_connecting_audio => 'Подключение к аудиозвонку';
+
+  @override
+  String get call_entry_loading_subtitle => 'Загрузка данных вызова';
+
+  @override
+  String get call_entry_error_title => 'Ошибка открытия звонка';
+
+  @override
+  String chat_theme_save_error(Object error) {
+    return 'Не удалось сохранить фон: $error';
+  }
+
+  @override
+  String chat_theme_load_error(Object error) {
+    return 'Ошибка загрузки фона: $error';
+  }
+
+  @override
+  String chat_theme_delete_error(Object error) {
+    return 'Ошибка удаления: $error';
+  }
+
+  @override
+  String get chat_theme_description =>
+      'Фон этой переписки только для вас. Общие настройки чатов в разделе «Настройки чатов» не меняются.';
+
+  @override
+  String get chat_theme_default_bg => 'По умолчанию (общие настройки)';
+
+  @override
+  String get chat_theme_global_label => 'Общие';
+
+  @override
+  String get chat_theme_hint => 'Выберите пресет или фото из галереи';
+
+  @override
+  String get date_today => 'Сегодня';
+
+  @override
+  String get date_yesterday => 'Вчера';
+
+  @override
+  String get date_month_1 => 'января';
+
+  @override
+  String get date_month_2 => 'февраля';
+
+  @override
+  String get date_month_3 => 'марта';
+
+  @override
+  String get date_month_4 => 'апреля';
+
+  @override
+  String get date_month_5 => 'мая';
+
+  @override
+  String get date_month_6 => 'июня';
+
+  @override
+  String get date_month_7 => 'июля';
+
+  @override
+  String get date_month_8 => 'августа';
+
+  @override
+  String get date_month_9 => 'сентября';
+
+  @override
+  String get date_month_10 => 'октября';
+
+  @override
+  String get date_month_11 => 'ноября';
+
+  @override
+  String get date_month_12 => 'декабря';
+
+  @override
+  String get video_circle_camera_unavailable => 'Камера недоступна';
+
+  @override
+  String video_circle_camera_error(Object error) {
+    return 'Не удалось открыть камеру: $error';
+  }
+
+  @override
+  String video_circle_record_error(Object error) {
+    return 'Ошибка записи: $error';
+  }
+
+  @override
+  String get video_circle_file_not_found => 'Файл записи не найден';
+
+  @override
+  String get video_circle_play_error => 'Не удалось воспроизвести запись';
+
+  @override
+  String video_circle_send_error(Object error) {
+    return 'Не удалось отправить: $error';
+  }
+
+  @override
+  String video_circle_switch_error(Object error) {
+    return 'Не удалось переключить камеру: $error';
+  }
+
+  @override
+  String video_circle_pause_error_detail(Object description, Object code) {
+    return 'Пауза записи недоступна: $description ($code)';
+  }
+
+  @override
+  String video_circle_pause_error(Object error) {
+    return 'Пауза записи: $error';
+  }
+
+  @override
+  String get video_circle_camera_fallback_error => 'Ошибка камеры';
+
+  @override
+  String get video_circle_retry => 'Повторить';
+
+  @override
+  String get video_circle_sending => 'Отправка...';
+
+  @override
+  String get video_circle_recorded => 'Кружок записан';
+
+  @override
+  String get video_circle_swipe_cancel => 'Влево - отмена';
+
+  @override
+  String media_screen_error(Object error) {
+    return 'Ошибка загрузки медиа: $error';
+  }
+
+  @override
+  String get media_screen_title => 'Медиа, ссылки и файлы';
+
+  @override
+  String get media_tab_media => 'Медиа';
+
+  @override
+  String get media_tab_circles => 'Кружки';
+
+  @override
+  String get media_tab_files => 'Файлы';
+
+  @override
+  String get media_tab_links => 'Ссылки';
+
+  @override
+  String get media_empty_files => 'Нет файлов';
+
+  @override
+  String get media_empty_media => 'Нет медиа';
+
+  @override
+  String get media_attachment_fallback => 'Вложение';
+
+  @override
+  String get media_empty_circles => 'Нет кружков';
+
+  @override
+  String get media_empty_links => 'Нет ссылок';
+
+  @override
+  String get media_sender_you => 'Вы';
+
+  @override
+  String get media_sender_fallback => 'Участник';
+
+  @override
+  String get call_detail_login_required => 'Необходим вход.';
+
+  @override
+  String get call_detail_not_found => 'Звонок не найден или нет доступа.';
+
+  @override
+  String get call_detail_unknown => 'Неизвестный';
+
+  @override
+  String get call_detail_title => 'Сведения о звонке';
+
+  @override
+  String get call_detail_video => 'Видеозвонок';
+
+  @override
+  String get call_detail_audio => 'Аудиозвонок';
+
+  @override
+  String get call_detail_outgoing => 'Исходящий';
+
+  @override
+  String get call_detail_incoming => 'Входящий';
+
+  @override
+  String get call_detail_date_label => 'Дата:';
+
+  @override
+  String get call_detail_duration_label => 'Длительность:';
+
+  @override
+  String get call_detail_call_button => 'Позвонить';
+
+  @override
+  String get call_detail_video_button => 'Видео';
+
+  @override
+  String call_detail_error(Object error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get durak_took => 'Взял';
+
+  @override
+  String get durak_beaten => 'Бито';
+
+  @override
+  String get durak_end_game_tooltip => 'Завершить игру';
+
+  @override
+  String get durak_role_beats => 'БЬЕТ';
+
+  @override
+  String get durak_role_move => 'ХОД';
+
+  @override
+  String get durak_role_throw => 'ПОДК';
+
+  @override
+  String get durak_cheater_label => 'Шулер! Не заметили:';
+
+  @override
+  String get durak_waiting_foll_confirm =>
+      'Ожидание фолла… Нажми «Подтвердить Бито», если все согласны.';
+
+  @override
+  String get durak_waiting_foll_call =>
+      'Ожидание фолла… Теперь можно нажать «Фолл!», если заметил шулерство.';
+
+  @override
+  String get durak_winner => 'Победитель';
+
+  @override
+  String get durak_play_again => 'Сыграть ещё раз';
+
+  @override
+  String durak_games_progress(Object finished, Object total) {
+    return 'Сыграно $finished из $total';
+  }
+
+  @override
+  String get durak_next_round => 'Следующая партия турнира';
+
+  @override
+  String audio_call_error(Object error) {
+    return 'Ошибка звонка: $error';
+  }
+
+  @override
+  String get audio_call_ended => 'Звонок завершён';
+
+  @override
+  String get audio_call_missed => 'Пропущенный звонок';
+
+  @override
+  String get audio_call_cancelled => 'Звон��к отменен';
+
+  @override
+  String get audio_call_offer_not_ready =>
+      'Оффер ещё не готов, попробуйте снова';
+
+  @override
+  String get audio_call_invalid_data => 'Некорректные данные звонка';
+
+  @override
+  String audio_call_accept_error(Object error) {
+    return 'Не удалось принять звонок: $error';
+  }
+
+  @override
+  String get audio_call_incoming => 'Входящий аудиозвонок';
+
+  @override
+  String get audio_call_calling => 'Аудиозвонок…';
+
+  @override
+  String privacy_save_error(Object error) {
+    return 'Не удалось сохранить настройки: $error';
+  }
+
+  @override
+  String privacy_load_error(Object error) {
+    return 'Ошибка загрузки приватности: $error';
+  }
+
+  @override
+  String get privacy_visibility => 'Видимость';
+
+  @override
+  String get privacy_online_status => 'Статус онлайн';
+
+  @override
+  String get privacy_last_visit => 'Последний визит';
+
+  @override
+  String get privacy_read_receipts => 'Индикатор прочтения';
+
+  @override
+  String get privacy_profile_info => 'Информация профиля';
+
+  @override
+  String get privacy_phone_number => 'Номер телефона';
+
+  @override
+  String get privacy_birthday => 'Дата рождения';
+
+  @override
+  String get privacy_about => 'О себе';
+
+  @override
+  String starred_load_error(Object error) {
+    return 'Ошибка загрузки избранного: $error';
+  }
+
+  @override
+  String get starred_title => 'Избранное';
+
+  @override
+  String get starred_empty => 'В этом чате нет избранных сообщений';
+
+  @override
+  String get starred_message_fallback => 'Сообщение';
+
+  @override
+  String get starred_sender_you => 'Вы';
+
+  @override
+  String get starred_sender_fallback => 'Участник';
+
+  @override
+  String get starred_type_poll => 'Опрос';
+
+  @override
+  String get starred_type_location => 'Локация';
+
+  @override
+  String get starred_type_attachment => 'Вложение';
+
+  @override
+  String starred_today_prefix(Object time) {
+    return 'Сегодня, $time';
+  }
+
+  @override
+  String get contact_edit_name_required => 'Введите имя контакта.';
+
+  @override
+  String contact_edit_save_error(Object error) {
+    return 'Не удалось сохранить контакт: $error';
+  }
+
+  @override
+  String get contact_edit_user_fallback => 'Пользователь';
+
+  @override
+  String get contact_edit_first_name_hint => 'Имя';
+
+  @override
+  String get contact_edit_last_name_hint => 'Фамилия';
+
+  @override
+  String get contact_edit_description =>
+      'Это имя видно только вам: в чатах, поиске и списке контактов.';
+
+  @override
+  String contact_edit_error(Object error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get voice_no_mic_access => 'Не�� доступа к микрофону';
+
+  @override
+  String get voice_start_error => 'Не удалось начать запись';
+
+  @override
+  String get voice_file_not_received => 'Файл записи не получен';
+
+  @override
+  String get voice_stop_error => 'Не удалось завершить запись';
+
+  @override
+  String get voice_title => 'Голосовое сообщение';
+
+  @override
+  String get voice_recording => 'Идёт запись';
+
+  @override
+  String get voice_ready => 'Запись готова';
+
+  @override
+  String get voice_stop_button => 'Остановить';
+
+  @override
+  String get voice_record_again => 'Записать снова';
+
+  @override
+  String get attach_photo_video => 'Фото/Видео';
+
+  @override
+  String get attach_files => 'Файлы';
+
+  @override
+  String get attach_circle => 'Кружок';
+
+  @override
+  String get attach_location => 'Локация';
+
+  @override
+  String get attach_poll => 'Опрос';
+
+  @override
+  String get attach_stickers => 'Стикеры';
+
+  @override
+  String get attach_clipboard => 'Буфер';
+
+  @override
+  String get attach_text => 'Текст';
+
+  @override
+  String get attach_title => 'Прикрепить';
+
+  @override
+  String notif_save_error(Object error) {
+    return 'Не удалось сохранить: $error';
+  }
+
+  @override
+  String get notif_title => 'Уведомления в этом чате';
+
+  @override
+  String get notif_description =>
+      'Настройки ниже действуют только для этой беседы и не меняют общие уведомления приложения.';
+
+  @override
+  String get notif_this_chat => 'Этот чат';
+
+  @override
+  String get notif_mute_title => 'Без звука и скрытые оповещения';
+
+  @override
+  String get notif_mute_subtitle =>
+      'Не беспокоить по этому чату на этом устройстве.';
+
+  @override
+  String get notif_preview_title => 'Показывать превью текста';
+
+  @override
+  String get notif_preview_subtitle =>
+      'Если выключено — заголовок без фрагмента сообщения (где это поддерживается).';
+
+  @override
+  String get poll_create_enter_question => 'Введите вопрос';
+
+  @override
+  String get poll_create_min_options => 'Нужно минимум 2 варианта';
+
+  @override
+  String get poll_create_select_correct => 'Выберите правильный вариант';
+
+  @override
+  String get poll_create_future_time => 'Время закрытия должно быть в будущем';
+
+  @override
+  String get poll_create_question_label => 'Вопрос';
+
+  @override
+  String get poll_create_question_hint => 'Например: Во сколько встречаемся?';
+
+  @override
+  String get poll_create_explanation_label => 'Пояснение (необязательно)';
+
+  @override
+  String get poll_create_options_title => 'Варианты';
+
+  @override
+  String poll_create_option_hint(Object index) {
+    return 'Вариант $index';
+  }
+
+  @override
+  String get poll_create_add_option => 'Добавить вариант';
+
+  @override
+  String get poll_create_anonymous_title => 'Анонимное голосование';
+
+  @override
+  String get poll_create_anonymous_subtitle =>
+      'Не показывать, кто за что голосовал';
+
+  @override
+  String get poll_create_multi_title => 'Несколько ответов';
+
+  @override
+  String get poll_create_multi_subtitle => 'Можно выбрать несколько вариантов';
+
+  @override
+  String get poll_create_user_options_title => 'Добавление вариантов';
+
+  @override
+  String get poll_create_user_options_subtitle =>
+      'Участники могут предложить свой вариант';
+
+  @override
+  String get poll_create_revote_title => 'Можно изменить голос';
+
+  @override
+  String get poll_create_revote_subtitle => 'Переголосование до закрытия';
+
+  @override
+  String get poll_create_shuffle_title => 'Перемешать варианты';
+
+  @override
+  String get poll_create_shuffle_subtitle => 'Свой порядок у каждого участника';
+
+  @override
+  String get poll_create_quiz_title => 'Режим викторины';
+
+  @override
+  String get poll_create_quiz_subtitle => 'Один правильный ответ';
+
+  @override
+  String get poll_create_correct_option_label => 'Правильный вариант';
+
+  @override
+  String get poll_create_close_by_time => 'Закрыть по времени';
+
+  @override
+  String get poll_create_not_set => 'Не задано';
+
+  @override
+  String get poll_create_reset_deadline => 'Сбросить срок';
+
+  @override
+  String get poll_create_publish => 'Опубликовать';
+
+  @override
+  String get poll_error => 'Ошибка';
+
+  @override
+  String get poll_status_finished => 'Завершён';
+
+  @override
+  String get poll_restart => 'Перезапустить';
+
+  @override
+  String get poll_finish => 'Завершить';
+
+  @override
+  String get poll_suggest_hint => 'Предложить вариант';
+
+  @override
+  String get poll_voters_toggle_hide => 'Скрыть';
+
+  @override
+  String get poll_voters_toggle_show => 'Кто голосовал';
+
+  @override
+  String get e2ee_disable_title => 'Отключить шифрование?';
+
+  @override
+  String get e2ee_disable_body =>
+      'Новые сообщения пойдут без сквозного шифрования. Ранее отправленные зашифрованные сообщения останутся в ленте.';
+
+  @override
+  String get e2ee_disable_button => 'Отключить';
+
+  @override
+  String e2ee_disable_error(Object error) {
+    return 'Не удалось отключить: $error';
+  }
+
+  @override
+  String get e2ee_screen_title => 'Шифрование';
+
+  @override
+  String get e2ee_enabled_description =>
+      'Сквозное шифрование включено для этого чата.';
+
+  @override
+  String get e2ee_disabled_description => 'Сквозное шифрование выключено.';
+
+  @override
+  String get e2ee_info_text =>
+      'Когда шифрование включено, содержимое новых сообщений доступно только участникам чата на их устройствах. Отключение влияет только на новые сообщения.';
+
+  @override
+  String get e2ee_enable_title => 'Включить шифрование';
+
+  @override
+  String e2ee_status_enabled(Object epoch) {
+    return 'Включено (эпоха ключа: $epoch)';
+  }
+
+  @override
+  String get e2ee_status_disabled => 'Выключено';
+
+  @override
+  String get e2ee_data_types_title => 'Типы данных';
+
+  @override
+  String get e2ee_data_types_info =>
+      'Настройка не меняет протокол. Она управляет тем, какие типы данных отправлять в зашифрованном виде.';
+
+  @override
+  String get e2ee_chat_settings_title => 'Настройки шифрования для этого чата';
+
+  @override
+  String get e2ee_chat_settings_override => 'Используются чатовые настройки.';
+
+  @override
+  String get e2ee_chat_settings_global => 'Наследуются глобальные настройки.';
+
+  @override
+  String get e2ee_text_messages => 'Текст сообщений';
+
+  @override
+  String get e2ee_attachments => 'Вложения (медиа/файлы)';
+
+  @override
+  String get e2ee_override_hint =>
+      'Чтобы изменить для этого чата — включите «Переопределить».';
+
+  @override
+  String get group_member_fallback => 'Участник';
+
+  @override
+  String get group_role_creator => 'Создатель группы';
+
+  @override
+  String get group_role_admin => 'Администратор';
+
+  @override
+  String group_total_count(Object count) {
+    return 'Всего: $count';
+  }
+
+  @override
+  String get group_copy_invite_tooltip => 'Скопировать ссылку-приглашение';
+
+  @override
+  String get group_add_member_tooltip => 'Добавить участника';
+
+  @override
+  String get group_invite_copied => 'Ссылка-приглашение скопирована';
+
+  @override
+  String group_copy_invite_error(Object error) {
+    return 'Не удалось скопировать ссылку: $error';
+  }
+
+  @override
+  String get group_demote_confirm => 'Снять права администратора?';
+
+  @override
+  String get group_promote_confirm => 'Назначить администратором?';
+
+  @override
+  String group_demote_body(Object name) {
+    return 'У $name будут сняты права администратора. Участник останется в группе как обычный член.';
+  }
+
+  @override
+  String get group_demote_button => 'Снять права';
+
+  @override
+  String get group_promote_button => 'Назначить';
+
+  @override
+  String get group_kick_confirm => 'Исключить участника?';
+
+  @override
+  String get group_kick_button => 'Исключить';
+
+  @override
+  String get group_member_kicked => 'Участник исключён';
+
+  @override
+  String get group_badge_creator => 'СО��ДАТЕЛЬ';
+
+  @override
+  String get group_demote_action => 'Снять админа';
+
+  @override
+  String get group_promote_action => 'Сделать админом';
+
+  @override
+  String get group_kick_action => 'Исключить из группы';
+
+  @override
+  String group_contacts_load_error(Object error) {
+    return 'Не удалось загрузить контакты: $error';
+  }
+
+  @override
+  String get group_add_members_title => 'Добавить участников';
+
+  @override
+  String get group_search_contacts_hint => 'Поиск среди конта��тов';
+
+  @override
+  String get group_all_contacts_in_group => 'Все ваши контакты уже в группе.';
+
+  @override
+  String get group_nobody_found => 'Никого не найдено.';
+
+  @override
+  String get group_user_fallback => 'Пользователь';
+
+  @override
+  String get group_select_members => 'Выберите участников';
+
+  @override
+  String group_add_count(Object count) {
+    return 'Добавить ($count)';
+  }
+
+  @override
+  String group_auth_error(Object error) {
+    return 'Ошибка авторизации: $error';
+  }
+
+  @override
+  String group_add_error(Object error) {
+    return 'Не удалось добавить участников: $error';
+  }
+
+  @override
+  String get add_contact_own_profile => 'Это ваш собственный профиль';
+
+  @override
+  String get add_contact_qr_not_found => '��рофиль из QR-кода не найден';
+
+  @override
+  String add_contact_qr_error(Object error) {
+    return 'Не удалось прочитать QR-код: $error';
+  }
+
+  @override
+  String get add_contact_not_allowed => 'Нельзя добавить этого пользователя';
+
+  @override
+  String add_contact_save_error(Object error) {
+    return 'Не удалось добавить контакт: $error';
+  }
+
+  @override
+  String get add_contact_country_search => 'Поиск страны или кода';
+
+  @override
+  String get add_contact_sync_phone => 'С��нхронизировать с телефоном';
+
+  @override
+  String get add_contact_qr_button => 'Д��бавить по QR-коду';
+
+  @override
+  String add_contact_load_error(Object error) {
+    return 'Ошибка загрузки контакта: $error';
+  }
+
+  @override
+  String get add_contact_user_fallback => 'Пользователь';
+
+  @override
+  String get add_contact_already_in_contacts => 'Уже в контактах';
+
+  @override
+  String get add_contact_new => 'Новый контакт';
+
+  @override
+  String get add_contact_unavailable => 'Недоступно';
+
+  @override
+  String get add_contact_scan_qr => 'Сканировать QR-код';
+
+  @override
+  String get add_contact_scan_hint =>
+      'Наведите камеру на QR-код профиля LighChat';
+
+  @override
+  String get auth_validate_name_min_length =>
+      'Имя должно быть не менее 2 символов';
+
+  @override
+  String get auth_validate_username_min_length =>
+      'Имя пользователя должно быть не менее 3 символов';
+
+  @override
+  String get auth_validate_username_max_length =>
+      'Имя пользователя не должно превышать 30 символов';
+
+  @override
+  String get auth_validate_username_format =>
+      'Имя пользователя содержит недопустимые символы';
+
+  @override
+  String get auth_validate_phone_11_digits =>
+      'Номер телефона должен содержать 11 цифр';
+
+  @override
+  String get auth_validate_email_format => 'Введите корректный email';
+
+  @override
+  String get auth_validate_dob_invalid => 'Некорректная дата рождения';
+
+  @override
+  String get auth_validate_bio_max_length =>
+      'Описание не должно превышать 200 символов';
+
+  @override
+  String get auth_validate_password_min_length =>
+      'Пароль должен быть не менее 6 символов';
+
+  @override
+  String get auth_validate_passwords_mismatch => 'Пароли не совпадают';
 }

@@ -9,6 +9,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../chat/data/new_chat_user_search.dart' show ruEnSubstringMatch;
+import '../data/phone_country_names.dart';
 import 'auth_validators.dart';
 import 'avatar_picker_cropper.dart';
 
@@ -115,46 +116,48 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
     super.dispose();
   }
 
+  AppLocalizations get _l10n => AppLocalizations.of(context)!;
+
   String? get _nameError => !_showValidation
       ? null
       : (_name.text.trim().isEmpty
-            ? AppLocalizations.of(context)!.register_error_enter_name
-            : validateName(_name.text));
+            ? _l10n.register_error_enter_name
+            : validateName(_name.text, _l10n));
   String? get _usernameError => !_showValidation
       ? null
       : (_username.text.trim().isEmpty
-            ? AppLocalizations.of(context)!.register_error_enter_username
-            : validateUsername(_username.text));
+            ? _l10n.register_error_enter_username
+            : validateUsername(_username.text, _l10n));
   String? get _phoneError => !_showValidation
       ? null
       : (_phone.text.trim().isEmpty
-            ? AppLocalizations.of(context)!.register_error_enter_phone
+            ? _l10n.register_error_enter_phone
             : _validatePhoneForCountry(_phone.text));
   String? get _emailError => !_showValidation
       ? null
       : (_email.text.trim().isEmpty
-            ? AppLocalizations.of(context)!.register_error_enter_email
-            : validateEmail(_email.text));
+            ? _l10n.register_error_enter_email
+            : validateEmail(_email.text, _l10n));
   String? get _passwordError => !_showValidation
       ? null
       : (_password.text.trim().isEmpty
-            ? AppLocalizations.of(context)!.register_error_enter_password
-            : validatePassword(_password.text));
+            ? _l10n.register_error_enter_password
+            : validatePassword(_password.text, _l10n));
   String? get _confirmError => !_showValidation
       ? null
       : (_confirm.text.trim().isEmpty
-            ? AppLocalizations.of(context)!.register_error_repeat_password
-            : validateConfirmPassword(_password.text, _confirm.text));
+            ? _l10n.register_error_repeat_password
+            : validateConfirmPassword(_password.text, _confirm.text, _l10n));
   String? get _dobError {
     if (!_showValidation) return null;
     final dobIso = _toIsoDate(_dob.text);
     if (_dob.text.trim().isNotEmpty && dobIso == null) {
-      return AppLocalizations.of(context)!.register_error_dob_format;
+      return _l10n.register_error_dob_format;
     }
-    return validateDateOfBirth(dobIso ?? '');
+    return validateDateOfBirth(dobIso ?? '', _l10n);
   }
 
-  String? get _bioError => !_showValidation ? null : validateBio(_bio.text);
+  String? get _bioError => !_showValidation ? null : validateBio(_bio.text, _l10n);
 
   String? _validateAll() {
     final e = <String?>[

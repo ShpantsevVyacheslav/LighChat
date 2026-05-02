@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
@@ -60,7 +61,7 @@ class ChatConversationNotificationsScreen extends ConsumerWidget {
                       } catch (e) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Не удалось сохранить: $e')),
+                          SnackBar(content: Text(AppLocalizations.of(context)!.notif_save_error(e.toString()))),
                         );
                       }
                     }
@@ -70,7 +71,7 @@ class ChatConversationNotificationsScreen extends ConsumerWidget {
                       children: [
                         const SizedBox(height: 8),
                         ChatProfileSubpageHeader(
-                          title: 'Уведомления в этом чате',
+                          title: AppLocalizations.of(context)!.notif_title,
                           onBack: () => Navigator.of(context).maybePop(),
                         ),
                         Expanded(
@@ -81,17 +82,16 @@ class ChatConversationNotificationsScreen extends ConsumerWidget {
                               children: [
                                 NotificationSettingsMutedBanner(
                                   text:
-                                      'Настройки ниже действуют только для этой '
-                                      'беседы и не меняют общие уведомления приложения.',
+                                      AppLocalizations.of(context)!.notif_description,
                                 ),
                                 const SizedBox(height: 22),
                                 NotificationSettingsCard(
-                                  title: 'Этот чат',
+                                  title: AppLocalizations.of(context)!.notif_this_chat,
                                   children: [
                                     NotificationSettingsSwitchRow(
-                                      title: 'Без звука и скрытые оповещения',
+                                      title: AppLocalizations.of(context)!.notif_mute_title,
                                       subtitle:
-                                          'Не беспокоить по этому чату на этом устройстве.',
+                                          AppLocalizations.of(context)!.notif_mute_subtitle,
                                       value: muted,
                                       onChanged: (v) =>
                                           savePatch(<String, Object?>{
@@ -100,9 +100,9 @@ class ChatConversationNotificationsScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     NotificationSettingsSwitchRow(
-                                      title: 'Показывать превью текста',
+                                      title: AppLocalizations.of(context)!.notif_preview_title,
                                       subtitle:
-                                          'Если выключено — заголовок без фрагмента сообщения (где это поддерживается).',
+                                          AppLocalizations.of(context)!.notif_preview_subtitle,
                                       value: preview,
                                       onChanged: (v) =>
                                           savePatch(<String, Object?>{

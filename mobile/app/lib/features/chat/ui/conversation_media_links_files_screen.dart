@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -95,7 +96,7 @@ class _ConversationMediaLinksFilesScreenState
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
                     child: Text(
-                      'Ошибка загрузки медиа: $e',
+                      AppLocalizations.of(context)!.media_screen_error(e.toString()),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: scheme.onSurface.withValues(alpha: 0.86),
@@ -114,17 +115,17 @@ class _ConversationMediaLinksFilesScreenState
 
   Widget _topBar(BuildContext context) {
     return ChatProfileSubpageHeader(
-      title: 'Медиа, ссылки и файлы',
+      title: AppLocalizations.of(context)!.media_screen_title,
       onBack: () => Navigator.of(context).pop(),
     );
   }
 
   Widget _tabsBar() {
     final tabs = <(_MediaTab, String)>[
-      (_MediaTab.media, 'Медиа'),
-      (_MediaTab.circles, 'Кружки'),
-      (_MediaTab.files, 'Файлы'),
-      (_MediaTab.links, 'Ссылки'),
+      (_MediaTab.media, AppLocalizations.of(context)!.media_tab_media),
+      (_MediaTab.circles, AppLocalizations.of(context)!.media_tab_circles),
+      (_MediaTab.files, AppLocalizations.of(context)!.media_tab_files),
+      (_MediaTab.links, AppLocalizations.of(context)!.media_tab_links),
     ];
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
@@ -215,14 +216,14 @@ class _ConversationMediaLinksFilesScreenState
     return switch (_tab) {
       _MediaTab.media => _mediaGrid(mediaItems),
       _MediaTab.circles => _circlesGrid(circles),
-      _MediaTab.files => _attachmentsList(files, emptyText: 'Нет файлов'),
+      _MediaTab.files => _attachmentsList(files, emptyText: AppLocalizations.of(context)!.media_empty_files),
       _MediaTab.links => _linksList(links),
     };
   }
 
   Widget _mediaGrid(List<ChatMediaGalleryItem> items) {
     if (items.isEmpty) {
-      return _emptyBody('Нет медиа');
+      return _emptyBody(AppLocalizations.of(context)!.media_empty_media);
     }
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -388,7 +389,7 @@ class _ConversationMediaLinksFilesScreenState
         final e = items[i];
         final a = e.attachment;
         final date = _formatTime(e.message.createdAt.toLocal());
-        final title = (a.name.trim().isEmpty ? 'Вложение' : a.name.trim());
+        final title = (a.name.trim().isEmpty ? AppLocalizations.of(context)!.media_attachment_fallback : a.name.trim());
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: InkWell(
@@ -426,7 +427,7 @@ class _ConversationMediaLinksFilesScreenState
   }
 
   Widget _circlesGrid(List<_AttachmentEntry> items) {
-    if (items.isEmpty) return _emptyBody('Нет кружков');
+    if (items.isEmpty) return _emptyBody(AppLocalizations.of(context)!.media_empty_circles);
     final mapped = items
         .map((e) => (message: e.message, attachment: e.attachment))
         .toList(growable: false);
@@ -439,7 +440,7 @@ class _ConversationMediaLinksFilesScreenState
 
   Widget _linksList(List<_LinkEntry> links) {
     final scheme = Theme.of(context).colorScheme;
-    if (links.isEmpty) return _emptyBody('Нет ссылок');
+    if (links.isEmpty) return _emptyBody(AppLocalizations.of(context)!.media_empty_links);
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       itemCount: links.length,
@@ -574,10 +575,10 @@ class _ConversationMediaLinksFilesScreenState
   }
 
   String _senderLabel(String senderId) {
-    if (senderId == widget.currentUserId) return 'Вы';
+    if (senderId == widget.currentUserId) return AppLocalizations.of(context)!.media_sender_you;
     final info = widget.conversation.participantInfo?[senderId];
     if ((info?.name ?? '').trim().isNotEmpty) return info!.name.trim();
-    return 'Участник';
+    return AppLocalizations.of(context)!.media_sender_fallback;
   }
 
   String _formatTime(DateTime dt) {

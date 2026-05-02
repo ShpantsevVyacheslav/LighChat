@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/chat_attachment_upload.dart';
@@ -298,7 +299,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   }
 
   Future<String?> _promptNewPackName() async {
-    final ctrl = TextEditingController(text: 'Мой пак');
+    final l10n = AppLocalizations.of(context)!;
+    final ctrl = TextEditingController(text: l10n.sticker_default_pack_name);
     final id = await showDialog<String>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.38),
@@ -317,9 +319,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Новый стикерпак',
-                    style: TextStyle(
+                  Text(
+                    l10n.sticker_new_pack_dialog_title,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
@@ -333,7 +335,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     autofocus: true,
                     style: const TextStyle(color: Colors.white, fontSize: 15),
                     decoration: InputDecoration(
-                      hintText: 'Название',
+                      hintText: l10n.sticker_pack_name_hint,
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                       ),
@@ -370,7 +372,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                             await widget.repo.createPack(widget.userId, name);
                         if (ctx.mounted) Navigator.pop(ctx, pid);
                       },
-                      child: const Text('Создать'),
+                      child: Text(l10n.common_create),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -389,7 +391,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         ),
                       ),
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Отмена'),
+                      child: Text(l10n.common_cancel),
                     ),
                   ),
                 ],
@@ -537,6 +539,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   }
 
   Future<void> _confirmDeletePack(String packId, String name) async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.38),
@@ -555,9 +558,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Удалить пак?',
-                    style: TextStyle(
+                  Text(
+                    l10n.sticker_delete_pack_title,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
@@ -566,7 +569,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '«$name» и все стикеры в нём будут удалены.',
+                    l10n.sticker_delete_pack_body(name),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.88),
                       fontSize: 13.5,
@@ -589,7 +592,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         ),
                       ),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Удалить'),
+                      child: Text(l10n.common_delete),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -608,7 +611,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         ),
                       ),
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Отмена'),
+                      child: Text(l10n.common_cancel),
                     ),
                   ),
                 ],
@@ -909,10 +912,11 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   }
 
   Widget _stickerGrid(List<StickerItemRow> items, {required bool canDelete}) {
+    final l10n = AppLocalizations.of(context)!;
     if (items.isEmpty) {
       return Center(
         child: Text(
-          'Пак пуст. Добавьте с устройства (вкладка GIF — «В мой пак»).',
+          l10n.sticker_pack_empty_hint,
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
         ),
@@ -956,9 +960,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const Text(
-                                  'Удалить стикер?',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.sticker_delete_sticker_title,
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
                                     fontSize: 16,
@@ -983,7 +987,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                                     ),
                                     onPressed: () =>
                                         Navigator.pop(ctx, true),
-                                    child: const Text('Удалить'),
+                                    child: Text(l10n.common_delete),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -1005,7 +1009,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                                     ),
                                     onPressed: () =>
                                         Navigator.pop(ctx, false),
-                                    child: const Text('Отмена'),
+                                    child: Text(l10n.common_cancel),
                                   ),
                                 ),
                               ],

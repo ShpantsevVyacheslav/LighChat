@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
 
 import '../data/video_circle_postprocess.dart';
@@ -160,7 +161,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
         if (!mounted) return;
         setState(() {
           _state = _CircleCaptureState.error;
-          _error = 'Камера недоступна';
+          _error = AppLocalizations.of(context)!.video_circle_camera_unavailable;
         });
         return;
       }
@@ -209,7 +210,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       if (!mounted) return;
       setState(() {
         _state = _CircleCaptureState.error;
-        _error = 'Не удалось открыть камеру: $e';
+        _error = AppLocalizations.of(context)!.video_circle_camera_error(e.toString());
       });
     }
   }
@@ -339,7 +340,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       if (!mounted) return;
       setState(() {
         _state = _CircleCaptureState.error;
-        _error = 'Ошибка записи: $e';
+        _error = AppLocalizations.of(context)!.video_circle_record_error(e.toString());
       });
     }
   }
@@ -351,7 +352,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       if (mounted) {
         setState(() {
           _state = _CircleCaptureState.error;
-          _error = 'Файл записи не найден';
+          _error = AppLocalizations.of(context)!.video_circle_file_not_found;
         });
       }
       return;
@@ -370,7 +371,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       if (mounted) {
         setState(() {
           _state = _CircleCaptureState.error;
-          _error = 'Не удалось воспроизвести запись';
+          _error = AppLocalizations.of(context)!.video_circle_play_error;
         });
       }
     }
@@ -401,7 +402,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Не удалось отправить: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.video_circle_send_error(e.toString()))));
         setState(() => _state = _CircleCaptureState.preview);
       }
     }
@@ -439,7 +440,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось переключить камеру: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.video_circle_switch_error(e.toString()))),
       );
     }
   }
@@ -479,7 +480,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Пауза записи недоступна: ${e.description} (${e.code})',
+            AppLocalizations.of(context)!.video_circle_pause_error_detail(e.description ?? '', e.code),
           ),
         ),
       );
@@ -487,7 +488,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Пауза записи: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.video_circle_pause_error(e.toString()))));
     }
   }
 
@@ -598,14 +599,14 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
             ),
             const SizedBox(height: 14),
             Text(
-              _error ?? 'Ошибка камеры',
+              _error ?? AppLocalizations.of(context)!.video_circle_camera_fallback_error,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 14),
             FilledButton(
               onPressed: _openCameraAndStart,
-              child: const Text('Повторить'),
+              child: Text(AppLocalizations.of(context)!.video_circle_retry),
             ),
           ],
         ),
@@ -751,8 +752,8 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
               child: Center(
                 child: Text(
                   _state == _CircleCaptureState.sending
-                      ? 'Отправка...'
-                      : 'Кружок записан',
+                      ? AppLocalizations.of(context)!.video_circle_sending
+                      : AppLocalizations.of(context)!.video_circle_recorded,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w600,
@@ -840,7 +841,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Влево - отмена',
+                    AppLocalizations.of(context)!.video_circle_swipe_cancel,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -110,7 +111,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
               fit: StackFit.expand,
               children: [
                 const ChatShellBackdrop(),
-                const Center(child: Text('Необходим вход.')),
+                Center(child: Text(AppLocalizations.of(context)!.call_detail_login_required)),
               ],
             ),
           );
@@ -125,7 +126,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Звонок не найден или нет доступа.',
+                      AppLocalizations.of(context)!.call_detail_not_found,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(
@@ -169,7 +170,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                   ? peer!.name.trim()
                   : (fallbackPeerName.isNotEmpty
                         ? fallbackPeerName
-                        : 'Неизвестный'),
+                        : AppLocalizations.of(context)!.call_detail_unknown),
             );
             final peerAvatar = peer?.avatarThumb ?? peer?.avatar;
             final meName = self?.name.trim().isNotEmpty == true
@@ -214,7 +215,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 foregroundColor: fg,
-                title: const Text('Сведения о звонке'),
+                title: Text(AppLocalizations.of(context)!.call_detail_title),
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   onPressed: () {
@@ -266,8 +267,8 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                           ? Icons.videocam_rounded
                                           : Icons.call_rounded,
                                       label: rawCall.isVideo
-                                          ? 'Видеозвонок'
-                                          : 'Аудиозвонок',
+                                          ? AppLocalizations.of(context)!.call_detail_video
+                                          : AppLocalizations.of(context)!.call_detail_audio,
                                       fg: fg,
                                     ),
                                     _InfoChip(
@@ -275,8 +276,8 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                           ? Icons.call_made_rounded
                                           : Icons.call_received_rounded,
                                       label: isOutgoing
-                                          ? 'Исходящий'
-                                          : 'Входящий',
+                                          ? AppLocalizations.of(context)!.call_detail_outgoing
+                                          : AppLocalizations.of(context)!.call_detail_incoming,
                                       fg: fg,
                                     ),
                                     Container(
@@ -310,7 +311,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                     children: [
                                       _LabeledRow(
                                         icon: Icons.calendar_today_outlined,
-                                        label: 'Дата:',
+                                        label: AppLocalizations.of(context)!.call_detail_date_label,
                                         value: dateLabel,
                                         fg: fg,
                                         muted: muted,
@@ -319,7 +320,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                         const Divider(height: 20),
                                         _LabeledRow(
                                           icon: Icons.schedule_rounded,
-                                          label: 'Длительность:',
+                                          label: AppLocalizations.of(context)!.call_detail_duration_label,
                                           value: durationLabel,
                                           fg: scheme.primary,
                                           muted: muted,
@@ -362,7 +363,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                           );
                                         },
                                         icon: const Icon(Icons.call_rounded),
-                                        label: const Text('Позвонить'),
+                                        label: Text(AppLocalizations.of(context)!.call_detail_call_button),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -398,7 +399,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
                                         icon: const Icon(
                                           Icons.videocam_rounded,
                                         ),
-                                        label: const Text('Видео'),
+                                        label: Text(AppLocalizations.of(context)!.call_detail_video_button),
                                       ),
                                     ),
                                   ],
@@ -430,7 +431,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
           fit: StackFit.expand,
           children: [
             const ChatShellBackdrop(),
-            Center(child: Text('Ошибка: $e')),
+            Center(child: Text(AppLocalizations.of(context)!.call_detail_error(e.toString()))),
           ],
         ),
       ),

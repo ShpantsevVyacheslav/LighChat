@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -64,7 +65,7 @@ class ConversationStarredScreen extends ConsumerWidget {
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
                     child: Text(
-                      'Ошибка загрузки избранного: $e',
+                      AppLocalizations.of(context)!.starred_load_error(e.toString()),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: scheme.onSurface.withValues(alpha: 0.9),
@@ -83,7 +84,7 @@ class ConversationStarredScreen extends ConsumerWidget {
 
   Widget _topBar(BuildContext context) {
     return ChatProfileSubpageHeader(
-      title: 'Избранное',
+      title: AppLocalizations.of(context)!.starred_title,
       onBack: () => Navigator.of(context).pop(),
     );
   }
@@ -94,7 +95,7 @@ class ConversationStarredScreen extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Text(
-          'В этом чате нет избранных сообщений',
+          AppLocalizations.of(context)!.starred_empty,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: scheme.onSurface.withValues(alpha: 0.82),
@@ -129,14 +130,16 @@ class _StarredMessageTile extends ConsumerWidget {
         messageId: entry.messageId,
       )),
     );
+    final l10n = AppLocalizations.of(context)!;
     final message = msgAsync.asData?.value;
     final senderName = _senderName(
+      l10n: l10n,
       senderId: message?.senderId ?? '',
       conversation: conversation,
       currentUserId: currentUserId,
     );
-    final preview = _previewText(entry: entry, message: message);
-    final timeLabel = _formatTime(entry.createdAt);
+    final preview = _previewText(l10n: l10n, entry: entry, message: message);
+    final timeLabel = _formatTime(l10n: l10n, dt: entry.createdAt);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -230,23 +233,25 @@ class _StarredMessageTile extends ConsumerWidget {
   }
 
   String _senderName({
+    required AppLocalizations l10n,
     required String senderId,
     required Conversation conversation,
     required String currentUserId,
   }) {
-    if (senderId.trim().isEmpty) return 'Сообщение';
+    if (senderId.trim().isEmpty) return l10n.starred_message_fallback;
     final info = conversation.participantInfo?[senderId];
     if ((info?.name ?? '').trim().isNotEmpty) return info!.name.trim();
-    if (senderId == currentUserId) return 'Вы';
-    return 'Участник';
+    if (senderId == currentUserId) return l10n.starred_sender_you;
+    return l10n.starred_sender_fallback;
   }
 
   String _previewText({
+    required AppLocalizations l10n,
     required StarredChatMessageEntry entry,
     required ChatMessage? message,
   }) {
     final m = message;
-    if (m == null) return entry.previewText ?? 'Сообщение';
+    if (m == null) return entry.previewText ?? l10n.starred_message_fallback;
     final raw = (m.text ?? '').trim();
     var plain = raw;
     if (raw.contains('<')) {
@@ -254,20 +259,20 @@ class _StarredMessageTile extends ConsumerWidget {
     }
     plain = plain.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (plain.isNotEmpty) return plain;
-    if ((m.chatPollId ?? '').trim().isNotEmpty) return 'Опрос';
-    if (m.locationShare != null) return 'Локация';
-    if (m.attachments.isNotEmpty) return 'Вложение';
-    return entry.previewText ?? 'Сообщение';
+    if ((m.chatPollId ?? '').trim().isNotEmpty) return l10n.starred_type_poll;
+    if (m.locationShare != null) return l10n.starred_type_location;
+    if (m.attachments.isNotEmpty) return l10n.starred_type_attachment;
+    return entry.previewText ?? l10n.starred_message_fallback;
   }
 
-  String _formatTime(DateTime dt) {
+  String _formatTime({required AppLocalizations l10n, required DateTime dt}) {
     final d = dt.toLocal();
     final now = DateTime.now();
     final isToday =
         d.year == now.year && d.month == now.month && d.day == now.day;
     final hh = d.hour.toString().padLeft(2, '0');
     final mm = d.minute.toString().padLeft(2, '0');
-    if (isToday) return 'Сегодня, $hh:$mm';
+    if (isToday) return l10n.starred_today_prefix("$hh:$mm");
     final dd = d.day.toString().padLeft(2, '0');
     final mo = d.month.toString().padLeft(2, '0');
     return '$dd.$mo $hh:$mm';
