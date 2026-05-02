@@ -14,7 +14,6 @@ import 'durak_hand_fan.dart';
 import 'durak_player_names.dart';
 import 'durak_player_profiles.dart';
 import 'durak_primary_actions_bar.dart';
-import 'durak_table_fly_fx.dart';
 import 'durak_table_widget.dart';
 
 class ConversationDurakGameScreen extends StatefulWidget {
@@ -56,8 +55,6 @@ class _ConversationDurakGameScreenState
   int _prevFxRevision = -1;
   int _tableFxNonce = 0;
   String _tableFxText = '';
-  String _flyFxKind = '';
-  int _flyFxCount = 0;
   int _legalRevision = -1;
   int _publicRevision = -1;
   bool _legalCanTake = false;
@@ -1039,8 +1036,6 @@ class _ConversationDurakGameScreenState
                 setState(() {
                   _tableFxNonce++;
                   _tableFxText = took ? 'Взял' : 'Бито';
-                  _flyFxKind = took ? 'take' : 'beat';
-                  _flyFxCount = _prevTableCards <= 0 ? 6 : _prevTableCards;
                 });
               }
               _prevDefenderHandCount = defenderHandCount;
@@ -1430,21 +1425,6 @@ class _ConversationDurakGameScreenState
                                 setState(() => _tableFxText = '');
                               },
                             ),
-                          ),
-                        ),
-                      if (_flyFxKind.isNotEmpty)
-                        Positioned.fill(
-                          child: DurakTableFlyFx(
-                            key: ValueKey<int>(_tableFxNonce),
-                            kind: _flyFxKind,
-                            cardCount: _flyFxCount,
-                            onDone: () {
-                              if (!mounted) return;
-                              setState(() {
-                                _flyFxKind = '';
-                                _flyFxCount = 0;
-                              });
-                            },
                           ),
                         ),
                     ],
