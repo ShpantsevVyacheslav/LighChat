@@ -14,7 +14,7 @@ export type GiphyItem = {
   height?: number;
 };
 
-export type GiphyType = 'gifs' | 'stickers';
+export type GiphyType = 'gifs' | 'stickers' | 'emoji';
 
 type CacheEntry = {
   ts: number;

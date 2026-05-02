@@ -21,7 +21,11 @@ class GiphyCacheStore {
   static const int _kRecentMax = 30;
 
   String _cacheKey(GiphyType type, String query) {
-    final t = type == GiphyType.stickers ? 'stickers' : 'gifs';
+    final t = switch (type) {
+      GiphyType.gifs => 'gifs',
+      GiphyType.stickers => 'stickers',
+      GiphyType.emoji => 'emoji',
+    };
     return '$t:${query.trim()}';
   }
 

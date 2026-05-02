@@ -24,9 +24,13 @@ const MAX_OFFSET = 4975; // GIPHY hard cap
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
-  const type = req.nextUrl.searchParams.get('type') === 'stickers'
-    ? 'stickers'
-    : 'gifs';
+  const typeRaw = req.nextUrl.searchParams.get('type');
+  const type: 'gifs' | 'stickers' | 'emoji' =
+    typeRaw === 'stickers'
+      ? 'stickers'
+      : typeRaw === 'emoji'
+      ? 'emoji'
+      : 'gifs';
   const offsetRaw = req.nextUrl.searchParams.get('offset');
   let offset = 0;
   if (offsetRaw != null) {
@@ -57,7 +61,8 @@ export async function GET(req: NextRequest) {
   // т.к. GIPHY плохо ищет по кириллице даже с lang=ru.
   let effectiveQuery = q;
   let translatedFrom: string | null = null;
-  if (!isTrending) {
+  // emoji-эндпоинт не поддерживает поиск, всегда trending.
+  if (!isTrending && type !== 'emoji') {
     const t = await translateSearchQueryToEn(q);
     if (t.translated !== t.original) {
       effectiveQuery = t.translated;
@@ -67,14 +72,23 @@ export async function GET(req: NextRequest) {
   // GIPHY endpoints:
   //   gifs:     /v1/gifs/{trending,search}
   //   stickers: /v1/stickers/{trending,search}
-  const path = `/v1/${type}/${isTrending ? 'trending' : 'search'}`;
-  const giphyUrl = new URL(`https://api.giphy.com${path}`);
-  if (!isTrending) giphyUrl.searchParams.set('q', effectiveQuery);
+  //   emoji:    /v2/emoji  (только листинг анимированных эмодзи без поиска)
+  const giphyUrl =
+    type === 'emoji'
+      ? new URL('https://api.giphy.com/v2/emoji')
+      : new URL(
+          `https://api.giphy.com/v1/${type}/${isTrending ? 'trending' : 'search'}`,
+        );
+  if (type !== 'emoji' && !isTrending) {
+    giphyUrl.searchParams.set('q', effectiveQuery);
+  }
   giphyUrl.searchParams.set('api_key', key);
   giphyUrl.searchParams.set('limit', String(PAGE_SIZE));
   giphyUrl.searchParams.set('offset', String(offset));
-  giphyUrl.searchParams.set('rating', 'g');
-  giphyUrl.searchParams.set('lang', 'en');
+  if (type !== 'emoji') {
+    giphyUrl.searchParams.set('rating', 'g');
+    giphyUrl.searchParams.set('lang', 'en');
+  }
 
   try {
     const res = await fetch(giphyUrl.toString(), { next: { revalidate: 0 } });

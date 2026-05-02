@@ -16,7 +16,7 @@ import '../data/user_sticker_item_attachment.dart';
 import '../data/recent_stickers_store.dart';
 import '../data/user_sticker_packs_repository.dart';
 
-enum _StickerScope { my, public }
+enum _StickerScope { my, public, library }
 
 /// Нижняя панель «Стикеры / GIF» (паритет `ChatStickerGifPanel` + `UserStickersTab`).
 ///
@@ -104,9 +104,17 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   String? _activeEmojiFilter;
   List<GiphyGifItem> _recentGifs = [];
 
-  // Анимированные эмодзи (GIPHY stickers).
+  // Анимированные эмодзи (GIPHY v2/emoji).
   List<GiphyGifItem> _animEmojis = [];
   bool _animEmojisLoading = false;
+
+  // GIPHY-стикеры (вкладка «Стикеры» → scope=library).
+  final _libraryQueryController = TextEditingController();
+  Timer? _libraryDebounce;
+  List<GiphyGifItem> _libraryItems = [];
+  bool _libraryLoading = false;
+  String? _libraryActiveFilter;
+  String? _libraryTranslatedHint;
 
   bool _deviceDirectBusy = false;
 
@@ -116,7 +124,54 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifQueryController.addListener(_scheduleGifSearch);
     _gifQueryController.addListener(_onGifQueryChanged);
     _gifScrollController.addListener(_onGifScroll);
+    _libraryQueryController.addListener(_scheduleLibrarySearch);
+    _libraryQueryController.addListener(_onLibraryQueryChanged);
     _loadInitialData();
+  }
+
+  void _scheduleLibrarySearch() {
+    _libraryDebounce?.cancel();
+    _libraryDebounce = Timer(const Duration(milliseconds: 350), () async {
+      final raw = _libraryQueryController.text.trim();
+      // Если поле пустое и нет активного фильтра — показываем trending из кеша.
+      final effective = raw.isEmpty ? (_libraryActiveFilter ?? '') : raw;
+      // Кеш по (stickers, query) — TTL 24h.
+      final cached =
+          await GiphyCacheStore.instance.get(GiphyType.stickers, effective);
+      if (cached != null && cached.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _libraryItems = cached;
+            _libraryLoading = false;
+            _libraryTranslatedHint = null;
+          });
+        }
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _libraryLoading = true);
+      final r = await searchGifs(effective, type: GiphyType.stickers);
+      if (!mounted) return;
+      setState(() {
+        _libraryLoading = false;
+        _libraryItems = r.items;
+        _libraryTranslatedHint = (r.translatedFrom != null &&
+                r.effectiveQuery != null &&
+                r.effectiveQuery != r.translatedFrom)
+            ? r.effectiveQuery
+            : null;
+      });
+      if (r.items.isNotEmpty) {
+        unawaited(GiphyCacheStore.instance
+            .save(GiphyType.stickers, effective, r.items));
+      }
+    });
+  }
+
+  void _selectLibraryEmojiFilter(String? emoji) {
+    setState(() => _libraryActiveFilter = emoji);
+    _libraryQueryController.clear();
+    _scheduleLibrarySearch();
   }
 
   void _onGifScroll() {
@@ -160,7 +215,18 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       _loadRecentGifs(),
       _bootstrapTrendingGifs(),
       _bootstrapTrendingStickers(),
+      _bootstrapLibraryStickers(),
     ]);
+  }
+
+  /// Загружает trending GIPHY-стикеры для вкладки «Стикеры → GIPHY».
+  Future<void> _bootstrapLibraryStickers() async {
+    final cached =
+        await GiphyCacheStore.instance.getTrending(GiphyType.stickers);
+    if (cached != null && cached.isNotEmpty) {
+      if (mounted) setState(() => _libraryItems = cached);
+      return;
+    }
   }
 
   Future<void> _loadRecentGifs() async {
@@ -190,16 +256,17 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     }
   }
 
+  /// Загружает анимированные эмодзи (GIPHY v2/emoji — именно эмодзи, не GIF-стикеры).
   Future<void> _bootstrapTrendingStickers() async {
     final cached =
-        await GiphyCacheStore.instance.getTrending(GiphyType.stickers);
+        await GiphyCacheStore.instance.getTrending(GiphyType.emoji);
     if (cached != null && cached.isNotEmpty) {
       if (mounted) setState(() => _animEmojis = cached);
       return;
     }
     if (!mounted) return;
     setState(() => _animEmojisLoading = true);
-    final r = await searchGifs('', type: GiphyType.stickers);
+    final r = await searchGifs('', type: GiphyType.emoji);
     if (!mounted) return;
     setState(() {
       _animEmojisLoading = false;
@@ -207,11 +274,15 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     });
     if (r.items.isNotEmpty) {
       unawaited(GiphyCacheStore.instance
-          .saveTrending(GiphyType.stickers, r.items));
+          .saveTrending(GiphyType.emoji, r.items));
     }
   }
 
   void _onGifQueryChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onLibraryQueryChanged() {
     if (mounted) setState(() {});
   }
 
@@ -223,11 +294,15 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   @override
   void dispose() {
     _gifDebounce?.cancel();
+    _libraryDebounce?.cancel();
     _gifQueryController.removeListener(_scheduleGifSearch);
     _gifQueryController.removeListener(_onGifQueryChanged);
     _gifQueryController.dispose();
     _gifScrollController.removeListener(_onGifScroll);
     _gifScrollController.dispose();
+    _libraryQueryController.removeListener(_scheduleLibrarySearch);
+    _libraryQueryController.removeListener(_onLibraryQueryChanged);
+    _libraryQueryController.dispose();
     _tabs.dispose();
     super.dispose();
   }
@@ -290,6 +365,14 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     widget.onPickAttachment(att);
     // обновим список «недавних» в UI
     unawaited(_loadRecentGifs());
+  }
+
+  /// Анимированный эмодзи отправляется как стикер (`sticker_giphy_*`),
+  /// чтобы получатель рендерил его без пузыря фиксированного размера.
+  void _onPickAnimEmoji(GiphyGifItem item) {
+    widget.onPickAttachment(
+      giphyItemToSendAttachment(item, asSticker: true),
+    );
   }
 
   void _snack(String msg) {
@@ -712,18 +795,35 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       child: Row(
         children: [
-          ChoiceChip(
-            label: const Text('Мои'),
-            selected: _scope == _StickerScope.my,
-            onSelected: (_) => setState(() => _scope = _StickerScope.my),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('Мои'),
+                    selected: _scope == _StickerScope.my,
+                    onSelected: (_) =>
+                        setState(() => _scope = _StickerScope.my),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Общие'),
+                    selected: _scope == _StickerScope.public,
+                    onSelected: (_) =>
+                        setState(() => _scope = _StickerScope.public),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('GIPHY'),
+                    selected: _scope == _StickerScope.library,
+                    onSelected: (_) =>
+                        setState(() => _scope = _StickerScope.library),
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
-          ChoiceChip(
-            label: const Text('Общие'),
-            selected: _scope == _StickerScope.public,
-            onSelected: (_) => setState(() => _scope = _StickerScope.public),
-          ),
-          const Spacer(),
           if (_scope == _StickerScope.my)
             IconButton(
               tooltip: 'Новый пак',
@@ -1120,7 +1220,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
               return _packChipsMy(packs);
             },
           )
-        else
+        else if (_scope == _StickerScope.public)
           StreamBuilder<List<PublicStickerPackRow>>(
             stream: widget.repo.watchPublicPacks(),
             builder: (context, snap) {
@@ -1131,64 +1231,202 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
         if (_scope == _StickerScope.my && _recentStickers.isNotEmpty)
           _recentStickersStrip(),
         Expanded(
-          child: _scope == _StickerScope.my
-              ? StreamBuilder<List<UserStickerPackRow>>(
-                  stream: widget.repo.watchMyPacks(widget.userId),
-                  builder: (context, packSnap) {
-                    final packs = packSnap.data ?? [];
-                    if (packs.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'Создайте пак кнопкой +',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      );
-                    }
-                    final pid = _myPackId ??
-                        (packs.isNotEmpty ? packs.first.id : null);
-                    if (pid == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return StreamBuilder<List<StickerItemRow>>(
-                      stream:
-                          widget.repo.watchMyPackItems(widget.userId, pid),
-                      builder: (context, itemSnap) {
-                        final items = itemSnap.data ?? [];
-                        return _stickerGrid(items, canDelete: true);
-                      },
-                    );
-                  },
-                )
-              : StreamBuilder<List<PublicStickerPackRow>>(
-                  stream: widget.repo.watchPublicPacks(),
-                  builder: (context, packSnap) {
-                    final packs = packSnap.data ?? [];
-                    if (packs.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'Общие паки пока недоступны',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      );
-                    }
-                    final pid = _publicPackId ??
-                        (packs.isNotEmpty ? packs.first.id : null);
-                    if (pid == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return StreamBuilder<List<StickerItemRow>>(
-                      stream: widget.repo.watchPublicPackItems(pid),
-                      builder: (context, itemSnap) {
-                        final items = itemSnap.data ?? [];
-                        return _stickerGrid(items, canDelete: false);
-                      },
-                    );
-                  },
+          child: switch (_scope) {
+            _StickerScope.my => _myStickersBody(),
+            _StickerScope.public => _publicStickersBody(),
+            _StickerScope.library => _libraryStickersBody(),
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _myStickersBody() {
+    return StreamBuilder<List<UserStickerPackRow>>(
+      stream: widget.repo.watchMyPacks(widget.userId),
+      builder: (context, packSnap) {
+        final packs = packSnap.data ?? [];
+        if (packs.isEmpty) {
+          return Center(
+            child: Text(
+              'Создайте пак кнопкой +',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+            ),
+          );
+        }
+        final pid = _myPackId ?? (packs.isNotEmpty ? packs.first.id : null);
+        if (pid == null) return const SizedBox.shrink();
+        return StreamBuilder<List<StickerItemRow>>(
+          stream: widget.repo.watchMyPackItems(widget.userId, pid),
+          builder: (context, itemSnap) {
+            final items = itemSnap.data ?? [];
+            return _stickerGrid(items, canDelete: true);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _publicStickersBody() {
+    return StreamBuilder<List<PublicStickerPackRow>>(
+      stream: widget.repo.watchPublicPacks(),
+      builder: (context, packSnap) {
+        final packs = packSnap.data ?? [];
+        if (packs.isEmpty) {
+          return Center(
+            child: Text(
+              'Общие паки пока недоступны',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+            ),
+          );
+        }
+        final pid = _publicPackId ?? packs.first.id;
+        return StreamBuilder<List<StickerItemRow>>(
+          stream: widget.repo.watchPublicPackItems(pid),
+          builder: (context, itemSnap) {
+            final items = itemSnap.data ?? [];
+            return _stickerGrid(items, canDelete: false);
+          },
+        );
+      },
+    );
+  }
+
+  /// Библиотека стикеров из GIPHY (поиск + trending + эмодзи-фильтры).
+  Widget _libraryStickersBody() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: TextField(
+            controller: _libraryQueryController,
+            textCapitalization: TextCapitalization.sentences,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Поиск стикеров…',
+              hintStyle:
+                  TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+              prefixIcon: Icon(
+                Icons.search,
+                color: Colors.white.withValues(alpha: 0.5),
+              ),
+              suffixIcon: _libraryQueryController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: Colors.white.withValues(alpha: 0.5),
+                        size: 18,
+                      ),
+                      onPressed: () => _libraryQueryController.clear(),
+                    ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.08),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        if (_libraryTranslatedHint != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.translate_rounded,
+                  size: 12,
+                  color: Colors.white.withValues(alpha: 0.45),
                 ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Искали: $_libraryTranslatedHint',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.55),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // Эмодзи-фильтры (паритет с GIF-вкладкой).
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: _kGifEmojiFilters.length + 1,
+            separatorBuilder: (_, _) => const SizedBox(width: 6),
+            itemBuilder: (context, i) {
+              if (i == 0) {
+                return _emojiFilterChip(
+                  label: 'Все',
+                  active: _libraryActiveFilter == null,
+                  onTap: () => _selectLibraryEmojiFilter(null),
+                );
+              }
+              final emoji = _kGifEmojiFilters[i - 1];
+              return _emojiFilterChip(
+                label: emoji,
+                active: _libraryActiveFilter == emoji,
+                onTap: () => _selectLibraryEmojiFilter(emoji),
+              );
+            },
+          ),
+        ),
+        Expanded(
+          child: _libraryLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _libraryItems.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Ничего не найдено',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      itemCount: _libraryItems.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        mainAxisSpacing: 6,
+                        crossAxisSpacing: 6,
+                      ),
+                      itemBuilder: (context, i) {
+                        final item = _libraryItems[i];
+                        return Material(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(10),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () {
+                              widget.onPickAttachment(
+                                giphyItemToSendAttachment(item,
+                                    asSticker: true),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: CachedNetworkImage(
+                                imageUrl: item.url,
+                                fit: BoxFit.contain,
+                                placeholder: (_, _) =>
+                                    const SizedBox.shrink(),
+                                errorWidget: (_, _, _) =>
+                                    const SizedBox.shrink(),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
         ),
       ],
     );
@@ -1501,7 +1739,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                 return Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => _onPickGif(item),
+                    onTap: () => _onPickAnimEmoji(item),
                     borderRadius: BorderRadius.circular(10),
                     child: SizedBox(
                       width: 64,
