@@ -851,11 +851,13 @@ class _ConversationDurakGameScreenState
                 hasSelected &&
                 cardCanDefendAt(_selectedCard!, _selectedAttackIndex);
 
+            final isTaking = phase == 'throwIn';
             final canTakeClient = status == 'active' &&
                 me != null &&
                 me == defenderUid &&
-                tableHasAttacks;
-            final canTake = (_legalRevision >= 0 && _legalCanTake) || canTakeClient;
+                tableHasAttacks &&
+                !isTaking;
+            final canTake = ((_legalRevision >= 0 && _legalCanTake) || canTakeClient) && !isTaking;
 
             final canFinishTurnRaw = publicView == null
                 ? null
@@ -893,20 +895,26 @@ class _ConversationDurakGameScreenState
                 me == attackerUid &&
                 hasPendingResolution;
 
-            final myTurnLabel =
-                status == 'active' &&
-                    me != null &&
-                    ((attacks.isEmpty &&
-                            me == attackerUid &&
-                            me != defenderUid) ||
-                        (tableHasAttacks &&
-                            me == defenderUid &&
-                            phase == 'defense') ||
-                        (activeThrowerUid != null && me == activeThrowerUid) ||
-                        canBeat ||
-                        canResolve)
-                ? 'Твой ход'
-                : '';
+            String myTurnLabel = '';
+            if (status == 'active' && me != null) {
+              if (attacks.isEmpty && me == attackerUid && me != defenderUid) {
+                myTurnLabel = 'Твой ход — атакуй';
+              } else if (tableHasAttacks &&
+                  me == defenderUid &&
+                  phase == 'defense') {
+                myTurnLabel = 'Отбей или возьми';
+              } else if (canBeat) {
+                myTurnLabel = 'Можно объявить «Бито»';
+              } else if (canResolve) {
+                myTurnLabel = 'Разреши спорный ход';
+              } else if (activeThrowerUid != null &&
+                  me == activeThrowerUid &&
+                  me != defenderUid) {
+                myTurnLabel = 'Подкинь карту того же ранга или пасуй';
+              } else if (me == attackerUid && tableHasAttacks) {
+                myTurnLabel = 'Ждём ход соперника';
+              }
+            }
 
             final primaryCandidates =
                 <({String id, String label, VoidCallback onTap})>[];
@@ -1111,8 +1119,8 @@ class _ConversationDurakGameScreenState
                 child: Container(
                   key: _handKey,
                   width: double.infinity,
-                  height: 120,
-                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                  height: 110,
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
                   alignment: Alignment.bottomCenter,
                   child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                     stream: handRef.snapshots(),
@@ -1449,7 +1457,7 @@ class _ConversationDurakGameScreenState
                           ),
                         if (myTurnLabel.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
                             child: _TurnStatusPill(text: myTurnLabel),
                           ),
                         DurakPrimaryActionsBar(
@@ -1849,53 +1857,33 @@ class _DurakDiscardPile extends StatelessWidget {
   Widget build(BuildContext context) {
     final stacks = discardCount <= 0
         ? 0
-        : (discardCount > 4 ? 4 : discardCount);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        : (discardCount > 5 ? 5 : discardCount);
+    if (stacks == 0) {
+      return const SizedBox(width: 90, height: 110);
+    }
+    return SizedBox(
+      width: 90,
+      height: 110,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            'Сброс: $discardCount',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.92),
+          for (var i = 0; i < stacks; i++)
+            Positioned(
+              right: i * 4.0,
+              top: i * 2.0,
+              child: Transform.rotate(
+                angle: -0.18 + i * 0.05,
+                child: const DurakCardWidget(
+                  rankLabel: '',
+                  suitLabel: '',
+                  isRed: false,
+                  faceUp: false,
+                  disabled: true,
+                  width: 68,
+                  height: 96,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: 48,
-            height: 46,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                for (var i = 0; i < stacks; i++)
-                  Positioned(
-                    right: i * 6.0,
-                    top: i * 1.5,
-                    child: Transform.rotate(
-                      angle: -0.18 + i * 0.08,
-                      child: const DurakCardWidget(
-                        rankLabel: '',
-                        suitLabel: '',
-                        isRed: false,
-                        faceUp: false,
-                        disabled: true,
-                        width: 26,
-                        height: 36,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
     );

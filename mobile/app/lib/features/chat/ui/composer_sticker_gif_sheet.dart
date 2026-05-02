@@ -91,9 +91,14 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   List<ChatAttachment> _recentStickers = [];
 
   final _gifQueryController = TextEditingController();
+  final _gifScrollController = ScrollController();
   Timer? _gifDebounce;
   List<GiphyGifItem> _gifItems = [];
   bool _gifLoading = false;
+  bool _gifLoadingMore = false;
+  bool _gifHasMore = false;
+  int _gifTotal = 0;
+  String _gifLastQuery = '';
   bool _gifMissingKey = false;
   String? _activeEmojiFilter;
   List<GiphyGifItem> _recentGifs = [];
@@ -109,7 +114,43 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     super.initState();
     _gifQueryController.addListener(_scheduleGifSearch);
     _gifQueryController.addListener(_onGifQueryChanged);
+    _gifScrollController.addListener(_onGifScroll);
     _loadInitialData();
+  }
+
+  void _onGifScroll() {
+    if (!_gifHasMore || _gifLoadingMore || _gifLoading) return;
+    final pos = _gifScrollController.position;
+    // Триггер за 300px до конца — даём время подгрузить.
+    if (pos.pixels >= pos.maxScrollExtent - 300) {
+      unawaited(_loadMoreGifs());
+    }
+  }
+
+  Future<void> _loadMoreGifs() async {
+    if (_gifLoadingMore || !_gifHasMore) return;
+    setState(() => _gifLoadingMore = true);
+    final r = await searchGifs(
+      _gifLastQuery,
+      offset: _gifItems.length,
+    );
+    if (!mounted) return;
+    final merged = <GiphyGifItem>[..._gifItems];
+    final existingIds = merged.map((e) => e.id).toSet();
+    for (final it in r.items) {
+      if (!existingIds.contains(it.id)) merged.add(it);
+    }
+    setState(() {
+      _gifItems = merged;
+      _gifLoadingMore = false;
+      _gifTotal = r.total > 0 ? r.total : _gifTotal;
+      _gifHasMore = merged.length < _gifTotal;
+    });
+    // Аккумулируем в кеш под тем же ключом.
+    if (merged.isNotEmpty) {
+      unawaited(GiphyCacheStore.instance
+          .save(GiphyType.gifs, _gifLastQuery, merged));
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -184,6 +225,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifQueryController.removeListener(_scheduleGifSearch);
     _gifQueryController.removeListener(_onGifQueryChanged);
     _gifQueryController.dispose();
+    _gifScrollController.removeListener(_onGifScroll);
+    _gifScrollController.dispose();
     _tabs.dispose();
     super.dispose();
   }
@@ -193,31 +236,37 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifDebounce = Timer(const Duration(milliseconds: 350), () async {
       final q = _gifQueryController.text;
       if (!mounted) return;
-      // Если запрос пустой и фильтр не выбран — показываем кеш trending.
-      if (q.trim().isEmpty && _activeEmojiFilter == null) {
-        final cached =
-            await GiphyCacheStore.instance.getTrending(GiphyType.gifs);
-        if (cached != null && cached.isNotEmpty) {
-          if (mounted) setState(() => _gifItems = cached);
-          return;
+      final effectiveQuery =
+          q.trim().isEmpty ? (_activeEmojiFilter ?? '') : q.trim();
+      _gifLastQuery = effectiveQuery;
+      // Проверяем кеш по конкретному запросу/фильтру (TTL 24h, LRU 20 ключей).
+      final cached =
+          await GiphyCacheStore.instance.get(GiphyType.gifs, effectiveQuery);
+      if (cached != null && cached.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _gifItems = cached;
+            _gifLoading = false;
+            // У кеша нет инфы о total → разрешаем дозагрузку, дочитаем при скролле.
+            _gifTotal = cached.length;
+            _gifHasMore = true;
+          });
         }
+        return;
       }
       setState(() => _gifLoading = true);
-      final effectiveQuery =
-          q.trim().isEmpty ? (_activeEmojiFilter ?? '') : q;
       final r = await searchGifs(effectiveQuery);
       if (!mounted) return;
       setState(() {
         _gifLoading = false;
         _gifItems = r.items;
         _gifMissingKey = r.missingKey;
+        _gifTotal = r.total;
+        _gifHasMore = r.hasMore;
       });
-      // Кешируем только trending (без запроса и фильтра).
-      if (q.trim().isEmpty &&
-          _activeEmojiFilter == null &&
-          r.items.isNotEmpty) {
+      if (r.items.isNotEmpty) {
         unawaited(GiphyCacheStore.instance
-            .saveTrending(GiphyType.gifs, r.items));
+            .save(GiphyType.gifs, effectiveQuery, r.items));
       }
     });
   }
@@ -1194,6 +1243,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           child: _gifLoading
               ? const Center(child: CircularProgressIndicator())
               : CustomScrollView(
+                  controller: _gifScrollController,
                   slivers: [
                     if (showRecent) ...[
                       SliverToBoxAdapter(
@@ -1221,11 +1271,29 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                           ),
                         ),
                       )
-                    else
+                    else ...[
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                         sliver: _gifGridSliver(_gifItems),
                       ),
+                      if (_gifLoadingMore)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Center(
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 12),
+                        ),
+                    ],
                   ],
                 ),
         ),

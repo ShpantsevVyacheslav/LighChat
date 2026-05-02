@@ -18,11 +18,20 @@ type GifSearchItem = {
  *
  * @see https://developers.giphy.com/docs/api/endpoint
  */
+const PAGE_SIZE = 24;
+const MAX_OFFSET = 4975; // GIPHY hard cap
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
   const type = req.nextUrl.searchParams.get('type') === 'stickers'
     ? 'stickers'
     : 'gifs';
+  const offsetRaw = req.nextUrl.searchParams.get('offset');
+  let offset = 0;
+  if (offsetRaw != null) {
+    const n = parseInt(offsetRaw, 10);
+    if (Number.isFinite(n) && n >= 0) offset = Math.min(n, MAX_OFFSET);
+  }
   const key = process.env.GIPHY_API_KEY;
   if (!key) {
     console.warn(
@@ -31,7 +40,13 @@ export async function GET(req: NextRequest) {
         'and update apphosting.yaml.',
     );
     return NextResponse.json(
-      { ok: false, error: 'missing_key', items: [] as GifSearchItem[] },
+      {
+        ok: false,
+        error: 'missing_key',
+        items: [] as GifSearchItem[],
+        offset: 0,
+        total: 0,
+      },
       { status: 200 },
     );
   }
@@ -44,7 +59,8 @@ export async function GET(req: NextRequest) {
   const giphyUrl = new URL(`https://api.giphy.com${path}`);
   if (!isTrending) giphyUrl.searchParams.set('q', q);
   giphyUrl.searchParams.set('api_key', key);
-  giphyUrl.searchParams.set('limit', '24');
+  giphyUrl.searchParams.set('limit', String(PAGE_SIZE));
+  giphyUrl.searchParams.set('offset', String(offset));
   giphyUrl.searchParams.set('rating', 'g');
   giphyUrl.searchParams.set('lang', 'ru');
 
@@ -62,6 +78,11 @@ export async function GET(req: NextRequest) {
           original?: { url?: string; width?: string; height?: string };
         };
       }>;
+      pagination?: {
+        total_count?: number;
+        count?: number;
+        offset?: number;
+      };
     };
     const raw = data.data ?? [];
     const items: GifSearchItem[] = [];
@@ -79,7 +100,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ ok: true, items });
+    const pag = data.pagination ?? {};
+    return NextResponse.json({
+      ok: true,
+      items,
+      offset: typeof pag.offset === 'number' ? pag.offset : offset,
+      count: typeof pag.count === 'number' ? pag.count : items.length,
+      total: typeof pag.total_count === 'number' ? pag.total_count : items.length,
+    });
   } catch (e) {
     console.error('[giphy/search]', e);
     return NextResponse.json({ ok: false, error: 'fetch_failed', items: [] });
