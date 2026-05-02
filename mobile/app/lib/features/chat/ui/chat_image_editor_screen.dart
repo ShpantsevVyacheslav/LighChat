@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -346,7 +347,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
         compressQuality: 90,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'Обрезка',
+            toolbarTitle: AppLocalizations.of(context)!.image_editor_crop_title,
             toolbarColor: const Color(0xFF12151E),
             toolbarWidgetColor: Colors.white,
             backgroundColor: const Color(0xFF12151E),
@@ -355,9 +356,9 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
             cropGridColor: Colors.white54,
           ),
           IOSUiSettings(
-            title: 'Обрезка',
-            doneButtonTitle: 'Готово',
-            cancelButtonTitle: 'Отмена',
+            title: AppLocalizations.of(context)!.image_editor_crop_title,
+            doneButtonTitle: AppLocalizations.of(context)!.common_done,
+            cancelButtonTitle: AppLocalizations.of(context)!.common_cancel,
           ),
         ],
       );
@@ -395,7 +396,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
       debugPrint('chat image crop failed: $e\n$st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось обрезать изображение')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.image_editor_crop_failed)),
       );
     } finally {
       if (sourceFile != null) {
@@ -816,7 +817,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
                             maxLines: 1,
                             textCapitalization: TextCapitalization.sentences,
                             decoration: InputDecoration(
-                              hintText: 'Добавить подпись...',
+                              hintText: AppLocalizations.of(context)!.image_editor_add_caption,
                               hintStyle: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.42),
                               ),
@@ -883,7 +884,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
                 right: 20,
                 top: 74,
                 child: Text(
-                  'Режим рисования: проведите пальцем по изображению',
+                  AppLocalizations.of(context)!.image_editor_draw_hint,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.72),

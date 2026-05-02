@@ -3475,7 +3475,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sticker_pack_deleted => 'Pack deleted';
 
   @override
-  String get sticker_pack_delete_failed => 'Could not delete pack';
+  String get sticker_pack_delete_failed => 'Failed to delete pack';
 
   @override
   String get sticker_tab_emoji => 'EMOJI';
@@ -4865,7 +4865,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get durak_lobby_back_tooltip => 'Назад';
 
   @override
-  String get durak_lobby_waiting => 'Ждём, пока подключится соперник…';
+  String get durak_lobby_waiting => 'Waiting for opponent…';
 
   @override
   String get durak_lobby_start => 'Начать игру';
@@ -4913,10 +4913,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get group_avatar_add_photo => 'Добавить фото';
 
   @override
-  String get group_avatar_change => 'Сменить';
+  String get group_avatar_change => 'Change avatar';
 
   @override
-  String get group_avatar_remove => 'Убрать';
+  String get group_avatar_remove => 'Remove avatar';
 
   @override
   String group_avatar_process_error(String error) {
@@ -5907,4 +5907,531 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get auth_validate_passwords_mismatch => 'Passwords do not match';
+
+  @override
+  String get sticker_new_pack => 'New pack…';
+
+  @override
+  String get sticker_select_image_or_gif => 'Select an image or GIF';
+
+  @override
+  String sticker_send_error(Object error) {
+    return 'Failed to send: $error';
+  }
+
+  @override
+  String get sticker_saved => 'Saved to sticker pack';
+
+  @override
+  String get sticker_save_failed => 'Failed to download or save GIF';
+
+  @override
+  String get sticker_tab_my => 'My';
+
+  @override
+  String get sticker_tab_shared => 'Shared';
+
+  @override
+  String get sticker_no_packs => 'No sticker packs. Create a new one.';
+
+  @override
+  String get sticker_shared_not_configured => 'Shared packs not configured';
+
+  @override
+  String get sticker_recent => 'RECENT';
+
+  @override
+  String get sticker_gallery_description =>
+      'Photos, PNG, GIF from device — straight to chat';
+
+  @override
+  String get sticker_shared_unavailable => 'Shared packs not yet available';
+
+  @override
+  String get sticker_gif_search_hint => 'Search GIF…';
+
+  @override
+  String sticker_gif_searched(Object query) {
+    return 'Searched: $query';
+  }
+
+  @override
+  String get sticker_gif_search_unavailable =>
+      'GIF search temporarily unavailable.';
+
+  @override
+  String get sticker_gif_nothing_found => 'Nothing found';
+
+  @override
+  String get sticker_gif_all => 'All';
+
+  @override
+  String get sticker_gif_animated => 'ANIMATED';
+
+  @override
+  String get sticker_emoji_text_unavailable =>
+      'Text emoji not available for this window.';
+
+  @override
+  String get wallpaper_sender => 'Contact';
+
+  @override
+  String get wallpaper_incoming => 'This is an incoming message.';
+
+  @override
+  String get wallpaper_outgoing => 'This is an outgoing message.';
+
+  @override
+  String get wallpaper_incoming_time => '11:40';
+
+  @override
+  String get wallpaper_outgoing_time => '11:41';
+
+  @override
+  String get wallpaper_system => 'You changed chat wallpaper';
+
+  @override
+  String get wallpaper_you => 'You';
+
+  @override
+  String get wallpaper_today => 'Today';
+
+  @override
+  String system_event_e2ee_enabled(Object epoch) {
+    return 'End-to-end encryption enabled (key epoch: $epoch)';
+  }
+
+  @override
+  String get system_event_e2ee_disabled => 'End-to-end encryption disabled';
+
+  @override
+  String get system_event_unknown => 'System event';
+
+  @override
+  String get system_event_group_created => 'Group created';
+
+  @override
+  String system_event_member_added(Object name) {
+    return '$name was added';
+  }
+
+  @override
+  String system_event_member_removed(Object name) {
+    return '$name was removed';
+  }
+
+  @override
+  String system_event_member_left(Object name) {
+    return '$name left the group';
+  }
+
+  @override
+  String system_event_name_changed(Object name) {
+    return 'Name changed to \"$name\"';
+  }
+
+  @override
+  String get image_editor_title => 'Editor';
+
+  @override
+  String get image_editor_undo => 'Undo';
+
+  @override
+  String get image_editor_clear => 'Clear';
+
+  @override
+  String get image_editor_pen => 'Brush';
+
+  @override
+  String get image_editor_text => 'Text';
+
+  @override
+  String get image_editor_crop => 'Crop';
+
+  @override
+  String get image_editor_rotate => 'Rotate';
+
+  @override
+  String get location_title => 'Send location';
+
+  @override
+  String get location_loading => 'Loading map…';
+
+  @override
+  String get location_send_button => 'Send';
+
+  @override
+  String get location_live_label => 'Live';
+
+  @override
+  String get location_error => 'Failed to load map';
+
+  @override
+  String get location_no_permission => 'No location access';
+
+  @override
+  String get group_member_admin => 'Admin';
+
+  @override
+  String get group_member_creator => 'Creator';
+
+  @override
+  String get group_member_member => 'Member';
+
+  @override
+  String get group_member_open_chat => 'Message';
+
+  @override
+  String get group_member_open_profile => 'Profile';
+
+  @override
+  String get group_member_remove => 'Remove';
+
+  @override
+  String get durak_lobby_title => 'Durak';
+
+  @override
+  String get durak_lobby_new_game => 'New game';
+
+  @override
+  String get durak_lobby_decline => 'Decline';
+
+  @override
+  String get durak_lobby_accept => 'Accept';
+
+  @override
+  String get durak_lobby_invite_sent => 'Invitation sent';
+
+  @override
+  String get voice_preview_cancel => 'Cancel';
+
+  @override
+  String get voice_preview_send => 'Send';
+
+  @override
+  String get voice_preview_recorded => 'Recorded';
+
+  @override
+  String get voice_preview_playing => 'Playing…';
+
+  @override
+  String get voice_preview_paused => 'Paused';
+
+  @override
+  String get group_avatar_camera => 'Camera';
+
+  @override
+  String get group_avatar_gallery => 'Gallery';
+
+  @override
+  String get group_avatar_upload_error => 'Upload error';
+
+  @override
+  String get avatar_picker_title => 'Avatar';
+
+  @override
+  String get avatar_picker_camera => 'Camera';
+
+  @override
+  String get avatar_picker_gallery => 'Gallery';
+
+  @override
+  String get avatar_picker_crop => 'Crop';
+
+  @override
+  String get avatar_picker_save => 'Save';
+
+  @override
+  String get avatar_picker_remove => 'Remove avatar';
+
+  @override
+  String get avatar_picker_error => 'Failed to load avatar';
+
+  @override
+  String get avatar_picker_crop_error => 'Crop error';
+
+  @override
+  String get webview_telegram_title => 'Sign in with Telegram';
+
+  @override
+  String get webview_telegram_loading => 'Loading…';
+
+  @override
+  String get webview_telegram_error => 'Failed to load page';
+
+  @override
+  String get webview_telegram_back => 'Back';
+
+  @override
+  String get webview_telegram_retry => 'Retry';
+
+  @override
+  String get webview_telegram_close => 'Close';
+
+  @override
+  String get webview_telegram_no_url => 'No authorization URL provided';
+
+  @override
+  String get webview_yandex_title => 'Sign in with Yandex';
+
+  @override
+  String get webview_yandex_loading => 'Loading…';
+
+  @override
+  String get webview_yandex_error => 'Failed to load page';
+
+  @override
+  String get webview_yandex_back => 'Back';
+
+  @override
+  String get webview_yandex_retry => 'Retry';
+
+  @override
+  String get webview_yandex_close => 'Close';
+
+  @override
+  String get webview_yandex_no_url => 'No authorization URL provided';
+
+  @override
+  String get google_profile_title => 'Complete your profile';
+
+  @override
+  String get google_profile_name => 'Name';
+
+  @override
+  String get google_profile_username => 'Username';
+
+  @override
+  String get google_profile_phone => 'Phone';
+
+  @override
+  String get google_profile_email => 'Email';
+
+  @override
+  String get google_profile_dob => 'Date of birth';
+
+  @override
+  String get google_profile_bio => 'About';
+
+  @override
+  String get google_profile_save => 'Save';
+
+  @override
+  String get google_profile_error => 'Failed to save profile';
+
+  @override
+  String get system_event_e2ee_epoch_rotated => 'Encryption key rotated';
+
+  @override
+  String system_event_e2ee_device_added(String actor, String device) {
+    return '$actor added device \"$device\"';
+  }
+
+  @override
+  String system_event_e2ee_device_revoked(String actor, String device) {
+    return '$actor revoked device \"$device\"';
+  }
+
+  @override
+  String system_event_e2ee_fingerprint_changed(String actor) {
+    return 'Security fingerprint for $actor changed';
+  }
+
+  @override
+  String get system_event_game_lobby_created => 'Game lobby created';
+
+  @override
+  String get system_event_game_started => 'Game started';
+
+  @override
+  String get system_event_default_actor => 'User';
+
+  @override
+  String get system_event_default_device => 'device';
+
+  @override
+  String get image_editor_add_caption => 'Add caption...';
+
+  @override
+  String get image_editor_crop_failed => 'Failed to crop image';
+
+  @override
+  String get image_editor_draw_hint => 'Drawing mode: swipe across the image';
+
+  @override
+  String get image_editor_crop_title => 'Crop';
+
+  @override
+  String get location_preview_title => 'Location';
+
+  @override
+  String get location_preview_accuracy_unknown => 'Accuracy: —';
+
+  @override
+  String location_preview_accuracy_meters(String meters) {
+    return 'Accuracy: ~$meters m';
+  }
+
+  @override
+  String location_preview_accuracy_km(String km) {
+    return 'Accuracy: ~$km km';
+  }
+
+  @override
+  String get group_member_profile_default_name => 'Member';
+
+  @override
+  String get group_member_profile_dm => 'Send direct message';
+
+  @override
+  String get group_member_profile_dm_hint =>
+      'Open a direct chat with this member';
+
+  @override
+  String group_member_profile_dm_failed(Object error) {
+    return 'Failed to open direct chat: $error';
+  }
+
+  @override
+  String get conversation_game_lobby_unavailable =>
+      'Game unavailable or was deleted';
+
+  @override
+  String get conversation_game_lobby_back => 'Back';
+
+  @override
+  String get conversation_game_lobby_waiting => 'Waiting for opponent to join…';
+
+  @override
+  String get conversation_game_lobby_start_game => 'Start game';
+
+  @override
+  String get conversation_game_lobby_waiting_short => 'Waiting…';
+
+  @override
+  String get conversation_game_lobby_ready => 'Ready';
+
+  @override
+  String get voice_preview_trim_confirm_title =>
+      'Keep only the selected fragment?';
+
+  @override
+  String get voice_preview_trim_confirm_body =>
+      'Everything except the selected fragment will be deleted. Recording will continue immediately after pressing the button.';
+
+  @override
+  String get voice_preview_continue => 'Continue';
+
+  @override
+  String get voice_preview_continue_recording => 'Continue recording';
+
+  @override
+  String get group_avatar_change_short => 'Change';
+
+  @override
+  String get avatar_picker_cancel => 'Cancel';
+
+  @override
+  String get avatar_picker_choose => 'Choose avatar';
+
+  @override
+  String get avatar_picker_delete_photo => 'Delete photo';
+
+  @override
+  String get avatar_picker_loading => 'Loading…';
+
+  @override
+  String get avatar_picker_choose_avatar => 'Choose avatar';
+
+  @override
+  String get avatar_picker_change_avatar => 'Change avatar';
+
+  @override
+  String get avatar_picker_remove_tooltip => 'Remove';
+
+  @override
+  String get telegram_sign_in_title => 'Sign in via Telegram';
+
+  @override
+  String get telegram_sign_in_open_in_browser => 'Open in browser';
+
+  @override
+  String get telegram_sign_in_open_telegram_failed =>
+      'Failed to open Telegram. Please install the Telegram app.';
+
+  @override
+  String get telegram_sign_in_page_load_error => 'Page load error';
+
+  @override
+  String get telegram_sign_in_login_error => 'Telegram sign-in error.';
+
+  @override
+  String get telegram_sign_in_firebase_not_ready => 'Firebase not ready.';
+
+  @override
+  String get telegram_sign_in_browser_failed => 'Failed to open browser.';
+
+  @override
+  String telegram_sign_in_login_failed(Object error) {
+    return 'Sign-in failed: $error';
+  }
+
+  @override
+  String get yandex_sign_in_title => 'Sign in via Yandex';
+
+  @override
+  String get yandex_sign_in_open_in_browser => 'Open in browser';
+
+  @override
+  String get yandex_sign_in_page_load_error => 'Page load error';
+
+  @override
+  String get yandex_sign_in_login_error => 'Yandex sign-in error.';
+
+  @override
+  String get yandex_sign_in_firebase_not_ready => 'Firebase not ready.';
+
+  @override
+  String get yandex_sign_in_browser_failed => 'Failed to open browser.';
+
+  @override
+  String yandex_sign_in_login_failed(Object error) {
+    return 'Sign-in failed: $error';
+  }
+
+  @override
+  String get google_complete_title => 'Complete registration';
+
+  @override
+  String get google_complete_subtitle =>
+      'After signing in with Google, please fill in your profile as on the web version.';
+
+  @override
+  String get google_complete_name_label => 'Name';
+
+  @override
+  String get google_complete_username_label => 'Username (@username)';
+
+  @override
+  String get google_complete_phone_label => 'Phone (11 digits)';
+
+  @override
+  String get google_complete_email_label => 'Email';
+
+  @override
+  String get google_complete_email_hint => 'you@example.com';
+
+  @override
+  String get google_complete_dob_label =>
+      'Date of birth (YYYY-MM-DD, optional)';
+
+  @override
+  String get google_complete_bio_label =>
+      'About (up to 200 characters, optional)';
+
+  @override
+  String get google_complete_save => 'Save and continue';
+
+  @override
+  String get google_complete_back => 'Back to sign in';
 }

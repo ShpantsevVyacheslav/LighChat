@@ -2586,7 +2586,7 @@
   "durak_finish_game_tooltip": "Завершить игру",
   "durak_lobby_game_unavailable": "Игра недоступна или была удалена",
   "durak_lobby_back_tooltip": "Назад",
-  "durak_lobby_waiting": "Ждём, пока подключится соперник…",
+  "durak_lobby_waiting": "Ожидание соперника…",
   "durak_lobby_start": "Начать игру",
   "durak_lobby_waiting_short": "Ждём…",
   "durak_lobby_ready": "Готов",
@@ -2608,8 +2608,8 @@
   },
   "group_avatar_photo_title": "Фото группы",
   "group_avatar_add_photo": "Добавить фото",
-  "group_avatar_change": "Сменить",
-  "group_avatar_remove": "Убрать",
+  "group_avatar_change": "Сменить аватар",
+  "group_avatar_remove": "Убрать аватар",
   "group_avatar_process_error": "Не удалось обработать фото: {error}",
   "@group_avatar_process_error": {
     "placeholders": {
@@ -3089,5 +3089,264 @@
   "auth_validate_dob_invalid": "Некорректная дата рождения",
   "auth_validate_bio_max_length": "Описание не должно превышать 200 символов",
   "auth_validate_password_min_length": "Пароль должен быть не менее 6 символов",
-  "auth_validate_passwords_mismatch": "Пароли не совпадают"
+  "auth_validate_passwords_mismatch": "Пароли не совпадают",
+  "@sticker_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@sticker_gif_searched": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "@system_event_e2ee_enabled": {
+    "placeholders": {
+      "epoch": {}
+    }
+  },
+  "@system_event_member_added": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "@system_event_member_removed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "@system_event_member_left": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "@system_event_name_changed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "sticker_new_pack": "Новый пак…",
+  "sticker_select_image_or_gif": "Выберите изображение или GIF",
+  "sticker_send_error": "Не удалось отправить: {error}",
+  "sticker_saved": "Сохранено в стикерпак",
+  "sticker_save_failed": "Не удалось скачать или сохранить GIF",
+  "sticker_tab_my": "Мои",
+  "sticker_tab_shared": "Общие",
+  "sticker_no_packs": "Нет стикерпаков. Создайте новый.",
+  "sticker_shared_not_configured": "Общие паки не настроены",
+  "sticker_recent": "НЕДАВНИЕ",
+  "sticker_gallery_description": "Фото, PNG, GIF с устройства — сразу в чат",
+  "sticker_shared_unavailable": "Общие паки пока недоступны",
+  "sticker_gif_search_hint": "Поиск GIF…",
+  "sticker_gif_searched": "Искали: {query}",
+  "sticker_gif_search_unavailable": "Поиск GIF временно недоступен.",
+  "sticker_gif_nothing_found": "Ничего не найдено",
+  "sticker_gif_all": "Все",
+  "sticker_gif_animated": "АНИМИРОВАННЫЕ",
+  "sticker_emoji_text_unavailable": "Эмодзи в текст недоступны для этого окна.",
+  "wallpaper_sender": "Собеседник",
+  "wallpaper_incoming": "Это входящее сообщение.",
+  "wallpaper_outgoing": "Это исходящее сообщение.",
+  "wallpaper_incoming_time": "11:40",
+  "wallpaper_outgoing_time": "11:41",
+  "wallpaper_system": "Вы сменили обои чата",
+  "wallpaper_you": "Вы",
+  "wallpaper_today": "Сегодня",
+  "system_event_e2ee_enabled": "Сквозное шифрование включено (эпоха ключа: {epoch})",
+  "system_event_e2ee_disabled": "Сквозное шифрование отключено",
+  "system_event_unknown": "Системное событие",
+  "system_event_group_created": "Группа создана",
+  "system_event_member_added": "{name} добавлен(а)",
+  "system_event_member_removed": "{name} удалён(а)",
+  "system_event_member_left": "{name} покинул(а) группу",
+  "system_event_name_changed": "Название изменено на «{name}»",
+  "image_editor_title": "Редактор",
+  "image_editor_undo": "Отменить",
+  "image_editor_clear": "Очистить",
+  "image_editor_pen": "Кисть",
+  "image_editor_text": "Текст",
+  "image_editor_crop": "Кадрирование",
+  "image_editor_rotate": "Поворот",
+  "location_title": "Отправить местоположение",
+  "location_loading": "Загрузка карты…",
+  "location_send_button": "Отправить",
+  "location_live_label": "Трансляция",
+  "location_error": "Не удалось загрузить карту",
+  "location_no_permission": "Нет доступа к местоположению",
+  "group_member_admin": "Администратор",
+  "group_member_creator": "Создатель",
+  "group_member_member": "Участник",
+  "group_member_open_chat": "Написать",
+  "group_member_open_profile": "Профиль",
+  "group_member_remove": "Исключить",
+  "durak_lobby_title": "Дурак",
+  "durak_lobby_new_game": "Новая игра",
+  "durak_lobby_decline": "Отклонить",
+  "durak_lobby_accept": "Принять",
+  "durak_lobby_invite_sent": "Приглашение отправлено",
+  "voice_preview_cancel": "Отмена",
+  "voice_preview_send": "Отправить",
+  "voice_preview_recorded": "Записано",
+  "voice_preview_playing": "Воспроизведение…",
+  "voice_preview_paused": "Пауза",
+  "group_avatar_camera": "Камера",
+  "group_avatar_gallery": "Галерея",
+  "group_avatar_upload_error": "Ошибка загрузки",
+  "avatar_picker_title": "Аватар",
+  "avatar_picker_camera": "Камера",
+  "avatar_picker_gallery": "Галерея",
+  "avatar_picker_crop": "Обрезка",
+  "avatar_picker_save": "Сохранить",
+  "avatar_picker_remove": "Удалить аватар",
+  "avatar_picker_error": "Не удалось загрузить аватар",
+  "avatar_picker_crop_error": "Ошибка обрезки",
+  "webview_telegram_title": "Вход через Telegram",
+  "webview_telegram_loading": "Загрузка…",
+  "webview_telegram_error": "Не удалось загрузить страницу",
+  "webview_telegram_back": "Назад",
+  "webview_telegram_retry": "Повторить",
+  "webview_telegram_close": "Закрыть",
+  "webview_telegram_no_url": "Не указан URL для авторизации",
+  "webview_yandex_title": "Вход через Яндекс",
+  "webview_yandex_loading": "Загрузка…",
+  "webview_yandex_error": "Не удалось загрузить страницу",
+  "webview_yandex_back": "Назад",
+  "webview_yandex_retry": "Повторить",
+  "webview_yandex_close": "Закрыть",
+  "webview_yandex_no_url": "Не указан URL для авторизации",
+  "google_profile_title": "Заполните профиль",
+  "google_profile_name": "Имя",
+  "google_profile_username": "Имя пользователя",
+  "google_profile_phone": "Телефон",
+  "google_profile_email": "Email",
+  "google_profile_dob": "Дата рождения",
+  "google_profile_bio": "О себе",
+  "google_profile_save": "Сохранить",
+  "google_profile_error": "Не удалось сохранить профиль",
+  "system_event_e2ee_epoch_rotated": "Ключ шифрования обновлён",
+  "system_event_e2ee_device_added": "{actor} добавил устройство «{device}»",
+  "@system_event_e2ee_device_added": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_device_revoked": "{actor} отозвал устройство «{device}»",
+  "@system_event_e2ee_device_revoked": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_fingerprint_changed": "Отпечаток безопасности у {actor} изменился",
+  "@system_event_e2ee_fingerprint_changed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_game_lobby_created": "Создано лобби игры",
+  "system_event_game_started": "Игра началась",
+  "system_event_default_actor": "Пользователь",
+  "system_event_default_device": "устройство",
+  "image_editor_add_caption": "Добавить подпись...",
+  "image_editor_crop_failed": "Не удалось обрезать изображение",
+  "image_editor_draw_hint": "Режим рисования: проведите пальцем по изображению",
+  "image_editor_crop_title": "Обрезка",
+  "location_preview_title": "Местоположение",
+  "location_preview_accuracy_unknown": "Точность: —",
+  "location_preview_accuracy_meters": "Точность: ~{meters} м",
+  "@location_preview_accuracy_meters": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "location_preview_accuracy_km": "Точность: ~{km} км",
+  "@location_preview_accuracy_km": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_profile_default_name": "Участник",
+  "group_member_profile_dm": "Написать лично",
+  "group_member_profile_dm_hint": "Открыть личный чат с участником",
+  "group_member_profile_dm_failed": "Не удалось открыть личный чат: {error}",
+  "@group_member_profile_dm_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "conversation_game_lobby_unavailable": "Игра недоступна или была удалена",
+  "conversation_game_lobby_back": "Назад",
+  "conversation_game_lobby_waiting": "Ждём, пока подключится соперник…",
+  "conversation_game_lobby_start_game": "Начать игру",
+  "conversation_game_lobby_waiting_short": "Ждём…",
+  "conversation_game_lobby_ready": "Готов",
+  "voice_preview_trim_confirm_title": "Оставить только выбранный фрагмент?",
+  "voice_preview_trim_confirm_body": "Всё, кроме выделенного фрагмента, будет удалено. Запись сообщения продолжится сразу после нажатия кнопки.",
+  "voice_preview_continue": "Продолжить",
+  "voice_preview_continue_recording": "Продолжить запись",
+  "group_avatar_change_short": "Сменить",
+  "avatar_picker_cancel": "Отмена",
+  "avatar_picker_choose": "Выбрать аватар",
+  "avatar_picker_delete_photo": "Удалить фото",
+  "avatar_picker_loading": "Загрузка…",
+  "avatar_picker_choose_avatar": "Выбрать аватар",
+  "avatar_picker_change_avatar": "Сменить аватар",
+  "avatar_picker_remove_tooltip": "Убрать",
+  "telegram_sign_in_title": "Вход через Telegram",
+  "telegram_sign_in_open_in_browser": "Открыть в браузере",
+  "telegram_sign_in_open_telegram_failed": "Не удалось открыть Telegram. Установите приложение Telegram.",
+  "telegram_sign_in_page_load_error": "Ошибка загрузки страницы",
+  "telegram_sign_in_login_error": "Ошибка входа через Telegram.",
+  "telegram_sign_in_firebase_not_ready": "Firebase не готов.",
+  "telegram_sign_in_browser_failed": "Не удалось открыть браузер.",
+  "telegram_sign_in_login_failed": "Не удалось войти: {error}",
+  "@telegram_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "yandex_sign_in_title": "Вход через Яндекс",
+  "yandex_sign_in_open_in_browser": "Открыть в браузере",
+  "yandex_sign_in_page_load_error": "Ошибка загрузки страницы",
+  "yandex_sign_in_login_error": "Ошибка входа через Яндекс.",
+  "yandex_sign_in_firebase_not_ready": "Firebase не готов.",
+  "yandex_sign_in_browser_failed": "Не удалось открыть браузер.",
+  "yandex_sign_in_login_failed": "Не удалось войти: {error}",
+  "@yandex_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "google_complete_title": "Завершите регистрацию",
+  "google_complete_subtitle": "После входа через Google нужно заполнить профиль, как в веб-версии.",
+  "google_complete_name_label": "Имя",
+  "google_complete_username_label": "Логин (@username)",
+  "google_complete_phone_label": "Телефон (11 цифр)",
+  "google_complete_email_label": "Email",
+  "google_complete_email_hint": "you@example.com",
+  "google_complete_dob_label": "Дата рождения (YYYY-MM-DD, опционально)",
+  "google_complete_bio_label": "О себе (до 200 символов, опционально)",
+  "google_complete_save": "Сохранить и продолжить",
+  "google_complete_back": "Вернуться к авторизации"
 }

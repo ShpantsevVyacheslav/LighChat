@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -76,8 +77,8 @@ class _GroupChatAvatarButtonState extends State<GroupChatAvatarButton> {
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         compressFormat: ImageCompressFormat.jpg,
         uiSettings: [
-          IOSUiSettings(title: 'Фото группы'),
-          AndroidUiSettings(toolbarTitle: 'Фото группы'),
+          IOSUiSettings(title: AppLocalizations.of(context)!.group_avatar_photo_title),
+          AndroidUiSettings(toolbarTitle: AppLocalizations.of(context)!.group_avatar_photo_title),
         ],
       );
       if (cropped == null) return;
@@ -193,13 +194,13 @@ class _GroupChatAvatarButtonState extends State<GroupChatAvatarButton> {
           children: [
             TextButton(
               onPressed: (!widget.enabled || _busy) ? null : _pick,
-              child: Text(_jpeg == null ? 'Добавить фото' : 'Сменить'),
+              child: Text(_jpeg == null ? AppLocalizations.of(context)!.group_avatar_add_photo : AppLocalizations.of(context)!.group_avatar_change_short),
             ),
             if (_jpeg != null)
               TextButton(
                 onPressed: (!widget.enabled || _busy) ? null : _clear,
                 child: Text(
-                  'Убрать',
+                  AppLocalizations.of(context)!.group_avatar_remove,
                   style: TextStyle(color: scheme.error),
                 ),
               ),

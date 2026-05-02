@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -92,7 +93,7 @@ class _TelegramSignInWebViewScreenState
             if (_isTelegramExternalUrl(next)) {
               final ok = await _launchExternal(next);
               if (!ok && mounted) {
-                setState(() => _error = 'Не удалось открыть Telegram. Установите приложение Telegram.');
+                setState(() => _error = AppLocalizations.of(context)!.telegram_sign_in_open_telegram_failed);
               }
               return NavigationDecision.prevent;
             }
@@ -119,7 +120,7 @@ class _TelegramSignInWebViewScreenState
               _busy = false;
               _error = err.description.isNotEmpty
                   ? err.description
-                  : 'Ошибка загрузки страницы';
+                  : AppLocalizations.of(context)!.telegram_sign_in_page_load_error;
             });
           },
         ),
@@ -140,7 +141,7 @@ class _TelegramSignInWebViewScreenState
             final msg = decoded['message'];
             if (mounted) {
               setState(() => _error =
-                  msg is String && msg.trim().isNotEmpty ? msg.trim() : 'Ошибка входа через Telegram.');
+                  msg is String && msg.trim().isNotEmpty ? msg.trim() : AppLocalizations.of(context)!.telegram_sign_in_login_error);
             }
             return;
           }
@@ -157,7 +158,7 @@ class _TelegramSignInWebViewScreenState
     final repo = ref.read(authRepositoryProvider);
     if (repo == null) {
       if (mounted) {
-        setState(() => _error = 'Firebase не готов.');
+        setState(() => _error = AppLocalizations.of(context)!.telegram_sign_in_firebase_not_ready);
       }
       return;
     }
@@ -204,14 +205,14 @@ class _TelegramSignInWebViewScreenState
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Вход через Telegram'),
+        title: Text(AppLocalizations.of(context)!.telegram_sign_in_title),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
-            tooltip: 'Открыть в браузере',
+            tooltip: AppLocalizations.of(context)!.telegram_sign_in_open_in_browser,
             icon: const Icon(Icons.open_in_browser),
             onPressed: () async {
               final url = _currentUrl.trim().isNotEmpty
@@ -219,7 +220,7 @@ class _TelegramSignInWebViewScreenState
                   : telegramAuthBridgePageUrl();
               final ok = await _launchExternal(url);
               if (!ok && mounted) {
-                setState(() => _error = 'Не удалось открыть браузер.');
+                setState(() => _error = AppLocalizations.of(context)!.telegram_sign_in_browser_failed);
               }
             },
           ),

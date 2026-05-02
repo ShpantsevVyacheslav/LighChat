@@ -1,6 +1,7 @@
 import 'dart:async' show unawaited;
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -44,7 +45,8 @@ class _GroupMemberProfileSheetState extends ConsumerState<GroupMemberProfileShee
     final p = widget.memberProfile;
     if (p != null && p.name.trim().isNotEmpty) return p.name.trim();
     final fromConv = widget.conversation.participantInfo?[widget.memberId]?.name;
-    return (fromConv ?? 'Участник').trim().isEmpty ? 'Участник' : fromConv!.trim();
+    final fallback = AppLocalizations.of(context)!.group_member_profile_default_name;
+    return (fromConv ?? fallback).trim().isEmpty ? fallback : fromConv!.trim();
   }
 
   String? get _avatarUrl {
@@ -78,7 +80,7 @@ class _GroupMemberProfileSheetState extends ConsumerState<GroupMemberProfileShee
       // послать некорректные данные в Firestore.
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Профиль участника ещё не загружен.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.group_member_profile_not_loaded)),
       );
       return;
     }
@@ -196,14 +198,12 @@ class _GroupMemberProfileSheetState extends ConsumerState<GroupMemberProfileShee
                               const SizedBox(height: 18),
                               _menuButton(
                                 icon: Icons.chat_bubble_outline_rounded,
-                                title: 'Написать лично',
+                                title: AppLocalizations.of(context)!.group_member_profile_dm,
                                 onTap: _busy ? null : () => unawaited(_openDirectChat()),
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                dark
-                                    ? 'Открыть личный чат с участником'
-                                    : 'Открыть личный чат с участником',
+                                AppLocalizations.of(context)!.group_member_profile_dm_hint,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,

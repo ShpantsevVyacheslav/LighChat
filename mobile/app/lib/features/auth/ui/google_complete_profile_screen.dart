@@ -195,10 +195,11 @@ class _GoogleCompleteProfileScreenState
     return FutureBuilder<void>(
       future: _bootstrap,
       builder: (context, snapshot) {
+        final l10n = AppLocalizations.of(context)!;
         return Scaffold(
           appBar: AppBar(
             leading: const AppBackButton(fallbackLocation: '/chats'),
-            title: const Text('Завершите регистрацию'),
+            title: Text(l10n.google_complete_title),
           ),
           body: SafeArea(
             child: snapshot.connectionState != ConnectionState.done
@@ -210,8 +211,8 @@ class _GoogleCompleteProfileScreenState
                       children: [
                         const Center(child: AuthBrandHeader()),
                         const SizedBox(height: 12),
-                        const Text(
-                          'После входа через Google нужно заполнить профиль, как в веб-версии.',
+                        Text(
+                          l10n.google_complete_subtitle,
                         ),
                         const SizedBox(height: 12),
                         AvatarPickerCropper(
@@ -224,7 +225,7 @@ class _GoogleCompleteProfileScreenState
                           textCapitalization: TextCapitalization.words,
                           decoration: authGlassInputDecoration(
                             context,
-                            label: 'Имя',
+                            label: l10n.google_complete_name_label,
                           ),
                           enabled: enabled,
                         ),
@@ -234,7 +235,7 @@ class _GoogleCompleteProfileScreenState
                           textCapitalization: TextCapitalization.none,
                           decoration: authGlassInputDecoration(
                             context,
-                            label: 'Логин (@username)',
+                            label: l10n.google_complete_username_label,
                           ),
                           enabled: enabled,
                         ),
@@ -246,7 +247,7 @@ class _GoogleCompleteProfileScreenState
                           inputFormatters: [PhoneRuMaskFormatter()],
                           decoration: authGlassInputDecoration(
                             context,
-                            label: 'Телефон (11 цифр)',
+                            label: l10n.google_complete_phone_label,
                           ),
                           enabled: enabled,
                         ),
@@ -257,8 +258,8 @@ class _GoogleCompleteProfileScreenState
                           keyboardType: TextInputType.emailAddress,
                           decoration: authGlassInputDecoration(
                             context,
-                            label: 'Email',
-                            hint: 'you@example.com',
+                            label: l10n.google_complete_email_label,
+                            hint: l10n.google_complete_email_hint,
                           ),
                           enabled: enabled,
                         ),
@@ -268,7 +269,7 @@ class _GoogleCompleteProfileScreenState
                           textCapitalization: TextCapitalization.none,
                           decoration: authGlassInputDecoration(
                             context,
-                            label: 'Дата рождения (YYYY-MM-DD, опционально)',
+                            label: l10n.google_complete_dob_label,
                           ),
                           enabled: enabled,
                         ),
@@ -279,7 +280,7 @@ class _GoogleCompleteProfileScreenState
                           textCapitalization: TextCapitalization.sentences,
                           decoration: authGlassInputDecoration(
                             context,
-                            label: 'О себе (до 200 символов, опционально)',
+                            label: l10n.google_complete_bio_label,
                           ),
                           enabled: enabled,
                         ),
@@ -304,12 +305,12 @@ class _GoogleCompleteProfileScreenState
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text('Сохранить и продолжить'),
+                              : Text(l10n.google_complete_save),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
                           onPressed: enabled ? _backToAuth : null,
-                          child: const Text('Вернуться к авторизации'),
+                          child: Text(l10n.google_complete_back),
                         ),
                       ],
                     ),

@@ -8561,7 +8561,7 @@ abstract class AppLocalizations {
   /// No description provided for @durak_lobby_waiting.
   ///
   /// In ru, this message translates to:
-  /// **'Ждём, пока подключится соперник…'**
+  /// **'Ожидание соперника…'**
   String get durak_lobby_waiting;
 
   /// No description provided for @durak_lobby_start.
@@ -8651,13 +8651,13 @@ abstract class AppLocalizations {
   /// No description provided for @group_avatar_change.
   ///
   /// In ru, this message translates to:
-  /// **'Сменить'**
+  /// **'Сменить аватар'**
   String get group_avatar_change;
 
   /// No description provided for @group_avatar_remove.
   ///
   /// In ru, this message translates to:
-  /// **'Убрать'**
+  /// **'Убрать аватар'**
   String get group_avatar_remove;
 
   /// No description provided for @group_avatar_process_error.
@@ -10423,6 +10423,978 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Пароли не совпадают'**
   String get auth_validate_passwords_mismatch;
+
+  /// No description provided for @sticker_new_pack.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый пак…'**
+  String get sticker_new_pack;
+
+  /// No description provided for @sticker_select_image_or_gif.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите изображение или GIF'**
+  String get sticker_select_image_or_gif;
+
+  /// No description provided for @sticker_send_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось отправить: {error}'**
+  String sticker_send_error(Object error);
+
+  /// No description provided for @sticker_saved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранено в стикерпак'**
+  String get sticker_saved;
+
+  /// No description provided for @sticker_save_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось скачать или сохранить GIF'**
+  String get sticker_save_failed;
+
+  /// No description provided for @sticker_tab_my.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мои'**
+  String get sticker_tab_my;
+
+  /// No description provided for @sticker_tab_shared.
+  ///
+  /// In ru, this message translates to:
+  /// **'Общие'**
+  String get sticker_tab_shared;
+
+  /// No description provided for @sticker_no_packs.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет стикерпаков. Создайте новый.'**
+  String get sticker_no_packs;
+
+  /// No description provided for @sticker_shared_not_configured.
+  ///
+  /// In ru, this message translates to:
+  /// **'Общие паки не настроены'**
+  String get sticker_shared_not_configured;
+
+  /// No description provided for @sticker_recent.
+  ///
+  /// In ru, this message translates to:
+  /// **'НЕДАВНИЕ'**
+  String get sticker_recent;
+
+  /// No description provided for @sticker_gallery_description.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото, PNG, GIF с устройства — сразу в чат'**
+  String get sticker_gallery_description;
+
+  /// No description provided for @sticker_shared_unavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Общие паки пока недоступны'**
+  String get sticker_shared_unavailable;
+
+  /// No description provided for @sticker_gif_search_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск GIF…'**
+  String get sticker_gif_search_hint;
+
+  /// No description provided for @sticker_gif_searched.
+  ///
+  /// In ru, this message translates to:
+  /// **'Искали: {query}'**
+  String sticker_gif_searched(Object query);
+
+  /// No description provided for @sticker_gif_search_unavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск GIF временно недоступен.'**
+  String get sticker_gif_search_unavailable;
+
+  /// No description provided for @sticker_gif_nothing_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ничего не найдено'**
+  String get sticker_gif_nothing_found;
+
+  /// No description provided for @sticker_gif_all.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все'**
+  String get sticker_gif_all;
+
+  /// No description provided for @sticker_gif_animated.
+  ///
+  /// In ru, this message translates to:
+  /// **'АНИМИРОВАННЫЕ'**
+  String get sticker_gif_animated;
+
+  /// No description provided for @sticker_emoji_text_unavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эмодзи в текст недоступны для этого окна.'**
+  String get sticker_emoji_text_unavailable;
+
+  /// No description provided for @wallpaper_sender.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собеседник'**
+  String get wallpaper_sender;
+
+  /// No description provided for @wallpaper_incoming.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это входящее сообщение.'**
+  String get wallpaper_incoming;
+
+  /// No description provided for @wallpaper_outgoing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это исходящее сообщение.'**
+  String get wallpaper_outgoing;
+
+  /// No description provided for @wallpaper_incoming_time.
+  ///
+  /// In ru, this message translates to:
+  /// **'11:40'**
+  String get wallpaper_incoming_time;
+
+  /// No description provided for @wallpaper_outgoing_time.
+  ///
+  /// In ru, this message translates to:
+  /// **'11:41'**
+  String get wallpaper_outgoing_time;
+
+  /// No description provided for @wallpaper_system.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы сменили обои чата'**
+  String get wallpaper_system;
+
+  /// No description provided for @wallpaper_you.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы'**
+  String get wallpaper_you;
+
+  /// No description provided for @wallpaper_today.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня'**
+  String get wallpaper_today;
+
+  /// No description provided for @system_event_e2ee_enabled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сквозное шифрование включено (эпоха ключа: {epoch})'**
+  String system_event_e2ee_enabled(Object epoch);
+
+  /// No description provided for @system_event_e2ee_disabled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сквозное шифрование отключено'**
+  String get system_event_e2ee_disabled;
+
+  /// No description provided for @system_event_unknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Системное событие'**
+  String get system_event_unknown;
+
+  /// No description provided for @system_event_group_created.
+  ///
+  /// In ru, this message translates to:
+  /// **'Группа создана'**
+  String get system_event_group_created;
+
+  /// No description provided for @system_event_member_added.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} добавлен(а)'**
+  String system_event_member_added(Object name);
+
+  /// No description provided for @system_event_member_removed.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} удалён(а)'**
+  String system_event_member_removed(Object name);
+
+  /// No description provided for @system_event_member_left.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} покинул(а) группу'**
+  String system_event_member_left(Object name);
+
+  /// No description provided for @system_event_name_changed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название изменено на «{name}»'**
+  String system_event_name_changed(Object name);
+
+  /// No description provided for @image_editor_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактор'**
+  String get image_editor_title;
+
+  /// No description provided for @image_editor_undo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get image_editor_undo;
+
+  /// No description provided for @image_editor_clear.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить'**
+  String get image_editor_clear;
+
+  /// No description provided for @image_editor_pen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кисть'**
+  String get image_editor_pen;
+
+  /// No description provided for @image_editor_text.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текст'**
+  String get image_editor_text;
+
+  /// No description provided for @image_editor_crop.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кадрирование'**
+  String get image_editor_crop;
+
+  /// No description provided for @image_editor_rotate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поворот'**
+  String get image_editor_rotate;
+
+  /// No description provided for @location_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить местоположение'**
+  String get location_title;
+
+  /// No description provided for @location_loading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка карты…'**
+  String get location_loading;
+
+  /// No description provided for @location_send_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get location_send_button;
+
+  /// No description provided for @location_live_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Трансляция'**
+  String get location_live_label;
+
+  /// No description provided for @location_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить карту'**
+  String get location_error;
+
+  /// No description provided for @location_no_permission.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет доступа к местоположению'**
+  String get location_no_permission;
+
+  /// No description provided for @group_member_admin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Администратор'**
+  String get group_member_admin;
+
+  /// No description provided for @group_member_creator.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создатель'**
+  String get group_member_creator;
+
+  /// No description provided for @group_member_member.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get group_member_member;
+
+  /// No description provided for @group_member_open_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Написать'**
+  String get group_member_open_chat;
+
+  /// No description provided for @group_member_open_profile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Профиль'**
+  String get group_member_open_profile;
+
+  /// No description provided for @group_member_remove.
+  ///
+  /// In ru, this message translates to:
+  /// **'Исключить'**
+  String get group_member_remove;
+
+  /// No description provided for @durak_lobby_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дурак'**
+  String get durak_lobby_title;
+
+  /// No description provided for @durak_lobby_new_game.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новая игра'**
+  String get durak_lobby_new_game;
+
+  /// No description provided for @durak_lobby_decline.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отклонить'**
+  String get durak_lobby_decline;
+
+  /// No description provided for @durak_lobby_accept.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принять'**
+  String get durak_lobby_accept;
+
+  /// No description provided for @durak_lobby_invite_sent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приглашение отправлено'**
+  String get durak_lobby_invite_sent;
+
+  /// No description provided for @voice_preview_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get voice_preview_cancel;
+
+  /// No description provided for @voice_preview_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get voice_preview_send;
+
+  /// No description provided for @voice_preview_recorded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Записано'**
+  String get voice_preview_recorded;
+
+  /// No description provided for @voice_preview_playing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Воспроизведение…'**
+  String get voice_preview_playing;
+
+  /// No description provided for @voice_preview_paused.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пауза'**
+  String get voice_preview_paused;
+
+  /// No description provided for @group_avatar_camera.
+  ///
+  /// In ru, this message translates to:
+  /// **'Камера'**
+  String get group_avatar_camera;
+
+  /// No description provided for @group_avatar_gallery.
+  ///
+  /// In ru, this message translates to:
+  /// **'Галерея'**
+  String get group_avatar_gallery;
+
+  /// No description provided for @group_avatar_upload_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки'**
+  String get group_avatar_upload_error;
+
+  /// No description provided for @avatar_picker_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аватар'**
+  String get avatar_picker_title;
+
+  /// No description provided for @avatar_picker_camera.
+  ///
+  /// In ru, this message translates to:
+  /// **'Камера'**
+  String get avatar_picker_camera;
+
+  /// No description provided for @avatar_picker_gallery.
+  ///
+  /// In ru, this message translates to:
+  /// **'Галерея'**
+  String get avatar_picker_gallery;
+
+  /// No description provided for @avatar_picker_crop.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обрезка'**
+  String get avatar_picker_crop;
+
+  /// No description provided for @avatar_picker_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get avatar_picker_save;
+
+  /// No description provided for @avatar_picker_remove.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить аватар'**
+  String get avatar_picker_remove;
+
+  /// No description provided for @avatar_picker_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить аватар'**
+  String get avatar_picker_error;
+
+  /// No description provided for @avatar_picker_crop_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка обрезки'**
+  String get avatar_picker_crop_error;
+
+  /// No description provided for @webview_telegram_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вход через Telegram'**
+  String get webview_telegram_title;
+
+  /// No description provided for @webview_telegram_loading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка…'**
+  String get webview_telegram_loading;
+
+  /// No description provided for @webview_telegram_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить страницу'**
+  String get webview_telegram_error;
+
+  /// No description provided for @webview_telegram_back.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назад'**
+  String get webview_telegram_back;
+
+  /// No description provided for @webview_telegram_retry.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить'**
+  String get webview_telegram_retry;
+
+  /// No description provided for @webview_telegram_close.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрыть'**
+  String get webview_telegram_close;
+
+  /// No description provided for @webview_telegram_no_url.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не указан URL для авторизации'**
+  String get webview_telegram_no_url;
+
+  /// No description provided for @webview_yandex_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вход через Яндекс'**
+  String get webview_yandex_title;
+
+  /// No description provided for @webview_yandex_loading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка…'**
+  String get webview_yandex_loading;
+
+  /// No description provided for @webview_yandex_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить страницу'**
+  String get webview_yandex_error;
+
+  /// No description provided for @webview_yandex_back.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назад'**
+  String get webview_yandex_back;
+
+  /// No description provided for @webview_yandex_retry.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить'**
+  String get webview_yandex_retry;
+
+  /// No description provided for @webview_yandex_close.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрыть'**
+  String get webview_yandex_close;
+
+  /// No description provided for @webview_yandex_no_url.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не указан URL для авторизации'**
+  String get webview_yandex_no_url;
+
+  /// No description provided for @google_profile_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заполните профиль'**
+  String get google_profile_title;
+
+  /// No description provided for @google_profile_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя'**
+  String get google_profile_name;
+
+  /// No description provided for @google_profile_username.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя пользователя'**
+  String get google_profile_username;
+
+  /// No description provided for @google_profile_phone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Телефон'**
+  String get google_profile_phone;
+
+  /// No description provided for @google_profile_email.
+  ///
+  /// In ru, this message translates to:
+  /// **'Email'**
+  String get google_profile_email;
+
+  /// No description provided for @google_profile_dob.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дата рождения'**
+  String get google_profile_dob;
+
+  /// No description provided for @google_profile_bio.
+  ///
+  /// In ru, this message translates to:
+  /// **'О себе'**
+  String get google_profile_bio;
+
+  /// No description provided for @google_profile_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get google_profile_save;
+
+  /// No description provided for @google_profile_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось сохранить профиль'**
+  String get google_profile_error;
+
+  /// No description provided for @system_event_e2ee_epoch_rotated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ключ шифрования обновлён'**
+  String get system_event_e2ee_epoch_rotated;
+
+  /// No description provided for @system_event_e2ee_device_added.
+  ///
+  /// In ru, this message translates to:
+  /// **'{actor} добавил устройство «{device}»'**
+  String system_event_e2ee_device_added(String actor, String device);
+
+  /// No description provided for @system_event_e2ee_device_revoked.
+  ///
+  /// In ru, this message translates to:
+  /// **'{actor} отозвал устройство «{device}»'**
+  String system_event_e2ee_device_revoked(String actor, String device);
+
+  /// No description provided for @system_event_e2ee_fingerprint_changed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отпечаток безопасности у {actor} изменился'**
+  String system_event_e2ee_fingerprint_changed(String actor);
+
+  /// No description provided for @system_event_game_lobby_created.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создано лобби игры'**
+  String get system_event_game_lobby_created;
+
+  /// No description provided for @system_event_game_started.
+  ///
+  /// In ru, this message translates to:
+  /// **'Игра началась'**
+  String get system_event_game_started;
+
+  /// No description provided for @system_event_default_actor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь'**
+  String get system_event_default_actor;
+
+  /// No description provided for @system_event_default_device.
+  ///
+  /// In ru, this message translates to:
+  /// **'устройство'**
+  String get system_event_default_device;
+
+  /// No description provided for @image_editor_add_caption.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить подпись...'**
+  String get image_editor_add_caption;
+
+  /// No description provided for @image_editor_crop_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось обрезать изображение'**
+  String get image_editor_crop_failed;
+
+  /// No description provided for @image_editor_draw_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Режим рисования: проведите пальцем по изображению'**
+  String get image_editor_draw_hint;
+
+  /// No description provided for @image_editor_crop_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обрезка'**
+  String get image_editor_crop_title;
+
+  /// No description provided for @location_preview_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Местоположение'**
+  String get location_preview_title;
+
+  /// No description provided for @location_preview_accuracy_unknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Точность: —'**
+  String get location_preview_accuracy_unknown;
+
+  /// No description provided for @location_preview_accuracy_meters.
+  ///
+  /// In ru, this message translates to:
+  /// **'Точность: ~{meters} м'**
+  String location_preview_accuracy_meters(String meters);
+
+  /// No description provided for @location_preview_accuracy_km.
+  ///
+  /// In ru, this message translates to:
+  /// **'Точность: ~{km} км'**
+  String location_preview_accuracy_km(String km);
+
+  /// No description provided for @group_member_profile_default_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get group_member_profile_default_name;
+
+  /// No description provided for @group_member_profile_dm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Написать лично'**
+  String get group_member_profile_dm;
+
+  /// No description provided for @group_member_profile_dm_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть личный чат с участником'**
+  String get group_member_profile_dm_hint;
+
+  /// No description provided for @group_member_profile_dm_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть личный чат: {error}'**
+  String group_member_profile_dm_failed(Object error);
+
+  /// No description provided for @conversation_game_lobby_unavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Игра недоступна или была удалена'**
+  String get conversation_game_lobby_unavailable;
+
+  /// No description provided for @conversation_game_lobby_back.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назад'**
+  String get conversation_game_lobby_back;
+
+  /// No description provided for @conversation_game_lobby_waiting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждём, пока подключится соперник…'**
+  String get conversation_game_lobby_waiting;
+
+  /// No description provided for @conversation_game_lobby_start_game.
+  ///
+  /// In ru, this message translates to:
+  /// **'Начать игру'**
+  String get conversation_game_lobby_start_game;
+
+  /// No description provided for @conversation_game_lobby_waiting_short.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждём…'**
+  String get conversation_game_lobby_waiting_short;
+
+  /// No description provided for @conversation_game_lobby_ready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готов'**
+  String get conversation_game_lobby_ready;
+
+  /// No description provided for @voice_preview_trim_confirm_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оставить только выбранный фрагмент?'**
+  String get voice_preview_trim_confirm_title;
+
+  /// No description provided for @voice_preview_trim_confirm_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всё, кроме выделенного фрагмента, будет удалено. Запись сообщения продолжится сразу после нажатия кнопки.'**
+  String get voice_preview_trim_confirm_body;
+
+  /// No description provided for @voice_preview_continue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продолжить'**
+  String get voice_preview_continue;
+
+  /// No description provided for @voice_preview_continue_recording.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продолжить запись'**
+  String get voice_preview_continue_recording;
+
+  /// No description provided for @group_avatar_change_short.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить'**
+  String get group_avatar_change_short;
+
+  /// No description provided for @avatar_picker_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get avatar_picker_cancel;
+
+  /// No description provided for @avatar_picker_choose.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать аватар'**
+  String get avatar_picker_choose;
+
+  /// No description provided for @avatar_picker_delete_photo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить фото'**
+  String get avatar_picker_delete_photo;
+
+  /// No description provided for @avatar_picker_loading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка…'**
+  String get avatar_picker_loading;
+
+  /// No description provided for @avatar_picker_choose_avatar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать аватар'**
+  String get avatar_picker_choose_avatar;
+
+  /// No description provided for @avatar_picker_change_avatar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить аватар'**
+  String get avatar_picker_change_avatar;
+
+  /// No description provided for @avatar_picker_remove_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Убрать'**
+  String get avatar_picker_remove_tooltip;
+
+  /// No description provided for @telegram_sign_in_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вход через Telegram'**
+  String get telegram_sign_in_title;
+
+  /// No description provided for @telegram_sign_in_open_in_browser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть в браузере'**
+  String get telegram_sign_in_open_in_browser;
+
+  /// No description provided for @telegram_sign_in_open_telegram_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть Telegram. Установите приложение Telegram.'**
+  String get telegram_sign_in_open_telegram_failed;
+
+  /// No description provided for @telegram_sign_in_page_load_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки страницы'**
+  String get telegram_sign_in_page_load_error;
+
+  /// No description provided for @telegram_sign_in_login_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка входа через Telegram.'**
+  String get telegram_sign_in_login_error;
+
+  /// No description provided for @telegram_sign_in_firebase_not_ready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Firebase не готов.'**
+  String get telegram_sign_in_firebase_not_ready;
+
+  /// No description provided for @telegram_sign_in_browser_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть браузер.'**
+  String get telegram_sign_in_browser_failed;
+
+  /// No description provided for @telegram_sign_in_login_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось войти: {error}'**
+  String telegram_sign_in_login_failed(Object error);
+
+  /// No description provided for @yandex_sign_in_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вход через Яндекс'**
+  String get yandex_sign_in_title;
+
+  /// No description provided for @yandex_sign_in_open_in_browser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть в браузере'**
+  String get yandex_sign_in_open_in_browser;
+
+  /// No description provided for @yandex_sign_in_page_load_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки страницы'**
+  String get yandex_sign_in_page_load_error;
+
+  /// No description provided for @yandex_sign_in_login_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка входа через Яндекс.'**
+  String get yandex_sign_in_login_error;
+
+  /// No description provided for @yandex_sign_in_firebase_not_ready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Firebase не готов.'**
+  String get yandex_sign_in_firebase_not_ready;
+
+  /// No description provided for @yandex_sign_in_browser_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть браузер.'**
+  String get yandex_sign_in_browser_failed;
+
+  /// No description provided for @yandex_sign_in_login_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось войти: {error}'**
+  String yandex_sign_in_login_failed(Object error);
+
+  /// No description provided for @google_complete_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершите регистрацию'**
+  String get google_complete_title;
+
+  /// No description provided for @google_complete_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'После входа через Google нужно заполнить профиль, как в веб-версии.'**
+  String get google_complete_subtitle;
+
+  /// No description provided for @google_complete_name_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя'**
+  String get google_complete_name_label;
+
+  /// No description provided for @google_complete_username_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Логин (@username)'**
+  String get google_complete_username_label;
+
+  /// No description provided for @google_complete_phone_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Телефон (11 цифр)'**
+  String get google_complete_phone_label;
+
+  /// No description provided for @google_complete_email_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Email'**
+  String get google_complete_email_label;
+
+  /// No description provided for @google_complete_email_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'you@example.com'**
+  String get google_complete_email_hint;
+
+  /// No description provided for @google_complete_dob_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дата рождения (YYYY-MM-DD, опционально)'**
+  String get google_complete_dob_label;
+
+  /// No description provided for @google_complete_bio_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'О себе (до 200 символов, опционально)'**
+  String get google_complete_bio_label;
+
+  /// No description provided for @google_complete_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить и продолжить'**
+  String get google_complete_save;
+
+  /// No description provided for @google_complete_back.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вернуться к авторизации'**
+  String get google_complete_back;
 }
 
 class _AppLocalizationsDelegate

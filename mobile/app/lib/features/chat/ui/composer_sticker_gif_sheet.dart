@@ -418,10 +418,10 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Text(
-                      'Сохранить в стикерпак',
+                      AppLocalizations.of(context)!.sticker_save_to_pack,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
@@ -432,7 +432,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'Нет паков. Создайте пак на вкладке «Стикеры».',
+                        AppLocalizations.of(context)!.sticker_no_packs_hint,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                         ),
@@ -453,7 +453,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     ),
                   ListTile(
                     leading: const Icon(Icons.add),
-                    title: const Text('Новый пак…'),
+                    title: Text(AppLocalizations.of(context)!.sticker_new_pack_option),
                     onTap: () async {
                       final id = await _promptNewPackName();
                       if (id != null && ctx.mounted) Navigator.pop(ctx, id);
@@ -489,7 +489,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
             n.endsWith('.heic');
       }).toList();
       if (images.isEmpty) {
-        _snack('Выберите изображение или GIF');
+        _snack(AppLocalizations.of(context)!.sticker_pick_image_or_gif);
         return;
       }
       setState(() => _deviceDirectBusy = true);
@@ -517,7 +517,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     } catch (e) {
       if (mounted) {
         setState(() => _deviceDirectBusy = false);
-        _snack('Не удалось отправить: $e');
+        _snack(AppLocalizations.of(context)!.sticker_send_failed(e.toString()));
       }
     }
   }
@@ -532,9 +532,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     );
     if (!mounted) return;
     if (ok) {
-      _snack('Сохранено в стикерпак');
+      _snack(AppLocalizations.of(context)!.sticker_saved_to_pack);
     } else {
-      _snack('Не удалось скачать или сохранить GIF');
+      _snack(AppLocalizations.of(context)!.sticker_save_gif_failed);
     }
   }
 
@@ -625,7 +625,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     final success =
         await widget.repo.deletePack(widget.userId, packId);
     if (!mounted) return;
-    _snack(success ? 'Пак удалён' : 'Не удалось удалить пак');
+    _snack(success ? AppLocalizations.of(context)!.sticker_pack_deleted : AppLocalizations.of(context)!.sticker_pack_delete_failed);
     if (success && _myPackId == packId) {
       setState(() => _myPackId = null);
     }
@@ -688,10 +688,10 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
               fontWeight: FontWeight.w800,
               letterSpacing: 0.6,
             ),
-            tabs: const [
-              Tab(text: 'ЭМОДЗИ'),
-              Tab(text: 'СТИКЕРЫ'),
-              Tab(text: 'GIF'),
+            tabs: [
+              Tab(text: AppLocalizations.of(context)!.sticker_tab_emoji),
+              Tab(text: AppLocalizations.of(context)!.sticker_tab_stickers),
+              Tab(text: AppLocalizations.of(context)!.sticker_tab_gif),
             ],
           ),
           Expanded(
@@ -716,25 +716,25 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       child: Row(
         children: [
           ChoiceChip(
-            label: const Text('Мои'),
+            label: Text(AppLocalizations.of(context)!.sticker_scope_my),
             selected: _scope == _StickerScope.my,
             onSelected: (_) => setState(() => _scope = _StickerScope.my),
           ),
           const SizedBox(width: 8),
           ChoiceChip(
-            label: const Text('Общие'),
+            label: Text(AppLocalizations.of(context)!.sticker_scope_public),
             selected: _scope == _StickerScope.public,
             onSelected: (_) => setState(() => _scope = _StickerScope.public),
           ),
           const Spacer(),
           if (_scope == _StickerScope.my)
             IconButton(
-              tooltip: 'Новый пак',
+              tooltip: AppLocalizations.of(context)!.sticker_new_pack_tooltip,
               onPressed: () async {
                 final id = await _promptNewPackName();
                 if (id != null && mounted) {
                   setState(() => _myPackId = id);
-                  _snack('Стикерпак создан');
+                  _snack(AppLocalizations.of(context)!.sticker_pack_created);
                 }
               },
               icon: const Icon(Icons.add_circle_outline),
@@ -753,7 +753,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           children: [
             Expanded(
               child: Text(
-                'Нет стикерпаков. Создайте новый.',
+                AppLocalizations.of(context)!.sticker_no_packs_create,
                 style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
               ),
@@ -813,7 +813,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'Общие паки не настроены',
+          AppLocalizations.of(context)!.sticker_public_packs_empty,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
         ),
       );
@@ -861,7 +861,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
               Icon(Icons.history_rounded, size: 12, color: muted),
               const SizedBox(width: 4),
               Text(
-                'НЕДАВНИЕ',
+                AppLocalizations.of(context)!.sticker_section_recent,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -1026,7 +1026,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         _myPackId!,
                         it.id,
                       );
-                      if (mounted) _snack('Удалено');
+                      if (mounted) _snack(AppLocalizations.of(context)!.sticker_deleted);
                     }
                   },
             borderRadius: BorderRadius.circular(10),
@@ -1073,7 +1073,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Галерея',
+                            AppLocalizations.of(context)!.sticker_gallery,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
@@ -1082,7 +1082,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Фото, PNG, GIF с устройства — сразу в чат',
+                            AppLocalizations.of(context)!.sticker_gallery_subtitle,
                             style: TextStyle(fontSize: 12, color: muted, height: 1.25),
                           ),
                         ],
@@ -1143,7 +1143,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     if (packs.isEmpty) {
                       return Center(
                         child: Text(
-                          'Создайте пак кнопкой +',
+                          AppLocalizations.of(context)!.sticker_create_pack_hint,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.5),
                           ),
@@ -1172,7 +1172,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     if (packs.isEmpty) {
                       return Center(
                         child: Text(
-                          'Общие паки пока недоступны',
+                          AppLocalizations.of(context)!.sticker_public_packs_unavailable,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.5),
                           ),
@@ -1212,7 +1212,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
             textCapitalization: TextCapitalization.sentences,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Поиск GIF…',
+              hintText: AppLocalizations.of(context)!.gif_search_hint,
               hintStyle:
                   TextStyle(color: Colors.white.withValues(alpha: 0.4)),
               prefixIcon: Icon(
@@ -1251,7 +1251,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    'Искали: $_gifTranslatedHint',
+                    AppLocalizations.of(context)!.gif_translated_hint(_gifTranslatedHint!),
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.white.withValues(alpha: 0.55),
@@ -1267,7 +1267,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Text(
-              'Поиск GIF временно недоступен.',
+              AppLocalizations.of(context)!.gif_search_unavailable,
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.white.withValues(alpha: 0.55),
@@ -1299,7 +1299,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         hasScrollBody: false,
                         child: Center(
                           child: Text(
-                            'Ничего не найдено',
+                            AppLocalizations.of(context)!.sticker_gif_nothing_found,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.5),
                             ),
@@ -1425,7 +1425,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           if (i == 0) {
             final active = _activeEmojiFilter == null;
             return _emojiFilterChip(
-              label: 'Все',
+              label: AppLocalizations.of(context)!.gif_filter_all,
               active: active,
               onTap: () => _selectEmojiFilter(null),
             );
@@ -1492,7 +1492,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
             ),
           )
         else if (_animEmojis.isNotEmpty) ...[
-          _gifSectionHeader(Icons.auto_awesome_rounded, 'АНИМИРОВАННЫЕ'),
+          _gifSectionHeader(Icons.auto_awesome_rounded, AppLocalizations.of(context)!.sticker_section_animated),
           SizedBox(
             height: 72,
             child: ListView.separated(
@@ -1535,7 +1535,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Эмодзи в текст недоступны для этого окна.',
+                      AppLocalizations.of(context)!.sticker_emoji_unavailable,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.55),

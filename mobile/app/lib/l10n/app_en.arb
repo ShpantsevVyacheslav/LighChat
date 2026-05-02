@@ -1794,7 +1794,7 @@
     }
   },
   "sticker_pack_deleted": "Pack deleted",
-  "sticker_pack_delete_failed": "Could not delete pack",
+  "sticker_pack_delete_failed": "Failed to delete pack",
   "sticker_tab_emoji": "EMOJI",
   "sticker_tab_stickers": "STICKERS",
   "sticker_tab_gif": "GIF",
@@ -2806,5 +2806,232 @@
   "auth_validate_dob_invalid": "Invalid date of birth",
   "auth_validate_bio_max_length": "Bio must not exceed 200 characters",
   "auth_validate_password_min_length": "Password must be at least 6 characters",
-  "auth_validate_passwords_mismatch": "Passwords do not match"
+  "auth_validate_passwords_mismatch": "Passwords do not match",
+  "sticker_new_pack": "New pack…",
+  "sticker_select_image_or_gif": "Select an image or GIF",
+  "sticker_send_error": "Failed to send: {error}",
+  "sticker_saved": "Saved to sticker pack",
+  "sticker_save_failed": "Failed to download or save GIF",
+  "sticker_tab_my": "My",
+  "sticker_tab_shared": "Shared",
+  "sticker_no_packs": "No sticker packs. Create a new one.",
+  "sticker_shared_not_configured": "Shared packs not configured",
+  "sticker_recent": "RECENT",
+  "sticker_gallery_description": "Photos, PNG, GIF from device — straight to chat",
+  "sticker_shared_unavailable": "Shared packs not yet available",
+  "sticker_gif_search_hint": "Search GIF…",
+  "sticker_gif_searched": "Searched: {query}",
+  "sticker_gif_search_unavailable": "GIF search temporarily unavailable.",
+  "sticker_gif_nothing_found": "Nothing found",
+  "sticker_gif_all": "All",
+  "sticker_gif_animated": "ANIMATED",
+  "sticker_emoji_text_unavailable": "Text emoji not available for this window.",
+  "wallpaper_sender": "Contact",
+  "wallpaper_incoming": "This is an incoming message.",
+  "wallpaper_outgoing": "This is an outgoing message.",
+  "wallpaper_incoming_time": "11:40",
+  "wallpaper_outgoing_time": "11:41",
+  "wallpaper_system": "You changed chat wallpaper",
+  "wallpaper_you": "You",
+  "wallpaper_today": "Today",
+  "system_event_e2ee_enabled": "End-to-end encryption enabled (key epoch: {epoch})",
+  "system_event_e2ee_disabled": "End-to-end encryption disabled",
+  "system_event_unknown": "System event",
+  "system_event_group_created": "Group created",
+  "system_event_member_added": "{name} was added",
+  "system_event_member_removed": "{name} was removed",
+  "system_event_member_left": "{name} left the group",
+  "system_event_name_changed": "Name changed to \"{name}\"",
+  "image_editor_title": "Editor",
+  "image_editor_undo": "Undo",
+  "image_editor_clear": "Clear",
+  "image_editor_pen": "Brush",
+  "image_editor_text": "Text",
+  "image_editor_crop": "Crop",
+  "image_editor_rotate": "Rotate",
+  "location_title": "Send location",
+  "location_loading": "Loading map…",
+  "location_send_button": "Send",
+  "location_live_label": "Live",
+  "location_error": "Failed to load map",
+  "location_no_permission": "No location access",
+  "group_member_admin": "Admin",
+  "group_member_creator": "Creator",
+  "group_member_member": "Member",
+  "group_member_open_chat": "Message",
+  "group_member_open_profile": "Profile",
+  "group_member_remove": "Remove",
+  "durak_lobby_title": "Durak",
+  "durak_lobby_new_game": "New game",
+  "durak_lobby_waiting": "Waiting for opponent…",
+  "durak_lobby_decline": "Decline",
+  "durak_lobby_accept": "Accept",
+  "durak_lobby_invite_sent": "Invitation sent",
+  "voice_preview_cancel": "Cancel",
+  "voice_preview_send": "Send",
+  "voice_preview_recorded": "Recorded",
+  "voice_preview_playing": "Playing…",
+  "voice_preview_paused": "Paused",
+  "group_avatar_change": "Change avatar",
+  "group_avatar_remove": "Remove avatar",
+  "group_avatar_camera": "Camera",
+  "group_avatar_gallery": "Gallery",
+  "group_avatar_upload_error": "Upload error",
+  "avatar_picker_title": "Avatar",
+  "avatar_picker_camera": "Camera",
+  "avatar_picker_gallery": "Gallery",
+  "avatar_picker_crop": "Crop",
+  "avatar_picker_save": "Save",
+  "avatar_picker_remove": "Remove avatar",
+  "avatar_picker_error": "Failed to load avatar",
+  "avatar_picker_crop_error": "Crop error",
+  "webview_telegram_title": "Sign in with Telegram",
+  "webview_telegram_loading": "Loading…",
+  "webview_telegram_error": "Failed to load page",
+  "webview_telegram_back": "Back",
+  "webview_telegram_retry": "Retry",
+  "webview_telegram_close": "Close",
+  "webview_telegram_no_url": "No authorization URL provided",
+  "webview_yandex_title": "Sign in with Yandex",
+  "webview_yandex_loading": "Loading…",
+  "webview_yandex_error": "Failed to load page",
+  "webview_yandex_back": "Back",
+  "webview_yandex_retry": "Retry",
+  "webview_yandex_close": "Close",
+  "webview_yandex_no_url": "No authorization URL provided",
+  "google_profile_title": "Complete your profile",
+  "google_profile_name": "Name",
+  "google_profile_username": "Username",
+  "google_profile_phone": "Phone",
+  "google_profile_email": "Email",
+  "google_profile_dob": "Date of birth",
+  "google_profile_bio": "About",
+  "google_profile_save": "Save",
+  "google_profile_error": "Failed to save profile",
+  "system_event_e2ee_epoch_rotated": "Encryption key rotated",
+  "system_event_e2ee_device_added": "{actor} added device \"{device}\"",
+  "@system_event_e2ee_device_added": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_device_revoked": "{actor} revoked device \"{device}\"",
+  "@system_event_e2ee_device_revoked": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_fingerprint_changed": "Security fingerprint for {actor} changed",
+  "@system_event_e2ee_fingerprint_changed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_game_lobby_created": "Game lobby created",
+  "system_event_game_started": "Game started",
+  "system_event_default_actor": "User",
+  "system_event_default_device": "device",
+  "image_editor_add_caption": "Add caption...",
+  "image_editor_crop_failed": "Failed to crop image",
+  "image_editor_draw_hint": "Drawing mode: swipe across the image",
+  "image_editor_crop_title": "Crop",
+  "location_preview_title": "Location",
+  "location_preview_accuracy_unknown": "Accuracy: —",
+  "location_preview_accuracy_meters": "Accuracy: ~{meters} m",
+  "@location_preview_accuracy_meters": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "location_preview_accuracy_km": "Accuracy: ~{km} km",
+  "@location_preview_accuracy_km": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_profile_default_name": "Member",
+  "group_member_profile_dm": "Send direct message",
+  "group_member_profile_dm_hint": "Open a direct chat with this member",
+  "group_member_profile_dm_failed": "Failed to open direct chat: {error}",
+  "@group_member_profile_dm_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "conversation_game_lobby_unavailable": "Game unavailable or was deleted",
+  "conversation_game_lobby_back": "Back",
+  "conversation_game_lobby_waiting": "Waiting for opponent to join…",
+  "conversation_game_lobby_start_game": "Start game",
+  "conversation_game_lobby_waiting_short": "Waiting…",
+  "conversation_game_lobby_ready": "Ready",
+  "voice_preview_trim_confirm_title": "Keep only the selected fragment?",
+  "voice_preview_trim_confirm_body": "Everything except the selected fragment will be deleted. Recording will continue immediately after pressing the button.",
+  "voice_preview_continue": "Continue",
+  "voice_preview_continue_recording": "Continue recording",
+  "group_avatar_change_short": "Change",
+  "avatar_picker_cancel": "Cancel",
+  "avatar_picker_choose": "Choose avatar",
+  "avatar_picker_delete_photo": "Delete photo",
+  "avatar_picker_loading": "Loading…",
+  "avatar_picker_choose_avatar": "Choose avatar",
+  "avatar_picker_change_avatar": "Change avatar",
+  "avatar_picker_remove_tooltip": "Remove",
+  "telegram_sign_in_title": "Sign in via Telegram",
+  "telegram_sign_in_open_in_browser": "Open in browser",
+  "telegram_sign_in_open_telegram_failed": "Failed to open Telegram. Please install the Telegram app.",
+  "telegram_sign_in_page_load_error": "Page load error",
+  "telegram_sign_in_login_error": "Telegram sign-in error.",
+  "telegram_sign_in_firebase_not_ready": "Firebase not ready.",
+  "telegram_sign_in_browser_failed": "Failed to open browser.",
+  "telegram_sign_in_login_failed": "Sign-in failed: {error}",
+  "@telegram_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "yandex_sign_in_title": "Sign in via Yandex",
+  "yandex_sign_in_open_in_browser": "Open in browser",
+  "yandex_sign_in_page_load_error": "Page load error",
+  "yandex_sign_in_login_error": "Yandex sign-in error.",
+  "yandex_sign_in_firebase_not_ready": "Firebase not ready.",
+  "yandex_sign_in_browser_failed": "Failed to open browser.",
+  "yandex_sign_in_login_failed": "Sign-in failed: {error}",
+  "@yandex_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "google_complete_title": "Complete registration",
+  "google_complete_subtitle": "After signing in with Google, please fill in your profile as on the web version.",
+  "google_complete_name_label": "Name",
+  "google_complete_username_label": "Username (@username)",
+  "google_complete_phone_label": "Phone (11 digits)",
+  "google_complete_email_label": "Email",
+  "google_complete_email_hint": "you@example.com",
+  "google_complete_dob_label": "Date of birth (YYYY-MM-DD, optional)",
+  "google_complete_bio_label": "About (up to 200 characters, optional)",
+  "google_complete_save": "Save and continue",
+  "google_complete_back": "Back to sign in"
 }

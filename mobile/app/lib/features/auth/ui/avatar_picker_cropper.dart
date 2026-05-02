@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'avatar_crop_screen.dart';
@@ -152,10 +153,10 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
                                 (dark ? Colors.white : scheme.onSurface)
                                     .withValues(alpha: 0.72),
                           ),
-                          child: const Text('Отмена'),
+                          child: Text(AppLocalizations.of(context)!.avatar_picker_cancel),
                         ),
-                        const Text(
-                          'Выбрать аватар',
+                        Text(
+                          AppLocalizations.of(context)!.avatar_picker_choose,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -196,7 +197,7 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
                               ),
                             ),
                             icon: const Icon(Icons.camera_alt_outlined),
-                            label: const Text('Камера'),
+                            label: Text(AppLocalizations.of(context)!.avatar_picker_camera),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -214,7 +215,7 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
                               ),
                             ),
                             icon: const Icon(Icons.photo_library_outlined),
-                            label: const Text('Галерея'),
+                            label: Text(AppLocalizations.of(context)!.avatar_picker_gallery),
                           ),
                         ),
                       ],
@@ -232,7 +233,7 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFFFF5252),
                         ),
-                        child: const Text('Удалить фото'),
+                        child: Text(AppLocalizations.of(context)!.avatar_picker_delete_photo),
                       ),
                   ],
                 ),
@@ -318,8 +319,8 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
             onPressed: (!widget.enabled || _busy) ? null : _pick,
             child: Text(
               _busy
-                  ? 'Загрузка…'
-                  : (_value == null ? 'Выбрать аватар' : 'Сменить аватар'),
+                  ? AppLocalizations.of(context)!.avatar_picker_loading
+                  : (_value == null ? AppLocalizations.of(context)!.avatar_picker_choose_avatar : AppLocalizations.of(context)!.avatar_picker_change_avatar),
             ),
           ),
         ),
@@ -332,7 +333,7 @@ class _AvatarPickerCropperState extends State<AvatarPickerCropper> {
                   widget.onChanged(null);
                 },
           icon: const Icon(Icons.close),
-          tooltip: 'Убрать',
+          tooltip: AppLocalizations.of(context)!.avatar_picker_remove_tooltip,
         ),
       ],
     );

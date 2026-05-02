@@ -4893,7 +4893,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get durak_lobby_back_tooltip => 'Назад';
 
   @override
-  String get durak_lobby_waiting => 'Ждём, пока подключится соперник…';
+  String get durak_lobby_waiting => 'Ожидание соперника…';
 
   @override
   String get durak_lobby_start => 'Начать игру';
@@ -4941,10 +4941,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get group_avatar_add_photo => 'Добавить фото';
 
   @override
-  String get group_avatar_change => 'Сменить';
+  String get group_avatar_change => 'Сменить аватар';
 
   @override
-  String get group_avatar_remove => 'Убрать';
+  String get group_avatar_remove => 'Убрать аватар';
 
   @override
   String group_avatar_process_error(String error) {
@@ -5934,4 +5934,531 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get auth_validate_passwords_mismatch => 'Пароли не совпадают';
+
+  @override
+  String get sticker_new_pack => 'Новый пак…';
+
+  @override
+  String get sticker_select_image_or_gif => 'Выберите изображение или GIF';
+
+  @override
+  String sticker_send_error(Object error) {
+    return 'Не удалось отправить: $error';
+  }
+
+  @override
+  String get sticker_saved => 'Сохранено в стикерпак';
+
+  @override
+  String get sticker_save_failed => 'Не удалось скачать или сохранить GIF';
+
+  @override
+  String get sticker_tab_my => 'Мои';
+
+  @override
+  String get sticker_tab_shared => 'Общие';
+
+  @override
+  String get sticker_no_packs => 'Нет стикерпаков. Создайте новый.';
+
+  @override
+  String get sticker_shared_not_configured => 'Общие паки не настроены';
+
+  @override
+  String get sticker_recent => 'НЕДАВНИЕ';
+
+  @override
+  String get sticker_gallery_description =>
+      'Фото, PNG, GIF с устройства — сразу в чат';
+
+  @override
+  String get sticker_shared_unavailable => 'Общие паки пока недоступны';
+
+  @override
+  String get sticker_gif_search_hint => 'Поиск GIF…';
+
+  @override
+  String sticker_gif_searched(Object query) {
+    return 'Искали: $query';
+  }
+
+  @override
+  String get sticker_gif_search_unavailable => 'Поиск GIF временно недоступен.';
+
+  @override
+  String get sticker_gif_nothing_found => 'Ничего не найдено';
+
+  @override
+  String get sticker_gif_all => 'Все';
+
+  @override
+  String get sticker_gif_animated => 'АНИМИРОВАННЫЕ';
+
+  @override
+  String get sticker_emoji_text_unavailable =>
+      'Эмодзи в текст недоступны для этого окна.';
+
+  @override
+  String get wallpaper_sender => 'Собеседник';
+
+  @override
+  String get wallpaper_incoming => 'Это входящее сообщение.';
+
+  @override
+  String get wallpaper_outgoing => 'Это исходящее сообщение.';
+
+  @override
+  String get wallpaper_incoming_time => '11:40';
+
+  @override
+  String get wallpaper_outgoing_time => '11:41';
+
+  @override
+  String get wallpaper_system => 'Вы сменили обои чата';
+
+  @override
+  String get wallpaper_you => 'Вы';
+
+  @override
+  String get wallpaper_today => 'Сегодня';
+
+  @override
+  String system_event_e2ee_enabled(Object epoch) {
+    return 'Сквозное шифрование включено (эпоха ключа: $epoch)';
+  }
+
+  @override
+  String get system_event_e2ee_disabled => 'Сквозное шифрование отключено';
+
+  @override
+  String get system_event_unknown => 'Системное событие';
+
+  @override
+  String get system_event_group_created => 'Группа создана';
+
+  @override
+  String system_event_member_added(Object name) {
+    return '$name добавлен(а)';
+  }
+
+  @override
+  String system_event_member_removed(Object name) {
+    return '$name удалён(а)';
+  }
+
+  @override
+  String system_event_member_left(Object name) {
+    return '$name покинул(а) группу';
+  }
+
+  @override
+  String system_event_name_changed(Object name) {
+    return 'Название изменено на «$name»';
+  }
+
+  @override
+  String get image_editor_title => 'Редактор';
+
+  @override
+  String get image_editor_undo => 'Отменить';
+
+  @override
+  String get image_editor_clear => 'Очистить';
+
+  @override
+  String get image_editor_pen => 'Кисть';
+
+  @override
+  String get image_editor_text => 'Текст';
+
+  @override
+  String get image_editor_crop => 'Кадрирование';
+
+  @override
+  String get image_editor_rotate => 'Поворот';
+
+  @override
+  String get location_title => 'Отправить местоположение';
+
+  @override
+  String get location_loading => 'Загрузка карты…';
+
+  @override
+  String get location_send_button => 'Отправить';
+
+  @override
+  String get location_live_label => 'Трансляция';
+
+  @override
+  String get location_error => 'Не удалось загрузить карту';
+
+  @override
+  String get location_no_permission => 'Нет доступа к местоположению';
+
+  @override
+  String get group_member_admin => 'Администратор';
+
+  @override
+  String get group_member_creator => 'Создатель';
+
+  @override
+  String get group_member_member => 'Участник';
+
+  @override
+  String get group_member_open_chat => 'Написать';
+
+  @override
+  String get group_member_open_profile => 'Профиль';
+
+  @override
+  String get group_member_remove => 'Исключить';
+
+  @override
+  String get durak_lobby_title => 'Дурак';
+
+  @override
+  String get durak_lobby_new_game => 'Новая игра';
+
+  @override
+  String get durak_lobby_decline => 'Отклонить';
+
+  @override
+  String get durak_lobby_accept => 'Принять';
+
+  @override
+  String get durak_lobby_invite_sent => 'Приглашение отправлено';
+
+  @override
+  String get voice_preview_cancel => 'Отмена';
+
+  @override
+  String get voice_preview_send => 'Отправить';
+
+  @override
+  String get voice_preview_recorded => 'Записано';
+
+  @override
+  String get voice_preview_playing => 'Воспроизведение…';
+
+  @override
+  String get voice_preview_paused => 'Пауза';
+
+  @override
+  String get group_avatar_camera => 'Камера';
+
+  @override
+  String get group_avatar_gallery => 'Галерея';
+
+  @override
+  String get group_avatar_upload_error => 'Ошибка загрузки';
+
+  @override
+  String get avatar_picker_title => 'Аватар';
+
+  @override
+  String get avatar_picker_camera => 'Камера';
+
+  @override
+  String get avatar_picker_gallery => 'Галерея';
+
+  @override
+  String get avatar_picker_crop => 'Обрезка';
+
+  @override
+  String get avatar_picker_save => 'Сохранить';
+
+  @override
+  String get avatar_picker_remove => 'Удалить аватар';
+
+  @override
+  String get avatar_picker_error => 'Не удалось загрузить аватар';
+
+  @override
+  String get avatar_picker_crop_error => 'Ошибка обрезки';
+
+  @override
+  String get webview_telegram_title => 'Вход через Telegram';
+
+  @override
+  String get webview_telegram_loading => 'Загрузка…';
+
+  @override
+  String get webview_telegram_error => 'Не удалось загрузить страницу';
+
+  @override
+  String get webview_telegram_back => 'Назад';
+
+  @override
+  String get webview_telegram_retry => 'Повторить';
+
+  @override
+  String get webview_telegram_close => 'Закрыть';
+
+  @override
+  String get webview_telegram_no_url => 'Не указан URL для авторизации';
+
+  @override
+  String get webview_yandex_title => 'Вход через Яндекс';
+
+  @override
+  String get webview_yandex_loading => 'Загрузка…';
+
+  @override
+  String get webview_yandex_error => 'Не удалось загрузить страницу';
+
+  @override
+  String get webview_yandex_back => 'Назад';
+
+  @override
+  String get webview_yandex_retry => 'Повторить';
+
+  @override
+  String get webview_yandex_close => 'Закрыть';
+
+  @override
+  String get webview_yandex_no_url => 'Не указан URL для авторизации';
+
+  @override
+  String get google_profile_title => 'Заполните профиль';
+
+  @override
+  String get google_profile_name => 'Имя';
+
+  @override
+  String get google_profile_username => 'Имя пользователя';
+
+  @override
+  String get google_profile_phone => 'Телефон';
+
+  @override
+  String get google_profile_email => 'Email';
+
+  @override
+  String get google_profile_dob => 'Дата рождения';
+
+  @override
+  String get google_profile_bio => 'О себе';
+
+  @override
+  String get google_profile_save => 'Сохранить';
+
+  @override
+  String get google_profile_error => 'Не удалось сохранить профиль';
+
+  @override
+  String get system_event_e2ee_epoch_rotated => 'Ключ шифрования обновлён';
+
+  @override
+  String system_event_e2ee_device_added(String actor, String device) {
+    return '$actor добавил устройство «$device»';
+  }
+
+  @override
+  String system_event_e2ee_device_revoked(String actor, String device) {
+    return '$actor отозвал устройство «$device»';
+  }
+
+  @override
+  String system_event_e2ee_fingerprint_changed(String actor) {
+    return 'Отпечаток безопасности у $actor изменился';
+  }
+
+  @override
+  String get system_event_game_lobby_created => 'Создано лобби игры';
+
+  @override
+  String get system_event_game_started => 'Игра началась';
+
+  @override
+  String get system_event_default_actor => 'Пользователь';
+
+  @override
+  String get system_event_default_device => 'устройство';
+
+  @override
+  String get image_editor_add_caption => 'Добавить подпись...';
+
+  @override
+  String get image_editor_crop_failed => 'Не удалось обрезать изображение';
+
+  @override
+  String get image_editor_draw_hint =>
+      'Режим рисования: проведите пальцем по изображению';
+
+  @override
+  String get image_editor_crop_title => 'Обрезка';
+
+  @override
+  String get location_preview_title => 'Местоположение';
+
+  @override
+  String get location_preview_accuracy_unknown => 'Точность: —';
+
+  @override
+  String location_preview_accuracy_meters(String meters) {
+    return 'Точность: ~$meters м';
+  }
+
+  @override
+  String location_preview_accuracy_km(String km) {
+    return 'Точность: ~$km км';
+  }
+
+  @override
+  String get group_member_profile_default_name => 'Участник';
+
+  @override
+  String get group_member_profile_dm => 'Написать лично';
+
+  @override
+  String get group_member_profile_dm_hint => 'Открыть личный чат с участником';
+
+  @override
+  String group_member_profile_dm_failed(Object error) {
+    return 'Не удалось открыть личный чат: $error';
+  }
+
+  @override
+  String get conversation_game_lobby_unavailable =>
+      'Игра недоступна или была удалена';
+
+  @override
+  String get conversation_game_lobby_back => 'Назад';
+
+  @override
+  String get conversation_game_lobby_waiting =>
+      'Ждём, пока подключится соперник…';
+
+  @override
+  String get conversation_game_lobby_start_game => 'Начать игру';
+
+  @override
+  String get conversation_game_lobby_waiting_short => 'Ждём…';
+
+  @override
+  String get conversation_game_lobby_ready => 'Готов';
+
+  @override
+  String get voice_preview_trim_confirm_title =>
+      'Оставить только выбранный фрагмент?';
+
+  @override
+  String get voice_preview_trim_confirm_body =>
+      'Всё, кроме выделенного фрагмента, будет удалено. Запись сообщения продолжится сразу после нажатия кнопки.';
+
+  @override
+  String get voice_preview_continue => 'Продолжить';
+
+  @override
+  String get voice_preview_continue_recording => 'Продолжить запись';
+
+  @override
+  String get group_avatar_change_short => 'Сменить';
+
+  @override
+  String get avatar_picker_cancel => 'Отмена';
+
+  @override
+  String get avatar_picker_choose => 'Выбрать аватар';
+
+  @override
+  String get avatar_picker_delete_photo => 'Удалить фото';
+
+  @override
+  String get avatar_picker_loading => 'Загрузка…';
+
+  @override
+  String get avatar_picker_choose_avatar => 'Выбрать аватар';
+
+  @override
+  String get avatar_picker_change_avatar => 'Сменить аватар';
+
+  @override
+  String get avatar_picker_remove_tooltip => 'Убрать';
+
+  @override
+  String get telegram_sign_in_title => 'Вход через Telegram';
+
+  @override
+  String get telegram_sign_in_open_in_browser => 'Открыть в браузере';
+
+  @override
+  String get telegram_sign_in_open_telegram_failed =>
+      'Не удалось открыть Telegram. Установите приложение Telegram.';
+
+  @override
+  String get telegram_sign_in_page_load_error => 'Ошибка загрузки страницы';
+
+  @override
+  String get telegram_sign_in_login_error => 'Ошибка входа через Telegram.';
+
+  @override
+  String get telegram_sign_in_firebase_not_ready => 'Firebase не готов.';
+
+  @override
+  String get telegram_sign_in_browser_failed => 'Не удалось открыть браузер.';
+
+  @override
+  String telegram_sign_in_login_failed(Object error) {
+    return 'Не удалось войти: $error';
+  }
+
+  @override
+  String get yandex_sign_in_title => 'Вход через Яндекс';
+
+  @override
+  String get yandex_sign_in_open_in_browser => 'Открыть в браузере';
+
+  @override
+  String get yandex_sign_in_page_load_error => 'Ошибка загрузки страницы';
+
+  @override
+  String get yandex_sign_in_login_error => 'Ошибка входа через Яндекс.';
+
+  @override
+  String get yandex_sign_in_firebase_not_ready => 'Firebase не готов.';
+
+  @override
+  String get yandex_sign_in_browser_failed => 'Не удалось открыть браузер.';
+
+  @override
+  String yandex_sign_in_login_failed(Object error) {
+    return 'Не удалось войти: $error';
+  }
+
+  @override
+  String get google_complete_title => 'Завершите регистрацию';
+
+  @override
+  String get google_complete_subtitle =>
+      'После входа через Google нужно заполнить профиль, как в веб-версии.';
+
+  @override
+  String get google_complete_name_label => 'Имя';
+
+  @override
+  String get google_complete_username_label => 'Логин (@username)';
+
+  @override
+  String get google_complete_phone_label => 'Телефон (11 цифр)';
+
+  @override
+  String get google_complete_email_label => 'Email';
+
+  @override
+  String get google_complete_email_hint => 'you@example.com';
+
+  @override
+  String get google_complete_dob_label =>
+      'Дата рождения (YYYY-MM-DD, опционально)';
+
+  @override
+  String get google_complete_bio_label =>
+      'О себе (до 200 символов, опционально)';
+
+  @override
+  String get google_complete_save => 'Сохранить и продолжить';
+
+  @override
+  String get google_complete_back => 'Вернуться к авторизации';
 }
