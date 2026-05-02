@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'schedule_message_sheet.dart';
 
 /// Экран управления отложенными сообщениями текущего пользователя в чате.
@@ -24,11 +25,13 @@ class ScheduledMessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('d MMMM yyyy, HH:mm', 'ru');
+    final l10n = AppLocalizations.of(context)!;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final dateFmt = DateFormat('d MMMM yyyy, HH:mm', localeTag);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Запланированные сообщения'),
+        title: Text(l10n.scheduled_messages_screen_title),
       ),
       body: StreamBuilder<List<ScheduledChatMessage>>(
         stream: repository.watchScheduledMessages(
@@ -44,7 +47,7 @@ class ScheduledMessagesScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Не удалось загрузить: ${snap.error}',
+                  l10n.scheduled_messages_load_failed(snap.error.toString()),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -67,13 +70,13 @@ class ScheduledMessagesScreen extends StatelessWidget {
                           .withValues(alpha: 0.4),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Нет запланированных сообщений',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    Text(
+                      l10n.scheduled_messages_empty_title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Удерживайте кнопку «Отправить», чтобы запланировать.',
+                      l10n.scheduled_messages_empty_hint,
                       style: Theme.of(context).textTheme.bodySmall,
                       textAlign: TextAlign.center,
                     ),
@@ -109,8 +112,7 @@ class ScheduledMessagesScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'В E2EE-чате запланированные сообщения хранятся '
-                          'и публикуются в открытом виде.',
+                          l10n.scheduled_messages_e2ee_notice,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
@@ -122,25 +124,28 @@ class ScheduledMessagesScreen extends StatelessWidget {
               return _ScheduledMessageTile(
                 message: m,
                 dateFmt: dateFmt,
+                l10n: l10n,
                 onCancel: () async {
                   final ok = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text('Отменить отправку?'),
-                      content: const Text(
-                        'Запланированное сообщение будет удалено.',
-                      ),
+                      title: Text(l10n.scheduled_messages_cancel_dialog_title),
+                      content: Text(l10n.scheduled_messages_cancel_dialog_body),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.of(ctx).pop(false),
-                          child: const Text('Не отменять'),
+                          child: Text(
+                            l10n.scheduled_messages_cancel_dialog_keep,
+                          ),
                         ),
                         FilledButton(
                           onPressed: () => Navigator.of(ctx).pop(true),
                           style: FilledButton.styleFrom(
                             backgroundColor: Theme.of(context).colorScheme.error,
                           ),
-                          child: const Text('Отменить'),
+                          child: Text(
+                            l10n.scheduled_messages_cancel_dialog_confirm,
+                          ),
                         ),
                       ],
                     ),
@@ -153,13 +158,21 @@ class ScheduledMessagesScreen extends StatelessWidget {
                     );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Отменено')),
+                        SnackBar(
+                          content: Text(l10n.scheduled_messages_canceled_toast),
+                        ),
                       );
                     }
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Ошибка: $e')),
+                        SnackBar(
+                          content: Text(
+                            l10n.scheduled_messages_action_failed_toast(
+                              e.toString(),
+                            ),
+                          ),
+                        ),
                       );
                     }
                   }
@@ -181,7 +194,9 @@ class ScheduledMessagesScreen extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Время изменено: ${dateFmt.format(picked)}',
+                            l10n.scheduled_messages_time_changed_toast(
+                              dateFmt.format(picked),
+                            ),
                           ),
                         ),
                       );
@@ -189,7 +204,13 @@ class ScheduledMessagesScreen extends StatelessWidget {
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Ошибка: $e')),
+                        SnackBar(
+                          content: Text(
+                            l10n.scheduled_messages_action_failed_toast(
+                              e.toString(),
+                            ),
+                          ),
+                        ),
                       );
                     }
                   }
@@ -207,20 +228,26 @@ class _ScheduledMessageTile extends StatelessWidget {
   const _ScheduledMessageTile({
     required this.message,
     required this.dateFmt,
+    required this.l10n,
     required this.onCancel,
     required this.onReschedule,
   });
 
   final ScheduledChatMessage message;
   final DateFormat dateFmt;
+  final AppLocalizations l10n;
   final VoidCallback onCancel;
   final VoidCallback onReschedule;
 
   String _previewText() {
     if (message.pendingPoll != null) {
-      return '📊 Опрос: ${message.pendingPoll!.question}';
+      return l10n.scheduled_messages_preview_poll(
+        message.pendingPoll!.question,
+      );
     }
-    if (message.locationShare != null) return '📍 Локация';
+    if (message.locationShare != null) {
+      return l10n.scheduled_messages_preview_location;
+    }
     final t = message.text;
     if (t != null) {
       final stripped = t
@@ -230,9 +257,13 @@ class _ScheduledMessageTile extends StatelessWidget {
       if (stripped.isNotEmpty) return stripped;
     }
     if (message.attachments.isNotEmpty) {
-      return '📎 Вложение${message.attachments.length > 1 ? ' (×${message.attachments.length})' : ''}';
+      return message.attachments.length > 1
+          ? l10n.scheduled_messages_preview_attachment_count(
+              message.attachments.length,
+            )
+          : l10n.scheduled_messages_preview_attachment;
     }
-    return 'Сообщение';
+    return l10n.scheduled_messages_preview_message;
   }
 
   @override
@@ -282,12 +313,12 @@ class _ScheduledMessageTile extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Изменить время',
+                tooltip: l10n.scheduled_messages_tile_edit_tooltip,
                 icon: const Icon(Icons.edit_calendar_outlined, size: 20),
                 onPressed: onReschedule,
               ),
               IconButton(
-                tooltip: 'Отменить',
+                tooltip: l10n.scheduled_messages_tile_cancel_tooltip,
                 icon: Icon(
                   Icons.delete_outline_rounded,
                   size: 20,

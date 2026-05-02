@@ -3097,4 +3097,138 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get edit_group_privacy_share_media_desc =>
       'Разрешить делиться медиафайлами вне приложения.';
+
+  @override
+  String get schedule_message_sheet_title => 'Запланировать сообщение';
+
+  @override
+  String get schedule_message_long_press_hint => 'Запланировать отправку';
+
+  @override
+  String schedule_message_preset_today_at(String time) {
+    return 'Сегодня в $time';
+  }
+
+  @override
+  String schedule_message_preset_tomorrow_at(String time) {
+    return 'Завтра в $time';
+  }
+
+  @override
+  String schedule_message_will_send_at(String datetime) {
+    return 'Будет отправлено: $datetime';
+  }
+
+  @override
+  String get schedule_message_must_be_in_future =>
+      'Время должно быть в будущем (минимум через минуту).';
+
+  @override
+  String get schedule_message_e2ee_warning =>
+      'Это E2EE-чат. Отложенное сообщение будет сохранено в открытом виде на сервере и опубликовано без шифрования.';
+
+  @override
+  String get schedule_message_cancel => 'Отмена';
+
+  @override
+  String get schedule_message_confirm => 'Запланировать';
+
+  @override
+  String get schedule_message_save => 'Сохранить';
+
+  @override
+  String get schedule_message_text_required => 'Сначала введите текст';
+
+  @override
+  String get schedule_message_attachments_unsupported_mobile =>
+      'Планирование вложений пока поддерживается только в веб-клиенте';
+
+  @override
+  String schedule_message_scheduled_toast(String datetime) {
+    return 'Запланировано: $datetime';
+  }
+
+  @override
+  String schedule_message_failed_toast(String error) {
+    return 'Не удалось запланировать: $error';
+  }
+
+  @override
+  String get scheduled_messages_screen_title => 'Запланированные сообщения';
+
+  @override
+  String get scheduled_messages_empty_title => 'Нет запланированных сообщений';
+
+  @override
+  String get scheduled_messages_empty_hint =>
+      'Удерживайте кнопку «Отправить», чтобы запланировать.';
+
+  @override
+  String scheduled_messages_load_failed(String error) {
+    return 'Не удалось загрузить: $error';
+  }
+
+  @override
+  String get scheduled_messages_e2ee_notice =>
+      'В E2EE-чате запланированные сообщения хранятся и публикуются в открытом виде.';
+
+  @override
+  String get scheduled_messages_cancel_dialog_title => 'Отменить отправку?';
+
+  @override
+  String get scheduled_messages_cancel_dialog_body =>
+      'Запланированное сообщение будет удалено.';
+
+  @override
+  String get scheduled_messages_cancel_dialog_keep => 'Не отменять';
+
+  @override
+  String get scheduled_messages_cancel_dialog_confirm => 'Отменить';
+
+  @override
+  String get scheduled_messages_canceled_toast => 'Отменено';
+
+  @override
+  String scheduled_messages_time_changed_toast(String datetime) {
+    return 'Время изменено: $datetime';
+  }
+
+  @override
+  String scheduled_messages_action_failed_toast(String error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get scheduled_messages_tile_edit_tooltip => 'Изменить время';
+
+  @override
+  String get scheduled_messages_tile_cancel_tooltip => 'Отменить';
+
+  @override
+  String scheduled_messages_preview_poll(String question) {
+    return 'Опрос: $question';
+  }
+
+  @override
+  String get scheduled_messages_preview_location => 'Локация';
+
+  @override
+  String get scheduled_messages_preview_attachment => 'Вложение';
+
+  @override
+  String scheduled_messages_preview_attachment_count(int count) {
+    return 'Вложение (×$count)';
+  }
+
+  @override
+  String get scheduled_messages_preview_message => 'Сообщение';
+
+  @override
+  String get chat_header_tooltip_scheduled => 'Запланированные сообщения';
+
+  @override
+  String get schedule_date_label => 'Дата';
+
+  @override
+  String get schedule_time_label => 'Время';
 }

@@ -1586,5 +1586,91 @@
   "edit_group_privacy_save_media": "Сохранение медиа",
   "edit_group_privacy_save_media_desc": "Разрешить сохранять фото и видео на устройство.",
   "edit_group_privacy_share_media": "Поделиться медиа",
-  "edit_group_privacy_share_media_desc": "Разрешить делиться медиафайлами вне приложения."
+  "edit_group_privacy_share_media_desc": "Разрешить делиться медиафайлами вне приложения.",
+  "schedule_message_sheet_title": "Запланировать сообщение",
+  "schedule_message_long_press_hint": "Запланировать отправку",
+  "schedule_message_preset_today_at": "Сегодня в {time}",
+  "@schedule_message_preset_today_at": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "schedule_message_preset_tomorrow_at": "Завтра в {time}",
+  "@schedule_message_preset_tomorrow_at": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "schedule_message_will_send_at": "Будет отправлено: {datetime}",
+  "@schedule_message_will_send_at": {
+    "placeholders": {
+      "datetime": {"type": "String"}
+    }
+  },
+  "schedule_message_must_be_in_future": "Время должно быть в будущем (минимум через минуту).",
+  "schedule_message_e2ee_warning": "Это E2EE-чат. Отложенное сообщение будет сохранено в открытом виде на сервере и опубликовано без шифрования.",
+  "schedule_message_cancel": "Отмена",
+  "schedule_message_confirm": "Запланировать",
+  "schedule_message_save": "Сохранить",
+  "schedule_message_text_required": "Сначала введите текст",
+  "schedule_message_attachments_unsupported_mobile": "Планирование вложений пока поддерживается только в веб-клиенте",
+  "schedule_message_scheduled_toast": "Запланировано: {datetime}",
+  "@schedule_message_scheduled_toast": {
+    "placeholders": {
+      "datetime": {"type": "String"}
+    }
+  },
+  "schedule_message_failed_toast": "Не удалось запланировать: {error}",
+  "@schedule_message_failed_toast": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "scheduled_messages_screen_title": "Запланированные сообщения",
+  "scheduled_messages_empty_title": "Нет запланированных сообщений",
+  "scheduled_messages_empty_hint": "Удерживайте кнопку «Отправить», чтобы запланировать.",
+  "scheduled_messages_load_failed": "Не удалось загрузить: {error}",
+  "@scheduled_messages_load_failed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "scheduled_messages_e2ee_notice": "В E2EE-чате запланированные сообщения хранятся и публикуются в открытом виде.",
+  "scheduled_messages_cancel_dialog_title": "Отменить отправку?",
+  "scheduled_messages_cancel_dialog_body": "Запланированное сообщение будет удалено.",
+  "scheduled_messages_cancel_dialog_keep": "Не отменять",
+  "scheduled_messages_cancel_dialog_confirm": "Отменить",
+  "scheduled_messages_canceled_toast": "Отменено",
+  "scheduled_messages_time_changed_toast": "Время изменено: {datetime}",
+  "@scheduled_messages_time_changed_toast": {
+    "placeholders": {
+      "datetime": {"type": "String"}
+    }
+  },
+  "scheduled_messages_action_failed_toast": "Ошибка: {error}",
+  "@scheduled_messages_action_failed_toast": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "scheduled_messages_tile_edit_tooltip": "Изменить время",
+  "scheduled_messages_tile_cancel_tooltip": "Отменить",
+  "scheduled_messages_preview_poll": "Опрос: {question}",
+  "@scheduled_messages_preview_poll": {
+    "placeholders": {
+      "question": {"type": "String"}
+    }
+  },
+  "scheduled_messages_preview_location": "Локация",
+  "scheduled_messages_preview_attachment": "Вложение",
+  "scheduled_messages_preview_attachment_count": "Вложение (×{count})",
+  "@scheduled_messages_preview_attachment_count": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "scheduled_messages_preview_message": "Сообщение",
+  "chat_header_tooltip_scheduled": "Запланированные сообщения",
+  "schedule_date_label": "Дата",
+  "schedule_time_label": "Время"
 }

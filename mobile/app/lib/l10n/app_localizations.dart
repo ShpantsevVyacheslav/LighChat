@@ -5401,6 +5401,222 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Разрешить делиться медиафайлами вне приложения.'**
   String get edit_group_privacy_share_media_desc;
+
+  /// No description provided for @schedule_message_sheet_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запланировать сообщение'**
+  String get schedule_message_sheet_title;
+
+  /// No description provided for @schedule_message_long_press_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запланировать отправку'**
+  String get schedule_message_long_press_hint;
+
+  /// No description provided for @schedule_message_preset_today_at.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня в {time}'**
+  String schedule_message_preset_today_at(String time);
+
+  /// No description provided for @schedule_message_preset_tomorrow_at.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завтра в {time}'**
+  String schedule_message_preset_tomorrow_at(String time);
+
+  /// No description provided for @schedule_message_will_send_at.
+  ///
+  /// In ru, this message translates to:
+  /// **'Будет отправлено: {datetime}'**
+  String schedule_message_will_send_at(String datetime);
+
+  /// No description provided for @schedule_message_must_be_in_future.
+  ///
+  /// In ru, this message translates to:
+  /// **'Время должно быть в будущем (минимум через минуту).'**
+  String get schedule_message_must_be_in_future;
+
+  /// No description provided for @schedule_message_e2ee_warning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это E2EE-чат. Отложенное сообщение будет сохранено в открытом виде на сервере и опубликовано без шифрования.'**
+  String get schedule_message_e2ee_warning;
+
+  /// No description provided for @schedule_message_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get schedule_message_cancel;
+
+  /// No description provided for @schedule_message_confirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запланировать'**
+  String get schedule_message_confirm;
+
+  /// No description provided for @schedule_message_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get schedule_message_save;
+
+  /// No description provided for @schedule_message_text_required.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала введите текст'**
+  String get schedule_message_text_required;
+
+  /// No description provided for @schedule_message_attachments_unsupported_mobile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Планирование вложений пока поддерживается только в веб-клиенте'**
+  String get schedule_message_attachments_unsupported_mobile;
+
+  /// No description provided for @schedule_message_scheduled_toast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запланировано: {datetime}'**
+  String schedule_message_scheduled_toast(String datetime);
+
+  /// No description provided for @schedule_message_failed_toast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось запланировать: {error}'**
+  String schedule_message_failed_toast(String error);
+
+  /// No description provided for @scheduled_messages_screen_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запланированные сообщения'**
+  String get scheduled_messages_screen_title;
+
+  /// No description provided for @scheduled_messages_empty_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет запланированных сообщений'**
+  String get scheduled_messages_empty_title;
+
+  /// No description provided for @scheduled_messages_empty_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удерживайте кнопку «Отправить», чтобы запланировать.'**
+  String get scheduled_messages_empty_hint;
+
+  /// No description provided for @scheduled_messages_load_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить: {error}'**
+  String scheduled_messages_load_failed(String error);
+
+  /// No description provided for @scheduled_messages_e2ee_notice.
+  ///
+  /// In ru, this message translates to:
+  /// **'В E2EE-чате запланированные сообщения хранятся и публикуются в открытом виде.'**
+  String get scheduled_messages_e2ee_notice;
+
+  /// No description provided for @scheduled_messages_cancel_dialog_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить отправку?'**
+  String get scheduled_messages_cancel_dialog_title;
+
+  /// No description provided for @scheduled_messages_cancel_dialog_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запланированное сообщение будет удалено.'**
+  String get scheduled_messages_cancel_dialog_body;
+
+  /// No description provided for @scheduled_messages_cancel_dialog_keep.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не отменять'**
+  String get scheduled_messages_cancel_dialog_keep;
+
+  /// No description provided for @scheduled_messages_cancel_dialog_confirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get scheduled_messages_cancel_dialog_confirm;
+
+  /// No description provided for @scheduled_messages_canceled_toast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменено'**
+  String get scheduled_messages_canceled_toast;
+
+  /// No description provided for @scheduled_messages_time_changed_toast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Время изменено: {datetime}'**
+  String scheduled_messages_time_changed_toast(String datetime);
+
+  /// No description provided for @scheduled_messages_action_failed_toast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка: {error}'**
+  String scheduled_messages_action_failed_toast(String error);
+
+  /// No description provided for @scheduled_messages_tile_edit_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить время'**
+  String get scheduled_messages_tile_edit_tooltip;
+
+  /// No description provided for @scheduled_messages_tile_cancel_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get scheduled_messages_tile_cancel_tooltip;
+
+  /// No description provided for @scheduled_messages_preview_poll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опрос: {question}'**
+  String scheduled_messages_preview_poll(String question);
+
+  /// No description provided for @scheduled_messages_preview_location.
+  ///
+  /// In ru, this message translates to:
+  /// **'Локация'**
+  String get scheduled_messages_preview_location;
+
+  /// No description provided for @scheduled_messages_preview_attachment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get scheduled_messages_preview_attachment;
+
+  /// No description provided for @scheduled_messages_preview_attachment_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение (×{count})'**
+  String scheduled_messages_preview_attachment_count(int count);
+
+  /// No description provided for @scheduled_messages_preview_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get scheduled_messages_preview_message;
+
+  /// No description provided for @chat_header_tooltip_scheduled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запланированные сообщения'**
+  String get chat_header_tooltip_scheduled;
+
+  /// No description provided for @schedule_date_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дата'**
+  String get schedule_date_label;
+
+  /// No description provided for @schedule_time_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Время'**
+  String get schedule_time_label;
 }
 
 class _AppLocalizationsDelegate

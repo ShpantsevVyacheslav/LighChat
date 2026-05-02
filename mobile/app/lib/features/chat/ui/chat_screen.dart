@@ -9,6 +9,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -3531,17 +3532,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _openScheduleSheet(String uid, {Conversation? conv}) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
+    final l10n = AppLocalizations.of(context)!;
     final raw = _controller.text;
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(raw);
     final plain = prepared.isEmpty
         ? ''
         : messageHtmlToPlainText(prepared).trim();
     if (plain.isEmpty) {
-      _toast('Сначала введите текст');
+      _toast(l10n.schedule_message_text_required);
       return;
     }
     if (_pendingAttachments.isNotEmpty) {
-      _toast('Планирование вложений пока поддерживается только в веб-клиенте');
+      _toast(l10n.schedule_message_attachments_unsupported_mobile);
       return;
     }
     if (_editingMessageId != null) return;
@@ -3568,16 +3570,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _replyingTo = null;
       });
       unawaited(clearChatMessageDraft(uid, widget.conversationId));
+      final localeTag = Localizations.localeOf(context).toLanguageTag();
+      final fmt = DateFormat('d MMM, HH:mm', localeTag);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Запланировано: '
-            '${picked.toLocal().toString().substring(0, 16)}',
+            l10n.schedule_message_scheduled_toast(fmt.format(picked)),
           ),
         ),
       );
     } catch (e) {
-      if (mounted) _toast('Не удалось запланировать: $e');
+      if (mounted) {
+        _toast(l10n.schedule_message_failed_toast(e.toString()));
+      }
     }
   }
 

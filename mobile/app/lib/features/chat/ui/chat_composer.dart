@@ -1,6 +1,8 @@
 import 'dart:async' show unawaited;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -114,7 +116,9 @@ class _ChatComposerState extends State<ChatComposer> {
   /// Согласовано с `fontSize: 16` без forceStrut — курсор не растягивается на всю капсулу.
   static const double _kComposerCursorHeight = 18;
   final GlobalKey _composerColumnKey = GlobalKey();
+  final GlobalKey _sendButtonKey = GlobalKey();
   OverlayEntry? _attachmentOverlayEntry;
+  OverlayEntry? _sendLongPressMenuEntry;
   bool _hasTypedText = false;
   String? _mentionQuery;
   int? _mentionAtStartOffset;
@@ -289,7 +293,122 @@ class _ChatComposerState extends State<ChatComposer> {
   void dispose() {
     widget.controller.removeListener(_onComposerTextChanged);
     _attachmentOverlayEntry?.remove();
+    _sendLongPressMenuEntry?.remove();
     super.dispose();
+  }
+
+  /// Glass-popup над кнопкой «Отправить» с одним пунктом «Запланировать
+  /// отправку». Заменяет нативный Flutter Tooltip — тот всплывал ПОД
+  /// клавиатурой и не был кликабельным.
+  void _showSendLongPressMenu() {
+    final cb = widget.onSendLongPress;
+    if (cb == null) return;
+    final ctx = _sendButtonKey.currentContext;
+    if (ctx == null) return;
+    final box = ctx.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final overlay = Overlay.of(ctx);
+    final overlayBox = overlay.context.findRenderObject() as RenderBox?;
+    if (overlayBox == null) return;
+
+    HapticFeedback.lightImpact();
+
+    final buttonTopLeft = box.localToGlobal(Offset.zero, ancestor: overlayBox);
+    final buttonSize = box.size;
+    final overlaySize = overlayBox.size;
+
+    _sendLongPressMenuEntry?.remove();
+
+    void dismiss() {
+      _sendLongPressMenuEntry?.remove();
+      _sendLongPressMenuEntry = null;
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
+
+    _sendLongPressMenuEntry = OverlayEntry(
+      builder: (_) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: dismiss,
+              ),
+            ),
+            Positioned(
+              right: overlaySize.width - buttonTopLeft.dx - buttonSize.width,
+              bottom: overlaySize.height - buttonTopLeft.dy + 8,
+              child: Material(
+                type: MaterialType.transparency,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: (dark ? const Color(0xFF0D1A24) : Colors.white)
+                            .withValues(alpha: dark ? 0.86 : 0.95),
+                        border: Border.all(
+                          color: Colors.white.withValues(
+                            alpha: dark ? 0.18 : 0.42,
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.30),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          dismiss();
+                          cb();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 11,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.schedule_send_rounded,
+                                size: 18,
+                                color: scheme.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                l10n.schedule_message_long_press_hint,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: dark
+                                      ? Colors.white.withValues(alpha: 0.95)
+                                      : scheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    overlay.insert(_sendLongPressMenuEntry!);
   }
 
   void _closeAttachmentMenu() {
@@ -601,13 +720,13 @@ class _ChatComposerState extends State<ChatComposer> {
                             )
                           : (showSendButton
                                 ? GestureDetector(
-                                    onLongPress: widget.onSendLongPress,
+                                    onLongPress: widget.onSendLongPress == null
+                                        ? null
+                                        : _showSendLongPressMenu,
                                     child: IconButton(
+                                      key: _sendButtonKey,
                                       onPressed: widget.onSend,
                                       iconSize: 18,
-                                      tooltip: widget.onSendLongPress != null
-                                          ? 'Отправить (удерживайте для планирования)'
-                                          : null,
                                       icon: const Icon(
                                         Icons.send_rounded,
                                         color: Colors.white,

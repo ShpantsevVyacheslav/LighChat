@@ -1586,5 +1586,91 @@
   "edit_group_privacy_save_media": "Save media",
   "edit_group_privacy_save_media_desc": "Allow saving photos and videos to the device.",
   "edit_group_privacy_share_media": "Share media",
-  "edit_group_privacy_share_media_desc": "Allow sharing media files outside the app."
+  "edit_group_privacy_share_media_desc": "Allow sharing media files outside the app.",
+  "schedule_message_sheet_title": "Schedule message",
+  "schedule_message_long_press_hint": "Schedule send",
+  "schedule_message_preset_today_at": "Today at {time}",
+  "@schedule_message_preset_today_at": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "schedule_message_preset_tomorrow_at": "Tomorrow at {time}",
+  "@schedule_message_preset_tomorrow_at": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "schedule_message_will_send_at": "Will be sent: {datetime}",
+  "@schedule_message_will_send_at": {
+    "placeholders": {
+      "datetime": {"type": "String"}
+    }
+  },
+  "schedule_message_must_be_in_future": "Time must be in the future (at least one minute from now).",
+  "schedule_message_e2ee_warning": "This is an E2EE chat. The scheduled message will be stored on the server in plaintext and published without encryption.",
+  "schedule_message_cancel": "Cancel",
+  "schedule_message_confirm": "Schedule",
+  "schedule_message_save": "Save",
+  "schedule_message_text_required": "Type a message first",
+  "schedule_message_attachments_unsupported_mobile": "Scheduling attachments is currently supported only on web",
+  "schedule_message_scheduled_toast": "Scheduled: {datetime}",
+  "@schedule_message_scheduled_toast": {
+    "placeholders": {
+      "datetime": {"type": "String"}
+    }
+  },
+  "schedule_message_failed_toast": "Failed to schedule: {error}",
+  "@schedule_message_failed_toast": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "scheduled_messages_screen_title": "Scheduled messages",
+  "scheduled_messages_empty_title": "No scheduled messages",
+  "scheduled_messages_empty_hint": "Hold the Send button to schedule a message.",
+  "scheduled_messages_load_failed": "Failed to load: {error}",
+  "@scheduled_messages_load_failed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "scheduled_messages_e2ee_notice": "In an E2EE chat, scheduled messages are stored and published in plaintext.",
+  "scheduled_messages_cancel_dialog_title": "Cancel scheduled send?",
+  "scheduled_messages_cancel_dialog_body": "The scheduled message will be deleted.",
+  "scheduled_messages_cancel_dialog_keep": "Keep",
+  "scheduled_messages_cancel_dialog_confirm": "Cancel",
+  "scheduled_messages_canceled_toast": "Canceled",
+  "scheduled_messages_time_changed_toast": "Time changed: {datetime}",
+  "@scheduled_messages_time_changed_toast": {
+    "placeholders": {
+      "datetime": {"type": "String"}
+    }
+  },
+  "scheduled_messages_action_failed_toast": "Error: {error}",
+  "@scheduled_messages_action_failed_toast": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "scheduled_messages_tile_edit_tooltip": "Change time",
+  "scheduled_messages_tile_cancel_tooltip": "Cancel",
+  "scheduled_messages_preview_poll": "Poll: {question}",
+  "@scheduled_messages_preview_poll": {
+    "placeholders": {
+      "question": {"type": "String"}
+    }
+  },
+  "scheduled_messages_preview_location": "Location",
+  "scheduled_messages_preview_attachment": "Attachment",
+  "scheduled_messages_preview_attachment_count": "Attachment (×{count})",
+  "@scheduled_messages_preview_attachment_count": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "scheduled_messages_preview_message": "Message",
+  "chat_header_tooltip_scheduled": "Scheduled messages",
+  "schedule_date_label": "Date",
+  "schedule_time_label": "Time"
 }

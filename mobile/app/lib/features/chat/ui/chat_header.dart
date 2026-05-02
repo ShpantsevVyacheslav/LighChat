@@ -259,7 +259,7 @@ class ChatHeader extends StatelessWidget {
                     ),
                   ),
                   child: IconButton(
-                    tooltip: 'Запланированные сообщения',
+                    tooltip: l10n.chat_header_tooltip_scheduled,
                     onPressed: onScheduledTap,
                     iconSize: 17,
                     color: fg,

@@ -3071,4 +3071,138 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get edit_group_privacy_share_media_desc =>
       'Allow sharing media files outside the app.';
+
+  @override
+  String get schedule_message_sheet_title => 'Schedule message';
+
+  @override
+  String get schedule_message_long_press_hint => 'Schedule send';
+
+  @override
+  String schedule_message_preset_today_at(String time) {
+    return 'Today at $time';
+  }
+
+  @override
+  String schedule_message_preset_tomorrow_at(String time) {
+    return 'Tomorrow at $time';
+  }
+
+  @override
+  String schedule_message_will_send_at(String datetime) {
+    return 'Will be sent: $datetime';
+  }
+
+  @override
+  String get schedule_message_must_be_in_future =>
+      'Time must be in the future (at least one minute from now).';
+
+  @override
+  String get schedule_message_e2ee_warning =>
+      'This is an E2EE chat. The scheduled message will be stored on the server in plaintext and published without encryption.';
+
+  @override
+  String get schedule_message_cancel => 'Cancel';
+
+  @override
+  String get schedule_message_confirm => 'Schedule';
+
+  @override
+  String get schedule_message_save => 'Save';
+
+  @override
+  String get schedule_message_text_required => 'Type a message first';
+
+  @override
+  String get schedule_message_attachments_unsupported_mobile =>
+      'Scheduling attachments is currently supported only on web';
+
+  @override
+  String schedule_message_scheduled_toast(String datetime) {
+    return 'Scheduled: $datetime';
+  }
+
+  @override
+  String schedule_message_failed_toast(String error) {
+    return 'Failed to schedule: $error';
+  }
+
+  @override
+  String get scheduled_messages_screen_title => 'Scheduled messages';
+
+  @override
+  String get scheduled_messages_empty_title => 'No scheduled messages';
+
+  @override
+  String get scheduled_messages_empty_hint =>
+      'Hold the Send button to schedule a message.';
+
+  @override
+  String scheduled_messages_load_failed(String error) {
+    return 'Failed to load: $error';
+  }
+
+  @override
+  String get scheduled_messages_e2ee_notice =>
+      'In an E2EE chat, scheduled messages are stored and published in plaintext.';
+
+  @override
+  String get scheduled_messages_cancel_dialog_title => 'Cancel scheduled send?';
+
+  @override
+  String get scheduled_messages_cancel_dialog_body =>
+      'The scheduled message will be deleted.';
+
+  @override
+  String get scheduled_messages_cancel_dialog_keep => 'Keep';
+
+  @override
+  String get scheduled_messages_cancel_dialog_confirm => 'Cancel';
+
+  @override
+  String get scheduled_messages_canceled_toast => 'Canceled';
+
+  @override
+  String scheduled_messages_time_changed_toast(String datetime) {
+    return 'Time changed: $datetime';
+  }
+
+  @override
+  String scheduled_messages_action_failed_toast(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get scheduled_messages_tile_edit_tooltip => 'Change time';
+
+  @override
+  String get scheduled_messages_tile_cancel_tooltip => 'Cancel';
+
+  @override
+  String scheduled_messages_preview_poll(String question) {
+    return 'Poll: $question';
+  }
+
+  @override
+  String get scheduled_messages_preview_location => 'Location';
+
+  @override
+  String get scheduled_messages_preview_attachment => 'Attachment';
+
+  @override
+  String scheduled_messages_preview_attachment_count(int count) {
+    return 'Attachment (×$count)';
+  }
+
+  @override
+  String get scheduled_messages_preview_message => 'Message';
+
+  @override
+  String get chat_header_tooltip_scheduled => 'Scheduled messages';
+
+  @override
+  String get schedule_date_label => 'Date';
+
+  @override
+  String get schedule_time_label => 'Time';
 }
