@@ -1194,9 +1194,11 @@ class ScheduledChatMessage {
   final String? publishedMessageId;
 
   static DateTime _parseDate(Object? raw) {
-    if (raw is Timestamp) return raw.toDate();
+    if (raw is Timestamp) return raw.toDate().toLocal();
     if (raw is String && raw.isNotEmpty) {
-      return DateTime.tryParse(raw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final dt =
+          DateTime.tryParse(raw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return dt.toLocal();
     }
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
