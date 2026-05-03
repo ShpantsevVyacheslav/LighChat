@@ -311,13 +311,14 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         onChange={(e) => void onFilesChosen(e.target.files)}
       />
 
+      <div className="relative min-h-0 flex-1">
       {noPacksAtAll ? (
         <p className="text-center text-xs text-muted-foreground py-4 px-1">
           Нет стикерпаков. Создайте свой пак кнопкой «+» или попросите администратора добавить общие наборы в коллекцию{' '}
           <code className="text-[10px]">publicStickerPacks</code>.
         </p>
       ) : (
-        <ScrollArea className="h-56 pr-2">
+        <ScrollArea className="absolute inset-0 pr-2">
           {displayItemsLoading ? (
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -374,6 +375,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           )}
         </ScrollArea>
       )}
+      </div>
 
       <Dialog open={newPackOpen} onOpenChange={setNewPackOpen}>
         <DialogContent className="rounded-2xl sm:max-w-sm" onMouseDown={(e) => e.stopPropagation()}>

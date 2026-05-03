@@ -339,17 +339,19 @@ export function ChatStickerGifPanel({
           ) : null}
 
           {/* Emoji picker заполняет оставшееся пространство */}
-          <div className="min-h-0 flex-1">
+          <div className="relative min-h-0 flex-1">
             {onPickEmoji ? (
-              <EmojiPicker
-                onEmojiClick={(data) => onPickEmoji(data.emoji)}
-                width="100%"
-                height="100%"
-                theme={Theme.DARK}
-                searchPlaceholder="Поиск…"
-                lazyLoadEmojis
-                previewConfig={{ showPreview: false }}
-              />
+              <div className="absolute inset-0">
+                <EmojiPicker
+                  onEmojiClick={(data) => onPickEmoji(data.emoji)}
+                  width="100%"
+                  height="100%"
+                  theme={Theme.DARK}
+                  searchPlaceholder="Поиск…"
+                  lazyLoadEmojis
+                  previewConfig={{ showPreview: false }}
+                />
+              </div>
             ) : (
               <p className="py-6 text-center text-xs text-muted-foreground">
                 Эмодзи в текст недоступны для этого окна.
@@ -424,10 +426,11 @@ export function ChatStickerGifPanel({
           )}
 
           {/* Прокручиваемая область GIF — заполняет оставшееся место */}
+          <div className="relative min-h-0 flex-1">
           <div
             ref={gifScrollRef}
             onScroll={handleGifScroll}
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1"
+            className="absolute inset-0 overflow-y-auto overflow-x-hidden pr-1"
           >
             {gifLoading ? (
               <div className="flex h-32 items-center justify-center">
@@ -462,6 +465,7 @@ export function ChatStickerGifPanel({
                 )}
               </div>
             )}
+          </div>
           </div>
         </TabsContent>
       </Tabs>
@@ -768,46 +772,48 @@ function GiphyStickerLibrary({
         </p>
       )}
 
-      <div
-        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-        onScroll={handleScroll}
-      >
-        {loading ? (
-          <div className="flex h-32 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : items.length === 0 ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">
-            Ничего не найдено
-          </p>
-        ) : (
-          <>
-            <div className="grid grid-cols-4 gap-1.5 p-0.5">
-              {items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handlePick(item)}
-                  className="aspect-square overflow-hidden rounded-lg bg-muted/30 p-1 hover:ring-2 hover:ring-primary/40"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.url}
-                    alt=""
-                    className="h-full w-full object-contain"
-                    loading="lazy"
-                  />
-                </button>
-              ))}
+      <div className="relative min-h-0 flex-1">
+        <div
+          className="absolute inset-0 overflow-y-auto overflow-x-hidden"
+          onScroll={handleScroll}
+        >
+          {loading ? (
+            <div className="flex h-32 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-            {loadingMore && (
-              <div className="flex items-center justify-center py-3">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : items.length === 0 ? (
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              Ничего не найдено
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-4 gap-1.5 p-0.5">
+                {items.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handlePick(item)}
+                    className="aspect-square overflow-hidden rounded-lg bg-muted/30 p-1 hover:ring-2 hover:ring-primary/40"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.url}
+                      alt=""
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
               </div>
-            )}
-          </>
-        )}
+              {loadingMore && (
+                <div className="flex items-center justify-center py-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

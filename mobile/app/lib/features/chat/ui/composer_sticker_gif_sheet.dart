@@ -110,9 +110,14 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
 
   // GIPHY-стикеры (вкладка «Стикеры» → scope=library).
   final _libraryQueryController = TextEditingController();
+  final _libraryScrollController = ScrollController();
   Timer? _libraryDebounce;
   List<GiphyGifItem> _libraryItems = [];
   bool _libraryLoading = false;
+  bool _libraryLoadingMore = false;
+  bool _libraryHasMore = false;
+  int _libraryTotal = 0;
+  String _libraryLastQuery = '';
   String? _libraryActiveFilter;
   String? _libraryTranslatedHint;
 
@@ -126,6 +131,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifScrollController.addListener(_onGifScroll);
     _libraryQueryController.addListener(_scheduleLibrarySearch);
     _libraryQueryController.addListener(_onLibraryQueryChanged);
+    _libraryScrollController.addListener(_onLibraryScroll);
     _loadInitialData();
   }
 
@@ -133,9 +139,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _libraryDebounce?.cancel();
     _libraryDebounce = Timer(const Duration(milliseconds: 350), () async {
       final raw = _libraryQueryController.text.trim();
-      // Если поле пустое и нет активного фильтра — показываем trending из кеша.
       final effective = raw.isEmpty ? (_libraryActiveFilter ?? '') : raw;
-      // Кеш по (stickers, query) — TTL 24h.
+      _libraryLastQuery = effective;
       final cached =
           await GiphyCacheStore.instance.get(GiphyType.stickers, effective);
       if (cached != null && cached.isNotEmpty) {
@@ -143,6 +148,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           setState(() {
             _libraryItems = cached;
             _libraryLoading = false;
+            _libraryTotal = cached.length;
+            _libraryHasMore = true;
             _libraryTranslatedHint = null;
           });
         }
@@ -155,6 +162,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       setState(() {
         _libraryLoading = false;
         _libraryItems = r.items;
+        _libraryTotal = r.total;
+        _libraryHasMore = r.hasMore;
         _libraryTranslatedHint = (r.translatedFrom != null &&
                 r.effectiveQuery != null &&
                 r.effectiveQuery != r.translatedFrom)
@@ -172,6 +181,40 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     setState(() => _libraryActiveFilter = emoji);
     _libraryQueryController.clear();
     _scheduleLibrarySearch();
+  }
+
+  void _onLibraryScroll() {
+    if (!_libraryHasMore || _libraryLoadingMore || _libraryLoading) return;
+    final pos = _libraryScrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 300) {
+      unawaited(_loadMoreLibraryStickers());
+    }
+  }
+
+  Future<void> _loadMoreLibraryStickers() async {
+    if (_libraryLoadingMore || !_libraryHasMore) return;
+    setState(() => _libraryLoadingMore = true);
+    final r = await searchGifs(
+      _libraryLastQuery,
+      type: GiphyType.stickers,
+      offset: _libraryItems.length,
+    );
+    if (!mounted) return;
+    final merged = <GiphyGifItem>[..._libraryItems];
+    final existingIds = merged.map((e) => e.id).toSet();
+    for (final it in r.items) {
+      if (!existingIds.contains(it.id)) merged.add(it);
+    }
+    setState(() {
+      _libraryItems = merged;
+      _libraryLoadingMore = false;
+      _libraryTotal = r.total > 0 ? r.total : _libraryTotal;
+      _libraryHasMore = merged.length < _libraryTotal;
+    });
+    if (merged.isNotEmpty) {
+      unawaited(GiphyCacheStore.instance
+          .save(GiphyType.stickers, _libraryLastQuery, merged));
+    }
   }
 
   void _onGifScroll() {
@@ -219,13 +262,32 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     ]);
   }
 
-  /// Загружает trending GIPHY-стикеры для вкладки «Стикеры → GIPHY».
   Future<void> _bootstrapLibraryStickers() async {
     final cached =
         await GiphyCacheStore.instance.getTrending(GiphyType.stickers);
     if (cached != null && cached.isNotEmpty) {
-      if (mounted) setState(() => _libraryItems = cached);
+      if (mounted) {
+        setState(() {
+          _libraryItems = cached;
+          _libraryTotal = cached.length;
+          _libraryHasMore = true;
+        });
+      }
       return;
+    }
+    if (!mounted) return;
+    setState(() => _libraryLoading = true);
+    final r = await searchGifs('', type: GiphyType.stickers);
+    if (!mounted) return;
+    setState(() {
+      _libraryLoading = false;
+      _libraryItems = r.items;
+      _libraryTotal = r.total;
+      _libraryHasMore = r.hasMore;
+    });
+    if (r.items.isNotEmpty) {
+      unawaited(GiphyCacheStore.instance
+          .saveTrending(GiphyType.stickers, r.items));
     }
   }
 
@@ -303,6 +365,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _libraryQueryController.removeListener(_scheduleLibrarySearch);
     _libraryQueryController.removeListener(_onLibraryQueryChanged);
     _libraryQueryController.dispose();
+    _libraryScrollController.removeListener(_onLibraryScroll);
+    _libraryScrollController.dispose();
     _tabs.dispose();
     super.dispose();
   }
@@ -1390,42 +1454,69 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         ),
                       ),
                     )
-                  : GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                      itemCount: _libraryItems.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        mainAxisSpacing: 6,
-                        crossAxisSpacing: 6,
-                      ),
-                      itemBuilder: (context, i) {
-                        final item = _libraryItems[i];
-                        return Material(
-                          color: Colors.white.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(10),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () {
-                              widget.onPickAttachment(
-                                giphyItemToSendAttachment(item,
-                                    asSticker: true),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: CachedNetworkImage(
-                                imageUrl: item.url,
-                                fit: BoxFit.contain,
-                                placeholder: (_, _) =>
-                                    const SizedBox.shrink(),
-                                errorWidget: (_, _, _) =>
-                                    const SizedBox.shrink(),
-                              ),
+                  : CustomScrollView(
+                      controller: _libraryScrollController,
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              mainAxisSpacing: 6,
+                              crossAxisSpacing: 6,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, i) {
+                                final item = _libraryItems[i];
+                                return Material(
+                                  color: Colors.white.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(10),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
+                                    onTap: () {
+                                      widget.onPickAttachment(
+                                        giphyItemToSendAttachment(item,
+                                            asSticker: true),
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(4),
+                                      child: CachedNetworkImage(
+                                        imageUrl: item.url,
+                                        fit: BoxFit.contain,
+                                        placeholder: (_, _) =>
+                                            const SizedBox.shrink(),
+                                        errorWidget: (_, _, _) =>
+                                            const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              childCount: _libraryItems.length,
                             ),
                           ),
-                        );
-                      },
+                        ),
+                        if (_libraryLoadingMore)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: 12),
+                          ),
+                      ],
                     ),
         ),
       ],
