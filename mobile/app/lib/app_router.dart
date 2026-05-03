@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -43,9 +46,31 @@ import 'features/chat/ui/thread_route_payload.dart';
 import 'features/welcome/data/first_login_animation_storage.dart';
 import 'features/welcome/ui/welcome_animation_screen.dart';
 
+/// Notifier, который дёргает GoRouter на пересчёт redirect-ов при изменении
+/// auth-стейта. Без этого при cold-start с persistent Firebase session первый
+/// redirect видит `currentUser == null` (ещё не восстановлен), и welcome-чек
+/// не срабатывает; повторный redirect после восстановления auth не
+/// запускается автоматически.
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier() {
+    _sub = FirebaseAuth.instance.authStateChanges().listen((_) {
+      notifyListeners();
+    });
+  }
+
+  late final StreamSubscription<User?> _sub;
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}
+
 GoRouter createRouter() {
   return GoRouter(
     initialLocation: '/chats',
+    refreshListenable: _AuthRefreshNotifier(),
     redirect: (context, state) async {
       final uri = state.uri;
       final isSignedIn = FirebaseAuth.instance.currentUser != null;
@@ -82,6 +107,11 @@ GoRouter createRouter() {
               !isCallDeepLink &&
               !isMeetingDeepLink) {
             final shown = await FirstLoginAnimationStorage.isShownFor(uid);
+            if (kDebugMode) {
+              debugPrint(
+                '[welcome-redirect] path=$path uid=$uid shown=$shown',
+              );
+            }
             if (!shown) return '/welcome';
           }
         }
