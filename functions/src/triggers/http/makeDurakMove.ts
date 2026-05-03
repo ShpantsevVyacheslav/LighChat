@@ -52,6 +52,42 @@ function sanitizeForFirestore<T>(input: T, label: string): T {
   }
 }
 
+// Firestore disallows arrays nested directly inside other arrays.
+// state.finishGroups is `string[][]` (groups of uids who went out together);
+// stored as `{ uids: string[] }[]` to satisfy this restriction.
+function encodeStateForFirestore(state: any): any {
+  if (!state || typeof state !== "object") return state;
+  const out: any = { ...state };
+  if (Array.isArray(state.finishGroups)) {
+    out.finishGroups = state.finishGroups.map((group: unknown) =>
+      Array.isArray(group) ? { uids: group.map((u) => String(u)) } : group,
+    );
+  }
+  return out;
+}
+
+function decodeStateFromFirestore(state: any): any {
+  if (!state || typeof state !== "object") return state;
+  const groupsRaw = (state as any).finishGroups;
+  if (!Array.isArray(groupsRaw)) return state;
+  let needsRewrite = false;
+  const groups: string[][] = [];
+  for (const g of groupsRaw) {
+    if (Array.isArray(g)) {
+      groups.push(g.map((u) => String(u)));
+    } else if (g && typeof g === "object" && Array.isArray((g as any).uids)) {
+      needsRewrite = true;
+      groups.push(((g as any).uids as unknown[]).map((u) => String(u)));
+    } else {
+      needsRewrite = true;
+    }
+  }
+  if (needsRewrite || groups.length !== groupsRaw.length) {
+    return { ...state, finishGroups: groups };
+  }
+  return state;
+}
+
 type RequestData = {
   gameId?: unknown;
   clientMoveId?: unknown;
@@ -114,8 +150,9 @@ export const makeDurakMove = onCall(
       if (playerIds.length < 2) throw new HttpsError("failed-precondition", "NEED_AT_LEAST_2_PLAYERS");
       if (!playerIds.includes(uid)) throw new HttpsError("permission-denied", "NOT_A_PLAYER");
 
-      const state = (g.serverState && typeof g.serverState === "object") ? (g.serverState as any) : null;
-      if (!state) throw new HttpsError("failed-precondition", "GAME_STATE_MISSING");
+      const stateRaw = (g.serverState && typeof g.serverState === "object") ? (g.serverState as any) : null;
+      if (!stateRaw) throw new HttpsError("failed-precondition", "GAME_STATE_MISSING");
+      const state = decodeStateFromFirestore(stateRaw);
       const settings = (g.settings && typeof g.settings === "object") ? (g.settings as any) : {};
 
       // Heal potentially stale/invalid seat data before move processing.
@@ -362,7 +399,10 @@ export const makeDurakMove = onCall(
         );
       }
 
-      const sanitizedState = sanitizeForFirestore(state, "serverState");
+      const sanitizedState = sanitizeForFirestore(
+        encodeStateForFirestore(state),
+        "serverState",
+      );
       const sanitizedPublicView = sanitizeForFirestore(
         buildPublicView({
           state,
