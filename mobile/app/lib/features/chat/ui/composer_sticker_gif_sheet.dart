@@ -363,19 +363,29 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     );
     if (!mounted) return;
     final merged = <GiphyGifItem>[..._animEmojis];
+    // Дедуп по id и url — защита от случая когда GIPHY возвращает
+    // одну и ту же позицию с разными внутренними id (или наоборот).
     final existingIds = merged.map((e) => e.id).toSet();
+    final existingUrls = merged.map((e) => e.url).toSet();
     for (final it in r.items) {
-      if (!existingIds.contains(it.id)) merged.add(it);
+      if (existingIds.contains(it.id) || existingUrls.contains(it.url)) {
+        continue;
+      }
+      merged.add(it);
+      existingIds.add(it.id);
+      existingUrls.add(it.url);
     }
+    final addedCount = merged.length - _animEmojis.length;
     setState(() {
       _animEmojis = merged;
       _animEmojisLoadingMore = false;
-      // Останавливаемся когда сервер сказал «больше нет» или пришла пустая
-      // страница (защита от бесконечного фетча на конце GIPHY).
-      _animEmojisHasMore = r.items.isNotEmpty && r.hasMore;
+      // Останавливаемся когда сервер сказал «больше нет», пришла пустая
+      // страница, или вся страница оказалась дубликатами (защита от
+      // бесконечного фетча на конце GIPHY).
+      _animEmojisHasMore = addedCount > 0 && r.hasMore;
     });
-    // Аккумулируем все страницы под тем же кеш-ключом — при следующем
-    // открытии шторки в течение 24h всё уже подгруженное вернётся мгновенно.
+    // Эмодзи-кеш: TTL не применяется (см. GiphyCacheStore), поэтому
+    // накопленный список доступен между сессиями навсегда.
     if (merged.isNotEmpty) {
       unawaited(
           GiphyCacheStore.instance.saveTrending(GiphyType.emoji, merged));

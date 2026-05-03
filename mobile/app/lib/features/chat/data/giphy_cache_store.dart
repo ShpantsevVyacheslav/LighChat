@@ -31,11 +31,18 @@ class GiphyCacheStore {
 
   /// Возвращает закешированные items для пары `(type, query)`, если запись
   /// не старше 24h. Иначе null.
+  ///
+  /// **Исключение**: для `GiphyType.emoji` (анимированные эмодзи) TTL
+  /// не применяется — каталог GIPHY-эмодзи стабильный, новые позиции
+  /// добираются только через пагинацию (см. `_loadMoreAnimEmojis`),
+  /// а старые остаются в кеше навсегда.
   Future<List<GiphyGifItem>?> get(GiphyType type, String query) async {
     final all = await _loadAll();
     final entry = all[_cacheKey(type, query)];
     if (entry == null) return null;
-    if (DateTime.now().millisecondsSinceEpoch - entry.ts > _kTtl.inMilliseconds) {
+    if (type != GiphyType.emoji &&
+        DateTime.now().millisecondsSinceEpoch - entry.ts >
+            _kTtl.inMilliseconds) {
       return null;
     }
     return entry.items;
@@ -56,10 +63,14 @@ class GiphyCacheStore {
       items: items,
     );
     if (all.length > _kMaxKeys) {
-      final sorted = all.entries.toList()
+      // Эмодзи-ключи (`emoji:*`) защищены от LRU-вытеснения — каталог
+      // эмодзи строится навсегда, его нельзя терять.
+      final sorted = all.entries
+          .where((e) => !e.key.startsWith('emoji:'))
+          .toList()
         ..sort((a, b) => a.value.ts.compareTo(b.value.ts));
-      final toRemove = sorted.length - _kMaxKeys;
-      for (var i = 0; i < toRemove; i++) {
+      final toRemove = all.length - _kMaxKeys;
+      for (var i = 0; i < toRemove && i < sorted.length; i++) {
         all.remove(sorted[i].key);
       }
     }

@@ -62,16 +62,22 @@ function saveAll(all: Record<string, CacheEntry>) {
 }
 
 export const giphyCache = {
-  /** Возвращает items для пары (type, query) если запись не старше 24h. */
+  /** Возвращает items для пары (type, query) если запись не старше 24h.
+   *
+   *  Исключение: для type='emoji' (анимированные эмодзи) TTL не применяется —
+   *  каталог стабильный, новые позиции добираются только пагинацией,
+   *  а старые остаются в кеше навсегда.
+   */
   get(type: GiphyType, query: string): GiphyItem[] | null {
     const all = loadAll();
     const entry = all[makeKey(type, query)];
     if (!entry) return null;
-    if (Date.now() - entry.ts > TTL_MS) return null;
+    if (type !== 'emoji' && Date.now() - entry.ts > TTL_MS) return null;
     return Array.isArray(entry.items) ? entry.items : null;
   },
 
-  /** Сохраняет items по (type, query). LRU: при > 20 ключей удаляем самые старые. */
+  /** Сохраняет items по (type, query). LRU: при > 20 ключей удаляем самые старые.
+   *  Эмодзи-ключи (`emoji:*`) защищены от вытеснения. */
   save(type: GiphyType, query: string, items: GiphyItem[]) {
     if (!items.length) return;
     const all = loadAll();
@@ -79,10 +85,13 @@ export const giphyCache = {
     const keys = Object.keys(all);
     if (keys.length > MAX_KEYS) {
       const sorted = keys
+        .filter((k) => !k.startsWith('emoji:'))
         .map((k) => ({ k, ts: all[k].ts ?? 0 }))
         .sort((a, b) => a.ts - b.ts);
-      const toRemove = sorted.length - MAX_KEYS;
-      for (let i = 0; i < toRemove; i++) delete all[sorted[i].k];
+      const toRemove = keys.length - MAX_KEYS;
+      for (let i = 0; i < toRemove && i < sorted.length; i++) {
+        delete all[sorted[i].k];
+      }
     }
     saveAll(all);
   },

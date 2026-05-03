@@ -167,16 +167,29 @@ export function ChatStickerGifPanel({
       setAnimEmojisHasMore(false);
       return;
     }
+    let addedCount = 0;
     setAnimEmojis((prev) => {
+      // Дедуп по id и url — защита от случая когда GIPHY возвращает
+      // одну и ту же позицию с разными id (или наоборот, разные с одним url).
       const ids = new Set(prev.map((a) => a.id));
+      const urls = new Set(prev.map((a) => a.url));
       const merged = [...prev];
-      for (const it of next) if (!ids.has(it.id)) merged.push(it);
-      // Аккумулируем все страницы под тем же ключом, чтобы при следующем
-      // открытии шторки в течение 24h всё уже подгруженное вернулось мгновенно.
+      for (const it of next) {
+        if (ids.has(it.id) || urls.has(it.url)) continue;
+        merged.push(it);
+        ids.add(it.id);
+        urls.add(it.url);
+      }
+      addedCount = merged.length - prev.length;
+      // Эмодзи-кеш живёт навсегда (TTL не применяется в giphyCache.get
+      // для type='emoji'). Накопленный список переписывается каждой
+      // страницей и доступен между сессиями.
       giphyCache.saveTrending('emoji', merged);
       return merged;
     });
-    setAnimEmojisHasMore(r.hasMore ?? next.length > 0);
+    // Если страница оказалась полностью дублирующей — стоп, чтобы не
+    // зациклиться на хвосте каталога GIPHY.
+    setAnimEmojisHasMore(addedCount > 0 && (r.hasMore ?? false));
   }, [animEmojisLoadingMore, animEmojisHasMore, animEmojis.length]);
 
   const handleAnimEmojisScroll = useCallback(
