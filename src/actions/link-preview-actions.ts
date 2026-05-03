@@ -32,7 +32,7 @@ export async function getLinkMetadata(url: string) {
       timeout: 10000,
       fetchOptions: {
         headers: {
-          'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'user-agent': 'Mozilla/5.0 (compatible; LighChatBot/1.0; +https://ligh.chat) facebookexternalhit/1.1',
           'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
         },
@@ -51,12 +51,19 @@ export async function getLinkMetadata(url: string) {
 
     // Map result to a clean interface for the frontend
     // ogs provides a very rich set of data, we pick the most useful ones
+    const ogVideo = result.ogVideo?.[0];
+    const twitterPlayer = result.twitterPlayer?.[0];
+    const videoUrl = ogVideo?.url || twitterPlayer?.url || null;
+    const videoType = ogVideo?.type || null;
+
     const metadata = {
       title: clean(result.ogTitle || result.twitterTitle || result.dcTitle || result.requestUrl),
       description: clean(result.ogDescription || result.twitterDescription || result.dcDescription),
       image: result.ogImage?.[0]?.url || result.twitterImage?.[0]?.url || null,
       siteName: clean(result.ogSiteName || result.twitterSite || result.alIosAppName),
       url: targetUrl,
+      videoUrl: videoUrl || null,
+      videoType: clean(videoType),
     };
 
     // If we don't even have a title or description, it's not a very good preview
