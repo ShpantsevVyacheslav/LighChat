@@ -6,7 +6,6 @@ import { Theme } from 'emoji-picker-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, BookmarkPlus, X, History, Sparkles } from 'lucide-react';
 import { UserStickersTab } from '@/components/chat/UserStickersTab';
 import { StickerPackPickerDialog } from '@/components/chat/StickerPackPickerDialog';
@@ -92,6 +91,20 @@ export function ChatStickerGifPanel({
   const [activeEmojiFilter, setActiveEmojiFilter] = useState<string | null>(null);
   const [translatedHint, setTranslatedHint] = useState<string | null>(null);
   const gifScrollRef = useRef<HTMLDivElement>(null);
+
+  // Динамическая высота emoji-picker — он не уважает height="100%".
+  const emojiHostRef = useRef<HTMLDivElement>(null);
+  const [emojiPickerHeight, setEmojiPickerHeight] = useState<number>(360);
+  useEffect(() => {
+    const el = emojiHostRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect.height;
+      if (h && h > 100) setEmojiPickerHeight(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const [animEmojis, setAnimEmojis] = useState<GiphyItem[]>([]);
   const [animEmojisLoading, setAnimEmojisLoading] = useState(false);
@@ -287,25 +300,38 @@ export function ChatStickerGifPanel({
   const showRecent =
     recentGifs.length > 0 && gifQuery.trim().length < 1 && activeEmojiFilter === null;
 
+  // Свой state-based таб-контроллер вместо Radix Tabs.
+  // Radix-Tabs при цепочке flex-1 + min-h-0 не растягивает активный TabsContent
+  // надёжно, из-за чего контент сжимался к низу панели.
+  const [activeTab, setActiveTab] = useState<'emoji' | 'stickers' | 'gif'>('emoji');
+  const tabBtn = (value: typeof activeTab, label: string) => (
+    <button
+      type="button"
+      onClick={() => setActiveTab(value)}
+      className={cn(
+        'flex-1 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors',
+        activeTab === value
+          ? 'bg-background text-foreground shadow-sm'
+          : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      {label}
+    </button>
+  );
+
   // ============ UI ============
 
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col gap-2', className)}>
-      <Tabs defaultValue="emoji" className="flex min-h-0 flex-1 flex-col w-full">
-        <TabsList className="grid w-full shrink-0 grid-cols-3 rounded-xl">
-          <TabsTrigger value="emoji" className="rounded-lg text-xs font-bold uppercase tracking-wide">
-            Эмодзи
-          </TabsTrigger>
-          <TabsTrigger value="stickers" className="rounded-lg text-xs font-bold uppercase tracking-wide">
-            Стикеры
-          </TabsTrigger>
-          <TabsTrigger value="gif" className="rounded-lg text-xs font-bold uppercase tracking-wide">
-            GIF
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex shrink-0 gap-1 rounded-xl bg-muted p-1">
+        {tabBtn('emoji', 'Эмодзи')}
+        {tabBtn('stickers', 'Стикеры')}
+        {tabBtn('gif', 'GIF')}
+      </div>
 
-        {/* ============ EMOJI TAB ============ */}
-        <TabsContent value="emoji" className="mt-2 flex min-h-0 flex-1 flex-col gap-2 outline-none">
+      {/* ============ EMOJI TAB ============ */}
+      {activeTab === 'emoji' && (
+        <div className="flex min-h-0 flex-1 flex-col gap-2 outline-none">
           {/* Анимированные эмодзи — горизонтальная строка с прокруткой */}
           {animEmojisLoading ? (
             <div className="flex h-16 shrink-0 items-center justify-center">
@@ -338,35 +364,40 @@ export function ChatStickerGifPanel({
             </div>
           ) : null}
 
-          {/* Emoji picker заполняет оставшееся пространство */}
-          <div className="relative min-h-0 flex-1">
+          {/* Emoji picker заполняет оставшееся пространство.
+              emoji-picker-react требует пиксельный height (`100%` не растягивается
+              корректно через цепочку flex-1 + Radix Tabs). Считаем динамически
+              в `_emojiPickerHeight` через ResizeObserver. */}
+          <div ref={emojiHostRef} className="min-h-0 flex-1">
             {onPickEmoji ? (
-              <div className="absolute inset-0">
-                <EmojiPicker
-                  onEmojiClick={(data) => onPickEmoji(data.emoji)}
-                  width="100%"
-                  height="100%"
-                  theme={Theme.DARK}
-                  searchPlaceholder="Поиск…"
-                  lazyLoadEmojis
-                  previewConfig={{ showPreview: false }}
-                />
-              </div>
+              <EmojiPicker
+                onEmojiClick={(data) => onPickEmoji(data.emoji)}
+                width="100%"
+                height={emojiPickerHeight}
+                theme={Theme.DARK}
+                searchPlaceholder="Поиск…"
+                lazyLoadEmojis
+                previewConfig={{ showPreview: false }}
+              />
             ) : (
               <p className="py-6 text-center text-xs text-muted-foreground">
                 Эмодзи в текст недоступны для этого окна.
               </p>
             )}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ============ STICKERS TAB ============ */}
-        <TabsContent value="stickers" className="mt-2 flex min-h-0 flex-1 flex-col outline-none">
+      {/* ============ STICKERS TAB ============ */}
+      {activeTab === 'stickers' && (
+        <div className="flex min-h-0 flex-1 flex-col outline-none">
           <StickersTabBody userId={userId} onPickSticker={onPickStickerAttachment} className="flex-1 min-h-0" />
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ============ GIF TAB ============ */}
-        <TabsContent value="gif" className="mt-2 flex min-h-0 flex-1 flex-col gap-2 outline-none">
+      {/* ============ GIF TAB ============ */}
+      {activeTab === 'gif' && (
+        <div className="flex min-h-0 flex-1 flex-col gap-2 outline-none">
           {/* Поиск */}
           <div className="relative shrink-0">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -426,11 +457,10 @@ export function ChatStickerGifPanel({
           )}
 
           {/* Прокручиваемая область GIF — заполняет оставшееся место */}
-          <div className="relative min-h-0 flex-1">
           <div
             ref={gifScrollRef}
             onScroll={handleGifScroll}
-            className="absolute inset-0 overflow-y-auto overflow-x-hidden pr-1"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1"
           >
             {gifLoading ? (
               <div className="flex h-32 items-center justify-center">
@@ -466,9 +496,8 @@ export function ChatStickerGifPanel({
               </div>
             )}
           </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <StickerPackPickerDialog
         open={packPickerOpen}
@@ -772,11 +801,10 @@ function GiphyStickerLibrary({
         </p>
       )}
 
-      <div className="relative min-h-0 flex-1">
-        <div
-          className="absolute inset-0 overflow-y-auto overflow-x-hidden"
-          onScroll={handleScroll}
-        >
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+        onScroll={handleScroll}
+      >
           {loading ? (
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -813,7 +841,6 @@ function GiphyStickerLibrary({
               )}
             </>
           )}
-        </div>
       </div>
     </div>
   );
