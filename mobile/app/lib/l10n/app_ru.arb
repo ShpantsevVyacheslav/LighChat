@@ -3820,5 +3820,90 @@
     }
   },
   "meeting_participant_screen": "Экран",
-  "meeting_participant_speaking": "Говорит"
+  "meeting_participant_speaking": "Говорит",
+
+  "nav_error_title": "Ошибка навигации",
+  "nav_error_invalid_secret_compose": "Некорректная навигация секретного чата",
+
+  "sign_in_title": "Вход",
+  "sign_in_firebase_ready": "Firebase инициализирован. Можно войти.",
+  "sign_in_firebase_not_ready": "Firebase не готов. Проверьте логи и firebase_options.dart.",
+  "sign_in_continue": "Продолжить",
+  "sign_in_anonymously": "Войти анонимно",
+  "sign_in_auth_error": "Ошибка авторизации: {error}",
+  "@sign_in_auth_error": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "group_not_found": "Группа не найдена.",
+  "group_not_member": "Вы не являетесь участником этой группы.",
+  "generic_error": "Ошибка: {error}",
+  "@generic_error": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "storage_label_video": "Видео",
+  "storage_label_photo": "Фото",
+  "storage_label_files": "Файлы",
+  "storage_label_other": "Другое",
+  "storage_label_draft": "Черновик · {key}",
+  "@storage_label_draft": {
+    "placeholders": {
+      "key": { "type": "String" }
+    }
+  },
+  "storage_label_offline_snapshot": "Офлайн-снимок списка чатов",
+  "storage_label_profile_cache": "Кэш профиля · {name}",
+  "@storage_label_profile_cache": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "call_mini_end": "Завершить звонок",
+
+  "animation_quality_lite": "Лёгкий",
+  "animation_quality_balanced": "Сбалансированный",
+  "animation_quality_cinematic": "Кинематографический",
+
+  "crop_aspect_original": "Оригинал",
+  "crop_aspect_square": "Квадрат",
+
+  "push_notification_title": "Разрешить уведомления",
+  "push_notification_rationale": "Для входящих звонков приложению нужны уведомления.",
+  "push_notification_required": "Включите уведомления для отображения входящих звонков.",
+  "push_notification_grant": "Разрешить",
+  "push_call_accept": "Принять",
+  "push_call_decline": "Отклонить",
+  "push_channel_incoming_calls": "Входящие звонки",
+  "push_channel_missed_calls": "Пропущенные звонки",
+  "push_channel_messages": "Сообщения",
+  "push_channel_messages_desc": "Новые сообщения в чатах",
+  "push_channel_silent": "Сообщения без звука",
+  "push_channel_silent_desc": "Push без звука",
+  "push_caller_unknown": "Кто-то",
+
+  "outbox_attachment_single": "Вложение",
+  "outbox_attachment_count": "Вложения ({count})",
+  "@outbox_attachment_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "outbox_chat_unavailable": "Сервис чата недоступен",
+  "outbox_encryption_error": "Шифрование: {code}",
+  "@outbox_encryption_error": {
+    "placeholders": {
+      "code": { "type": "String" }
+    }
+  },
+
+  "bottom_nav_label_chats": "Чаты",
+  "bottom_nav_label_contacts": "Контакты",
+  "bottom_nav_label_conferences": "Конференции",
+  "bottom_nav_label_calls": "Звонки"
 }

@@ -318,7 +318,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 Expanded(
                                   child: _SocialAuthIconTile(
                                     dark: dark,
-                                    tooltip: 'Яндекс',
+                                    tooltip: 'Yandex',
                                     onPressed: (!firebaseReady || _busy)
                                         ? null
                                         : () {

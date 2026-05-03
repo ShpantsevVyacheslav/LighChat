@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'push_notification_payload.dart';
 
 /// Локальные уведомления для FCM data-only (как web `firebase-messaging-sw.js`).
@@ -20,23 +21,27 @@ class PushLocalNotificationsFacade {
   static const String channelSoundId = 'lighchat_chat';
   static const String channelSilentId = 'lighchat_chat_silent';
 
-  static const AndroidNotificationChannel _channelSound =
-      AndroidNotificationChannel(
-        channelSoundId,
-        'Сообщения',
-        description: 'Новые сообщения в чатах',
-        importance: Importance.high,
-      );
+  static AndroidNotificationChannel get _channelSound {
+    final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
+    return AndroidNotificationChannel(
+      channelSoundId,
+      l10n.push_channel_messages,
+      description: l10n.push_channel_messages_desc,
+      importance: Importance.high,
+    );
+  }
 
-  static const AndroidNotificationChannel _channelSilent =
-      AndroidNotificationChannel(
-        channelSilentId,
-        'Сообщения без звука',
-        description: 'Push без звука',
-        importance: Importance.defaultImportance,
-        playSound: false,
-        enableVibration: false,
-      );
+  static AndroidNotificationChannel get _channelSilent {
+    final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
+    return AndroidNotificationChannel(
+      channelSilentId,
+      l10n.push_channel_silent,
+      description: l10n.push_channel_silent_desc,
+      importance: Importance.defaultImportance,
+      playSound: false,
+      enableVibration: false,
+    );
+  }
 
   static Future<void> _ensureAndroidChannels() async {
     final android = _plugin

@@ -1608,7 +1608,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         children: [
                           Expanded(
                             child: _SegmentButton(
-                              label: 'Lite',
+                              label: l10n.animation_quality_lite,
                               active:
                                   s.emojiBurstAnimationProfile ==
                                   chatEmojiBurstAnimationProfileLite,
@@ -1627,7 +1627,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _SegmentButton(
-                              label: 'Balanced',
+                              label: l10n.animation_quality_balanced,
                               active:
                                   s.emojiBurstAnimationProfile ==
                                   chatEmojiBurstAnimationProfileBalanced,
@@ -1646,7 +1646,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _SegmentButton(
-                              label: 'Cinematic',
+                              label: l10n.animation_quality_cinematic,
                               active:
                                   s.emojiBurstAnimationProfile ==
                                   chatEmojiBurstAnimationProfileCinematic,

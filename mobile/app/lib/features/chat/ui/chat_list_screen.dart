@@ -1745,7 +1745,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   ? null
                                   : chatMainDraftPreviewLine(draft, l10nList);
                               final isEmptyConversation =
-                                  lastAt == null && rawLast.isEmpty;
+                                  rawLast.isEmpty;
                               final isNewlyCreatedAfterClear =
                                   isEmptyConversation && clearedAt != null;
                               final subtitle =

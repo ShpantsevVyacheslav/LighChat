@@ -13057,6 +13057,246 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Говорит'**
   String get meeting_participant_speaking;
+
+  /// No description provided for @nav_error_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка навигации'**
+  String get nav_error_title;
+
+  /// No description provided for @nav_error_invalid_secret_compose.
+  ///
+  /// In ru, this message translates to:
+  /// **'Некорректная навигация секретного чата'**
+  String get nav_error_invalid_secret_compose;
+
+  /// No description provided for @sign_in_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вход'**
+  String get sign_in_title;
+
+  /// No description provided for @sign_in_firebase_ready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Firebase инициализирован. Можно войти.'**
+  String get sign_in_firebase_ready;
+
+  /// No description provided for @sign_in_firebase_not_ready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Firebase не готов. Проверьте логи и firebase_options.dart.'**
+  String get sign_in_firebase_not_ready;
+
+  /// No description provided for @sign_in_continue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продолжить'**
+  String get sign_in_continue;
+
+  /// No description provided for @sign_in_anonymously.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти анонимно'**
+  String get sign_in_anonymously;
+
+  /// No description provided for @sign_in_auth_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка авторизации: {error}'**
+  String sign_in_auth_error(String error);
+
+  /// No description provided for @generic_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка: {error}'**
+  String generic_error(String error);
+
+  /// No description provided for @storage_label_video.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео'**
+  String get storage_label_video;
+
+  /// No description provided for @storage_label_photo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото'**
+  String get storage_label_photo;
+
+  /// No description provided for @storage_label_files.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файлы'**
+  String get storage_label_files;
+
+  /// No description provided for @storage_label_other.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другое'**
+  String get storage_label_other;
+
+  /// No description provided for @storage_label_draft.
+  ///
+  /// In ru, this message translates to:
+  /// **'Черновик · {key}'**
+  String storage_label_draft(String key);
+
+  /// No description provided for @storage_label_offline_snapshot.
+  ///
+  /// In ru, this message translates to:
+  /// **'Офлайн-снимок списка чатов'**
+  String get storage_label_offline_snapshot;
+
+  /// No description provided for @storage_label_profile_cache.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кэш профиля · {name}'**
+  String storage_label_profile_cache(String name);
+
+  /// No description provided for @call_mini_end.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершить звонок'**
+  String get call_mini_end;
+
+  /// No description provided for @animation_quality_lite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лёгкий'**
+  String get animation_quality_lite;
+
+  /// No description provided for @animation_quality_balanced.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сбалансированный'**
+  String get animation_quality_balanced;
+
+  /// No description provided for @animation_quality_cinematic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кинематографический'**
+  String get animation_quality_cinematic;
+
+  /// No description provided for @crop_aspect_original.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оригинал'**
+  String get crop_aspect_original;
+
+  /// No description provided for @crop_aspect_square.
+  ///
+  /// In ru, this message translates to:
+  /// **'Квадрат'**
+  String get crop_aspect_square;
+
+  /// No description provided for @push_notification_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить уведомления'**
+  String get push_notification_title;
+
+  /// No description provided for @push_notification_rationale.
+  ///
+  /// In ru, this message translates to:
+  /// **'Для входящих звонков приложению нужны уведомления.'**
+  String get push_notification_rationale;
+
+  /// No description provided for @push_notification_required.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включите уведомления для отображения входящих звонков.'**
+  String get push_notification_required;
+
+  /// No description provided for @push_notification_grant.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить'**
+  String get push_notification_grant;
+
+  /// No description provided for @push_call_accept.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принять'**
+  String get push_call_accept;
+
+  /// No description provided for @push_call_decline.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отклонить'**
+  String get push_call_decline;
+
+  /// No description provided for @push_channel_incoming_calls.
+  ///
+  /// In ru, this message translates to:
+  /// **'Входящие звонки'**
+  String get push_channel_incoming_calls;
+
+  /// No description provided for @push_channel_missed_calls.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пропущенные звонки'**
+  String get push_channel_missed_calls;
+
+  /// No description provided for @push_channel_messages_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новые сообщения в чатах'**
+  String get push_channel_messages_desc;
+
+  /// No description provided for @push_channel_silent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения без звука'**
+  String get push_channel_silent;
+
+  /// No description provided for @push_channel_silent_desc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Push без звука'**
+  String get push_channel_silent_desc;
+
+  /// No description provided for @push_caller_unknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто-то'**
+  String get push_caller_unknown;
+
+  /// No description provided for @outbox_attachment_single.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get outbox_attachment_single;
+
+  /// No description provided for @outbox_attachment_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложения ({count})'**
+  String outbox_attachment_count(int count);
+
+  /// No description provided for @bottom_nav_label_chats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чаты'**
+  String get bottom_nav_label_chats;
+
+  /// No description provided for @bottom_nav_label_contacts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контакты'**
+  String get bottom_nav_label_contacts;
+
+  /// No description provided for @bottom_nav_label_conferences.
+  ///
+  /// In ru, this message translates to:
+  /// **'Конференции'**
+  String get bottom_nav_label_conferences;
+
+  /// No description provided for @bottom_nav_label_calls.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонки'**
+  String get bottom_nav_label_calls;
 }
 
 class _AppLocalizationsDelegate

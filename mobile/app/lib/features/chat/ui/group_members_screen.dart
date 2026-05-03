@@ -81,9 +81,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                       }
 
                       if (!snap.hasData || snap.data?.data() == null) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('Group not found.'),
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(AppLocalizations.of(context)!.group_not_found),
                         );
                       }
 
@@ -92,9 +92,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                       );
 
                       if (!conv.participantIds.contains(u.uid)) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('You are not a member of this group.'),
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(AppLocalizations.of(context)!.group_not_member),
                         );
                       }
 
@@ -117,7 +117,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, st) => Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Error: $err'),
+                  child: Text(AppLocalizations.of(context)!.generic_error(err.toString())),
                 ),
               ),
             ),

@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -22,33 +24,35 @@ class BottomNavMenuItemDefinition {
   final IconData fallbackIcon;
 }
 
-const List<BottomNavMenuItemDefinition> bottomNavMenuItems =
-    <BottomNavMenuItemDefinition>[
-      BottomNavMenuItemDefinition(
-        href: '/dashboard/chat',
-        label: 'Чаты',
-        defaultIconName: 'messages-square',
-        fallbackIcon: Icons.chat_bubble_outline_rounded,
-      ),
-      BottomNavMenuItemDefinition(
-        href: '/dashboard/contacts',
-        label: 'Контакты',
-        defaultIconName: 'contact',
-        fallbackIcon: Icons.group_outlined,
-      ),
-      BottomNavMenuItemDefinition(
-        href: '/dashboard/meetings',
-        label: 'Конференции',
-        defaultIconName: 'video',
-        fallbackIcon: Icons.videocam_outlined,
-      ),
-      BottomNavMenuItemDefinition(
-        href: '/dashboard/calls',
-        label: 'Звонки',
-        defaultIconName: 'phone-call',
-        fallbackIcon: Icons.call_outlined,
-      ),
-    ];
+List<BottomNavMenuItemDefinition> get bottomNavMenuItems {
+  final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
+  return <BottomNavMenuItemDefinition>[
+    BottomNavMenuItemDefinition(
+      href: '/dashboard/chat',
+      label: l10n.bottom_nav_label_chats,
+      defaultIconName: 'messages-square',
+      fallbackIcon: Icons.chat_bubble_outline_rounded,
+    ),
+    BottomNavMenuItemDefinition(
+      href: '/dashboard/contacts',
+      label: l10n.bottom_nav_label_contacts,
+      defaultIconName: 'contact',
+      fallbackIcon: Icons.group_outlined,
+    ),
+    BottomNavMenuItemDefinition(
+      href: '/dashboard/meetings',
+      label: l10n.bottom_nav_label_conferences,
+      defaultIconName: 'video',
+      fallbackIcon: Icons.videocam_outlined,
+    ),
+    BottomNavMenuItemDefinition(
+      href: '/dashboard/calls',
+      label: l10n.bottom_nav_label_calls,
+      defaultIconName: 'phone-call',
+      fallbackIcon: Icons.call_outlined,
+    ),
+  ];
+}
 
 String localizedBottomNavLabel(String href, AppLocalizations l10n) {
   switch (href) {

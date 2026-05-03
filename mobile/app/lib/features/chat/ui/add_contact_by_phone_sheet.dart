@@ -13,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart'
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../auth/data/phone_country_names.dart';
 import '../data/add_contact_profile_providers.dart';
 import '../data/device_contact_lookup_keys.dart';
 import '../data/profile_qr_link.dart';
@@ -448,7 +449,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                     : _phoneCountries
                           .where((c) {
                             final q = query;
-                            return ruEnSubstringMatch(c.name, q) ||
+                            return ruEnSubstringMatch(c.localizedName(Localizations.localeOf(context).languageCode), q) ||
                                 c.dialCode.contains(q) ||
                                 ruEnSubstringMatch(c.isoCode, q);
                           })
@@ -520,7 +521,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                 style: const TextStyle(fontSize: 22),
                               ),
                               title: Text(
-                                country.name,
+                                country.localizedName(Localizations.localeOf(context).languageCode),
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -625,7 +626,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _selectedCountry.name,
+                      _selectedCountry.localizedName(Localizations.localeOf(context).languageCode),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.94),
                         fontSize: 17,
@@ -1273,7 +1274,6 @@ class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
 class _PhoneCountry {
   const _PhoneCountry({
     required this.isoCode,
-    required this.name,
     required this.flag,
     required this.dialCode,
     required this.phoneHint,
@@ -1281,11 +1281,12 @@ class _PhoneCountry {
   });
 
   final String isoCode;
-  final String name;
   final String flag;
   final String dialCode;
   final String phoneHint;
   final int maxNationalDigits;
+
+  String localizedName(String langCode) => localizedCountryName(isoCode, langCode);
 
   String get dialDigits => dialCode.replaceAll(RegExp(r'\D'), '');
 }
@@ -1293,7 +1294,6 @@ class _PhoneCountry {
 const List<_PhoneCountry> _phoneCountries = [
   _PhoneCountry(
     isoCode: 'RU',
-    name: 'Россия',
     flag: '🇷🇺',
     dialCode: '+7',
     phoneHint: '(999)123-45-67',
@@ -1301,7 +1301,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'KZ',
-    name: 'Казахстан',
     flag: '🇰🇿',
     dialCode: '+7',
     phoneHint: '(777)123-45-67',
@@ -1309,7 +1308,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'BY',
-    name: 'Беларусь',
     flag: '🇧🇾',
     dialCode: '+375',
     phoneHint: '29 123 45 67',
@@ -1317,7 +1315,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'UA',
-    name: 'Украина',
     flag: '🇺🇦',
     dialCode: '+380',
     phoneHint: '50 123 45 67',
@@ -1325,7 +1322,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'UZ',
-    name: 'Узбекистан',
     flag: '🇺🇿',
     dialCode: '+998',
     phoneHint: '90 123 45 67',
@@ -1333,7 +1329,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'KG',
-    name: 'Кыргызстан',
     flag: '🇰🇬',
     dialCode: '+996',
     phoneHint: '555 123 456',
@@ -1341,7 +1336,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'US',
-    name: 'США',
     flag: '🇺🇸',
     dialCode: '+1',
     phoneHint: '(555)123-4567',
@@ -1349,7 +1343,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'GB',
-    name: 'Великобритания',
     flag: '🇬🇧',
     dialCode: '+44',
     phoneHint: '7400 123456',
@@ -1357,7 +1350,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'DE',
-    name: 'Германия',
     flag: '🇩🇪',
     dialCode: '+49',
     phoneHint: '1512 3456789',
@@ -1365,7 +1357,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'FR',
-    name: 'Франция',
     flag: '🇫🇷',
     dialCode: '+33',
     phoneHint: '6 12 34 56 78',

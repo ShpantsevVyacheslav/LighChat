@@ -551,7 +551,7 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, st) => Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Error: $err'),
+                  child: Text(AppLocalizations.of(context)!.generic_error(err.toString())),
                 ),
               ),
             ),

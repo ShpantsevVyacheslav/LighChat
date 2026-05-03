@@ -10,6 +10,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../app_providers.dart';
+import '../../../l10n/app_localizations.dart';
 import 'chat_attachment_upload.dart';
 import 'composer_html_editing.dart';
 import 'e2ee_attachment_send_helper.dart';
@@ -94,10 +95,11 @@ class OutboxAttachmentJob {
     if (t.isNotEmpty) {
       return t.length > 72 ? '${t.substring(0, 72)}…' : t;
     }
+    final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
     if (stagedAbsolutePaths.length <= 1) {
-      return 'Вложение';
+      return l10n.outbox_attachment_single;
     }
-    return 'Вложения (${stagedAbsolutePaths.length})';
+    return l10n.outbox_attachment_count(stagedAbsolutePaths.length);
   }
 
   Future<void> deleteStagedFiles() async {
@@ -280,7 +282,7 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       _replace(
         job.copyWith(
           phase: OutboxAttachmentPhase.failed,
-          lastError: 'Сервис чата недоступен',
+          lastError: lookupAppLocalizations(PlatformDispatcher.instance.locale).outbox_chat_unavailable,
         ),
       );
       _inFlight.remove(jobId);
@@ -415,7 +417,7 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       if (cur != null) {
         final message = (e.message != null && e.message!.trim().isNotEmpty)
             ? e.message!.trim()
-            : 'Шифрование: ${e.code}';
+            : lookupAppLocalizations(PlatformDispatcher.instance.locale).outbox_encryption_error(e.code);
         _replace(
           cur.copyWith(phase: OutboxAttachmentPhase.failed, lastError: message),
         );

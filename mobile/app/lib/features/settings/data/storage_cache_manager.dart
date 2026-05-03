@@ -5,6 +5,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../chat/data/chat_list_offline_cache.dart';
 import '../../chat/data/chat_message_draft_storage.dart';
 import '../../chat/data/local_cache_entry_registry.dart';
@@ -150,6 +151,7 @@ class StorageCacheManager {
   Future<LocalStorageSnapshot> inspect({
     required String userId,
     required List<ConversationWithId> conversations,
+    required AppLocalizations l10n,
   }) async {
     final entries = <LocalStorageEntry>[];
     final prefs = await SharedPreferences.getInstance();
@@ -179,9 +181,9 @@ class StorageCacheManager {
       category: LocalStorageCategory.chatImages,
       labelPrefix: 'Image',
     );
-    _collectDraftEntries(entries, prefs, userId);
-    _collectChatListSnapshot(entries, prefs, userId);
-    _collectProfileEntries(entries, prefs, conversations);
+    _collectDraftEntries(entries, prefs, userId, l10n);
+    _collectChatListSnapshot(entries, prefs, userId, l10n);
+    _collectProfileEntries(entries, prefs, conversations, l10n);
 
     final categoryBytes = <LocalStorageCategory, int>{
       for (final c in LocalStorageCategory.values) c: 0,
@@ -386,10 +388,12 @@ class StorageCacheManager {
     required String userId,
     required List<ConversationWithId> conversations,
     required int budgetBytes,
+    required AppLocalizations l10n,
   }) async {
     final snapshot = await inspect(
       userId: userId,
       conversations: conversations,
+      l10n: l10n,
     );
     if (snapshot.totalBytes <= budgetBytes) return 0;
     final candidates = [...snapshot.allEntries]
@@ -415,11 +419,13 @@ class StorageCacheManager {
     required String userId,
     required List<ConversationWithId> conversations,
     required LocalStoragePreferences preferences,
+    required AppLocalizations l10n,
   }) async {
     final now = DateTime.now();
     final snapshot = await inspect(
       userId: userId,
       conversations: conversations,
+      l10n: l10n,
     );
     var freed = 0;
     for (final usage in snapshot.conversationUsages) {
@@ -565,6 +571,7 @@ class StorageCacheManager {
     List<LocalStorageEntry> out,
     SharedPreferences prefs,
     String userId,
+    AppLocalizations l10n,
   ) {
     final key = chatDraftStorageKey(userId);
     final raw = prefs.getString(key);
@@ -581,7 +588,7 @@ class StorageCacheManager {
             category: LocalStorageCategory.chatDrafts,
             source: LocalStorageEntrySource.draftItem,
             bytes: utf8.encode(payload).length,
-            label: 'Draft · ${e.key}',
+            label: l10n.storage_label_draft(e.key),
             conversationId: e.key,
             sharedPrefsKey: key,
             sharedPrefsSubKey: e.key,
@@ -595,6 +602,7 @@ class StorageCacheManager {
     List<LocalStorageEntry> out,
     SharedPreferences prefs,
     String userId,
+    AppLocalizations l10n,
   ) {
     final key = chatListOfflineSnapshotPrefsKey(userId);
     final raw = prefs.getString(key);
@@ -605,7 +613,7 @@ class StorageCacheManager {
         category: LocalStorageCategory.chatListSnapshot,
         source: LocalStorageEntrySource.chatListSnapshot,
         bytes: utf8.encode(raw).length,
-        label: 'Offline chat list snapshot',
+        label: l10n.storage_label_offline_snapshot,
         sharedPrefsKey: key,
       ),
     );
@@ -615,6 +623,7 @@ class StorageCacheManager {
     List<LocalStorageEntry> out,
     SharedPreferences prefs,
     List<ConversationWithId> conversations,
+    AppLocalizations l10n,
   ) {
     final namesByUserId = _participantNamesByUserId(conversations);
     final keys = prefs.getKeys();
@@ -630,7 +639,7 @@ class StorageCacheManager {
           category: LocalStorageCategory.profileCards,
           source: LocalStorageEntrySource.profileCard,
           bytes: utf8.encode(raw).length,
-          label: 'Profile cache · $displayName',
+          label: l10n.storage_label_profile_cache(displayName),
           sharedPrefsKey: key,
         ),
       );

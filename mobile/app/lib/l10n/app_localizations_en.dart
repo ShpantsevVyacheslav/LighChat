@@ -4634,10 +4634,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get group_not_found => 'Группа не найдена.';
+  String get group_not_found => 'Group not found.';
 
   @override
-  String get group_not_member => 'Вы не являетесь участником этой группы.';
+  String get group_not_member => 'You are not a member of this group.';
 
   @override
   String get poll_create_title => 'Chat poll';
@@ -7406,4 +7406,138 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meeting_participant_speaking => 'Speaking';
+
+  @override
+  String get nav_error_title => 'Navigation error';
+
+  @override
+  String get nav_error_invalid_secret_compose =>
+      'Invalid secret compose navigation';
+
+  @override
+  String get sign_in_title => 'Sign in';
+
+  @override
+  String get sign_in_firebase_ready => 'Firebase initialized. You can sign in.';
+
+  @override
+  String get sign_in_firebase_not_ready =>
+      'Firebase is not ready. Check logs and firebase_options.dart.';
+
+  @override
+  String get sign_in_continue => 'Continue';
+
+  @override
+  String get sign_in_anonymously => 'Sign in anonymously';
+
+  @override
+  String sign_in_auth_error(String error) {
+    return 'Auth error: $error';
+  }
+
+  @override
+  String generic_error(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get storage_label_video => 'Video';
+
+  @override
+  String get storage_label_photo => 'Photo';
+
+  @override
+  String get storage_label_files => 'Files';
+
+  @override
+  String get storage_label_other => 'Other';
+
+  @override
+  String storage_label_draft(String key) {
+    return 'Draft · $key';
+  }
+
+  @override
+  String get storage_label_offline_snapshot => 'Offline chat list snapshot';
+
+  @override
+  String storage_label_profile_cache(String name) {
+    return 'Profile cache · $name';
+  }
+
+  @override
+  String get call_mini_end => 'End call';
+
+  @override
+  String get animation_quality_lite => 'Lite';
+
+  @override
+  String get animation_quality_balanced => 'Balanced';
+
+  @override
+  String get animation_quality_cinematic => 'Cinematic';
+
+  @override
+  String get crop_aspect_original => 'Original';
+
+  @override
+  String get crop_aspect_square => 'Square';
+
+  @override
+  String get push_notification_title => 'Allow notifications';
+
+  @override
+  String get push_notification_rationale =>
+      'The app needs notifications for incoming calls.';
+
+  @override
+  String get push_notification_required =>
+      'Enable notifications to display incoming calls.';
+
+  @override
+  String get push_notification_grant => 'Allow';
+
+  @override
+  String get push_call_accept => 'Accept';
+
+  @override
+  String get push_call_decline => 'Decline';
+
+  @override
+  String get push_channel_incoming_calls => 'Incoming calls';
+
+  @override
+  String get push_channel_missed_calls => 'Missed calls';
+
+  @override
+  String get push_channel_messages_desc => 'New messages in chats';
+
+  @override
+  String get push_channel_silent => 'Silent messages';
+
+  @override
+  String get push_channel_silent_desc => 'Push without sound';
+
+  @override
+  String get push_caller_unknown => 'Someone';
+
+  @override
+  String get outbox_attachment_single => 'Attachment';
+
+  @override
+  String outbox_attachment_count(int count) {
+    return 'Attachments ($count)';
+  }
+
+  @override
+  String get bottom_nav_label_chats => 'Chats';
+
+  @override
+  String get bottom_nav_label_contacts => 'Contacts';
+
+  @override
+  String get bottom_nav_label_conferences => 'Conferences';
+
+  @override
+  String get bottom_nav_label_calls => 'Calls';
 }

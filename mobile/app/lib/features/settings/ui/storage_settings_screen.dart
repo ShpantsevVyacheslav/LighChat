@@ -54,9 +54,11 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
     });
     try {
       final prefs = await LocalStoragePreferencesStore.load();
+      final l10n = AppLocalizations.of(context)!;
       final snapshot = await _manager.inspect(
         userId: uid,
         conversations: conversations,
+        l10n: l10n,
       );
       if (!mounted) return;
       setState(() {
@@ -167,31 +169,34 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
     }
   }
 
-  List<DonutSegment> _buildSegments(StorageMediaTypeBreakdown bd) {
+  List<DonutSegment> _buildSegments(
+    StorageMediaTypeBreakdown bd,
+    AppLocalizations l10n,
+  ) {
     final segments = <DonutSegment>[];
     if (bd.videoBytes > 0) {
       segments.add(DonutSegment(
           value: bd.videoBytes.toDouble(),
           color: kStorageVideoColor,
-          label: 'Video'));
+          label: l10n.storage_label_video));
     }
     if (bd.photoBytes > 0) {
       segments.add(DonutSegment(
           value: bd.photoBytes.toDouble(),
           color: kStoragePhotoColor,
-          label: 'Photo'));
+          label: l10n.storage_label_photo));
     }
     if (bd.fileBytes > 0) {
       segments.add(DonutSegment(
           value: bd.fileBytes.toDouble(),
           color: kStorageFileColor,
-          label: 'Files'));
+          label: l10n.storage_label_files));
     }
     if (bd.otherBytes > 0) {
       segments.add(DonutSegment(
           value: bd.otherBytes.toDouble(),
           color: kStorageOtherColor,
-          label: 'Other'));
+          label: l10n.storage_label_other));
     }
     return segments;
   }
@@ -243,10 +248,12 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
     setState(() => _preferences = updated);
     await LocalStoragePreferencesStore.save(updated);
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       await _manager.applyAutoDelete(
         userId: uid,
         conversations: conversations,
         preferences: updated,
+        l10n: l10n,
       );
     }
   }
@@ -294,6 +301,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
         userId: uid,
         conversations: conversations,
         budgetBytes: _preferences.cacheBudgetGb * 1024 * 1024 * 1024,
+        l10n: l10n,
       );
       await _reload(uid: uid, conversations: conversations);
       if (!mounted) return;
@@ -465,7 +473,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                         // ── Donut chart ──
                         Center(
                           child: StorageDonutChart(
-                            segments: _buildSegments(bd),
+                            segments: _buildSegments(bd, l10n),
                             centerText: _formatBytes(snapshot.totalBytes),
                             centerSubtext: l10n.storage_settings_total_label,
                             size: 210,

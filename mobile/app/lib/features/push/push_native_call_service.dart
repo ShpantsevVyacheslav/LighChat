@@ -11,6 +11,7 @@ import 'package:flutter_callkit_incoming/entities/ios_params.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
 import '../../app_router.dart';
+import '../../l10n/app_localizations.dart';
 import 'push_notification_payload.dart';
 
 /// Native incoming-call UI bridge (Android full-screen / iOS CallKit wrapper).
@@ -41,15 +42,14 @@ class PushNativeCallService {
       onError: (_) {},
     );
     try {
+      final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
       await FlutterCallkitIncoming.requestNotificationPermission(
         <String, dynamic>{
-          'title': 'Разрешить уведомления',
-          'rationaleMessagePermission':
-              'Для входящих звонков приложению нужны уведомления.',
-          'postNotificationMessageRequired':
-              'Включите уведомления для отображения входящих звонков.',
-          'actionGranted': 'Разрешить',
-          'actionDenied': 'Отмена',
+          'title': l10n.push_notification_title,
+          'rationaleMessagePermission': l10n.push_notification_rationale,
+          'postNotificationMessageRequired': l10n.push_notification_required,
+          'actionGranted': l10n.push_notification_grant,
+          'actionDenied': l10n.common_cancel,
         },
       );
     } catch (_) {}
@@ -115,6 +115,8 @@ class PushNativeCallService {
     final callerName = callerNameFromPushData(data);
     final isVideo = isVideoCallFromPushData(data);
 
+    final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
+
     final params = CallKitParams(
       id: callkitId,
       nameCaller: callerName,
@@ -123,23 +125,23 @@ class PushNativeCallService {
       type: isVideo ? 1 : 0,
       normalHandle: 1,
       duration: 45000,
-      textAccept: 'Принять',
-      textDecline: 'Отклонить',
+      textAccept: l10n.push_call_accept,
+      textDecline: l10n.push_call_decline,
       extra: <String, dynamic>{
         'callId': cleanCallId,
         'callkitId': callkitId,
         'isVideo': isVideo ? '1' : '0',
       },
       headers: <String, dynamic>{'callId': cleanCallId},
-      android: const AndroidParams(
+      android: AndroidParams(
         isCustomNotification: true,
         isShowLogo: false,
         ringtonePath: 'ringtone_default',
         backgroundColor: '#0F172A',
         actionColor: '#38BDF8',
         textColor: '#FFFFFF',
-        incomingCallNotificationChannelName: 'Входящие звонки',
-        missedCallNotificationChannelName: 'Пропущенные звонки',
+        incomingCallNotificationChannelName: l10n.push_channel_incoming_calls,
+        missedCallNotificationChannelName: l10n.push_channel_missed_calls,
         isShowFullLockedScreen: true,
         isImportant: true,
       ),

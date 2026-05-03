@@ -7447,4 +7447,138 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meeting_participant_speaking => 'Говорит';
+
+  @override
+  String get nav_error_title => 'Ошибка навигации';
+
+  @override
+  String get nav_error_invalid_secret_compose =>
+      'Некорректная навигация секретного чата';
+
+  @override
+  String get sign_in_title => 'Вход';
+
+  @override
+  String get sign_in_firebase_ready => 'Firebase инициализирован. Можно войти.';
+
+  @override
+  String get sign_in_firebase_not_ready =>
+      'Firebase не готов. Проверьте логи и firebase_options.dart.';
+
+  @override
+  String get sign_in_continue => 'Продолжить';
+
+  @override
+  String get sign_in_anonymously => 'Войти анонимно';
+
+  @override
+  String sign_in_auth_error(String error) {
+    return 'Ошибка авторизации: $error';
+  }
+
+  @override
+  String generic_error(String error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get storage_label_video => 'Видео';
+
+  @override
+  String get storage_label_photo => 'Фото';
+
+  @override
+  String get storage_label_files => 'Файлы';
+
+  @override
+  String get storage_label_other => 'Другое';
+
+  @override
+  String storage_label_draft(String key) {
+    return 'Черновик · $key';
+  }
+
+  @override
+  String get storage_label_offline_snapshot => 'Офлайн-снимок списка чатов';
+
+  @override
+  String storage_label_profile_cache(String name) {
+    return 'Кэш профиля · $name';
+  }
+
+  @override
+  String get call_mini_end => 'Завершить звонок';
+
+  @override
+  String get animation_quality_lite => 'Лёгкий';
+
+  @override
+  String get animation_quality_balanced => 'Сбалансированный';
+
+  @override
+  String get animation_quality_cinematic => 'Кинематографический';
+
+  @override
+  String get crop_aspect_original => 'Оригинал';
+
+  @override
+  String get crop_aspect_square => 'Квадрат';
+
+  @override
+  String get push_notification_title => 'Разрешить уведомления';
+
+  @override
+  String get push_notification_rationale =>
+      'Для входящих звонков приложению нужны уведомления.';
+
+  @override
+  String get push_notification_required =>
+      'Включите уведомления для отображения входящих звонков.';
+
+  @override
+  String get push_notification_grant => 'Разрешить';
+
+  @override
+  String get push_call_accept => 'Принять';
+
+  @override
+  String get push_call_decline => 'Отклонить';
+
+  @override
+  String get push_channel_incoming_calls => 'Входящие звонки';
+
+  @override
+  String get push_channel_missed_calls => 'Пропущенные звонки';
+
+  @override
+  String get push_channel_messages_desc => 'Новые сообщения в чатах';
+
+  @override
+  String get push_channel_silent => 'Сообщения без звука';
+
+  @override
+  String get push_channel_silent_desc => 'Push без звука';
+
+  @override
+  String get push_caller_unknown => 'Кто-то';
+
+  @override
+  String get outbox_attachment_single => 'Вложение';
+
+  @override
+  String outbox_attachment_count(int count) {
+    return 'Вложения ($count)';
+  }
+
+  @override
+  String get bottom_nav_label_chats => 'Чаты';
+
+  @override
+  String get bottom_nav_label_contacts => 'Контакты';
+
+  @override
+  String get bottom_nav_label_conferences => 'Конференции';
+
+  @override
+  String get bottom_nav_label_calls => 'Звонки';
 }

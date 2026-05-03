@@ -155,7 +155,7 @@ export async function createOrOpenDirectChat(
       [otherUser.id]: participantInfoEntryForWrite(otherUser),
     },
     lastMessageTimestamp: nowIso,
-    lastMessageText: 'Чат создан',
+    lastMessageText: '',
     unreadCounts: { [currentUser.id]: 0, [otherUser.id]: 0 },
     unreadThreadCounts: { [currentUser.id]: 0, [otherUser.id]: 0 },
     typing: {},

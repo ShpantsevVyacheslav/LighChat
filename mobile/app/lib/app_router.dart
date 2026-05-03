@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'l10n/app_localizations.dart';
 import 'features/auth/registration_profile_gate.dart';
 import 'features/auth/ui/auth_screen.dart';
 import 'features/auth/ui/google_complete_profile_screen.dart';
@@ -198,8 +199,8 @@ GoRouter createRouter() {
           if (extra is SecretChatComposeArgs) {
             return SecretChatComposeScreen(args: extra);
           }
-          return const Scaffold(
-            body: Center(child: Text('Invalid secret compose navigation')),
+          return Scaffold(
+            body: Center(child: Text(AppLocalizations.of(context)!.nav_error_invalid_secret_compose)),
           );
         },
       ),
@@ -334,7 +335,7 @@ GoRouter createRouter() {
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('Navigation error')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.nav_error_title)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Text(state.error?.toString() ?? 'Unknown error'),
