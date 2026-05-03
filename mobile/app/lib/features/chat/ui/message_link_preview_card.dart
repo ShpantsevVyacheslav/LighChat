@@ -304,16 +304,21 @@ class _LinkPreviewInlineVideoState extends State<_LinkPreviewInlineVideo> {
   @override
   Widget build(BuildContext context) {
     final c = _controller;
-    final aspect = (c != null && c.value.isInitialized)
-        ? c.value.aspectRatio
-        : 16 / 9;
+    /* Соотношение сторон карточки фиксируем на 16/9 на весь жизненный цикл, даже после инициализации
+       контроллера: иначе при tap-to-play высота карточки разово меняется (особенно у вертикальных видео:
+       9/16 → ~2× выше), и список под пальцем «прыгает». BoxFit.cover (через FittedBox в VideoPlayer)
+       подгоняет содержимое — у портретных лента-кропа лучше, чем перекладка ListView под весь чат. */
     return AspectRatio(
-      aspectRatio: aspect <= 0 ? 16 / 9 : aspect,
+      aspectRatio: 16 / 9,
       child: Stack(
         fit: StackFit.expand,
         children: [
           if (c != null && c.value.isInitialized)
-            VideoPlayer(c)
+            FittedBox(fit: BoxFit.cover, child: SizedBox(
+              width: c.value.size.width,
+              height: c.value.size.height,
+              child: VideoPlayer(c),
+            ))
           else if (widget.posterUrl != null)
             Image.network(
               widget.posterUrl!,

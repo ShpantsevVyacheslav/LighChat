@@ -35,35 +35,33 @@ class LinkPreviewMetadata {
 ///
 /// - Caches in-flight requests to dedupe parallel renders.
 /// - Negative results are cached too (as null) to avoid re-fetch loops.
+/// - Хранит **именно `Future`** (не голое значение) и переиспользует его на любые
+///   повторные `get(url)` — после ресолва тоже. Это важно для `FutureBuilder`:
+///   при смене идентичности `widget.future` он сбрасывает `_snapshot` в
+///   `ConnectionState.waiting` (и наш билдер показывает skeleton), даже если
+///   данные уже в памяти. На каждом ребилде ленты карточка моргала бы
+///   skeleton↔контент, ломая высоту строки в `CustomScrollView`. Стабильная
+///   ссылка убирает мерцание (см. `FutureBuilderState._subscribe`).
 class LinkPreviewMetadataCache {
   LinkPreviewMetadataCache({this.timeout = const Duration(seconds: 6)});
 
   final Duration timeout;
-  final Map<String, Future<LinkPreviewMetadata?>> _inFlight = {};
-  final Map<String, LinkPreviewMetadata?> _resolved = {};
+  final Map<String, Future<LinkPreviewMetadata?>> _futures = {};
 
   Future<LinkPreviewMetadata?> get(String url) {
     final key = _normalizeUrlKey(url);
     if (key == null) return Future.value(null);
 
-    if (_resolved.containsKey(key)) {
-      return Future.value(_resolved[key]);
-    }
-    final existing = _inFlight[key];
+    final existing = _futures[key];
     if (existing != null) return existing;
 
-    final future = _fetchAndParse(key).then((value) {
-      _resolved[key] = value;
-      _inFlight.remove(key);
-      return value;
-    });
-    _inFlight[key] = future;
+    final future = _fetchAndParse(key);
+    _futures[key] = future;
     return future;
   }
 
   void clear() {
-    _inFlight.clear();
-    _resolved.clear();
+    _futures.clear();
   }
 
   String? _normalizeUrlKey(String raw) {
