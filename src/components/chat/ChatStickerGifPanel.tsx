@@ -33,6 +33,9 @@ type GiphyResponse = {
   offset?: number;
   count?: number;
   total?: number;
+  /** Явный hasMore с сервера (v2/emoji не отдаёт total — клиент должен
+   *  смотреть на этот флаг). */
+  hasMore?: boolean;
   translatedFrom?: string | null;
   query?: string;
 };
@@ -108,6 +111,8 @@ export function ChatStickerGifPanel({
 
   const [animEmojis, setAnimEmojis] = useState<GiphyItem[]>([]);
   const [animEmojisLoading, setAnimEmojisLoading] = useState(false);
+  const [animEmojisLoadingMore, setAnimEmojisLoadingMore] = useState(false);
+  const [animEmojisHasMore, setAnimEmojisHasMore] = useState(true);
 
   const [packPickerOpen, setPackPickerOpen] = useState(false);
   const [pendingSave, setPendingSave] = useState<PendingSave | null>(null);
@@ -137,6 +142,8 @@ export function ChatStickerGifPanel({
     const cachedEmojis = giphyCache.getTrending('emoji');
     if (cachedEmojis && cachedEmojis.length > 0) {
       setAnimEmojis(cachedEmojis);
+      // У кеша нет инфы о hasMore — разрешаем дозагрузку при скролле.
+      setAnimEmojisHasMore(true);
     } else {
       void (async () => {
         setAnimEmojisLoading(true);
@@ -144,10 +151,44 @@ export function ChatStickerGifPanel({
         setAnimEmojisLoading(false);
         const items = r.items ?? [];
         setAnimEmojis(items);
+        setAnimEmojisHasMore(r.hasMore ?? items.length > 0);
         if (items.length > 0) giphyCache.saveTrending('emoji', items);
       })();
     }
   }, []);
+
+  const loadMoreAnimEmojis = useCallback(async () => {
+    if (animEmojisLoadingMore || !animEmojisHasMore) return;
+    setAnimEmojisLoadingMore(true);
+    const r = await fetchGifs('', 'emoji', animEmojis.length);
+    setAnimEmojisLoadingMore(false);
+    const next = r.items ?? [];
+    if (next.length === 0) {
+      setAnimEmojisHasMore(false);
+      return;
+    }
+    setAnimEmojis((prev) => {
+      const ids = new Set(prev.map((a) => a.id));
+      const merged = [...prev];
+      for (const it of next) if (!ids.has(it.id)) merged.push(it);
+      // Аккумулируем все страницы под тем же ключом, чтобы при следующем
+      // открытии шторки в течение 24h всё уже подгруженное вернулось мгновенно.
+      giphyCache.saveTrending('emoji', merged);
+      return merged;
+    });
+    setAnimEmojisHasMore(r.hasMore ?? next.length > 0);
+  }, [animEmojisLoadingMore, animEmojisHasMore, animEmojis.length]);
+
+  const handleAnimEmojisScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      // Горизонтальный скролл: тригер за 200px до правого края.
+      if (el.scrollWidth - el.scrollLeft - el.clientWidth < 200) {
+        void loadMoreAnimEmojis();
+      }
+    },
+    [loadMoreAnimEmojis],
+  );
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -343,23 +384,28 @@ export function ChatStickerGifPanel({
                 <Sparkles className="h-3 w-3" />
                 Анимированные
               </div>
-              <ScrollArea className="w-full whitespace-nowrap pb-1">
-                <div className="flex gap-1.5 px-0.5">
-                  {animEmojis.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleAnimEmojiPick(item)}
-                      className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted/40 p-1 hover:ring-2 hover:ring-primary/40"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.url} alt="" className="h-full w-full object-contain" loading="lazy" />
-                    </button>
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              <div
+                onScroll={handleAnimEmojisScroll}
+                className="flex w-full gap-1.5 overflow-x-auto overflow-y-hidden whitespace-nowrap px-0.5 pb-1"
+              >
+                {animEmojis.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleAnimEmojiPick(item)}
+                    className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted/40 p-1 hover:ring-2 hover:ring-primary/40"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.url} alt="" className="h-full w-full object-contain" loading="lazy" />
+                  </button>
+                ))}
+                {(animEmojisLoadingMore || (animEmojisHasMore && animEmojis.length > 0)) && (
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               <div className="mt-1 h-px w-full bg-border/40" />
             </div>
           ) : null}

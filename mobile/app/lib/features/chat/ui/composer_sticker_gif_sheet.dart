@@ -107,6 +107,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   // Анимированные эмодзи (GIPHY v2/emoji).
   List<GiphyGifItem> _animEmojis = [];
   bool _animEmojisLoading = false;
+  bool _animEmojisLoadingMore = false;
+  bool _animEmojisHasMore = true;
+  final _animEmojisScrollController = ScrollController();
 
   // GIPHY-стикеры (вкладка «Стикеры» → scope=library).
   final _libraryQueryController = TextEditingController();
@@ -131,6 +134,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifScrollController.addListener(_onGifScroll);
     _libraryQueryController.addListener(_scheduleLibrarySearch);
     _libraryQueryController.addListener(_onLibraryQueryChanged);
+    _animEmojisScrollController.addListener(_onAnimEmojisScroll);
     _libraryScrollController.addListener(_onLibraryScroll);
     _loadInitialData();
   }
@@ -318,12 +322,20 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     }
   }
 
-  /// Загружает анимированные эмодзи (GIPHY v2/emoji — именно эмодзи, не GIF-стикеры).
+  /// Загружает анимированные эмодзи (GIPHY v2/emoji — именно эмодзи).
+  /// Из кеша берёт всё что было сохранено (включая ранее догруженные страницы),
+  /// затем при первом скролле подгружает следующие порции (см. [_loadMoreAnimEmojis]).
   Future<void> _bootstrapTrendingStickers() async {
     final cached =
         await GiphyCacheStore.instance.getTrending(GiphyType.emoji);
     if (cached != null && cached.isNotEmpty) {
-      if (mounted) setState(() => _animEmojis = cached);
+      if (mounted) {
+        setState(() {
+          _animEmojis = cached;
+          // У кеша нет инфы о hasMore — разрешаем дозагрузку при скролле.
+          _animEmojisHasMore = true;
+        });
+      }
       return;
     }
     if (!mounted) return;
@@ -333,10 +345,49 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     setState(() {
       _animEmojisLoading = false;
       _animEmojis = r.items;
+      _animEmojisHasMore = r.hasMore;
     });
     if (r.items.isNotEmpty) {
       unawaited(GiphyCacheStore.instance
           .saveTrending(GiphyType.emoji, r.items));
+    }
+  }
+
+  Future<void> _loadMoreAnimEmojis() async {
+    if (_animEmojisLoadingMore || !_animEmojisHasMore) return;
+    setState(() => _animEmojisLoadingMore = true);
+    final r = await searchGifs(
+      '',
+      type: GiphyType.emoji,
+      offset: _animEmojis.length,
+    );
+    if (!mounted) return;
+    final merged = <GiphyGifItem>[..._animEmojis];
+    final existingIds = merged.map((e) => e.id).toSet();
+    for (final it in r.items) {
+      if (!existingIds.contains(it.id)) merged.add(it);
+    }
+    setState(() {
+      _animEmojis = merged;
+      _animEmojisLoadingMore = false;
+      // Останавливаемся когда сервер сказал «больше нет» или пришла пустая
+      // страница (защита от бесконечного фетча на конце GIPHY).
+      _animEmojisHasMore = r.items.isNotEmpty && r.hasMore;
+    });
+    // Аккумулируем все страницы под тем же кеш-ключом — при следующем
+    // открытии шторки в течение 24h всё уже подгруженное вернётся мгновенно.
+    if (merged.isNotEmpty) {
+      unawaited(
+          GiphyCacheStore.instance.saveTrending(GiphyType.emoji, merged));
+    }
+  }
+
+  void _onAnimEmojisScroll() {
+    if (!_animEmojisHasMore || _animEmojisLoadingMore) return;
+    final pos = _animEmojisScrollController.position;
+    // Триггер за 200px до конца (горизонтальная полоса).
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      unawaited(_loadMoreAnimEmojis());
     }
   }
 
@@ -364,6 +415,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifScrollController.dispose();
     _libraryQueryController.removeListener(_scheduleLibrarySearch);
     _libraryQueryController.removeListener(_onLibraryQueryChanged);
+    _animEmojisScrollController.removeListener(_onAnimEmojisScroll);
+    _animEmojisScrollController.dispose();
     _libraryQueryController.dispose();
     _libraryScrollController.removeListener(_onLibraryScroll);
     _libraryScrollController.dispose();
@@ -1820,28 +1873,45 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           _gifSectionHeader(Icons.auto_awesome_rounded, 'АНИМИРОВАННЫЕ'),
           SizedBox(
             height: 72,
-            child: ListView.separated(
+            child: ListView.builder(
+              controller: _animEmojisScrollController,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: _animEmojis.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 6),
+              // +1 cell в конце под спиннер пагинации (если ещё есть страницы).
+              itemCount: _animEmojis.length +
+                  ((_animEmojisHasMore || _animEmojisLoadingMore) ? 1 : 0),
               itemBuilder: (context, i) {
+                if (i >= _animEmojis.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
                 final item = _animEmojis[i];
-                return Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _onPickAnimEmoji(item),
-                    borderRadius: BorderRadius.circular(10),
-                    child: SizedBox(
-                      width: 64,
-                      height: 64,
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: CachedNetworkImage(
-                          imageUrl: item.url,
-                          fit: BoxFit.contain,
-                          placeholder: (_, _) => const SizedBox.shrink(),
-                          errorWidget: (_, _, _) => const SizedBox.shrink(),
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _onPickAnimEmoji(item),
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: CachedNetworkImage(
+                            imageUrl: item.url,
+                            fit: BoxFit.contain,
+                            placeholder: (_, _) => const SizedBox.shrink(),
+                            errorWidget: (_, _, _) => const SizedBox.shrink(),
+                          ),
                         ),
                       ),
                     ),

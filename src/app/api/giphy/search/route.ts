@@ -108,6 +108,8 @@ export async function GET(req: NextRequest) {
         total_count?: number;
         count?: number;
         offset?: number;
+        // GIPHY v2/emoji использует cursor-based pagination.
+        next_cursor?: number;
       };
     };
     const raw = data.data ?? [];
@@ -127,12 +129,28 @@ export async function GET(req: NextRequest) {
     }
 
     const pag = data.pagination ?? {};
+    // Эффективный total: для gifs/stickers — total_count; для emoji
+    // (cursor-based) есть next_cursor — считаем total = offset+count, плюс
+    // выставляем hasMore по наличию курсора.
+    let total: number;
+    let hasMore: boolean;
+    if (type === 'emoji') {
+      const cursor = typeof pag.next_cursor === 'number' ? pag.next_cursor : 0;
+      hasMore = cursor > offset + items.length || items.length >= PAGE_SIZE;
+      total = hasMore ? offset + items.length + 1 : offset + items.length;
+    } else {
+      total = typeof pag.total_count === 'number'
+        ? pag.total_count
+        : items.length;
+      hasMore = offset + items.length < total;
+    }
     return NextResponse.json({
       ok: true,
       items,
       offset: typeof pag.offset === 'number' ? pag.offset : offset,
       count: typeof pag.count === 'number' ? pag.count : items.length,
-      total: typeof pag.total_count === 'number' ? pag.total_count : items.length,
+      total,
+      hasMore,
       // Если запрос был переведён — `translatedFrom` = оригинал пользователя,
       // `query` = что реально ушло в GIPHY (английский). Клиент может показать.
       query: effectiveQuery,

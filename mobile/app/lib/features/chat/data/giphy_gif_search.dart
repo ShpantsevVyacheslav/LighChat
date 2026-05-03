@@ -26,6 +26,7 @@ class GiphySearchOutcome {
     this.missingKey = false,
     this.offset = 0,
     this.total = 0,
+    this.serverHasMore,
     this.translatedFrom,
     this.effectiveQuery,
   });
@@ -39,6 +40,10 @@ class GiphySearchOutcome {
   /// Общее число доступных результатов на сервере (если известно).
   final int total;
 
+  /// Явный флаг с сервера. Для cursor-based pagination (GIPHY v2/emoji)
+  /// total недоступен, но сервер ставит hasMore=true когда есть next_cursor.
+  final bool? serverHasMore;
+
   /// Если запрос был переведён на английский — здесь оригинал пользователя
   /// (например "котики"), иначе null.
   final String? translatedFrom;
@@ -47,7 +52,7 @@ class GiphySearchOutcome {
   final String? effectiveQuery;
 
   /// Можно ли загрузить ещё страницу.
-  bool get hasMore => offset + items.length < total;
+  bool get hasMore => serverHasMore ?? (offset + items.length < total);
 }
 
 String _normalizeBaseUrl(String raw) {
@@ -130,6 +135,7 @@ Future<GiphySearchOutcome> searchGifs(
     }
     final off = body['offset'];
     final total = body['total'];
+    final hasMoreRaw = body['hasMore'];
     final translatedFrom = body['translatedFrom'];
     final effectiveQuery = body['query'];
     return GiphySearchOutcome(
@@ -137,6 +143,7 @@ Future<GiphySearchOutcome> searchGifs(
       missingKey: err == 'missing_key',
       offset: off is num ? off.toInt() : offset,
       total: total is num ? total.toInt() : out.length,
+      serverHasMore: hasMoreRaw is bool ? hasMoreRaw : null,
       translatedFrom: translatedFrom is String ? translatedFrom : null,
       effectiveQuery: effectiveQuery is String ? effectiveQuery : null,
     );
