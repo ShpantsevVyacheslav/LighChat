@@ -3205,4 +3205,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedule_time_label => 'Time';
+
+  @override
+  String get welcomeBubbleTitle => 'Welcome to LighChat';
+
+  @override
+  String get welcomeBubbleSubtitle => 'The lighthouse is lit';
+
+  @override
+  String get welcomeSkip => 'Skip';
+
+  @override
+  String get welcomeReplayDebugTile => 'Replay welcome animation (debug)';
 }

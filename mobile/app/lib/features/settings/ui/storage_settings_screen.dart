@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 import '../../auth/ui/auth_glass.dart';
 import '../../chat/data/local_storage_preferences.dart';
+import '../../welcome/ui/welcome_animation_screen.dart';
 import '../data/storage_cache_manager.dart';
 import '../../../l10n/app_localizations.dart';
 import 'storage_chat_detail_screen.dart';
@@ -747,6 +749,20 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                                 ),
                           ],
                         ),
+                        if (kDebugMode) ...[
+                          const SizedBox(height: 14),
+                          _SettingsCard(
+                            children: [
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.replay_rounded),
+                                title: Text(l10n.welcomeReplayDebugTile),
+                                onTap: () =>
+                                    debugReplayWelcomeAnimation(context),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

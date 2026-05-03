@@ -1672,5 +1672,9 @@
   "scheduled_messages_preview_message": "Message",
   "chat_header_tooltip_scheduled": "Scheduled messages",
   "schedule_date_label": "Date",
-  "schedule_time_label": "Time"
+  "schedule_time_label": "Time",
+  "welcomeBubbleTitle": "Welcome to LighChat",
+  "welcomeBubbleSubtitle": "The lighthouse is lit",
+  "welcomeSkip": "Skip",
+  "welcomeReplayDebugTile": "Replay welcome animation (debug)"
 }

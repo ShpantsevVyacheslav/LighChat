@@ -21,6 +21,7 @@
 - `firestore.rules`, `src/firestore.rules` - правила Firestore (держать синхронно).
 - `storage.rules` - правила Firebase Storage.
 - `electron` - desktop shell (main/preload).
+- `mobile/app/lib/features/welcome` - first-login welcome-анимация (per-uid флаг в SharedPreferences `first_login_animation_shown_<uid>`, redirect через `app_router.dart`).
 - `scripts` - утилиты сборки/брендинга.
 - `public` - статика, PWA-иконки и манифест.
 

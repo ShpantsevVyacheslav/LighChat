@@ -3231,4 +3231,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get schedule_time_label => 'Время';
+
+  @override
+  String get welcomeBubbleTitle => 'Добро пожаловать в LighChat';
+
+  @override
+  String get welcomeBubbleSubtitle => 'Маяк зажёгся';
+
+  @override
+  String get welcomeSkip => 'Пропустить';
+
+  @override
+  String get welcomeReplayDebugTile => 'Replay welcome animation (debug)';
 }

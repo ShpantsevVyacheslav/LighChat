@@ -1672,5 +1672,9 @@
   "scheduled_messages_preview_message": "Сообщение",
   "chat_header_tooltip_scheduled": "Запланированные сообщения",
   "schedule_date_label": "Дата",
-  "schedule_time_label": "Время"
+  "schedule_time_label": "Время",
+  "welcomeBubbleTitle": "Добро пожаловать в LighChat",
+  "welcomeBubbleSubtitle": "Маяк зажёгся",
+  "welcomeSkip": "Пропустить",
+  "welcomeReplayDebugTile": "Replay welcome animation (debug)"
 }

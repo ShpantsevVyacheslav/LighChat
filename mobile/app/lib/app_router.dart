@@ -40,6 +40,8 @@ import 'features/chat/ui/edit_group_chat_screen.dart';
 import 'features/chat/ui/group_members_screen.dart';
 import 'features/chat/ui/thread_screen.dart';
 import 'features/chat/ui/thread_route_payload.dart';
+import 'features/welcome/data/first_login_animation_storage.dart';
+import 'features/welcome/ui/welcome_animation_screen.dart';
 
 GoRouter createRouter() {
   return GoRouter(
@@ -66,6 +68,25 @@ GoRouter createRouter() {
         return '/chats';
       }
 
+      // First-login welcome animation: показывается per-uid + per-device.
+      // Не перехватываем deep-link на звонки/митинги/auth-callback —
+      // важные сценарии не должны блокироваться приветствием.
+      if (isSignedIn) {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null && uid.isNotEmpty) {
+          final path = uri.path;
+          const skipPaths = {'/welcome', '/auth/google-complete'};
+          final isCallDeepLink = path.startsWith('/calls/');
+          final isMeetingDeepLink = path.startsWith('/meetings/');
+          if (!skipPaths.contains(path) &&
+              !isCallDeepLink &&
+              !isMeetingDeepLink) {
+            final shown = await FirstLoginAnimationStorage.isShownFor(uid);
+            if (!shown) return '/welcome';
+          }
+        }
+      }
+
       return null;
     },
     routes: <RouteBase>[
@@ -73,6 +94,10 @@ GoRouter createRouter() {
       GoRoute(
         path: '/auth/google-complete',
         builder: (context, state) => const GoogleCompleteProfileScreen(),
+      ),
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const WelcomeAnimationScreen(),
       ),
       GoRoute(
         path: '/chats',

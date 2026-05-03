@@ -5617,6 +5617,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Время'**
   String get schedule_time_label;
+
+  /// No description provided for @welcomeBubbleTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добро пожаловать в LighChat'**
+  String get welcomeBubbleTitle;
+
+  /// No description provided for @welcomeBubbleSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Маяк зажёгся'**
+  String get welcomeBubbleSubtitle;
+
+  /// No description provided for @welcomeSkip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пропустить'**
+  String get welcomeSkip;
+
+  /// No description provided for @welcomeReplayDebugTile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Replay welcome animation (debug)'**
+  String get welcomeReplayDebugTile;
 }
 
 class _AppLocalizationsDelegate
