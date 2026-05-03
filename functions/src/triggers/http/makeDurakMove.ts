@@ -100,6 +100,7 @@ export const makeDurakMove = onCall(
     const gameRef = db.doc(`games/${gameId}`);
     const moveRef = gameRef.collection("moves").doc(clientMoveId);
     const nowIso = new Date().toISOString();
+    let lastWritePayloadDump = "";
 
     try {
       await db.runTransaction(async (tx) => {
@@ -373,6 +374,18 @@ export const makeDurakMove = onCall(
         }),
         "publicView",
       );
+      lastWritePayloadDump = (() => {
+        try {
+          return JSON.stringify({
+            serverState: sanitizedState,
+            publicView: sanitizedPublicView,
+            result,
+            isFinished,
+          }).slice(0, 6000);
+        } catch (_) {
+          return "<unstringifiable>";
+        }
+      })();
       tx.update(gameRef, {
         status: isFinished ? "finished" : "active",
         result: result ?? null,
@@ -488,7 +501,8 @@ export const makeDurakMove = onCall(
         clientMoveId,
         error: (error as Error)?.message ?? String(error),
         errorName: (error as Error)?.name,
-        errorStack: (error as Error)?.stack?.split("\n").slice(0, 6).join("\n"),
+        errorStack: (error as Error)?.stack?.split("\n").slice(0, 8).join("\n"),
+        lastWritePayloadDump,
       });
       const message = ((error as Error)?.message ?? String(error)).slice(0, 180);
       throw new HttpsError("failed-precondition", `MOVE_REJECTED_RETRY:${message}`);
