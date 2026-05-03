@@ -31,6 +31,7 @@ import '../data/pinned_messages_helper.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/link_preview_diagnostics.dart';
 import '../data/reply_preview_builder.dart';
+import '../data/video_attachment_diagnostics.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/group_mention_candidates.dart';
 import '../data/contact_display_name.dart';
@@ -844,9 +845,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _controller.dispose();
     _chatSearchController.dispose();
     _chatSearchFocus.dispose();
-    // Сводка по link-preview мерцанию: если 0 регрессий — фикс жив,
-    // если >0 — баг каким-то путём вернулся.
+    // Сводки по обоим источникам скролл-дёрганья: если в обоих 0 регрессий —
+    // фиксы живы, если >0 — баг каким-то путём вернулся.
     LinkPreviewFlickerDetector.printSummary();
+    VideoAttachmentAspectMonitor.printSummary();
     super.dispose();
   }
 

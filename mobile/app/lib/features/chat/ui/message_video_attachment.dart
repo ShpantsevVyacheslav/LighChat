@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../data/chat_media_layout_tokens.dart';
+import '../data/video_attachment_diagnostics.dart';
 import 'chat_gallery_video_local_cache.dart';
 import 'chat_vlc_network_media.dart';
 import 'video_cached_thumb_image.dart';
@@ -229,18 +230,24 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
     final w = widget.attachment.width;
     final h = widget.attachment.height;
     final c = _controller;
-    final arFromController =
-        c != null &&
-            c.value.isInitialized &&
-            c.value.size.width > 0 &&
-            c.value.size.height > 0
-        ? (c.value.size.width / c.value.size.height)
-        : null;
-    // Стабильная высота ячейки: при наличии width/height в вложении не подменяем
-    // aspect на размер с плеера (иначе скачок на границе с кружком при скролле).
+    // Стабильная высота ячейки: ширина/высота берём ТОЛЬКО из метаданных вложения.
+    // arFromController сюда не подмешиваем — он становится известен лишь после
+    // `c.initialize()` и при отсутствии w/h в метаданных давал «скачок»
+    // 16:9 → реальное соотношение в момент инициализации. Когда в ленте подряд
+    // несколько видео, эти скачки накладывались и блокировали скролл.
+    // Контент внутри подгоняется через FittedBox(BoxFit.cover) — портретные
+    // видео без метаданных будут center-cropped, но лента остаётся стабильной.
     final safeAr = (w != null && h != null && w > 0 && h > 0)
         ? w / h
-        : (arFromController ?? 16 / 9);
+        : 16 / 9;
+    if (kLogVideoAttachmentDiagnostics) {
+      VideoAttachmentAspectMonitor.observe(
+        url: widget.attachment.url,
+        ar: safeAr,
+        hasMetadata: w != null && h != null && w > 0 && h > 0,
+        controllerInitialized: c != null && c.value.isInitialized,
+      );
+    }
     final url = widget.attachment.url;
     final normState = _normState;
 
