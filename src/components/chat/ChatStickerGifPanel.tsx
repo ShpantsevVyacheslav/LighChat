@@ -2,9 +2,10 @@
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { Theme } from 'emoji-picker-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, BookmarkPlus, X, History, Sparkles } from 'lucide-react';
 import { UserStickersTab } from '@/components/chat/UserStickersTab';
@@ -17,7 +18,6 @@ import { USER_STICKER_MAX_FILE_BYTES } from '@/lib/user-sticker-packs';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-// Тяжёлый emoji-picker подгружается лениво только когда вкладка нужна.
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), {
   ssr: false,
   loading: () => (
@@ -34,9 +34,7 @@ type GiphyResponse = {
   offset?: number;
   count?: number;
   total?: number;
-  /** Если запрос был автоматически переведён — оригинал пользователя. */
   translatedFrom?: string | null;
-  /** Что реально ушло в GIPHY (на английском, если был перевод). */
   query?: string;
 };
 
@@ -51,8 +49,6 @@ type ChatStickerGifPanelProps = {
   userId: string;
   onPickStickerAttachment: (attachment: ChatAttachment) => void;
   onPickGifAttachment: (att: ChatAttachment) => void;
-  /** Вставить unicode-эмодзи в текст композера. Если не задан — вкладка «Эмодзи»
-   *  показывает заглушку. */
   onPickEmoji?: (emoji: string) => void;
   className?: string;
 };
@@ -65,6 +61,7 @@ async function fetchGifs(
   const params = new URLSearchParams();
   if (q.trim()) params.set('q', q.trim());
   if (type === 'stickers') params.set('type', 'stickers');
+  if (type === 'emoji') params.set('type', 'emoji');
   if (offset > 0) params.set('offset', String(offset));
   const qs = params.toString();
   try {
@@ -75,13 +72,6 @@ async function fetchGifs(
   }
 }
 
-/**
- * Шторка композера: 3 вкладки — Эмодзи / Стикеры / GIF (паритет с мобайлом).
- * - Эмодзи: горизонтальная строка анимированных (GIPHY stickers, кеш 24h) + полный
- *   unicode-пикер `emoji-picker-react`.
- * - Стикеры: свои паки + общие, как раньше.
- * - GIF: эмодзи-фильтры, trending по умолчанию (кеш 24h), последние 30 просмотренных.
- */
 export function ChatStickerGifPanel({
   userId,
   onPickStickerAttachment,
@@ -103,7 +93,6 @@ export function ChatStickerGifPanel({
   const [translatedHint, setTranslatedHint] = useState<string | null>(null);
   const gifScrollRef = useRef<HTMLDivElement>(null);
 
-  // Анимированные эмодзи (GIPHY stickers).
   const [animEmojis, setAnimEmojis] = useState<GiphyItem[]>([]);
   const [animEmojisLoading, setAnimEmojisLoading] = useState(false);
 
@@ -115,7 +104,6 @@ export function ChatStickerGifPanel({
 
   // ============ Bootstrap ============
 
-  // Загружаем недавние и trending при монтировании.
   useEffect(() => {
     setRecentGifs(giphyCache.getRecent());
     const cachedGifs = giphyCache.getTrending('gifs');
@@ -133,7 +121,6 @@ export function ChatStickerGifPanel({
       })();
     }
 
-    // Анимированные эмодзи — это GIPHY v2/emoji (именно эмодзи, не стикеры).
     const cachedEmojis = giphyCache.getTrending('emoji');
     if (cachedEmojis && cachedEmojis.length > 0) {
       setAnimEmojis(cachedEmojis);
@@ -149,7 +136,6 @@ export function ChatStickerGifPanel({
     }
   }, []);
 
-  // Дебаунс поиска GIF + учёт эмодзи-фильтра. Кеш по (type, query) — TTL 24h.
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -188,7 +174,6 @@ export function ChatStickerGifPanel({
     };
   }, [gifQuery, activeEmojiFilter]);
 
-  // Подгрузка следующей страницы при близости к концу скролла.
   const loadMoreGifs = useCallback(async () => {
     if (gifLoadingMore || !gifHasMore || gifLoading) return;
     setGifLoadingMore(true);
@@ -239,8 +224,6 @@ export function ChatStickerGifPanel({
     [onPickGifAttachment],
   );
 
-  /// Анимированный эмодзи отправляется как стикер (`sticker_giphy_*`),
-  /// чтобы получатель рендерил его без пузыря фиксированного размера.
   const handleAnimEmojiPick = useCallback(
     (item: GiphyItem) => {
       const att: ChatAttachment = {
@@ -307,9 +290,9 @@ export function ChatStickerGifPanel({
   // ============ UI ============
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <Tabs defaultValue="emoji" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 rounded-xl">
+    <div className={cn('flex min-h-0 flex-1 flex-col gap-2', className)}>
+      <Tabs defaultValue="emoji" className="flex min-h-0 flex-1 flex-col w-full">
+        <TabsList className="grid w-full shrink-0 grid-cols-3 rounded-xl">
           <TabsTrigger value="emoji" className="rounded-lg text-xs font-bold uppercase tracking-wide">
             Эмодзи
           </TabsTrigger>
@@ -322,14 +305,15 @@ export function ChatStickerGifPanel({
         </TabsList>
 
         {/* ============ EMOJI TAB ============ */}
-        <TabsContent value="emoji" className="mt-2 flex flex-col gap-2 outline-none">
+        <TabsContent value="emoji" className="mt-2 flex min-h-0 flex-1 flex-col gap-2 outline-none">
+          {/* Анимированные эмодзи — горизонтальная строка с прокруткой */}
           {animEmojisLoading ? (
-            <div className="flex h-16 items-center justify-center">
+            <div className="flex h-16 shrink-0 items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : animEmojis.length > 0 ? (
-            <>
-              <div className="flex items-center gap-1 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+            <div className="shrink-0">
+              <div className="mb-1 flex items-center gap-1 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                 <Sparkles className="h-3 w-3" />
                 Анимированные
               </div>
@@ -348,37 +332,41 @@ export function ChatStickerGifPanel({
                     </button>
                   ))}
                 </div>
+                <ScrollBar orientation="horizontal" />
               </ScrollArea>
-              <div className="h-px w-full bg-border/40" />
-            </>
+              <div className="mt-1 h-px w-full bg-border/40" />
+            </div>
           ) : null}
 
-          {onPickEmoji ? (
-            <div className="flex justify-center">
+          {/* Emoji picker заполняет оставшееся пространство */}
+          <div className="min-h-0 flex-1">
+            {onPickEmoji ? (
               <EmojiPicker
                 onEmojiClick={(data) => onPickEmoji(data.emoji)}
                 width="100%"
-                height={320}
+                height="100%"
+                theme={Theme.DARK}
                 searchPlaceholder="Поиск…"
                 lazyLoadEmojis
                 previewConfig={{ showPreview: false }}
               />
-            </div>
-          ) : (
-            <p className="py-6 text-center text-xs text-muted-foreground">
-              Эмодзи в текст недоступны для этого окна.
-            </p>
-          )}
+            ) : (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                Эмодзи в текст недоступны для этого окна.
+              </p>
+            )}
+          </div>
         </TabsContent>
 
         {/* ============ STICKERS TAB ============ */}
-        <TabsContent value="stickers" className="mt-2 outline-none">
-          <StickersTabBody userId={userId} onPickSticker={onPickStickerAttachment} />
+        <TabsContent value="stickers" className="mt-2 flex min-h-0 flex-1 flex-col outline-none">
+          <StickersTabBody userId={userId} onPickSticker={onPickStickerAttachment} className="flex-1 min-h-0" />
         </TabsContent>
 
         {/* ============ GIF TAB ============ */}
-        <TabsContent value="gif" className="mt-2 flex flex-col gap-2 outline-none">
-          <div className="relative">
+        <TabsContent value="gif" className="mt-2 flex min-h-0 flex-1 flex-col gap-2 outline-none">
+          {/* Поиск */}
+          <div className="relative shrink-0">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={gifQuery}
@@ -399,43 +387,47 @@ export function ChatStickerGifPanel({
           </div>
 
           {/* Эмодзи-фильтры */}
-          <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex gap-1.5 px-0.5">
-              <EmojiFilterChip
-                label="Все"
-                active={activeEmojiFilter === null}
-                onClick={() => setActiveEmojiFilter(null)}
-              />
-              {GIF_EMOJI_FILTERS.map((emoji) => (
+          <div className="shrink-0">
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-1.5 px-0.5 pb-1">
                 <EmojiFilterChip
-                  key={emoji}
-                  label={emoji}
-                  active={activeEmojiFilter === emoji}
-                  onClick={() => {
-                    setActiveEmojiFilter(emoji);
-                    setGifQuery('');
-                  }}
+                  label="Все"
+                  active={activeEmojiFilter === null}
+                  onClick={() => setActiveEmojiFilter(null)}
                 />
-              ))}
-            </div>
-          </ScrollArea>
+                {GIF_EMOJI_FILTERS.map((emoji) => (
+                  <EmojiFilterChip
+                    key={emoji}
+                    label={emoji}
+                    active={activeEmojiFilter === emoji}
+                    onClick={() => {
+                      setActiveEmojiFilter(emoji);
+                      setGifQuery('');
+                    }}
+                  />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
 
           {gifMissingKey && (
-            <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+            <p className="shrink-0 px-0.5 text-[10px] leading-snug text-muted-foreground">
               Поиск GIF временно недоступен.
             </p>
           )}
 
           {translatedHint && (
-            <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+            <p className="shrink-0 px-0.5 text-[10px] leading-snug text-muted-foreground">
               Искали: {translatedHint}
             </p>
           )}
 
+          {/* Прокручиваемая область GIF — заполняет оставшееся место */}
           <div
             ref={gifScrollRef}
             onScroll={handleGifScroll}
-            className="h-72 overflow-y-auto overflow-x-hidden pr-2"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1"
           >
             {gifLoading ? (
               <div className="flex h-32 items-center justify-center">
@@ -500,17 +492,19 @@ function EmojiFilterChip({
   active: boolean;
   onClick: () => void;
 }) {
+  // «Все» остаётся на базовом text-xs; эмодзи-чипы чуть крупнее (text-base).
+  const isEmoji = label !== 'Все' && label.length <= 3;
   return (
     <button
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={cn(
-        'shrink-0 rounded-full px-3 py-1 text-sm transition-colors',
+        'shrink-0 rounded-full px-3 py-1 text-xs transition-colors',
         active
           ? 'bg-primary/20 ring-1 ring-primary/60 text-foreground'
           : 'bg-muted/40 hover:bg-muted text-foreground/85',
-        label.length <= 3 && 'text-base',
+        isEmoji && 'text-base',
       )}
     >
       {label}
@@ -570,21 +564,22 @@ function GifGrid({
 }
 
 /**
- * Тело вкладки «Стикеры» с переключателем «Мои/Общие» (UserStickersTab) и
- * «GIPHY» — библиотека стикеров с поиском и trending по умолчанию.
+ * Вкладка «Стикеры»: свои/общие паки + библиотека (GIPHY stickers).
  */
 function StickersTabBody({
   userId,
   onPickSticker,
+  className,
 }: {
   userId: string;
   onPickSticker: (att: ChatAttachment) => void;
+  className?: string;
 }) {
   const [scope, setScope] = useState<'user' | 'library'>('user');
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-1">
+    <div className={cn('flex flex-col gap-2', className)}>
+      <div className="flex shrink-0 gap-1">
         <Button
           type="button"
           size="sm"
@@ -601,13 +596,13 @@ function StickersTabBody({
           className="h-7 rounded-full px-3 text-xs"
           onClick={() => setScope('library')}
         >
-          GIPHY
+          Библиотека
         </Button>
       </div>
       {scope === 'user' ? (
-        <UserStickersTab userId={userId} onPickSticker={onPickSticker} />
+        <UserStickersTab userId={userId} onPickSticker={onPickSticker} className="flex-1 min-h-0" />
       ) : (
-        <GiphyStickerLibrary onPickSticker={onPickSticker} />
+        <GiphyStickerLibrary onPickSticker={onPickSticker} className="flex-1 min-h-0" />
       )}
     </div>
   );
@@ -615,17 +610,21 @@ function StickersTabBody({
 
 function GiphyStickerLibrary({
   onPickSticker,
+  className,
 }: {
   onPickSticker: (att: ChatAttachment) => void;
+  className?: string;
 }) {
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<GiphyItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [translatedHint, setTranslatedHint] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastEffectiveQuery = useRef('');
 
-  // Bootstrap trending stickers + cache.
   useEffect(() => {
     const cached = giphyCache.getTrending('stickers');
     if (cached && cached.length > 0) {
@@ -637,12 +636,14 @@ function GiphyStickerLibrary({
       const r = await fetchGifs('', 'stickers');
       setLoading(false);
       const list = r.items ?? [];
+      const total = r.total ?? list.length;
       setItems(list);
+      setHasMore(list.length < total);
+      lastEffectiveQuery.current = '';
       if (list.length > 0) giphyCache.saveTrending('stickers', list);
     })();
   }, []);
 
-  // Debounced search (учитывая эмодзи-фильтр).
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(async () => {
@@ -652,14 +653,19 @@ function GiphyStickerLibrary({
       if (cached && cached.length > 0) {
         setItems(cached);
         setLoading(false);
+        setHasMore(true);
         setTranslatedHint(null);
+        lastEffectiveQuery.current = effective;
         return;
       }
       setLoading(true);
       const r = await fetchGifs(effective, 'stickers');
       setLoading(false);
       const list = r.items ?? [];
+      const total = r.total ?? list.length;
       setItems(list);
+      setHasMore(list.length < total);
+      lastEffectiveQuery.current = effective;
       setTranslatedHint(
         r.translatedFrom && r.query && r.query !== r.translatedFrom
           ? r.query
@@ -672,12 +678,35 @@ function GiphyStickerLibrary({
     };
   }, [query, activeFilter]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || loading) return;
+    setLoadingMore(true);
+    const r = await fetchGifs(lastEffectiveQuery.current, 'stickers', items.length);
+    setLoadingMore(false);
+    const next = r.items ?? [];
+    if (!next.length) { setHasMore(false); return; }
+    const merged = [...items];
+    const existingIds = new Set(merged.map((a) => a.id));
+    for (const it of next) {
+      if (!existingIds.has(it.id)) merged.push(it);
+    }
+    const total = r.total ?? merged.length;
+    setItems(merged);
+    setHasMore(merged.length < total);
+    giphyCache.save('stickers', lastEffectiveQuery.current, merged);
+  }, [loadingMore, hasMore, loading, items]);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
+      void loadMore();
+    }
+  }, [loadMore]);
+
   const handlePick = useCallback(
     (item: GiphyItem) => {
       onPickSticker({
         url: item.url,
-        // Префикс sticker_giphy_ — ChatAttachments рендерит как стикер
-        // (без пузыря, фиксированный размер). Паритет с мобайлом.
         name: `sticker_giphy_${item.id}.gif`,
         type: 'image/gif',
         size: 0,
@@ -690,8 +719,8 @@ function GiphyStickerLibrary({
   );
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative">
+    <div className={cn('flex flex-col gap-2', className)}>
+      <div className="relative shrink-0">
         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
@@ -711,38 +740,38 @@ function GiphyStickerLibrary({
         )}
       </div>
 
-      {/* Эмодзи-фильтры (паритет с GIF-вкладкой). */}
-      <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex gap-1.5 px-0.5">
-          <EmojiFilterChip
-            label="Все"
-            active={activeFilter === null}
-            onClick={() => {
-              setActiveFilter(null);
-              setQuery('');
-            }}
-          />
-          {GIF_EMOJI_FILTERS.map((emoji) => (
+      {/* Эмодзи-фильтры */}
+      <div className="shrink-0">
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="flex gap-1.5 px-0.5 pb-1">
             <EmojiFilterChip
-              key={emoji}
-              label={emoji}
-              active={activeFilter === emoji}
-              onClick={() => {
-                setActiveFilter(emoji);
-                setQuery('');
-              }}
+              label="Все"
+              active={activeFilter === null}
+              onClick={() => { setActiveFilter(null); setQuery(''); }}
             />
-          ))}
-        </div>
-      </ScrollArea>
+            {GIF_EMOJI_FILTERS.map((emoji) => (
+              <EmojiFilterChip
+                key={emoji}
+                label={emoji}
+                active={activeFilter === emoji}
+                onClick={() => { setActiveFilter(emoji); setQuery(''); }}
+              />
+            ))}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </div>
 
       {translatedHint && (
-        <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+        <p className="shrink-0 px-0.5 text-[10px] leading-snug text-muted-foreground">
           Искали: {translatedHint}
         </p>
       )}
 
-      <div className="h-72 overflow-y-auto overflow-x-hidden">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+        onScroll={handleScroll}
+      >
         {loading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -752,25 +781,32 @@ function GiphyStickerLibrary({
             Ничего не найдено
           </p>
         ) : (
-          <div className="grid grid-cols-4 gap-1.5 p-0.5">
-            {items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handlePick(item)}
-                className="aspect-square overflow-hidden rounded-lg bg-muted/30 p-1 hover:ring-2 hover:ring-primary/40"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.url}
-                  alt=""
-                  className="h-full w-full object-contain"
-                  loading="lazy"
-                />
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-4 gap-1.5 p-0.5">
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handlePick(item)}
+                  className="aspect-square overflow-hidden rounded-lg bg-muted/30 p-1 hover:ring-2 hover:ring-primary/40"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.url}
+                    alt=""
+                    className="h-full w-full object-contain"
+                    loading="lazy"
+                  />
+                </button>
+              ))}
+            </div>
+            {loadingMore && (
+              <div className="flex items-center justify-center py-3">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
