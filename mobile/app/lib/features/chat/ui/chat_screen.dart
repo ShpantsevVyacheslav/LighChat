@@ -29,6 +29,7 @@ import '../data/partner_presence_line.dart';
 import '../data/chat_message_search.dart';
 import '../data/pinned_messages_helper.dart';
 import '../data/chat_media_gallery.dart';
+import '../data/link_preview_diagnostics.dart';
 import '../data/reply_preview_builder.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/group_mention_candidates.dart';
@@ -843,6 +844,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _controller.dispose();
     _chatSearchController.dispose();
     _chatSearchFocus.dispose();
+    // Сводка по link-preview мерцанию: если 0 регрессий — фикс жив,
+    // если >0 — баг каким-то путём вернулся.
+    LinkPreviewFlickerDetector.printSummary();
     super.dispose();
   }
 

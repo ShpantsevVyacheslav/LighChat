@@ -5,6 +5,8 @@ import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
+import 'link_preview_diagnostics.dart';
+
 class LinkPreviewMetadata {
   const LinkPreviewMetadata({
     required this.url,
@@ -53,10 +55,22 @@ class LinkPreviewMetadataCache {
     if (key == null) return Future.value(null);
 
     final existing = _futures[key];
-    if (existing != null) return existing;
+    if (existing != null) {
+      if (kLogLinkPreviewDiagnostics) {
+        debugPrint(
+          '[link-preview] cache HIT  url=$key futureHash=${identityHashCode(existing)}',
+        );
+      }
+      return existing;
+    }
 
     final future = _fetchAndParse(key);
     _futures[key] = future;
+    if (kLogLinkPreviewDiagnostics) {
+      debugPrint(
+        '[link-preview] cache MISS url=$key futureHash=${identityHashCode(future)}',
+      );
+    }
     return future;
   }
 

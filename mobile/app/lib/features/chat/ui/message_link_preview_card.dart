@@ -3,6 +3,7 @@ import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../data/link_preview_diagnostics.dart';
 import '../data/link_preview_metadata.dart';
 import 'link_webview_screen.dart';
 
@@ -46,8 +47,10 @@ class MessageLinkPreviewCard extends StatelessWidget {
         builder: (context, snap) {
           final data = snap.data;
           if (snap.connectionState != ConnectionState.done) {
+            LinkPreviewFlickerDetector.recordWaiting(url);
             return _skeleton(border: border, bg: bg);
           }
+          LinkPreviewFlickerDetector.recordDone(url);
           if (data == null) {
             return const SizedBox.shrink();
           }
@@ -254,6 +257,9 @@ class _LinkPreviewInlineVideoState extends State<_LinkPreviewInlineVideo> {
   Future<void> _start() async {
     if (_controller != null || _initializing) return;
     setState(() => _initializing = true);
+    if (kLogLinkPreviewDiagnostics) {
+      debugPrint('[link-preview-video] init start url=${widget.videoUrl}');
+    }
     final c = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
     try {
       await c.initialize();
@@ -263,13 +269,23 @@ class _LinkPreviewInlineVideoState extends State<_LinkPreviewInlineVideo> {
       }
       c.setLooping(true);
       unawaited(c.play());
+      if (kLogLinkPreviewDiagnostics) {
+        debugPrint(
+          '[link-preview-video] init OK url=${widget.videoUrl} '
+          'natural=${c.value.size} natAR=${c.value.aspectRatio.toStringAsFixed(2)} '
+          '(карточка остаётся 16:9, FittedBox cover)',
+        );
+      }
       setState(() {
         _controller = c;
         _initializing = false;
       });
-    } catch (_) {
+    } catch (e) {
       unawaited(c.dispose());
       if (!mounted) return;
+      if (kLogLinkPreviewDiagnostics) {
+        debugPrint('[link-preview-video] init FAIL url=${widget.videoUrl} err=$e');
+      }
       setState(() {
         _initializing = false;
         _failed = true;
