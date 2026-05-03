@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 
 /// Префикс как на вебе: [src/lib/chat-message-draft-storage.ts].
 const String kChatDraftStoragePrefix = 'lighchat:chatDrafts:v1:';
@@ -150,7 +152,7 @@ Future<Map<String, StoredChatMessageDraft>> loadAllChatDraftsForUser(
 ) => _readMap(userId);
 
 /// Короткая строка превью (паритет [useChatMainDraftPreview] на вебе).
-String? chatMainDraftPreviewLine(StoredChatMessageDraft d) {
+String? chatMainDraftPreviewLine(StoredChatMessageDraft d, AppLocalizations l10n) {
   final plain = chatDraftPlainFromHtml(d.html);
   final hasReply = d.replyTo != null;
   if (plain.isEmpty && !hasReply) return null;
@@ -162,5 +164,5 @@ String? chatMainDraftPreviewLine(StoredChatMessageDraft d) {
     final p = chatDraftPlainFromHtml(rt);
     return p.length > 72 ? '${p.substring(0, 72)}…' : p;
   }
-  return 'Ответ';
+  return l10n.chat_draft_reply_fallback;
 }

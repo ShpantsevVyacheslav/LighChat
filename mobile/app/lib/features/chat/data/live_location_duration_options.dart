@@ -1,3 +1,5 @@
+import '../../../l10n/app_localizations.dart';
+
 /// Паритет `src/lib/live-location-durations.ts` (веб-диалог «Поделиться геолокацией»).
 class LiveLocationDurationOption {
   const LiveLocationDurationOption({
@@ -12,25 +14,33 @@ class LiveLocationDurationOption {
   final int? durationMs;
 }
 
+/// Constant IDs + durations (labels are placeholder — use [liveLocationDurationOptions] for display).
 const List<LiveLocationDurationOption> kLiveLocationDurationOptions = [
-  LiveLocationDurationOption(
-    id: 'once',
-    label: 'Одноразово (только это сообщение)',
-    durationMs: null,
-  ),
-  LiveLocationDurationOption(id: 'm5', label: '5 минут', durationMs: 5 * 60 * 1000),
-  LiveLocationDurationOption(id: 'm15', label: '15 минут', durationMs: 15 * 60 * 1000),
-  LiveLocationDurationOption(id: 'm30', label: '30 минут', durationMs: 30 * 60 * 1000),
-  LiveLocationDurationOption(id: 'h1', label: '1 час', durationMs: 60 * 60 * 1000),
-  LiveLocationDurationOption(id: 'h2', label: '2 часа', durationMs: 2 * 60 * 60 * 1000),
-  LiveLocationDurationOption(id: 'h6', label: '6 часов', durationMs: 6 * 60 * 60 * 1000),
-  LiveLocationDurationOption(id: 'd1', label: '1 день', durationMs: 24 * 60 * 60 * 1000),
-  LiveLocationDurationOption(
-    id: 'forever',
-    label: 'Навсегда (пока не отключу)',
-    durationMs: null,
-  ),
+  LiveLocationDurationOption(id: 'once', label: '', durationMs: null),
+  LiveLocationDurationOption(id: 'm5', label: '', durationMs: 5 * 60 * 1000),
+  LiveLocationDurationOption(id: 'm15', label: '', durationMs: 15 * 60 * 1000),
+  LiveLocationDurationOption(id: 'm30', label: '', durationMs: 30 * 60 * 1000),
+  LiveLocationDurationOption(id: 'h1', label: '', durationMs: 60 * 60 * 1000),
+  LiveLocationDurationOption(id: 'h2', label: '', durationMs: 2 * 60 * 60 * 1000),
+  LiveLocationDurationOption(id: 'h6', label: '', durationMs: 6 * 60 * 60 * 1000),
+  LiveLocationDurationOption(id: 'd1', label: '', durationMs: 24 * 60 * 60 * 1000),
+  LiveLocationDurationOption(id: 'forever', label: '', durationMs: null),
 ];
+
+/// Returns duration options with localized labels.
+List<LiveLocationDurationOption> liveLocationDurationOptions(AppLocalizations l10n) {
+  return [
+    LiveLocationDurationOption(id: 'once', label: l10n.live_location_once, durationMs: null),
+    LiveLocationDurationOption(id: 'm5', label: l10n.live_location_5min, durationMs: 5 * 60 * 1000),
+    LiveLocationDurationOption(id: 'm15', label: l10n.live_location_15min, durationMs: 15 * 60 * 1000),
+    LiveLocationDurationOption(id: 'm30', label: l10n.live_location_30min, durationMs: 30 * 60 * 1000),
+    LiveLocationDurationOption(id: 'h1', label: l10n.live_location_1hour, durationMs: 60 * 60 * 1000),
+    LiveLocationDurationOption(id: 'h2', label: l10n.live_location_2hours, durationMs: 2 * 60 * 60 * 1000),
+    LiveLocationDurationOption(id: 'h6', label: l10n.live_location_6hours, durationMs: 6 * 60 * 60 * 1000),
+    LiveLocationDurationOption(id: 'd1', label: l10n.live_location_1day, durationMs: 24 * 60 * 60 * 1000),
+    LiveLocationDurationOption(id: 'forever', label: l10n.live_location_forever, durationMs: null),
+  ];
+}
 
 /// ISO UTC окончания трансляции; `null` для `once` и `forever`.
 String? liveLocationExpiresAtForDurationId(String id) {

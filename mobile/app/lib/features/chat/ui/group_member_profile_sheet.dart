@@ -107,7 +107,7 @@ class _GroupMemberProfileSheetState extends ConsumerState<GroupMemberProfileShee
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось открыть личный чат: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.group_member_open_dm_error(e.toString()))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);

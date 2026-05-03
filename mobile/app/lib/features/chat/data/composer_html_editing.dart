@@ -350,6 +350,7 @@ class ComposerHtmlEditing {
     required int atStartOffset,
     required String userId,
     required String label,
+    required String fallbackMentionLabel,
   }) {
     final text = value.text;
     final sel = value.selection;
@@ -358,7 +359,7 @@ class ComposerHtmlEditing {
     final labelTrim = label.trim();
     final token = MentionTokenCodec.buildToken(
       userId: userId,
-      label: labelTrim.isEmpty ? 'Участник' : labelTrim,
+      label: labelTrim.isEmpty ? fallbackMentionLabel : labelTrim,
     );
     final frag = '$token ';
     final nt = text.substring(0, start) + frag + text.substring(caret);

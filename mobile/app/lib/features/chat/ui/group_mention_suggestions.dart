@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/group_mention_candidates.dart';
 import 'chat_avatar.dart';
 
@@ -52,7 +53,7 @@ class GroupMentionSuggestions extends StatelessWidget {
                   vertical: 10,
                 ),
                 child: Text(
-                  'Нет совпадений',
+                  AppLocalizations.of(context)!.chat_mention_no_matches,
                   style: TextStyle(
                     color: fg.withValues(alpha: dark ? 0.62 : 0.56),
                     fontWeight: FontWeight.w600,

@@ -1,21 +1,6 @@
 import '../../../l10n/app_localizations.dart';
 // Форматирование дат/длительности для экрана «Звонки» (в духе веб CallsHistoryPage + макет списка).
 
-const List<String> _ruMonthsGenitive = <String>[
-  'января',
-  'февраля',
-  'марта',
-  'апреля',
-  'мая',
-  'июня',
-  'июля',
-  'августа',
-  'сентября',
-  'октября',
-  'ноября',
-  'декабря',
-];
-
 List<String> _localizedMonths(AppLocalizations l10n) => [
   l10n.call_month_january, l10n.call_month_february, l10n.call_month_march,
   l10n.call_month_april, l10n.call_month_may, l10n.call_month_june,

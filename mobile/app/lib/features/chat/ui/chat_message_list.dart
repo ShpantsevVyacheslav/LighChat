@@ -1270,6 +1270,7 @@ class _ChatMessageBubble extends StatelessWidget {
             quoteAccent: scheme.primary,
             quoteMaxWidth: quoteMaxWidth ?? quoteMaxFallback,
             mentionLabelResolver: resolveMentionDisplayName,
+            mentionFallbackLabel: AppLocalizations.of(context)!.mention_fallback_label,
             onMentionTap: (userId) async {
               final uid = userId.trim();
               if (uid.isEmpty) return;

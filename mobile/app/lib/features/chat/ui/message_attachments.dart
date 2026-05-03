@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/chat_attachment_mosaic_layout.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/chat_media_layout_tokens.dart';
@@ -743,7 +744,7 @@ class _E2eeMediaDecryptErrorRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final title = att.name.trim().isNotEmpty
         ? att.name.trim()
-        : 'Не удалось расшифровать вложение';
+        : AppLocalizations.of(context)!.chat_attachment_decrypt_error;
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Container(

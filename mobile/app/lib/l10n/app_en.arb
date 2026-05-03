@@ -3222,5 +3222,304 @@
   "meeting_chat_edit": "Edit",
   "meeting_chat_delete": "Delete",
   "meeting_chat_deleted": "Message deleted",
-  "meeting_chat_edited_mark": "• edited"
+  "meeting_chat_edited_mark": "• edited",
+  "e2ee_decrypt_image_failed": "Failed to decrypt image",
+  "e2ee_decrypt_video_failed": "Failed to decrypt video",
+  "e2ee_decrypt_audio_failed": "Failed to decrypt audio",
+  "e2ee_decrypt_attachment_failed": "Failed to decrypt attachment",
+  "search_preview_attachment": "Attachment",
+  "search_preview_location": "Location",
+  "search_preview_message": "Message",
+  "outbox_attachment_singular": "Attachment",
+  "outbox_attachments_count": "Attachments ({count})",
+  "@outbox_attachments_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outbox_chat_unavailable": "Chat service unavailable",
+  "outbox_encryption_error": "Encryption: {code}",
+  "@outbox_encryption_error": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "nav_chats": "Chats",
+  "nav_contacts": "Contacts",
+  "nav_meetings": "Meetings",
+  "nav_calls": "Calls",
+  "e2ee_media_decrypt_failed_image": "Failed to decrypt image",
+  "e2ee_media_decrypt_failed_video": "Failed to decrypt video",
+  "e2ee_media_decrypt_failed_audio": "Failed to decrypt audio",
+  "e2ee_media_decrypt_failed_attachment": "Failed to decrypt attachment",
+  "chat_search_snippet_attachment": "Attachment",
+  "chat_search_snippet_location": "Location",
+  "chat_search_snippet_message": "Message",
+  "bottom_nav_chats": "Chats",
+  "bottom_nav_contacts": "Contacts",
+  "bottom_nav_meetings": "Meetings",
+  "bottom_nav_calls": "Calls",
+  "chat_list_swipe_folders": "FOLDERS",
+  "chat_list_swipe_clear": "CLEAR",
+  "chat_list_swipe_delete": "DELETE",
+  "composer_editing_title": "EDITING MESSAGE",
+  "composer_editing_cancel_tooltip": "Cancel editing",
+  "composer_formatting_title": "FORMATTING",
+  "composer_link_preview_loading": "Loading preview…",
+  "composer_link_preview_hide_tooltip": "Hide preview",
+  "chat_invite_button": "Invite",
+  "forward_preview_unknown_sender": "Unknown",
+  "forward_preview_attachment": "Attachment",
+  "forward_preview_message": "Message",
+  "chat_mention_no_matches": "No matches",
+  "live_location_sharing": "You are sharing your location",
+  "live_location_stop": "Stop",
+  "chat_message_deleted": "Message deleted",
+  "profile_qr_share": "Share",
+  "shared_location_open_browser_tooltip": "Open in browser",
+  "reply_preview_message_fallback": "Message",
+  "video_circle_media_kind": "video",
+  "reactions_rated_count": "Reacted: {count}",
+  "@reactions_rated_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reactions_today_time": "Today, {time}",
+  "@reactions_today_time": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "durak_create_timer_subtitle": "Default 15 seconds",
+  "dm_game_banner_active": "Durak game in progress",
+  "dm_game_banner_created": "Durak game created",
+  "chat_folder_favorites": "Favorites",
+  "chat_folder_new": "New",
+  "contact_profile_user_fallback": "User",
+  "contact_profile_error": "Error: {error}",
+  "@contact_profile_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conversation_threads_loading_title": "Threads",
+  "theme_label_light": "Light",
+  "theme_label_dark": "Dark",
+  "theme_label_auto": "Auto",
+  "chat_draft_reply_fallback": "Reply",
+  "mention_default_label": "Member",
+  "contacts_fallback_name": "Contact",
+  "sticker_pack_default_name": "My pack",
+  "profile_error_phone_taken": "This phone number is already registered. Please use a different number.",
+  "profile_error_email_taken": "This email is already taken. Please use a different address.",
+  "profile_error_username_taken": "This username is already taken. Please choose another.",
+  "e2ee_banner_default_context": "Message",
+  "e2ee_banner_encrypted_chat_web_only": "{prefix} to an encrypted chat can only be sent from the web client for now.",
+  "@e2ee_banner_encrypted_chat_web_only": {
+    "placeholders": {
+      "prefix": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_attachment_decrypt_error": "Failed to decrypt attachment",
+  "group_avatar_process_error": "Failed to process photo: {error}",
+  "@group_avatar_process_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_open_dm_error": "Failed to open direct chat: {error}",
+  "@group_member_open_dm_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mention_fallback_label": "member",
+  "mention_fallback_label_capitalized": "Member",
+  "meeting_speaking_label": "Speaking",
+  "meeting_local_you_suffix": "{name} (You)",
+  "@meeting_local_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "video_crop_title": "Crop",
+  "video_crop_load_error": "Failed to load video: {error}",
+  "@video_crop_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_section_recent": "RECENT",
+  "gif_section_trending": "TRENDING",
+  "auth_create_account_title": "Create Account",
+  "yandex_sign_in_yandex_error": "Yandex: {error}",
+  "@yandex_sign_in_yandex_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "call_status_missed": "Missed",
+  "call_status_cancelled": "Cancelled",
+  "call_status_ended": "Ended",
+  "presence_offline": "Offline",
+  "presence_online": "Online",
+  "dm_title_fallback": "Chat",
+  "dm_title_partner_fallback": "Contact",
+  "group_title_fallback": "Group chat",
+  "block_call_viewer_blocked": "You blocked this user. Call unavailable — unblock in Profile → Blocked.",
+  "block_call_partner_blocked": "This user restricted communication with you. Call unavailable.",
+  "block_call_unavailable": "Call unavailable.",
+  "block_composer_viewer_blocked": "You blocked this user. Sending unavailable — unblock in Profile → Blocked.",
+  "block_composer_partner_blocked": "This user restricted communication with you. Sending unavailable.",
+  "forward_group_fallback": "Group",
+  "forward_unknown_user": "Unknown",
+  "live_location_once": "One-time (this message only)",
+  "live_location_5min": "5 minutes",
+  "live_location_15min": "15 minutes",
+  "live_location_30min": "30 minutes",
+  "live_location_1hour": "1 hour",
+  "live_location_2hours": "2 hours",
+  "live_location_6hours": "6 hours",
+  "live_location_1day": "1 day",
+  "live_location_forever": "Forever (until I turn it off)",
+  "e2ee_send_too_many_files": "Too many attachments for encrypted send: maximum 5 files per message.",
+  "e2ee_send_too_large": "Total attachment size too large: maximum 96 MB for one encrypted message.",
+  "presence_last_seen_prefix": "Last seen ",
+  "presence_less_than_minute_ago": "less than a minute ago",
+  "presence_yesterday": "yesterday",
+  "dm_fallback_title": "Chat",
+  "dm_fallback_partner": "Contact",
+  "group_fallback_title": "Group chat",
+  "block_send_viewer_blocked": "You blocked this user. Sending unavailable — unblock in Profile → Blocked.",
+  "block_send_partner_blocked": "This user restricted communication with you. Sending unavailable.",
+  "mention_fallback_name": "Member",
+  "profile_conflict_phone": "This phone number is already registered. Please use a different number.",
+  "profile_conflict_email": "This email is already taken. Please use a different address.",
+  "profile_conflict_username": "This username is already taken. Please choose a different one.",
+  "mention_fallback_participant": "Participant",
+  "sticker_gif_recent": "RECENT",
+  "meeting_screen_sharing": "Screen",
+  "meeting_speaking": "Speaking",
+  "auth_sign_in_failed": "Sign-in failed: {error}",
+  "@auth_sign_in_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yandex_error_prefix": "Yandex: {error}",
+  "@yandex_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "auth_error_prefix": "Auth error: {error}",
+  "@auth_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "presence_minutes_ago": "{count,plural, =1{a minute ago} other{{count} minutes ago}}",
+  "@presence_minutes_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_hours_ago": "{count,plural, =1{an hour ago} other{{count} hours ago}}",
+  "@presence_hours_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_days_ago": "{count,plural, =1{a day ago} other{{count} days ago}}",
+  "@presence_days_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_months_ago": "{count,plural, =1{a month ago} other{{count} months ago}}",
+  "@presence_months_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_months_ago": "{years,plural, =1{1 year} other{{years} years}} {months,plural, =1{1 month ago} other{{months} months ago}}",
+  "@presence_years_months_ago": {
+    "placeholders": {
+      "years": {
+        "type": "int"
+      },
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_ago": "{count,plural, =1{a year ago} other{{count} years ago}}",
+  "@presence_years_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wallpaper_gradient_purple": "Purple",
+  "wallpaper_gradient_pink": "Pink",
+  "wallpaper_gradient_blue": "Blue",
+  "wallpaper_gradient_green": "Green",
+  "wallpaper_gradient_sunset": "Sunset",
+  "wallpaper_gradient_gentle": "Gentle",
+  "wallpaper_gradient_lime": "Lime",
+  "wallpaper_gradient_graphite": "Graphite",
+  "sticker_tab_recent": "RECENT",
+  "block_call_you_blocked": "You blocked this user. Call unavailable — unblock in Profile → Blocked.",
+  "block_call_they_blocked": "This user restricted communication with you. Call unavailable.",
+  "block_call_generic": "Call unavailable.",
+  "block_send_you_blocked": "You blocked this user. Sending unavailable — unblock in Profile → Blocked.",
+  "block_send_they_blocked": "This user restricted communication with you. Sending unavailable.",
+  "forward_unknown_fallback": "Unknown",
+  "dm_title_chat": "Chat",
+  "dm_title_partner": "Partner",
+  "dm_title_group": "Group chat",
+  "e2ee_too_many_attachments": "Too many attachments for encrypted sending: maximum 5 files per message.",
+  "e2ee_total_size_exceeded": "Total attachment size too large: maximum 96 MB per encrypted message.",
+  "yandex_sign_in_error_prefix": "Yandex: {error}",
+  "@yandex_sign_in_error_prefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_participant_screen": "Screen",
+  "meeting_participant_speaking": "Speaking"
 }

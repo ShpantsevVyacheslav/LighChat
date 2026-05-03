@@ -567,7 +567,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              l10n.chat_settings_icon_picker_title(item.label),
+                              l10n.chat_settings_icon_picker_title(localizedBottomNavLabel(item.href, l10n)),
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -1179,7 +1179,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item.label,
+                              localizedBottomNavLabel(item.href, l10n),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,

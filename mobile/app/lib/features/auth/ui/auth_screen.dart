@@ -606,7 +606,7 @@ class _RegisterFullScreenPage extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Создать аккаунт',
+                              AppLocalizations.of(context)!.auth_create_account,
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,

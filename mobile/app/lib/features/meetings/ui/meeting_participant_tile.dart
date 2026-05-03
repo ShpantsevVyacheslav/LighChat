@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_peer_stats.dart';
 
@@ -131,14 +132,14 @@ class _MeetingParticipantTileState extends State<MeetingParticipantTile> {
                     color: const Color(0xFF2563EB),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.screen_share_rounded,
+                      const Icon(Icons.screen_share_rounded,
                           size: 12, color: Colors.white),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        'Экран',
+                        AppLocalizations.of(context)!.meeting_participant_screen,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -162,13 +163,13 @@ class _MeetingParticipantTileState extends State<MeetingParticipantTile> {
                       color: const Color(0xFF34D399).withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.mic_rounded, size: 12, color: Colors.white),
-                        SizedBox(width: 4),
+                        const Icon(Icons.mic_rounded, size: 12, color: Colors.white),
+                        const SizedBox(width: 4),
                         Text(
-                          'Говорит',
+                          AppLocalizations.of(context)!.meeting_participant_speaking,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 10,

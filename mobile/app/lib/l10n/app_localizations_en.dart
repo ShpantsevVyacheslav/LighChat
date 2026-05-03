@@ -4903,7 +4903,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String group_member_open_dm_error(String error) {
-    return 'Не удалось открыть личный чат: $error';
+    return 'Failed to open direct chat: $error';
   }
 
   @override
@@ -4920,7 +4920,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String group_avatar_process_error(String error) {
-    return 'Не удалось обработать фото: $error';
+    return 'Failed to process photo: $error';
   }
 
   @override
@@ -6846,4 +6846,564 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meeting_chat_edited_mark => '• edited';
+
+  @override
+  String get e2ee_decrypt_image_failed => 'Failed to decrypt image';
+
+  @override
+  String get e2ee_decrypt_video_failed => 'Failed to decrypt video';
+
+  @override
+  String get e2ee_decrypt_audio_failed => 'Failed to decrypt audio';
+
+  @override
+  String get e2ee_decrypt_attachment_failed => 'Failed to decrypt attachment';
+
+  @override
+  String get search_preview_attachment => 'Attachment';
+
+  @override
+  String get search_preview_location => 'Location';
+
+  @override
+  String get search_preview_message => 'Message';
+
+  @override
+  String get outbox_attachment_singular => 'Attachment';
+
+  @override
+  String outbox_attachments_count(int count) {
+    return 'Attachments ($count)';
+  }
+
+  @override
+  String get outbox_chat_unavailable => 'Chat service unavailable';
+
+  @override
+  String outbox_encryption_error(String code) {
+    return 'Encryption: $code';
+  }
+
+  @override
+  String get nav_chats => 'Chats';
+
+  @override
+  String get nav_contacts => 'Contacts';
+
+  @override
+  String get nav_meetings => 'Meetings';
+
+  @override
+  String get nav_calls => 'Calls';
+
+  @override
+  String get e2ee_media_decrypt_failed_image => 'Failed to decrypt image';
+
+  @override
+  String get e2ee_media_decrypt_failed_video => 'Failed to decrypt video';
+
+  @override
+  String get e2ee_media_decrypt_failed_audio => 'Failed to decrypt audio';
+
+  @override
+  String get e2ee_media_decrypt_failed_attachment =>
+      'Failed to decrypt attachment';
+
+  @override
+  String get chat_search_snippet_attachment => 'Attachment';
+
+  @override
+  String get chat_search_snippet_location => 'Location';
+
+  @override
+  String get chat_search_snippet_message => 'Message';
+
+  @override
+  String get bottom_nav_chats => 'Chats';
+
+  @override
+  String get bottom_nav_contacts => 'Contacts';
+
+  @override
+  String get bottom_nav_meetings => 'Meetings';
+
+  @override
+  String get bottom_nav_calls => 'Calls';
+
+  @override
+  String get chat_list_swipe_folders => 'FOLDERS';
+
+  @override
+  String get chat_list_swipe_clear => 'CLEAR';
+
+  @override
+  String get chat_list_swipe_delete => 'DELETE';
+
+  @override
+  String get composer_editing_title => 'EDITING MESSAGE';
+
+  @override
+  String get composer_editing_cancel_tooltip => 'Cancel editing';
+
+  @override
+  String get composer_formatting_title => 'FORMATTING';
+
+  @override
+  String get composer_link_preview_loading => 'Loading preview…';
+
+  @override
+  String get composer_link_preview_hide_tooltip => 'Hide preview';
+
+  @override
+  String get chat_invite_button => 'Invite';
+
+  @override
+  String get forward_preview_unknown_sender => 'Unknown';
+
+  @override
+  String get forward_preview_attachment => 'Attachment';
+
+  @override
+  String get forward_preview_message => 'Message';
+
+  @override
+  String get chat_mention_no_matches => 'No matches';
+
+  @override
+  String get live_location_sharing => 'You are sharing your location';
+
+  @override
+  String get live_location_stop => 'Stop';
+
+  @override
+  String get chat_message_deleted => 'Message deleted';
+
+  @override
+  String get profile_qr_share => 'Share';
+
+  @override
+  String get shared_location_open_browser_tooltip => 'Open in browser';
+
+  @override
+  String get reply_preview_message_fallback => 'Message';
+
+  @override
+  String get video_circle_media_kind => 'video';
+
+  @override
+  String reactions_rated_count(int count) {
+    return 'Reacted: $count';
+  }
+
+  @override
+  String reactions_today_time(String time) {
+    return 'Today, $time';
+  }
+
+  @override
+  String get durak_create_timer_subtitle => 'Default 15 seconds';
+
+  @override
+  String get dm_game_banner_active => 'Durak game in progress';
+
+  @override
+  String get dm_game_banner_created => 'Durak game created';
+
+  @override
+  String get chat_folder_favorites => 'Favorites';
+
+  @override
+  String get chat_folder_new => 'New';
+
+  @override
+  String get contact_profile_user_fallback => 'User';
+
+  @override
+  String contact_profile_error(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get conversation_threads_loading_title => 'Threads';
+
+  @override
+  String get theme_label_light => 'Light';
+
+  @override
+  String get theme_label_dark => 'Dark';
+
+  @override
+  String get theme_label_auto => 'Auto';
+
+  @override
+  String get chat_draft_reply_fallback => 'Reply';
+
+  @override
+  String get mention_default_label => 'Member';
+
+  @override
+  String get contacts_fallback_name => 'Contact';
+
+  @override
+  String get sticker_pack_default_name => 'My pack';
+
+  @override
+  String get profile_error_phone_taken =>
+      'This phone number is already registered. Please use a different number.';
+
+  @override
+  String get profile_error_email_taken =>
+      'This email is already taken. Please use a different address.';
+
+  @override
+  String get profile_error_username_taken =>
+      'This username is already taken. Please choose another.';
+
+  @override
+  String get e2ee_banner_default_context => 'Message';
+
+  @override
+  String e2ee_banner_encrypted_chat_web_only(String prefix) {
+    return '$prefix to an encrypted chat can only be sent from the web client for now.';
+  }
+
+  @override
+  String get chat_attachment_decrypt_error => 'Failed to decrypt attachment';
+
+  @override
+  String get mention_fallback_label => 'member';
+
+  @override
+  String get mention_fallback_label_capitalized => 'Member';
+
+  @override
+  String get meeting_speaking_label => 'Speaking';
+
+  @override
+  String meeting_local_you_suffix(String name) {
+    return '$name (You)';
+  }
+
+  @override
+  String get video_crop_title => 'Crop';
+
+  @override
+  String video_crop_load_error(String error) {
+    return 'Failed to load video: $error';
+  }
+
+  @override
+  String get gif_section_recent => 'RECENT';
+
+  @override
+  String get gif_section_trending => 'TRENDING';
+
+  @override
+  String get auth_create_account_title => 'Create Account';
+
+  @override
+  String yandex_sign_in_yandex_error(String error) {
+    return 'Yandex: $error';
+  }
+
+  @override
+  String get call_status_missed => 'Missed';
+
+  @override
+  String get call_status_cancelled => 'Cancelled';
+
+  @override
+  String get call_status_ended => 'Ended';
+
+  @override
+  String get presence_offline => 'Offline';
+
+  @override
+  String get presence_online => 'Online';
+
+  @override
+  String get dm_title_fallback => 'Chat';
+
+  @override
+  String get dm_title_partner_fallback => 'Contact';
+
+  @override
+  String get group_title_fallback => 'Group chat';
+
+  @override
+  String get block_call_viewer_blocked =>
+      'You blocked this user. Call unavailable — unblock in Profile → Blocked.';
+
+  @override
+  String get block_call_partner_blocked =>
+      'This user restricted communication with you. Call unavailable.';
+
+  @override
+  String get block_call_unavailable => 'Call unavailable.';
+
+  @override
+  String get block_composer_viewer_blocked =>
+      'You blocked this user. Sending unavailable — unblock in Profile → Blocked.';
+
+  @override
+  String get block_composer_partner_blocked =>
+      'This user restricted communication with you. Sending unavailable.';
+
+  @override
+  String get forward_group_fallback => 'Group';
+
+  @override
+  String get forward_unknown_user => 'Unknown';
+
+  @override
+  String get live_location_once => 'One-time (this message only)';
+
+  @override
+  String get live_location_5min => '5 minutes';
+
+  @override
+  String get live_location_15min => '15 minutes';
+
+  @override
+  String get live_location_30min => '30 minutes';
+
+  @override
+  String get live_location_1hour => '1 hour';
+
+  @override
+  String get live_location_2hours => '2 hours';
+
+  @override
+  String get live_location_6hours => '6 hours';
+
+  @override
+  String get live_location_1day => '1 day';
+
+  @override
+  String get live_location_forever => 'Forever (until I turn it off)';
+
+  @override
+  String get e2ee_send_too_many_files =>
+      'Too many attachments for encrypted send: maximum 5 files per message.';
+
+  @override
+  String get e2ee_send_too_large =>
+      'Total attachment size too large: maximum 96 MB for one encrypted message.';
+
+  @override
+  String get presence_last_seen_prefix => 'Last seen ';
+
+  @override
+  String get presence_less_than_minute_ago => 'less than a minute ago';
+
+  @override
+  String get presence_yesterday => 'yesterday';
+
+  @override
+  String get dm_fallback_title => 'Chat';
+
+  @override
+  String get dm_fallback_partner => 'Contact';
+
+  @override
+  String get group_fallback_title => 'Group chat';
+
+  @override
+  String get block_send_viewer_blocked =>
+      'You blocked this user. Sending unavailable — unblock in Profile → Blocked.';
+
+  @override
+  String get block_send_partner_blocked =>
+      'This user restricted communication with you. Sending unavailable.';
+
+  @override
+  String get mention_fallback_name => 'Member';
+
+  @override
+  String get profile_conflict_phone =>
+      'This phone number is already registered. Please use a different number.';
+
+  @override
+  String get profile_conflict_email =>
+      'This email is already taken. Please use a different address.';
+
+  @override
+  String get profile_conflict_username =>
+      'This username is already taken. Please choose a different one.';
+
+  @override
+  String get mention_fallback_participant => 'Participant';
+
+  @override
+  String get sticker_gif_recent => 'RECENT';
+
+  @override
+  String get meeting_screen_sharing => 'Screen';
+
+  @override
+  String get meeting_speaking => 'Speaking';
+
+  @override
+  String auth_sign_in_failed(Object error) {
+    return 'Sign-in failed: $error';
+  }
+
+  @override
+  String yandex_error_prefix(Object error) {
+    return 'Yandex: $error';
+  }
+
+  @override
+  String auth_error_prefix(Object error) {
+    return 'Auth error: $error';
+  }
+
+  @override
+  String presence_minutes_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minutes ago',
+      one: 'a minute ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_hours_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hours ago',
+      one: 'an hour ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_days_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: 'a day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_months_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months ago',
+      one: 'a month ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_years_months_ago(int years, int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years years',
+      one: '1 year',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months months ago',
+      one: '1 month ago',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
+  String presence_years_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count years ago',
+      one: 'a year ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallpaper_gradient_purple => 'Purple';
+
+  @override
+  String get wallpaper_gradient_pink => 'Pink';
+
+  @override
+  String get wallpaper_gradient_blue => 'Blue';
+
+  @override
+  String get wallpaper_gradient_green => 'Green';
+
+  @override
+  String get wallpaper_gradient_sunset => 'Sunset';
+
+  @override
+  String get wallpaper_gradient_gentle => 'Gentle';
+
+  @override
+  String get wallpaper_gradient_lime => 'Lime';
+
+  @override
+  String get wallpaper_gradient_graphite => 'Graphite';
+
+  @override
+  String get sticker_tab_recent => 'RECENT';
+
+  @override
+  String get block_call_you_blocked =>
+      'You blocked this user. Call unavailable — unblock in Profile → Blocked.';
+
+  @override
+  String get block_call_they_blocked =>
+      'This user restricted communication with you. Call unavailable.';
+
+  @override
+  String get block_call_generic => 'Call unavailable.';
+
+  @override
+  String get block_send_you_blocked =>
+      'You blocked this user. Sending unavailable — unblock in Profile → Blocked.';
+
+  @override
+  String get block_send_they_blocked =>
+      'This user restricted communication with you. Sending unavailable.';
+
+  @override
+  String get forward_unknown_fallback => 'Unknown';
+
+  @override
+  String get dm_title_chat => 'Chat';
+
+  @override
+  String get dm_title_partner => 'Partner';
+
+  @override
+  String get dm_title_group => 'Group chat';
+
+  @override
+  String get e2ee_too_many_attachments =>
+      'Too many attachments for encrypted sending: maximum 5 files per message.';
+
+  @override
+  String get e2ee_total_size_exceeded =>
+      'Total attachment size too large: maximum 96 MB per encrypted message.';
+
+  @override
+  String yandex_sign_in_error_prefix(String error) {
+    return 'Yandex: $error';
+  }
+
+  @override
+  String get meeting_participant_screen => 'Screen';
+
+  @override
+  String get meeting_participant_speaking => 'Speaking';
 }

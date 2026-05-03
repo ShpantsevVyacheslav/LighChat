@@ -97,7 +97,7 @@ class _GroupChatAvatarButtonState extends State<GroupChatAvatarButton> {
       if (mounted) {
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
-            content: Text('Не удалось обработать фото: $e'),
+            content: Text(AppLocalizations.of(context)!.group_avatar_process_error(e.toString())),
             behavior: SnackBarBehavior.floating,
           ),
         );

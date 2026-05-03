@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/chat_message_search.dart';
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
@@ -24,12 +25,12 @@ class ChatMessageSearchOverlay extends StatelessWidget {
   final void Function(String messageId) onSelectMessageId;
   final VoidCallback onTapScrim;
 
-  String _senderName(String senderId) {
+  String _senderName(String senderId, AppLocalizations l10n) {
     final p = profileMap[senderId];
     if (p != null && p.name.trim().isNotEmpty) return p.name.trim();
     final info = conversation?.participantInfo?[senderId];
     if (info != null && info.name.trim().isNotEmpty) return info.name.trim();
-    return 'Участник';
+    return l10n.message_search_participant_fallback;
   }
 
   String? _senderAvatarUrl(String senderId) {
@@ -46,6 +47,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final fg = Colors.white.withValues(alpha: 0.94);
     final fgMuted = fg.withValues(alpha: 0.62);
 
@@ -109,7 +111,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    'РЕЗУЛЬТАТЫ ПОИСКА: ${results.length}',
+                                    l10n.message_search_results_count(results.length),
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w900,
@@ -146,7 +148,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 12),
                                         Text(
-                                          'НИЧЕГО НЕ НАЙДЕНО',
+                                          l10n.message_search_not_found,
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w900,
@@ -170,7 +172,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
                                         const SizedBox(height: 8),
                                     itemBuilder: (context, i) {
                                       final m = results[i];
-                                      final name = _senderName(m.senderId);
+                                      final name = _senderName(m.senderId, l10n);
                                       final av = _senderAvatarUrl(m.senderId);
                                       return Material(
                                         color: Colors.white.withValues(
@@ -238,7 +240,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
                                                       const SizedBox(height: 4),
                                                       Text(
                                                         chatSearchResultSnippet(
-                                                          m,
+                                                          m, l10n,
                                                         ),
                                                         maxLines: 2,
                                                         overflow: TextOverflow

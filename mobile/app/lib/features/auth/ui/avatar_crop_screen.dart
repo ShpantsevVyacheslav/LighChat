@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
+import '../../../l10n/app_localizations.dart';
 import 'avatar_picker_cropper.dart';
 
 /// Экран настройки аватара: перемещение + зум изображения внутри круглой маски.
@@ -191,6 +192,7 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF04070C),
       body: SafeArea(
@@ -211,7 +213,7 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'Настройка аватара',
+                      l10n.avatar_crop_title,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 17,
@@ -240,7 +242,7 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
                 vertical: 12,
               ),
               child: Text(
-                'Перетащите и масштабируйте — так круг будет в списках и сообщениях; полный кадр остаётся для профиля.',
+                l10n.avatar_crop_hint,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.55),
@@ -257,21 +259,21 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
                 children: [
                   Expanded(
                     child: _GlassButton(
-                      label: 'Отмена',
+                      label: l10n.avatar_crop_cancel,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _GlassButton(
-                      label: 'Сбросить',
+                      label: l10n.avatar_crop_reset,
                       onPressed: _reset,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _PrimaryButton(
-                      label: 'Сохранить',
+                      label: l10n.avatar_crop_save,
                       onPressed: _save,
                     ),
                   ),

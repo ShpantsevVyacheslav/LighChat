@@ -18,6 +18,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Форматирует hex-строку в группы по 4 символа через пробел.
 String _formatFingerprintHex(String hex) {
   final normalized = hex.toLowerCase();
@@ -143,6 +145,7 @@ class _E2eeFingerprintBadgeState extends State<E2eeFingerprintBadge> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -157,13 +160,13 @@ class _E2eeFingerprintBadgeState extends State<E2eeFingerprintBadge> {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 8),
-          Text('Загружаем отпечаток…', style: labelStyle),
+          Text(l10n.e2ee_badge_loading, style: labelStyle),
         ],
       );
     }
     if (_error != null) {
       return Text(
-        'Не удалось получить отпечаток: $_error',
+        l10n.e2ee_badge_error(_error!),
         style: labelStyle?.copyWith(color: theme.colorScheme.error),
       );
     }
@@ -171,6 +174,9 @@ class _E2eeFingerprintBadgeState extends State<E2eeFingerprintBadge> {
       return const SizedBox.shrink();
     }
     final displayHex = _fingerprint!.substring(0, 32);
+    final badgeLabel = widget.userLabel != null
+        ? l10n.e2ee_badge_label_with_user(widget.userLabel!)
+        : l10n.e2ee_badge_label;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -185,9 +191,7 @@ class _E2eeFingerprintBadgeState extends State<E2eeFingerprintBadge> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Отпечаток E2EE'
-                '${widget.userLabel != null ? ' • ${widget.userLabel}' : ''}'
-                ' ($_devicesCount устр.)',
+                '$badgeLabel (${l10n.e2ee_badge_devices(_devicesCount!)})',
                 style: labelStyle,
               ),
               const SizedBox(height: 2),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 const Map<String, String> defaultBottomNavIconNames = <String, String>{
   '/dashboard/chat': 'messages-square',
@@ -48,6 +49,21 @@ const List<BottomNavMenuItemDefinition> bottomNavMenuItems =
         fallbackIcon: Icons.call_outlined,
       ),
     ];
+
+String localizedBottomNavLabel(String href, AppLocalizations l10n) {
+  switch (href) {
+    case '/dashboard/chat':
+      return l10n.bottom_nav_chats;
+    case '/dashboard/contacts':
+      return l10n.bottom_nav_contacts;
+    case '/dashboard/meetings':
+      return l10n.bottom_nav_meetings;
+    case '/dashboard/calls':
+      return l10n.bottom_nav_calls;
+    default:
+      return href;
+  }
+}
 
 class BottomNavIconChoice {
   const BottomNavIconChoice({

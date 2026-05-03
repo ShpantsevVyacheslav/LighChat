@@ -6870,4 +6870,581 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meeting_chat_edited_mark => '• изм.';
+
+  @override
+  String get e2ee_decrypt_image_failed => 'Не удалось расшифровать изображение';
+
+  @override
+  String get e2ee_decrypt_video_failed => 'Не удалось расшифровать видео';
+
+  @override
+  String get e2ee_decrypt_audio_failed => 'Не удалось расшифровать аудио';
+
+  @override
+  String get e2ee_decrypt_attachment_failed =>
+      'Не удалось расшифровать вложение';
+
+  @override
+  String get search_preview_attachment => 'Вложение';
+
+  @override
+  String get search_preview_location => 'Геолокация';
+
+  @override
+  String get search_preview_message => 'Сообщение';
+
+  @override
+  String get outbox_attachment_singular => 'Вложение';
+
+  @override
+  String outbox_attachments_count(int count) {
+    return 'Вложения ($count)';
+  }
+
+  @override
+  String get outbox_chat_unavailable => 'Сервис чата недоступен';
+
+  @override
+  String outbox_encryption_error(String code) {
+    return 'Шифрование: $code';
+  }
+
+  @override
+  String get nav_chats => 'Чаты';
+
+  @override
+  String get nav_contacts => 'Контакты';
+
+  @override
+  String get nav_meetings => 'Конференции';
+
+  @override
+  String get nav_calls => 'Звонки';
+
+  @override
+  String get e2ee_media_decrypt_failed_image =>
+      'Не удалось расшифровать изображение';
+
+  @override
+  String get e2ee_media_decrypt_failed_video => 'Не удалось расшифровать видео';
+
+  @override
+  String get e2ee_media_decrypt_failed_audio => 'Не удалось расшифровать аудио';
+
+  @override
+  String get e2ee_media_decrypt_failed_attachment =>
+      'Не удалось расшифровать вложение';
+
+  @override
+  String get chat_search_snippet_attachment => 'Вложение';
+
+  @override
+  String get chat_search_snippet_location => 'Геолокация';
+
+  @override
+  String get chat_search_snippet_message => 'Сообщение';
+
+  @override
+  String get bottom_nav_chats => 'Чаты';
+
+  @override
+  String get bottom_nav_contacts => 'Контакты';
+
+  @override
+  String get bottom_nav_meetings => 'Конференции';
+
+  @override
+  String get bottom_nav_calls => 'Звонки';
+
+  @override
+  String get chat_list_swipe_folders => 'ПАПКИ';
+
+  @override
+  String get chat_list_swipe_clear => 'ОЧИСТИТЬ';
+
+  @override
+  String get chat_list_swipe_delete => 'УДАЛИТЬ';
+
+  @override
+  String get composer_editing_title => 'РЕДАКТИРОВАНИЕ СООБЩЕНИЯ';
+
+  @override
+  String get composer_editing_cancel_tooltip => 'Отменить редактирование';
+
+  @override
+  String get composer_formatting_title => 'ФОРМАТИРОВАНИЕ';
+
+  @override
+  String get composer_link_preview_loading => 'Загрузка превью…';
+
+  @override
+  String get composer_link_preview_hide_tooltip => 'Скрыть превью';
+
+  @override
+  String get chat_invite_button => 'Пригласить';
+
+  @override
+  String get forward_preview_unknown_sender => 'Неизвестный';
+
+  @override
+  String get forward_preview_attachment => 'Вложение';
+
+  @override
+  String get forward_preview_message => 'Сообщение';
+
+  @override
+  String get chat_mention_no_matches => 'Нет совпадений';
+
+  @override
+  String get live_location_sharing => 'Вы делитесь геолокацией';
+
+  @override
+  String get live_location_stop => 'Остановить';
+
+  @override
+  String get chat_message_deleted => 'Сообщение удалено';
+
+  @override
+  String get profile_qr_share => 'Поделиться';
+
+  @override
+  String get shared_location_open_browser_tooltip => 'Открыть в браузере';
+
+  @override
+  String get reply_preview_message_fallback => 'Сообщение';
+
+  @override
+  String get video_circle_media_kind => 'видео';
+
+  @override
+  String reactions_rated_count(int count) {
+    return 'Оценили: $count';
+  }
+
+  @override
+  String reactions_today_time(String time) {
+    return 'Сегодня, $time';
+  }
+
+  @override
+  String get durak_create_timer_subtitle => 'По умолчанию 15 секунд';
+
+  @override
+  String get dm_game_banner_active => 'Партия \"Дурак\" идёт';
+
+  @override
+  String get dm_game_banner_created => 'Игра \"Дурак\" создана';
+
+  @override
+  String get chat_folder_favorites => 'Избранное';
+
+  @override
+  String get chat_folder_new => 'Новая';
+
+  @override
+  String get contact_profile_user_fallback => 'Пользователь';
+
+  @override
+  String contact_profile_error(String error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get conversation_threads_loading_title => 'Обсуждения';
+
+  @override
+  String get theme_label_light => 'Светлая';
+
+  @override
+  String get theme_label_dark => 'Тёмная';
+
+  @override
+  String get theme_label_auto => 'Авто';
+
+  @override
+  String get chat_draft_reply_fallback => 'Ответ';
+
+  @override
+  String get mention_default_label => 'Участник';
+
+  @override
+  String get contacts_fallback_name => 'Контакт';
+
+  @override
+  String get sticker_pack_default_name => 'Мой пак';
+
+  @override
+  String get profile_error_phone_taken =>
+      'Этот номер телефона уже зарегистрирован. Укажите другой номер.';
+
+  @override
+  String get profile_error_email_taken =>
+      'Этот email уже занят. Укажите другой адрес.';
+
+  @override
+  String get profile_error_username_taken =>
+      'Этот логин уже занят. Выберите другой.';
+
+  @override
+  String get e2ee_banner_default_context => 'Сообщение';
+
+  @override
+  String e2ee_banner_encrypted_chat_web_only(String prefix) {
+    return '$prefix в зашифрованный чат пока можно отправить только с веб‑клиента.';
+  }
+
+  @override
+  String get chat_attachment_decrypt_error =>
+      'Не удалось расшифровать вложение';
+
+  @override
+  String get mention_fallback_label => 'участник';
+
+  @override
+  String get mention_fallback_label_capitalized => 'Участник';
+
+  @override
+  String get meeting_speaking_label => 'Говорит';
+
+  @override
+  String meeting_local_you_suffix(String name) {
+    return '$name (Вы)';
+  }
+
+  @override
+  String get video_crop_title => 'Обрезка';
+
+  @override
+  String video_crop_load_error(String error) {
+    return 'Не удалось загрузить видео: $error';
+  }
+
+  @override
+  String get gif_section_recent => 'НЕДАВНИЕ';
+
+  @override
+  String get gif_section_trending => 'TRENDING';
+
+  @override
+  String get auth_create_account_title => 'Создать аккаунт';
+
+  @override
+  String yandex_sign_in_yandex_error(String error) {
+    return 'Яндекс: $error';
+  }
+
+  @override
+  String get call_status_missed => 'Пропущен';
+
+  @override
+  String get call_status_cancelled => 'Отменен';
+
+  @override
+  String get call_status_ended => 'Завершен';
+
+  @override
+  String get presence_offline => 'Не в сети';
+
+  @override
+  String get presence_online => 'В сети';
+
+  @override
+  String get dm_title_fallback => 'Чат';
+
+  @override
+  String get dm_title_partner_fallback => 'Собеседник';
+
+  @override
+  String get group_title_fallback => 'Групповой чат';
+
+  @override
+  String get block_call_viewer_blocked =>
+      'Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.';
+
+  @override
+  String get block_call_partner_blocked =>
+      'Пользователь ограничил с вами общение. Звонок недоступен.';
+
+  @override
+  String get block_call_unavailable => 'Звонок недоступен.';
+
+  @override
+  String get block_composer_viewer_blocked =>
+      'Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.';
+
+  @override
+  String get block_composer_partner_blocked =>
+      'Пользователь ограничил с вами общение. Отправка недоступна.';
+
+  @override
+  String get forward_group_fallback => 'Группа';
+
+  @override
+  String get forward_unknown_user => 'Неизвестный';
+
+  @override
+  String get live_location_once => 'Одноразово (только это сообщение)';
+
+  @override
+  String get live_location_5min => '5 минут';
+
+  @override
+  String get live_location_15min => '15 минут';
+
+  @override
+  String get live_location_30min => '30 минут';
+
+  @override
+  String get live_location_1hour => '1 час';
+
+  @override
+  String get live_location_2hours => '2 часа';
+
+  @override
+  String get live_location_6hours => '6 часов';
+
+  @override
+  String get live_location_1day => '1 день';
+
+  @override
+  String get live_location_forever => 'Навсегда (пока не отключу)';
+
+  @override
+  String get e2ee_send_too_many_files =>
+      'Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.';
+
+  @override
+  String get e2ee_send_too_large =>
+      'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.';
+
+  @override
+  String get presence_last_seen_prefix => 'Был(а) ';
+
+  @override
+  String get presence_less_than_minute_ago => 'менее минуты назад';
+
+  @override
+  String get presence_yesterday => 'вчера';
+
+  @override
+  String get dm_fallback_title => 'Чат';
+
+  @override
+  String get dm_fallback_partner => 'Собеседник';
+
+  @override
+  String get group_fallback_title => 'Групповой чат';
+
+  @override
+  String get block_send_viewer_blocked =>
+      'Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.';
+
+  @override
+  String get block_send_partner_blocked =>
+      'Пользователь ограничил с вами общение. Отправка недоступна.';
+
+  @override
+  String get mention_fallback_name => 'Участник';
+
+  @override
+  String get profile_conflict_phone =>
+      'Этот номер телефона уже зарегистрирован. Укажите другой номер.';
+
+  @override
+  String get profile_conflict_email =>
+      'Этот email уже занят. Укажите другой адрес.';
+
+  @override
+  String get profile_conflict_username =>
+      'Этот логин уже занят. Выберите другой.';
+
+  @override
+  String get mention_fallback_participant => 'Участник';
+
+  @override
+  String get sticker_gif_recent => 'НЕДАВНИЕ';
+
+  @override
+  String get meeting_screen_sharing => 'Экран';
+
+  @override
+  String get meeting_speaking => 'Говорит';
+
+  @override
+  String auth_sign_in_failed(Object error) {
+    return 'Не удалось войти: $error';
+  }
+
+  @override
+  String yandex_error_prefix(Object error) {
+    return 'Яндекс: $error';
+  }
+
+  @override
+  String auth_error_prefix(Object error) {
+    return 'Ошибка авторизации: $error';
+  }
+
+  @override
+  String presence_minutes_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count минут назад',
+      many: '$count минут назад',
+      few: '$count минуты назад',
+      one: '$count минуту назад',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_hours_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count часов назад',
+      many: '$count часов назад',
+      few: '$count часа назад',
+      one: '$count час назад',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_days_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count дней назад',
+      many: '$count дней назад',
+      few: '$count дня назад',
+      one: '$count день назад',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_months_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count месяцев назад',
+      many: '$count месяцев назад',
+      few: '$count месяца назад',
+      one: '$count месяц назад',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String presence_years_months_ago(int years, int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years лет',
+      many: '$years лет',
+      few: '$years года',
+      one: '$years год',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months месяцев назад',
+      many: '$months месяцев назад',
+      few: '$months месяца назад',
+      one: '$months месяц назад',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
+  String presence_years_ago(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count лет назад',
+      many: '$count лет назад',
+      few: '$count года назад',
+      one: '$count год назад',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallpaper_gradient_purple => 'Фиолетовый';
+
+  @override
+  String get wallpaper_gradient_pink => 'Розовый';
+
+  @override
+  String get wallpaper_gradient_blue => 'Голубой';
+
+  @override
+  String get wallpaper_gradient_green => 'Зелёный';
+
+  @override
+  String get wallpaper_gradient_sunset => 'Закат';
+
+  @override
+  String get wallpaper_gradient_gentle => 'Нежный';
+
+  @override
+  String get wallpaper_gradient_lime => 'Лайм';
+
+  @override
+  String get wallpaper_gradient_graphite => 'Графит';
+
+  @override
+  String get sticker_tab_recent => 'НЕДАВНИЕ';
+
+  @override
+  String get block_call_you_blocked =>
+      'Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.';
+
+  @override
+  String get block_call_they_blocked =>
+      'Пользователь ограничил с вами общение. Звонок недоступен.';
+
+  @override
+  String get block_call_generic => 'Звонок недоступен.';
+
+  @override
+  String get block_send_you_blocked =>
+      'Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.';
+
+  @override
+  String get block_send_they_blocked =>
+      'Пользователь ограничил с вами общение. Отправка недоступна.';
+
+  @override
+  String get forward_unknown_fallback => 'Неизвестный';
+
+  @override
+  String get dm_title_chat => 'Чат';
+
+  @override
+  String get dm_title_partner => 'Собеседник';
+
+  @override
+  String get dm_title_group => 'Групповой чат';
+
+  @override
+  String get e2ee_too_many_attachments =>
+      'Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.';
+
+  @override
+  String get e2ee_total_size_exceeded =>
+      'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.';
+
+  @override
+  String yandex_sign_in_error_prefix(String error) {
+    return 'Яндекс: $error';
+  }
+
+  @override
+  String get meeting_participant_screen => 'Экран';
+
+  @override
+  String get meeting_participant_speaking => 'Говорит';
 }

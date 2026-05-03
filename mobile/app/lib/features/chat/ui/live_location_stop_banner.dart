@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/live_location_utils.dart';
 
 /// Полоса «идёт трансляция» + остановка (паритет `LiveLocationStopBanner.tsx`).
@@ -57,7 +58,7 @@ class LiveLocationStopBanner extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Вы делитесь геолокацией',
+                      AppLocalizations.of(context)!.live_location_sharing,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -68,9 +69,9 @@ class LiveLocationStopBanner extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () => _stop(user.uid),
                     icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
-                    label: const Text(
-                      'Остановить',
-                      style: TextStyle(
+                    label: Text(
+                      AppLocalizations.of(context)!.live_location_stop,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,

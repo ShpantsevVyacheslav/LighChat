@@ -39,6 +39,7 @@ class MessageHtmlRenderOpts {
     this.onMentionTap,
     this.mentionLabelResolver,
     this.onLinkTap,
+    this.mentionFallbackLabel,
   });
 
   final Color? linkColor;
@@ -48,6 +49,9 @@ class MessageHtmlRenderOpts {
   final String Function(String userId, String fallbackLabel)?
   mentionLabelResolver;
   final void Function(String url)? onLinkTap;
+
+  /// Localized fallback label for mentions without a name (e.g. "участник").
+  final String? mentionFallbackLabel;
 
   static const defaults = MessageHtmlRenderOpts();
 }
@@ -226,6 +230,7 @@ List<InlineSpan> messageHtmlToStyledSpans(
   Future<void> Function(String userId)? onMentionTap,
   String Function(String userId, String fallbackLabel)? mentionLabelResolver,
   void Function(String url)? onLinkTap,
+  String? mentionFallbackLabel,
 }) {
   if (input.trim().isEmpty) return const [];
   if (!input.contains('<')) {
@@ -240,6 +245,7 @@ List<InlineSpan> messageHtmlToStyledSpans(
       onMentionTap: onMentionTap,
       mentionLabelResolver: mentionLabelResolver,
       onLinkTap: onLinkTap,
+      mentionFallbackLabel: mentionFallbackLabel,
     );
     final spans = _nodesToSpans(frag.nodes, base, const _ComposeStyle(), opts);
     return _trimTrailingLineBreaks(spans);
@@ -493,7 +499,7 @@ List<InlineSpan> _elementToSpans(
     final resolved = resolvedRaw.replaceFirst(RegExp(r'^@+'), '').trim();
     final display = resolved.isNotEmpty
         ? resolved
-        : (fallbackLabel.isNotEmpty ? fallbackLabel : 'участник');
+        : (fallbackLabel.isNotEmpty ? fallbackLabel : (opts.mentionFallbackLabel ?? 'member'));
     final style = st
         .copyWith(mention: true, mentionUserId: uid, clearMentionUserId: false)
         .toTextStyle(base, opts);

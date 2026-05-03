@@ -5,6 +5,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class ChatVideoCropResult {
   const ChatVideoCropResult({
     required this.cropRect,
@@ -128,7 +130,7 @@ class _ChatVideoCropScreenState extends State<ChatVideoCropScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Не удалось загрузить видео: $e';
+        _error = AppLocalizations.of(context)!.video_crop_load_error(e.toString());
       });
     }
   }
@@ -562,11 +564,11 @@ class _ChatVideoCropScreenState extends State<ChatVideoCropScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(14, 12, 14, 10),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
               child: Center(
                 child: Text(
-                  'Обрезка',
+                  AppLocalizations.of(context)!.video_crop_title,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,

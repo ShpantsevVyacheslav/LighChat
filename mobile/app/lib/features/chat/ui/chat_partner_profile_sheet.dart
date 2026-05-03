@@ -429,6 +429,7 @@ class _ChatPartnerProfileSheetState
       _toast(
         self != null && target != null
             ? directCallBlockedMessageRu(
+                l10n: l10n,
                 viewerId: self.id,
                 viewerBlockedIds: self.blockedUserIds,
                 partnerId: target.id,
@@ -931,7 +932,7 @@ class _ChatPartnerProfileSheetState
     );
     final partnerId = _dmPartnerId;
     final fresh = widget.partnerProfile;
-    final statusDm = partnerPresenceLine(fresh);
+    final statusDm = partnerPresenceLine(fresh, AppLocalizations.of(context)!);
     final (subtitleLine1, subtitleLine2) = _profileHeaderSubtitles(
       l10n,
       statusDm,

@@ -35,7 +35,7 @@ class ConversationGamesScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.style_rounded),
                     title: Text(l10n.conversation_games_durak),
-                    subtitle: const Text('Одиночная партия или турнир'),
+                    subtitle: Text(l10n.conversation_games_durak_subtitle),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => unawaited(
                       Navigator.of(context).push<void>(

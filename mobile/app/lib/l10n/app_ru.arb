@@ -3537,5 +3537,288 @@
   "meeting_chat_edit": "Изменить",
   "meeting_chat_delete": "Удалить",
   "meeting_chat_deleted": "Сообщение удалено",
-  "meeting_chat_edited_mark": "• изм."
+  "meeting_chat_edited_mark": "• изм.",
+  "e2ee_decrypt_image_failed": "Не удалось расшифровать изображение",
+  "e2ee_decrypt_video_failed": "Не удалось расшифровать видео",
+  "e2ee_decrypt_audio_failed": "Не удалось расшифровать аудио",
+  "e2ee_decrypt_attachment_failed": "Не удалось расшифровать вложение",
+  "search_preview_attachment": "Вложение",
+  "search_preview_location": "Геолокация",
+  "search_preview_message": "Сообщение",
+  "outbox_attachment_singular": "Вложение",
+  "outbox_attachments_count": "Вложения ({count})",
+  "@outbox_attachments_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outbox_chat_unavailable": "Сервис чата недоступен",
+  "outbox_encryption_error": "Шифрование: {code}",
+  "@outbox_encryption_error": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "nav_chats": "Чаты",
+  "nav_contacts": "Контакты",
+  "nav_meetings": "Конференции",
+  "nav_calls": "Звонки",
+  "e2ee_media_decrypt_failed_image": "Не удалось расшифровать изображение",
+  "e2ee_media_decrypt_failed_video": "Не удалось расшифровать видео",
+  "e2ee_media_decrypt_failed_audio": "Не удалось расшифровать аудио",
+  "e2ee_media_decrypt_failed_attachment": "Не удалось расшифровать вложение",
+  "chat_search_snippet_attachment": "Вложение",
+  "chat_search_snippet_location": "Геолокация",
+  "chat_search_snippet_message": "Сообщение",
+  "bottom_nav_chats": "Чаты",
+  "bottom_nav_contacts": "Контакты",
+  "bottom_nav_meetings": "Конференции",
+  "bottom_nav_calls": "Звонки",
+  "chat_list_swipe_folders": "ПАПКИ",
+  "chat_list_swipe_clear": "ОЧИСТИТЬ",
+  "chat_list_swipe_delete": "УДАЛИТЬ",
+  "composer_editing_title": "РЕДАКТИРОВАНИЕ СООБЩЕНИЯ",
+  "composer_editing_cancel_tooltip": "Отменить редактирование",
+  "composer_formatting_title": "ФОРМАТИРОВАНИЕ",
+  "composer_link_preview_loading": "Загрузка превью…",
+  "composer_link_preview_hide_tooltip": "Скрыть превью",
+  "chat_invite_button": "Пригласить",
+  "forward_preview_unknown_sender": "Неизвестный",
+  "forward_preview_attachment": "Вложение",
+  "forward_preview_message": "Сообщение",
+  "chat_mention_no_matches": "Нет совпадений",
+  "live_location_sharing": "Вы делитесь геолокацией",
+  "live_location_stop": "Остановить",
+  "chat_message_deleted": "Сообщение удалено",
+  "profile_qr_share": "Поделиться",
+  "shared_location_open_browser_tooltip": "Открыть в браузере",
+  "reply_preview_message_fallback": "Сообщение",
+  "video_circle_media_kind": "видео",
+  "reactions_rated_count": "Оценили: {count}",
+  "@reactions_rated_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reactions_today_time": "Сегодня, {time}",
+  "@reactions_today_time": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "durak_create_timer_subtitle": "По умолчанию 15 секунд",
+  "dm_game_banner_active": "Партия \"Дурак\" идёт",
+  "dm_game_banner_created": "Игра \"Дурак\" создана",
+  "chat_folder_favorites": "Избранное",
+  "chat_folder_new": "Новая",
+  "contact_profile_user_fallback": "Пользователь",
+  "contact_profile_error": "Ошибка: {error}",
+  "@contact_profile_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conversation_threads_loading_title": "Обсуждения",
+  "theme_label_light": "Светлая",
+  "theme_label_dark": "Тёмная",
+  "theme_label_auto": "Авто",
+  "chat_draft_reply_fallback": "Ответ",
+  "mention_default_label": "Участник",
+  "contacts_fallback_name": "Контакт",
+  "sticker_pack_default_name": "Мой пак",
+  "profile_error_phone_taken": "Этот номер телефона уже зарегистрирован. Укажите другой номер.",
+  "profile_error_email_taken": "Этот email уже занят. Укажите другой адрес.",
+  "profile_error_username_taken": "Этот логин уже занят. Выберите другой.",
+  "e2ee_banner_default_context": "Сообщение",
+  "e2ee_banner_encrypted_chat_web_only": "{prefix} в зашифрованный чат пока можно отправить только с веб‑клиента.",
+  "@e2ee_banner_encrypted_chat_web_only": {
+    "placeholders": {
+      "prefix": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_attachment_decrypt_error": "Не удалось расшифровать вложение",
+  "mention_fallback_label": "участник",
+  "mention_fallback_label_capitalized": "Участник",
+  "meeting_speaking_label": "Говорит",
+  "meeting_local_you_suffix": "{name} (Вы)",
+  "@meeting_local_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "video_crop_title": "Обрезка",
+  "video_crop_load_error": "Не удалось загрузить видео: {error}",
+  "@video_crop_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_section_recent": "НЕДАВНИЕ",
+  "gif_section_trending": "TRENDING",
+  "auth_create_account_title": "Создать аккаунт",
+  "yandex_sign_in_yandex_error": "Яндекс: {error}",
+  "@yandex_sign_in_yandex_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "call_status_missed": "Пропущен",
+  "call_status_cancelled": "Отменен",
+  "call_status_ended": "Завершен",
+  "presence_offline": "Не в сети",
+  "presence_online": "В сети",
+  "dm_title_fallback": "Чат",
+  "dm_title_partner_fallback": "Собеседник",
+  "group_title_fallback": "Групповой чат",
+  "block_call_viewer_blocked": "Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.",
+  "block_call_partner_blocked": "Пользователь ограничил с вами общение. Звонок недоступен.",
+  "block_call_unavailable": "Звонок недоступен.",
+  "block_composer_viewer_blocked": "Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.",
+  "block_composer_partner_blocked": "Пользователь ограничил с вами общение. Отправка недоступна.",
+  "forward_group_fallback": "Группа",
+  "forward_unknown_user": "Неизвестный",
+  "live_location_once": "Одноразово (только это сообщение)",
+  "live_location_5min": "5 минут",
+  "live_location_15min": "15 минут",
+  "live_location_30min": "30 минут",
+  "live_location_1hour": "1 час",
+  "live_location_2hours": "2 часа",
+  "live_location_6hours": "6 часов",
+  "live_location_1day": "1 день",
+  "live_location_forever": "Навсегда (пока не отключу)",
+  "e2ee_send_too_many_files": "Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.",
+  "e2ee_send_too_large": "Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.",
+  "presence_last_seen_prefix": "Был(а) ",
+  "presence_less_than_minute_ago": "менее минуты назад",
+  "presence_yesterday": "вчера",
+  "dm_fallback_title": "Чат",
+  "dm_fallback_partner": "Собеседник",
+  "group_fallback_title": "Групповой чат",
+  "block_send_viewer_blocked": "Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.",
+  "block_send_partner_blocked": "Пользователь ограничил с вами общение. Отправка недоступна.",
+  "mention_fallback_name": "Участник",
+  "profile_conflict_phone": "Этот номер телефона уже зарегистрирован. Укажите другой номер.",
+  "profile_conflict_email": "Этот email уже занят. Укажите другой адрес.",
+  "profile_conflict_username": "Этот логин уже занят. Выберите другой.",
+  "mention_fallback_participant": "Участник",
+  "sticker_gif_recent": "НЕДАВНИЕ",
+  "meeting_screen_sharing": "Экран",
+  "meeting_speaking": "Говорит",
+  "auth_sign_in_failed": "Не удалось войти: {error}",
+  "@auth_sign_in_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yandex_error_prefix": "Яндекс: {error}",
+  "@yandex_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "auth_error_prefix": "Ошибка авторизации: {error}",
+  "@auth_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "presence_minutes_ago": "{count,plural, =1{минуту назад} one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минут назад}}",
+  "@presence_minutes_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_hours_ago": "{count,plural, =1{час назад} one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часов назад}}",
+  "@presence_hours_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_days_ago": "{count,plural, one{{count} день назад} few{{count} дня назад} many{{count} дней назад} other{{count} дней назад}}",
+  "@presence_days_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_months_ago": "{count,plural, =1{1 месяц назад} one{{count} месяц назад} few{{count} месяца назад} many{{count} месяцев назад} other{{count} месяцев назад}}",
+  "@presence_months_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_months_ago": "{years,plural, =1{1 год} one{{years} год} few{{years} года} many{{years} лет} other{{years} лет}} {months,plural, =1{1 месяц назад} one{{months} месяц назад} few{{months} месяца назад} many{{months} месяцев назад} other{{months} месяцев назад}}",
+  "@presence_years_months_ago": {
+    "placeholders": {
+      "years": {
+        "type": "int"
+      },
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_ago": "{count,plural, =1{1 год назад} one{{count} год назад} few{{count} года назад} many{{count} лет назад} other{{count} лет назад}}",
+  "@presence_years_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wallpaper_gradient_purple": "Фиолетовый",
+  "wallpaper_gradient_pink": "Розовый",
+  "wallpaper_gradient_blue": "Голубой",
+  "wallpaper_gradient_green": "Зелёный",
+  "wallpaper_gradient_sunset": "Закат",
+  "wallpaper_gradient_gentle": "Нежный",
+  "wallpaper_gradient_lime": "Лайм",
+  "wallpaper_gradient_graphite": "Графит",
+  "sticker_tab_recent": "НЕДАВНИЕ",
+  "block_call_you_blocked": "Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.",
+  "block_call_they_blocked": "Пользователь ограничил с вами общение. Звонок недоступен.",
+  "block_call_generic": "Звонок недоступен.",
+  "block_send_you_blocked": "Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.",
+  "block_send_they_blocked": "Пользователь ограничил с вами общение. Отправка недоступна.",
+  "forward_unknown_fallback": "Неизвестный",
+  "dm_title_chat": "Чат",
+  "dm_title_partner": "Собеседник",
+  "dm_title_group": "Групповой чат",
+  "e2ee_too_many_attachments": "Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.",
+  "e2ee_total_size_exceeded": "Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.",
+  "yandex_sign_in_error_prefix": "Яндекс: {error}",
+  "@yandex_sign_in_error_prefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_participant_screen": "Экран",
+  "meeting_participant_speaking": "Говорит"
 }

@@ -111,8 +111,8 @@ class _DmGameLobbyBannerState extends State<DmGameLobbyBanner> {
             final l10n = AppLocalizations.of(context)!;
             final lobbyStatus = (lobbyData['status'] ?? '').toString();
             final title = lobbyStatus == 'active'
-                ? 'Партия “Дурак” идёт'
-                : 'Игра “Дурак” создана';
+                ? l10n.dm_game_banner_active
+                : l10n.dm_game_banner_created;
             return Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
               child: Material(

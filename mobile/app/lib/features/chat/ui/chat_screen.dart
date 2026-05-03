@@ -1230,7 +1230,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ? AppLocalizations.of(
                         context,
                       )!.partner_profile_subtitle_saved_messages
-                    : partnerPresenceLine(profile);
+                    : partnerPresenceLine(profile, AppLocalizations.of(context)!);
                 final showCalls =
                     conv?.data.isGroup != true &&
                     dmOtherId != null &&
@@ -2156,6 +2156,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                             currentUserId: user.uid,
                                             profileMap: profileMap,
                                             contactProfiles: contactProfiles,
+                                            l10n: AppLocalizations.of(context),
                                           )
                                         : null,
                                     pendingAttachments: _pendingAttachments,

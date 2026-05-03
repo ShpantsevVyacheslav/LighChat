@@ -64,6 +64,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
         SnackBar(
           content: Text(
             directCallBlockedMessageRu(
+              l10n: AppLocalizations.of(context)!,
               viewerId: currentUserId,
               viewerBlockedIds: myAsync.value ?? const <String>[],
               partnerId: peerUserId,
@@ -202,7 +203,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
               receiverId: rawCall.receiverId,
               endedBy: rawCall.endedBy,
             );
-            final statusChipText = callStatusLabelRu(resolvedStatus);
+            final statusChipText = callStatusLabel(resolvedStatus, AppLocalizations.of(context)!);
             final statusChipColor = resolvedStatus == 'missed'
                 ? scheme.error
                 : resolvedStatus == 'cancelled'

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/chat_media_layout_tokens.dart';
 import 'chat_cached_network_image.dart';
 import 'message_html_text.dart';
@@ -25,7 +26,7 @@ class MessageReplyPreview extends StatelessWidget {
     final border = isMine ? Colors.white.withValues(alpha: 0.35) : scheme.primary.withValues(alpha: 0.35);
 
     final rawText = (replyTo.text ?? '').trim();
-    final preview = rawText.isEmpty ? 'Сообщение' : (rawText.contains('<') ? messageHtmlToPlainText(rawText) : rawText);
+    final preview = rawText.isEmpty ? AppLocalizations.of(context)!.reply_preview_message_fallback : (rawText.contains('<') ? messageHtmlToPlainText(rawText) : rawText);
 
     final hasThumb = (replyTo.mediaPreviewUrl ?? '').isNotEmpty;
     final textMax = ChatMediaLayoutTokens.messageBubbleMaxWidth -

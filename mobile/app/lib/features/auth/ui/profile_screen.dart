@@ -264,6 +264,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final normalizedDob = _normalizeDateForSave(_dob.text).trim();
       await updateUserProfile(
         uid: u.uid,
+        l10n: AppLocalizations.of(context)!,
         data: ProfileUpdateData(
           name: _name.text,
           username: _username.text,

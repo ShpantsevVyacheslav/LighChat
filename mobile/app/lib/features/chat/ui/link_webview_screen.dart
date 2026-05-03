@@ -3,6 +3,8 @@ import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../../l10n/app_localizations.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class LinkWebViewScreen extends StatefulWidget {
@@ -101,6 +103,7 @@ class _LinkWebViewScreenState extends State<LinkWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final host = _displayHost(_currentUrl);
@@ -136,20 +139,20 @@ class _LinkWebViewScreenState extends State<LinkWebViewScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Скопировать ссылку',
+            tooltip: l10n.link_webview_copy_tooltip,
             icon: const Icon(Icons.copy, size: 20),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: _currentUrl));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Ссылка скопирована'),
-                  duration: Duration(seconds: 2),
+                SnackBar(
+                  content: Text(l10n.link_webview_copied_snackbar),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             },
           ),
           IconButton(
-            tooltip: 'Открыть в браузере',
+            tooltip: l10n.link_webview_open_browser_tooltip,
             icon: const Icon(Icons.open_in_browser, size: 20),
             onPressed: () => unawaited(_launchExternal(_currentUrl)),
           ),

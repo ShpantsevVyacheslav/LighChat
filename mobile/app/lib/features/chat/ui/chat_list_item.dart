@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_cached_network_image.dart';
 
 class ChatListItem extends StatefulWidget {
@@ -91,7 +92,7 @@ class _ChatListItemState extends State<ChatListItem> {
                             width: _actionWidth,
                             background: const Color(0xFF6ED0D8),
                             icon: Icons.folder_open_rounded,
-                            label: 'ПАПКИ',
+                            label: AppLocalizations.of(context)!.chat_list_swipe_folders,
                             onTap: () {
                               widget.onFoldersTap!.call();
                               setState(() => _swipeX = 0);
@@ -102,7 +103,7 @@ class _ChatListItemState extends State<ChatListItem> {
                             width: _actionWidth,
                             background: const Color(0xFFF0AA3C),
                             icon: Icons.auto_fix_off_rounded,
-                            label: 'ОЧИСТИТЬ',
+                            label: AppLocalizations.of(context)!.chat_list_swipe_clear,
                             onTap: () {
                               widget.onClearTap!.call();
                               setState(() => _swipeX = 0);
@@ -113,7 +114,7 @@ class _ChatListItemState extends State<ChatListItem> {
                             width: _actionWidth,
                             background: const Color(0xFFE2554D),
                             icon: Icons.delete_outline_rounded,
-                            label: 'УДАЛИТЬ',
+                            label: AppLocalizations.of(context)!.chat_list_swipe_delete,
                             onTap: () {
                               widget.onDeleteTap!.call();
                               setState(() => _swipeX = 0);

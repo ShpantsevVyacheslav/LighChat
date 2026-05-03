@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'device_contact_lookup_keys.dart';
 import 'new_chat_user_search.dart' show ruEnSubstringMatch;
 import 'user_contacts_repository.dart';
@@ -67,6 +68,7 @@ Future<List<Contact>> loadDeviceContactsIfGranted() async {
 List<DeviceContactCandidate> buildDeviceContactCandidates({
   required List<Contact> contacts,
   required String term,
+  required AppLocalizations l10n,
   int limit = 24,
 }) {
   final out = <DeviceContactCandidate>[];
@@ -75,7 +77,7 @@ List<DeviceContactCandidate> buildDeviceContactCandidates({
     final keys = collectLookupKeysFromDeviceContacts([c]).keys.toSet();
     if (keys.isEmpty) continue;
     final displayName = (c.displayName ?? '').trim();
-    final title = displayName.isNotEmpty ? displayName : 'Контакт';
+    final title = displayName.isNotEmpty ? displayName : l10n.contacts_fallback_name;
     final subtitle = () {
       final phone = c.phones.isNotEmpty ? (c.phones.first.number).trim() : '';
       if (phone.isNotEmpty) return phone;

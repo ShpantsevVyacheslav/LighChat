@@ -369,7 +369,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                       onPressed: () async {
                         final name = ctrl.text;
                         final pid =
-                            await widget.repo.createPack(widget.userId, name);
+                            await widget.repo.createPack(widget.userId, name, l10n: AppLocalizations.of(ctx));
                         if (ctx.mounted) Navigator.pop(ctx, pid);
                       },
                       child: Text(l10n.common_create),
@@ -1283,7 +1283,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     if (showRecent) ...[
                       SliverToBoxAdapter(
                         child: _gifSectionHeader(
-                            Icons.history_rounded, 'НЕДАВНИЕ'),
+                            Icons.history_rounded, AppLocalizations.of(context)!.sticker_tab_recent),
                       ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),

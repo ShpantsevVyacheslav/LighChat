@@ -194,7 +194,7 @@ class _TelegramSignInWebViewScreenState
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'Не удалось войти: $e';
+          _error = AppLocalizations.of(context)!.telegram_sign_in_login_failed(e.toString());
         });
       }
     }

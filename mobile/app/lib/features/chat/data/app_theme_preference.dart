@@ -1,3 +1,5 @@
+import '../../../l10n/app_localizations.dart';
+
 enum AppThemePreference { light, dark, chat }
 
 AppThemePreference appThemePreferenceFromRaw(Object? raw) {
@@ -24,14 +26,14 @@ String appThemePreferenceToRaw(AppThemePreference pref) {
   }
 }
 
-String appThemePreferenceLabel(AppThemePreference pref) {
+String appThemePreferenceLabel(AppThemePreference pref, AppLocalizations l10n) {
   switch (pref) {
     case AppThemePreference.light:
-      return 'Светлая';
+      return l10n.theme_label_light;
     case AppThemePreference.dark:
-      return 'Тёмная';
+      return l10n.theme_label_dark;
     case AppThemePreference.chat:
-      return 'Авто';
+      return l10n.theme_label_auto;
   }
 }
 

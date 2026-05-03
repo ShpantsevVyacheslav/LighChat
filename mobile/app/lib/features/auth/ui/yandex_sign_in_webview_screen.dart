@@ -113,7 +113,7 @@ class _YandexSignInWebViewScreenState
                 final uri = Uri.parse(url);
                 final err = uri.queryParameters['yandex_error'];
                 if (mounted && err != null && err.isNotEmpty) {
-                  setState(() => _error = 'Яндекс: $err');
+                  setState(() => _error = AppLocalizations.of(context)!.yandex_sign_in_error_prefix(err.toString()));
                 }
               } catch (_) {
                 // ignore
@@ -206,7 +206,7 @@ class _YandexSignInWebViewScreenState
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'Не удалось войти: $e';
+          _error = AppLocalizations.of(context)!.yandex_sign_in_login_failed(e.toString());
         });
       }
     }

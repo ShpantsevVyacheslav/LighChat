@@ -1,3 +1,5 @@
+import '../../../l10n/app_localizations.dart';
+
 // Паритет с web `src/lib/user-block-utils.ts`.
 
 List<String> normalizeBlockedUserIds(Object? raw) {
@@ -28,6 +30,7 @@ bool isEitherBlockingFromUserIds({
 }
 
 String directCallBlockedMessageRu({
+  required AppLocalizations l10n,
   required String viewerId,
   required List<String> viewerBlockedIds,
   required String partnerId,
@@ -35,11 +38,11 @@ String directCallBlockedMessageRu({
   bool partnerUserDocDenied = false,
 }) {
   if (normalizeBlockedUserIds(viewerBlockedIds).contains(partnerId)) {
-    return 'Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.';
+    return l10n.block_call_viewer_blocked;
   }
   if (partnerUserDocDenied ||
       normalizeBlockedUserIds(partnerBlockedIds).contains(viewerId)) {
-    return 'Пользователь ограничил с вами общение. Звонок недоступен.';
+    return l10n.block_call_partner_blocked;
   }
-  return 'Звонок недоступен.';
+  return l10n.block_call_unavailable;
 }

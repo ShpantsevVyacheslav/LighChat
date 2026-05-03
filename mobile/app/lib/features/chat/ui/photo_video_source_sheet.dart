@@ -40,7 +40,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
                     ListTile(
                       leading: Icon(Icons.photo_library_outlined, color: fg),
                       title: Text(
-                        'Галерея',
+                        l10n.photo_source_gallery,
                         style: TextStyle(
                           color: fg,
                           fontWeight: FontWeight.w600,
@@ -51,7 +51,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
                     ListTile(
                       leading: Icon(Icons.photo_camera_outlined, color: fg),
                       title: Text(
-                        'Сделать фото',
+                        l10n.photo_source_take_photo,
                         style: TextStyle(
                           color: fg,
                           fontWeight: FontWeight.w600,
@@ -62,7 +62,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
                     ListTile(
                       leading: Icon(Icons.videocam_outlined, color: fg),
                       title: Text(
-                        'Записать видео',
+                        l10n.photo_source_record_video,
                         style: TextStyle(
                           color: fg,
                           fontWeight: FontWeight.w600,

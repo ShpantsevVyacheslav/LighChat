@@ -29,6 +29,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:path_provider/path_provider.dart';
@@ -365,6 +366,7 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
               messageId: m.id,
               fileId: 'invalid-envelope-$i',
               mime: 'application/octet-stream',
+              l10n: AppLocalizations.of(context)!,
             ),
           );
           continue;
@@ -512,6 +514,7 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
               messageId: messageId,
               fileId: envelope.fileId,
               mime: envelope.mime,
+              l10n: AppLocalizations.of(context)!,
             ),
           );
         }
@@ -622,14 +625,15 @@ ChatAttachment _buildMediaDecryptFailedAttachment({
   required String messageId,
   required String fileId,
   required String mime,
+  required AppLocalizations l10n,
 }) {
   final failedName = mime.startsWith('image/')
-      ? 'Не удалось расшифровать изображение'
+      ? l10n.e2ee_media_decrypt_failed_image
       : mime.startsWith('video/')
-      ? 'Не удалось расшифровать видео'
+      ? l10n.e2ee_media_decrypt_failed_video
       : mime.startsWith('audio/')
-      ? 'Не удалось расшифровать аудио'
-      : 'Не удалось расшифровать вложение';
+      ? l10n.e2ee_media_decrypt_failed_audio
+      : l10n.e2ee_media_decrypt_failed_attachment;
   return ChatAttachment(
     url: 'e2ee-error://$messageId/$fileId',
     name: failedName,

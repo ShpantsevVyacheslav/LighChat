@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class ChatFolderBar extends StatelessWidget {
   const ChatFolderBar({
     super.key,
@@ -75,7 +77,7 @@ class _FolderChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-    final shownLabel = folderId == 'favorites' ? 'Избранное' : label;
+    final shownLabel = folderId == 'favorites' ? AppLocalizations.of(context)!.chat_folder_favorites : label;
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -167,7 +169,7 @@ class _NewChip extends StatelessWidget {
             Icon(Icons.add_rounded, size: 16, color: scheme.onSurface),
             const SizedBox(width: 6),
             Text(
-              'Новая',
+              AppLocalizations.of(context)!.chat_folder_new,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

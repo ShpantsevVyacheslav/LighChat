@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/google_maps_urls.dart';
 import 'location_live_countdown.dart';
 
@@ -122,7 +123,7 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
                 backgroundColor: Colors.black54,
                 foregroundColor: Colors.white,
               ),
-              tooltip: 'Открыть в браузере',
+              tooltip: AppLocalizations.of(context)!.shared_location_open_browser_tooltip,
             ),
           ),
           if (exp != null && exp.isNotEmpty)

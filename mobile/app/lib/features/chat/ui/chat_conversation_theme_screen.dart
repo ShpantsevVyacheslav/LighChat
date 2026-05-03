@@ -300,7 +300,7 @@ class _ChatConversationThemeScreenState
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount:
                                       1 +
-                                      kChatWallpaperGradientPresets.length +
+                                      chatWallpaperGradientPresets(AppLocalizations.of(context)!).length +
                                       customBackgrounds.length +
                                       1,
                                   gridDelegate:
@@ -328,11 +328,11 @@ class _ChatConversationThemeScreenState
                                       );
                                     }
                                     final presetStart = 1;
-                                    final presetCount =
-                                        kChatWallpaperGradientPresets.length;
+                                    final presets = chatWallpaperGradientPresets(AppLocalizations.of(context)!);
+                                    final presetCount = presets.length;
                                     if (index < presetStart + presetCount) {
                                       final preset =
-                                          kChatWallpaperGradientPresets[index -
+                                          presets[index -
                                               presetStart];
                                       final v = preset.value;
                                       final selected =

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/user_profile.dart';
 import 'message_html_text.dart';
 
@@ -61,10 +62,11 @@ class _ForwardPreviewEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final senderName = profilesById[message.senderId]?.name ?? 'Неизвестный';
+    final l10n = AppLocalizations.of(context)!;
+    final senderName = profilesById[message.senderId]?.name ?? l10n.forward_preview_unknown_sender;
     final raw = message.text ?? '';
     final previewText = raw.trim().isEmpty
-        ? (message.attachments.isNotEmpty ? 'Вложение' : 'Сообщение')
+        ? (message.attachments.isNotEmpty ? l10n.forward_preview_attachment : l10n.forward_preview_message)
         : (raw.contains('<') ? messageHtmlToPlainText(raw) : raw.trim());
 
     return Column(

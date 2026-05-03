@@ -166,7 +166,7 @@ class _ShareLocationSheetContentState
           child: SingleChildScrollView(
             child: Column(
               children: [
-                for (final o in kLiveLocationDurationOptions)
+                for (final o in liveLocationDurationOptions(l10n))
                   durationItem(o.id, o.label),
               ],
             ),

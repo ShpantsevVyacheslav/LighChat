@@ -12139,6 +12139,924 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'• изм.'**
   String get meeting_chat_edited_mark;
+
+  /// No description provided for @e2ee_decrypt_image_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать изображение'**
+  String get e2ee_decrypt_image_failed;
+
+  /// No description provided for @e2ee_decrypt_video_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать видео'**
+  String get e2ee_decrypt_video_failed;
+
+  /// No description provided for @e2ee_decrypt_audio_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать аудио'**
+  String get e2ee_decrypt_audio_failed;
+
+  /// No description provided for @e2ee_decrypt_attachment_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать вложение'**
+  String get e2ee_decrypt_attachment_failed;
+
+  /// No description provided for @search_preview_attachment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get search_preview_attachment;
+
+  /// No description provided for @search_preview_location.
+  ///
+  /// In ru, this message translates to:
+  /// **'Геолокация'**
+  String get search_preview_location;
+
+  /// No description provided for @search_preview_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get search_preview_message;
+
+  /// No description provided for @outbox_attachment_singular.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get outbox_attachment_singular;
+
+  /// No description provided for @outbox_attachments_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложения ({count})'**
+  String outbox_attachments_count(int count);
+
+  /// No description provided for @outbox_chat_unavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сервис чата недоступен'**
+  String get outbox_chat_unavailable;
+
+  /// No description provided for @outbox_encryption_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Шифрование: {code}'**
+  String outbox_encryption_error(String code);
+
+  /// No description provided for @nav_chats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чаты'**
+  String get nav_chats;
+
+  /// No description provided for @nav_contacts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контакты'**
+  String get nav_contacts;
+
+  /// No description provided for @nav_meetings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Конференции'**
+  String get nav_meetings;
+
+  /// No description provided for @nav_calls.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонки'**
+  String get nav_calls;
+
+  /// No description provided for @e2ee_media_decrypt_failed_image.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать изображение'**
+  String get e2ee_media_decrypt_failed_image;
+
+  /// No description provided for @e2ee_media_decrypt_failed_video.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать видео'**
+  String get e2ee_media_decrypt_failed_video;
+
+  /// No description provided for @e2ee_media_decrypt_failed_audio.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать аудио'**
+  String get e2ee_media_decrypt_failed_audio;
+
+  /// No description provided for @e2ee_media_decrypt_failed_attachment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать вложение'**
+  String get e2ee_media_decrypt_failed_attachment;
+
+  /// No description provided for @chat_search_snippet_attachment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get chat_search_snippet_attachment;
+
+  /// No description provided for @chat_search_snippet_location.
+  ///
+  /// In ru, this message translates to:
+  /// **'Геолокация'**
+  String get chat_search_snippet_location;
+
+  /// No description provided for @chat_search_snippet_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get chat_search_snippet_message;
+
+  /// No description provided for @bottom_nav_chats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чаты'**
+  String get bottom_nav_chats;
+
+  /// No description provided for @bottom_nav_contacts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контакты'**
+  String get bottom_nav_contacts;
+
+  /// No description provided for @bottom_nav_meetings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Конференции'**
+  String get bottom_nav_meetings;
+
+  /// No description provided for @bottom_nav_calls.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонки'**
+  String get bottom_nav_calls;
+
+  /// No description provided for @chat_list_swipe_folders.
+  ///
+  /// In ru, this message translates to:
+  /// **'ПАПКИ'**
+  String get chat_list_swipe_folders;
+
+  /// No description provided for @chat_list_swipe_clear.
+  ///
+  /// In ru, this message translates to:
+  /// **'ОЧИСТИТЬ'**
+  String get chat_list_swipe_clear;
+
+  /// No description provided for @chat_list_swipe_delete.
+  ///
+  /// In ru, this message translates to:
+  /// **'УДАЛИТЬ'**
+  String get chat_list_swipe_delete;
+
+  /// No description provided for @composer_editing_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'РЕДАКТИРОВАНИЕ СООБЩЕНИЯ'**
+  String get composer_editing_title;
+
+  /// No description provided for @composer_editing_cancel_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить редактирование'**
+  String get composer_editing_cancel_tooltip;
+
+  /// No description provided for @composer_formatting_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'ФОРМАТИРОВАНИЕ'**
+  String get composer_formatting_title;
+
+  /// No description provided for @composer_link_preview_loading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка превью…'**
+  String get composer_link_preview_loading;
+
+  /// No description provided for @composer_link_preview_hide_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыть превью'**
+  String get composer_link_preview_hide_tooltip;
+
+  /// No description provided for @chat_invite_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пригласить'**
+  String get chat_invite_button;
+
+  /// No description provided for @forward_preview_unknown_sender.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неизвестный'**
+  String get forward_preview_unknown_sender;
+
+  /// No description provided for @forward_preview_attachment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get forward_preview_attachment;
+
+  /// No description provided for @forward_preview_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get forward_preview_message;
+
+  /// No description provided for @chat_mention_no_matches.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет совпадений'**
+  String get chat_mention_no_matches;
+
+  /// No description provided for @live_location_sharing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы делитесь геолокацией'**
+  String get live_location_sharing;
+
+  /// No description provided for @live_location_stop.
+  ///
+  /// In ru, this message translates to:
+  /// **'Остановить'**
+  String get live_location_stop;
+
+  /// No description provided for @chat_message_deleted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение удалено'**
+  String get chat_message_deleted;
+
+  /// No description provided for @profile_qr_share.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделиться'**
+  String get profile_qr_share;
+
+  /// No description provided for @shared_location_open_browser_tooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть в браузере'**
+  String get shared_location_open_browser_tooltip;
+
+  /// No description provided for @reply_preview_message_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get reply_preview_message_fallback;
+
+  /// No description provided for @video_circle_media_kind.
+  ///
+  /// In ru, this message translates to:
+  /// **'видео'**
+  String get video_circle_media_kind;
+
+  /// No description provided for @reactions_rated_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оценили: {count}'**
+  String reactions_rated_count(int count);
+
+  /// No description provided for @reactions_today_time.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня, {time}'**
+  String reactions_today_time(String time);
+
+  /// No description provided for @durak_create_timer_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'По умолчанию 15 секунд'**
+  String get durak_create_timer_subtitle;
+
+  /// No description provided for @dm_game_banner_active.
+  ///
+  /// In ru, this message translates to:
+  /// **'Партия \"Дурак\" идёт'**
+  String get dm_game_banner_active;
+
+  /// No description provided for @dm_game_banner_created.
+  ///
+  /// In ru, this message translates to:
+  /// **'Игра \"Дурак\" создана'**
+  String get dm_game_banner_created;
+
+  /// No description provided for @chat_folder_favorites.
+  ///
+  /// In ru, this message translates to:
+  /// **'Избранное'**
+  String get chat_folder_favorites;
+
+  /// No description provided for @chat_folder_new.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новая'**
+  String get chat_folder_new;
+
+  /// No description provided for @contact_profile_user_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь'**
+  String get contact_profile_user_fallback;
+
+  /// No description provided for @contact_profile_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка: {error}'**
+  String contact_profile_error(String error);
+
+  /// No description provided for @conversation_threads_loading_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обсуждения'**
+  String get conversation_threads_loading_title;
+
+  /// No description provided for @theme_label_light.
+  ///
+  /// In ru, this message translates to:
+  /// **'Светлая'**
+  String get theme_label_light;
+
+  /// No description provided for @theme_label_dark.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тёмная'**
+  String get theme_label_dark;
+
+  /// No description provided for @theme_label_auto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Авто'**
+  String get theme_label_auto;
+
+  /// No description provided for @chat_draft_reply_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответ'**
+  String get chat_draft_reply_fallback;
+
+  /// No description provided for @mention_default_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get mention_default_label;
+
+  /// No description provided for @contacts_fallback_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контакт'**
+  String get contacts_fallback_name;
+
+  /// No description provided for @sticker_pack_default_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мой пак'**
+  String get sticker_pack_default_name;
+
+  /// No description provided for @profile_error_phone_taken.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот номер телефона уже зарегистрирован. Укажите другой номер.'**
+  String get profile_error_phone_taken;
+
+  /// No description provided for @profile_error_email_taken.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот email уже занят. Укажите другой адрес.'**
+  String get profile_error_email_taken;
+
+  /// No description provided for @profile_error_username_taken.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот логин уже занят. Выберите другой.'**
+  String get profile_error_username_taken;
+
+  /// No description provided for @e2ee_banner_default_context.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get e2ee_banner_default_context;
+
+  /// No description provided for @e2ee_banner_encrypted_chat_web_only.
+  ///
+  /// In ru, this message translates to:
+  /// **'{prefix} в зашифрованный чат пока можно отправить только с веб‑клиента.'**
+  String e2ee_banner_encrypted_chat_web_only(String prefix);
+
+  /// No description provided for @chat_attachment_decrypt_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось расшифровать вложение'**
+  String get chat_attachment_decrypt_error;
+
+  /// No description provided for @mention_fallback_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'участник'**
+  String get mention_fallback_label;
+
+  /// No description provided for @mention_fallback_label_capitalized.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get mention_fallback_label_capitalized;
+
+  /// No description provided for @meeting_speaking_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Говорит'**
+  String get meeting_speaking_label;
+
+  /// No description provided for @meeting_local_you_suffix.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} (Вы)'**
+  String meeting_local_you_suffix(String name);
+
+  /// No description provided for @video_crop_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обрезка'**
+  String get video_crop_title;
+
+  /// No description provided for @video_crop_load_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить видео: {error}'**
+  String video_crop_load_error(String error);
+
+  /// No description provided for @gif_section_recent.
+  ///
+  /// In ru, this message translates to:
+  /// **'НЕДАВНИЕ'**
+  String get gif_section_recent;
+
+  /// No description provided for @gif_section_trending.
+  ///
+  /// In ru, this message translates to:
+  /// **'TRENDING'**
+  String get gif_section_trending;
+
+  /// No description provided for @auth_create_account_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать аккаунт'**
+  String get auth_create_account_title;
+
+  /// No description provided for @yandex_sign_in_yandex_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Яндекс: {error}'**
+  String yandex_sign_in_yandex_error(String error);
+
+  /// No description provided for @call_status_missed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пропущен'**
+  String get call_status_missed;
+
+  /// No description provided for @call_status_cancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменен'**
+  String get call_status_cancelled;
+
+  /// No description provided for @call_status_ended.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершен'**
+  String get call_status_ended;
+
+  /// No description provided for @presence_offline.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не в сети'**
+  String get presence_offline;
+
+  /// No description provided for @presence_online.
+  ///
+  /// In ru, this message translates to:
+  /// **'В сети'**
+  String get presence_online;
+
+  /// No description provided for @dm_title_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат'**
+  String get dm_title_fallback;
+
+  /// No description provided for @dm_title_partner_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собеседник'**
+  String get dm_title_partner_fallback;
+
+  /// No description provided for @group_title_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Групповой чат'**
+  String get group_title_fallback;
+
+  /// No description provided for @block_call_viewer_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.'**
+  String get block_call_viewer_blocked;
+
+  /// No description provided for @block_call_partner_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь ограничил с вами общение. Звонок недоступен.'**
+  String get block_call_partner_blocked;
+
+  /// No description provided for @block_call_unavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонок недоступен.'**
+  String get block_call_unavailable;
+
+  /// No description provided for @block_composer_viewer_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.'**
+  String get block_composer_viewer_blocked;
+
+  /// No description provided for @block_composer_partner_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь ограничил с вами общение. Отправка недоступна.'**
+  String get block_composer_partner_blocked;
+
+  /// No description provided for @forward_group_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Группа'**
+  String get forward_group_fallback;
+
+  /// No description provided for @forward_unknown_user.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неизвестный'**
+  String get forward_unknown_user;
+
+  /// No description provided for @live_location_once.
+  ///
+  /// In ru, this message translates to:
+  /// **'Одноразово (только это сообщение)'**
+  String get live_location_once;
+
+  /// No description provided for @live_location_5min.
+  ///
+  /// In ru, this message translates to:
+  /// **'5 минут'**
+  String get live_location_5min;
+
+  /// No description provided for @live_location_15min.
+  ///
+  /// In ru, this message translates to:
+  /// **'15 минут'**
+  String get live_location_15min;
+
+  /// No description provided for @live_location_30min.
+  ///
+  /// In ru, this message translates to:
+  /// **'30 минут'**
+  String get live_location_30min;
+
+  /// No description provided for @live_location_1hour.
+  ///
+  /// In ru, this message translates to:
+  /// **'1 час'**
+  String get live_location_1hour;
+
+  /// No description provided for @live_location_2hours.
+  ///
+  /// In ru, this message translates to:
+  /// **'2 часа'**
+  String get live_location_2hours;
+
+  /// No description provided for @live_location_6hours.
+  ///
+  /// In ru, this message translates to:
+  /// **'6 часов'**
+  String get live_location_6hours;
+
+  /// No description provided for @live_location_1day.
+  ///
+  /// In ru, this message translates to:
+  /// **'1 день'**
+  String get live_location_1day;
+
+  /// No description provided for @live_location_forever.
+  ///
+  /// In ru, this message translates to:
+  /// **'Навсегда (пока не отключу)'**
+  String get live_location_forever;
+
+  /// No description provided for @e2ee_send_too_many_files.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.'**
+  String get e2ee_send_too_many_files;
+
+  /// No description provided for @e2ee_send_too_large.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.'**
+  String get e2ee_send_too_large;
+
+  /// No description provided for @presence_last_seen_prefix.
+  ///
+  /// In ru, this message translates to:
+  /// **'Был(а) '**
+  String get presence_last_seen_prefix;
+
+  /// No description provided for @presence_less_than_minute_ago.
+  ///
+  /// In ru, this message translates to:
+  /// **'менее минуты назад'**
+  String get presence_less_than_minute_ago;
+
+  /// No description provided for @presence_yesterday.
+  ///
+  /// In ru, this message translates to:
+  /// **'вчера'**
+  String get presence_yesterday;
+
+  /// No description provided for @dm_fallback_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат'**
+  String get dm_fallback_title;
+
+  /// No description provided for @dm_fallback_partner.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собеседник'**
+  String get dm_fallback_partner;
+
+  /// No description provided for @group_fallback_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Групповой чат'**
+  String get group_fallback_title;
+
+  /// No description provided for @block_send_viewer_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.'**
+  String get block_send_viewer_blocked;
+
+  /// No description provided for @block_send_partner_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь ограничил с вами общение. Отправка недоступна.'**
+  String get block_send_partner_blocked;
+
+  /// No description provided for @mention_fallback_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get mention_fallback_name;
+
+  /// No description provided for @profile_conflict_phone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот номер телефона уже зарегистрирован. Укажите другой номер.'**
+  String get profile_conflict_phone;
+
+  /// No description provided for @profile_conflict_email.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот email уже занят. Укажите другой адрес.'**
+  String get profile_conflict_email;
+
+  /// No description provided for @profile_conflict_username.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот логин уже занят. Выберите другой.'**
+  String get profile_conflict_username;
+
+  /// No description provided for @mention_fallback_participant.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участник'**
+  String get mention_fallback_participant;
+
+  /// No description provided for @sticker_gif_recent.
+  ///
+  /// In ru, this message translates to:
+  /// **'НЕДАВНИЕ'**
+  String get sticker_gif_recent;
+
+  /// No description provided for @meeting_screen_sharing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Экран'**
+  String get meeting_screen_sharing;
+
+  /// No description provided for @meeting_speaking.
+  ///
+  /// In ru, this message translates to:
+  /// **'Говорит'**
+  String get meeting_speaking;
+
+  /// No description provided for @auth_sign_in_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось войти: {error}'**
+  String auth_sign_in_failed(Object error);
+
+  /// No description provided for @yandex_error_prefix.
+  ///
+  /// In ru, this message translates to:
+  /// **'Яндекс: {error}'**
+  String yandex_error_prefix(Object error);
+
+  /// No description provided for @auth_error_prefix.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка авторизации: {error}'**
+  String auth_error_prefix(Object error);
+
+  /// No description provided for @presence_minutes_ago.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count,plural, =1{минуту назад} one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минут назад}}'**
+  String presence_minutes_ago(int count);
+
+  /// No description provided for @presence_hours_ago.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count,plural, =1{час назад} one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часов назад}}'**
+  String presence_hours_ago(int count);
+
+  /// No description provided for @presence_days_ago.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count,plural, one{{count} день назад} few{{count} дня назад} many{{count} дней назад} other{{count} дней назад}}'**
+  String presence_days_ago(int count);
+
+  /// No description provided for @presence_months_ago.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count,plural, =1{1 месяц назад} one{{count} месяц назад} few{{count} месяца назад} many{{count} месяцев назад} other{{count} месяцев назад}}'**
+  String presence_months_ago(int count);
+
+  /// No description provided for @presence_years_months_ago.
+  ///
+  /// In ru, this message translates to:
+  /// **'{years,plural, =1{1 год} one{{years} год} few{{years} года} many{{years} лет} other{{years} лет}} {months,plural, =1{1 месяц назад} one{{months} месяц назад} few{{months} месяца назад} many{{months} месяцев назад} other{{months} месяцев назад}}'**
+  String presence_years_months_ago(int years, int months);
+
+  /// No description provided for @presence_years_ago.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count,plural, =1{1 год назад} one{{count} год назад} few{{count} года назад} many{{count} лет назад} other{{count} лет назад}}'**
+  String presence_years_ago(int count);
+
+  /// No description provided for @wallpaper_gradient_purple.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фиолетовый'**
+  String get wallpaper_gradient_purple;
+
+  /// No description provided for @wallpaper_gradient_pink.
+  ///
+  /// In ru, this message translates to:
+  /// **'Розовый'**
+  String get wallpaper_gradient_pink;
+
+  /// No description provided for @wallpaper_gradient_blue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голубой'**
+  String get wallpaper_gradient_blue;
+
+  /// No description provided for @wallpaper_gradient_green.
+  ///
+  /// In ru, this message translates to:
+  /// **'Зелёный'**
+  String get wallpaper_gradient_green;
+
+  /// No description provided for @wallpaper_gradient_sunset.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закат'**
+  String get wallpaper_gradient_sunset;
+
+  /// No description provided for @wallpaper_gradient_gentle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нежный'**
+  String get wallpaper_gradient_gentle;
+
+  /// No description provided for @wallpaper_gradient_lime.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лайм'**
+  String get wallpaper_gradient_lime;
+
+  /// No description provided for @wallpaper_gradient_graphite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Графит'**
+  String get wallpaper_gradient_graphite;
+
+  /// No description provided for @sticker_tab_recent.
+  ///
+  /// In ru, this message translates to:
+  /// **'НЕДАВНИЕ'**
+  String get sticker_tab_recent;
+
+  /// No description provided for @block_call_you_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.'**
+  String get block_call_you_blocked;
+
+  /// No description provided for @block_call_they_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь ограничил с вами общение. Звонок недоступен.'**
+  String get block_call_they_blocked;
+
+  /// No description provided for @block_call_generic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонок недоступен.'**
+  String get block_call_generic;
+
+  /// No description provided for @block_send_you_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.'**
+  String get block_send_you_blocked;
+
+  /// No description provided for @block_send_they_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь ограничил с вами общение. Отправка недоступна.'**
+  String get block_send_they_blocked;
+
+  /// No description provided for @forward_unknown_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неизвестный'**
+  String get forward_unknown_fallback;
+
+  /// No description provided for @dm_title_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат'**
+  String get dm_title_chat;
+
+  /// No description provided for @dm_title_partner.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собеседник'**
+  String get dm_title_partner;
+
+  /// No description provided for @dm_title_group.
+  ///
+  /// In ru, this message translates to:
+  /// **'Групповой чат'**
+  String get dm_title_group;
+
+  /// No description provided for @e2ee_too_many_attachments.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.'**
+  String get e2ee_too_many_attachments;
+
+  /// No description provided for @e2ee_total_size_exceeded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.'**
+  String get e2ee_total_size_exceeded;
+
+  /// No description provided for @yandex_sign_in_error_prefix.
+  ///
+  /// In ru, this message translates to:
+  /// **'Яндекс: {error}'**
+  String yandex_sign_in_error_prefix(String error);
+
+  /// No description provided for @meeting_participant_screen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Экран'**
+  String get meeting_participant_screen;
+
+  /// No description provided for @meeting_participant_speaking.
+  ///
+  /// In ru, this message translates to:
+  /// **'Говорит'**
+  String get meeting_participant_speaking;
 }
 
 class _AppLocalizationsDelegate

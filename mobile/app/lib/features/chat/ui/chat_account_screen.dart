@@ -38,7 +38,7 @@ class ChatAccountScreen extends ConsumerWidget {
               final appThemePref = appThemePreferenceFromRaw(
                 userDoc['appTheme'],
               );
-              final appThemeLabel = appThemePreferenceLabel(appThemePref);
+              final appThemeLabel = appThemePreferenceLabel(appThemePref, AppLocalizations.of(context)!);
 
               final profilesRepo = ref.watch(userProfilesRepositoryProvider);
               final profileStream = profilesRepo?.watchUsersByIds(<String>[

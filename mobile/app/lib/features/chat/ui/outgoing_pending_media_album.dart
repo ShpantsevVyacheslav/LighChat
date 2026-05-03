@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -131,7 +132,7 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
       final e2eeCtx = widget.e2eeContext;
       if (e2eeCtx != null) {
         // Stability-first: E2EE batch encrypt/upload runs strictly one file at a time.
-        await validateE2eeBatchLimitsOrThrow(widget.files);
+        await validateE2eeBatchLimitsOrThrow(widget.files, l10n: AppLocalizations.of(context));
         for (var i = 0; i < n; i++) {
           if (_skipped[i]) continue;
           E2eePreparedSendFile? prepared;

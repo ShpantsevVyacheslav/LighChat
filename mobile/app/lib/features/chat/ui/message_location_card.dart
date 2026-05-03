@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/google_maps_urls.dart';
 import '../data/live_location_utils.dart';
@@ -88,14 +89,15 @@ class MessageLocationCard extends StatelessWidget {
               profileResolved,
             );
 
+        final l10n = AppLocalizations.of(context)!;
         if (share.liveSession != null && !stillStreaming) {
           return ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: ChatMediaLayoutTokens.locationPreviewMaxWidth),
             child: ChatGlassPanel(
               child: Text(
                 isMine
-                    ? 'Трансляция геолокации завершена. Собеседник больше не видит ваше актуальное местоположение.'
-                    : 'Трансляция геолокации у этого контакта завершена. Актуальная позиция недоступна.',
+                    ? l10n.location_card_broadcast_ended_mine
+                    : l10n.location_card_broadcast_ended_other,
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.35,
@@ -201,6 +203,7 @@ class _FallbackLocationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final accent = isMine ? scheme.onPrimary : scheme.primary;
     return SizedBox(
@@ -218,7 +221,7 @@ class _FallbackLocationTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Местоположение',
+                    l10n.location_card_title,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -227,7 +230,7 @@ class _FallbackLocationTile extends StatelessWidget {
                   ),
                   if (share.accuracyM != null)
                     Text(
-                      '±${share.accuracyM!.round()} м',
+                      l10n.location_card_accuracy(share.accuracyM!.round()),
                       style: TextStyle(
                         fontSize: 11,
                         color: (isMine ? scheme.onPrimary : scheme.onSurface)

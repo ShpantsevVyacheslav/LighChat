@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/device_contacts_suggestions.dart';
 
 class DeviceContactInviteRow extends StatelessWidget {
@@ -89,7 +90,7 @@ class DeviceContactInviteRow extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.send_rounded, size: 16),
-                    label: const Text('Пригласить'),
+                    label: Text(AppLocalizations.of(context)!.chat_invite_button),
                   )
                 else
                   Icon(
