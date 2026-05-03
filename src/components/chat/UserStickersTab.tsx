@@ -289,29 +289,27 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         >
           <Plus className="h-4 w-4" />
         </Button>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
         <Button
           type="button"
-          size="sm"
-          variant="secondary"
-          className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide"
+          size="icon"
+          variant="outline"
+          className="h-8 w-8 shrink-0 rounded-lg"
           disabled={busy || isPublicScope || !selectedPackId}
           onClick={() => fileInputRef.current?.click()}
+          title="Добавить стикеры с устройства"
         >
-          <ImagePlus className="mr-1.5 h-3.5 w-3.5" />
-          С устройства
+          <ImagePlus className="h-4 w-4" />
         </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          className="hidden"
-          onChange={(e) => void onFilesChosen(e.target.files)}
-        />
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        className="hidden"
+        onChange={(e) => void onFilesChosen(e.target.files)}
+      />
 
       {noPacksAtAll ? (
         <p className="text-center text-xs text-muted-foreground py-4 px-1">

@@ -815,7 +815,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    label: const Text('GIPHY'),
+                    label: const Text('Библиотека'),
                     selected: _scope == _StickerScope.library,
                     onSelected: (_) =>
                         setState(() => _scope = _StickerScope.library),

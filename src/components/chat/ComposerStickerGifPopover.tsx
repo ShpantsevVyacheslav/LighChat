@@ -70,7 +70,7 @@ export function ComposerStickerGifPopover({
         <SheetHeader className="border-b border-border/40 px-4 py-3">
           <SheetTitle className="text-base">Эмодзи • Стикеры • GIF</SheetTitle>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3">
           <ChatStickerGifPanel
             userId={userId}
             onPickStickerAttachment={(att) => {

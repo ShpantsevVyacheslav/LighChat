@@ -20,6 +20,17 @@ function stripUndefined<T>(input: T): T {
   }
 }
 
+function encodeStateForFirestore(state: any): any {
+  if (!state || typeof state !== "object") return state;
+  const out: any = { ...state };
+  if (Array.isArray(state.finishGroups)) {
+    out.finishGroups = state.finishGroups.map((group: unknown) =>
+      Array.isArray(group) ? { uids: group.map((u) => String(u)) } : group,
+    );
+  }
+  return out;
+}
+
 export const DURAK_READY_TIMEOUT_MS = 30_000;
 
 export function readyDeadlineFrom(nowMs: number): string {
@@ -113,7 +124,7 @@ export function startDurakRoundInTransaction({
     playerIds,
     readyUids: admin.firestore.FieldValue.delete(),
     readyDeadlineAt: admin.firestore.FieldValue.delete(),
-    serverState: stripUndefined(state),
+    serverState: stripUndefined(encodeStateForFirestore(state)),
     publicView: stripUndefined(publicView),
     result: null,
     lastUpdatedAt: nowIso,

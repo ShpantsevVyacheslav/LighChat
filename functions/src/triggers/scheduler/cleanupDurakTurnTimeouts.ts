@@ -32,6 +32,32 @@ function stripUndefined<T>(input: T): T {
   }
 }
 
+function encodeStateForFirestore(state: any): any {
+  if (!state || typeof state !== "object") return state;
+  const out: any = { ...state };
+  if (Array.isArray(state.finishGroups)) {
+    out.finishGroups = state.finishGroups.map((group: unknown) =>
+      Array.isArray(group) ? { uids: group.map((u) => String(u)) } : group,
+    );
+  }
+  return out;
+}
+
+function decodeStateFromFirestore(state: any): any {
+  if (!state || typeof state !== "object") return state;
+  const groupsRaw = (state as any).finishGroups;
+  if (!Array.isArray(groupsRaw)) return state;
+  const groups: string[][] = [];
+  for (const g of groupsRaw) {
+    if (Array.isArray(g)) {
+      groups.push(g.map((u) => String(u)));
+    } else if (g && typeof g === "object" && Array.isArray((g as any).uids)) {
+      groups.push(((g as any).uids as unknown[]).map((u) => String(u)));
+    }
+  }
+  return { ...state, finishGroups: groups };
+}
+
 /**
  * Auto-handles expired Durak turn timers.
  *
@@ -73,8 +99,9 @@ export const cleanupDurakTurnTimeouts = onSchedule({
         const conversationId = typeof g.conversationId === "string" ? g.conversationId : "";
         if (!conversationId) return;
 
-        const state = (g.serverState && typeof g.serverState === "object") ? (g.serverState as DurakServerState) : null;
-        if (!state) return;
+        const stateRaw = (g.serverState && typeof g.serverState === "object") ? (g.serverState as DurakServerState) : null;
+        if (!stateRaw) return;
+        const state = decodeStateFromFirestore(stateRaw);
 
         const settings = normalizeDurakSettings(g.settings);
         const playerIds = Array.isArray(g.playerIds) ? g.playerIds.map((x: any) => String(x)) : [];
@@ -82,7 +109,7 @@ export const cleanupDurakTurnTimeouts = onSchedule({
 
         const allKnownUids = Array.from(new Set([
           ...playerIds,
-          ...(Array.isArray(state.seats) ? state.seats.map((x) => String(x)) : []),
+          ...(Array.isArray(state.seats) ? state.seats.map((x: unknown) => String(x)) : []),
         ]));
         const handsByUid: Record<string, Card[]> = {};
         for (const uid of allKnownUids) {
@@ -113,7 +140,7 @@ export const cleanupDurakTurnTimeouts = onSchedule({
           discardTable({ state });
 
           nextPlayerIds = playerIds.filter((uid) => uid !== turnUid);
-          state.seats = (state.seats ?? nextPlayerIds).filter((uid) => uid !== turnUid);
+          state.seats = (state.seats ?? nextPlayerIds).filter((uid: string) => uid !== turnUid);
 
           if (nextPlayerIds.length <= 1) {
             const winners = nextPlayerIds;
@@ -175,7 +202,7 @@ export const cleanupDurakTurnTimeouts = onSchedule({
         tx.update(gameRef, {
           status: nextStatus,
           playerIds: nextPlayerIds,
-          serverState: stripUndefined(state),
+          serverState: stripUndefined(encodeStateForFirestore(state)),
           publicView: stripUndefined(
             buildPublicView({
               state,
