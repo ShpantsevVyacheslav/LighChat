@@ -318,7 +318,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 Expanded(
                                   child: _SocialAuthIconTile(
                                     dark: dark,
-                                    tooltip: 'Яндекс',
+                                    tooltip: 'Yandex',
                                     onPressed: (!firebaseReady || _busy)
                                         ? null
                                         : () {
@@ -606,7 +606,7 @@ class _RegisterFullScreenPage extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Создать аккаунт',
+                              AppLocalizations.of(context)!.auth_create_account,
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,

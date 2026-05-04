@@ -286,9 +286,9 @@ class ConversationThreadsScreen extends ConsumerWidget {
           loading: () => Scaffold(
             body: SafeArea(
               child: Column(
-                children: const [
-                  ChatProfileSubpageHeader(title: 'Обсуждения'),
-                  Expanded(child: Center(child: CircularProgressIndicator())),
+                children: [
+                  ChatProfileSubpageHeader(title: l10n.conversation_threads_loading_title),
+                  const Expanded(child: Center(child: CircularProgressIndicator())),
                 ],
               ),
             ),
@@ -319,9 +319,9 @@ class ConversationThreadsScreen extends ConsumerWidget {
       loading: () => Scaffold(
         body: SafeArea(
           child: Column(
-            children: const [
-              ChatProfileSubpageHeader(title: 'Обсуждения'),
-              Expanded(child: Center(child: CircularProgressIndicator())),
+            children: [
+              ChatProfileSubpageHeader(title: l10n.conversation_threads_loading_title),
+              const Expanded(child: Center(child: CircularProgressIndicator())),
             ],
           ),
         ),

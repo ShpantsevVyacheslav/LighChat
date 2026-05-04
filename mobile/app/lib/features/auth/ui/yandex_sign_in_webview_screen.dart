@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -112,7 +113,7 @@ class _YandexSignInWebViewScreenState
                 final uri = Uri.parse(url);
                 final err = uri.queryParameters['yandex_error'];
                 if (mounted && err != null && err.isNotEmpty) {
-                  setState(() => _error = 'Яндекс: $err');
+                  setState(() => _error = AppLocalizations.of(context)!.yandex_sign_in_error_prefix(err.toString()));
                 }
               } catch (_) {
                 // ignore
@@ -128,7 +129,7 @@ class _YandexSignInWebViewScreenState
               _busy = false;
               _error = err.description.isNotEmpty
                   ? err.description
-                  : 'Ошибка загрузки страницы';
+                  : AppLocalizations.of(context)!.yandex_sign_in_page_load_error;
             });
           },
         ),
@@ -152,7 +153,7 @@ class _YandexSignInWebViewScreenState
               setState(() => _error =
                   msg is String && msg.trim().isNotEmpty
                       ? msg.trim()
-                      : 'Ошибка входа через Яндекс.');
+                      : AppLocalizations.of(context)!.yandex_sign_in_login_error);
             }
             return;
           }
@@ -169,7 +170,7 @@ class _YandexSignInWebViewScreenState
     final repo = ref.read(authRepositoryProvider);
     if (repo == null) {
       if (mounted) {
-        setState(() => _error = 'Firebase не готов.');
+        setState(() => _error = AppLocalizations.of(context)!.yandex_sign_in_firebase_not_ready);
       }
       return;
     }
@@ -205,7 +206,7 @@ class _YandexSignInWebViewScreenState
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'Не удалось войти: $e';
+          _error = AppLocalizations.of(context)!.yandex_sign_in_login_failed(e.toString());
         });
       }
     }
@@ -216,14 +217,14 @@ class _YandexSignInWebViewScreenState
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Вход через Яндекс'),
+        title: Text(AppLocalizations.of(context)!.yandex_sign_in_title),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
-            tooltip: 'Открыть в браузере',
+            tooltip: AppLocalizations.of(context)!.yandex_sign_in_open_in_browser,
             icon: const Icon(Icons.open_in_browser),
             onPressed: () async {
               final url = _currentUrl.trim().isNotEmpty
@@ -231,7 +232,7 @@ class _YandexSignInWebViewScreenState
                   : yandexOAuthStartUrl();
               final ok = await _launchExternal(url);
               if (!ok && mounted) {
-                setState(() => _error = 'Не удалось открыть браузер.');
+                setState(() => _error = AppLocalizations.of(context)!.yandex_sign_in_browser_failed);
               }
             },
           ),

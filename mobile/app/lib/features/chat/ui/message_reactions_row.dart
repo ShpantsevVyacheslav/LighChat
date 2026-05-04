@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_avatar.dart';
 
 class ReactionUserView {
@@ -273,7 +274,7 @@ class _ReactionChip extends StatelessWidget {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        'Оценили: ${users.length}',
+                                        AppLocalizations.of(ctx)!.reactions_rated_count(users.length),
                                         textAlign: TextAlign.right,
                                         style: TextStyle(
                                           fontSize: 9,
@@ -334,6 +335,7 @@ class _ReactionChip extends StatelessWidget {
                                             : Text(
                                                 _formatReactionTime(
                                                   u.timestamp!,
+                                                  l10n: AppLocalizations.of(ctx),
                                                 ),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
@@ -375,7 +377,7 @@ class _ReactionChip extends StatelessWidget {
     );
   }
 
-  String _formatReactionTime(String timestamp) {
+  String _formatReactionTime(String timestamp, {AppLocalizations? l10n}) {
     final d = DateTime.tryParse(timestamp)?.toLocal();
     if (d == null) return '';
     final now = DateTime.now();
@@ -384,7 +386,7 @@ class _ReactionChip extends StatelessWidget {
     final hh = d.hour.toString().padLeft(2, '0');
     final mm = d.minute.toString().padLeft(2, '0');
     if (isToday) {
-      return 'Сегодня, $hh:$mm';
+      return l10n?.reactions_today_time('$hh:$mm') ?? 'Today, $hh:$mm';
     }
     final dd = d.day.toString().padLeft(2, '0');
     final mo = d.month.toString().padLeft(2, '0');

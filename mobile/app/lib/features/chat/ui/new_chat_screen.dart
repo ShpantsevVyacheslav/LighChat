@@ -93,6 +93,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     final candidates = buildDeviceContactCandidates(
       contacts: _deviceContacts,
       term: term,
+      l10n: AppLocalizations.of(context)!,
       limit: 24,
     );
     final key =
@@ -442,6 +443,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                         final deviceCandidates = buildDeviceContactCandidates(
                           contacts: _deviceContacts,
                           term: term,
+                          l10n: AppLocalizations.of(context)!,
                           limit: 12,
                         );
                         if (term.trim().isNotEmpty &&

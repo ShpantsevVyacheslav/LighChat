@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/link_preview_metadata.dart';
 
 final LinkPreviewMetadataCache _composerLinkPreviewCache =
@@ -78,7 +79,7 @@ class ComposerLinkPreview extends StatelessWidget {
                     children: [
                       Text(
                         isLoading
-                            ? 'Загрузка превью…'
+                            ? AppLocalizations.of(context)!.composer_link_preview_loading
                             : (data?.title ?? url),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -107,7 +108,7 @@ class ComposerLinkPreview extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Скрыть превью',
+                  tooltip: AppLocalizations.of(context)!.composer_link_preview_hide_tooltip,
                   iconSize: 18,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(

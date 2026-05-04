@@ -14,6 +14,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 class ChatSystemEventDivider extends StatelessWidget {
@@ -31,8 +32,9 @@ class ChatSystemEventDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final icon = _pickIcon(event.type);
-    final label = _renderText(event, actorName);
+    final label = _renderText(l10n, event, actorName);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -89,32 +91,32 @@ class ChatSystemEventDivider extends StatelessWidget {
     }
   }
 
-  static String _renderText(ChatSystemEvent event, String? actorNameOverride) {
+  static String _renderText(AppLocalizations l10n, ChatSystemEvent event, String? actorNameOverride) {
     final data = event.data ?? const {};
     final actor =
         actorNameOverride ??
         (data['actorName'] is String ? data['actorName'] as String : null) ??
-        'Пользователь';
+        l10n.system_event_default_actor;
     final deviceLabel = data['deviceLabel'] is String
         ? data['deviceLabel'] as String
-        : 'устройство';
+        : l10n.system_event_default_device;
     switch (event.type) {
       case ChatSystemEventType.e2eeV2Enabled:
-        return 'Сквозное шифрование включено';
+        return l10n.system_event_e2ee_enabled(0);
       case ChatSystemEventType.e2eeV2Disabled:
-        return 'Сквозное шифрование отключено';
+        return l10n.system_event_e2ee_disabled;
       case ChatSystemEventType.e2eeV2EpochRotated:
-        return 'Ключ шифрования обновлён';
+        return l10n.system_event_e2ee_epoch_rotated;
       case ChatSystemEventType.e2eeV2DeviceAdded:
-        return '$actor добавил устройство «$deviceLabel»';
+        return l10n.system_event_e2ee_device_added(actor, deviceLabel);
       case ChatSystemEventType.e2eeV2DeviceRevoked:
-        return '$actor отозвал устройство «$deviceLabel»';
+        return l10n.system_event_e2ee_device_revoked(actor, deviceLabel);
       case ChatSystemEventType.e2eeV2FingerprintChanged:
-        return 'Отпечаток безопасности у $actor изменился';
+        return l10n.system_event_e2ee_fingerprint_changed(actor);
       case ChatSystemEventType.gameLobbyCreated:
-        return 'Создано лобби игры';
+        return l10n.system_event_game_lobby_created;
       case ChatSystemEventType.gameStarted:
-        return 'Игра началась';
+        return l10n.system_event_game_started;
     }
   }
 }

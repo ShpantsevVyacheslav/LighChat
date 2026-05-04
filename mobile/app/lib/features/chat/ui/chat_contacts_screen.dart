@@ -257,14 +257,14 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     return '#';
   }
 
-  String _statusLabel(UserProfile profile) {
+  String _statusLabel(UserProfile profile, AppLocalizations l10n) {
     final privacy = profile.privacySettings;
     final canShowOnline = privacy?.showOnlineStatus != false;
     final canShowLastSeen = privacy?.showLastSeen != false;
-    if (canShowOnline && profile.online == true) return 'онлайн';
-    if (!canShowLastSeen) return 'Был (а) недавно';
+    if (canShowOnline && profile.online == true) return l10n.contacts_status_online;
+    if (!canShowLastSeen) return l10n.contacts_status_recently;
     final lastSeen = profile.lastSeenAt;
-    if (lastSeen == null) return 'Был (а) недавно';
+    if (lastSeen == null) return l10n.contacts_status_recently;
     final now = DateTime.now();
     final local = lastSeen.toLocal();
     final today = DateTime(now.year, now.month, now.day);
@@ -274,9 +274,9 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     if (diffDays == 0) {
       final hh = local.hour.toString().padLeft(2, '0');
       final mm = local.minute.toString().padLeft(2, '0');
-      return 'Был (а) в $hh:$mm';
+      return l10n.contacts_status_today_at('$hh:$mm');
     }
-    if (diffDays == 1) return 'Был (а) вчера';
+    if (diffDays == 1) return l10n.contacts_status_yesterday;
 
     final years =
         now.year -
@@ -285,34 +285,24 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                 (now.month == local.month && now.day < local.day))
             ? 1
             : 0);
-    if (years == 1) return 'Был (а) год назад';
-    if (years > 1) return 'Был (а) ${_ruYearsLabel(years)} назад';
+    if (years == 1) return l10n.contacts_status_year_ago;
+    if (years > 1) return l10n.contacts_status_years_ago(_yearsLabel(years, l10n));
 
-    const months = <String>[
-      'января',
-      'февраля',
-      'марта',
-      'апреля',
-      'мая',
-      'июня',
-      'июля',
-      'августа',
-      'сентября',
-      'октября',
-      'ноября',
-      'декабря',
-    ];
-    return 'Был (а) ${local.day} ${months[local.month - 1]}';
+    return l10n.contacts_status_date('${local.day}.${local.month.toString().padLeft(2, '0')}');
   }
 
-  String _ruYearsLabel(int years) {
-    final mod10 = years % 10;
-    final mod100 = years % 100;
-    if (mod10 == 1 && mod100 != 11) return '$years год';
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-      return '$years года';
+  String _yearsLabel(int years, AppLocalizations l10n) {
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'ru') {
+      final mod10 = years % 10;
+      final mod100 = years % 100;
+      if (mod10 == 1 && mod100 != 11) return l10n.contacts_years_one(years);
+      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+        return l10n.contacts_years_few(years);
+      }
+      return l10n.contacts_years_many(years);
     }
-    return '$years лет';
+    return l10n.contacts_years_other(years);
   }
 
   List<_ContactListEntry> _buildEntries(List<_ContactRowData> rows) {
@@ -455,9 +445,9 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                       builder: (context, snap) {
                         final byId = snap.data ?? const <String, UserProfile>{};
                         final me = byId[ownerId];
-                        final selfName = (me?.name ?? 'Профиль').trim().isEmpty
-                            ? 'Профиль'
-                            : (me?.name ?? 'Профиль').trim();
+                        final selfName = (me?.name ?? l10n.contacts_fallback_profile).trim().isEmpty
+                            ? l10n.contacts_fallback_profile
+                            : (me?.name ?? l10n.contacts_fallback_profile).trim();
                         final selfAvatar = me?.avatarThumb ?? me?.avatar;
 
                         final query = _searchController.text
@@ -470,7 +460,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                 .map((p) {
                                   final fallback = p.name.trim().isNotEmpty
                                       ? p.name.trim()
-                                      : 'Пользователь';
+                                      : l10n.contacts_fallback_user;
                                   final displayName = resolveContactDisplayName(
                                     contactProfiles: idx.contactProfiles,
                                     contactUserId: p.id,
@@ -518,7 +508,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      'Контакты',
+                                      l10n.contacts_title,
                                       style: TextStyle(
                                         fontSize: _titleFontSize,
                                         height: 0.95,
@@ -564,9 +554,9 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
-                                                    'Добавьте телефон в профиле, чтобы искать контакты по номеру.',
+                                                    l10n.contacts_add_phone_prompt,
                                                   ),
                                                 ),
                                               );
@@ -647,7 +637,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                             return _ContactRow(
                                               profile: profile,
                                               displayName: displayName,
-                                              statusText: _statusLabel(profile),
+                                              statusText: _statusLabel(profile, l10n),
                                               onTap: () => context.push(
                                                 '/contacts/user/${Uri.encodeComponent(profile.id)}',
                                               ),
@@ -1068,13 +1058,14 @@ class _EmptyContactsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
-          'Контакты не найдены.\nНажмите кнопку справа, чтобы синхронизировать телефонную книгу.',
+          l10n.contacts_empty_state,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: (dark ? Colors.white : scheme.onSurface).withValues(

@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_video_crop_screen.dart';
 
 class ChatVideoEditorResult {
@@ -145,7 +146,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _errorText = 'Не удалось загрузить видео: $e';
+        _errorText = AppLocalizations.of(context)!.video_editor_load_failed(e.toString());
       });
     }
   }
@@ -876,7 +877,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
       return ChatVideoEditorResult(file: outFile, caption: caption);
     } catch (e) {
       if (mounted) {
-        setState(() => _errorText = 'Не удалось обработать видео: $e');
+        setState(() => _errorText = AppLocalizations.of(context)!.video_editor_process_failed(e.toString()));
       }
       return null;
     } finally {
@@ -899,6 +900,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final c = _player;
     final d = _safeDuration;
     final startDur = _durationFromFraction(_trimStart, d);
@@ -1155,7 +1157,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Длительность: ${_fmt(clippedDur)}',
+                  l10n.video_editor_duration(_fmt(clippedDur)),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.68),
                     fontSize: 12,
@@ -1171,7 +1173,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
                     Row(
                       children: [
                         Text(
-                          'Кисть',
+                          l10n.video_editor_brush,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.72),
                             fontSize: 12.5,
@@ -1228,7 +1230,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
                       maxLines: 1,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
-                        hintText: 'Добавить подпись...',
+                        hintText: l10n.video_editor_caption_hint,
                         hintStyle: TextStyle(
                           color: Colors.white.withValues(alpha: 0.42),
                         ),

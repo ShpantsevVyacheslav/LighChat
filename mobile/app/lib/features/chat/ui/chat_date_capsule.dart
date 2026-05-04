@@ -1,29 +1,30 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// День в ленте чата: «Сегодня», «Вчера» или «20 апреля» (родительный падеж месяца).
-String formatChatDayLabelRu(DateTime dt, {DateTime? now}) {
+String formatChatDayLabel(DateTime dt, AppLocalizations l10n, {DateTime? now}) {
   final local = dt.toLocal();
   final n = (now ?? DateTime.now()).toLocal();
   final day = DateTime(local.year, local.month, local.day);
   final today = DateTime(n.year, n.month, n.day);
   final yesterday = today.subtract(const Duration(days: 1));
-  if (day == today) return 'Сегодня';
-  if (day == yesterday) return 'Вчера';
-  const months = <String>[
-    'января',
-    'февраля',
-    'марта',
-    'апреля',
-    'мая',
-    'июня',
-    'июля',
-    'августа',
-    'сентября',
-    'октября',
-    'ноября',
-    'декабря',
+  if (day == today) return l10n.date_today;
+  if (day == yesterday) return l10n.date_yesterday;
+  final months = <String>[
+    l10n.date_month_1,
+    l10n.date_month_2,
+    l10n.date_month_3,
+    l10n.date_month_4,
+    l10n.date_month_5,
+    l10n.date_month_6,
+    l10n.date_month_7,
+    l10n.date_month_8,
+    l10n.date_month_9,
+    l10n.date_month_10,
+    l10n.date_month_11,
+    l10n.date_month_12,
   ];
   final m = months[local.month - 1];
   if (local.year != n.year) {

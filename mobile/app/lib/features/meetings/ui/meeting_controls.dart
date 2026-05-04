@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 import '../data/virtual_background_controller.dart';
 
@@ -70,10 +71,11 @@ class MeetingControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final buttons = <Widget>[
       _IconButton(
         icon: micMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-        label: micMuted ? 'Включить' : 'Выключить',
+        label: micMuted ? l10n.meeting_mic_on : l10n.meeting_mic_off,
         background: micMuted ? Colors.redAccent : Colors.white24,
         onTap: onToggleMic,
       ),
@@ -81,20 +83,20 @@ class MeetingControls extends StatelessWidget {
         icon: cameraMuted
             ? Icons.videocam_off_rounded
             : Icons.videocam_rounded,
-        label: cameraMuted ? 'Камера вкл' : 'Камера выкл',
+        label: cameraMuted ? l10n.meeting_camera_on : l10n.meeting_camera_off,
         background: cameraMuted ? Colors.redAccent : Colors.white24,
         onTap: onToggleCamera,
       ),
       _IconButton(
         icon: Icons.cameraswitch_rounded,
-        label: 'Сменить',
+        label: l10n.meeting_switch_camera,
         background: Colors.white24,
         onTap: onSwitchCamera,
       ),
       if (onToggleHand != null)
         _IconButton(
           icon: Icons.back_hand_rounded,
-          label: handRaised ? 'Опустить' : 'Рука',
+          label: handRaised ? l10n.meeting_hand_lower : l10n.meeting_hand_raise,
           background: handRaised ? const Color(0xFFF59E0B) : Colors.white24,
           onTap: onToggleHand!,
         ),
@@ -105,7 +107,7 @@ class MeetingControls extends StatelessWidget {
           icon: screenSharing
               ? Icons.stop_screen_share_rounded
               : Icons.screen_share_rounded,
-          label: screenSharing ? 'Стоп' : 'Экран',
+          label: screenSharing ? l10n.meeting_screen_stop : l10n.meeting_screen_label,
           background: screenSharing
               ? const Color(0xFF2563EB)
               : (screenShareSupported ? Colors.white24 : Colors.white10),
@@ -117,7 +119,7 @@ class MeetingControls extends StatelessWidget {
           onToggleVirtualBackground != null)
         _IconButton(
           icon: _bgIcon(virtualBackgroundMode!),
-          label: _bgLabel(virtualBackgroundMode!),
+          label: _bgLabel(virtualBackgroundMode!, l10n),
           background: virtualBackgroundMode == VirtualBackgroundMode.none
               ? Colors.white24
               : const Color(0xFF6D28D9),
@@ -125,7 +127,7 @@ class MeetingControls extends StatelessWidget {
         ),
       _IconButton(
         icon: Icons.people_rounded,
-        label: 'Участники',
+        label: l10n.meeting_participants_button,
         background: Colors.white24,
         onTap: onOpenSidebar,
         badge: requestsCount > 0
@@ -137,7 +139,7 @@ class MeetingControls extends StatelessWidget {
       ),
       _IconButton(
         icon: Icons.call_end_rounded,
-        label: 'Выйти',
+        label: l10n.meeting_leave,
         background: const Color(0xFFDC2626),
         iconColor: Colors.white,
         onTap: onLeave,
@@ -179,14 +181,14 @@ IconData _bgIcon(VirtualBackgroundMode mode) {
   }
 }
 
-String _bgLabel(VirtualBackgroundMode mode) {
+String _bgLabel(VirtualBackgroundMode mode, AppLocalizations l10n) {
   switch (mode) {
     case VirtualBackgroundMode.none:
-      return 'Фон';
+      return l10n.meeting_bg_off;
     case VirtualBackgroundMode.blur:
-      return 'Размытие';
+      return l10n.meeting_bg_blur;
     case VirtualBackgroundMode.image:
-      return 'Картинка';
+      return l10n.meeting_bg_image;
   }
 }
 
@@ -199,9 +201,10 @@ class _ReactionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _IconButton(
       icon: Icons.emoji_emotions_rounded,
-      label: 'Реакция',
+      label: l10n.meeting_reaction,
       background: Colors.white24,
       onTap: () => _showPicker(context),
     );

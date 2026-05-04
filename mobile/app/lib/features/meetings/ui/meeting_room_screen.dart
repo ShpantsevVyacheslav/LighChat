@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../l10n/app_localizations.dart';
 
 import '../data/meeting_invite_link.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -219,7 +220,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Фон недоступен: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.meeting_bg_unavailable(e.toString()))),
       );
     }
   }
@@ -270,13 +271,13 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         loading: () => const Center(
           child: CircularProgressIndicator(color: Colors.white),
         ),
-        error: (e, _) => _errorBody('Не удалось загрузить митинг: $e'),
+        error: (e, _) => _errorBody(AppLocalizations.of(context)!.meeting_join_load_error(e.toString())),
         data: (meeting) {
           if (meeting == null) {
-            return _errorBody('Митинг не найден или закрыт');
+            return _errorBody(AppLocalizations.of(context)!.meeting_not_found);
           }
           if (_initError != null) {
-            return _errorBody('Ошибка инициализации: $_initError');
+            return _errorBody(AppLocalizations.of(context)!.meeting_init_error(_initError!));
           }
           final isHostOrAdmin = meeting.isAdmin(widget.selfUid);
 
@@ -284,7 +285,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
             loading: () => const Center(
               child: CircularProgressIndicator(color: Colors.white),
             ),
-            error: (e, _) => _errorBody('Участники: $e'),
+            error: (e, _) => _errorBody(AppLocalizations.of(context)!.meeting_participants_error(e.toString())),
             data: (participants) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _syncPeersFromParticipants(participants);
@@ -367,10 +368,9 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     if (!_screenShareSupported) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Демонстрация экрана на iOS требует Broadcast Extension '
-            '(будет в следующем релизе)',
+            AppLocalizations.of(context)!.meeting_screen_share_ios_hint,
           ),
         ),
       );
@@ -382,7 +382,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось запустить демонстрацию: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.meeting_screen_share_error(e.toString()))),
       );
     }
   }
@@ -405,7 +405,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: _leave,
-              child: const Text('Выйти'),
+              child: Text(AppLocalizations.of(context)!.meeting_leave),
             ),
           ],
         ),
@@ -559,8 +559,8 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
               ),
             IconButton(
               tooltip: _viewMode == _MeetingViewMode.grid
-                  ? 'Режим спикера'
-                  : 'Режим сетки',
+                  ? AppLocalizations.of(context)!.meeting_speaker_mode
+                  : AppLocalizations.of(context)!.meeting_grid_mode,
               onPressed: _toggleViewMode,
               icon: Icon(
                 _viewMode == _MeetingViewMode.grid
@@ -570,7 +570,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
               ),
             ),
             IconButton(
-              tooltip: 'Скопировать ссылку (вход с браузера)',
+              tooltip: AppLocalizations.of(context)!.meeting_copy_link_tooltip,
               onPressed: () async {
                 final link = meetingWebJoinLink(widget.meetingId);
                 await Clipboard.setData(ClipboardData(text: link));

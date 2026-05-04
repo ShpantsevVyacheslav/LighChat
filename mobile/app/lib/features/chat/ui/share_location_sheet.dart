@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/live_location_duration_options.dart';
 
 /// Нижний лист: «Как делиться» — паритет `ChatAttachLocationDialog` на вебе.
@@ -126,6 +127,7 @@ class _ShareLocationSheetContentState
       );
     }
 
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -139,7 +141,7 @@ class _ShareLocationSheetContentState
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Поделиться геолокацией',
+                l10n.share_location_title,
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
@@ -151,7 +153,7 @@ class _ShareLocationSheetContentState
         ),
         const SizedBox(height: 8),
         Text(
-          'Как делиться',
+          l10n.share_location_how,
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -164,7 +166,7 @@ class _ShareLocationSheetContentState
           child: SingleChildScrollView(
             child: Column(
               children: [
-                for (final o in kLiveLocationDurationOptions)
+                for (final o in liveLocationDurationOptions(l10n))
                   durationItem(o.id, o.label),
               ],
             ),
@@ -176,7 +178,7 @@ class _ShareLocationSheetContentState
             Expanded(
               child: OutlinedButton(
                 onPressed: widget.onCancel,
-                child: const Text('Отмена'),
+                child: Text(l10n.share_location_cancel),
               ),
             ),
             const SizedBox(width: 10),
@@ -184,7 +186,7 @@ class _ShareLocationSheetContentState
               child: FilledButton.icon(
                 onPressed: () => widget.onConfirm(_selectedId),
                 icon: const Icon(Icons.near_me_rounded, size: 18),
-                label: const Text('Отправить'),
+                label: Text(l10n.share_location_send),
               ),
             ),
           ],

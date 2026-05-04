@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -49,7 +50,7 @@ class _ChatConversationThemeScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось сохранить фон: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.chat_theme_save_error(e.toString()))));
     }
   }
 
@@ -84,7 +85,7 @@ class _ChatConversationThemeScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки фона: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.chat_theme_load_error(e.toString()))));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -108,18 +109,18 @@ class _ChatConversationThemeScreenState
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить фон из галереи?'),
-          content: const Text(
-            'Изображение пропадёт из списка своих фонов. Для этого чата можно выбрать другой.',
+          title: Text(AppLocalizations.of(context)!.chat_theme_delete_title),
+          content: Text(
+            AppLocalizations.of(context)!.chat_theme_delete_body,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Отмена'),
+              child: Text(AppLocalizations.of(context)!.common_cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Удалить'),
+              child: Text(AppLocalizations.of(context)!.common_delete),
             ),
           ],
         );
@@ -140,7 +141,7 @@ class _ChatConversationThemeScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка удаления: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.chat_theme_delete_error(e.toString()))));
     }
   }
 
@@ -195,7 +196,7 @@ class _ChatConversationThemeScreenState
                       children: [
                         const SizedBox(height: 8),
                         ChatProfileSubpageHeader(
-                          title: 'Тема чата',
+                          title: AppLocalizations.of(context)!.chat_theme_title,
                           onBack: () => Navigator.of(context).maybePop(),
                         ),
                         Expanded(
@@ -205,13 +206,11 @@ class _ChatConversationThemeScreenState
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 NotificationSettingsMutedBanner(
-                                  text:
-                                      'Фон этой переписки только для вас. Общие '
-                                      'настройки чатов в разделе «Настройки чатов» не меняются.',
+                                  text: AppLocalizations.of(context)!.chat_theme_description,
                                 ),
                                 const SizedBox(height: 18),
                                 Text(
-                                  'Текущий фон',
+                                  AppLocalizations.of(context)!.chat_theme_current_bg,
                                   style: TextStyle(
                                     fontSize:
                                         kNotificationSettingsCardTitleSize,
@@ -250,7 +249,7 @@ class _ChatConversationThemeScreenState
                                                   12,
                                                 ),
                                                 child: Text(
-                                                  'По умолчанию (общие настройки)',
+                                                  AppLocalizations.of(context)!.chat_theme_default_bg,
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontSize:
@@ -283,7 +282,7 @@ class _ChatConversationThemeScreenState
                                 ),
                                 const SizedBox(height: 22),
                                 Text(
-                                  'Пресеты',
+                                  AppLocalizations.of(context)!.chat_theme_presets,
                                   style: TextStyle(
                                     fontSize:
                                         kNotificationSettingsCardTitleSize,
@@ -301,7 +300,7 @@ class _ChatConversationThemeScreenState
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount:
                                       1 +
-                                      kChatWallpaperGradientPresets.length +
+                                      chatWallpaperGradientPresets(AppLocalizations.of(context)!).length +
                                       customBackgrounds.length +
                                       1,
                                   gridDelegate:
@@ -320,7 +319,7 @@ class _ChatConversationThemeScreenState
                                           context,
                                           null,
                                         ),
-                                        centerLabel: 'Общие',
+                                        centerLabel: AppLocalizations.of(context)!.chat_theme_global_label,
                                         onTap: () =>
                                             _savePatch(<String, Object?>{
                                               'chatWallpaper':
@@ -329,11 +328,11 @@ class _ChatConversationThemeScreenState
                                       );
                                     }
                                     final presetStart = 1;
-                                    final presetCount =
-                                        kChatWallpaperGradientPresets.length;
+                                    final presets = chatWallpaperGradientPresets(AppLocalizations.of(context)!);
+                                    final presetCount = presets.length;
                                     if (index < presetStart + presetCount) {
                                       final preset =
-                                          kChatWallpaperGradientPresets[index -
+                                          presets[index -
                                               presetStart];
                                       final v = preset.value;
                                       final selected =
@@ -383,7 +382,7 @@ class _ChatConversationThemeScreenState
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Выберите пресет или фото из галереи',
+                                  AppLocalizations.of(context)!.chat_theme_hint,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: kNotificationSettingsBodyTextSize,
@@ -549,7 +548,7 @@ class _AddWallpaperTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Добавить',
+                      AppLocalizations.of(context)!.common_add,
                       style: TextStyle(
                         fontSize: 14,
                         color: fg.withValues(alpha: dark ? 0.64 : 0.62),

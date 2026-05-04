@@ -232,9 +232,9 @@ class ProfileQrSheet extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.share_outlined),
-                  label: const Text(
-                    'Поделиться',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                  label: Text(
+                    AppLocalizations.of(context)!.profile_qr_share,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
                   ),
                 ),
               ),

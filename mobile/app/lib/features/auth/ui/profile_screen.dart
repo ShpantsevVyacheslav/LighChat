@@ -141,7 +141,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String? _validateDateForProfile(String value) {
     final normalized = _normalizeDateForSave(value);
     if (normalized.isEmpty) return null;
-    return validateDateOfBirth(normalized);
+    return validateDateOfBirth(normalized, AppLocalizations.of(context)!);
   }
 
   Future<void> _bootstrapScreen() async {
@@ -192,13 +192,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String? _validateAll() {
+    final l10n = AppLocalizations.of(context)!;
     final errors = <String?>[
-      validateName(_name.text),
-      validateUsername(_username.text),
-      validatePhoneOptional(_phone.text),
-      validateEmail(_email.text),
+      validateName(_name.text, l10n),
+      validateUsername(_username.text, l10n),
+      validatePhoneOptional(_phone.text, l10n),
+      validateEmail(_email.text, l10n),
       _validateDateForProfile(_dob.text),
-      validateBio(_bio.text),
+      validateBio(_bio.text, l10n),
     ].whereType<String>().toList();
     return errors.isEmpty ? null : errors.first;
   }
@@ -211,9 +212,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (a.isEmpty || b.isEmpty) {
       return AppLocalizations.of(context)!.profile_password_error_fill_both;
     }
-    final e = validatePassword(a);
+    final l10nPw = AppLocalizations.of(context)!;
+    final e = validatePassword(a, l10nPw);
     if (e != null) return e;
-    return validateConfirmPassword(a, b);
+    return validateConfirmPassword(a, b, l10nPw);
   }
 
   void _resetToInitial() {
@@ -272,6 +274,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final normalizedDob = _normalizeDateForSave(_dob.text).trim();
       await updateUserProfile(
         uid: u.uid,
+        l10n: AppLocalizations.of(context)!,
         data: ProfileUpdateData(
           name: _name.text,
           username: _username.text,

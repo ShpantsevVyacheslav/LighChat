@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/composer_html_editing.dart';
 import 'composer_link_sheet.dart';
 
@@ -122,7 +123,7 @@ class _ComposerFormattingToolbarState extends State<ComposerFormattingToolbar> {
               Row(
                 children: [
                   Text(
-                    'ФОРМАТИРОВАНИЕ',
+                    AppLocalizations.of(context)!.composer_formatting_title,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,

@@ -1236,7 +1236,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ? AppLocalizations.of(
                         context,
                       )!.partner_profile_subtitle_saved_messages
-                    : partnerPresenceLine(profile);
+                    : partnerPresenceLine(profile, AppLocalizations.of(context)!);
                 final showCalls =
                     conv?.data.isGroup != true &&
                     dmOtherId != null &&
@@ -1741,7 +1741,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               _editingPreviewPlain =
                                                                   null;
                                                               _replyingTo = buildReplyPreview(
-                                                                message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
                                                                 currentUserId:
                                                                     user.uid,
                                                                 isGroup:
@@ -2163,6 +2164,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                             currentUserId: user.uid,
                                             profileMap: profileMap,
                                             contactProfiles: contactProfiles,
+                                            l10n: AppLocalizations.of(context),
                                           )
                                         : null,
                                     pendingAttachments: _pendingAttachments,
@@ -3021,7 +3023,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               _editingMessageId = null;
               _editingPreviewPlain = null;
               _replyingTo = buildReplyPreview(
-                message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
                 currentUserId: user.uid,
                 isGroup: isGroup,
                 otherUserId: dmOtherId,
@@ -3190,7 +3193,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     final entry = buildPinnedMessageFromChatMessage(
-      message: m,
+          l10n: AppLocalizations.of(context)!,
+          message: m,
       currentUserId: user.uid,
       isGroup: isGroup,
       otherUserId: otherId,
@@ -3346,7 +3350,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _editingMessageId = null;
           _editingPreviewPlain = null;
           _replyingTo = buildReplyPreview(
-            message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
             currentUserId: user.uid,
             isGroup: isGroup,
             otherUserId: otherId,

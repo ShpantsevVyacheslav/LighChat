@@ -1,5 +1,6 @@
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'contact_display_name.dart';
 import 'saved_messages_chat.dart';
 import 'user_contacts_repository.dart';
@@ -62,6 +63,7 @@ String _subtitleWithUsernameOnly(String? username) {
 /// - личные: пользователи из открытых чатов + контакты
 /// - группы: только если пользователь всё ещё в `participantIds`.
 List<ForwardRecipientRow> buildForwardRecipientRows({
+  required AppLocalizations l10n,
   required String currentUserId,
   required List<ConversationWithId> convs,
   required Set<String> allowedPeerIds,
@@ -106,7 +108,7 @@ List<ForwardRecipientRow> buildForwardRecipientRows({
     final data = c.data;
     final title = (data.name ?? '').trim().isNotEmpty
         ? data.name!.trim()
-        : 'Группа';
+        : l10n.forward_group_fallback;
     rows.add(
       ForwardRecipientRow(
         selectionKey: c.id,
@@ -125,7 +127,7 @@ List<ForwardRecipientRow> buildForwardRecipientRows({
     final otherId = entry.key;
     final prof = profiles[otherId];
     final pin = data.participantInfo?[otherId];
-    final fallbackName = prof?.name ?? pin?.name ?? 'Неизвестный';
+    final fallbackName = prof?.name ?? pin?.name ?? l10n.forward_unknown_fallback;
     final name = resolveContactDisplayName(
       contactProfiles: contactProfiles,
       contactUserId: otherId,

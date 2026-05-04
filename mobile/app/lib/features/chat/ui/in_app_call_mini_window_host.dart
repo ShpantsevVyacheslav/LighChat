@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'in_app_call_mini_window_controller.dart';
 
 class InAppCallMiniWindowHost extends StatefulWidget {
@@ -99,7 +100,7 @@ class _InAppCallMiniWindowHostState extends State<InAppCallMiniWindowHost> {
                               children: [
                                 _MiniIconButton(
                                   icon: Icons.call_end_rounded,
-                                  tooltip: 'End call',
+                                  tooltip: AppLocalizations.of(context)!.call_mini_end,
                                   background: Colors.red.withValues(alpha: 0.88),
                                   onPressed: payload.onHangUp,
                                 ),

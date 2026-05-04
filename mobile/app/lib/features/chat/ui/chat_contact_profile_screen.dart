@@ -5,6 +5,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/user_profile.dart';
 import 'chat_partner_profile_sheet.dart';
 import 'chat_shell_backdrop.dart';
@@ -56,13 +57,14 @@ class ChatContactProfileScreen extends ConsumerWidget {
     required String partnerId,
     required UserProfile? selfProfile,
     required UserProfile? partnerProfile,
+    required String fallbackUserLabel,
   }) {
     final selfName = (selfProfile?.name ?? '').trim().isNotEmpty
         ? selfProfile!.name.trim()
-        : 'Пользователь';
+        : fallbackUserLabel;
     final peerName = (partnerProfile?.name ?? '').trim().isNotEmpty
         ? partnerProfile!.name.trim()
-        : 'Пользователь';
+        : fallbackUserLabel;
     return Conversation(
       isGroup: false,
       participantIds: <String>[ownerId, partnerId],
@@ -148,6 +150,7 @@ class ChatContactProfileScreen extends ConsumerWidget {
                           partnerId: userId,
                           selfProfile: selfProfile,
                           partnerProfile: partnerProfile,
+                          fallbackUserLabel: AppLocalizations.of(context)!.contact_profile_user_fallback,
                         );
 
                     return ChatPartnerProfileSheet(
@@ -165,7 +168,7 @@ class ChatContactProfileScreen extends ConsumerWidget {
               loading: () => const Center(child: CupertinoActivityIndicator()),
               error: (e, _) => Center(
                 child: Text(
-                  'Ошибка: $e',
+                  AppLocalizations.of(context)!.contact_profile_error(e.toString()),
                   style: const TextStyle(color: Colors.white70),
                 ),
               ),

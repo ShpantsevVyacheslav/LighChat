@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'user_sticker_item_attachment.dart';
 import 'user_sticker_packs_constants.dart';
 
@@ -87,8 +88,8 @@ class UserStickerPacksRepository {
     });
   }
 
-  Future<String?> createPack(String userId, String rawName) async {
-    final name = rawName.trim().isEmpty ? 'Мой пак' : rawName.trim();
+  Future<String?> createPack(String userId, String rawName, {AppLocalizations? l10n}) async {
+    final name = rawName.trim().isEmpty ? (l10n?.sticker_pack_default_name ?? 'My pack') : rawName.trim();
     final now = DateTime.now().toUtc().toIso8601String();
     final ref = await _userPacks(userId).add(<String, Object?>{
       'name': name,

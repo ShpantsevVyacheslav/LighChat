@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Phase 0 safety helpers: мобайл пока read‑only для E2EE‑чатов, пока не
 /// появится мобильная шифрующая ветка (Phase 4). Эти утилиты используются
 /// chat_screen / thread_screen для единообразного поведения UI.
@@ -36,8 +38,9 @@ class E2eeMobileBlockBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final prefix = contextLabel ?? 'Сообщение';
+    final prefix = contextLabel ?? l10n.e2ee_banner_default_context;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -57,8 +60,7 @@ class E2eeMobileBlockBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '$prefix в зашифрованный чат пока можно отправить только с '
-              'веб‑клиента.',
+              l10n.e2ee_banner_encrypted_chat_web_only(prefix),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.92),
                 fontSize: 12.5,

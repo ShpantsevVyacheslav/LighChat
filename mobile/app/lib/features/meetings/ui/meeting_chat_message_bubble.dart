@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/meeting_chat_message.dart';
 
 /// Пузырёк сообщения чата митинга: текст, сетка изображений, файлы, long-press.
@@ -79,12 +80,13 @@ class MeetingChatMessageBubble extends StatelessWidget {
 
   Future<void> _onLongPress(BuildContext context) async {
     if (message.isDeleted) return;
+    final l10n = AppLocalizations.of(context)!;
     final actions = <Widget>[];
     if (message.text != null && message.text!.isNotEmpty) {
       actions.add(
         ListTile(
           leading: const Icon(Icons.copy_rounded),
-          title: const Text('Копировать'),
+          title: Text(l10n.meeting_chat_copy),
           onTap: () {
             Navigator.pop(context);
             Clipboard.setData(ClipboardData(text: message.text!));
@@ -96,7 +98,7 @@ class MeetingChatMessageBubble extends StatelessWidget {
       actions.add(
         ListTile(
           leading: const Icon(Icons.edit_rounded),
-          title: const Text('Изменить'),
+          title: Text(l10n.meeting_chat_edit),
           onTap: () {
             Navigator.pop(context);
             onEditText!(message);
@@ -108,7 +110,7 @@ class MeetingChatMessageBubble extends StatelessWidget {
       actions.add(
         ListTile(
           leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-          title: const Text('Удалить', style: TextStyle(color: Colors.redAccent)),
+          title: Text(l10n.meeting_chat_delete, style: const TextStyle(color: Colors.redAccent)),
           onTap: () {
             Navigator.pop(context);
             onDelete!();
@@ -132,6 +134,7 @@ class MeetingChatMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (message.isDeleted) {
       return Align(
         alignment: isSelf ? Alignment.centerRight : Alignment.centerLeft,
@@ -143,7 +146,7 @@ class MeetingChatMessageBubble extends StatelessWidget {
               const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.white38),
               const SizedBox(width: 6),
               Text(
-                'Сообщение удалено',
+                l10n.meeting_chat_deleted,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.55),
                   fontSize: 13,
@@ -283,7 +286,7 @@ class MeetingChatMessageBubble extends StatelessWidget {
                         if (message.updatedAt != null) ...[
                           const SizedBox(width: 4),
                           Text(
-                            '• изм.',
+                            l10n.meeting_chat_edited_mark,
                             style: TextStyle(
                               color: fg.withValues(alpha: 0.55),
                               fontSize: 10,

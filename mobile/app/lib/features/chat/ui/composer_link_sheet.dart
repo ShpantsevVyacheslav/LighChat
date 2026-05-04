@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Ввод URL ссылки в стиле стеклянной шапки чата (без белого AlertDialog).
 Future<String?> showComposerLinkSheet(BuildContext context) async {
   final urlCtrl = TextEditingController();
@@ -10,6 +12,7 @@ Future<String?> showComposerLinkSheet(BuildContext context) async {
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
       final bottom = MediaQuery.viewInsetsOf(ctx).bottom;
       final fg = Colors.white.withValues(alpha: 0.92);
       return Padding(
@@ -42,7 +45,7 @@ Future<String?> showComposerLinkSheet(BuildContext context) async {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Ссылка',
+                        l10n.composer_link_title,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
@@ -83,7 +86,7 @@ Future<String?> showComposerLinkSheet(BuildContext context) async {
                           TextButton(
                             onPressed: () => Navigator.pop(ctx),
                             child: Text(
-                              'Отмена',
+                              l10n.composer_link_cancel,
                               style: TextStyle(color: fg.withValues(alpha: 0.75)),
                             ),
                           ),
@@ -103,7 +106,7 @@ Future<String?> showComposerLinkSheet(BuildContext context) async {
                             ),
                             onPressed: () =>
                                 Navigator.pop(ctx, urlCtrl.text.trim()),
-                            child: const Text('Применить'),
+                            child: Text(l10n.composer_link_apply),
                           ),
                         ],
                       ),

@@ -1699,7 +1699,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                         .participantInfo?[widget.currentUserId]
                                         ?.avatar;
                               } else if (c.data.isGroup) {
-                                title = groupConversationDisplayTitle(c);
+                                title = groupConversationDisplayTitle(c, l10n: AppLocalizations.of(context)!);
                                 avatarUrl = c.data.photoUrl;
                               } else {
                                 final other = c.data.participantIds.firstWhere(
@@ -1725,6 +1725,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   otherUserId: other,
                                   profiles: profiles,
                                   contactProfiles: contactProfiles,
+                                  l10n: AppLocalizations.of(context)!,
                                 );
                               }
                               final rawLast = (c.data.lastMessageText ?? '')
@@ -1742,9 +1743,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                               final draft = _draftByConv[c.id];
                               final draftLine = draft == null
                                   ? null
-                                  : chatMainDraftPreviewLine(draft);
+                                  : chatMainDraftPreviewLine(draft, l10nList);
                               final isEmptyConversation =
-                                  lastAt == null && rawLast.isEmpty;
+                                  rawLast.isEmpty;
                               final isNewlyCreatedAfterClear =
                                   isEmptyConversation && clearedAt != null;
                               final subtitle =
@@ -2610,7 +2611,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       String key;
 
       if (c.data.isGroup) {
-        title = groupConversationDisplayTitle(c);
+        title = groupConversationDisplayTitle(c, l10n: AppLocalizations.of(context)!);
         subtitle = null;
         avatarUrl = c.data.photoUrl;
         key = 'conv:${c.id}';
@@ -2629,6 +2630,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
           otherUserId: other,
           profiles: profiles,
           contactProfiles: contactProfiles,
+          l10n: AppLocalizations.of(context)!,
         );
         subtitle = _usernameLabel(profile?.username);
         avatarUrl =

@@ -1,5 +1,6 @@
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'contact_display_name.dart';
 import 'user_contacts_repository.dart';
 import 'user_profile.dart';
@@ -11,8 +12,9 @@ String dmConversationDisplayTitle({
   required String otherUserId,
   Map<String, UserProfile> profiles = const {},
   Map<String, ContactLocalProfile> contactProfiles = const {},
+  AppLocalizations? l10n,
 }) {
-  if (otherUserId.trim().isEmpty) return 'Чат';
+  if (otherUserId.trim().isEmpty) return l10n?.dm_title_chat ?? 'Chat';
   final data = conversation.data;
   final fromProfile = (profiles[otherUserId]?.name ?? '').trim();
   final fromConv = (data.participantInfo?[otherUserId]?.name ?? '').trim();
@@ -23,7 +25,7 @@ String dmConversationDisplayTitle({
       ? fromConv
       : convName.isNotEmpty
       ? convName
-      : 'Собеседник';
+      : l10n?.dm_title_partner ?? 'Contact';
   return resolveContactDisplayName(
     contactProfiles: contactProfiles,
     contactUserId: otherUserId,
@@ -32,8 +34,8 @@ String dmConversationDisplayTitle({
 }
 
 /// Группа: имя или нейтральная подпись без сырого id.
-String groupConversationDisplayTitle(ConversationWithId conversation) {
+String groupConversationDisplayTitle(ConversationWithId conversation, {AppLocalizations? l10n}) {
   final n = (conversation.data.name ?? '').trim();
   if (n.isNotEmpty) return n;
-  return 'Групповой чат';
+  return l10n?.dm_title_group ?? 'Group chat';
 }

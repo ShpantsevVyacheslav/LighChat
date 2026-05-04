@@ -3,17 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final userAsync = ref.watch(authUserProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign in')),
+      appBar: AppBar(title: Text(l10n.sign_in_title)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -22,8 +24,8 @@ class SignInScreen extends ConsumerWidget {
             children: [
               Text(
                 firebaseReady
-                    ? 'Firebase initialized. You can sign in.'
-                    : 'Firebase is not ready. Check logs and `firebase_options.dart`.',
+                    ? l10n.sign_in_firebase_ready
+                    : l10n.sign_in_firebase_not_ready,
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
@@ -32,7 +34,7 @@ class SignInScreen extends ConsumerWidget {
                   if (user != null) {
                     return FilledButton(
                       onPressed: () => context.go('/chats'),
-                      child: const Text('Continue'),
+                      child: Text(l10n.sign_in_continue),
                     );
                   }
                   return FilledButton(
@@ -45,12 +47,12 @@ class SignInScreen extends ConsumerWidget {
                           } catch (e) {
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Auth error: $e')),
+                              SnackBar(content: Text(l10n.sign_in_auth_error(e.toString()))),
                             );
                           }
                           }
                         : null,
-                    child: const Text('Sign in anonymously'),
+                    child: Text(l10n.sign_in_anonymously),
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),

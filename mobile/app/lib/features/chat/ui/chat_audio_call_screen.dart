@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -92,7 +93,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка звонка: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.audio_call_error(e.toString()))));
       Navigator.of(context).maybePop();
     }
   }
@@ -255,7 +256,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       snap,
     ) async {
       if (!snap.exists) {
-        await _close('Звонок завершён');
+        await _close(AppLocalizations.of(context)!.audio_call_ended);
         return;
       }
       final data = snap.data() ?? const <String, dynamic>{};
@@ -274,10 +275,10 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
           endedBy: data['endedBy'] as String?,
         );
         final txt = resolvedStatus == 'missed'
-            ? 'Пропущенный звонок'
+            ? AppLocalizations.of(context)!.audio_call_missed
             : resolvedStatus == 'cancelled'
-            ? 'Звонок отменен'
-            : 'Звонок завершён';
+            ? AppLocalizations.of(context)!.audio_call_cancelled
+            : AppLocalizations.of(context)!.audio_call_ended;
         await _close(txt);
         return;
       }
@@ -336,12 +337,12 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       final data = snap.data() ?? const <String, dynamic>{};
       final offer = data['offer'];
       if (offer is! Map) {
-        throw 'Оффер ещё не готов, попробуйте снова';
+        throw AppLocalizations.of(context)!.audio_call_offer_not_ready;
       }
       final type = offer['type'];
       final sdp = offer['sdp'];
       if (type is! String || sdp is! String || sdp.trim().isEmpty) {
-        throw 'Некорректные данные звонка';
+        throw AppLocalizations.of(context)!.audio_call_invalid_data;
       }
       await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
       _remoteDescriptionSet = true;
@@ -363,7 +364,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось принять звонок: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.audio_call_accept_error(e.toString()))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -586,8 +587,8 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
                       _status == 'ongoing'
                           ? _durationLabel()
                           : (isIncomingRinging
-                                ? 'Входящий аудиозвонок'
-                                : 'Аудиозвонок…'),
+                                ? AppLocalizations.of(context)!.audio_call_incoming
+                                : AppLocalizations.of(context)!.audio_call_calling),
                       style: TextStyle(
                         color: Colors.cyanAccent.withValues(alpha: 0.88),
                         fontSize: 15,

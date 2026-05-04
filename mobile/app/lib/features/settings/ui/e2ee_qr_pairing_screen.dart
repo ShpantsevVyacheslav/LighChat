@@ -27,6 +27,8 @@ import 'package:lighchat_mobile/app_providers.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 import '../../auth/ui/auth_glass.dart';
 import '../../shared/ui/app_back_button.dart';
 
@@ -106,7 +108,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     if (uid == null) {
       setState(() {
         _initStage = _InitiatorStage.error;
-        _initError = 'Не удалось получить uid пользователя.';
+        _initError = AppLocalizations.of(context)!.e2ee_qr_uid_error;
       });
       return;
     }
@@ -144,7 +146,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
         if (!mounted) return;
         setState(() {
           _initStage = _InitiatorStage.error;
-          _initError = 'Сессия завершилась до ответа от второго устройства.';
+          _initError = AppLocalizations.of(context)!.e2ee_qr_session_ended_error;
         });
       }
       return;
@@ -187,7 +189,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     if (pkcs8 == null || backupId == null) {
       setState(() {
         _initStage = _InitiatorStage.error;
-        _initError = 'Нет данных для применения ключа.';
+        _initError = AppLocalizations.of(context)!.e2ee_qr_no_data_error;
       });
       return;
     }
@@ -224,8 +226,8 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
         _initBusy = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ключ перенесён. Перезайдите в чаты, чтобы обновить сессии.'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.e2ee_qr_key_transferred_toast),
         ),
       );
     } catch (e) {
@@ -252,7 +254,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       final uid = await _currentUid();
       if (uid == null) throw StateError('NO_UID');
       if (payload.uid != uid) {
-        throw StateError('QR сгенерирован под другой аккаунт.');
+        throw StateError(AppLocalizations.of(context)!.e2ee_qr_wrong_account_error);
       }
       final identity = await getOrCreateMobileDeviceIdentity();
       final pkcs8 = await identity.keyPair.exportPkcs8Private();
@@ -310,6 +312,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: AuthBackground(
         child: SafeArea(
@@ -320,7 +323,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
                 elevation: 0,
                 pinned: true,
                 leading: const AppBackButton(fallbackLocation: '/settings/privacy/e2ee-recovery'),
-                title: const Text('QR-pairing ключа'),
+                title: Text(l10n.e2ee_qr_title),
               ),
               SliverPadding(
                 padding: const EdgeInsets.all(16),
@@ -347,28 +350,29 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
   }
 
   List<Widget> _buildPick() {
+    final l10n = AppLocalizations.of(context)!;
     return [
       _Explainer(
-        title: 'Что это',
-        text: 'Передача приватного ключа с одного вашего устройства на другое '
-            'по ECDH + QR. Обе стороны видят 6-значный код для ручной сверки.',
+        title: l10n.e2ee_qr_explainer_title,
+        text: l10n.e2ee_qr_explainer_text,
       ),
       const SizedBox(height: 16),
       FilledButton.icon(
         onPressed: _startInitiator,
         icon: const Icon(Icons.qr_code_2_rounded),
-        label: const Text('Я на новом устройстве — показать QR'),
+        label: Text(l10n.e2ee_qr_show_qr_label),
       ),
       const SizedBox(height: 8),
       OutlinedButton.icon(
         onPressed: () => setState(() => _mode = _Mode.donor),
         icon: const Icon(Icons.qr_code_scanner_rounded),
-        label: const Text('У меня уже есть ключ — сканировать QR'),
+        label: Text(l10n.e2ee_qr_scan_qr_label),
       ),
     ];
   }
 
   List<Widget> _buildInitiator() {
+    final l10n = AppLocalizations.of(context)!;
     switch (_initStage) {
       case _InitiatorStage.starting:
         return const [Center(child: CircularProgressIndicator())];
@@ -388,8 +392,8 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Отсканируйте QR на старом устройстве, где уже есть ключ.',
+          Text(
+            l10n.e2ee_qr_scan_hint,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -399,7 +403,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
                 _rejectInitiatorSession(s.sessionId);
                 setState(() => _mode = _Mode.pick);
               },
-              child: const Text('Отмена'),
+              child: Text(l10n.common_cancel),
             ),
           ),
         ];
@@ -412,8 +416,8 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
             : null;
         return [
           const SizedBox(height: 12),
-          const Text(
-            'Сверьте 6-значный код со старым устройством:',
+          Text(
+            l10n.e2ee_qr_verify_code_label,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -431,7 +435,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           if (label is String) ...[
             const SizedBox(height: 12),
             Text(
-              'Перенос с устройства: $label',
+              l10n.e2ee_qr_transfer_from_device_label(label),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: Colors.white70),
             ),
@@ -448,7 +452,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
                         if (s != null) _rejectInitiatorSession(s.sessionId);
                         Navigator.of(context).pop();
                       },
-                child: const Text('Отмена'),
+                child: Text(l10n.common_cancel),
               ),
               FilledButton(
                 onPressed: _initBusy ? null : _confirmInitiator,
@@ -458,7 +462,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Код совпал — применить'),
+                    : Text(l10n.e2ee_qr_code_match_apply_label),
               ),
             ],
           ),
@@ -468,15 +472,15 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           const SizedBox(height: 12),
           const Icon(Icons.verified_rounded, color: Colors.greenAccent, size: 56),
           const SizedBox(height: 12),
-          const Text(
-            'Ключ успешно перенесён на это устройство. Перезайдите в чаты.',
+          Text(
+            l10n.e2ee_qr_key_success_label,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Center(
             child: FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Готово'),
+              child: Text(l10n.common_done),
             ),
           ),
         ];
@@ -486,7 +490,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           const Icon(Icons.error_outline, color: Colors.redAccent, size: 44),
           const SizedBox(height: 12),
           Text(
-            _initError ?? 'Неизвестная ошибка',
+            _initError ?? l10n.e2ee_qr_unknown_error,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.redAccent),
           ),
@@ -498,7 +502,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
                 _initSession = null;
                 _initError = null;
               }),
-              child: const Text('К выбору'),
+              child: Text(l10n.e2ee_qr_back_to_pick_label),
             ),
           ),
         ];
@@ -506,6 +510,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
   }
 
   List<Widget> _buildDonor() {
+    final l10n = AppLocalizations.of(context)!;
     switch (_donorStage) {
       case _DonorStage.scanning:
         return [
@@ -528,15 +533,15 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Наведите камеру на QR, показанный на новом устройстве.',
+          Text(
+            l10n.e2ee_qr_donor_scan_hint,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           Center(
             child: TextButton(
               onPressed: () => setState(() => _mode = _Mode.pick),
-              child: const Text('Отмена'),
+              child: Text(l10n.common_cancel),
             ),
           ),
         ];
@@ -545,8 +550,8 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       case _DonorStage.done:
         return [
           const SizedBox(height: 12),
-          const Text(
-            'Сверьте код с новым устройством:',
+          Text(
+            l10n.e2ee_qr_donor_verify_code_label,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -562,16 +567,16 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Если код совпадает — подтвердите на новом устройстве. Если нет, немедленно нажмите «Отмена».',
+          Text(
+            l10n.e2ee_qr_donor_verify_hint,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.white70),
+            style: const TextStyle(fontSize: 13, color: Colors.white70),
           ),
           const SizedBox(height: 16),
           Center(
             child: FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Готово'),
+              child: Text(l10n.common_done),
             ),
           ),
         ];
@@ -581,7 +586,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           const Icon(Icons.error_outline, color: Colors.redAccent, size: 44),
           const SizedBox(height: 12),
           Text(
-            _donorError ?? 'Неизвестная ошибка',
+            _donorError ?? l10n.e2ee_qr_unknown_error,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.redAccent),
           ),
@@ -592,7 +597,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
                 _donorStage = _DonorStage.scanning;
                 _donorError = null;
               }),
-              child: const Text('Повторить'),
+              child: Text(l10n.common_retry),
             ),
           ),
         ];

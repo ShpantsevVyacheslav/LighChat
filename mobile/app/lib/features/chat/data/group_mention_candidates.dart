@@ -1,5 +1,6 @@
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'contact_display_name.dart';
 import 'user_contacts_repository.dart';
 import 'user_profile.dart';
@@ -23,6 +24,7 @@ List<GroupMentionCandidate> buildGroupMentionCandidates({
   required String currentUserId,
   required Map<String, UserProfile>? profileMap,
   Map<String, ContactLocalProfile>? contactProfiles,
+  AppLocalizations? l10n,
 }) {
   if (!conversation.isGroup) return const [];
   final ids = {...conversation.participantIds}.toList();
@@ -37,7 +39,7 @@ List<GroupMentionCandidate> buildGroupMentionCandidates({
     final infoName = (info?.name ?? '').trim();
     final fallbackName = profileName.isNotEmpty
         ? profileName
-        : (infoName.isNotEmpty ? infoName : 'Участник');
+        : (infoName.isNotEmpty ? infoName : (l10n?.mention_fallback_label_capitalized ?? 'Member'));
     final displayName = resolveContactDisplayName(
       contactProfiles: contactProfiles ?? const <String, ContactLocalProfile>{},
       contactUserId: id,

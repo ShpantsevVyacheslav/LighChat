@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/mention_token_codec.dart';
 
 class _MentionTokenRange {
@@ -553,7 +554,7 @@ class ChatHtmlComposerController extends TextEditingController {
     }
   }
 
-  List<InlineSpan> _buildHtmlSpans(String html, TextStyle? style) {
+  List<InlineSpan> _buildHtmlSpans(String html, TextStyle? style, {String mentionFallback = 'Участник'}) {
     final base = style ?? const TextStyle();
     final children = <InlineSpan>[];
     final re = RegExp(r'<[^>]*>');
@@ -579,7 +580,7 @@ class ChatHtmlComposerController extends TextEditingController {
         if (chunk.isNotEmpty) {
           final chunkStyle = stack.last.toVisible(base);
           if (_containsMentionMarkers(chunk)) {
-            children.addAll(_buildMentionTokenSpans(chunk, chunkStyle));
+            children.addAll(_buildMentionTokenSpans(chunk, chunkStyle, mentionFallback: mentionFallback));
           } else {
             _addTextWithEntityDecode(children, chunk, chunkStyle);
           }
@@ -612,7 +613,7 @@ class ChatHtmlComposerController extends TextEditingController {
       if (chunk.isNotEmpty) {
         final chunkStyle = stack.last.toVisible(base);
         if (_containsMentionMarkers(chunk)) {
-          children.addAll(_buildMentionTokenSpans(chunk, chunkStyle));
+          children.addAll(_buildMentionTokenSpans(chunk, chunkStyle, mentionFallback: mentionFallback));
         } else {
           _addTextWithEntityDecode(children, chunk, chunkStyle);
         }
@@ -659,7 +660,7 @@ class ChatHtmlComposerController extends TextEditingController {
     children.add(TextSpan(text: marker, style: base.merge(_invisibleTagStyle)));
   }
 
-  List<InlineSpan> _buildMentionTokenSpans(String text, TextStyle base) {
+  List<InlineSpan> _buildMentionTokenSpans(String text, TextStyle base, {String mentionFallback = 'Участник'}) {
     final children = <InlineSpan>[];
     final start = MentionTokenCodec.tokenStart;
     final end = MentionTokenCodec.tokenEnd;
@@ -698,7 +699,7 @@ class ChatHtmlComposerController extends TextEditingController {
       final e = text.indexOf(end, s + start.length);
       if (e < 0) {
         final broken = text.substring(s);
-        final fallback = _fallbackMentionFromMalformedToken(broken);
+        final fallback = _fallbackMentionFromMalformedToken(broken, mentionFallback: mentionFallback);
         _appendMentionVisualToken(
           children,
           sourceToken: broken,
@@ -711,7 +712,7 @@ class ChatHtmlComposerController extends TextEditingController {
       final token = text.substring(s, e + end.length);
       final decoded = MentionTokenCodec.tryDecodeToken(token);
       if (decoded == null) {
-        final fallback = _fallbackMentionFromMalformedToken(token);
+        final fallback = _fallbackMentionFromMalformedToken(token, mentionFallback: mentionFallback);
         _appendMentionVisualToken(
           children,
           sourceToken: token,
@@ -721,7 +722,7 @@ class ChatHtmlComposerController extends TextEditingController {
         );
       } else {
         final label = decoded.label.trim().isEmpty
-            ? 'Участник'
+            ? mentionFallback
             : decoded.label.trim();
         _appendMentionVisualToken(
           children,
@@ -736,22 +737,22 @@ class ChatHtmlComposerController extends TextEditingController {
     return children;
   }
 
-  String _fallbackMentionFromMalformedToken(String raw) {
+  String _fallbackMentionFromMalformedToken(String raw, {required String mentionFallback}) {
     final stripped = raw
         .replaceAll(MentionTokenCodec.tokenStart, '')
         .replaceAll(MentionTokenCodec.tokenEnd, '')
         .trim();
-    if (stripped.isEmpty) return '@Участник';
+    if (stripped.isEmpty) return '@$mentionFallback';
     final decoded = MentionTokenCodec.tryDecodeToken(
       '${MentionTokenCodec.tokenStart}$stripped${MentionTokenCodec.tokenEnd}',
     );
     if (decoded != null) {
       final label = decoded.label.trim().isEmpty
-          ? 'Участник'
+          ? mentionFallback
           : decoded.label.trim();
       return '@$label';
     }
-    return '@Участник';
+    return '@$mentionFallback';
   }
 
   @override
@@ -777,10 +778,11 @@ class ChatHtmlComposerController extends TextEditingController {
     if (!t.contains('<') && !hasMentionMarkers) {
       return TextSpan(text: t, style: style);
     }
+    final mf = AppLocalizations.of(context)?.mention_fallback_label_capitalized ?? 'Участник';
     if (!t.contains('<') && hasMentionMarkers) {
       final base = style ?? const TextStyle();
-      return TextSpan(style: style, children: _buildMentionTokenSpans(t, base));
+      return TextSpan(style: style, children: _buildMentionTokenSpans(t, base, mentionFallback: mf));
     }
-    return TextSpan(style: style, children: _buildHtmlSpans(t, style));
+    return TextSpan(style: style, children: _buildHtmlSpans(t, style, mentionFallback: mf));
   }
 }

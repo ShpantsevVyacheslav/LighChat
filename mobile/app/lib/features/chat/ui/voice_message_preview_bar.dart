@@ -275,8 +275,8 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Оставить только выбранный фрагмент?',
+                Text(
+                  AppLocalizations.of(context)!.voice_preview_trim_confirm_title,
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -286,7 +286,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Всё, кроме выделенного фрагмента, будет удалено. Запись сообщения продолжится сразу после нажатия кнопки.',
+                  AppLocalizations.of(context)!.voice_preview_trim_confirm_body,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
@@ -310,7 +310,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                       ),
                     ),
                     onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text('Продолжить'),
+                    child: Text(AppLocalizations.of(context)!.voice_preview_continue),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -329,7 +329,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                       ),
                     ),
                     onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Отмена'),
+                    child: Text(AppLocalizations.of(context)!.common_cancel),
                   ),
                 ),
               ],
@@ -403,7 +403,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
                           size: 15,
                           color: fg.withValues(alpha: 0.9),
                         ),
-                        label: const Text('Продолжить запись'),
+                        label: Text(AppLocalizations.of(context)!.voice_preview_continue_recording),
                       ),
                     ),
                   )

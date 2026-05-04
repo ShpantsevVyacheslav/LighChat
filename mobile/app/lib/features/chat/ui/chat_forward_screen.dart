@@ -123,6 +123,7 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
                           final profiles =
                               snap.data ?? const <String, UserProfile>{};
                           final rows = buildForwardRecipientRows(
+                            l10n: AppLocalizations.of(context)!,
                             currentUserId: uid,
                             convs: convs,
                             allowedPeerIds: allowedPeers,

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/meeting_providers.dart';
 import 'meeting_join_screen.dart';
 
@@ -34,14 +35,15 @@ class _MeetingEntryScreenState extends ConsumerState<MeetingEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<User>(
       future: _signInFuture,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const _LoadingScreen(label: 'Подключаемся к митингу…');
+          return _LoadingScreen(label: l10n.meeting_entry_connecting);
         }
         if (snap.hasError || snap.data == null) {
-          return _ErrorScreen(message: 'Не удалось войти: ${snap.error}');
+          return _ErrorScreen(message: l10n.meeting_entry_auth_failed(snap.error.toString()));
         }
         final user = snap.data!;
         final displayName = (user.displayName ?? '').trim();
@@ -50,7 +52,7 @@ class _MeetingEntryScreenState extends ConsumerState<MeetingEntryScreen> {
           selfUid: user.uid,
           initialName: displayName.isNotEmpty
               ? displayName
-              : (user.isAnonymous ? '' : 'Участник'),
+              : (user.isAnonymous ? '' : l10n.meeting_entry_participant_fallback),
           initialAvatar: user.photoURL,
         );
       },
@@ -113,7 +115,7 @@ class _ErrorScreen extends StatelessWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.of(context).maybePop(),
-                child: const Text('Назад'),
+                child: Text(AppLocalizations.of(context)!.meeting_entry_back),
               ),
             ],
           ),

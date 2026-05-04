@@ -1,3 +1,5 @@
+import '../../../l10n/app_localizations.dart';
+
 const Set<String> terminalCallStatuses = <String>{
   'ended',
   'cancelled',
@@ -45,14 +47,14 @@ String resolveCallTerminalStatusForViewer({
   }
 }
 
-String callStatusLabelRu(String resolvedStatus) {
+String callStatusLabel(String resolvedStatus, AppLocalizations l10n) {
   switch (resolvedStatus) {
     case 'missed':
-      return 'Пропущен';
+      return l10n.call_status_missed;
     case 'cancelled':
-      return 'Отменен';
+      return l10n.call_status_cancelled;
     case 'ended':
     default:
-      return 'Завершен';
+      return l10n.call_status_ended;
   }
 }

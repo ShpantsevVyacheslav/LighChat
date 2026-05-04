@@ -27,6 +27,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'e2ee_runtime.dart';
 import 'video_send_compress_720p.dart';
 
@@ -54,18 +55,18 @@ class E2eePreparedSendFile {
   final bool temporaryCompressedFile;
 }
 
-Future<void> validateE2eeBatchLimitsOrThrow(List<XFile> files) async {
+Future<void> validateE2eeBatchLimitsOrThrow(List<XFile> files, {AppLocalizations? l10n}) async {
   if (files.length > e2eeSendMaxFilesPerMessage) {
-    throw const E2eeAttachmentSendLimitException(
-      'Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.',
+    throw E2eeAttachmentSendLimitException(
+      l10n?.e2ee_too_many_attachments ?? 'Too many attachments for encrypted sending: maximum 5 files per message.',
     );
   }
   var totalBytes = 0;
   for (final f in files) {
     totalBytes += await f.length();
     if (totalBytes > e2eeSendMaxTotalBytes) {
-      throw const E2eeAttachmentSendLimitException(
-        'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.',
+      throw E2eeAttachmentSendLimitException(
+        l10n?.e2ee_total_size_exceeded ?? 'Total attachment size too large: maximum 96 MB per encrypted message.',
       );
     }
   }
@@ -129,6 +130,7 @@ Future<E2eeAttachmentPrepareResult> prepareE2eeAttachmentsForSend({
   required String messageId,
   required int epoch,
   required List<XFile> files,
+  AppLocalizations? l10n,
 }) async {
   if (files.isEmpty) {
     return const E2eeAttachmentPrepareResult(
@@ -136,7 +138,7 @@ Future<E2eeAttachmentPrepareResult> prepareE2eeAttachmentsForSend({
       encryptedEnvelopes: [],
     );
   }
-  await validateE2eeBatchLimitsOrThrow(files);
+  await validateE2eeBatchLimitsOrThrow(files, l10n: l10n);
 
   final plaintextFiles = <XFile>[];
   final envelopes = <Map<String, Object?>>[];

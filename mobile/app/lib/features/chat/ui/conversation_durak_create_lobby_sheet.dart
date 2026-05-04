@@ -219,7 +219,7 @@ class _ConversationDurakCreateLobbySheetState
                     const SizedBox(height: 10),
                     section(
                       title: l10n.durak_settings_turn_timer,
-                      subtitle: 'По умолчанию 15 секунд',
+                      subtitle: l10n.durak_create_timer_subtitle,
                       child: _DurakSegmented<int?>(
                         value: _turnTimeSec,
                         items: [

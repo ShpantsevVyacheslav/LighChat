@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Выбор источника после пункта «Фото и видео»: галерея / камера / видео.
 Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
   return showModalBottomSheet<String>(
@@ -9,6 +11,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.45),
     builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
       final fg = Colors.white.withValues(alpha: 0.92);
       return SafeArea(
         child: Padding(
@@ -37,7 +40,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
                     ListTile(
                       leading: Icon(Icons.photo_library_outlined, color: fg),
                       title: Text(
-                        'Галерея',
+                        l10n.photo_source_gallery,
                         style: TextStyle(
                           color: fg,
                           fontWeight: FontWeight.w600,
@@ -48,7 +51,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
                     ListTile(
                       leading: Icon(Icons.photo_camera_outlined, color: fg),
                       title: Text(
-                        'Сделать фото',
+                        l10n.photo_source_take_photo,
                         style: TextStyle(
                           color: fg,
                           fontWeight: FontWeight.w600,
@@ -59,7 +62,7 @@ Future<String?> showPhotoVideoSourceSheet(BuildContext context) {
                     ListTile(
                       leading: Icon(Icons.videocam_outlined, color: fg),
                       title: Text(
-                        'Записать видео',
+                        l10n.photo_source_record_video,
                         style: TextStyle(
                           color: fg,
                           fontWeight: FontWeight.w600,

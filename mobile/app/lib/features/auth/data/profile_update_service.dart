@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_firebase/src/registration/registration_keys.dart';
 import 'package:lighchat_firebase/src/registration/registration_models.dart';
 
@@ -36,6 +37,7 @@ Future<void> updateUserProfile({
   required ProfileUpdateData initial,
   FirebaseFirestore? firestore,
   FirebaseStorage? storage,
+  AppLocalizations? l10n,
 }) async {
   final fs = firestore ?? FirebaseFirestore.instance;
   final st = storage ?? FirebaseStorage.instance;
@@ -65,10 +67,10 @@ Future<void> updateUserProfile({
     throw RegistrationConflict(
       field: field,
       message: field == 'phone'
-          ? 'Этот номер телефона уже зарегистрирован. Укажите другой номер.'
+          ? (l10n?.profile_conflict_phone ?? 'This phone number is already registered. Please use a different number.')
           : field == 'email'
-          ? 'Этот email уже занят. Укажите другой адрес.'
-          : 'Этот логин уже занят. Выберите другой.',
+          ? (l10n?.profile_conflict_email ?? 'This email is already taken. Please use a different address.')
+          : (l10n?.profile_conflict_username ?? 'This username is already taken. Please choose a different one.'),
     );
   }
 

@@ -5,6 +5,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class ChatVideoCropResult {
   const ChatVideoCropResult({
     required this.cropRect,
@@ -64,13 +66,14 @@ class _ChatVideoCropScreenState extends State<ChatVideoCropScreen> {
   static const double _cropHitTolerance = 26;
   static const Rect _fullCropRect = Rect.fromLTWH(0, 0, 1, 1);
 
-  static const List<_AspectPreset> _presets = <_AspectPreset>[
-    _AspectPreset(label: 'Original', ratio: null),
-    _AspectPreset(label: 'Square', ratio: 1),
-    _AspectPreset(label: '3:2', ratio: 3 / 2),
-    _AspectPreset(label: '4:3', ratio: 4 / 3),
-    _AspectPreset(label: '16:9', ratio: 16 / 9),
-  ];
+  static List<_AspectPreset> _buildPresets(AppLocalizations l10n) =>
+      <_AspectPreset>[
+        _AspectPreset(label: l10n.crop_aspect_original, ratio: null),
+        _AspectPreset(label: l10n.crop_aspect_square, ratio: 1),
+        _AspectPreset(label: '3:2', ratio: 3 / 2),
+        _AspectPreset(label: '4:3', ratio: 4 / 3),
+        _AspectPreset(label: '16:9', ratio: 16 / 9),
+      ];
 
   VideoPlayerController? _player;
   bool _loading = true;
@@ -128,7 +131,7 @@ class _ChatVideoCropScreenState extends State<ChatVideoCropScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Не удалось загрузить видео: $e';
+        _error = AppLocalizations.of(context)!.video_crop_load_error(e.toString());
       });
     }
   }
@@ -223,6 +226,8 @@ class _ChatVideoCropScreenState extends State<ChatVideoCropScreen> {
   }
 
   Future<void> _pickAspectRatio() async {
+    final l10n = AppLocalizations.of(context)!;
+    final presets = _buildPresets(l10n);
     final picked = await showModalBottomSheet<_AspectPreset>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -242,13 +247,13 @@ class _ChatVideoCropScreenState extends State<ChatVideoCropScreen> {
                 ),
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: _presets.length,
+                  itemCount: presets.length,
                   separatorBuilder: (_, _) => Divider(
                     height: 1,
                     color: Colors.white.withValues(alpha: 0.08),
                   ),
                   itemBuilder: (context, i) {
-                    final p = _presets[i];
+                    final p = presets[i];
                     final isActive = _selectedAspectRatio == null
                         ? p.ratio == null
                         : (p.ratio != null &&
@@ -562,11 +567,11 @@ class _ChatVideoCropScreenState extends State<ChatVideoCropScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(14, 12, 14, 10),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
               child: Center(
                 child: Text(
-                  'Обрезка',
+                  AppLocalizations.of(context)!.video_crop_title,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,

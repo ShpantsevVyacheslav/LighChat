@@ -1,29 +1,32 @@
 import 'package:flutter/material.dart';
 
-/// Пресеты градиента (совпадают с [`ChatSettingsScreen`] и веб-настройками чата).
-const List<({String value, String label})> kChatWallpaperGradientPresets =
-    <({String value, String label})>[
-      (
-        value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        label: 'Фиолетовый',
-      ),
-      (
-        value: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        label: 'Розовый',
-      ),
-      (
-        value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-        label: 'Голубой',
-      ),
-      (
-        value: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-        label: 'Зелёный',
-      ),
-      (value: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', label: 'Закат'),
-      (value: 'linear-gradient(135deg, #C6E8EB 0%, #E9D0DE 100%)', label: 'Нежный'),
-      (value: 'linear-gradient(135deg, #D9F904 0%, #6CEB00 100%)', label: 'Лайм'),
-      (value: 'linear-gradient(135deg, #151619 0%, #23242A 100%)', label: 'Графит'),
-    ];
+import '../../../l10n/app_localizations.dart';
+
+/// Gradient preset CSS values (constant; labels are localized via [chatWallpaperGradientPresets]).
+const List<String> kChatWallpaperGradientValues = <String>[
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #C6E8EB 0%, #E9D0DE 100%)',
+  'linear-gradient(135deg, #D9F904 0%, #6CEB00 100%)',
+  'linear-gradient(135deg, #151619 0%, #23242A 100%)',
+];
+
+/// Returns gradient presets with localized labels.
+List<({String value, String label})> chatWallpaperGradientPresets(AppLocalizations l10n) {
+  return <({String value, String label})>[
+    (value: kChatWallpaperGradientValues[0], label: l10n.wallpaper_purple),
+    (value: kChatWallpaperGradientValues[1], label: l10n.wallpaper_pink),
+    (value: kChatWallpaperGradientValues[2], label: l10n.wallpaper_blue),
+    (value: kChatWallpaperGradientValues[3], label: l10n.wallpaper_green),
+    (value: kChatWallpaperGradientValues[4], label: l10n.wallpaper_sunset),
+    (value: kChatWallpaperGradientValues[5], label: l10n.wallpaper_tender),
+    (value: kChatWallpaperGradientValues[6], label: l10n.wallpaper_lime),
+    (value: kChatWallpaperGradientValues[7], label: l10n.wallpaper_graphite),
+  ];
+}
 
 Gradient? wallpaperPreviewGradient(String? value) {
   switch (value) {

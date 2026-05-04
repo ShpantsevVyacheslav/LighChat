@@ -12,6 +12,8 @@ import 'package:permission_handler/permission_handler.dart'
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
+import '../../auth/data/phone_country_names.dart';
 import '../data/add_contact_profile_providers.dart';
 import '../data/device_contact_lookup_keys.dart';
 import '../data/profile_qr_link.dart';
@@ -264,7 +266,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
         // Ignore network issues here: local toggle state is still explicit.
       }
       if (mounted) {
-        _setInfo('Синхронизация выключена в приложении.');
+        _setInfo(AppLocalizations.of(context)!.add_contact_sync_off);
       }
       await _refreshOsContactsPermission();
       return;
@@ -278,7 +280,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
         st != flutter_contacts.PermissionStatus.limited) {
       await openAppSettings();
       _setError(
-        'Включите доступ к контактам для LighChat в настройках системы.',
+        AppLocalizations.of(context)!.add_contact_enable_system_access,
         soft: true,
       );
       await _refreshOsContactsPermission();
@@ -302,9 +304,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
         });
         await _refreshOsContactsPermission();
         if (ok) {
-          _setInfo('Синхронизация включена');
+          _setInfo(AppLocalizations.of(context)!.add_contact_sync_on);
         } else {
-          _setError('Не удалось включить синхронизацию контактов', soft: true);
+          _setError(AppLocalizations.of(context)!.add_contact_sync_failed, soft: true);
         }
       }
     }
@@ -314,7 +316,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
     if (_busy) return;
     final key = registrationPhoneKey(_buildE164Phone());
     if (key == null) {
-      _setError('Введите корректный номер телефона');
+      _setError(AppLocalizations.of(context)!.add_contact_invalid_phone);
       return;
     }
     setState(() {
@@ -333,13 +335,13 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
       if (!mounted) return;
       setState(() => _matchedIds = filtered);
       if (filtered.isEmpty) {
-        _setError('Контакт по этому номеру не найден', soft: true);
+        _setError(AppLocalizations.of(context)!.add_contact_not_found_by_phone, soft: true);
       } else {
-        _setInfo('Контакт найден');
+        _setInfo(AppLocalizations.of(context)!.add_contact_found);
       }
     } catch (e) {
       if (!mounted) return;
-      _setError('Не удалось выполнить поиск: $e');
+      _setError(AppLocalizations.of(context)!.add_contact_search_error(e.toString()));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -349,11 +351,11 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
     if (_busy) return;
     final userId = extractProfileUserIdFromQrPayload(payload);
     if (userId == null || userId.trim().isEmpty) {
-      _setError('QR-код не содержит профиль LighChat', soft: true);
+      _setError(AppLocalizations.of(context)!.add_contact_qr_no_profile, soft: true);
       return;
     }
     if (userId == widget.ownerId) {
-      _setError('Это ваш собственный профиль', soft: true);
+      _setError(AppLocalizations.of(context)!.add_contact_own_profile, soft: true);
       return;
     }
 
@@ -372,14 +374,14 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
           .get();
       if (!mounted) return;
       if (!doc.exists) {
-        _setError('Профиль из QR-кода не найден', soft: true);
+        _setError(AppLocalizations.of(context)!.add_contact_qr_not_found, soft: true);
         return;
       }
       setState(() => _matchedIds = <String>[userId]);
-      _setInfo('Контакт найден по QR-коду');
+      _setInfo(AppLocalizations.of(context)!.add_contact_qr_found);
     } catch (e) {
       if (!mounted) return;
-      _setError('Не удалось прочитать QR-код: $e');
+      _setError(AppLocalizations.of(context)!.add_contact_qr_error(e.toString()));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -401,7 +403,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
   Future<void> _addContact(UserProfile peer) async {
     if (_busy) return;
     if (!canStartDirectChat(widget.viewer, peer)) {
-      _setError('Нельзя добавить этого пользователя');
+      _setError(AppLocalizations.of(context)!.add_contact_not_allowed);
       return;
     }
     setState(() => _busy = true);
@@ -411,7 +413,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
       Navigator.of(context).pop(peer.id);
     } catch (e) {
       if (!mounted) return;
-      _setError('Не удалось добавить контакт: $e');
+      _setError(AppLocalizations.of(context)!.add_contact_save_error(e.toString()));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -447,7 +449,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                     : _phoneCountries
                           .where((c) {
                             final q = query;
-                            return ruEnSubstringMatch(c.name, q) ||
+                            return ruEnSubstringMatch(c.localizedName(Localizations.localeOf(context).languageCode), q) ||
                                 c.dialCode.contains(q) ||
                                 ruEnSubstringMatch(c.isoCode, q);
                           })
@@ -473,7 +475,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                         style: const TextStyle(fontSize: 18),
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.search, size: 24),
-                          hintText: 'Поиск страны или кода',
+                          hintText: AppLocalizations.of(context)!.add_contact_country_search,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 16,
@@ -519,7 +521,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                 style: const TextStyle(fontSize: 22),
                               ),
                               title: Text(
-                                country.name,
+                                country.localizedName(Localizations.localeOf(context).languageCode),
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -579,9 +581,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
           icon: Icons.close_rounded,
           onTap: _busy ? null : () => Navigator.of(context).pop(),
         ),
-        const Expanded(
+        Expanded(
           child: Text(
-            'Новый контакт',
+            AppLocalizations.of(context)!.add_contact_title,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 34 / 2,
@@ -624,7 +626,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _selectedCountry.name,
+                      _selectedCountry.localizedName(Localizations.localeOf(context).languageCode),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.94),
                         fontSize: 17,
@@ -709,7 +711,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
           children: [
             Expanded(
               child: Text(
-                'Синхронизировать с телефоном',
+                AppLocalizations.of(context)!.add_contact_sync_phone,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.92),
                   fontSize: 30 / 2,
@@ -759,7 +761,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
             ),
             const SizedBox(width: 10),
             Text(
-              'Добавить по QR-коду',
+              AppLocalizations.of(context)!.add_contact_qr_button,
               style: TextStyle(
                 color: Colors.blue.shade300,
                 fontSize: 17,
@@ -803,7 +805,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
     }
     if (ref.watch(userProfilesRepositoryProvider) == null) {
       return _ResultPlaceholderCard(
-        text: 'Результаты пока недоступны',
+        text: AppLocalizations.of(context)!.add_contact_results_unavailable,
         warning: true,
       );
     }
@@ -815,7 +817,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
     return profilesAsync.when(
       loading: () => const _ResultLoadingCard(),
       error: (e, _) => _ResultPlaceholderCard(
-        text: 'Ошибка загрузки контакта: $e',
+        text: AppLocalizations.of(context)!.add_contact_profile_load_error(e.toString()),
         warning: true,
       ),
       data: (map) {
@@ -825,8 +827,8 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
             .where((p) => (p.deletedAt ?? '').trim().isEmpty)
             .toList(growable: false);
         if (profiles.isEmpty) {
-          return const _ResultPlaceholderCard(
-            text: 'Профиль не найден',
+          return _ResultPlaceholderCard(
+            text: AppLocalizations.of(context)!.add_contact_profile_not_found,
             warning: true,
           );
         }
@@ -835,7 +837,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
               .map((profile) {
                 final title = profile.name.trim().isNotEmpty
                     ? profile.name.trim()
-                    : 'Пользователь';
+                    : AppLocalizations.of(context)!.group_members_user_fallback;
                 final username = (profile.username ?? '').trim();
                 final subtitle = username.isEmpty
                     ? null
@@ -844,9 +846,10 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                   profile.id,
                 );
                 final allowed = canStartDirectChat(widget.viewer, profile);
+                final l10n = AppLocalizations.of(context)!;
                 final badgeText = alreadyAdded
-                    ? 'Уже в контактах'
-                    : (allowed ? 'Новый контакт' : 'Недоступно');
+                    ? l10n.add_contact_badge_already_added
+                    : (allowed ? l10n.add_contact_badge_new : l10n.add_contact_badge_unavailable);
                 final badgeColor = alreadyAdded
                     ? const Color(0xFF2E87FF)
                     : (allowed
@@ -974,7 +977,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                child: const Text('Открыть контакт'),
+                                child: Text(AppLocalizations.of(context)!.add_contact_open_contact),
                               )
                             : FilledButton(
                                 onPressed: (!_busy && allowed)
@@ -991,8 +994,8 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                 ),
                                 child: Text(
                                   allowed
-                                      ? 'Добавить в контакты'
-                                      : 'Добавление недоступно',
+                                      ? AppLocalizations.of(context)!.add_contact_add_to_contacts
+                                      : AppLocalizations.of(context)!.add_contact_add_unavailable,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
@@ -1095,16 +1098,16 @@ class _ResultLoadingCard extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
-        children: const [
-          SizedBox(
+        children: [
+          const SizedBox(
             width: 18,
             height: 18,
             child: CircularProgressIndicator(strokeWidth: 2.2),
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Ищем контакт...',
+              AppLocalizations.of(context)!.add_contact_searching,
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
@@ -1205,7 +1208,7 @@ class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
             Row(
               children: [
                 Text(
-                  'Сканировать QR-код',
+                  AppLocalizations.of(context)!.add_contact_scan_qr_title,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.96),
                     fontSize: 20,
@@ -1214,7 +1217,7 @@ class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
                 ),
                 const Spacer(),
                 IconButton(
-                  tooltip: 'Вспышка',
+                  tooltip: AppLocalizations.of(context)!.add_contact_flash_tooltip,
                   onPressed: _toggleTorch,
                   icon: Icon(
                     _torchEnabled
@@ -1238,7 +1241,7 @@ class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Наведите камеру на QR-код профиля LighChat',
+              AppLocalizations.of(context)!.add_contact_scan_qr_hint,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.72),
@@ -1258,7 +1261,7 @@ class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text('Отмена'),
+                child: Text(AppLocalizations.of(context)!.common_cancel),
               ),
             ),
           ],
@@ -1271,7 +1274,6 @@ class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
 class _PhoneCountry {
   const _PhoneCountry({
     required this.isoCode,
-    required this.name,
     required this.flag,
     required this.dialCode,
     required this.phoneHint,
@@ -1279,11 +1281,12 @@ class _PhoneCountry {
   });
 
   final String isoCode;
-  final String name;
   final String flag;
   final String dialCode;
   final String phoneHint;
   final int maxNationalDigits;
+
+  String localizedName(String langCode) => localizedCountryName(isoCode, langCode);
 
   String get dialDigits => dialCode.replaceAll(RegExp(r'\D'), '');
 }
@@ -1291,7 +1294,6 @@ class _PhoneCountry {
 const List<_PhoneCountry> _phoneCountries = [
   _PhoneCountry(
     isoCode: 'RU',
-    name: 'Россия',
     flag: '🇷🇺',
     dialCode: '+7',
     phoneHint: '(999)123-45-67',
@@ -1299,7 +1301,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'KZ',
-    name: 'Казахстан',
     flag: '🇰🇿',
     dialCode: '+7',
     phoneHint: '(777)123-45-67',
@@ -1307,7 +1308,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'BY',
-    name: 'Беларусь',
     flag: '🇧🇾',
     dialCode: '+375',
     phoneHint: '29 123 45 67',
@@ -1315,7 +1315,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'UA',
-    name: 'Украина',
     flag: '🇺🇦',
     dialCode: '+380',
     phoneHint: '50 123 45 67',
@@ -1323,7 +1322,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'UZ',
-    name: 'Узбекистан',
     flag: '🇺🇿',
     dialCode: '+998',
     phoneHint: '90 123 45 67',
@@ -1331,7 +1329,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'KG',
-    name: 'Кыргызстан',
     flag: '🇰🇬',
     dialCode: '+996',
     phoneHint: '555 123 456',
@@ -1339,7 +1336,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'US',
-    name: 'США',
     flag: '🇺🇸',
     dialCode: '+1',
     phoneHint: '(555)123-4567',
@@ -1347,7 +1343,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'GB',
-    name: 'Великобритания',
     flag: '🇬🇧',
     dialCode: '+44',
     phoneHint: '7400 123456',
@@ -1355,7 +1350,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'DE',
-    name: 'Германия',
     flag: '🇩🇪',
     dialCode: '+49',
     phoneHint: '1512 3456789',
@@ -1363,7 +1357,6 @@ const List<_PhoneCountry> _phoneCountries = [
   ),
   _PhoneCountry(
     isoCode: 'FR',
-    name: 'Франция',
     flag: '🇫🇷',
     dialCode: '+33',
     phoneHint: '6 12 34 56 78',

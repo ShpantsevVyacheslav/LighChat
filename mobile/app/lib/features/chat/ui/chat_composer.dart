@@ -256,6 +256,7 @@ class _ChatComposerState extends State<ChatComposer> {
       atStartOffset: at,
       userId: c.id,
       label: c.name.trim().isNotEmpty ? c.name.trim() : c.username.trim(),
+      fallbackMentionLabel: AppLocalizations.of(context)!.mention_default_label,
     );
     widget.focusNode.requestFocus();
     setState(() {

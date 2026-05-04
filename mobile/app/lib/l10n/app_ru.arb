@@ -360,7 +360,7 @@
       "error": {}
     }
   },
-  "privacy_title": "Конфиденциальность",
+  "privacy_title": "Приватность чата",
   "privacy_error_cannot_save": "Не удалось сохранить настройки: {error}",
   "@privacy_error_cannot_save": {
     "placeholders": {
@@ -416,14 +416,12 @@
   "common_close": "Закрыть",
   "common_nothing_found": "Ничего не найдено",
   "common_retry": "Повторить",
-
   "auth_login_email_label": "Email",
   "auth_login_password_label": "Пароль",
   "auth_login_password_hint": "Пароль",
   "auth_login_sign_in": "Войти",
   "auth_login_forgot_password": "Забыли пароль?",
   "auth_login_error_enter_email_for_reset": "Введите email для восстановления пароля",
-
   "profile_title": "Профиль",
   "profile_edit_tooltip": "Редактировать",
   "profile_full_name_label": "ФИО",
@@ -497,8 +495,7 @@
   "settings_chats_default_gradient": "Градиент по умолчанию",
   "settings_chats_inherit_global": "Наследовать от глобальных",
   "settings_chats_no_background": "Без фона",
-  "settings_chats_no_background_on": "Без фона (вкл.)"
-  ,
+  "settings_chats_no_background_on": "Без фона (вкл.)",
   "chat_list_title": "Чаты",
   "chat_list_search_hint": "Поиск…",
   "chat_list_loading_connecting": "Подключение к аккаунту…",
@@ -747,8 +744,7 @@
   "chat_list_item_chat_created": "Чат создан",
   "chat_list_item_no_messages_yet": "Пока нет сообщений",
   "chat_list_item_history_cleared": "История очищена",
-  "chat_list_firebase_not_configured": "Firebase ещё не настроен."
-  ,
+  "chat_list_firebase_not_configured": "Firebase ещё не настроен.",
   "new_chat_title": "Новый чат",
   "new_chat_subtitle": "Выберите пользователя, чтобы начать диалог, или создайте группу.",
   "new_chat_search_hint": "Имя, ник или @username…",
@@ -807,16 +803,14 @@
   "group_members_error_min_admin": "В группе должен остаться хотя бы один администратор.",
   "group_members_error_cannot_remove_creator": "Нельзя снять права администратора с создателя группы.",
   "group_members_remove_admin": "Администратор снят",
-  "group_members_make_admin": "Назначен администратор"
-  ,
+  "group_members_make_admin": "Назначен администратор",
   "auth_brand_tagline": "Безопасный мессенджер",
   "auth_firebase_not_ready": "Firebase не готов. Проверь `firebase_options.dart` и GoogleService-Info.plist.",
   "auth_redirecting_to_chats": "Переходим в чаты...",
   "auth_or": "или",
   "auth_create_account": "Создать аккаунт",
   "auth_privacy_policy": "Политика конфиденциальности",
-  "auth_error_open_privacy_policy": "Не удалось открыть политику конфиденциальности"
-  ,
+  "auth_error_open_privacy_policy": "Не удалось открыть политику конфиденциальности",
   "voice_transcript_show": "Показать текст",
   "voice_transcript_hide": "Скрыть текст",
   "voice_transcript_copy": "Копировать",
@@ -867,7 +861,6 @@
   },
   "chat_delete_file_title": "Удалить файл?",
   "chat_delete_file_body": "Будет удалён только этот файл из сообщения.",
-
   "forward_title": "Переслать",
   "forward_empty_no_messages": "Нет сообщений для пересылки",
   "forward_error_not_authorized": "Не авторизован",
@@ -887,7 +880,6 @@
   "forward_error_profiles_load": "Не удалось загрузить профили для открытия чата",
   "forward_error_send_no_permissions": "Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.",
   "forward_error_send_forbidden_chat": "Не удалось переслать: доступ к одному из чатов запрещён.",
-
   "devices_title": "Мои устройства",
   "devices_subtitle": "Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.",
   "devices_empty": "Устройств пока нет.",
@@ -945,7 +937,6 @@
       "error": {}
     }
   },
-
   "e2ee_recovery_title": "E2EE — резервирование",
   "e2ee_password_label": "Пароль",
   "e2ee_password_confirm_label": "Повторите пароль",
@@ -988,7 +979,6 @@
   "e2ee_qr_transfer_title": "Передача ключа по QR",
   "e2ee_qr_transfer_description": "На новом устройстве показываем QR, на старом сканируем камерой. Сверяете 6-значный код — приватный ключ переносится безопасно.",
   "e2ee_qr_transfer_open": "Открыть QR-pairing",
-
   "media_viewer_action_reply": "Ответить",
   "media_viewer_action_forward": "Переслать",
   "media_viewer_action_send": "Отправить",
@@ -1027,7 +1017,6 @@
   "media_viewer_pip_not_supported": "Картинка в картинке не поддерживается на этом устройстве.",
   "media_viewer_video_processing": "Видео обрабатывается на сервере и скоро станет доступно.",
   "media_viewer_video_playback_failed": "Не удалось воспроизвести видео.",
-
   "common_none": "Нет",
   "group_member_role_admin": "Администратор",
   "group_member_role_worker": "Участник",
@@ -1035,7 +1024,6 @@
   "profile_chat_id_copied_toast": "Идентификатор чата скопирован",
   "auth_register_error_open_link": "Не удалось открыть ссылку",
   "new_chat_error_self_profile_not_found": "Не найден профиль в каталоге. Попробуйте выйти и войти снова.",
-
   "disappearing_messages_title": "Исчезающие сообщения",
   "disappearing_messages_intro": "Новые сообщения автоматически удаляются из базы после выбранного времени (от момента отправки). Уже отправленные не меняются.",
   "disappearing_messages_admin_only": "Только администраторы группы могут менять этот параметр. Сейчас: {summary}.",
@@ -1080,7 +1068,6 @@
   "conversation_profile_e2ee_off": "Выкл",
   "conversation_profile_e2ee_subtitle_on": "Сквозное шифрование включено. Нажмите для подробностей.",
   "conversation_profile_e2ee_subtitle_off": "Сквозное шифрование выключено. Нажмите, чтобы включить.",
-
   "partner_profile_title_fallback_group": "Групповой чат",
   "partner_profile_title_fallback_saved": "Избранное",
   "partner_profile_title_fallback_chat": "Чат",
@@ -1164,7 +1151,6 @@
   "partner_profile_field_bio": "О себе",
   "partner_profile_add_to_contacts": "Добавить в контакты",
   "partner_profile_remove_from_contacts": "Удалить из контактов",
-
   "thread_search_hint": "Поиск в обсуждении…",
   "thread_search_tooltip_clear": "Очистить",
   "thread_search_tooltip_search": "Поиск",
@@ -1255,8 +1241,7 @@
     "placeholders": {
       "error": {}
     }
-  }
-  ,
+  },
   "chat_message_not_found_in_loaded_history": "Сообщение не найдено в загруженной истории",
   "chat_finish_editing_first": "Сначала завершите редактирование",
   "chat_send_voice_failed": "Не удалось отправить голосовое: {error}",
@@ -1357,8 +1342,7 @@
   "chat_call_ongoing_video": "Идёт видеозвонок",
   "chat_call_ongoing_audio": "Идёт аудиозвонок",
   "chat_call_incoming_video": "Входящий видеозвонок",
-  "chat_call_incoming_audio": "Входящий аудиозвонок"
-  ,
+  "chat_call_incoming_audio": "Входящий аудиозвонок",
   "message_menu_action_reply": "Ответить",
   "message_menu_action_thread": "Обсудить",
   "message_menu_action_copy": "Копировать",
@@ -1372,8 +1356,7 @@
   "message_menu_initiator_deleted": "Сообщение удалено",
   "message_menu_header_sent": "ОТПРАВЛЕНО:",
   "message_menu_header_read": "ПРОЧИТАНО:",
-  "message_menu_header_expire_at": "ИСЧЕЗНЕТ:"
-  ,
+  "message_menu_header_expire_at": "ИСЧЕЗНЕТ:",
   "chat_header_search_hint": "Поиск сообщений…",
   "chat_header_tooltip_threads": "Обсуждения",
   "chat_header_tooltip_search": "Поиск",
@@ -1507,12 +1490,10 @@
     }
   },
   "chat_selection_tooltip_forward": "Переслать",
-  "chat_selection_tooltip_delete": "Удалить"
-  ,
+  "chat_selection_tooltip_delete": "Удалить",
   "chat_composer_hint_message": "Введите сообщение…",
   "chat_composer_tooltip_stickers": "Стикеры",
-  "chat_composer_tooltip_attachments": "Вложения"
-  ,
+  "chat_composer_tooltip_attachments": "Вложения",
   "chat_list_unread_separator": "Непрочитанные сообщения",
   "chat_e2ee_decrypt_failed_open_devices": "Не удалось расшифровать. Откройте Настройки → Устройства",
   "chat_e2ee_encrypted_message_placeholder": "Зашифрованное сообщение",
@@ -1525,8 +1506,7 @@
   "chat_outbox_retry": "Повторить",
   "chat_outbox_remove": "Убрать",
   "chat_outbox_cancel": "Отменить",
-  "chat_message_edited_badge_short": "изм."
-  ,
+  "chat_message_edited_badge_short": "изм.",
   "register_error_enter_name": "Введите имя.",
   "register_error_enter_username": "Введите логин.",
   "register_error_enter_phone": "Введите номер телефона.",
@@ -1592,19 +1572,25 @@
   "schedule_message_preset_today_at": "Сегодня в {time}",
   "@schedule_message_preset_today_at": {
     "placeholders": {
-      "time": {"type": "String"}
+      "time": {
+        "type": "String"
+      }
     }
   },
   "schedule_message_preset_tomorrow_at": "Завтра в {time}",
   "@schedule_message_preset_tomorrow_at": {
     "placeholders": {
-      "time": {"type": "String"}
+      "time": {
+        "type": "String"
+      }
     }
   },
   "schedule_message_will_send_at": "Будет отправлено: {datetime}",
   "@schedule_message_will_send_at": {
     "placeholders": {
-      "datetime": {"type": "String"}
+      "datetime": {
+        "type": "String"
+      }
     }
   },
   "schedule_message_must_be_in_future": "Время должно быть в будущем (минимум через минуту).",
@@ -1617,13 +1603,17 @@
   "schedule_message_scheduled_toast": "Запланировано: {datetime}",
   "@schedule_message_scheduled_toast": {
     "placeholders": {
-      "datetime": {"type": "String"}
+      "datetime": {
+        "type": "String"
+      }
     }
   },
   "schedule_message_failed_toast": "Не удалось запланировать: {error}",
   "@schedule_message_failed_toast": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "scheduled_messages_screen_title": "Запланированные сообщения",
@@ -1632,7 +1622,9 @@
   "scheduled_messages_load_failed": "Не удалось загрузить: {error}",
   "@scheduled_messages_load_failed": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "scheduled_messages_e2ee_notice": "В E2EE-чате запланированные сообщения хранятся и публикуются в открытом виде.",
@@ -1644,13 +1636,17 @@
   "scheduled_messages_time_changed_toast": "Время изменено: {datetime}",
   "@scheduled_messages_time_changed_toast": {
     "placeholders": {
-      "datetime": {"type": "String"}
+      "datetime": {
+        "type": "String"
+      }
     }
   },
   "scheduled_messages_action_failed_toast": "Ошибка: {error}",
   "@scheduled_messages_action_failed_toast": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "scheduled_messages_tile_edit_tooltip": "Изменить время",
@@ -1658,7 +1654,9 @@
   "scheduled_messages_preview_poll": "Опрос: {question}",
   "@scheduled_messages_preview_poll": {
     "placeholders": {
-      "question": {"type": "String"}
+      "question": {
+        "type": "String"
+      }
     }
   },
   "scheduled_messages_preview_location": "Локация",
@@ -1666,15 +1664,2242 @@
   "scheduled_messages_preview_attachment_count": "Вложение (×{count})",
   "@scheduled_messages_preview_attachment_count": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "scheduled_messages_preview_message": "Сообщение",
   "chat_header_tooltip_scheduled": "Запланированные сообщения",
   "schedule_date_label": "Дата",
   "schedule_time_label": "Время",
+  "common_done": "Готово",
+  "common_send": "Отправить",
+  "common_open": "Открыть",
+  "common_add": "Добавить",
+  "common_search": "Поиск",
+  "common_edit": "Редактировать",
+  "common_next": "Далее",
+  "common_ok": "OK",
+  "common_confirm": "Подтвердить",
+  "common_ready": "Готово",
+  "common_error": "Ошибка",
+  "common_yes": "Да",
+  "common_no": "Нет",
+  "common_back": "Назад",
+  "common_continue": "Продолжить",
+  "common_loading": "Загрузка…",
+  "common_copy": "Скопировать",
+  "common_share": "Поделиться",
+  "common_settings": "Настройки",
+  "common_today": "Сегодня",
+  "common_yesterday": "Вчера",
+  "e2ee_qr_title": "QR-pairing ключа",
+  "e2ee_qr_uid_error": "Не удалось получить uid пользователя.",
+  "e2ee_qr_session_ended_error": "Сессия завершилась до ответа от второго устройства.",
+  "e2ee_qr_no_data_error": "Нет данных для применения ключа.",
+  "e2ee_qr_key_transferred_toast": "Ключ перенесён. Перезайдите в чаты, чтобы обновить сессии.",
+  "e2ee_qr_wrong_account_error": "QR сгенерирован под другой аккаунт.",
+  "e2ee_qr_explainer_title": "Что это",
+  "e2ee_qr_explainer_text": "Передача приватного ключа с одного вашего устройства на другое по ECDH + QR. Обе стороны видят 6-значный код для ручной сверки.",
+  "e2ee_qr_show_qr_label": "Я на новом устройстве — показать QR",
+  "e2ee_qr_scan_qr_label": "У меня уже есть ключ — сканировать QR",
+  "e2ee_qr_scan_hint": "Отсканируйте QR на старом устройстве, где уже есть ключ.",
+  "e2ee_qr_verify_code_label": "Сверьте 6-значный код со старым устройством:",
+  "e2ee_qr_transfer_from_device_label": "Перенос с устройства: {label}",
+  "@e2ee_qr_transfer_from_device_label": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_qr_code_match_apply_label": "Код совпал — применить",
+  "e2ee_qr_key_success_label": "Ключ успешно перенесён на это устройство. Перезайдите в чаты.",
+  "e2ee_qr_unknown_error": "Неизвестная ошибка",
+  "e2ee_qr_back_to_pick_label": "К выбору",
+  "e2ee_qr_donor_scan_hint": "Наведите камеру на QR, показанный на новом устройстве.",
+  "e2ee_qr_donor_verify_code_label": "Сверьте код с новым устройством:",
+  "e2ee_qr_donor_verify_hint": "Если код совпадает — подтвердите на новом устройстве. Если нет, немедленно нажмите «Отмена».",
+  "e2ee_encrypt_title": "Шифрование",
+  "e2ee_encrypt_enable_dialog_title": "Включить шифрование?",
+  "e2ee_encrypt_enable_dialog_body": "Новые сообщения будут доступны только на ваших устройствах и у собеседника. Старые сообщения останутся как есть.",
+  "e2ee_encrypt_enable_label": "Включить",
+  "e2ee_encrypt_disable_dialog_title": "Отключить шифрование?",
+  "e2ee_encrypt_disable_dialog_body": "Новые сообщения пойдут без сквозного шифрования. Ранее отправленные зашифрованные сообщения останутся в ленте.",
+  "e2ee_encrypt_disable_label": "Отключить",
+  "e2ee_encrypt_status_on": "Сквозное шифрование включено для этого чата.",
+  "e2ee_encrypt_status_off": "Сквозное шифрование выключено.",
+  "e2ee_encrypt_description": "Когда шифрование включено, содержимое новых сообщений доступно только участникам чата на их устройствах. Отключение влияет только на новые сообщения.",
+  "e2ee_encrypt_switch_title": "Включить шифрование",
+  "e2ee_encrypt_switch_on": "Включено (эпоха ключа: {epoch})",
+  "@e2ee_encrypt_switch_on": {
+    "placeholders": {
+      "epoch": {
+        "type": "int"
+      }
+    }
+  },
+  "e2ee_encrypt_switch_off": "Выключено",
+  "e2ee_encrypt_already_on_toast": "Шифрование уже включено или не удалось создать ключи. Проверьте сеть и наличие ключей у собеседника.",
+  "e2ee_encrypt_no_device_toast": "Не удалось включить: у собеседника нет активного устройства с ключом.",
+  "e2ee_encrypt_enable_failed_toast": "Не удалось включить шифрование: {error}",
+  "@e2ee_encrypt_enable_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_encrypt_disable_failed_toast": "Не удалось отключить: {error}",
+  "@e2ee_encrypt_disable_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_encrypt_data_types_title": "Типы данных",
+  "e2ee_encrypt_data_types_description": "Настройка не меняет протокол. Она управляет тем, какие типы данных отправлять в зашифрованном виде.",
+  "e2ee_encrypt_override_title": "Настройки шифрования для этого чата",
+  "e2ee_encrypt_override_on": "Используются чатовые настройки.",
+  "e2ee_encrypt_override_off": "Наследуются глобальные настройки.",
+  "e2ee_encrypt_text_title": "Текст сообщений",
+  "e2ee_encrypt_media_title": "Вложения (медиа/файлы)",
+  "e2ee_encrypt_override_hint": "Чтобы изменить для этого чата — включите «Переопределить».",
+  "sticker_default_pack_name": "Мой пак",
+  "sticker_new_pack_dialog_title": "Новый стикерпак",
+  "sticker_pack_name_hint": "Название",
+  "sticker_save_to_pack": "Сохранить в стикерпак",
+  "sticker_no_packs_hint": "Нет паков. Создайте пак на вкладке «Стикеры».",
+  "sticker_new_pack_option": "Новый пак…",
+  "sticker_pick_image_or_gif": "Выберите изображение или GIF",
+  "sticker_send_failed": "Не удалось отправить: {error}",
+  "@sticker_send_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sticker_saved_to_pack": "Сохранено в стикерпак",
+  "sticker_save_gif_failed": "Не удалось скачать или сохранить GIF",
+  "sticker_delete_pack_title": "Удалить пак?",
+  "sticker_delete_pack_body": "«{name}» и все стикеры в нём будут удалены.",
+  "@sticker_delete_pack_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sticker_pack_deleted": "Пак удалён",
+  "sticker_pack_delete_failed": "Не удалось удалить пак",
+  "sticker_tab_emoji": "ЭМОДЗИ",
+  "sticker_tab_stickers": "СТИКЕРЫ",
+  "sticker_tab_gif": "GIF",
+  "sticker_scope_my": "Мои",
+  "sticker_scope_public": "Общие",
+  "sticker_new_pack_tooltip": "Новый пак",
+  "sticker_pack_created": "Стикерпак создан",
+  "sticker_no_packs_create": "Нет стикерпаков. Создайте новый.",
+  "sticker_public_packs_empty": "Общие паки не настроены",
+  "sticker_section_recent": "НЕДАВНИЕ",
+  "sticker_pack_empty_hint": "Пак пуст. Добавьте с устройства (вкладка GIF — «В мой пак»).",
+  "sticker_delete_sticker_title": "Удалить стикер?",
+  "sticker_deleted": "Удалено",
+  "sticker_gallery": "Галерея",
+  "sticker_gallery_subtitle": "Фото, PNG, GIF с устройства — сразу в чат",
+  "gif_search_hint": "Поиск GIF…",
+  "gif_translated_hint": "Искали: {query}",
+  "@gif_translated_hint": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_search_unavailable": "Поиск GIF временно недоступен.",
+  "gif_filter_all": "Все",
+  "sticker_section_animated": "АНИМИРОВАННЫЕ",
+  "sticker_emoji_unavailable": "Эмодзи в текст недоступны для этого окна.",
+  "sticker_create_pack_hint": "Создайте пак кнопкой +",
+  "sticker_public_packs_unavailable": "Общие паки пока недоступны",
+  "composer_link_title": "Ссылка",
+  "composer_link_apply": "Применить",
+  "composer_attach_title": "Прикрепить",
+  "composer_attach_photo_video": "Фото/Видео",
+  "composer_attach_files": "Файлы",
+  "composer_attach_video_circle": "Кружок",
+  "composer_attach_location": "Локация",
+  "composer_attach_poll": "Опрос",
+  "composer_attach_stickers": "Стикеры",
+  "composer_attach_clipboard": "Буфер",
+  "composer_attach_text": "Текст",
+  "meeting_create_poll": "Создать опрос",
+  "meeting_min_two_options": "Минимум 2 варианта ответа",
+  "meeting_error_with_details": "Ошибка: {details}",
+  "@meeting_error_with_details": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_polls_load_error": "Не удалось загрузить опросы: {details}",
+  "@meeting_polls_load_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_no_polls_yet": "Пока нет опросов",
+  "meeting_question_label": "Вопрос",
+  "meeting_options_label": "Варианты",
+  "meeting_option_hint": "Вариант {index}",
+  "@meeting_option_hint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_add_option": "Добавить вариант",
+  "meeting_anonymous": "Анонимно",
+  "meeting_anonymous_subtitle": "Кто увидит выбор других",
+  "meeting_save_as_draft": "В черновики",
+  "meeting_publish": "Опубликовать",
+  "meeting_action_start": "Запустить",
+  "meeting_action_change_vote": "Изменить голос",
+  "meeting_action_restart": "Перезапустить",
+  "meeting_action_stop": "Остановить",
+  "meeting_vote_failed": "Голос не засчитан: {details}",
+  "@meeting_vote_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_status_ended": "Завершено",
+  "meeting_status_draft": "Черновик",
+  "meeting_status_active": "Активно",
+  "meeting_status_public": "Публичное",
+  "meeting_votes_count": "{count} голосов",
+  "@meeting_votes_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_goal_count": "Цель: {count}",
+  "@meeting_goal_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_hide": "Скрыть",
+  "meeting_who_voted": "Кто голосовал",
+  "meeting_participants_tab": "Участники ({count})",
+  "@meeting_participants_tab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_polls_tab_active": "Опросы ({count})",
+  "@meeting_polls_tab_active": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_polls_tab": "Опросы",
+  "meeting_chat_tab_unread": "Чат ({count})",
+  "@meeting_chat_tab_unread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_chat_tab": "Чат",
+  "meeting_requests_tab": "Заявки ({count})",
+  "@meeting_requests_tab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_you_suffix": "{name} (Вы)",
+  "@meeting_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_host_label": "Хост",
+  "meeting_force_mute_mic": "Выключить микрофон",
+  "meeting_force_mute_camera": "Выключить камеру",
+  "meeting_kick_from_room": "Удалить из комнаты",
+  "meeting_chat_load_error": "Не удалось загрузить чат: {error}",
+  "@meeting_chat_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_no_requests": "Нет новых заявок",
+  "meeting_no_messages_yet": "Пока нет сообщений",
+  "meeting_file_too_large": "Файл слишком большой: {name}",
+  "@meeting_file_too_large": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_send_failed": "Не удалось отправить: {details}",
+  "@meeting_send_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_edit_message_title": "Изменить сообщение",
+  "meeting_save_failed": "Не удалось сохранить: {details}",
+  "@meeting_save_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_delete_message_title": "Удалить сообщение?",
+  "meeting_delete_message_body": "Участники увидят «Сообщение удалено».",
+  "meeting_delete_failed": "Не удалось удалить: {details}",
+  "@meeting_delete_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_message_hint": "Сообщение…",
+  "meeting_message_deleted": "Сообщение удалено",
+  "meeting_message_edited": "• изм.",
+  "meeting_copy_action": "Копировать",
+  "meeting_edit_action": "Изменить",
+  "meeting_join_title": "Присоединиться",
+  "meeting_loading_error": "Ошибка загрузки митинга: {details}",
+  "@meeting_loading_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_not_found": "Митинг не найден или закрыт",
+  "meeting_private_description": "Приватная встреча: после заявки хост решит, пустить ли вас.",
+  "meeting_public_description": "Открытая встреча: присоединяйтесь по ссылке без ожидания.",
+  "meeting_your_name_label": "Ваше имя",
+  "meeting_enter_name_error": "Укажите имя",
+  "meeting_guest_name": "Гость",
+  "meeting_enter_room": "Войти в комнату",
+  "meeting_request_join": "Попросить присоединиться",
+  "meeting_approved_title": "Одобрено",
+  "meeting_approved_subtitle": "Перенаправляем в комнату…",
+  "meeting_denied_title": "Отклонено",
+  "meeting_denied_subtitle": "Хост отклонил вашу заявку.",
+  "meeting_pending_title": "Ожидаем подтверждения",
+  "meeting_pending_subtitle": "Хост увидит вашу заявку и решит, когда впустить.",
+  "meeting_load_error": "Не удалось загрузить митинг: {details}",
+  "@meeting_load_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_init_error": "Ошибка инициализации: {error}",
+  "@meeting_init_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_participants_error": "Участники: {error}",
+  "@meeting_participants_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_bg_unavailable": "Фон недоступен: {error}",
+  "@meeting_bg_unavailable": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_leave": "Выйти",
+  "meeting_screen_share_ios": "Демонстрация экрана на iOS требует Broadcast Extension (будет в следующем релизе)",
+  "meeting_screen_share_failed": "Не удалось запустить демонстрацию: {details}",
+  "@meeting_screen_share_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_tooltip_speaker_mode": "Режим спикера",
+  "meeting_tooltip_grid_mode": "Режим сетки",
+  "meeting_tooltip_copy_link": "Скопировать ссылку (вход с браузера)",
+  "meeting_mic_on": "Включить",
+  "meeting_mic_off": "Выключить",
+  "meeting_camera_on": "Камера вкл",
+  "meeting_camera_off": "Камера выкл",
+  "meeting_switch_camera": "Сменить",
+  "meeting_hand_lower": "Опустить",
+  "meeting_hand_raise": "Рука",
+  "meeting_reaction": "Реакция",
+  "meeting_screen_stop": "Стоп",
+  "meeting_screen_label": "Экран",
+  "meeting_bg_off": "Фон",
+  "meeting_bg_blur": "Размытие",
+  "meeting_bg_image": "Картинка",
+  "meeting_participants_button": "Участники",
+  "settings_chats_bottom_nav_icons_title": "Иконки нижнего меню",
+  "settings_chats_bottom_nav_icons_subtitle": "Выбор иконок и визуального стиля как на вебе.",
+  "settings_chats_nav_colorful": "Цветные",
+  "settings_chats_nav_minimal": "Минимализм",
+  "settings_chats_nav_global_title": "Для всех иконок",
+  "settings_chats_nav_global_subtitle": "Общий слой: цвет, размер, толщина и фон плитки.",
+  "settings_chats_reset_tooltip": "Сброс",
+  "settings_chats_collapse": "Скрыть",
+  "settings_chats_customize": "Настроить",
+  "settings_chats_reset_item_tooltip": "Сбросить",
+  "settings_chats_style_tooltip": "Стиль",
+  "settings_chats_icon_size": "Размер иконки",
+  "settings_chats_stroke_width": "Толщина линии",
+  "settings_chats_default": "По умолчанию",
+  "settings_chats_icon_search_hint_en": "Поиск по названию (англ.)...",
+  "settings_chats_emoji_effects": "Эффекты эмодзи",
+  "settings_chats_emoji_effects_subtitle": "Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.",
+  "settings_chats_emoji_lite_desc": "Lite: минимум нагрузки и максимально плавно на слабых устройствах.",
+  "settings_chats_emoji_balanced_desc": "Balanced: автоматический компромисс между производительностью и выразительностью.",
+  "settings_chats_emoji_cinematic_desc": "Cinematic: максимум частиц и глубины для вау-эффекта.",
+  "settings_chats_preview_incoming_msg": "Привет! Как дела?",
+  "settings_chats_preview_outgoing_msg": "Отлично, спасибо!",
+  "settings_chats_preview_hello": "Привет",
+  "chat_theme_title": "Тема чата",
+  "chat_theme_error_save": "Не удалось сохранить фон: {error}",
+  "@chat_theme_error_save": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_theme_error_upload": "Ошибка загрузки фона: {error}",
+  "@chat_theme_error_upload": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_theme_delete_title": "Удалить фон из галереи?",
+  "chat_theme_delete_body": "Изображение пропадёт из списка своих фонов. Для этого чата можно выбрать другой.",
+  "chat_theme_error_delete": "Ошибка удаления: {error}",
+  "@chat_theme_error_delete": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_theme_banner": "Фон этой переписки только для вас. Общие настройки чатов в разделе «Настройки чатов» не меняются.",
+  "chat_theme_current_bg": "Текущий фон",
+  "chat_theme_default_global": "По умолчанию (общие настройки)",
+  "chat_theme_presets": "Пресеты",
+  "chat_theme_global_tile": "Общие",
+  "chat_theme_pick_hint": "Выберите пресет или фото из галереи",
+  "contacts_title": "Контакты",
+  "contacts_add_phone_prompt": "Добавьте телефон в профиле, чтобы искать контакты по номеру.",
+  "contacts_fallback_profile": "Профиль",
+  "contacts_fallback_user": "Пользователь",
+  "contacts_status_online": "онлайн",
+  "contacts_status_recently": "Был (а) недавно",
+  "contacts_status_today_at": "Был (а) в {time}",
+  "@contacts_status_today_at": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_status_yesterday": "Был (а) вчера",
+  "contacts_status_year_ago": "Был (а) год назад",
+  "contacts_status_years_ago": "Был (а) {years} назад",
+  "@contacts_status_years_ago": {
+    "placeholders": {
+      "years": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_status_date": "Был (а) {date}",
+  "@contacts_status_date": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_empty_state": "Контакты не найдены.\nНажмите кнопку справа, чтобы синхронизировать телефонную книгу.",
+  "add_contact_title": "Новый контакт",
+  "add_contact_sync_off": "Синхронизация выключена в приложении.",
+  "add_contact_enable_system_access": "Включите доступ к контактам для LighChat в настройках системы.",
+  "add_contact_sync_on": "Синхронизация включена",
+  "add_contact_sync_failed": "Не удалось включить синхронизацию контактов",
+  "add_contact_invalid_phone": "Введите корректный номер телефона",
+  "add_contact_not_found_by_phone": "Контакт по этому номеру не найден",
+  "add_contact_found": "Контакт найден",
+  "add_contact_search_error": "Не удалось выполнить поиск: {error}",
+  "@add_contact_search_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_qr_no_profile": "QR-код не содержит профиль LighChat",
+  "add_contact_qr_own_profile": "Это ваш собственный профиль",
+  "add_contact_qr_profile_not_found": "Профиль из QR-кода не найден",
+  "add_contact_qr_found": "Контакт найден по QR-коду",
+  "add_contact_qr_read_error": "Не удалось прочитать QR-код: {error}",
+  "@add_contact_qr_read_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_cannot_add_user": "Нельзя добавить этого пользователя",
+  "add_contact_add_error": "Не удалось добавить контакт: {error}",
+  "@add_contact_add_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_country_search_hint": "Поиск страны или кода",
+  "add_contact_sync_with_phone": "Синхронизировать с телефоном",
+  "add_contact_add_by_qr": "Добавить по QR-коду",
+  "add_contact_results_unavailable": "Результаты пока недоступны",
+  "add_contact_profile_load_error": "Ошибка загрузки контакта: {error}",
+  "@add_contact_profile_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_profile_not_found": "Профиль не найден",
+  "add_contact_badge_already_added": "Уже в контактах",
+  "add_contact_badge_new": "Новый контакт",
+  "add_contact_badge_unavailable": "Недоступно",
+  "add_contact_open_contact": "Открыть контакт",
+  "add_contact_add_to_contacts": "Добавить в контакты",
+  "add_contact_add_unavailable": "Добавление недоступно",
+  "add_contact_searching": "Ищем контакт...",
+  "add_contact_scan_qr_title": "Сканировать QR-код",
+  "add_contact_flash_tooltip": "Вспышка",
+  "add_contact_scan_qr_hint": "Наведите камеру на QR-код профиля LighChat",
+  "contacts_edit_enter_name": "Введите имя контакта.",
+  "contacts_edit_save_error": "Не удалось сохранить контакт: {error}",
+  "@contacts_edit_save_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_edit_first_name_hint": "Имя",
+  "contacts_edit_last_name_hint": "Фамилия",
+  "contacts_edit_name_disclaimer": "Это имя видно только вам: в чатах, поиске и списке контактов.",
+  "contacts_edit_error": "Ошибка: {error}",
+  "@contacts_edit_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_settings_color_default": "По умолчанию",
+  "chat_settings_color_lilac": "Лиловый",
+  "chat_settings_color_pink": "Розовый",
+  "chat_settings_color_green": "Зелёный",
+  "chat_settings_color_coral": "Коралловый",
+  "chat_settings_color_mint": "Мята",
+  "chat_settings_color_sky": "Небесный",
+  "chat_settings_color_purple": "Фиолетовый",
+  "chat_settings_color_crimson": "Малиновый",
+  "chat_settings_color_tiffany": "Тифани",
+  "chat_settings_color_yellow": "Жёлтый",
+  "chat_settings_color_powder": "Пудра",
+  "chat_settings_color_turquoise": "Бирюза",
+  "chat_settings_color_blue": "Голубой",
+  "chat_settings_color_sunset": "Закат",
+  "chat_settings_color_tender": "Нежный",
+  "chat_settings_color_lime": "Лайм",
+  "chat_settings_color_graphite": "Графит",
+  "chat_settings_color_no_bg": "Без фона",
+  "chat_settings_icon_color": "Цвет иконки",
+  "chat_settings_icon_size": "Размер иконки",
+  "chat_settings_stroke_width": "Толщина линии",
+  "chat_settings_tile_background": "Фон плитки под иконкой",
+  "chat_settings_bottom_nav_icons": "Иконки нижнего меню",
+  "chat_settings_bottom_nav_description": "Выбор иконок и визуального стиля как на вебе.",
+  "chat_settings_bottom_nav_global_description": "Общий слой: цвет, размер, толщина и фон плитки.",
+  "chat_settings_colorful": "Цветные",
+  "chat_settings_minimalism": "Минимализм",
+  "chat_settings_for_all_icons": "Для всех иконок",
+  "chat_settings_customize": "Настроить",
+  "chat_settings_hide": "Скрыть",
+  "chat_settings_reset": "Сброс",
+  "chat_settings_reset_item": "Сбросить",
+  "chat_settings_style": "Стиль",
+  "chat_settings_select": "Выбрать",
+  "chat_settings_reset_size": "Сбросить размер",
+  "chat_settings_reset_stroke": "Сбросить толщину",
+  "chat_settings_default_gradient": "Градиент по умолчанию",
+  "chat_settings_inherit_global": "Наследовать от глобальных",
+  "chat_settings_no_bg_on": "Без фона (вкл.)",
+  "chat_settings_no_bg": "Без фона",
+  "chat_settings_outgoing_messages": "Исходящие сообщения",
+  "chat_settings_incoming_messages": "Входящие сообщения",
+  "chat_settings_font_size": "Размер шрифта",
+  "chat_settings_font_small": "Мелкий",
+  "chat_settings_font_medium": "Средний",
+  "chat_settings_font_large": "Крупный",
+  "chat_settings_bubble_shape": "Форма пузырьков",
+  "chat_settings_bubble_rounded": "Округлённые",
+  "chat_settings_bubble_square": "Квадратные",
+  "chat_settings_chat_background": "Фон чата",
+  "chat_settings_background_hint": "Выберите фото из галереи или настройте",
+  "chat_settings_emoji_effects": "Эффекты эмодзи",
+  "chat_settings_emoji_description": "Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.",
+  "chat_settings_emoji_lite": "Lite: минимум нагрузки и максимально плавно на слабых устройствах.",
+  "chat_settings_emoji_cinematic": "Cinematic: максимум частиц и глубины для вау-эффекта.",
+  "chat_settings_emoji_balanced": "Balanced: автоматический компромисс между производительностью и выразительностью.",
+  "chat_settings_additional": "Дополнительно",
+  "chat_settings_show_time": "Показывать время",
+  "chat_settings_show_time_hint": "Время отправки под сообщениями",
+  "chat_settings_reset_all": "Сбросить настройки",
+  "chat_settings_preview_incoming": "Привет! Как дела?",
+  "chat_settings_preview_outgoing": "Отлично, спасибо!",
+  "chat_settings_preview_hello": "Привет",
+  "chat_settings_icon_picker_title": "Иконка: «{label}»",
+  "@chat_settings_icon_picker_title": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_settings_search_hint": "Поиск по названию (англ.)...",
+  "meeting_tab_participants": "Участники ({count})",
+  "@meeting_tab_participants": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_polls": "Опросы",
+  "meeting_tab_polls_count": "Опросы ({count})",
+  "@meeting_tab_polls_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_chat": "Чат",
+  "meeting_tab_chat_count": "Чат ({count})",
+  "@meeting_tab_chat_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_requests": "Заявки ({count})",
+  "@meeting_tab_requests": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_kick": "Удалить из комнаты",
+  "meeting_file_too_big": "Файл слишком большой: {name}",
+  "@meeting_file_too_big": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_send_error": "Не удалось отправить: {error}",
+  "@meeting_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_save_error": "Не удалось сохранить: {error}",
+  "@meeting_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_delete_error": "Не удалось удалить: {error}",
+  "@meeting_delete_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_no_messages": "Пока нет сообщений",
+  "meeting_join_enter_name": "Укажите имя",
+  "meeting_join_guest": "Гость",
+  "meeting_join_button": "Присоединиться",
+  "meeting_join_load_error": "Ошибка загрузки митинга: {error}",
+  "@meeting_join_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_private_hint": "Приватная встреча: после заявки хост решит, пустить ли вас.",
+  "meeting_public_hint": "Открытая встреча: присоединяйтесь по ссылке без ожидания.",
+  "meeting_name_label": "Ваше имя",
+  "meeting_waiting_title": "Ожидаем подтверждения",
+  "meeting_waiting_subtitle": "Хост увидит вашу заявку и решит, когда впустить.",
+  "meeting_screen_share_ios_hint": "Демонстрация экрана на iOS требует Broadcast Extension (в разработке).",
+  "meeting_screen_share_error": "Не удалось запустить демонстрацию: {error}",
+  "@meeting_screen_share_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_speaker_mode": "Режим спикера",
+  "meeting_grid_mode": "Режим сетки",
+  "meeting_copy_link_tooltip": "Скопировать ссылку (вход с браузера)",
+  "group_members_subtitle_creator": "Создатель группы",
+  "group_members_subtitle_admin": "Администратор",
+  "group_members_subtitle_member": "Участник",
+  "group_members_total_count": "Всего: {count}",
+  "@group_members_total_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "group_members_copy_invite_tooltip": "Скопировать ссылку-приглашение",
+  "group_members_add_member_tooltip": "Добавить участника",
+  "group_members_invite_copied": "Ссылка-приглашение скопирована",
+  "group_members_copy_link_error": "Не удалось скопировать ссылку: {error}",
+  "@group_members_copy_link_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_members_added": "Участники добавлены",
+  "group_members_revoke_admin_title": "Снять права администратора?",
+  "group_members_revoke_admin_body": "У {name} будут сняты права администратора. Участник останется в группе как обычный член.",
+  "@group_members_revoke_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "group_members_grant_admin_title": "Назначить администратором?",
+  "group_members_grant_admin_body": "{name} получит права администратора: сможет редактировать группу, исключать участников и управлять сообщениями.",
+  "@group_members_grant_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "group_members_revoke_admin_action": "Снять права",
+  "group_members_grant_admin_action": "Назначить",
+  "group_members_remove_title": "Исключить участника?",
+  "group_members_remove_body": "{name} будет удалён из группы. Это действие можно отменить, добавив участника заново.",
+  "@group_members_remove_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "group_members_remove_action": "Исключить",
+  "group_members_removed": "Участник исключён",
+  "group_members_menu_revoke_admin": "Снять админа",
+  "group_members_menu_grant_admin": "Сделать админом",
+  "group_members_menu_remove": "Исключить из группы",
+  "group_members_creator_badge": "СОЗДАТЕЛЬ",
+  "group_members_add_title": "Добавить участников",
+  "group_members_search_contacts": "Поиск среди контактов",
+  "group_members_all_in_group": "Все ваши контакты уже в группе.",
+  "group_members_nobody_found": "Никого не найдено.",
+  "group_members_user_fallback": "Пользователь",
+  "group_members_select_members": "Выберите участников",
+  "group_members_add_count": "Добавить ({count})",
+  "@group_members_add_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "group_members_contacts_load_error": "Не удалось загрузить контакты: {error}",
+  "@group_members_contacts_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_members_auth_error": "Ошибка авторизации: {error}",
+  "@group_members_auth_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_members_add_failed": "Не удалось добавить участников: {error}",
+  "@group_members_add_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_not_found": "Группа не найдена.",
+  "group_not_member": "Вы не являетесь участником этой группы.",
+  "poll_create_title": "Опрос в чате",
+  "poll_question_label": "Вопрос",
+  "poll_question_hint": "Например: Во сколько встречаемся?",
+  "poll_description_label": "Пояснение (необязательно)",
+  "poll_options_title": "Варианты",
+  "poll_option_hint": "Вариант {index}",
+  "@poll_option_hint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "poll_add_option": "Добавить вариант",
+  "poll_switch_anonymous": "Анонимное голосование",
+  "poll_switch_anonymous_sub": "Не показывать, кто за что голосовал",
+  "poll_switch_multi": "Несколько ответов",
+  "poll_switch_multi_sub": "Можно выбрать несколько вариантов",
+  "poll_switch_add_options": "Добавление вариантов",
+  "poll_switch_add_options_sub": "Участники могут предложить свой вариант",
+  "poll_switch_revote": "Можно изменить голос",
+  "poll_switch_revote_sub": "Переголосование до закрытия",
+  "poll_switch_shuffle": "Перемешать варианты",
+  "poll_switch_shuffle_sub": "Свой порядок у каждого участника",
+  "poll_switch_quiz": "Режим викторины",
+  "poll_switch_quiz_sub": "Один правильный ответ",
+  "poll_correct_option_label": "Правильный вариант",
+  "poll_quiz_explanation_label": "Пояснение (необязательно)",
+  "poll_close_by_time": "Закрыть по времени",
+  "poll_close_not_set": "Не задано",
+  "poll_close_reset": "Сбросить срок",
+  "poll_publish": "Опубликовать",
+  "poll_error_empty_question": "Введите вопрос",
+  "poll_error_min_options": "Нужно минимум 2 варианта",
+  "poll_error_select_correct": "Выберите правильный вариант",
+  "poll_error_future_time": "Время закрытия должно быть в будущем",
+  "poll_unavailable": "Опрос недоступен",
+  "poll_loading": "Загрузка опроса…",
+  "poll_not_found": "Опрос не найден",
+  "poll_status_cancelled": "Отменён",
+  "poll_status_ended": "Завершён",
+  "poll_status_draft": "Черновик",
+  "poll_status_active": "Активен",
+  "poll_badge_public": "Публично",
+  "poll_badge_multi": "Несколько ответов",
+  "poll_badge_quiz": "Викторина",
+  "poll_menu_restart": "Перезапустить",
+  "poll_menu_end": "Завершить",
+  "poll_menu_delete": "Удалить",
+  "poll_submit_vote": "Отправить голос",
+  "poll_suggest_option_hint": "Предложить вариант",
+  "poll_revote": "Переголосовать",
+  "poll_votes_count": "{count} голосов",
+  "@poll_votes_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "poll_show_voters": "Кто голосовал",
+  "poll_hide_voters": "Скрыть",
+  "poll_vote_error": "Ошибка при голосовании",
+  "poll_add_option_error": "Не удалось добавить вариант",
+  "poll_error_generic": "Ошибка",
+  "durak_your_turn": "Твой ход",
+  "durak_winner_label": "Победитель",
+  "durak_rematch": "Сыграть ещё раз",
+  "durak_surrender_tooltip": "Завершить игру",
+  "durak_close_tooltip": "Закрыть",
+  "durak_fx_took": "Взял",
+  "durak_fx_beat": "Бито",
+  "durak_opponent_role_defend": "БЬЕТ",
+  "durak_opponent_role_attack": "ХОД",
+  "durak_opponent_role_throwin": "ПОДК",
+  "durak_foul_banner_title": "Шулер! Не заметили:",
+  "durak_pending_resolution_attacker": "Ожидание фолла… Нажми «Подтвердить Бито», если все согласны.",
+  "durak_pending_resolution_other": "Ожидание фолла… Теперь можно нажать «Фолл!», если заметил шулерство.",
+  "durak_tournament_played": "Сыграно {finished} из {total}",
+  "@durak_tournament_played": {
+    "placeholders": {
+      "finished": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "durak_tournament_finished": "Турнир завершён",
+  "durak_tournament_next": "Следующая партия турнира",
+  "durak_single_game": "Одиночная партия",
+  "durak_tournament_total_games_title": "Сколько игр в турнире?",
+  "durak_finish_game_tooltip": "Завершить игру",
+  "durak_lobby_game_unavailable": "Игра недоступна или была удалена",
+  "durak_lobby_back_tooltip": "Назад",
+  "durak_lobby_waiting": "Ожидание соперника…",
+  "durak_lobby_start": "Начать игру",
+  "durak_lobby_waiting_short": "Ждём…",
+  "durak_lobby_ready": "Готов",
+  "durak_lobby_empty_slot": "Ждём…",
+  "durak_settings_timer_subtitle": "По умолчанию 15 секунд",
+  "durak_dm_game_active": "Партия \"Дурак\" идёт",
+  "durak_dm_game_created": "Игра \"Дурак\" создана",
+  "game_durak_subtitle": "Одиночная партия или турнир",
+  "group_member_write_dm": "Написать лично",
+  "group_member_open_dm_hint": "Открыть личный чат с участником",
+  "group_member_profile_not_loaded": "Профиль участника ещё не загружен.",
+  "group_member_open_dm_error": "Не удалось открыть личный чат: {error}",
+  "@group_member_open_dm_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_avatar_photo_title": "Фото группы",
+  "group_avatar_add_photo": "Добавить фото",
+  "group_avatar_change": "Сменить аватар",
+  "group_avatar_remove": "Убрать аватар",
+  "group_avatar_process_error": "Не удалось обработать фото: {error}",
+  "@group_avatar_process_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_mention_no_matches": "Нет совпадений",
+  "durak_error_defense_does_not_beat": "Эта карта не бьет атакующую",
+  "durak_error_only_attacker_first": "Первым ходит атакующий игрок",
+  "durak_error_defender_cannot_attack": "Отбивающийся сейчас не подкидывает",
+  "durak_error_not_allowed_throwin": "Вы не можете подкинуть в этом раунде",
+  "durak_error_throwin_not_your_turn": "Сейчас подкидывает другой игрок",
+  "durak_error_rank_not_allowed": "Подкинуть можно только карту того же ранга",
+  "durak_error_cannot_throw_in": "Больше карт подкинуть нельзя",
+  "durak_error_card_not_in_hand": "Этой карты уже нет в руке",
+  "durak_error_already_defended": "Эта карта уже отбита",
+  "durak_error_bad_attack_index": "Выберите атакующую карту для защиты",
+  "durak_error_only_defender": "Сейчас отбивается другой игрок",
+  "durak_error_defender_already_taking": "Отбивающийся уже берет карты",
+  "durak_error_game_not_active": "Партия уже не активна",
+  "durak_error_not_in_lobby": "Лобби уже стартовало",
+  "durak_error_game_already_active": "Партия уже началась",
+  "durak_error_active_game_exists": "В этом чате уже есть активная партия",
+  "durak_error_resolution_pending": "Сначала завершите спорный ход",
+  "durak_error_rematch_failed": "Не удалось подготовить реванш. Попробуйте еще раз",
+  "durak_error_unauthenticated": "Нужно войти в аккаунт",
+  "durak_error_permission_denied": "Это действие вам недоступно",
+  "durak_error_invalid_argument": "Некорректный ход",
+  "durak_error_failed_precondition": "Ход сейчас недоступен",
+  "durak_error_server": "Не удалось выполнить ход. Попробуйте еще раз",
+  "pinned_count": "Закреплено: {count}",
+  "@pinned_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pinned_single": "Закреплено",
+  "pinned_unpin_tooltip": "Открепить",
+  "pinned_type_image": "Изображение",
+  "pinned_type_video": "Видео",
+  "pinned_type_video_circle": "Видеокружок",
+  "pinned_type_voice": "Голосовое сообщение",
+  "pinned_type_poll": "Опрос",
+  "pinned_type_link": "Ссылка",
+  "pinned_type_location": "Локация",
+  "pinned_type_sticker": "Стикер",
+  "pinned_type_file": "Файл",
+  "call_entry_login_required_title": "Необходим вход",
+  "call_entry_login_required_subtitle": "Откройте приложение и войдите в аккаунт.",
+  "call_entry_not_found_title": "Звонок не найден",
+  "call_entry_not_found_subtitle": "Вызов уже завершён или удалён. Возвращаемся к звонкам…",
+  "call_entry_to_calls": "К звонкам",
+  "call_entry_ended_title": "Звонок завершён",
+  "call_entry_ended_subtitle": "Этот вызов уже недоступен. Возвращаемся к звонкам…",
+  "call_entry_caller_fallback": "Собеседник",
+  "call_entry_opening_title": "Открываем звонок…",
+  "call_entry_connecting_video": "Подключение к видеозвонку",
+  "call_entry_connecting_audio": "Подключение к аудиозвонку",
+  "call_entry_loading_subtitle": "Загрузка данных вызова",
+  "call_entry_error_title": "Ошибка открытия звонка",
+  "chat_theme_save_error": "Не удалось сохранить фон: {error}",
+  "@chat_theme_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_load_error": "Ошибка загрузки фона: {error}",
+  "@chat_theme_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_delete_error": "Ошибка удаления: {error}",
+  "@chat_theme_delete_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_description": "Фон этой переписки только для вас. Общие настройки чатов в разделе «Настройки чатов» не меняются.",
+  "chat_theme_default_bg": "По умолчанию (общие настройки)",
+  "chat_theme_global_label": "Общие",
+  "chat_theme_hint": "Выберите пресет или фото из галереи",
+  "date_today": "Сегодня",
+  "date_yesterday": "Вчера",
+  "date_month_1": "января",
+  "date_month_2": "февраля",
+  "date_month_3": "марта",
+  "date_month_4": "апреля",
+  "date_month_5": "мая",
+  "date_month_6": "июня",
+  "date_month_7": "июля",
+  "date_month_8": "августа",
+  "date_month_9": "сентября",
+  "date_month_10": "октября",
+  "date_month_11": "ноября",
+  "date_month_12": "декабря",
+  "video_circle_camera_unavailable": "Камера недоступна",
+  "video_circle_camera_error": "Не удалось открыть камеру: {error}",
+  "@video_circle_camera_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_record_error": "Ошибка записи: {error}",
+  "@video_circle_record_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_file_not_found": "Файл записи не найден",
+  "video_circle_play_error": "Не удалось воспроизвести запись",
+  "video_circle_send_error": "Не удалось отправить: {error}",
+  "@video_circle_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_switch_error": "Не удалось переключить камеру: {error}",
+  "@video_circle_switch_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_pause_error_detail": "Пауза записи недоступна: {description} ({code})",
+  "@video_circle_pause_error_detail": {
+    "placeholders": {
+      "description": {},
+      "code": {}
+    }
+  },
+  "video_circle_pause_error": "Пауза записи: {error}",
+  "@video_circle_pause_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_camera_fallback_error": "Ошибка камеры",
+  "video_circle_retry": "Повторить",
+  "video_circle_sending": "Отправка...",
+  "video_circle_recorded": "Кружок записан",
+  "video_circle_swipe_cancel": "Влево - отмена",
+  "media_screen_error": "Ошибка загрузки медиа: {error}",
+  "@media_screen_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_screen_title": "Медиа, ссылки и файлы",
+  "media_tab_media": "Медиа",
+  "media_tab_circles": "Кружки",
+  "media_tab_files": "Файлы",
+  "media_tab_links": "Ссылки",
+  "media_empty_files": "Нет файлов",
+  "media_empty_media": "Нет медиа",
+  "media_attachment_fallback": "Вложение",
+  "media_empty_circles": "Нет кружков",
+  "media_empty_links": "Нет ссылок",
+  "media_sender_you": "Вы",
+  "media_sender_fallback": "Участник",
+  "call_detail_login_required": "Необходим вход.",
+  "call_detail_not_found": "Звонок не найден или нет доступа.",
+  "call_detail_unknown": "Неизвестный",
+  "call_detail_title": "Сведения о звонке",
+  "call_detail_video": "Видеозвонок",
+  "call_detail_audio": "Аудиозвонок",
+  "call_detail_outgoing": "Исходящий",
+  "call_detail_incoming": "Входящий",
+  "call_detail_date_label": "Дата:",
+  "call_detail_duration_label": "Длительность:",
+  "call_detail_call_button": "Позвонить",
+  "call_detail_video_button": "Видео",
+  "call_detail_error": "Ошибка: {error}",
+  "@call_detail_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "durak_took": "Взял",
+  "durak_beaten": "Бито",
+  "durak_end_game_tooltip": "Завершить игру",
+  "durak_role_beats": "БЬЕТ",
+  "durak_role_move": "ХОД",
+  "durak_role_throw": "ПОДК",
+  "durak_cheater_label": "Шулер! Не заметили:",
+  "durak_waiting_foll_confirm": "Ожидание фолла… Нажми «Подтвердить Бито», если все согласны.",
+  "durak_waiting_foll_call": "Ожидание фолла… Теперь можно нажать «Фолл!», если заметил шулерство.",
+  "durak_winner": "Победитель",
+  "durak_play_again": "Сыграть ещё раз",
+  "durak_games_progress": "Сыграно {finished} из {total}",
+  "@durak_games_progress": {
+    "placeholders": {
+      "finished": {},
+      "total": {}
+    }
+  },
+  "durak_next_round": "Следующая партия турнира",
+  "audio_call_error": "Ошибка звонка: {error}",
+  "@audio_call_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "audio_call_ended": "Звонок завершён",
+  "audio_call_missed": "Пропущенный звонок",
+  "audio_call_cancelled": "Звон��к отменен",
+  "audio_call_offer_not_ready": "Оффер ещё не готов, попробуйте снова",
+  "audio_call_invalid_data": "Некорректные данные звонка",
+  "audio_call_accept_error": "Не удалось принять звонок: {error}",
+  "@audio_call_accept_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "audio_call_incoming": "Входящий аудиозвонок",
+  "audio_call_calling": "Аудиозвонок…",
+  "privacy_save_error": "Не удалось сохранить настройки: {error}",
+  "@privacy_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_load_error": "Ошибка загрузки приватности: {error}",
+  "@privacy_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_visibility": "Видимость",
+  "privacy_online_status": "Статус онлайн",
+  "privacy_last_visit": "Последний визит",
+  "privacy_read_receipts": "Индикатор прочтения",
+  "privacy_profile_info": "Информация профиля",
+  "privacy_phone_number": "Номер телефона",
+  "privacy_birthday": "Дата рождения",
+  "privacy_about": "О себе",
+  "starred_load_error": "Ошибка загрузки избранного: {error}",
+  "@starred_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "starred_title": "Избранное",
+  "starred_empty": "В этом чате нет избранных сообщений",
+  "starred_message_fallback": "Сообщение",
+  "starred_sender_you": "Вы",
+  "starred_sender_fallback": "Участник",
+  "starred_type_poll": "Опрос",
+  "starred_type_location": "Локация",
+  "starred_type_attachment": "Вложение",
+  "starred_today_prefix": "Сегодня, {time}",
+  "@starred_today_prefix": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "contact_edit_name_required": "Введите имя контакта.",
+  "contact_edit_save_error": "Не удалось сохранить контакт: {error}",
+  "@contact_edit_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "contact_edit_user_fallback": "Пользователь",
+  "contact_edit_first_name_hint": "Имя",
+  "contact_edit_last_name_hint": "Фамилия",
+  "contact_edit_description": "Это имя видно только вам: в чатах, поиске и списке контактов.",
+  "contact_edit_error": "Ошибка: {error}",
+  "@contact_edit_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "voice_no_mic_access": "Не�� доступа к микрофону",
+  "voice_start_error": "Не удалось начать запись",
+  "voice_file_not_received": "Файл записи не получен",
+  "voice_stop_error": "Не удалось завершить запись",
+  "voice_title": "Голосовое сообщение",
+  "voice_recording": "Идёт запись",
+  "voice_ready": "Запись готова",
+  "voice_stop_button": "Остановить",
+  "voice_record_again": "Записать снова",
+  "attach_photo_video": "Фото/Видео",
+  "attach_files": "Файлы",
+  "attach_circle": "Кружок",
+  "attach_location": "Локация",
+  "attach_poll": "Опрос",
+  "attach_stickers": "Стикеры",
+  "attach_clipboard": "Буфер",
+  "attach_text": "Текст",
+  "attach_title": "Прикрепить",
+  "notif_save_error": "Не удалось сохранить: {error}",
+  "@notif_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notif_title": "Уведомления в этом чате",
+  "notif_description": "Настройки ниже действуют только для этой беседы и не меняют общие уведомления приложения.",
+  "notif_this_chat": "Этот чат",
+  "notif_mute_title": "Без звука и скрытые оповещения",
+  "notif_mute_subtitle": "Не беспокоить по этому чату на этом устройстве.",
+  "notif_preview_title": "Показывать превью текста",
+  "notif_preview_subtitle": "Если выключено — заголовок без фрагмента сообщения (где это поддерживается).",
+  "poll_create_enter_question": "Введите вопрос",
+  "poll_create_min_options": "Нужно минимум 2 варианта",
+  "poll_create_select_correct": "Выберите правильный вариант",
+  "poll_create_future_time": "Время закрытия должно быть в будущем",
+  "poll_create_question_label": "Вопрос",
+  "poll_create_question_hint": "Например: Во сколько встречаемся?",
+  "poll_create_explanation_label": "Пояснение (необязательно)",
+  "poll_create_options_title": "Варианты",
+  "poll_create_option_hint": "Вариант {index}",
+  "@poll_create_option_hint": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "poll_create_add_option": "Добавить вариант",
+  "poll_create_anonymous_title": "Анонимное голосование",
+  "poll_create_anonymous_subtitle": "Не показывать, кто за что голосовал",
+  "poll_create_multi_title": "Несколько ответов",
+  "poll_create_multi_subtitle": "Можно выбрать несколько вариантов",
+  "poll_create_user_options_title": "Добавление вариантов",
+  "poll_create_user_options_subtitle": "Участники могут предложить свой вариант",
+  "poll_create_revote_title": "Можно изменить голос",
+  "poll_create_revote_subtitle": "Переголосование до закрытия",
+  "poll_create_shuffle_title": "Перемешать варианты",
+  "poll_create_shuffle_subtitle": "Свой порядок у каждого участника",
+  "poll_create_quiz_title": "Режим викторины",
+  "poll_create_quiz_subtitle": "Один правильный ответ",
+  "poll_create_correct_option_label": "Правильный вариант",
+  "poll_create_close_by_time": "Закрыть по времени",
+  "poll_create_not_set": "Не задано",
+  "poll_create_reset_deadline": "Сбросить срок",
+  "poll_create_publish": "Опубликовать",
+  "poll_error": "Ошибка",
+  "poll_status_finished": "Завершён",
+  "poll_restart": "Перезапустить",
+  "poll_finish": "Завершить",
+  "poll_suggest_hint": "Предложить вариант",
+  "poll_voters_toggle_hide": "Скрыть",
+  "poll_voters_toggle_show": "Кто голосовал",
+  "e2ee_disable_title": "Отключить шифрование?",
+  "e2ee_disable_body": "Новые сообщения пойдут без сквозного шифрования. Ранее отправленные зашифрованные сообщения останутся в ленте.",
+  "e2ee_disable_button": "Отключить",
+  "e2ee_disable_error": "Не удалось отключить: {error}",
+  "@e2ee_disable_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_screen_title": "Шифрование",
+  "e2ee_enabled_description": "Сквозное шифрование включено для этого чата.",
+  "e2ee_disabled_description": "Сквозное шифрование выключено.",
+  "e2ee_info_text": "Когда шифрование включено, содержимое новых сообщений доступно только участникам чата на их устройствах. Отключение влияет только на новые сообщения.",
+  "e2ee_enable_title": "Включить шифрование",
+  "e2ee_status_enabled": "Включено (эпоха ключа: {epoch})",
+  "@e2ee_status_enabled": {
+    "placeholders": {
+      "epoch": {}
+    }
+  },
+  "e2ee_status_disabled": "Выключено",
+  "e2ee_data_types_title": "Типы данных",
+  "e2ee_data_types_info": "Настройка не меняет протокол. Она управляет тем, какие типы данных отправлять в зашифрованном виде.",
+  "e2ee_chat_settings_title": "Настройки шифрования для этого чата",
+  "e2ee_chat_settings_override": "Используются чатовые настройки.",
+  "e2ee_chat_settings_global": "Наследуются глобальные настройки.",
+  "e2ee_text_messages": "Текст сообщений",
+  "e2ee_attachments": "Вложения (медиа/файлы)",
+  "e2ee_override_hint": "Чтобы изменить для этого чата — включите «Переопределить».",
+  "group_member_fallback": "Участник",
+  "group_role_creator": "Создатель группы",
+  "group_role_admin": "Администратор",
+  "group_total_count": "Всего: {count}",
+  "@group_total_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "group_copy_invite_tooltip": "Скопировать ссылку-приглашение",
+  "group_add_member_tooltip": "Добавить участника",
+  "group_invite_copied": "Ссылка-приглашение скопирована",
+  "group_copy_invite_error": "Не удалось скопировать ссылку: {error}",
+  "@group_copy_invite_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_demote_confirm": "Снять права администратора?",
+  "group_promote_confirm": "Назначить администратором?",
+  "group_demote_body": "У {name} будут сняты права администратора. Участник останется в группе как обычный член.",
+  "@group_demote_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "group_demote_button": "Снять права",
+  "group_promote_button": "Назначить",
+  "group_kick_confirm": "Исключить участника?",
+  "group_kick_button": "Исключить",
+  "group_member_kicked": "Участник исключён",
+  "group_badge_creator": "СО��ДАТЕЛЬ",
+  "group_demote_action": "Снять админа",
+  "group_promote_action": "Сделать админом",
+  "group_kick_action": "Исключить из группы",
+  "group_contacts_load_error": "Не удалось загрузить контакты: {error}",
+  "@group_contacts_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_add_members_title": "Добавить участников",
+  "group_search_contacts_hint": "Поиск среди конта��тов",
+  "group_all_contacts_in_group": "Все ваши контакты уже в группе.",
+  "group_nobody_found": "Никого не найдено.",
+  "group_user_fallback": "Пользователь",
+  "group_select_members": "Выберите участников",
+  "group_add_count": "Добавить ({count})",
+  "@group_add_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "group_auth_error": "Ошибка авторизации: {error}",
+  "@group_auth_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_add_error": "Не удалось добавить участников: {error}",
+  "@group_add_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_own_profile": "Это ваш собственный профиль",
+  "add_contact_qr_not_found": "��рофиль из QR-кода не найден",
+  "add_contact_qr_error": "Не удалось прочитать QR-код: {error}",
+  "@add_contact_qr_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_not_allowed": "Нельзя добавить этого пользователя",
+  "add_contact_save_error": "Не удалось добавить контакт: {error}",
+  "@add_contact_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_country_search": "Поиск страны или кода",
+  "add_contact_sync_phone": "С��нхронизировать с телефоном",
+  "add_contact_qr_button": "Д��бавить по QR-коду",
+  "add_contact_load_error": "Ошибка загрузки контакта: {error}",
+  "@add_contact_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_user_fallback": "Пользователь",
+  "add_contact_already_in_contacts": "Уже в контактах",
+  "add_contact_new": "Новый контакт",
+  "add_contact_unavailable": "Недоступно",
+  "add_contact_scan_qr": "Сканировать QR-код",
+  "add_contact_scan_hint": "Наведите камеру на QR-код профиля LighChat",
+  "auth_validate_name_min_length": "Имя должно быть не менее 2 символов",
+  "auth_validate_username_min_length": "Имя пользователя должно быть не менее 3 символов",
+  "auth_validate_username_max_length": "Имя пользователя не должно превышать 30 символов",
+  "auth_validate_username_format": "Имя пользователя содержит недопустимые символы",
+  "auth_validate_phone_11_digits": "Номер телефона должен содержать 11 цифр",
+  "auth_validate_email_format": "Введите корректный email",
+  "auth_validate_dob_invalid": "Некорректная дата рождения",
+  "auth_validate_bio_max_length": "Описание не должно превышать 200 символов",
+  "auth_validate_password_min_length": "Пароль должен быть не менее 6 символов",
+  "auth_validate_passwords_mismatch": "Пароли не совпадают",
+  "@sticker_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@sticker_gif_searched": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "@system_event_e2ee_enabled": {
+    "placeholders": {
+      "epoch": {}
+    }
+  },
+  "@system_event_member_added": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "@system_event_member_removed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "@system_event_member_left": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "@system_event_name_changed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "sticker_new_pack": "Новый пак…",
+  "sticker_select_image_or_gif": "Выберите изображение или GIF",
+  "sticker_send_error": "Не удалось отправить: {error}",
+  "sticker_saved": "Сохранено в стикерпак",
+  "sticker_save_failed": "Не удалось скачать или сохранить GIF",
+  "sticker_tab_my": "Мои",
+  "sticker_tab_shared": "Общие",
+  "sticker_no_packs": "Нет стикерпаков. Создайте новый.",
+  "sticker_shared_not_configured": "Общие паки не настроены",
+  "sticker_recent": "НЕДАВНИЕ",
+  "sticker_gallery_description": "Фото, PNG, GIF с устройства — сразу в чат",
+  "sticker_shared_unavailable": "Общие паки пока недоступны",
+  "sticker_gif_search_hint": "Поиск GIF…",
+  "sticker_gif_searched": "Искали: {query}",
+  "sticker_gif_search_unavailable": "Поиск GIF временно недоступен.",
+  "sticker_gif_nothing_found": "Ничего не найдено",
+  "sticker_gif_all": "Все",
+  "sticker_gif_animated": "АНИМИРОВАННЫЕ",
+  "sticker_emoji_text_unavailable": "Эмодзи в текст недоступны для этого окна.",
+  "wallpaper_sender": "Собеседник",
+  "wallpaper_incoming": "Это входящее сообщение.",
+  "wallpaper_outgoing": "Это исходящее сообщение.",
+  "wallpaper_incoming_time": "11:40",
+  "wallpaper_outgoing_time": "11:41",
+  "wallpaper_system": "Вы сменили обои чата",
+  "wallpaper_you": "Вы",
+  "wallpaper_today": "Сегодня",
+  "system_event_e2ee_enabled": "Сквозное шифрование включено (эпоха ключа: {epoch})",
+  "system_event_e2ee_disabled": "Сквозное шифрование отключено",
+  "system_event_unknown": "Системное событие",
+  "system_event_group_created": "Группа создана",
+  "system_event_member_added": "{name} добавлен(а)",
+  "system_event_member_removed": "{name} удалён(а)",
+  "system_event_member_left": "{name} покинул(а) группу",
+  "system_event_name_changed": "Название изменено на «{name}»",
+  "image_editor_title": "Редактор",
+  "image_editor_undo": "Отменить",
+  "image_editor_clear": "Очистить",
+  "image_editor_pen": "Кисть",
+  "image_editor_text": "Текст",
+  "image_editor_crop": "Кадрирование",
+  "image_editor_rotate": "Поворот",
+  "location_title": "Отправить местоположение",
+  "location_loading": "Загрузка карты…",
+  "location_send_button": "Отправить",
+  "location_live_label": "Трансляция",
+  "location_error": "Не удалось загрузить карту",
+  "location_no_permission": "Нет доступа к местоположению",
+  "group_member_admin": "Администратор",
+  "group_member_creator": "Создатель",
+  "group_member_member": "Участник",
+  "group_member_open_chat": "Написать",
+  "group_member_open_profile": "Профиль",
+  "group_member_remove": "Исключить",
+  "durak_lobby_title": "Дурак",
+  "durak_lobby_new_game": "Новая игра",
+  "durak_lobby_decline": "Отклонить",
+  "durak_lobby_accept": "Принять",
+  "durak_lobby_invite_sent": "Приглашение отправлено",
+  "voice_preview_cancel": "Отмена",
+  "voice_preview_send": "Отправить",
+  "voice_preview_recorded": "Записано",
+  "voice_preview_playing": "Воспроизведение…",
+  "voice_preview_paused": "Пауза",
+  "group_avatar_camera": "Камера",
+  "group_avatar_gallery": "Галерея",
+  "group_avatar_upload_error": "Ошибка загрузки",
+  "avatar_picker_title": "Аватар",
+  "avatar_picker_camera": "Камера",
+  "avatar_picker_gallery": "Галерея",
+  "avatar_picker_crop": "Обрезка",
+  "avatar_picker_save": "Сохранить",
+  "avatar_picker_remove": "Удалить аватар",
+  "avatar_picker_error": "Не удалось загрузить аватар",
+  "avatar_picker_crop_error": "Ошибка обрезки",
+  "webview_telegram_title": "Вход через Telegram",
+  "webview_telegram_loading": "Загрузка…",
+  "webview_telegram_error": "Не удалось загрузить страницу",
+  "webview_telegram_back": "Назад",
+  "webview_telegram_retry": "Повторить",
+  "webview_telegram_close": "Закрыть",
+  "webview_telegram_no_url": "Не указан URL для авторизации",
+  "webview_yandex_title": "Вход через Яндекс",
+  "webview_yandex_loading": "Загрузка…",
+  "webview_yandex_error": "Не удалось загрузить страницу",
+  "webview_yandex_back": "Назад",
+  "webview_yandex_retry": "Повторить",
+  "webview_yandex_close": "Закрыть",
+  "webview_yandex_no_url": "Не указан URL для авторизации",
+  "google_profile_title": "Заполните профиль",
+  "google_profile_name": "Имя",
+  "google_profile_username": "Имя пользователя",
+  "google_profile_phone": "Телефон",
+  "google_profile_email": "Email",
+  "google_profile_dob": "Дата рождения",
+  "google_profile_bio": "О себе",
+  "google_profile_save": "Сохранить",
+  "google_profile_error": "Не удалось сохранить профиль",
+  "system_event_e2ee_epoch_rotated": "Ключ шифрования обновлён",
+  "system_event_e2ee_device_added": "{actor} добавил устройство «{device}»",
+  "@system_event_e2ee_device_added": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_device_revoked": "{actor} отозвал устройство «{device}»",
+  "@system_event_e2ee_device_revoked": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_fingerprint_changed": "Отпечаток безопасности у {actor} изменился",
+  "@system_event_e2ee_fingerprint_changed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_game_lobby_created": "Создано лобби игры",
+  "system_event_game_started": "Игра началась",
+  "system_event_default_actor": "Пользователь",
+  "system_event_default_device": "устройство",
+  "image_editor_add_caption": "Добавить подпись...",
+  "image_editor_crop_failed": "Не удалось обрезать изображение",
+  "image_editor_draw_hint": "Режим рисования: проведите пальцем по изображению",
+  "image_editor_crop_title": "Обрезка",
+  "location_preview_title": "Местоположение",
+  "location_preview_accuracy_unknown": "Точность: —",
+  "location_preview_accuracy_meters": "Точность: ~{meters} м",
+  "@location_preview_accuracy_meters": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "location_preview_accuracy_km": "Точность: ~{km} км",
+  "@location_preview_accuracy_km": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_profile_default_name": "Участник",
+  "group_member_profile_dm": "Написать лично",
+  "group_member_profile_dm_hint": "Открыть личный чат с участником",
+  "group_member_profile_dm_failed": "Не удалось открыть личный чат: {error}",
+  "@group_member_profile_dm_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "conversation_game_lobby_unavailable": "Игра недоступна или была удалена",
+  "conversation_game_lobby_back": "Назад",
+  "conversation_game_lobby_waiting": "Ждём, пока подключится соперник…",
+  "conversation_game_lobby_start_game": "Начать игру",
+  "conversation_game_lobby_waiting_short": "Ждём…",
+  "conversation_game_lobby_ready": "Готов",
+  "voice_preview_trim_confirm_title": "Оставить только выбранный фрагмент?",
+  "voice_preview_trim_confirm_body": "Всё, кроме выделенного фрагмента, будет удалено. Запись сообщения продолжится сразу после нажатия кнопки.",
+  "voice_preview_continue": "Продолжить",
+  "voice_preview_continue_recording": "Продолжить запись",
+  "group_avatar_change_short": "Сменить",
+  "avatar_picker_cancel": "Отмена",
+  "avatar_picker_choose": "Выбрать аватар",
+  "avatar_picker_delete_photo": "Удалить фото",
+  "avatar_picker_loading": "Загрузка…",
+  "avatar_picker_choose_avatar": "Выбрать аватар",
+  "avatar_picker_change_avatar": "Сменить аватар",
+  "avatar_picker_remove_tooltip": "Убрать",
+  "telegram_sign_in_title": "Вход через Telegram",
+  "telegram_sign_in_open_in_browser": "Открыть в браузере",
+  "telegram_sign_in_open_telegram_failed": "Не удалось открыть Telegram. Установите приложение Telegram.",
+  "telegram_sign_in_page_load_error": "Ошибка загрузки страницы",
+  "telegram_sign_in_login_error": "Ошибка входа через Telegram.",
+  "telegram_sign_in_firebase_not_ready": "Firebase не готов.",
+  "telegram_sign_in_browser_failed": "Не удалось открыть браузер.",
+  "telegram_sign_in_login_failed": "Не удалось войти: {error}",
+  "@telegram_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "yandex_sign_in_title": "Вход через Яндекс",
+  "yandex_sign_in_open_in_browser": "Открыть в браузере",
+  "yandex_sign_in_page_load_error": "Ошибка загрузки страницы",
+  "yandex_sign_in_login_error": "Ошибка входа через Яндекс.",
+  "yandex_sign_in_firebase_not_ready": "Firebase не готов.",
+  "yandex_sign_in_browser_failed": "Не удалось открыть браузер.",
+  "yandex_sign_in_login_failed": "Не удалось войти: {error}",
+  "@yandex_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "google_complete_title": "Завершите регистрацию",
+  "google_complete_subtitle": "После входа через Google нужно заполнить профиль, как в веб-версии.",
+  "google_complete_name_label": "Имя",
+  "google_complete_username_label": "Логин (@username)",
+  "google_complete_phone_label": "Телефон (11 цифр)",
+  "google_complete_email_label": "Email",
+  "google_complete_email_hint": "you@example.com",
+  "google_complete_dob_label": "Дата рождения (YYYY-MM-DD, опционально)",
+  "google_complete_bio_label": "О себе (до 200 символов, опционально)",
+  "google_complete_save": "Сохранить и продолжить",
+  "google_complete_back": "Вернуться к авторизации",
+  "game_error_defense_not_beat": "Эта карта не бьет атакующую",
+  "game_error_attacker_first": "Первым ходит атакующий игрок",
+  "game_error_defender_no_attack": "Отбивающийся сейчас не подкидывает",
+  "game_error_not_allowed_throwin": "Вы не можете подкинуть в этом раунде",
+  "game_error_throwin_not_turn": "Сейчас подкидывает другой игрок",
+  "game_error_rank_not_allowed": "Подкинуть можно только карту того же ранга",
+  "game_error_cannot_throw_in": "Больше карт подкинуть нельзя",
+  "game_error_card_not_in_hand": "Этой карты уже нет в руке",
+  "game_error_already_defended": "Эта карта уже отбита",
+  "game_error_bad_attack_index": "Выберите атакующую карту для защиты",
+  "game_error_only_defender": "Сейчас отбивается другой игрок",
+  "game_error_defender_taking": "Отбивающийся уже берет карты",
+  "game_error_game_not_active": "Партия уже не активна",
+  "game_error_not_in_lobby": "Лобби уже стартовало",
+  "game_error_game_already_active": "Партия уже началась",
+  "game_error_active_exists": "В этом чате уже есть активная партия",
+  "game_error_round_pending": "Сначала завершите спорный ход",
+  "game_error_rematch_failed": "Не удалось подготовить реванш. Попробуйте ��ще раз",
+  "game_error_unauthenticated": "Нужно войти в аккаунт",
+  "game_error_permission_denied": "Это действие вам недоступно",
+  "game_error_invalid_argument": "Некорректный ход",
+  "game_error_precondition": "Ход сейчас недоступен",
+  "game_error_server": "Не удалось выполнить ход. Попробуйте еще раз",
+  "reply_sticker": "Стикер",
+  "reply_gif": "GIF",
+  "reply_video_circle": "Кружок",
+  "reply_voice_message": "Голосовое сообщение",
+  "reply_video": "Видео",
+  "reply_photo": "Фотография",
+  "reply_file": "Файл",
+  "reply_location": "Локация",
+  "reply_poll": "Опрос",
+  "reply_link": "Ссылка",
+  "reply_message": "Сообщение",
+  "reply_sender_you": "Вы",
+  "reply_sender_member": "Участник",
+  "call_format_today": "Сегодня",
+  "call_format_yesterday": "Вчера",
+  "call_format_second_short": "с",
+  "call_format_minute_short": "м",
+  "call_format_hour_short": "ч",
+  "call_format_day_short": "д",
+  "call_month_january": "января",
+  "call_month_february": "февраля",
+  "call_month_march": "марта",
+  "call_month_april": "апреля",
+  "call_month_may": "мая",
+  "call_month_june": "июня",
+  "call_month_july": "июля",
+  "call_month_august": "августа",
+  "call_month_september": "сентября",
+  "call_month_october": "октября",
+  "call_month_november": "ноября",
+  "call_month_december": "декабря",
+  "push_incoming_call": "Входящий звонок",
+  "push_incoming_video_call": "Входящий видеозвонок",
+  "push_new_message": "Новое сообщение",
+  "push_channel_calls": "Звонки",
+  "push_channel_messages": "Сообщения",
+  "contacts_years_one": "{count} год",
+  "@contacts_years_one": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_few": "{count} года",
+  "@contacts_years_few": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_many": "{count} лет",
+  "@contacts_years_many": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_other": "{count} years",
+  "@contacts_years_other": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "durak_entry_single_game": "Одиночная партия",
+  "durak_entry_finish_game_tooltip": "Завершить игру",
+  "durak_entry_tournament_games_dialog_title": "Сколько игр в турнире?",
+  "durak_entry_cancel": "Отмена",
+  "durak_entry_create": "Создать",
+  "video_editor_load_failed": "Не удалось загрузить видео: {error}",
+  "@video_editor_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_process_failed": "Не удалось обработать видео: {error}",
+  "@video_editor_process_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_duration": "Длительность: {duration}",
+  "@video_editor_duration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "video_editor_brush": "Кисть",
+  "video_editor_caption_hint": "Добавить подпись...",
+  "share_location_title": "Поделиться геолокацией",
+  "share_location_how": "Как делиться",
+  "share_location_cancel": "Отмена",
+  "share_location_send": "Отправить",
+  "photo_source_gallery": "Галерея",
+  "photo_source_take_photo": "Сделать фото",
+  "photo_source_record_video": "Записать видео",
+  "video_attachment_media_kind": "видео",
+  "video_attachment_title": "Видео",
+  "video_attachment_playback_error": "Не удалось воспроизвести видео. Проверьте ссылку и сеть.",
+  "location_card_broadcast_ended_mine": "Трансляция геолокации завершена. Собеседник больше не видит ваше актуальное местоположение.",
+  "location_card_broadcast_ended_other": "Трансляция геолокации у этого контакта завершена. Актуальная позиция недоступна.",
+  "location_card_title": "Местоположение",
+  "location_card_accuracy": "±{meters} м",
+  "@location_card_accuracy": {
+    "placeholders": {
+      "meters": {}
+    }
+  },
+  "link_webview_copy_tooltip": "Скопировать ссылку",
+  "link_webview_copied_snackbar": "Ссылка скопирована",
+  "link_webview_open_browser_tooltip": "Открыть в браузере",
+  "hold_record_pause": "Пауза",
+  "hold_record_release_cancel": "Отпустите — отмена",
+  "hold_record_slide_hints": "Влево — отмена · Вверх — пауза",
+  "e2ee_badge_loading": "Загружаем отпечаток…",
+  "e2ee_badge_error": "Не удалось получить отпечаток: {error}",
+  "@e2ee_badge_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_badge_label": "Отпечаток E2EE",
+  "e2ee_badge_label_with_user": "Отпечаток E2EE • {user}",
+  "@e2ee_badge_label_with_user": {
+    "placeholders": {
+      "user": {}
+    }
+  },
+  "e2ee_badge_devices": "{count} устр.",
+  "@e2ee_badge_devices": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "composer_link_cancel": "Отмена",
+  "message_search_results_count": "РЕЗУЛЬТАТЫ ПОИСКА: {count}",
+  "@message_search_results_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "message_search_not_found": "НИЧЕГО НЕ НАЙДЕНО",
+  "message_search_participant_fallback": "Участник",
+  "wallpaper_purple": "Фиолетовый",
+  "wallpaper_pink": "Розовый",
+  "wallpaper_blue": "Голубой",
+  "wallpaper_green": "Зелёный",
+  "wallpaper_sunset": "Закат",
+  "wallpaper_tender": "Нежный",
+  "wallpaper_lime": "Лайм",
+  "wallpaper_graphite": "Графит",
+  "avatar_crop_title": "Настройка аватара",
+  "avatar_crop_hint": "Перетащите и масштабируйте — так круг будет в списках и сообщениях; полный кадр остаётся для профиля.",
+  "avatar_crop_cancel": "Отмена",
+  "avatar_crop_reset": "Сбросить",
+  "avatar_crop_save": "Сохранить",
+  "meeting_entry_connecting": "Подключаемся к митингу…",
+  "meeting_entry_auth_failed": "Не удалось войти: {error}",
+  "@meeting_entry_auth_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_entry_participant_fallback": "Участник",
+  "meeting_entry_back": "Назад",
+  "meeting_chat_copy": "Копировать",
+  "meeting_chat_edit": "Изменить",
+  "meeting_chat_delete": "Удалить",
+  "meeting_chat_deleted": "Сообщение удалено",
+  "meeting_chat_edited_mark": "• изм.",
+  "e2ee_decrypt_image_failed": "Не удалось расшифровать изображение",
+  "e2ee_decrypt_video_failed": "Не удалось расшифровать видео",
+  "e2ee_decrypt_audio_failed": "Не удалось расшифровать аудио",
+  "e2ee_decrypt_attachment_failed": "Не удалось расшифровать вложение",
+  "search_preview_attachment": "Вложение",
+  "search_preview_location": "Геолокация",
+  "search_preview_message": "Сообщение",
+  "outbox_attachment_singular": "Вложение",
+  "outbox_attachments_count": "Вложения ({count})",
+  "@outbox_attachments_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outbox_chat_unavailable": "Сервис чата недоступен",
+  "outbox_encryption_error": "Шифрование: {code}",
+  "@outbox_encryption_error": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "nav_chats": "Чаты",
+  "nav_contacts": "Контакты",
+  "nav_meetings": "Конференции",
+  "nav_calls": "Звонки",
+  "e2ee_media_decrypt_failed_image": "Не удалось расшифровать изображение",
+  "e2ee_media_decrypt_failed_video": "Не удалось расшифровать видео",
+  "e2ee_media_decrypt_failed_audio": "Не удалось расшифровать аудио",
+  "e2ee_media_decrypt_failed_attachment": "Не удалось расшифровать вложение",
+  "chat_search_snippet_attachment": "Вложение",
+  "chat_search_snippet_location": "Геолокация",
+  "chat_search_snippet_message": "Сообщение",
+  "bottom_nav_chats": "Чаты",
+  "bottom_nav_contacts": "Контакты",
+  "bottom_nav_meetings": "Конференции",
+  "bottom_nav_calls": "Звонки",
+  "chat_list_swipe_folders": "ПАПКИ",
+  "chat_list_swipe_clear": "ОЧИСТИТЬ",
+  "chat_list_swipe_delete": "УДАЛИТЬ",
+  "composer_editing_title": "РЕДАКТИРОВАНИЕ СООБЩЕНИЯ",
+  "composer_editing_cancel_tooltip": "Отменить редактирование",
+  "composer_formatting_title": "ФОРМАТИРОВАНИЕ",
+  "composer_link_preview_loading": "Загрузка превью…",
+  "composer_link_preview_hide_tooltip": "Скрыть превью",
+  "chat_invite_button": "Пригласить",
+  "forward_preview_unknown_sender": "Неизвестный",
+  "forward_preview_attachment": "Вложение",
+  "forward_preview_message": "Сообщение",
+  "chat_mention_no_matches": "Нет совпадений",
+  "live_location_sharing": "Вы делитесь геолокацией",
+  "live_location_stop": "Остановить",
+  "chat_message_deleted": "Сообщение удалено",
+  "profile_qr_share": "Поделиться",
+  "shared_location_open_browser_tooltip": "Открыть в браузере",
+  "reply_preview_message_fallback": "Сообщение",
+  "video_circle_media_kind": "видео",
+  "reactions_rated_count": "Оценили: {count}",
+  "@reactions_rated_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reactions_today_time": "Сегодня, {time}",
+  "@reactions_today_time": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "durak_create_timer_subtitle": "По умолчанию 15 секунд",
+  "dm_game_banner_active": "Партия \"Дурак\" идёт",
+  "dm_game_banner_created": "Игра \"Дурак\" создана",
+  "chat_folder_favorites": "Избранное",
+  "chat_folder_new": "Новая",
+  "contact_profile_user_fallback": "Пользователь",
+  "contact_profile_error": "Ошибка: {error}",
+  "@contact_profile_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conversation_threads_loading_title": "Обсуждения",
+  "theme_label_light": "Светлая",
+  "theme_label_dark": "Тёмная",
+  "theme_label_auto": "Авто",
+  "chat_draft_reply_fallback": "Ответ",
+  "mention_default_label": "Участник",
+  "contacts_fallback_name": "Контакт",
+  "sticker_pack_default_name": "Мой пак",
+  "profile_error_phone_taken": "Этот номер телефона уже зарегистрирован. Укажите другой номер.",
+  "profile_error_email_taken": "Этот email уже занят. Укажите другой адрес.",
+  "profile_error_username_taken": "Этот логин уже занят. Выберите другой.",
+  "e2ee_banner_default_context": "Сообщение",
+  "e2ee_banner_encrypted_chat_web_only": "{prefix} в зашифрованный чат пока можно отправить только с веб‑клиента.",
+  "@e2ee_banner_encrypted_chat_web_only": {
+    "placeholders": {
+      "prefix": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_attachment_decrypt_error": "Не удалось расшифровать вложение",
+  "mention_fallback_label": "участник",
+  "mention_fallback_label_capitalized": "Участник",
+  "meeting_speaking_label": "Говорит",
+  "meeting_local_you_suffix": "{name} (Вы)",
+  "@meeting_local_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "video_crop_title": "Обрезка",
+  "video_crop_load_error": "Не удалось загрузить видео: {error}",
+  "@video_crop_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_section_recent": "НЕДАВНИЕ",
+  "gif_section_trending": "TRENDING",
+  "auth_create_account_title": "Создать аккаунт",
+  "yandex_sign_in_yandex_error": "Яндекс: {error}",
+  "@yandex_sign_in_yandex_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "call_status_missed": "Пропущен",
+  "call_status_cancelled": "Отменен",
+  "call_status_ended": "Завершен",
+  "presence_offline": "Не в сети",
+  "presence_online": "В сети",
+  "dm_title_fallback": "Чат",
+  "dm_title_partner_fallback": "Собеседник",
+  "group_title_fallback": "Групповой чат",
+  "block_call_viewer_blocked": "Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.",
+  "block_call_partner_blocked": "Пользователь ограничил с вами общение. Звонок недоступен.",
+  "block_call_unavailable": "Звонок недоступен.",
+  "block_composer_viewer_blocked": "Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.",
+  "block_composer_partner_blocked": "Пользователь ограничил с вами общение. Отправка недоступна.",
+  "forward_group_fallback": "Группа",
+  "forward_unknown_user": "Неизвестный",
+  "live_location_once": "Одноразово (только это сообщение)",
+  "live_location_5min": "5 минут",
+  "live_location_15min": "15 минут",
+  "live_location_30min": "30 минут",
+  "live_location_1hour": "1 час",
+  "live_location_2hours": "2 часа",
+  "live_location_6hours": "6 часов",
+  "live_location_1day": "1 день",
+  "live_location_forever": "Навсегда (пока не отключу)",
+  "e2ee_send_too_many_files": "Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.",
+  "e2ee_send_too_large": "Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.",
+  "presence_last_seen_prefix": "Был(а) ",
+  "presence_less_than_minute_ago": "менее минуты назад",
+  "presence_yesterday": "вчера",
+  "dm_fallback_title": "Чат",
+  "dm_fallback_partner": "Собеседник",
+  "group_fallback_title": "Групповой чат",
+  "block_send_viewer_blocked": "Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.",
+  "block_send_partner_blocked": "Пользователь ограничил с вами общение. Отправка недоступна.",
+  "mention_fallback_name": "Участник",
+  "profile_conflict_phone": "Этот номер телефона уже зарегистрирован. Укажите другой номер.",
+  "profile_conflict_email": "Этот email уже занят. Укажите другой адрес.",
+  "profile_conflict_username": "Этот логин уже занят. Выберите другой.",
+  "mention_fallback_participant": "Участник",
+  "sticker_gif_recent": "НЕДАВНИЕ",
+  "meeting_screen_sharing": "Экран",
+  "meeting_speaking": "Говорит",
+  "auth_sign_in_failed": "Не удалось войти: {error}",
+  "@auth_sign_in_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yandex_error_prefix": "Яндекс: {error}",
+  "@yandex_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "auth_error_prefix": "Ошибка авторизации: {error}",
+  "@auth_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "presence_minutes_ago": "{count,plural, =1{минуту назад} one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минут назад}}",
+  "@presence_minutes_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_hours_ago": "{count,plural, =1{час назад} one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часов назад}}",
+  "@presence_hours_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_days_ago": "{count,plural, one{{count} день назад} few{{count} дня назад} many{{count} дней назад} other{{count} дней назад}}",
+  "@presence_days_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_months_ago": "{count,plural, =1{1 месяц назад} one{{count} месяц назад} few{{count} месяца назад} many{{count} месяцев назад} other{{count} месяцев назад}}",
+  "@presence_months_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_months_ago": "{years,plural, =1{1 год} one{{years} год} few{{years} года} many{{years} лет} other{{years} лет}} {months,plural, =1{1 месяц назад} one{{months} месяц назад} few{{months} месяца назад} many{{months} месяцев назад} other{{months} месяцев назад}}",
+  "@presence_years_months_ago": {
+    "placeholders": {
+      "years": {
+        "type": "int"
+      },
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_ago": "{count,plural, =1{1 год назад} one{{count} год назад} few{{count} года назад} many{{count} лет назад} other{{count} лет назад}}",
+  "@presence_years_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wallpaper_gradient_purple": "Фиолетовый",
+  "wallpaper_gradient_pink": "Розовый",
+  "wallpaper_gradient_blue": "Голубой",
+  "wallpaper_gradient_green": "Зелёный",
+  "wallpaper_gradient_sunset": "Закат",
+  "wallpaper_gradient_gentle": "Нежный",
+  "wallpaper_gradient_lime": "Лайм",
+  "wallpaper_gradient_graphite": "Графит",
+  "sticker_tab_recent": "НЕДАВНИЕ",
+  "block_call_you_blocked": "Вы заблокировали этого пользователя. Звонок недоступен — разблокируйте в Профиль → Заблокированные.",
+  "block_call_they_blocked": "Пользователь ограничил с вами общение. Звонок недоступен.",
+  "block_call_generic": "Звонок недоступен.",
+  "block_send_you_blocked": "Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.",
+  "block_send_they_blocked": "Пользователь ограничил с вами общение. Отправка недоступна.",
+  "forward_unknown_fallback": "Неизвестный",
+  "dm_title_chat": "Чат",
+  "dm_title_partner": "Собеседник",
+  "dm_title_group": "Групповой чат",
+  "e2ee_too_many_attachments": "Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.",
+  "e2ee_total_size_exceeded": "Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.",
+  "yandex_sign_in_error_prefix": "Яндекс: {error}",
+  "@yandex_sign_in_error_prefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_participant_screen": "Экран",
+  "meeting_participant_speaking": "Говорит",
+  "nav_error_title": "Ошибка навигации",
+  "nav_error_invalid_secret_compose": "Некорректная навигация секретного чата",
+  "sign_in_title": "Вход",
+  "sign_in_firebase_ready": "Firebase инициализирован. Можно войти.",
+  "sign_in_firebase_not_ready": "Firebase не готов. Проверьте логи и firebase_options.dart.",
+  "sign_in_continue": "Продолжить",
+  "sign_in_anonymously": "Войти анонимно",
+  "sign_in_auth_error": "Ошибка авторизации: {error}",
+  "@sign_in_auth_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "generic_error": "Ошибка: {error}",
+  "@generic_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "storage_label_video": "Видео",
+  "storage_label_photo": "Фото",
+  "storage_label_files": "Файлы",
+  "storage_label_other": "Другое",
+  "storage_label_draft": "Черновик · {key}",
+  "@storage_label_draft": {
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "storage_label_offline_snapshot": "Офлайн-снимок списка чатов",
+  "storage_label_profile_cache": "Кэш профиля · {name}",
+  "@storage_label_profile_cache": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "call_mini_end": "Завершить звонок",
+  "animation_quality_lite": "Лёгкий",
+  "animation_quality_balanced": "Сбалансированный",
+  "animation_quality_cinematic": "Кинематографический",
+  "crop_aspect_original": "Оригинал",
+  "crop_aspect_square": "Квадрат",
+  "push_notification_title": "Разрешить уведомления",
+  "push_notification_rationale": "Для входящих звонков приложению нужны уведомления.",
+  "push_notification_required": "Включите уведомления для отображения входящих звонков.",
+  "push_notification_grant": "Разрешить",
+  "push_call_accept": "Принять",
+  "push_call_decline": "Отклонить",
+  "push_channel_incoming_calls": "Входящие звонки",
+  "push_channel_missed_calls": "Пропущенные звонки",
+  "push_channel_messages_desc": "Новые сообщения в чатах",
+  "push_channel_silent": "Сообщения без звука",
+  "push_channel_silent_desc": "Push без звука",
+  "push_caller_unknown": "Кто-то",
+  "outbox_attachment_single": "Вложение",
+  "outbox_attachment_count": "Вложения ({count})",
+  "@outbox_attachment_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bottom_nav_label_chats": "Чаты",
+  "bottom_nav_label_contacts": "Контакты",
+  "bottom_nav_label_conferences": "Конференции",
+  "bottom_nav_label_calls": "Звонки",
   "welcomeBubbleTitle": "Добро пожаловать в LighChat",
   "welcomeBubbleSubtitle": "Маяк зажёгся",
   "welcomeSkip": "Пропустить",
-  "welcomeReplayDebugTile": "Replay welcome animation (debug)"
+  "welcomeReplayDebugTile": "Replay welcome animation (debug)",
+  "sticker_scope_library": "Библиотека",
+  "sticker_library_search_hint": "Поиск стикеров…"
 }

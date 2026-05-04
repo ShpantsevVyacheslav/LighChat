@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 import '../data/google_maps_urls.dart';
 import 'chat_cached_network_image.dart';
@@ -66,27 +67,28 @@ class _LocationPreviewBody extends StatefulWidget {
 }
 
 class _LocationPreviewBodyState extends State<_LocationPreviewBody> {
-  String _accuracyLine() {
+  String _accuracyLine(AppLocalizations l10n) {
     final a = widget.accuracyM;
     if (a == null || a.isNaN) {
-      return 'Точность: —';
+      return l10n.location_preview_accuracy_unknown;
     }
     if (a < 1000) {
-      return 'Точность: ~${a.round()} м';
+      return l10n.location_preview_accuracy_meters(a.round().toString());
     }
     final km = a / 1000;
-    return 'Точность: ~${km.toStringAsFixed(1)} км';
+    return l10n.location_preview_accuracy_km(km.toStringAsFixed(1));
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final fg = Colors.white.withValues(alpha: 0.92);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Местоположение',
+          l10n.location_preview_title,
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
@@ -144,7 +146,7 @@ class _LocationPreviewBodyState extends State<_LocationPreviewBody> {
         ),
         const SizedBox(height: 8),
         Text(
-          _accuracyLine(),
+          _accuracyLine(l10n),
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -157,7 +159,7 @@ class _LocationPreviewBodyState extends State<_LocationPreviewBody> {
             Expanded(
               child: OutlinedButton(
                 onPressed: widget.onCancel,
-                child: const Text('Отмена'),
+                child: Text(l10n.common_cancel),
               ),
             ),
             const SizedBox(width: 10),
@@ -165,7 +167,7 @@ class _LocationPreviewBodyState extends State<_LocationPreviewBody> {
               child: FilledButton.icon(
                 onPressed: widget.onConfirm,
                 icon: const Icon(Icons.near_me_rounded, size: 18),
-                label: const Text('Отправить'),
+                label: Text(l10n.common_send),
               ),
             ),
           ],

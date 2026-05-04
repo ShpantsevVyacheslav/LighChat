@@ -391,6 +391,7 @@ class _SecretChatRow extends StatelessWidget {
             currentUserId: currentUserId,
             conversation: conversation,
             otherUserId: partnerId,
+            l10n: AppLocalizations.of(context)!,
           );
     final lastMsg = (conversation.data.lastMessageText ?? '').trim();
     final subtitle = lastMsg.isEmpty ? l10n.secret_chat_title : lastMsg;

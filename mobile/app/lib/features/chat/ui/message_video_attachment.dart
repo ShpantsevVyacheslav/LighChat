@@ -6,6 +6,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/video_attachment_diagnostics.dart';
 import 'chat_gallery_video_local_cache.dart';
@@ -278,7 +279,7 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
                     child: Center(
                       child: ChatMediaNormStatusWidget(
                         state: normState,
-                        mediaKindLabel: 'видео',
+                        mediaKindLabel: AppLocalizations.of(context)!.video_attachment_media_kind,
                         onRetry: widget.onRetryNorm,
                         compact: true,
                       ),
@@ -630,7 +631,7 @@ class _ChatAvPlayerVideoScreenState extends State<_ChatAvPlayerVideoScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: const Text('Видео'),
+        title: Text(AppLocalizations.of(context)!.video_attachment_title),
       ),
       body: Center(
         child: _failed
@@ -646,7 +647,7 @@ class _ChatAvPlayerVideoScreenState extends State<_ChatAvPlayerVideoScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Не удалось воспроизвести видео. Проверьте ссылку и сеть.',
+                      AppLocalizations.of(context)!.video_attachment_playback_error,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.88),

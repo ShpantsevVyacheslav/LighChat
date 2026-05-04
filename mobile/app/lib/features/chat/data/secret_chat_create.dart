@@ -63,7 +63,7 @@ Future<String> createOrOpenSecretDirectChat({
         },
       },
       'lastMessageTimestamp': nowIso,
-      'lastMessageText': 'Secret chat created',
+      'lastMessageText': '',
       'unreadCounts': <String, Object?>{a: 0, b: 0},
       'unreadThreadCounts': <String, Object?>{a: 0, b: 0},
       'clearedAt': <String, Object?>{a: nowIso, b: nowIso},

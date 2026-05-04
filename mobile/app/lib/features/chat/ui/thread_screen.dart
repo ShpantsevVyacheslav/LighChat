@@ -1645,7 +1645,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                 setState(() {
                                                   _replyingTo =
                                                       buildReplyPreview(
-                                                        message: m,
+                                                      l10n: AppLocalizations.of(context)!,
+                                                      message: m,
                                                         currentUserId: user.uid,
                                                         isGroup:
                                                             c?.isGroup ?? false,
@@ -1867,6 +1868,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                       currentUserId: user.uid,
                                       profileMap: profileMap,
                                       contactProfiles: contactProfiles,
+                                      l10n: AppLocalizations.of(context),
                                     )
                                   : null,
                               onAttachmentSelected: (a) =>
@@ -2070,6 +2072,7 @@ class _ThreadRootPanel extends StatelessWidget {
                       ? Colors.white.withValues(alpha: 0.95)
                       : scheme.primary,
                   quoteAccent: scheme.primary,
+                  mentionFallbackLabel: AppLocalizations.of(context)!.mention_fallback_label,
                 ),
               ),
             ),

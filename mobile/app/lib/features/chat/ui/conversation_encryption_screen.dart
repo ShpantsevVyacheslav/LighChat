@@ -2,6 +2,7 @@ import 'dart:async' show unawaited;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -42,15 +43,16 @@ class _ConversationEncryptionScreenState
 
   Future<void> _enable() async {
     if (_busy || _e2eeOn) return;
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
+        final dl10n = AppLocalizations.of(ctx)!;
         return AlertDialog(
-          title: const Text('Включить шифрование?'),
+          title: Text(dl10n.e2ee_encrypt_enable_dialog_title),
           content: Text(
-            'Новые сообщения будут доступны только на ваших устройствах и у собеседника. '
-            'Старые сообщения останутся как есть.',
+            dl10n.e2ee_encrypt_enable_dialog_body,
             style: TextStyle(
               color: scheme.onSurface.withValues(alpha: 0.85),
               height: 1.35,
@@ -59,11 +61,11 @@ class _ConversationEncryptionScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Отмена'),
+              child: Text(dl10n.common_cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Включить'),
+              child: Text(dl10n.e2ee_encrypt_enable_label),
             ),
           ],
         );
@@ -89,21 +91,16 @@ class _ConversationEncryptionScreenState
       if (did) {
         Navigator.of(context).pop();
       } else {
-        _toast(
-          'Шифрование уже включено или не удалось создать ключи. '
-          'Проверьте сеть и наличие ключей у собеседника.',
-        );
+        _toast(l10n.e2ee_encrypt_already_on_toast);
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (!mounted) return;
       final s = e.toString();
       if (s.contains('E2EE_NO_DEVICE')) {
-        _toast(
-          'Не удалось включить: у собеседника нет активного устройства с ключом.',
-        );
+        _toast(l10n.e2ee_encrypt_no_device_toast);
       } else {
-        _toast('Не удалось включить шифрование: $e');
+        _toast(l10n.e2ee_encrypt_enable_failed_toast(e.toString()));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -117,10 +114,9 @@ class _ConversationEncryptionScreenState
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
         return AlertDialog(
-          title: const Text('Отключить шифрование?'),
+          title: Text(AppLocalizations.of(ctx)!.e2ee_disable_title),
           content: Text(
-            'Новые сообщения пойдут без сквозного шифрования. '
-            'Ранее отправленные зашифрованные сообщения останутся в ленте.',
+            AppLocalizations.of(ctx)!.e2ee_disable_body,
             style: TextStyle(
               color: scheme.onSurface.withValues(alpha: 0.85),
               height: 1.35,
@@ -129,12 +125,12 @@ class _ConversationEncryptionScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Отмена'),
+              child: Text(AppLocalizations.of(ctx)!.common_cancel),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: scheme.error),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Отключить'),
+              child: Text(AppLocalizations.of(ctx)!.e2ee_disable_button),
             ),
           ],
         );
@@ -178,7 +174,7 @@ class _ConversationEncryptionScreenState
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
-      _toast('Не удалось отключить: $e');
+      _toast(AppLocalizations.of(context)!.e2ee_disable_error(e.toString()));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -186,6 +182,7 @@ class _ConversationEncryptionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final on = _e2eeOn;
     return Scaffold(
@@ -194,14 +191,14 @@ class _ConversationEncryptionScreenState
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             ChatProfileSubpageHeader(
-              title: 'Шифрование',
+              title: l10n.e2ee_encrypt_title,
               onBack: () => Navigator.of(context).maybePop(),
             ),
             const SizedBox(height: 16),
             Text(
               on
-                  ? 'Сквозное шифрование включено для этого чата.'
-                  : 'Сквозное шифрование выключено.',
+                  ? l10n.e2ee_encrypt_status_on
+                  : l10n.e2ee_encrypt_status_off,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -211,9 +208,7 @@ class _ConversationEncryptionScreenState
             ),
             const SizedBox(height: 14),
             Text(
-              'Когда шифрование включено, содержимое новых сообщений доступно '
-              'только участникам чата на их устройствах. Отключение влияет только '
-              'на новые сообщения.',
+              l10n.e2ee_encrypt_description,
               style: TextStyle(
                 fontSize: 14,
                 height: 1.4,
@@ -230,11 +225,11 @@ class _ConversationEncryptionScreenState
                 ),
               ),
               child: SwitchListTile.adaptive(
-                title: const Text('Включить шифрование'),
+                title: Text(l10n.e2ee_encrypt_switch_title),
                 subtitle: Text(
                   on
-                      ? 'Включено (эпоха ключа: ${widget.conversation.e2eeKeyEpoch ?? 0})'
-                      : 'Выключено',
+                      ? l10n.e2ee_encrypt_switch_on(widget.conversation.e2eeKeyEpoch ?? 0)
+                      : l10n.e2ee_encrypt_switch_off,
                 ),
                 value: on,
                 onChanged: _busy
@@ -305,6 +300,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
@@ -380,7 +376,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Типы данных',
+                    l10n.e2ee_data_types_title,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -389,7 +385,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Настройка не меняет протокол. Она управляет тем, какие типы данных отправлять в зашифрованном виде.',
+                    l10n.e2ee_data_types_info,
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.3,
@@ -398,10 +394,10 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   ),
                   const SizedBox(height: 10),
                   row(
-                    title: 'Настройки шифрования для этого чата',
+                    title: l10n.e2ee_chat_settings_title,
                     subtitle: hasOverride
-                        ? 'Используются чатовые настройки.'
-                        : 'Наследуются глобальные настройки.',
+                        ? l10n.e2ee_chat_settings_override
+                        : l10n.e2ee_chat_settings_global,
                     value: hasOverride,
                     onChanged: (on) async {
                       if (on) {
@@ -418,7 +414,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   ),
                   const Divider(height: 18),
                   row(
-                    title: 'Текст сообщений',
+                    title: l10n.e2ee_encrypt_text_title,
                     subtitle: '',
                     value: effective.text,
                     onChanged: !hasOverride
@@ -432,7 +428,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                           },
                   ),
                   row(
-                    title: 'Вложения (медиа/файлы)',
+                    title: l10n.e2ee_encrypt_media_title,
                     subtitle: '',
                     value: effective.media,
                     onChanged: !hasOverride
@@ -448,7 +444,7 @@ class _E2eeDataTypesCardState extends State<_E2eeDataTypesCard> {
                   if (!hasOverride) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Чтобы изменить для этого чата — включите «Переопределить».',
+                      l10n.e2ee_encrypt_override_hint,
                       style: TextStyle(
                         fontSize: 12,
                         color: fg.withValues(alpha: 0.60),

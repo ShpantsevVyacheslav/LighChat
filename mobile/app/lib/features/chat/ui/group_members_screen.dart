@@ -81,9 +81,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                       }
 
                       if (!snap.hasData || snap.data?.data() == null) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('Group not found.'),
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(AppLocalizations.of(context)!.group_not_found),
                         );
                       }
 
@@ -92,9 +92,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                       );
 
                       if (!conv.participantIds.contains(u.uid)) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('You are not a member of this group.'),
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(AppLocalizations.of(context)!.group_not_member),
                         );
                       }
 
@@ -117,7 +117,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, st) => Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Error: $err'),
+                  child: Text(AppLocalizations.of(context)!.generic_error(err.toString())),
                 ),
               ),
             ),
@@ -203,7 +203,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                   final liveProfile = byId[participantId];
 
                   final fallbackName =
-                      participantInfo?.name ?? liveProfile?.name ?? 'Участник';
+                      participantInfo?.name ?? liveProfile?.name ?? l10n.group_members_subtitle_member;
                   final displayName = resolveContactDisplayName(
                     contactProfiles: contactProfiles,
                     contactUserId: participantId,
@@ -273,11 +273,11 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     required UserProfile? profile,
     required AppLocalizations l10n,
   }) {
-    if (isMemberCreator) return 'Создатель группы';
-    if (isAdmin) return 'Администратор';
+    if (isMemberCreator) return l10n.group_members_subtitle_creator;
+    if (isAdmin) return l10n.group_members_subtitle_admin;
     final handle = (profile?.username ?? '').trim();
     if (handle.isNotEmpty) return '@$handle';
-    return 'Участник';
+    return l10n.group_members_subtitle_member;
   }
 
   Widget _header({
@@ -329,7 +329,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Всего: ${conv.participantIds.length}',
+                    l10n.group_members_total_count(conv.participantIds.length),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -348,7 +348,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                 onTap: _busy
                     ? null
                     : () => unawaited(_copyInviteLink(context, conv, l10n)),
-                tooltip: 'Скопировать ссылку-приглашение',
+                tooltip: l10n.group_members_copy_invite_tooltip,
               ),
               const SizedBox(width: 8),
               _TopCircleButton(
@@ -357,7 +357,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                 onTap: _busy
                     ? null
                     : () => unawaited(_openAddMembersSheet(context, conv, l10n)),
-                tooltip: 'Добавить участника',
+                tooltip: l10n.group_members_add_member_tooltip,
               ),
             ],
           ],
@@ -386,8 +386,8 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
       await Clipboard.setData(ClipboardData(text: inviteLink));
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Ссылка-приглашение скопирована'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.group_members_invite_copied),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -405,7 +405,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
         );
       } catch (e2) {
         if (!mounted) return;
-        setState(() => _error = 'Не удалось скопировать ссылку: $e2');
+        setState(() => _error = AppLocalizations.of(context)!.group_members_copy_link_error(e2.toString()));
       }
     }
   }
@@ -423,8 +423,8 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     );
     if (added != true || !mounted) return;
     scaffoldMessenger.showSnackBar(
-      const SnackBar(
-        content: Text('Участники добавлены'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.group_members_added),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -508,13 +508,14 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     required bool isCurrentlyAdmin,
     required String participantName,
   }) {
+    final dl10n = AppLocalizations.of(context)!;
     final title = isCurrentlyAdmin
-        ? 'Снять права администратора?'
-        : 'Назначить администратором?';
+        ? dl10n.group_members_revoke_admin_title
+        : dl10n.group_members_grant_admin_title;
     final body = isCurrentlyAdmin
-        ? 'У $participantName будут сняты права администратора. Участник останется в группе как обычный член.'
-        : '$participantName получит права администратора: сможет редактировать группу, исключать участников и управлять сообщениями.';
-    final actionText = isCurrentlyAdmin ? 'Снять права' : 'Назначить';
+        ? dl10n.group_members_revoke_admin_body(participantName)
+        : dl10n.group_members_grant_admin_body(participantName);
+    final actionText = isCurrentlyAdmin ? dl10n.group_members_revoke_admin_action : dl10n.group_members_grant_admin_action;
     final actionColor = isCurrentlyAdmin
         ? const Color(0xFFE0A23A)
         : const Color(0xFF3DB36B);
@@ -629,8 +630,8 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Исключить участника?',
+                  Text(
+                    l10n.group_members_remove_title,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -640,7 +641,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '$participantName будет удалён из группы. Это действие можно отменить, добавив участника заново.',
+                    l10n.group_members_remove_body(participantName),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.88),
                       fontSize: 13.5,
@@ -663,7 +664,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                         ),
                       ),
                       onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('Исключить'),
+                      child: Text(l10n.group_members_remove_action),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -711,8 +712,8 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
       });
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Участник исключён'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.group_members_removed),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -829,7 +830,7 @@ class _MemberRow extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                isCreator ? 'СОЗДАТЕЛЬ' : badgeText,
+                                isCreator ? AppLocalizations.of(context)!.group_members_creator_badge : badgeText,
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -893,26 +894,26 @@ class _MemberRow extends StatelessWidget {
                               const SizedBox(width: 10),
                               Text(
                                 isElevatedAdmin
-                                    ? 'Снять админа'
-                                    : 'Сделать админом',
+                                    ? AppLocalizations.of(context)!.group_members_menu_revoke_admin
+                                    : AppLocalizations.of(context)!.group_members_menu_grant_admin,
                               ),
                             ],
                           ),
                         ),
                       if (canRemove)
-                        const PopupMenuItem<String>(
+                        PopupMenuItem<String>(
                           value: 'remove',
                           child: Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.person_remove_outlined,
                                 size: 18,
                                 color: Color(0xFFE24D59),
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: 10),
                               Text(
-                                'Исключить из группы',
-                                style: TextStyle(color: Color(0xFFE24D59)),
+                                AppLocalizations.of(context)!.group_members_menu_remove,
+                                style: const TextStyle(color: Color(0xFFE24D59)),
                               ),
                             ],
                           ),
@@ -1112,7 +1113,7 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'Не удалось загрузить контакты: $e',
+                    AppLocalizations.of(context)!.group_members_contacts_load_error(e.toString()),
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ),
@@ -1157,10 +1158,10 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(20, 16, 20, 6),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
                           child: Text(
-                            'Добавить участников',
+                            AppLocalizations.of(context)!.group_members_add_title,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -1187,9 +1188,9 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
                                 color: Colors.white,
                                 fontSize: 15,
                               ),
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 border: InputBorder.none,
-                                hintText: 'Поиск среди контактов',
+                                hintText: AppLocalizations.of(context)!.group_members_search_contacts,
                                 hintStyle: TextStyle(color: Colors.white54),
                                 prefixIcon: Icon(
                                   Icons.search_rounded,
@@ -1210,8 +1211,8 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
                                     padding: const EdgeInsets.all(24),
                                     child: Text(
                                       candidateIds.isEmpty
-                                          ? 'Все ваши контакты уже в группе.'
-                                          : 'Никого не найдено.',
+                                          ? AppLocalizations.of(context)!.group_members_all_in_group
+                                          : AppLocalizations.of(context)!.group_members_nobody_found,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.white
@@ -1231,7 +1232,7 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
                                         _selectedIds.contains(p.id);
                                     final fallback = p.name.trim().isNotEmpty
                                         ? p.name.trim()
-                                        : 'Пользователь';
+                                        : AppLocalizations.of(context)!.group_members_user_fallback;
                                     final displayName =
                                         resolveContactDisplayName(
                                       contactProfiles: idx.contactProfiles,
@@ -1382,8 +1383,8 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
                                       )
                                     : Text(
                                         _selectedIds.isEmpty
-                                            ? 'Выберите участников'
-                                            : 'Добавить (${_selectedIds.length})',
+                                            ? AppLocalizations.of(context)!.group_members_select_members
+                                            : AppLocalizations.of(context)!.group_members_add_count(_selectedIds.length),
                                       ),
                               ),
                             ),
@@ -1400,7 +1401,7 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
           error: (e, _) => Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Ошибка авторизации: $e',
+              AppLocalizations.of(context)!.group_members_auth_error(e.toString()),
               style: const TextStyle(color: Colors.white70),
             ),
           ),
@@ -1424,7 +1425,7 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
         final p = candidates[id];
         if (p == null) continue;
         final entry = <String, Object?>{
-          'name': p.name.trim().isEmpty ? 'Участник' : p.name.trim(),
+          'name': p.name.trim().isEmpty ? AppLocalizations.of(context)!.group_members_subtitle_member : p.name.trim(),
         };
         final thumb = p.avatarThumb?.trim();
         final avatar = p.avatar?.trim();
@@ -1446,7 +1447,7 @@ class _AddGroupMembersSheetState extends ConsumerState<_AddGroupMembersSheet> {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Не удалось добавить участников: $e');
+      setState(() => _error = AppLocalizations.of(context)!.group_members_add_failed(e.toString()));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

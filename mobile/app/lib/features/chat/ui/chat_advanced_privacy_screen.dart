@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -52,7 +53,7 @@ class ChatAdvancedPrivacyScreen extends ConsumerWidget {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Не удалось сохранить настройки: $e'),
+                      content: Text(AppLocalizations.of(context)!.privacy_save_error(e.toString())),
                     ),
                   );
                 }
@@ -81,7 +82,7 @@ class ChatAdvancedPrivacyScreen extends ConsumerWidget {
             error: (e, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Ошибка загрузки приватности: $e'),
+                child: Text(AppLocalizations.of(context)!.privacy_load_error(e.toString())),
               ),
             ),
           ),
@@ -120,7 +121,7 @@ class _AdvancedPrivacyView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        ChatProfileSubpageHeader(title: 'Приватность чата', onBack: onBack),
+        ChatProfileSubpageHeader(title: AppLocalizations.of(context)!.privacy_title, onBack: onBack),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
@@ -129,23 +130,23 @@ class _AdvancedPrivacyView extends StatelessWidget {
               children: [
                 const SizedBox(height: 6),
                 _SettingsCard(
-                  title: 'Видимость',
+                  title: AppLocalizations.of(context)!.privacy_visibility,
                   leadingIcon: Icons.visibility_outlined,
                   children: [
                     _SwitchRow(
-                      title: 'Статус онлайн',
+                      title: AppLocalizations.of(context)!.privacy_online_status,
                       value: state.showOnlineStatus,
                       onChanged: onShowOnlineChanged,
                       icon: Icons.wifi_tethering_rounded,
                     ),
                     _SwitchRow(
-                      title: 'Последний визит',
+                      title: AppLocalizations.of(context)!.privacy_last_visit,
                       value: state.showLastSeen,
                       onChanged: onShowLastSeenChanged,
                       icon: Icons.schedule_rounded,
                     ),
                     _SwitchRow(
-                      title: 'Индикатор прочтения',
+                      title: AppLocalizations.of(context)!.privacy_read_receipts,
                       value: state.showReadReceipts,
                       onChanged: onShowReadReceiptsChanged,
                       icon: Icons.done_all_rounded,
@@ -154,7 +155,7 @@ class _AdvancedPrivacyView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 _SettingsCard(
-                  title: 'Информация профиля',
+                  title: AppLocalizations.of(context)!.privacy_profile_info,
                   leadingIcon: Icons.badge_outlined,
                   children: [
                     _SwitchRow(
@@ -164,19 +165,19 @@ class _AdvancedPrivacyView extends StatelessWidget {
                       icon: Icons.mail_outline_rounded,
                     ),
                     _SwitchRow(
-                      title: 'Номер телефона',
+                      title: AppLocalizations.of(context)!.privacy_phone_number,
                       value: state.showPhoneToOthers,
                       onChanged: onShowPhoneChanged,
                       icon: Icons.smartphone_rounded,
                     ),
                     _SwitchRow(
-                      title: 'Дата рождения',
+                      title: AppLocalizations.of(context)!.privacy_birthday,
                       value: state.showDateOfBirthToOthers,
                       onChanged: onShowDobChanged,
                       icon: Icons.cake_rounded,
                     ),
                     _SwitchRow(
-                      title: 'О себе',
+                      title: AppLocalizations.of(context)!.privacy_about,
                       value: state.showBioToOthers,
                       onChanged: onShowBioChanged,
                       icon: Icons.person_outline_rounded,

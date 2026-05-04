@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'voice_message_preview_bar.dart';
 import 'voice_message_record_sheet.dart';
 
@@ -168,6 +169,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     _recOverlay?.remove();
     _recOverlay = OverlayEntry(
       builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
         final bottom = MediaQuery.paddingOf(context).bottom;
         final insetsBottom = MediaQuery.viewInsetsOf(context).bottom;
         final armed = _cancelArmed;
@@ -208,7 +210,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Пауза',
+                        l10n.hold_record_pause,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.92),
                           fontWeight: FontWeight.w800,
@@ -272,8 +274,8 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                       Flexible(
                         child: Text(
                           armed
-                              ? 'Отпустите — отмена'
-                              : 'Влево — отмена · Вверх — пауза',
+                              ? l10n.hold_record_release_cancel
+                              : l10n.hold_record_slide_hints,
                           maxLines: 2,
                           overflow: TextOverflow.fade,
                           softWrap: true,

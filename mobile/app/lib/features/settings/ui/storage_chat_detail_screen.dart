@@ -100,35 +100,35 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
 
   int get _trackedTotal => _photoEntries.length + _videoEntries.length + _fileEntries.length;
 
-  List<DonutSegment> _buildSegments() {
+  List<DonutSegment> _buildSegments(AppLocalizations l10n) {
     final bd = widget.usage.mediaTypeBreakdown;
     final segments = <DonutSegment>[];
     if (bd.videoBytes > 0) {
       segments.add(DonutSegment(
         value: bd.videoBytes.toDouble(),
         color: kStorageVideoColor,
-        label: 'Video',
+        label: l10n.storage_label_video,
       ));
     }
     if (bd.photoBytes > 0) {
       segments.add(DonutSegment(
         value: bd.photoBytes.toDouble(),
         color: kStoragePhotoColor,
-        label: 'Photo',
+        label: l10n.storage_label_photo,
       ));
     }
     if (bd.fileBytes > 0) {
       segments.add(DonutSegment(
         value: bd.fileBytes.toDouble(),
         color: kStorageFileColor,
-        label: 'Files',
+        label: l10n.storage_label_files,
       ));
     }
     if (bd.otherBytes > 0) {
       segments.add(DonutSegment(
         value: bd.otherBytes.toDouble(),
         color: kStorageOtherColor,
-        label: 'Other',
+        label: l10n.storage_label_other,
       ));
     }
     return segments;
@@ -248,7 +248,7 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
                     const SizedBox(height: 8),
                     Center(
                       child: StorageDonutChart(
-                        segments: _buildSegments(),
+                        segments: _buildSegments(l10n),
                         centerText:
                             widget.formatBytes(widget.usage.totalBytes),
                         size: 180,

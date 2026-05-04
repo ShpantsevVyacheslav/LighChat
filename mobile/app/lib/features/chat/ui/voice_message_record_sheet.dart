@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -101,7 +102,7 @@ class _VoiceMessageRecordSheetBodyState
     try {
       final ok = await _recorder.hasPermission();
       if (!ok) {
-        setState(() => _error = 'Нет доступа к микрофону');
+        setState(() => _error = AppLocalizations.of(context)!.voice_no_mic_access);
         return;
       }
       final path = await _newTempPath();
@@ -120,7 +121,7 @@ class _VoiceMessageRecordSheetBodyState
       unawaited(_lightHaptic());
       _startTicker();
     } catch (_) {
-      setState(() => _error = 'Не удалось начать запись');
+      setState(() => _error = AppLocalizations.of(context)!.voice_start_error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -144,12 +145,12 @@ class _VoiceMessageRecordSheetBodyState
       _elapsed = elapsed;
       if (path == null || path.isEmpty) {
         _recordPath = null;
-        _error = 'Файл записи не получен';
+        _error = AppLocalizations.of(context)!.voice_file_not_received;
       } else {
         _recordPath = path;
       }
     } catch (_) {
-      _error = 'Не удалось завершить запись';
+      _error = AppLocalizations.of(context)!.voice_stop_error;
       _recording = false;
       _startedAt = null;
     } finally {
@@ -214,7 +215,7 @@ class _VoiceMessageRecordSheetBodyState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Голосовое сообщение',
+              AppLocalizations.of(context)!.voice_title,
               style: TextStyle(
                 color: fg,
                 fontWeight: FontWeight.w800,
@@ -232,7 +233,7 @@ class _VoiceMessageRecordSheetBodyState
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _recording ? 'Идёт запись' : 'Запись готова',
+                  _recording ? AppLocalizations.of(context)!.voice_recording : AppLocalizations.of(context)!.voice_ready,
                   style: TextStyle(
                     color: fg.withValues(alpha: 0.84),
                     fontWeight: FontWeight.w600,
@@ -266,7 +267,7 @@ class _VoiceMessageRecordSheetBodyState
                   ? null
                   : (_recording ? _stopRecording : _startRecording),
               icon: Icon(_recording ? Icons.stop_rounded : Icons.mic_rounded),
-              label: Text(_recording ? 'Остановить' : 'Записать снова'),
+              label: Text(_recording ? AppLocalizations.of(context)!.voice_stop_button : AppLocalizations.of(context)!.voice_record_again),
             ),
             const SizedBox(height: 10),
             Row(
@@ -274,7 +275,7 @@ class _VoiceMessageRecordSheetBodyState
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _busy ? null : _cancelAndClose,
-                    child: const Text('Отмена'),
+                    child: Text(AppLocalizations.of(context)!.common_cancel),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -282,7 +283,7 @@ class _VoiceMessageRecordSheetBodyState
                   child: FilledButton.icon(
                     onPressed: canSend ? _confirmSend : null,
                     icon: const Icon(Icons.near_me_rounded, size: 18),
-                    label: const Text('Отправить'),
+                    label: Text(AppLocalizations.of(context)!.common_send),
                   ),
                 ),
               ],

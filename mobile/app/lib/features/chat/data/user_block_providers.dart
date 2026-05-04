@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_outbox_attachment_notifier.dart';
 import 'user_block_utils.dart';
 
@@ -55,9 +56,10 @@ Widget? dmComposerBlockBanner({
   final iBlocked = myBlocked.contains(partnerId);
 
   final scheme = Theme.of(context).colorScheme;
+  final l10n = AppLocalizations.of(context)!;
   final msg = iBlocked
-      ? 'Вы заблокировали этого пользователя. Отправка недоступна — разблокируйте в Профиль → Заблокированные.'
-      : 'Пользователь ограничил с вами общение. Отправка недоступна.';
+      ? l10n.block_send_viewer_blocked
+      : l10n.block_send_partner_blocked;
   return Padding(
     padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
     child: DecoratedBox(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -68,6 +69,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
   }
 
   Future<void> _submitCreate({required bool asDraft}) async {
+    final l10n = AppLocalizations.of(context)!;
     final q = _question.text.trim();
     if (q.isEmpty) return;
     final opts = _optionCtrls
@@ -77,7 +79,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
     if (opts.length < 2) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Минимум 2 варианта ответа')),
+          SnackBar(content: Text(l10n.meeting_min_two_options)),
         );
       }
       return;
@@ -98,7 +100,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
+          SnackBar(content: Text(l10n.meeting_error_with_details('$e'))),
         );
       }
     } finally {
@@ -108,6 +110,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final async = ref.watch(meetingPollsProvider(widget.meetingId));
 
     return Column(
@@ -119,7 +122,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
             child: FilledButton.icon(
               onPressed: () => setState(() => _creating = true),
               icon: const Icon(Icons.add_rounded, size: 20),
-              label: const Text('Создать опрос'),
+              label: Text(l10n.meeting_create_poll),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -135,7 +138,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Не удалось загрузить опросы: $e',
+                  l10n.meeting_polls_load_error('$e'),
                   style: const TextStyle(color: Colors.redAccent),
                   textAlign: TextAlign.center,
                 ),
@@ -155,10 +158,10 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
                 return true;
               }).toList();
               if (visible.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
-                    'Пока нет опросов',
-                    style: TextStyle(color: Colors.white54),
+                    l10n.meeting_no_polls_yet,
+                    style: const TextStyle(color: Colors.white54),
                   ),
                 );
               }
@@ -196,6 +199,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
   }
 
   Widget _buildCreateForm() {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
@@ -204,7 +208,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
           textCapitalization: TextCapitalization.sentences,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
-            labelText: 'Вопрос',
+            labelText: l10n.meeting_question_label,
             labelStyle: const TextStyle(color: Colors.white54),
             filled: true,
             fillColor: Colors.white10,
@@ -212,9 +216,9 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
           ),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Варианты',
-          style: TextStyle(
+        Text(
+          l10n.meeting_options_label,
+          style: const TextStyle(
             color: Colors.white54,
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -232,7 +236,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
                     textCapitalization: TextCapitalization.sentences,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Вариант ${i + 1}',
+                      hintText: l10n.meeting_option_hint(i + 1),
                       hintStyle: const TextStyle(color: Colors.white38),
                       filled: true,
                       fillColor: Colors.white10,
@@ -259,15 +263,15 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
             _optionCtrls.add(TextEditingController());
           }),
           icon: const Icon(Icons.add, color: Colors.white54),
-          label: const Text('Добавить вариант',
-              style: TextStyle(color: Colors.white54)),
+          label: Text(l10n.meeting_add_option,
+              style: const TextStyle(color: Colors.white54)),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Анонимно', style: TextStyle(color: Colors.white)),
-          subtitle: const Text(
-            'Кто увидит выбор других',
-            style: TextStyle(color: Colors.white38, fontSize: 12),
+          title: Text(l10n.meeting_anonymous, style: const TextStyle(color: Colors.white)),
+          subtitle: Text(
+            l10n.meeting_anonymous_subtitle,
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
           value: _isAnonymous,
           onChanged: (v) => setState(() => _isAnonymous = v),
@@ -278,14 +282,14 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
             Expanded(
               child: OutlinedButton(
                 onPressed: _saving ? null : () => setState(_resetCreateForm),
-                child: const Text('Отмена'),
+                child: Text(l10n.common_cancel),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton(
                 onPressed: _saving ? null : () => _submitCreate(asDraft: true),
-                child: const Text('В черновики'),
+                child: Text(l10n.meeting_save_as_draft),
               ),
             ),
           ],
@@ -299,7 +303,7 @@ class _MeetingPollsPanelState extends ConsumerState<MeetingPollsPanel> {
                   width: 22,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Опубликовать'),
+              : Text(l10n.meeting_publish),
         ),
       ],
     );
@@ -329,6 +333,7 @@ class _PollCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final votes = poll.votes;
     final totalVotes = votes.length;
     final hasVoted = userHasVoted(votes, currentUserId);
@@ -363,7 +368,7 @@ class _PollCard extends ConsumerWidget {
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка: $e')),
+            SnackBar(content: Text(l10n.meeting_error_with_details('$e'))),
           );
         }
       }
@@ -381,7 +386,7 @@ class _PollCard extends ConsumerWidget {
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Голос не засчитан: $e')),
+            SnackBar(content: Text(l10n.meeting_vote_failed('$e'))),
           );
         }
       }
@@ -396,29 +401,29 @@ class _PollCard extends ConsumerWidget {
     final menuItems = <PopupMenuEntry<String>>[];
     if (isDraft && (poll.creatorId == currentUserId || isHostOrAdmin)) {
       menuItems.add(
-        const PopupMenuItem(value: 'start', child: Text('Запустить')),
+        PopupMenuItem(value: 'start', child: Text(l10n.meeting_action_start)),
       );
     }
     if (hasVoted && !isEnded) {
       menuItems.add(
-        const PopupMenuItem(value: 'revote', child: Text('Изменить голос')),
+        PopupMenuItem(value: 'revote', child: Text(l10n.meeting_action_change_vote)),
       );
     }
     if (isEnded && (isHostOrAdmin || poll.creatorId == currentUserId)) {
       menuItems.add(
-        const PopupMenuItem(value: 'restart', child: Text('Перезапустить')),
+        PopupMenuItem(value: 'restart', child: Text(l10n.meeting_action_restart)),
       );
     }
     if (isHostOrAdmin && !isEnded && !isDraft) {
       menuItems.add(
-        const PopupMenuItem(value: 'end', child: Text('Остановить')),
+        PopupMenuItem(value: 'end', child: Text(l10n.meeting_action_stop)),
       );
     }
     if (isHostOrAdmin || poll.creatorId == currentUserId) {
       menuItems.add(
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'delete',
-          child: Text('Удалить', style: TextStyle(color: Colors.redAccent)),
+          child: Text(l10n.common_delete, style: const TextStyle(color: Colors.redAccent)),
         ),
       );
     }
@@ -457,10 +462,10 @@ class _PollCard extends ConsumerWidget {
                         children: [
                           _StatusChip(
                             label: isEnded
-                                ? 'Завершено'
+                                ? l10n.meeting_status_ended
                                 : isDraft
-                                    ? 'Черновик'
-                                    : 'Активно',
+                                    ? l10n.meeting_status_draft
+                                    : l10n.meeting_status_active,
                             color: isEnded
                                 ? Colors.redAccent
                                 : isDraft
@@ -468,9 +473,9 @@ class _PollCard extends ConsumerWidget {
                                     : Colors.greenAccent,
                           ),
                           if (!poll.isAnonymous)
-                            const _StatusChip(
-                              label: 'Публичное',
-                              color: Color(0xFF60A5FA),
+                            _StatusChip(
+                              label: l10n.meeting_status_public,
+                              color: const Color(0xFF60A5FA),
                             ),
                         ],
                       ),
@@ -607,7 +612,7 @@ class _PollCard extends ConsumerWidget {
             Row(
               children: [
                 Text(
-                  '$totalVotes голосов',
+                  l10n.meeting_votes_count(totalVotes),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.35),
                     fontSize: 11,
@@ -617,7 +622,7 @@ class _PollCard extends ConsumerWidget {
                 if (!isEnded && !isDraft) ...[
                   const SizedBox(width: 12),
                   Text(
-                    'Цель: $participantsCount',
+                    l10n.meeting_goal_count(participantsCount),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.35),
                       fontSize: 11,
@@ -629,7 +634,7 @@ class _PollCard extends ConsumerWidget {
                   TextButton(
                     onPressed: onToggleExpand,
                     child: Text(
-                      expanded ? 'Скрыть' : 'Кто голосовал',
+                      expanded ? l10n.meeting_hide : l10n.meeting_who_voted,
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),

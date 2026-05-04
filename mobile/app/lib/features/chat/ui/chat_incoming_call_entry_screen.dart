@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
@@ -89,32 +90,33 @@ class _ChatIncomingCallEntryScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final authUid = FirebaseAuth.instance.currentUser?.uid;
     final callAsync = ref.watch(chatCallDocProvider(widget.callId));
 
     return callAsync.when(
       data: (call) {
         if (authUid == null || authUid.trim().isEmpty) {
-          return const _IncomingStateBody(
-            title: 'Необходим вход',
-            subtitle: 'Откройте приложение и войдите в аккаунт.',
+          return _IncomingStateBody(
+            title: l10n.call_entry_login_required_title,
+            subtitle: l10n.call_entry_login_required_subtitle,
           );
         }
         if (call == null) {
           _scheduleCallsRedirect();
           return _IncomingStateBody(
-            title: 'Звонок не найден',
-            subtitle: 'Вызов уже завершён или удалён. Возвращаемся к звонкам…',
-            actionLabel: 'К звонкам',
+            title: l10n.call_entry_not_found_title,
+            subtitle: l10n.call_entry_not_found_subtitle,
+            actionLabel: l10n.call_entry_to_calls,
             onAction: () => context.go('/calls'),
           );
         }
         if (isTerminalCallStatus(call.status)) {
           _scheduleCallsRedirect();
           return _IncomingStateBody(
-            title: 'Звонок завершён',
-            subtitle: 'Этот вызов уже недоступен. Возвращаемся к звонкам…',
-            actionLabel: 'К звонкам',
+            title: l10n.call_entry_ended_title,
+            subtitle: l10n.call_entry_ended_subtitle,
+            actionLabel: l10n.call_entry_to_calls,
             onAction: () => context.go('/calls'),
           );
         }
@@ -140,10 +142,10 @@ class _ChatIncomingCallEntryScreenState
             final fallbackPeerName = meIsCaller
                 ? ((call.receiverName?.trim().isNotEmpty ?? false)
                       ? call.receiverName!.trim()
-                      : 'Собеседник')
+                      : l10n.call_entry_caller_fallback)
                 : (call.callerName.trim().isNotEmpty
                       ? call.callerName.trim()
-                      : 'Собеседник');
+                      : l10n.call_entry_caller_fallback);
             final peerUserName = resolveContactDisplayName(
               contactProfiles: contactProfiles,
               contactUserId: peerUserId,
@@ -182,24 +184,24 @@ class _ChatIncomingCallEntryScreenState
             });
 
             return _IncomingStateBody(
-              title: 'Открываем звонок…',
+              title: l10n.call_entry_opening_title,
               subtitle: call.isVideo
-                  ? 'Подключение к видеозвонку'
-                  : 'Подключение к аудиозвонку',
+                  ? l10n.call_entry_connecting_video
+                  : l10n.call_entry_connecting_audio,
               loading: true,
             );
           },
         );
       },
-      loading: () => const _IncomingStateBody(
-        title: 'Открываем звонок…',
-        subtitle: 'Загрузка данных вызова',
+      loading: () => _IncomingStateBody(
+        title: l10n.call_entry_opening_title,
+        subtitle: l10n.call_entry_loading_subtitle,
         loading: true,
       ),
       error: (e, _) => _IncomingStateBody(
-        title: 'Ошибка открытия звонка',
+        title: l10n.call_entry_error_title,
         subtitle: '$e',
-        actionLabel: 'К звонкам',
+        actionLabel: l10n.call_entry_to_calls,
         onAction: () => context.go('/calls'),
       ),
     );

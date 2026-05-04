@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Полоса над композером в режиме правки текста (паритет веб `ChatMessageInput` + `editingMessage`).
 class ComposerEditingBanner extends StatelessWidget {
   const ComposerEditingBanner({
@@ -33,7 +35,7 @@ class ComposerEditingBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'РЕДАКТИРОВАНИЕ СООБЩЕНИЯ',
+                      AppLocalizations.of(context)!.composer_editing_title,
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
@@ -58,7 +60,7 @@ class ComposerEditingBanner extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Отменить редактирование',
+                tooltip: AppLocalizations.of(context)!.composer_editing_cancel_tooltip,
                 onPressed: onCancel,
                 icon: Icon(Icons.close_rounded, color: scheme.onSurface.withValues(alpha: 0.65)),
               ),

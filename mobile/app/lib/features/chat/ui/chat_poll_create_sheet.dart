@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 const int _kMaxPollOptions = 12;
@@ -56,31 +57,32 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
   }
 
   void _publish() {
+    final l10n = AppLocalizations.of(context)!;
     final q = _questionCtrl.text.trim();
     final opts = _trimmedOptions();
     if (q.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите вопрос')),
+        SnackBar(content: Text(l10n.poll_create_enter_question)),
       );
       return;
     }
     if (opts.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нужно минимум 2 варианта')),
+        SnackBar(content: Text(l10n.poll_create_min_options)),
       );
       return;
     }
     if (_quiz) {
       if (_correctIdx < 0 || _correctIdx >= opts.length) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Выберите правильный вариант')),
+          SnackBar(content: Text(l10n.poll_create_select_correct)),
         );
         return;
       }
     }
     if (_closesAt != null && !_closesAt!.isAfter(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Время закрытия должно быть в будущем')),
+        SnackBar(content: Text(l10n.poll_create_future_time)),
       );
       return;
     }
@@ -106,6 +108,7 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final opts = _trimmedOptions();
@@ -133,7 +136,7 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Опрос в чате',
+                              l10n.poll_create_title,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -153,24 +156,24 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                         children: [
                           TextField(
                             controller: _questionCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Вопрос',
-                              hintText: 'Например: Во сколько встречаемся?',
+                            decoration: InputDecoration(
+                              labelText: l10n.poll_create_question_label,
+                              hintText: l10n.poll_create_question_hint,
                             ),
                             textCapitalization: TextCapitalization.sentences,
                           ),
                           const SizedBox(height: 12),
                           TextField(
                             controller: _descCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Пояснение (необязательно)',
+                            decoration: InputDecoration(
+                              labelText: l10n.poll_create_explanation_label,
                             ),
                             maxLines: 2,
                             textCapitalization: TextCapitalization.sentences,
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Варианты',
+                            l10n.poll_create_options_title,
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 12,
@@ -190,7 +193,7 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                                       textCapitalization:
                                           TextCapitalization.sentences,
                                       decoration: InputDecoration(
-                                        hintText: 'Вариант ${i + 1}',
+                                        hintText: l10n.poll_create_option_hint((i + 1).toString()),
                                       ),
                                     ),
                                   ),
@@ -216,42 +219,42 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                                 setState(() => _optionCtrls.add(TextEditingController()));
                               },
                               icon: const Icon(Icons.add_rounded),
-                              label: const Text('Добавить вариант'),
+                              label: Text(l10n.poll_create_add_option),
                             ),
                           const SizedBox(height: 12),
                           _switchTile(
-                            title: 'Анонимное голосование',
-                            subtitle: 'Не показывать, кто за что голосовал',
+                            title: l10n.poll_create_anonymous_title,
+                            subtitle: l10n.poll_create_anonymous_subtitle,
                             value: _anonymous,
                             onChanged: (v) => setState(() => _anonymous = v),
                           ),
                           _switchTile(
-                            title: 'Несколько ответов',
-                            subtitle: 'Можно выбрать несколько вариантов',
+                            title: l10n.poll_create_multi_title,
+                            subtitle: l10n.poll_create_multi_subtitle,
                             value: _allowMulti,
                             onChanged: _quiz ? null : (v) => setState(() => _allowMulti = v),
                           ),
                           _switchTile(
-                            title: 'Добавление вариантов',
-                            subtitle: 'Участники могут предложить свой вариант',
+                            title: l10n.poll_create_user_options_title,
+                            subtitle: l10n.poll_create_user_options_subtitle,
                             value: _allowAddOpts,
                             onChanged: (v) => setState(() => _allowAddOpts = v),
                           ),
                           _switchTile(
-                            title: 'Можно изменить голос',
-                            subtitle: 'Переголосование до закрытия',
+                            title: l10n.poll_create_revote_title,
+                            subtitle: l10n.poll_create_revote_subtitle,
                             value: _allowRevote,
                             onChanged: (v) => setState(() => _allowRevote = v),
                           ),
                           _switchTile(
-                            title: 'Перемешать варианты',
-                            subtitle: 'Свой порядок у каждого участника',
+                            title: l10n.poll_create_shuffle_title,
+                            subtitle: l10n.poll_create_shuffle_subtitle,
                             value: _shuffle,
                             onChanged: (v) => setState(() => _shuffle = v),
                           ),
                           _switchTile(
-                            title: 'Режим викторины',
-                            subtitle: 'Один правильный ответ',
+                            title: l10n.poll_create_quiz_title,
+                            subtitle: l10n.poll_create_quiz_subtitle,
                             value: _quiz,
                             onChanged: (v) {
                               setState(() {
@@ -264,8 +267,8 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                             const SizedBox(height: 8),
                             DropdownButtonFormField<int>(
                               isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Правильный вариант',
+                              decoration: InputDecoration(
+                                labelText: l10n.poll_create_correct_option_label,
                               ),
                               initialValue:
                                   _correctIdx.clamp(0, opts.length - 1),
@@ -289,8 +292,8 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                             TextField(
                               controller: _quizExplCtrl,
                               textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                labelText: 'Пояснение (необязательно)',
+                              decoration: InputDecoration(
+                                labelText: l10n.poll_create_explanation_label,
                               ),
                               maxLines: 2,
                             ),
@@ -298,10 +301,10 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                           const SizedBox(height: 12),
                           ListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('Закрыть по времени'),
+                            title: Text(l10n.poll_create_close_by_time),
                             subtitle: Text(
                               _closesAt == null
-                                  ? 'Не задано'
+                                  ? l10n.poll_create_not_set
                                   : MaterialLocalizations.of(context).formatFullDate(_closesAt!),
                             ),
                             trailing: IconButton(
@@ -329,12 +332,12 @@ class _ChatPollCreateSheetState extends State<_ChatPollCreateSheet> {
                           if (_closesAt != null)
                             TextButton(
                               onPressed: () => setState(() => _closesAt = null),
-                              child: const Text('Сбросить срок'),
+                              child: Text(l10n.poll_create_reset_deadline),
                             ),
                           const SizedBox(height: 20),
                           FilledButton(
                             onPressed: _publish,
-                            child: const Text('Опубликовать'),
+                            child: Text(l10n.poll_create_publish),
                           ),
                         ],
                       ),

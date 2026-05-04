@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_wallpaper_contrast.dart';
 import 'chat_wallpaper_scope.dart';
 import 'chat_wallpaper_tone.dart';
@@ -32,7 +33,7 @@ class MessageDeletedStub extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Сообщение удалено',
+                AppLocalizations.of(context)!.chat_message_deleted,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: chatWallpaperAdaptivePrimaryTextColor(

@@ -8,6 +8,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_gallery_video_local_cache.dart';
 import 'chat_vlc_network_media.dart';
 import 'video_cached_thumb_image.dart';
@@ -527,7 +528,7 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: ChatMediaNormStatusWidget(
           state: normState,
-          mediaKindLabel: 'видео',
+          mediaKindLabel: AppLocalizations.of(context)!.video_circle_media_kind,
           onRetry: widget.onRetryNorm,
         ),
       );

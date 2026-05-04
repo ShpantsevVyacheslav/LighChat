@@ -1,3 +1,7 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import '../../l10n/app_localizations.dart';
+
 /// Парсинг FCM `data` для deep link (паритет с web `parseConversationIdFromDashboardChatLink`).
 String? conversationIdFromPushData(Map<String, dynamic> data) {
   final direct = data['conversationId'];
@@ -42,7 +46,8 @@ String callerNameFromPushData(Map<String, dynamic> data) {
         .replaceFirst(RegExp(r'^\s*Вам звонит\s*', caseSensitive: false), '')
         .trim();
   }
-  return 'Кто-то';
+  final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
+  return l10n.push_caller_unknown;
 }
 
 String? parseConversationIdFromDashboardChatLink(String link) {
