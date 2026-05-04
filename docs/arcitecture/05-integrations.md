@@ -55,6 +55,7 @@
 - Формат ответа: `{ ok, items: [{ id, url, width?, height? }], error? }`.
 - Используется веб-панелью `ChatStickerGifPanel.tsx` и мобильным `composer_sticker_gif_sheet.dart`.
 - Историческая заметка: ранее использовался Tenor API (Google), но он перестал быть доступен в Google Cloud Console — мигрировали на GIPHY с сохранением формата ответа.
+- **Animated emoji permanent cache (mobile):** [`GiphyCacheStore`](../../mobile/app/lib/features/chat/data/giphy_cache_store.dart) хранит GIPHY-выдачи в `SharedPreferences`. Ключи: `gifs:<query>`, `stickers:<query>`, `emoji:<query>`. Для `GiphyType.emoji` (анимированные эмодзи) **TTL не применяется** — каталог стабильный, новые позиции добираются только через пагинацию `_loadMoreAnimEmojis`, а уже загруженные остаются навсегда (permanent cache). Для `gifs`/`stickers` TTL = 24h, LRU-лимит 20 ключей. Emoji-ключи (`emoji:*`) **защищены от LRU-вытеснения** — при eviction удаляются только `gifs:`/`stickers:`-записи. Пагинация: при скролле догружаются следующие порции с дедупликацией по `id` **и** `url` (защита от дублей GIPHY API); накопленный merged-список перезаписывается в кеш под исходным ключом. Ключи trending: `gifs:''`, `stickers:''`, `emoji:''` (пустой query). Recent: отдельный список последних 30 отправленных GIF (dedup по `url`/`id`).
 
 ## WebRTC stack
 

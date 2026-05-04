@@ -85,6 +85,35 @@ Use a global `Map` cache to store/restore messages for instant chat navigation.
 - If a request is ambiguous, ask for clarification before coding.
 - Explain **what**, **where**, and **why** before providing code.
 
+## 7. Documentation Sync (MANDATORY)
+
+После каждой задачи, изменившей архитектурно значимый код, ОБЯЗАТЕЛЬНО обнови документацию в том же коммите/PR. Правило закреплено в `AGENTS.md` (строки 38-49).
+
+### Матрица обновления
+
+| Что изменилось | Обновить |
+|---|---|
+| Пути / модули / ответственность директорий | `AGENTS.md` + `docs/arcitecture/01-codebase-map.md` |
+| Типы / сущности / DTO (`src/lib/types.ts`) | `docs/arcitecture/02-domain-entities.md` |
+| Коллекции / индексы / правила Firestore | `docs/arcitecture/03-firestore-model.md` (+ `05-integrations.md`) |
+| Runtime-потоки (auth/chat/calls/meetings/notifications/games) | `docs/arcitecture/04-runtime-flows.md` |
+| Внешние сервисы / env / деплой / рантайм | `docs/arcitecture/05-integrations.md` |
+| Правила работы агентов | `AGENTS.md` + `docs/arcitecture/06-agent-change-policy.md` |
+
+### Стиль записей
+
+- `04-runtime-flows.md`: `   **Bold title (platform):** dense paragraph with [` + "`" + `relative links` + "`" + `](../../path).`
+- `01-codebase-map.md`: `  - ` + "`" + `path/to/file` + "`" + ` - краткое описание ответственности.`
+- `05-integrations.md`: секционные буллеты с техническими деталями (TTL, ENV, ключи кеша, лимиты).
+- Вся документация на русском языке.
+
+### Чеклист перед завершением задачи
+
+- [ ] Все пути в `[ссылках](...)` реально существуют
+- [ ] `firestore.rules` и `src/firestore.rules` синхронны (если затронуты)
+- [ ] Нет незадокументированных архитектурных изменений
+- [ ] Запустить `/sync-docs` для финальной проверки
+
 ## Key Project Files
 
 For detailed file paths and extended references, see [reference.md](reference.md).
