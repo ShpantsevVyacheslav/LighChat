@@ -14,6 +14,7 @@ class DurakHandFan extends StatelessWidget {
     required this.rankLabel,
     required this.suitLabel,
     required this.isRedSuit,
+    required this.isTrump,
     required this.enabled,
     required this.highlight,
     required this.selectedId,
@@ -29,6 +30,7 @@ class DurakHandFan extends StatelessWidget {
   final String Function(Map<String, dynamic>) rankLabel;
   final String Function(Map<String, dynamic>) suitLabel;
   final bool Function(String) isRedSuit;
+  final bool Function(Map<String, dynamic>) isTrump;
 
   final bool Function(Map<String, dynamic>) enabled;
   final bool Function(Map<String, dynamic>) highlight;
@@ -115,6 +117,7 @@ class DurakHandFan extends StatelessWidget {
                     suit: suitLabel(cards[i]),
                     enabled: enabled(cards[i]),
                     highlight: highlight(cards[i]),
+                    isTrump: isTrump(cards[i]),
                     selected:
                         selectedId != null && selectedId == cardId(cards[i], i),
                     onTap: () => onTap(cards[i], cardId(cards[i], i)),
@@ -145,6 +148,7 @@ class _HandFanCard extends StatelessWidget {
     required this.isRed,
     required this.enabled,
     required this.highlight,
+    required this.isTrump,
     required this.selected,
     required this.onTap,
     required this.onDragStarted,
@@ -162,6 +166,7 @@ class _HandFanCard extends StatelessWidget {
   final bool isRed;
   final bool enabled;
   final bool highlight;
+  final bool isTrump;
   final bool selected;
   final VoidCallback onTap;
   final void Function(Map<String, dynamic> card, String id)? onDragStarted;
@@ -183,6 +188,7 @@ class _HandFanCard extends StatelessWidget {
           selected: selected,
           disabled: !enabled,
           highlight: highlight,
+          isTrump: isTrump,
           width: cardWidth,
           height: cardHeight,
           onTap: onTap,

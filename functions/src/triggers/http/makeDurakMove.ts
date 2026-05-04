@@ -203,7 +203,7 @@ export const makeDurakMove = onCall(
       let cheated: Record<string, unknown> | null = null;
       let forcedResult: DurakGameResult = null;
 
-      if (state.pendingResolution && actionType !== "foul" && actionType !== "resolve" && actionType !== "surrender") {
+      if (state.pendingResolution && actionType !== "resolve" && actionType !== "surrender") {
         throw new HttpsError("failed-precondition", "ROUND_RESOLUTION_PENDING");
       }
 
@@ -319,8 +319,9 @@ export const makeDurakMove = onCall(
           break;
         }
         case "foul": {
-          applyFoul({ state, handsByUid: handsByUid as any, uid, nowIso });
-          payloadNormalized = {};
+          const foulCard = parseCard(payloadObj.card);
+          applyFoul({ state, handsByUid: handsByUid as any, uid, nowIso, suspectedCard: foulCard });
+          payloadNormalized = { card: foulCard };
           break;
         }
         case "resolve": {
@@ -362,15 +363,14 @@ export const makeDurakMove = onCall(
         allDefended(state) &&
         allThrowersPassed({ state, handsByUid: handsByUid as any })
       ) {
-        const shulerEnabled = settings.shulerEnabled === true;
-        if (shulerEnabled && state.lastCheat) {
-          state.pendingResolution = { kind: "discard", at: nowIso, byUid: state.attackerUid };
-          state.phase = "resolution";
-        } else {
-          discardTable({ state });
-          drawUpToSix({ state, handsByUid: handsByUid as any });
-          rotateAfterSuccessfulDefense(state);
+        // In shuler mode, undetected cheats pass — clear lastCheat and notify.
+        if (state.lastCheat) {
+          state.cheatPassedUid = state.lastCheat.uid;
+          state.lastCheat = null;
         }
+        discardTable({ state });
+        drawUpToSix({ state, handsByUid: handsByUid as any });
+        rotateAfterSuccessfulDefense(state);
       }
 
       // Canon: if defender is taking, allow throw-ins to continue until resolved,
@@ -425,10 +425,6 @@ export const makeDurakMove = onCall(
         );
       }
 
-      const sanitizedState = sanitizeForFirestore(
-        encodeStateForFirestore(state),
-        "serverState",
-      );
       const sanitizedPublicView = sanitizeForFirestore(
         buildPublicView({
           state,
@@ -439,6 +435,12 @@ export const makeDurakMove = onCall(
           result,
         }),
         "publicView",
+      );
+      // Clear one-shot signal after it's captured in publicView.
+      if (state.cheatPassedUid) delete state.cheatPassedUid;
+      const sanitizedState = sanitizeForFirestore(
+        encodeStateForFirestore(state),
+        "serverState",
       );
       lastWritePayloadDump = (() => {
         try {

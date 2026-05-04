@@ -104,6 +104,8 @@ export function DurakWebGameDialog({
   const [drag, setDrag] = useState<DragState | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [emojiBurst, setEmojiBurst] = useState(false);
+  const lastCheatPassedRef = useRef('');
   const dragRef = useRef<DragState | null>(null);
   const moveInFlightRef = useRef(false);
 
@@ -255,13 +257,19 @@ export function DurakWebGameDialog({
   const sortedMyCards = useMemo(() => {
     const sorted = [...myCards];
     sorted.sort((a, b) => {
-      const sa = isJoker(a) || !a.s ? 99 : (suitOrder[a.s] ?? 9);
-      const sb = isJoker(b) || !b.s ? 99 : (suitOrder[b.s] ?? 9);
+      const aj = isJoker(a);
+      const bj = isJoker(b);
+      if (aj !== bj) return aj ? 1 : -1;
+      const at = a.s === trumpSuit;
+      const bt = b.s === trumpSuit;
+      if (at !== bt) return at ? 1 : -1;
+      const sa = suitOrder[a.s] ?? 9;
+      const sb = suitOrder[b.s] ?? 9;
       if (sa !== sb) return sa - sb;
       return rankValue(a) - rankValue(b);
     });
     return sorted;
-  }, [myCards]);
+  }, [myCards, trumpSuit]);
   const visibleMyCards = useMemo(() => {
     if (!pendingMove) return sortedMyCards;
     let removed = false;
@@ -315,19 +323,6 @@ export function DurakWebGameDialog({
   const hasUndefendedAttacks = attacks.some((_, idx) => !defenses[idx]);
   const shuler = publicView?.shuler;
   const shulerEnabled = shuler?.enabled === true;
-  const lastCheatUid = shuler?.lastCheatUid ?? '';
-  const hasPendingResolution = shuler?.pendingResolution != null;
-  const canFoul =
-    status === 'active' &&
-    shulerEnabled &&
-    lastCheatUid !== '' &&
-    currentUser.id !== lastCheatUid &&
-    hasPendingResolution;
-  const canResolve =
-    status === 'active' &&
-    shulerEnabled &&
-    currentUser.id === attackerUid &&
-    hasPendingResolution;
 
   function fallbackCurrentThrower(): string | null {
     if (attacks.length === 0) return null;
@@ -467,6 +462,16 @@ export function DurakWebGameDialog({
     return () => window.clearInterval(id);
   }, []);
 
+  const cheatPassedUid = shuler?.cheatPassedUid ?? '';
+  useEffect(() => {
+    if (cheatPassedUid && cheatPassedUid !== lastCheatPassedRef.current) {
+      lastCheatPassedRef.current = cheatPassedUid;
+      setEmojiBurst(true);
+      const t = window.setTimeout(() => setEmojiBurst(false), 3000);
+      return () => window.clearTimeout(t);
+    }
+  }, [cheatPassedUid]);
+
   useEffect(() => {
     dragRef.current = drag;
   }, [drag]);
@@ -513,17 +518,15 @@ export function DurakWebGameDialog({
 
   const primaryLabel = useMemo(() => {
     if (status !== 'active') return '';
-    if (canResolve) return 'Подтвердить Бито';
     const isTaking = publicView?.phase === 'throwIn';
     if (legalMoves?.canTake && hasUndefendedAttacks && !isTaking) return 'Беру';
     if (legalMoves?.canPass) return 'Пас';
-    if (canFoul) return 'Нажми на карту шулера';
     if (serverTurnKind === 'attack' && publicView?.turnUid === currentUser.id) return 'Твой ход';
     if (currentUser.id === defenderUid) return (hasUndefendedAttacks && !isTaking) ? 'Беру' : '';
     if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
     if (currentUser.id === currentThrowerUid) return 'Пас';
     return '';
-  }, [attackerUid, attacks.length, canFoul, canResolve, currentThrowerUid, currentUser.id, defenderUid, hasUndefendedAttacks, legalMoves, publicView?.phase, publicView?.turnUid, serverTurnKind, status]);
+  }, [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, hasUndefendedAttacks, legalMoves, publicView?.phase, publicView?.turnUid, serverTurnKind, status]);
 
   const enabledCard = (card: DurakCard) =>
     canAttackCard(card) || canTransferCard(card) || firstDefenseIndexForCard(card) != null;
@@ -822,6 +825,12 @@ export function DurakWebGameDialog({
                 ) : null}
                 <div className="text-lg font-black drop-shadow">{publicView?.deckCount ?? 0}</div>
               </div>
+            ) : trumpSuit ? (
+              <div className="absolute left-4 top-6 flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2 backdrop-blur-sm">
+                <span className={cn('text-2xl font-black', (trumpSuit === 'H' || trumpSuit === 'D') ? 'text-red-400' : 'text-white')}>
+                  {suitSymbol[trumpSuit] ?? trumpSuit}
+                </span>
+              </div>
             ) : null}
             {(publicView?.discardCount ?? 0) > 0 ? (
               <div className="absolute right-4 top-6 flex items-center">
@@ -843,15 +852,13 @@ export function DurakWebGameDialog({
                   key={`${cardLabel(attack)}-${idx}`}
                   className={cn(
                     'relative h-32 w-24 cursor-pointer',
-                    idx === selectedAttackIndex && 'drop-shadow-[0_0_18px_rgba(255,255,255,.45)]',
-                    canFoul && 'rounded-2xl ring-2 ring-red-400/70'
+                    idx === selectedAttackIndex && 'drop-shadow-[0_0_18px_rgba(255,255,255,.45)]'
                   )}
                   onClick={() => {
-                    if (canFoul) {
-                      void makeMove('foul');
-                    } else {
-                      setSelectedAttackIndex(idx);
+                    if (shulerEnabled && status === 'active') {
+                      void makeMove('foul', { card: attack });
                     }
+                    setSelectedAttackIndex(idx);
                   }}
                 >
                   <div className="absolute left-0 top-0 -rotate-3">
@@ -866,7 +873,17 @@ export function DurakWebGameDialog({
                     )}
                   >
                     {optimisticTable.defenses[idx] ? (
-                      <DurakCardView card={optimisticTable.defenses[idx] as DurakCard} className="rotate-6" />
+                      <div
+                        className="cursor-pointer"
+                        onClick={(e) => {
+                          if (shulerEnabled && status === 'active') {
+                            e.stopPropagation();
+                            void makeMove('foul', { card: optimisticTable.defenses[idx] });
+                          }
+                        }}
+                      >
+                        <DurakCardView card={optimisticTable.defenses[idx] as DurakCard} className="rotate-6" />
+                      </div>
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs font-black text-white/55">
                         <Shield className="h-5 w-5" />
@@ -912,17 +929,11 @@ export function DurakWebGameDialog({
               {primaryLabel ? (
                 <button
                   type="button"
-                  className={cn(
-                    'min-w-[150px] rounded-2xl px-5 py-3 text-2xl font-semibold shadow-md disabled:cursor-default disabled:opacity-100',
-                    primaryLabel === 'Подтвердить Бито' ? 'bg-lime-400 text-lime-950' :
-                    primaryLabel === 'Нажми на карту шулера' ? 'bg-red-100 text-red-700 text-base' :
-                    'bg-white'
-                  )}
-                  disabled={busy != null || primaryLabel === 'Твой ход' || primaryLabel === 'Нажми на карту шулера'}
+                  className="min-w-[150px] rounded-2xl bg-white px-5 py-3 text-2xl font-semibold shadow-md disabled:cursor-default disabled:opacity-100"
+                  disabled={busy != null || primaryLabel === 'Твой ход'}
                   onClick={() => {
                     if (primaryLabel === 'Беру') void makeMove('take');
                     if (primaryLabel === 'Пас') void makeMove('pass');
-                    if (primaryLabel === 'Подтвердить Бито') void makeMove('resolve');
                   }}
                 >
                   {primaryLabel}
@@ -965,7 +976,7 @@ export function DurakWebGameDialog({
                         setDrag({ card, index: idx, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY });
                       }}
                     >
-                      <DurakCardView card={card} width={cardWidth} height={cardHeight} selected={selected} />
+                      <DurakCardView card={card} width={cardWidth} height={cardHeight} selected={selected} isTrump={!isJoker(card) && card.s === trumpSuit} />
                     </button>
                   );
                 })}
@@ -973,6 +984,8 @@ export function DurakWebGameDialog({
             </div>
           </div>
         </div>
+
+        {emojiBurst ? <EmojiBurstOverlay /> : null}
 
         {drag ? (
           <div
@@ -1143,6 +1156,7 @@ function DurakCardView({
   compact = false,
   muted = false,
   selected = false,
+  isTrump = false,
   width,
   height,
   className,
@@ -1151,6 +1165,7 @@ function DurakCardView({
   compact?: boolean;
   muted?: boolean;
   selected?: boolean;
+  isTrump?: boolean;
   width?: number;
   height?: number;
   className?: string;
@@ -1162,9 +1177,10 @@ function DurakCardView({
   return (
     <div
       className={cn(
-        'relative rounded-xl border border-black/10 bg-[#fbfbff] shadow-[0_10px_20px_rgba(0,0,0,.22)]',
+        'relative rounded-xl border bg-[#fbfbff] shadow-[0_10px_20px_rgba(0,0,0,.22)]',
         compact ? 'h-20 w-14' : 'h-[104px] w-[74px]',
         selected && 'ring-2 ring-emerald-300',
+        isTrump && !selected ? 'border-amber-400/50 shadow-[0_0_8px_rgba(251,191,36,.25)]' : 'border-black/10',
         className
       )}
       style={width && height ? { width, height } : undefined}
@@ -1180,6 +1196,48 @@ function DurakCardView({
         <div className={compact ? 'text-base' : 'text-xl'}>{rank}</div>
         <div className={compact ? 'text-sm' : 'text-lg'}>{suit}</div>
       </div>
+    </div>
+  );
+}
+
+const BURST_EMOJIS = ['😂', '🤣', '😈', '🃏', '💀', '😏', '🫵', '🤡', '😹', '👺'];
+
+function EmojiBurstOverlay() {
+  const particles = useMemo(() => {
+    return Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      emoji: BURST_EMOJIS[i % BURST_EMOJIS.length],
+      left: Math.random() * 100,
+      delay: Math.random() * 0.8,
+      size: 20 + Math.random() * 28,
+      drift: -30 + Math.random() * 60,
+    }));
+  }, []);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[200] overflow-hidden">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute animate-[emojiBurst_2.5s_ease-out_forwards]"
+          style={{
+            left: `${p.left}%`,
+            bottom: '-10%',
+            fontSize: p.size,
+            animationDelay: `${p.delay}s`,
+            '--drift': `${p.drift}px`,
+          } as React.CSSProperties}
+        >
+          {p.emoji}
+        </div>
+      ))}
+      <style>{`
+        @keyframes emojiBurst {
+          0% { transform: translateY(0) translateX(0) rotate(0deg) scale(0.3); opacity: 1; }
+          50% { opacity: 1; }
+          100% { transform: translateY(-120vh) translateX(var(--drift, 0px)) rotate(360deg) scale(1); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

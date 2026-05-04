@@ -21,58 +21,49 @@ function baseState(): DurakServerState {
   return s;
 }
 
-describe("durak moves (shuler resolution)", () => {
-  it("finishTurn with shuler+lastCheat sets pendingResolution and does not discard", () => {
+describe("durak moves (shuler)", () => {
+  it("foul with correct card undoes cheat and creates foulEvent", () => {
     const state = baseState();
-    const handsByUid: Record<string, any[]> = { a: [], b: [], c: [] };
-
-    // Table is fully defended, throw-in finished.
-    state.table.attacks = [parseCard({ r: 6, s: "S" })];
-    state.table.defenses = [parseCard({ r: 7, s: "S" })];
-    state.throwerUids = ["a", "c"];
-    state.passedUids = ["a", "c"];
-    state.lastCheat = { uid: "a", actionType: "attack", card: parseCard({ r: 6, s: "S" }), at: new Date(0).toISOString() };
-
-    applyFinishTurn({ state, handsByUid, uid: "a", nowIso: new Date(1).toISOString(), shulerEnabled: true });
-    expect(state.pendingResolution).not.toBeNull();
-    expect(state.table.attacks.length).toBe(1); // not discarded yet
-  });
-
-  it("resolve clears pendingResolution and discards the table", () => {
-    const state = baseState();
-    const handsByUid: Record<string, any[]> = { a: [], b: [], c: [] };
-
-    state.table.attacks = [parseCard({ r: 6, s: "S" })];
-    state.table.defenses = [parseCard({ r: 7, s: "S" })];
-    state.throwerUids = ["a", "c"];
-    state.passedUids = ["a", "c"];
-    state.pendingResolution = { kind: "discard", at: new Date(0).toISOString(), byUid: "a" };
-    state.lastCheat = { uid: "a", actionType: "attack", card: parseCard({ r: 6, s: "S" }), at: new Date(0).toISOString() };
-
-    applyResolve({ state, handsByUid, uid: "a" });
-    expect(state.pendingResolution).toBeNull();
-    expect(state.table.attacks.length).toBe(0);
-    expect(state.discard.length).toBeGreaterThan(0);
-  });
-
-  it("foul clears pendingResolution and creates foulEvent", () => {
-    const state = baseState();
+    const cheatCard = parseCard({ r: 6, s: "S" });
     const handsByUid: Record<string, any[]> = {
-      a: [parseCard({ r: 6, s: "S" })],
+      a: [cheatCard],
       b: [],
       c: [],
     };
 
-    state.table.attacks = [parseCard({ r: 7, s: "D" })];
-    state.table.defenses = [parseCard({ r: 8, s: "D" })];
-    state.pendingResolution = { kind: "discard", at: new Date(0).toISOString(), byUid: "a" };
-    // Pretend lastCheat was illegal defend; rollback logic will run.
-    state.lastCheat = { uid: "a", actionType: "attack", card: parseCard({ r: 6, s: "S" }), at: new Date(0).toISOString() };
+    state.table.attacks = [parseCard({ r: 7, s: "D" }), cheatCard];
+    state.table.defenses = [parseCard({ r: 8, s: "D" }), null];
+    state.lastCheat = { uid: "a", actionType: "attack", card: cheatCard, at: new Date(0).toISOString() };
 
-    applyFoul({ state, handsByUid, uid: "b", nowIso: new Date(2).toISOString() });
-    expect(state.pendingResolution).toBeNull();
+    applyFoul({ state, handsByUid, uid: "b", nowIso: new Date(2).toISOString(), suspectedCard: { r: 6, s: "S" } });
     expect(state.foulEvent).not.toBeNull();
     expect(state.foulEvent?.byUid).toBe("b");
+    expect(state.table.attacks.length).toBe(1);
+  });
+
+  it("foul with wrong card throws WRONG_CARD", () => {
+    const state = baseState();
+    const handsByUid: Record<string, any[]> = { a: [], b: [], c: [] };
+
+    state.table.attacks = [parseCard({ r: 6, s: "S" })];
+    state.table.defenses = [null];
+    state.lastCheat = { uid: "a", actionType: "attack", card: parseCard({ r: 6, s: "S" }), at: new Date(0).toISOString() };
+
+    expect(() =>
+      applyFoul({ state, handsByUid, uid: "b", nowIso: new Date(2).toISOString(), suspectedCard: { r: 7, s: "H" } }),
+    ).toThrow("WRONG_CARD");
+  });
+
+  it("cheater cannot foul own cheat", () => {
+    const state = baseState();
+    const handsByUid: Record<string, any[]> = { a: [], b: [], c: [] };
+
+    state.table.attacks = [parseCard({ r: 6, s: "S" })];
+    state.table.defenses = [null];
+    state.lastCheat = { uid: "a", actionType: "attack", card: parseCard({ r: 6, s: "S" }), at: new Date(0).toISOString() };
+
+    expect(() =>
+      applyFoul({ state, handsByUid, uid: "a", nowIso: new Date(2).toISOString(), suspectedCard: { r: 6, s: "S" } }),
+    ).toThrow("CANNOT_FOUL_OWN_CHEAT");
   });
 });
-

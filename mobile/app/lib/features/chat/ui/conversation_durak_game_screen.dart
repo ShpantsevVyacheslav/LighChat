@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -50,6 +51,8 @@ class _ConversationDurakGameScreenState
   String? _selectedCardId;
   int _selectedAttackIndex = 0;
   String _lastFoulAtShown = '';
+  String _lastCheatPassedUid = '';
+  bool _showEmojiBurst = false;
   int _prevDefenderHandCount = 0;
   int _prevDiscardCount = 0;
   int _prevTableCards = 0;
@@ -454,8 +457,11 @@ class _ConversationDurakGameScreenState
     );
   }
 
-  Future<void> _callFoul() async {
-    await _sendMove(actionType: 'foul');
+  Future<void> _callFoul(Map<String, dynamic> card) async {
+    await _sendMove(
+      actionType: 'foul',
+      payload: <String, dynamic>{'card': _cardPayload(card)},
+    );
   }
 
   Future<void> _resolveBeat() async {
@@ -755,9 +761,6 @@ class _ConversationDurakGameScreenState
                 ? Map<String, dynamic>.from(shulerRaw)
                 : null;
             final shulerEnabled = shuler != null && shuler['enabled'] == true;
-            final lastCheatUid = shuler == null
-                ? ''
-                : (shuler['lastCheatUid'] ?? '').toString();
             final foulRaw = shuler == null ? null : shuler['foulEvent'];
             final foulEvent = foulRaw is Map
                 ? Map<String, dynamic>.from(foulRaw)
@@ -771,13 +774,9 @@ class _ConversationDurakGameScreenState
             final foulMissed = foulMissedRaw is List
                 ? foulMissedRaw.map((e) => e.toString()).toList()
                 : const <String>[];
-            final pendingRaw = shuler == null
-                ? null
-                : shuler['pendingResolution'];
-            final pendingResolution = pendingRaw is Map
-                ? Map<String, dynamic>.from(pendingRaw)
-                : null;
-            final hasPendingResolution = pendingResolution != null;
+            final cheatPassedUid = shuler == null
+                ? ''
+                : (shuler['cheatPassedUid'] ?? '').toString();
 
             final seatsRaw = publicView == null ? null : publicView['seats'];
             final seats = seatsRaw is List
@@ -914,21 +913,6 @@ class _ConversationDurakGameScreenState
                 hasSelected &&
                 cardCanTransfer(_selectedCard!);
 
-            final canFoul =
-                status == 'active' &&
-                shulerEnabled &&
-                me != null &&
-                lastCheatUid.isNotEmpty &&
-                me != lastCheatUid &&
-                hasPendingResolution;
-
-            final canResolve =
-                status == 'active' &&
-                shulerEnabled &&
-                me != null &&
-                me == attackerUid &&
-                hasPendingResolution;
-
             String myTurnLabel = '';
             if (status == 'active' && me != null) {
               final isMyMove = (attacks.isEmpty &&
@@ -937,7 +921,6 @@ class _ConversationDurakGameScreenState
                   (tableHasAttacks &&
                       me == defenderUid &&
                       phase == 'defense') ||
-                  canResolve ||
                   (activeThrowerUid != null &&
                       me == activeThrowerUid &&
                       me != defenderUid);
@@ -958,13 +941,6 @@ class _ConversationDurakGameScreenState
                 id: 'pass',
                 label: l10n.conversation_durak_action_pass,
                 onTap: () => unawaited(_sendMove(actionType: 'pass')),
-              ));
-            }
-            if (canResolve) {
-              primaryCandidates.add((
-                id: 'resolve',
-                label: l10n.conversation_durak_action_resolve,
-                onTap: () => unawaited(_resolveBeat()),
               ));
             }
             final primaryActions = primaryCandidates
@@ -998,18 +974,6 @@ class _ConversationDurakGameScreenState
               overflowActions.add((
                 label: l10n.conversation_durak_action_transfer,
                 onTap: () => unawaited(_tryTransfer(_selectedCard!)),
-              ));
-            }
-            if (canFoul) {
-              overflowActions.add((
-                label: l10n.conversation_durak_action_foul,
-                onTap: () => unawaited(_callFoul()),
-              ));
-            }
-            if (canResolve && !primaryIds.contains('resolve')) {
-              overflowActions.add((
-                label: l10n.conversation_durak_action_resolve,
-                onTap: () => unawaited(_resolveBeat()),
               ));
             }
 
@@ -1251,6 +1215,9 @@ class _ConversationDurakGameScreenState
                           rankLabel: _rankLabel,
                           suitLabel: _suitLabel,
                           isRedSuit: _isRedSuit,
+                          isTrump: (card) =>
+                              !_isJoker(card) &&
+                              _suitOf(card) == trumpSuit,
                           enabled: (card) =>
                               _pendingMove == null &&
                               (serverCanAttack(card) ||
@@ -1347,6 +1314,27 @@ class _ConversationDurakGameScreenState
                       return const SizedBox.shrink();
                     },
                   ),
+                if (cheatPassedUid.isNotEmpty &&
+                    cheatPassedUid != _lastCheatPassedUid)
+                  Builder(
+                    builder: (context) {
+                      scheduleMicrotask(() {
+                        if (!mounted) return;
+                        setState(() {
+                          _lastCheatPassedUid = cheatPassedUid;
+                          _showEmojiBurst = true;
+                        });
+                        Future<void>.delayed(
+                          const Duration(seconds: 3),
+                          () {
+                            if (!mounted) return;
+                            setState(() => _showEmojiBurst = false);
+                          },
+                        );
+                      });
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 Positioned.fill(
                   bottom: bottomPanelHeight,
                   child: Stack(
@@ -1403,6 +1391,12 @@ class _ConversationDurakGameScreenState
                               trumpCard: trumpCard,
                             ),
                           ),
+                        )
+                      else if (trumpSuit.isNotEmpty)
+                        Positioned(
+                          left: 12,
+                          top: 118,
+                          child: _TrumpSuitBadge(trumpSuit: trumpSuit),
                         ),
                       Positioned(
                         right: 12,
@@ -1439,9 +1433,9 @@ class _ConversationDurakGameScreenState
                           rankLabel: _rankLabel,
                           suitLabel: _suitLabel,
                           isRedSuit: _isRedSuit,
-                          shulerFoulMode: canFoul,
-                          onShulerFoulTap: canFoul
-                              ? () => unawaited(_callFoul())
+                          shulerFoulMode: shulerEnabled && status == 'active',
+                          onShulerFoulCardTap: (shulerEnabled && status == 'active')
+                              ? (card) => unawaited(_callFoul(card))
                               : null,
                         ),
                       ),
@@ -1479,13 +1473,6 @@ class _ConversationDurakGameScreenState
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (hasPendingResolution && shulerEnabled)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                            child: _PendingResolutionBanner(
-                              isAttacker: me == attackerUid,
-                            ),
-                          ),
                         if (myTurnLabel.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
@@ -1522,6 +1509,13 @@ class _ConversationDurakGameScreenState
                       ),
                     ),
                   ),
+                if (_showEmojiBurst)
+                  const Positioned.fill(
+                    child: IgnorePointer(
+                      ignoring: true,
+                      child: _EmojiBurstOverlay(),
+                    ),
+                  ),
               ],
             );
           },
@@ -1548,6 +1542,100 @@ class _DrawFlight {
 }
 
 // _HandCard was replaced by DurakHandFan.
+
+const _burstEmojis = ['😂', '🤣', '😈', '🃏', '💀', '😏', '🫵', '🤡', '😹', '👺'];
+
+class _EmojiBurstOverlay extends StatefulWidget {
+  const _EmojiBurstOverlay();
+
+  @override
+  State<_EmojiBurstOverlay> createState() => _EmojiBurstOverlayState();
+}
+
+class _EmojiBurstOverlayState extends State<_EmojiBurstOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final List<_EmojiParticle> _particles;
+
+  @override
+  void initState() {
+    super.initState();
+    final rng = Random();
+    _particles = List.generate(30, (i) {
+      return _EmojiParticle(
+        emoji: _burstEmojis[i % _burstEmojis.length],
+        left: rng.nextDouble(),
+        delay: rng.nextDouble() * 0.8,
+        size: 20 + rng.nextDouble() * 28,
+        drift: -30 + rng.nextDouble() * 60,
+      );
+    });
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        return Stack(
+          children: [
+            for (final p in _particles)
+              Builder(
+                builder: (context) {
+                  final t = (_ctrl.value - p.delay / 3.0).clamp(0.0, 1.0);
+                  if (t <= 0) return const SizedBox.shrink();
+                  final opacity = t < 0.5 ? 1.0 : (1.0 - (t - 0.5) * 2.0).clamp(0.0, 1.0);
+                  return Positioned(
+                    left: p.left * MediaQuery.sizeOf(context).width + p.drift * t,
+                    bottom: -40 + t * (MediaQuery.sizeOf(context).height * 1.2),
+                    child: Opacity(
+                      opacity: opacity,
+                      child: Transform.rotate(
+                        angle: t * 6.28,
+                        child: Transform.scale(
+                          scale: 0.3 + t * 0.7,
+                          child: Text(
+                            p.emoji,
+                            style: TextStyle(fontSize: p.size),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _EmojiParticle {
+  const _EmojiParticle({
+    required this.emoji,
+    required this.left,
+    required this.delay,
+    required this.size,
+    required this.drift,
+  });
+
+  final String emoji;
+  final double left;
+  final double delay;
+  final double size;
+  final double drift;
+}
 
 class _TurnStatusPill extends StatelessWidget {
   const _TurnStatusPill({required this.text});
@@ -1911,6 +1999,36 @@ class _DurakSideDeck extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TrumpSuitBadge extends StatelessWidget {
+  const _TrumpSuitBadge({required this.trumpSuit});
+
+  final String trumpSuit;
+
+  @override
+  Widget build(BuildContext context) {
+    final suit =
+        {'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}[trumpSuit] ?? trumpSuit;
+    final isRed = trumpSuit == 'H' || trumpSuit == 'D';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        suit,
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+          color: isRed
+              ? const Color(0xFFF87171)
+              : Colors.white.withValues(alpha: 0.92),
+        ),
       ),
     );
   }

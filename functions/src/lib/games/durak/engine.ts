@@ -320,10 +320,8 @@ export function buildPublicView({
     canFinishTurn: canFinishTurn({ state, handsByUid }),
     shuler: {
       enabled: shulerEnabled,
-      lastCheatUid: state.lastCheat ? state.lastCheat.uid : null,
-      ...(state.lastCheat ? { lastCheatAt: state.lastCheat.at } : {}),
       ...(state.foulEvent ? { foulEvent: state.foulEvent } : {}),
-      ...(state.pendingResolution ? { pendingResolution: state.pendingResolution } : {}),
+      ...(state.cheatPassedUid ? { cheatPassedUid: state.cheatPassedUid } : {}),
     },
     result: result ?? null,
   };

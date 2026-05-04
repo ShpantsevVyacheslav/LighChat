@@ -24,7 +24,7 @@ class DurakTableWidget extends StatelessWidget {
     required this.suitLabel,
     required this.isRedSuit,
     this.shulerFoulMode = false,
-    this.onShulerFoulTap,
+    this.onShulerFoulCardTap,
   });
 
   final GlobalKey Function(int attackIndex, {required bool defense})
@@ -49,7 +49,7 @@ class DurakTableWidget extends StatelessWidget {
   final bool Function(String) isRedSuit;
 
   final bool shulerFoulMode;
-  final VoidCallback? onShulerFoulTap;
+  final void Function(Map<String, dynamic> card)? onShulerFoulCardTap;
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +191,7 @@ class DurakTableWidget extends StatelessWidget {
                             defense: true,
                           ),
                           shulerFoulMode: shulerFoulMode,
-                          onShulerFoulTap: onShulerFoulTap,
+                          onShulerFoulCardTap: onShulerFoulCardTap,
                         ),
                       _NextAttackSlot(
                         keyForFlight: nextAttackSlotKey,
@@ -312,7 +312,7 @@ class _DurakTablePair extends StatelessWidget {
     required this.attackKeyForFlight,
     required this.defenseKeyForFlight,
     this.shulerFoulMode = false,
-    this.onShulerFoulTap,
+    this.onShulerFoulCardTap,
   });
 
   final double width;
@@ -332,7 +332,7 @@ class _DurakTablePair extends StatelessWidget {
   final GlobalKey attackKeyForFlight;
   final GlobalKey defenseKeyForFlight;
   final bool shulerFoulMode;
-  final VoidCallback? onShulerFoulTap;
+  final void Function(Map<String, dynamic> card)? onShulerFoulCardTap;
 
   @override
   Widget build(BuildContext context) {
@@ -364,7 +364,12 @@ class _DurakTablePair extends StatelessWidget {
             final active = candidate.isNotEmpty;
             return InkWell(
               borderRadius: BorderRadius.circular(18),
-              onTap: shulerFoulMode ? onShulerFoulTap : onSelect,
+              onTap: () {
+                if (shulerFoulMode && onShulerFoulCardTap != null) {
+                  onShulerFoulCardTap!(attack);
+                }
+                onSelect();
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 120),
                 curve: Curves.easeOut,
@@ -372,14 +377,12 @@ class _DurakTablePair extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  color: Colors.white.withValues(alpha: active ? 0.06 : (shulerFoulMode ? 0.04 : 0)),
+                  color: Colors.white.withValues(alpha: active ? 0.06 : 0),
                   border: Border.all(
-                    color: shulerFoulMode
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.7)
-                        : (active
-                            ? const Color(0xFF6EE7B7).withValues(alpha: 0.85)
-                            : Colors.transparent),
-                    width: (active || shulerFoulMode) ? 2 : 0,
+                    color: active
+                        ? const Color(0xFF6EE7B7).withValues(alpha: 0.85)
+                        : Colors.transparent,
+                    width: active ? 2 : 0,
                   ),
                 ),
                 child: SizedBox(

@@ -9,6 +9,7 @@ class DurakCardWidget extends StatelessWidget {
     required this.faceUp,
     this.selected = false,
     this.highlight = false,
+    this.isTrump = false,
     this.disabled = false,
     this.width = 68,
     this.height = 96,
@@ -21,6 +22,7 @@ class DurakCardWidget extends StatelessWidget {
   final bool faceUp;
   final bool selected;
   final bool highlight;
+  final bool isTrump;
   final bool disabled;
   final double width;
   final double height;
@@ -33,7 +35,9 @@ class DurakCardWidget extends StatelessWidget {
         ? const Color(0xFF2E86FF)
         : (highlight
               ? const Color(0xFF6EE7B7)
-              : Colors.black.withValues(alpha: 0.15));
+              : (isTrump && !disabled
+                    ? const Color(0xFFFBBF24).withValues(alpha: 0.55)
+                    : Colors.black.withValues(alpha: 0.15)));
 
     final effectiveBg = base;
     final fg = isRed ? const Color(0xFFDC2626) : const Color(0xFF111827);
@@ -64,6 +68,11 @@ class DurakCardWidget extends StatelessWidget {
                 blurRadius: selected ? 12 : 8,
                 offset: const Offset(0, 6),
               ),
+              if (isTrump && !disabled && !selected)
+                BoxShadow(
+                  color: const Color(0xFFFBBF24).withValues(alpha: 0.22),
+                  blurRadius: 8,
+                ),
             ],
           ),
           child: faceUp

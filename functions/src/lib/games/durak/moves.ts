@@ -58,14 +58,20 @@ export function applyFoul({
   handsByUid,
   uid,
   nowIso,
+  suspectedCard,
 }: {
   state: DurakServerState;
   handsByUid: Record<string, unknown[]>;
   uid: string;
   nowIso: string;
+  suspectedCard: { r: number; s: string };
 }): void {
-  if (!state.pendingResolution) throw new HttpsError("failed-precondition", "FOUL_NOT_ALLOWED_YET");
   if (!state.lastCheat) throw new HttpsError("failed-precondition", "NO_CHEAT_TO_FOUL");
+  if (state.lastCheat.uid === uid) throw new HttpsError("permission-denied", "CANNOT_FOUL_OWN_CHEAT");
+  const cheatCard = state.lastCheat.card;
+  if (cheatCard.r !== suspectedCard.r || cheatCard.s !== suspectedCard.s) {
+    throw new HttpsError("failed-precondition", "WRONG_CARD");
+  }
   const { cheaterUid, penaltyCards, missedUids } = undoLastCheat({
     state,
     handsByUid: handsByUid as any,
