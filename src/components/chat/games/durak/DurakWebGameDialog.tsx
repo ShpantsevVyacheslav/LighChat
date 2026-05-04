@@ -255,8 +255,8 @@ export function DurakWebGameDialog({
   const sortedMyCards = useMemo(() => {
     const sorted = [...myCards];
     sorted.sort((a, b) => {
-      const sa = isJoker(a) ? 99 : (suitOrder[a.s] ?? 9);
-      const sb = isJoker(b) ? 99 : (suitOrder[b.s] ?? 9);
+      const sa = isJoker(a) || !a.s ? 99 : (suitOrder[a.s] ?? 9);
+      const sb = isJoker(b) || !b.s ? 99 : (suitOrder[b.s] ?? 9);
       if (sa !== sb) return sa - sb;
       return rankValue(a) - rankValue(b);
     });
