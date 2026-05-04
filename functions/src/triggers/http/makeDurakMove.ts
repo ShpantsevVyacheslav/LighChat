@@ -320,7 +320,7 @@ export const makeDurakMove = onCall(
         }
         case "foul": {
           const foulCard = parseCard(payloadObj.card);
-          applyFoul({ state, handsByUid: handsByUid as any, uid, nowIso, suspectedCard: foulCard });
+          applyFoul({ state, handsByUid: handsByUid as any, uid, nowIso, suspectedCard: foulCard as { r: number; s: string } });
           payloadNormalized = { card: foulCard };
           break;
         }

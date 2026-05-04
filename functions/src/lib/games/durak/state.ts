@@ -57,8 +57,6 @@ export type DurakPublicView = {
   canFinishTurn?: boolean;
   shuler?: {
     enabled: boolean;
-    lastCheatUid: string | null;
-    lastCheatAt?: string;
     foulEvent?: {
       at: string;
       byUid: string;
@@ -66,11 +64,7 @@ export type DurakPublicView = {
       missedUids: string[];
       penaltyCards: number;
     };
-    pendingResolution?: {
-      kind: "discard";
-      at: string;
-      byUid: string;
-    };
+    cheatPassedUid?: string;
   };
   result?: DurakGameResult;
 };
@@ -146,6 +140,9 @@ export type DurakServerState = {
     at: string;
     byUid: string; // attacker who pressed beat
   } | null;
+
+  // Shuler: one-shot signal — set when a cheat passes undetected (auto-finish).
+  cheatPassedUid?: string | null;
 
   /**
    * Tournament placements tracking (server-side): groups of uids who "went out" together.

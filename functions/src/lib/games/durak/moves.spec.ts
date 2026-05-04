@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { DurakServerState } from "./state";
-import { applyFoul, applyFinishTurn, applyResolve } from "./moves";
+import { applyFoul } from "./moves";
 import { parseCard } from "./cards";
 import { resetRoundTracking } from "./engine";
 
