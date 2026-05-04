@@ -3911,92 +3911,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meeting_participants_button => 'Members';
 
   @override
-  String get settings_chats_bottom_nav_icons_title => 'Иконки нижнего меню';
+  String get settings_chats_bottom_nav_icons_title => 'Bottom navigation icons';
 
   @override
   String get settings_chats_bottom_nav_icons_subtitle =>
-      'Выбор иконок и визуального стиля как на вебе.';
+      'Choose icons and visual style like on the web.';
 
   @override
-  String get settings_chats_nav_colorful => 'Цветные';
+  String get settings_chats_nav_colorful => 'Colorful';
 
   @override
-  String get settings_chats_nav_minimal => 'Минимализм';
+  String get settings_chats_nav_minimal => 'Minimal';
 
   @override
-  String get settings_chats_nav_global_title => 'Для всех иконок';
+  String get settings_chats_nav_global_title => 'For all icons';
 
   @override
   String get settings_chats_nav_global_subtitle =>
-      'Общий слой: цвет, размер, толщина и фон плитки.';
+      'Global layer: color, size, stroke width, and tile background.';
 
   @override
-  String get settings_chats_reset_tooltip => 'Сброс';
+  String get settings_chats_reset_tooltip => 'Reset';
 
   @override
-  String get settings_chats_collapse => 'Скрыть';
+  String get settings_chats_collapse => 'Collapse';
 
   @override
-  String get settings_chats_customize => 'Настроить';
+  String get settings_chats_customize => 'Customize';
 
   @override
-  String get settings_chats_reset_item_tooltip => 'Сбросить';
+  String get settings_chats_reset_item_tooltip => 'Reset';
 
   @override
-  String get settings_chats_style_tooltip => 'Стиль';
+  String get settings_chats_style_tooltip => 'Style';
 
   @override
-  String get settings_chats_icon_size => 'Размер иконки';
+  String get settings_chats_icon_size => 'Icon size';
 
   @override
-  String get settings_chats_stroke_width => 'Толщина линии';
+  String get settings_chats_stroke_width => 'Stroke width';
 
   @override
-  String get settings_chats_default => 'По умолчанию';
+  String get settings_chats_default => 'Default';
 
   @override
-  String get settings_chats_icon_search_hint_en =>
-      'Поиск по названию (англ.)...';
+  String get settings_chats_icon_search_hint_en => 'Search by name...';
 
   @override
-  String get settings_chats_emoji_effects => 'Эффекты эмодзи';
+  String get settings_chats_emoji_effects => 'Emoji effects';
 
   @override
   String get settings_chats_emoji_effects_subtitle =>
-      'Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.';
+      'Animation profile for fullscreen emoji when tapping a single emoji in chat.';
 
   @override
   String get settings_chats_emoji_lite_desc =>
-      'Lite: минимум нагрузки и максимально плавно на слабых устройствах.';
+      'Lite: minimum load and maximum smoothness on low-end devices.';
 
   @override
   String get settings_chats_emoji_balanced_desc =>
-      'Balanced: автоматический компромисс между производительностью и выразительностью.';
+      'Balanced: automatic compromise between performance and expressiveness.';
 
   @override
   String get settings_chats_emoji_cinematic_desc =>
-      'Cinematic: максимум частиц и глубины для вау-эффекта.';
+      'Cinematic: maximum particles and depth for wow-effect.';
 
   @override
-  String get settings_chats_preview_incoming_msg => 'Привет! Как дела?';
+  String get settings_chats_preview_incoming_msg => 'Hey! How are you?';
 
   @override
-  String get settings_chats_preview_outgoing_msg => 'Отлично, спасибо!';
+  String get settings_chats_preview_outgoing_msg => 'Great, thanks!';
 
   @override
-  String get settings_chats_preview_hello => 'Привет';
+  String get settings_chats_preview_hello => 'Hello';
 
   @override
   String get chat_theme_title => 'Chat theme';
 
   @override
   String chat_theme_error_save(String error) {
-    return 'Не удалось сохранить фон: $error';
+    return 'Failed to save background: $error';
   }
 
   @override
   String chat_theme_error_upload(String error) {
-    return 'Ошибка загрузки фона: $error';
+    return 'Background upload error: $error';
   }
 
   @override
@@ -4008,27 +4007,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String chat_theme_error_delete(String error) {
-    return 'Ошибка удаления: $error';
+    return 'Delete error: $error';
   }
 
   @override
   String get chat_theme_banner =>
-      'Фон этой переписки только для вас. Общие настройки чатов в разделе «Настройки чатов» не меняются.';
+      'The background of this chat is only for you. Global chat settings in \"Chat Settings\" remain unchanged.';
 
   @override
   String get chat_theme_current_bg => 'Current background';
 
   @override
-  String get chat_theme_default_global => 'По умолчанию (общие настройки)';
+  String get chat_theme_default_global => 'Default (global settings)';
 
   @override
   String get chat_theme_presets => 'Presets';
 
   @override
-  String get chat_theme_global_tile => 'Общие';
+  String get chat_theme_global_tile => 'Global';
 
   @override
-  String get chat_theme_pick_hint => 'Выберите пресет или фото из галереи';
+  String get chat_theme_pick_hint => 'Choose a preset or photo from gallery';
 
   @override
   String get contacts_title => 'Contacts';
@@ -4516,121 +4515,121 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meeting_copy_link_tooltip => 'Copy link (browser entry)';
 
   @override
-  String get group_members_subtitle_creator => 'Создатель группы';
+  String get group_members_subtitle_creator => 'Group creator';
 
   @override
-  String get group_members_subtitle_admin => 'Администратор';
+  String get group_members_subtitle_admin => 'Administrator';
 
   @override
-  String get group_members_subtitle_member => 'Участник';
+  String get group_members_subtitle_member => 'Member';
 
   @override
   String group_members_total_count(int count) {
-    return 'Всего: $count';
+    return 'Total: $count';
   }
 
   @override
-  String get group_members_copy_invite_tooltip =>
-      'Скопировать ссылку-приглашение';
+  String get group_members_copy_invite_tooltip => 'Copy invite link';
 
   @override
-  String get group_members_add_member_tooltip => 'Добавить участника';
+  String get group_members_add_member_tooltip => 'Add member';
 
   @override
-  String get group_members_invite_copied => 'Ссылка-приглашение скопирована';
+  String get group_members_invite_copied => 'Invite link copied';
 
   @override
   String group_members_copy_link_error(String error) {
-    return 'Не удалось скопировать ссылку: $error';
+    return 'Failed to copy link: $error';
   }
 
   @override
   String get group_members_added => 'Members added';
 
   @override
-  String get group_members_revoke_admin_title => 'Снять права администратора?';
+  String get group_members_revoke_admin_title => 'Revoke admin privileges?';
 
   @override
   String group_members_revoke_admin_body(String name) {
-    return 'У $name будут сняты права администратора. Участник останется в группе как обычный член.';
+    return '$name will lose admin privileges. They will remain in the group as a regular member.';
   }
 
   @override
-  String get group_members_grant_admin_title => 'Назначить администратором?';
+  String get group_members_grant_admin_title => 'Grant admin privileges?';
 
   @override
   String group_members_grant_admin_body(String name) {
-    return '$name получит права администратора: сможет редактировать группу, исключать участников и управлять сообщениями.';
+    return '$name will receive admin privileges: can edit the group, remove members, and manage messages.';
   }
 
   @override
-  String get group_members_revoke_admin_action => 'Снять права';
+  String get group_members_revoke_admin_action => 'Revoke';
 
   @override
-  String get group_members_grant_admin_action => 'Назначить';
+  String get group_members_grant_admin_action => 'Grant';
 
   @override
-  String get group_members_remove_title => 'Исключить участника?';
+  String get group_members_remove_title => 'Remove member?';
 
   @override
   String group_members_remove_body(String name) {
-    return '$name будет удалён из группы. Это действие можно отменить, добавив участника заново.';
+    return '$name will be removed from the group. You can undo this by adding the member again.';
   }
 
   @override
-  String get group_members_remove_action => 'Исключить';
+  String get group_members_remove_action => 'Remove';
 
   @override
-  String get group_members_removed => 'Участник исключён';
+  String get group_members_removed => 'Member removed';
 
   @override
-  String get group_members_menu_revoke_admin => 'Снять админа';
+  String get group_members_menu_revoke_admin => 'Remove admin';
 
   @override
-  String get group_members_menu_grant_admin => 'Сделать админом';
+  String get group_members_menu_grant_admin => 'Make admin';
 
   @override
-  String get group_members_menu_remove => 'Исключить из группы';
+  String get group_members_menu_remove => 'Remove from group';
 
   @override
-  String get group_members_creator_badge => 'СОЗДАТЕЛЬ';
+  String get group_members_creator_badge => 'CREATOR';
 
   @override
-  String get group_members_add_title => 'Добавить участников';
+  String get group_members_add_title => 'Add members';
 
   @override
-  String get group_members_search_contacts => 'Поиск среди контактов';
+  String get group_members_search_contacts => 'Search contacts';
 
   @override
-  String get group_members_all_in_group => 'Все ваши контакты уже в группе.';
+  String get group_members_all_in_group =>
+      'All your contacts are already in the group.';
 
   @override
-  String get group_members_nobody_found => 'Никого не найдено.';
+  String get group_members_nobody_found => 'Nobody found.';
 
   @override
-  String get group_members_user_fallback => 'Пользователь';
+  String get group_members_user_fallback => 'User';
 
   @override
-  String get group_members_select_members => 'Выберите участников';
+  String get group_members_select_members => 'Select members';
 
   @override
   String group_members_add_count(int count) {
-    return 'Добавить ($count)';
+    return 'Add ($count)';
   }
 
   @override
   String group_members_contacts_load_error(String error) {
-    return 'Не удалось загрузить контакты: $error';
+    return 'Failed to load contacts: $error';
   }
 
   @override
   String group_members_auth_error(String error) {
-    return 'Ошибка авторизации: $error';
+    return 'Authorization error: $error';
   }
 
   @override
   String group_members_add_failed(String error) {
-    return 'Не удалось добавить участников: $error';
+    return 'Failed to add members: $error';
   }
 
   @override
@@ -4643,91 +4642,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get poll_create_title => 'Chat poll';
 
   @override
-  String get poll_question_label => 'Вопрос';
+  String get poll_question_label => 'Question';
 
   @override
-  String get poll_question_hint => 'Например: Во сколько встречаемся?';
+  String get poll_question_hint => 'E.g.: What time shall we meet?';
 
   @override
-  String get poll_description_label => 'Пояснение (необязательно)';
+  String get poll_description_label => 'Description (optional)';
 
   @override
-  String get poll_options_title => 'Варианты';
+  String get poll_options_title => 'Options';
 
   @override
   String poll_option_hint(int index) {
-    return 'Вариант $index';
+    return 'Option $index';
   }
 
   @override
-  String get poll_add_option => 'Добавить вариант';
+  String get poll_add_option => 'Add option';
 
   @override
-  String get poll_switch_anonymous => 'Анонимное голосование';
+  String get poll_switch_anonymous => 'Anonymous voting';
 
   @override
-  String get poll_switch_anonymous_sub => 'Не показывать, кто за что голосовал';
+  String get poll_switch_anonymous_sub => 'Do not show who voted for what';
 
   @override
-  String get poll_switch_multi => 'Несколько ответов';
+  String get poll_switch_multi => 'Multiple answers';
 
   @override
-  String get poll_switch_multi_sub => 'Можно выбрать несколько вариантов';
+  String get poll_switch_multi_sub => 'Multiple options can be selected';
 
   @override
-  String get poll_switch_add_options => 'Добавление вариантов';
+  String get poll_switch_add_options => 'Add options';
 
   @override
   String get poll_switch_add_options_sub =>
-      'Участники могут предложить свой вариант';
+      'Participants can suggest their own options';
 
   @override
-  String get poll_switch_revote => 'Можно изменить голос';
+  String get poll_switch_revote => 'Can change vote';
 
   @override
-  String get poll_switch_revote_sub => 'Переголосование до закрытия';
+  String get poll_switch_revote_sub => 'Revote allowed until poll closes';
 
   @override
-  String get poll_switch_shuffle => 'Перемешать варианты';
+  String get poll_switch_shuffle => 'Shuffle options';
 
   @override
-  String get poll_switch_shuffle_sub => 'Свой порядок у каждого участника';
+  String get poll_switch_shuffle_sub => 'Different order for each participant';
 
   @override
-  String get poll_switch_quiz => 'Режим викторины';
+  String get poll_switch_quiz => 'Quiz mode';
 
   @override
-  String get poll_switch_quiz_sub => 'Один правильный ответ';
+  String get poll_switch_quiz_sub => 'One correct answer';
 
   @override
-  String get poll_correct_option_label => 'Правильный вариант';
+  String get poll_correct_option_label => 'Correct option';
 
   @override
-  String get poll_quiz_explanation_label => 'Пояснение (необязательно)';
+  String get poll_quiz_explanation_label => 'Explanation (optional)';
 
   @override
-  String get poll_close_by_time => 'Закрыть по времени';
+  String get poll_close_by_time => 'Close by time';
 
   @override
-  String get poll_close_not_set => 'Не задано';
+  String get poll_close_not_set => 'Not set';
 
   @override
-  String get poll_close_reset => 'Сбросить срок';
+  String get poll_close_reset => 'Reset deadline';
 
   @override
-  String get poll_publish => 'Опубликовать';
+  String get poll_publish => 'Publish';
 
   @override
-  String get poll_error_empty_question => 'Введите вопрос';
+  String get poll_error_empty_question => 'Enter a question';
 
   @override
-  String get poll_error_min_options => 'Нужно минимум 2 варианта';
+  String get poll_error_min_options => 'At least 2 options are required';
 
   @override
-  String get poll_error_select_correct => 'Выберите правильный вариант';
+  String get poll_error_select_correct => 'Select the correct option';
 
   @override
-  String get poll_error_future_time => 'Время закрытия должно быть в будущем';
+  String get poll_error_future_time => 'Closing time must be in the future';
 
   @override
   String get poll_unavailable => 'Poll unavailable';
@@ -4742,7 +4741,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get poll_status_cancelled => 'Cancelled';
 
   @override
-  String get poll_status_ended => 'Завершён';
+  String get poll_status_ended => 'Ended';
 
   @override
   String get poll_status_draft => 'Draft';
@@ -4760,33 +4759,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get poll_badge_quiz => 'Quiz';
 
   @override
-  String get poll_menu_restart => 'Перезапустить';
+  String get poll_menu_restart => 'Restart';
 
   @override
-  String get poll_menu_end => 'Завершить';
+  String get poll_menu_end => 'End';
 
   @override
-  String get poll_menu_delete => 'Удалить';
+  String get poll_menu_delete => 'Delete';
 
   @override
   String get poll_submit_vote => 'Submit vote';
 
   @override
-  String get poll_suggest_option_hint => 'Предложить вариант';
+  String get poll_suggest_option_hint => 'Suggest an option';
 
   @override
   String get poll_revote => 'Change vote';
 
   @override
   String poll_votes_count(int count) {
-    return '$count голосов';
+    return '$count votes';
   }
 
   @override
-  String get poll_show_voters => 'Кто голосовал';
+  String get poll_show_voters => 'Who voted';
 
   @override
-  String get poll_hide_voters => 'Скрыть';
+  String get poll_hide_voters => 'Hide';
 
   @override
   String get poll_vote_error => 'Error while voting';
@@ -4795,111 +4794,113 @@ class AppLocalizationsEn extends AppLocalizations {
   String get poll_add_option_error => 'Failed to add option';
 
   @override
-  String get poll_error_generic => 'Ошибка';
+  String get poll_error_generic => 'Error';
 
   @override
   String get durak_your_turn => 'Your turn';
 
   @override
-  String get durak_winner_label => 'Победитель';
+  String get durak_winner_label => 'Winner';
 
   @override
-  String get durak_rematch => 'Сыграть ещё раз';
+  String get durak_rematch => 'Play again';
 
   @override
-  String get durak_surrender_tooltip => 'Завершить игру';
+  String get durak_surrender_tooltip => 'End game';
 
   @override
   String get durak_close_tooltip => 'Close';
 
   @override
-  String get durak_fx_took => 'Взял';
+  String get durak_fx_took => 'Took';
 
   @override
-  String get durak_fx_beat => 'Бито';
+  String get durak_fx_beat => 'Beaten';
 
   @override
-  String get durak_opponent_role_defend => 'БЬЕТ';
+  String get durak_opponent_role_defend => 'DEF';
 
   @override
-  String get durak_opponent_role_attack => 'ХОД';
+  String get durak_opponent_role_attack => 'ATK';
 
   @override
-  String get durak_opponent_role_throwin => 'ПОДК';
+  String get durak_opponent_role_throwin => 'THR';
 
   @override
-  String get durak_foul_banner_title => 'Шулер! Не заметили:';
+  String get durak_foul_banner_title => 'Cheater! Missed:';
 
   @override
   String get durak_pending_resolution_attacker =>
-      'Ожидание фолла… Нажми «Подтвердить Бито», если все согласны.';
+      'Waiting for foul check… Press \"Confirm Beaten\" if everyone agrees.';
 
   @override
   String get durak_pending_resolution_other =>
-      'Ожидание фолла… Теперь можно нажать «Фолл!», если заметил шулерство.';
+      'Waiting for foul check… You can press \"Foul!\" if you noticed cheating.';
 
   @override
   String durak_tournament_played(int finished, int total) {
-    return 'Сыграно $finished из $total';
+    return 'Played $finished of $total';
   }
 
   @override
   String get durak_tournament_finished => 'Tournament finished';
 
   @override
-  String get durak_tournament_next => 'Следующая партия турнира';
+  String get durak_tournament_next => 'Next tournament game';
 
   @override
-  String get durak_single_game => 'Одиночная партия';
+  String get durak_single_game => 'Single game';
 
   @override
-  String get durak_tournament_total_games_title => 'Сколько игр в турнире?';
+  String get durak_tournament_total_games_title =>
+      'How many games in the tournament?';
 
   @override
-  String get durak_finish_game_tooltip => 'Завершить игру';
+  String get durak_finish_game_tooltip => 'End game';
 
   @override
-  String get durak_lobby_game_unavailable => 'Игра недоступна или была удалена';
+  String get durak_lobby_game_unavailable =>
+      'Game is unavailable or has been deleted';
 
   @override
-  String get durak_lobby_back_tooltip => 'Назад';
+  String get durak_lobby_back_tooltip => 'Back';
 
   @override
   String get durak_lobby_waiting => 'Waiting for opponent…';
 
   @override
-  String get durak_lobby_start => 'Начать игру';
+  String get durak_lobby_start => 'Start game';
 
   @override
-  String get durak_lobby_waiting_short => 'Ждём…';
+  String get durak_lobby_waiting_short => 'Waiting…';
 
   @override
-  String get durak_lobby_ready => 'Готов';
+  String get durak_lobby_ready => 'Ready';
 
   @override
-  String get durak_lobby_empty_slot => 'Ждём…';
+  String get durak_lobby_empty_slot => 'Waiting…';
 
   @override
-  String get durak_settings_timer_subtitle => 'По умолчанию 15 секунд';
+  String get durak_settings_timer_subtitle => '15 seconds by default';
 
   @override
-  String get durak_dm_game_active => 'Партия \"Дурак\" идёт';
+  String get durak_dm_game_active => 'Durak game in progress';
 
   @override
-  String get durak_dm_game_created => 'Игра \"Дурак\" создана';
+  String get durak_dm_game_created => 'Durak game created';
 
   @override
-  String get game_durak_subtitle => 'Одиночная партия или турнир';
+  String get game_durak_subtitle => 'Single game or tournament';
 
   @override
-  String get group_member_write_dm => 'Написать лично';
+  String get group_member_write_dm => 'Send direct message';
 
   @override
-  String get group_member_open_dm_hint => 'Открыть личный чат с участником';
+  String get group_member_open_dm_hint => 'Open direct chat with member';
 
   @override
   String get group_member_profile_not_loaded =>
-      'Профиль участника ещё не загружен.';
+      'Member profile not loaded yet.';
 
   @override
   String group_member_open_dm_error(String error) {
@@ -4907,10 +4908,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get group_avatar_photo_title => 'Фото группы';
+  String get group_avatar_photo_title => 'Group photo';
 
   @override
-  String get group_avatar_add_photo => 'Добавить фото';
+  String get group_avatar_add_photo => 'Add photo';
 
   @override
   String get group_avatar_change => 'Change avatar';
@@ -4924,85 +4925,88 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get group_mention_no_matches => 'Нет совпадений';
+  String get group_mention_no_matches => 'No matches';
 
   @override
-  String get durak_error_defense_does_not_beat => 'Эта карта не бьет атакующую';
+  String get durak_error_defense_does_not_beat =>
+      'This card does not beat the attacking card';
 
   @override
-  String get durak_error_only_attacker_first => 'Первым ходит атакующий игрок';
+  String get durak_error_only_attacker_first => 'Attacker goes first';
 
   @override
   String get durak_error_defender_cannot_attack =>
-      'Отбивающийся сейчас не подкидывает';
+      'Defender cannot throw in right now';
 
   @override
   String get durak_error_not_allowed_throwin =>
-      'Вы не можете подкинуть в этом раунде';
+      'You cannot throw in this round';
 
   @override
   String get durak_error_throwin_not_your_turn =>
-      'Сейчас подкидывает другой игрок';
+      'Another player is throwing in now';
 
   @override
   String get durak_error_rank_not_allowed =>
-      'Подкинуть можно только карту того же ранга';
+      'You can only throw in cards of the same rank';
 
   @override
-  String get durak_error_cannot_throw_in => 'Больше карт подкинуть нельзя';
+  String get durak_error_cannot_throw_in => 'Cannot throw in more cards';
 
   @override
-  String get durak_error_card_not_in_hand => 'Этой карты уже нет в руке';
+  String get durak_error_card_not_in_hand =>
+      'This card is no longer in your hand';
 
   @override
-  String get durak_error_already_defended => 'Эта карта уже отбита';
+  String get durak_error_already_defended => 'This card is already defended';
 
   @override
   String get durak_error_bad_attack_index =>
-      'Выберите атакующую карту для защиты';
+      'Select an attacking card to defend against';
 
   @override
-  String get durak_error_only_defender => 'Сейчас отбивается другой игрок';
+  String get durak_error_only_defender => 'Another player is defending now';
 
   @override
   String get durak_error_defender_already_taking =>
-      'Отбивающийся уже берет карты';
+      'Defender is already taking cards';
 
   @override
-  String get durak_error_game_not_active => 'Партия уже не активна';
+  String get durak_error_game_not_active => 'Game is no longer active';
 
   @override
-  String get durak_error_not_in_lobby => 'Лобби уже стартовало';
+  String get durak_error_not_in_lobby => 'Lobby has already started';
 
   @override
-  String get durak_error_game_already_active => 'Партия уже началась';
+  String get durak_error_game_already_active => 'Game has already started';
 
   @override
   String get durak_error_active_game_exists =>
-      'В этом чате уже есть активная партия';
+      'There is already an active game in this chat';
 
   @override
-  String get durak_error_resolution_pending => 'Сначала завершите спорный ход';
+  String get durak_error_resolution_pending => 'Finish the disputed move first';
 
   @override
   String get durak_error_rematch_failed =>
-      'Не удалось подготовить реванш. Попробуйте еще раз';
+      'Failed to prepare rematch. Please try again';
 
   @override
-  String get durak_error_unauthenticated => 'Нужно войти в аккаунт';
+  String get durak_error_unauthenticated => 'You need to sign in';
 
   @override
-  String get durak_error_permission_denied => 'Это действие вам недоступно';
+  String get durak_error_permission_denied =>
+      'This action is not available to you';
 
   @override
-  String get durak_error_invalid_argument => 'Некорректный ход';
+  String get durak_error_invalid_argument => 'Invalid move';
 
   @override
-  String get durak_error_failed_precondition => 'Ход сейчас недоступен';
+  String get durak_error_failed_precondition =>
+      'Move is not available right now';
 
   @override
-  String get durak_error_server =>
-      'Не удалось выполнить ход. Попробуйте еще раз';
+  String get durak_error_server => 'Failed to execute move. Please try again';
 
   @override
   String pinned_count(int count) {

@@ -3522,10 +3522,8 @@
   },
   "meeting_participant_screen": "Screen",
   "meeting_participant_speaking": "Speaking",
-
   "nav_error_title": "Navigation error",
   "nav_error_invalid_secret_compose": "Invalid secret compose navigation",
-
   "sign_in_title": "Sign in",
   "sign_in_firebase_ready": "Firebase initialized. You can sign in.",
   "sign_in_firebase_not_ready": "Firebase is not ready. Check logs and firebase_options.dart.",
@@ -3534,19 +3532,21 @@
   "sign_in_auth_error": "Auth error: {error}",
   "@sign_in_auth_error": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
-
   "group_not_found": "Group not found.",
   "group_not_member": "You are not a member of this group.",
   "generic_error": "Error: {error}",
   "@generic_error": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
-
   "storage_label_video": "Video",
   "storage_label_photo": "Photo",
   "storage_label_files": "Files",
@@ -3554,26 +3554,26 @@
   "storage_label_draft": "Draft · {key}",
   "@storage_label_draft": {
     "placeholders": {
-      "key": { "type": "String" }
+      "key": {
+        "type": "String"
+      }
     }
   },
   "storage_label_offline_snapshot": "Offline chat list snapshot",
   "storage_label_profile_cache": "Profile cache · {name}",
   "@storage_label_profile_cache": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
-
   "call_mini_end": "End call",
-
   "animation_quality_lite": "Lite",
   "animation_quality_balanced": "Balanced",
   "animation_quality_cinematic": "Cinematic",
-
   "crop_aspect_original": "Original",
   "crop_aspect_square": "Square",
-
   "push_notification_title": "Allow notifications",
   "push_notification_rationale": "The app needs notifications for incoming calls.",
   "push_notification_required": "Enable notifications to display incoming calls.",
@@ -3582,29 +3582,283 @@
   "push_call_decline": "Decline",
   "push_channel_incoming_calls": "Incoming calls",
   "push_channel_missed_calls": "Missed calls",
-  "push_channel_messages": "Messages",
   "push_channel_messages_desc": "New messages in chats",
   "push_channel_silent": "Silent messages",
   "push_channel_silent_desc": "Push without sound",
   "push_caller_unknown": "Someone",
-
   "outbox_attachment_single": "Attachment",
   "outbox_attachment_count": "Attachments ({count})",
   "@outbox_attachment_count": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "outbox_chat_unavailable": "Chat service unavailable",
-  "outbox_encryption_error": "Encryption: {code}",
-  "@outbox_encryption_error": {
-    "placeholders": {
-      "code": { "type": "String" }
-    }
-  },
-
   "bottom_nav_label_chats": "Chats",
   "bottom_nav_label_contacts": "Contacts",
   "bottom_nav_label_conferences": "Conferences",
-  "bottom_nav_label_calls": "Calls"
+  "bottom_nav_label_calls": "Calls",
+  "chat_theme_banner": "The background of this chat is only for you. Global chat settings in \"Chat Settings\" remain unchanged.",
+  "chat_theme_default_global": "Default (global settings)",
+  "chat_theme_error_delete": "Delete error: {error}",
+  "chat_theme_error_save": "Failed to save background: {error}",
+  "chat_theme_error_upload": "Background upload error: {error}",
+  "chat_theme_global_tile": "Global",
+  "chat_theme_pick_hint": "Choose a preset or photo from gallery",
+  "durak_dm_game_active": "Durak game in progress",
+  "durak_dm_game_created": "Durak game created",
+  "durak_error_active_game_exists": "There is already an active game in this chat",
+  "durak_error_already_defended": "This card is already defended",
+  "durak_error_bad_attack_index": "Select an attacking card to defend against",
+  "durak_error_cannot_throw_in": "Cannot throw in more cards",
+  "durak_error_card_not_in_hand": "This card is no longer in your hand",
+  "durak_error_defender_already_taking": "Defender is already taking cards",
+  "durak_error_defender_cannot_attack": "Defender cannot throw in right now",
+  "durak_error_defense_does_not_beat": "This card does not beat the attacking card",
+  "durak_error_failed_precondition": "Move is not available right now",
+  "durak_error_game_already_active": "Game has already started",
+  "durak_error_game_not_active": "Game is no longer active",
+  "durak_error_invalid_argument": "Invalid move",
+  "durak_error_not_allowed_throwin": "You cannot throw in this round",
+  "durak_error_not_in_lobby": "Lobby has already started",
+  "durak_error_only_attacker_first": "Attacker goes first",
+  "durak_error_only_defender": "Another player is defending now",
+  "durak_error_permission_denied": "This action is not available to you",
+  "durak_error_rank_not_allowed": "You can only throw in cards of the same rank",
+  "durak_error_rematch_failed": "Failed to prepare rematch. Please try again",
+  "durak_error_resolution_pending": "Finish the disputed move first",
+  "durak_error_server": "Failed to execute move. Please try again",
+  "durak_error_throwin_not_your_turn": "Another player is throwing in now",
+  "durak_error_unauthenticated": "You need to sign in",
+  "durak_finish_game_tooltip": "End game",
+  "durak_foul_banner_title": "Cheater! Missed:",
+  "durak_fx_beat": "Beaten",
+  "durak_fx_took": "Took",
+  "durak_lobby_back_tooltip": "Back",
+  "durak_lobby_empty_slot": "Waiting…",
+  "durak_lobby_game_unavailable": "Game is unavailable or has been deleted",
+  "durak_lobby_ready": "Ready",
+  "durak_lobby_start": "Start game",
+  "durak_lobby_waiting_short": "Waiting…",
+  "durak_opponent_role_attack": "ATK",
+  "durak_opponent_role_defend": "DEF",
+  "durak_opponent_role_throwin": "THR",
+  "durak_pending_resolution_attacker": "Waiting for foul check… Press \"Confirm Beaten\" if everyone agrees.",
+  "durak_pending_resolution_other": "Waiting for foul check… You can press \"Foul!\" if you noticed cheating.",
+  "durak_rematch": "Play again",
+  "durak_settings_timer_subtitle": "15 seconds by default",
+  "durak_single_game": "Single game",
+  "durak_surrender_tooltip": "End game",
+  "durak_tournament_next": "Next tournament game",
+  "durak_tournament_played": "Played {finished} of {total}",
+  "durak_tournament_total_games_title": "How many games in the tournament?",
+  "durak_winner_label": "Winner",
+  "game_durak_subtitle": "Single game or tournament",
+  "group_avatar_add_photo": "Add photo",
+  "group_avatar_photo_title": "Group photo",
+  "group_member_open_dm_hint": "Open direct chat with member",
+  "group_member_profile_not_loaded": "Member profile not loaded yet.",
+  "group_member_write_dm": "Send direct message",
+  "group_members_add_count": "Add ({count})",
+  "group_members_add_failed": "Failed to add members: {error}",
+  "group_members_add_member_tooltip": "Add member",
+  "group_members_add_title": "Add members",
+  "group_members_all_in_group": "All your contacts are already in the group.",
+  "group_members_auth_error": "Authorization error: {error}",
+  "group_members_contacts_load_error": "Failed to load contacts: {error}",
+  "group_members_copy_invite_tooltip": "Copy invite link",
+  "group_members_copy_link_error": "Failed to copy link: {error}",
+  "group_members_creator_badge": "CREATOR",
+  "group_members_grant_admin_action": "Grant",
+  "group_members_grant_admin_body": "{name} will receive admin privileges: can edit the group, remove members, and manage messages.",
+  "group_members_grant_admin_title": "Grant admin privileges?",
+  "group_members_invite_copied": "Invite link copied",
+  "group_members_menu_grant_admin": "Make admin",
+  "group_members_menu_remove": "Remove from group",
+  "group_members_menu_revoke_admin": "Remove admin",
+  "group_members_nobody_found": "Nobody found.",
+  "group_members_remove_action": "Remove",
+  "group_members_remove_body": "{name} will be removed from the group. You can undo this by adding the member again.",
+  "group_members_remove_title": "Remove member?",
+  "group_members_removed": "Member removed",
+  "group_members_revoke_admin_action": "Revoke",
+  "group_members_revoke_admin_body": "{name} will lose admin privileges. They will remain in the group as a regular member.",
+  "group_members_revoke_admin_title": "Revoke admin privileges?",
+  "group_members_search_contacts": "Search contacts",
+  "group_members_select_members": "Select members",
+  "group_members_subtitle_admin": "Administrator",
+  "group_members_subtitle_creator": "Group creator",
+  "group_members_subtitle_member": "Member",
+  "group_members_total_count": "Total: {count}",
+  "group_members_user_fallback": "User",
+  "group_mention_no_matches": "No matches",
+  "poll_add_option": "Add option",
+  "poll_close_by_time": "Close by time",
+  "poll_close_not_set": "Not set",
+  "poll_close_reset": "Reset deadline",
+  "poll_correct_option_label": "Correct option",
+  "poll_description_label": "Description (optional)",
+  "poll_error_empty_question": "Enter a question",
+  "poll_error_future_time": "Closing time must be in the future",
+  "poll_error_generic": "Error",
+  "poll_error_min_options": "At least 2 options are required",
+  "poll_error_select_correct": "Select the correct option",
+  "poll_hide_voters": "Hide",
+  "poll_menu_delete": "Delete",
+  "poll_menu_end": "End",
+  "poll_menu_restart": "Restart",
+  "poll_option_hint": "Option {index}",
+  "poll_options_title": "Options",
+  "poll_publish": "Publish",
+  "poll_question_hint": "E.g.: What time shall we meet?",
+  "poll_question_label": "Question",
+  "poll_quiz_explanation_label": "Explanation (optional)",
+  "poll_show_voters": "Who voted",
+  "poll_status_ended": "Ended",
+  "poll_suggest_option_hint": "Suggest an option",
+  "poll_switch_add_options": "Add options",
+  "poll_switch_add_options_sub": "Participants can suggest their own options",
+  "poll_switch_anonymous": "Anonymous voting",
+  "poll_switch_anonymous_sub": "Do not show who voted for what",
+  "poll_switch_multi": "Multiple answers",
+  "poll_switch_multi_sub": "Multiple options can be selected",
+  "poll_switch_quiz": "Quiz mode",
+  "poll_switch_quiz_sub": "One correct answer",
+  "poll_switch_revote": "Can change vote",
+  "poll_switch_revote_sub": "Revote allowed until poll closes",
+  "poll_switch_shuffle": "Shuffle options",
+  "poll_switch_shuffle_sub": "Different order for each participant",
+  "poll_votes_count": "{count} votes",
+  "settings_chats_bottom_nav_icons_subtitle": "Choose icons and visual style like on the web.",
+  "settings_chats_bottom_nav_icons_title": "Bottom navigation icons",
+  "settings_chats_collapse": "Collapse",
+  "settings_chats_customize": "Customize",
+  "settings_chats_default": "Default",
+  "settings_chats_emoji_balanced_desc": "Balanced: automatic compromise between performance and expressiveness.",
+  "settings_chats_emoji_cinematic_desc": "Cinematic: maximum particles and depth for wow-effect.",
+  "settings_chats_emoji_effects": "Emoji effects",
+  "settings_chats_emoji_effects_subtitle": "Animation profile for fullscreen emoji when tapping a single emoji in chat.",
+  "settings_chats_emoji_lite_desc": "Lite: minimum load and maximum smoothness on low-end devices.",
+  "settings_chats_icon_search_hint_en": "Search by name...",
+  "settings_chats_icon_size": "Icon size",
+  "settings_chats_nav_colorful": "Colorful",
+  "settings_chats_nav_global_subtitle": "Global layer: color, size, stroke width, and tile background.",
+  "settings_chats_nav_global_title": "For all icons",
+  "settings_chats_nav_minimal": "Minimal",
+  "settings_chats_preview_hello": "Hello",
+  "settings_chats_preview_incoming_msg": "Hey! How are you?",
+  "settings_chats_preview_outgoing_msg": "Great, thanks!",
+  "settings_chats_reset_item_tooltip": "Reset",
+  "settings_chats_reset_tooltip": "Reset",
+  "settings_chats_stroke_width": "Stroke width",
+  "settings_chats_style_tooltip": "Style",
+  "@chat_theme_error_delete": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chat_theme_error_save": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chat_theme_error_upload": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@durak_tournament_played": {
+    "placeholders": {
+      "finished": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@group_members_add_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@group_members_add_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_auth_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_contacts_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_copy_link_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_grant_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_remove_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_revoke_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_total_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@poll_option_hint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "@poll_votes_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
