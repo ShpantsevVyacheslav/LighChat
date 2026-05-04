@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../brand_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/first_login_animation_storage.dart';
+import '../../features_tour/data/features_tour_storage.dart';
 import 'welcome_painters.dart';
 
 const Duration _kTotalDuration = Duration(milliseconds: 8000);
@@ -101,7 +102,24 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
     if (_exited || !mounted) return;
     _exited = true;
     _controller.stop();
-    context.go('/chats');
+    // После welcome-анимации первого входа на устройстве показываем
+    // тур по возможностям приложения (один раз на uid + устройство).
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) {
+      context.go('/chats');
+      return;
+    }
+    FeaturesTourStorage.isShownFor(uid).then((shown) {
+      if (!mounted) return;
+      if (shown) {
+        context.go('/chats');
+      } else {
+        // Помечаем сразу — чтобы возврат-навигация не привела к
+        // повторному автозапуску тура.
+        FeaturesTourStorage.markShownFor(uid);
+        context.go('/features?source=welcome');
+      }
+    });
   }
 
   Future<void> _onSkip() async {

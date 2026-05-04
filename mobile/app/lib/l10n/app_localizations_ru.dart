@@ -340,6 +340,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get account_menu_profile => 'Профиль';
 
   @override
+  String get account_menu_features => 'Возможности';
+
+  @override
   String get account_menu_chat_settings => 'Настройки чатов';
 
   @override

@@ -162,6 +162,7 @@
   "settings_language_en": "English",
   "settings_language_hint_system": "При выборе «Системный» язык соответствует настройкам устройства.",
   "account_menu_profile": "Профиль",
+  "account_menu_features": "Возможности",
   "account_menu_chat_settings": "Настройки чатов",
   "account_menu_notifications": "Уведомления",
   "account_menu_privacy": "Конфиденциальность",

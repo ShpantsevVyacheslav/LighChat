@@ -162,6 +162,7 @@
   "settings_language_en": "English",
   "settings_language_hint_system": "When “System” is selected, the app follows your device language settings.",
   "account_menu_profile": "Profile",
+  "account_menu_features": "Features",
   "account_menu_chat_settings": "Chat settings",
   "account_menu_notifications": "Notifications",
   "account_menu_privacy": "Privacy",

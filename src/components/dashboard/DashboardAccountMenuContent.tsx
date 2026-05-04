@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronRight,
   Palette,
+  Sparkles,
 } from 'lucide-react';
 import type { AppThemePreference, UserRole } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -128,6 +129,12 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
       <div className="h-px bg-border/50 mx-2 my-1" />
       <nav className="flex flex-col gap-0.5">
         <ProfileMenuItem icon={UserCircle} label={t('accountMenu.profile')} href="/dashboard/profile" onClick={handleNav} />
+        <ProfileMenuItem
+          icon={Sparkles}
+          label={t('accountMenu.features')}
+          href="/dashboard/features"
+          onClick={handleNav}
+        />
         <ProfileMenuItem
           icon={MessageSquare}
           label={t('accountMenu.chatSettings')}

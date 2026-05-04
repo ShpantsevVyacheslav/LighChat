@@ -192,6 +192,7 @@ export const messagesRu = {
   },
   accountMenu: {
     profile: 'Профиль',
+    features: 'Возможности',
     chatSettings: 'Настройки чата',
     admin: 'Администрирование',
     notifications: 'Уведомления',

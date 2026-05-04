@@ -47,6 +47,9 @@ import 'features/chat/ui/thread_screen.dart';
 import 'features/chat/ui/thread_route_payload.dart';
 import 'features/welcome/data/first_login_animation_storage.dart';
 import 'features/welcome/ui/welcome_animation_screen.dart';
+import 'features/features_tour/data/features_data.dart';
+import 'features/features_tour/ui/features_index_screen.dart';
+import 'features/features_tour/ui/features_topic_screen.dart';
 
 /// Notifier, который дёргает GoRouter на пересчёт redirect-ов при изменении
 /// auth-стейта. Без этого при cold-start с persistent Firebase session первый
@@ -155,6 +158,24 @@ GoRouter createRouter() {
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomeAnimationScreen(),
+      ),
+      GoRoute(
+        path: '/features',
+        builder: (context, state) {
+          final source = state.uri.queryParameters['source'];
+          return FeaturesIndexScreen(fromWelcome: source == 'welcome');
+        },
+      ),
+      GoRoute(
+        path: '/features/:topic',
+        builder: (context, state) {
+          final raw = state.pathParameters['topic'] ?? '';
+          final topicId = featureTopicIdFromSlug(raw);
+          if (topicId == null) {
+            return const FeaturesIndexScreen();
+          }
+          return FeaturesTopicScreen(topicId: topicId);
+        },
       ),
       GoRoute(
         path: '/chats',

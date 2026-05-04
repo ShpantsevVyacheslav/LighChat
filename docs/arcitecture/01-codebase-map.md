@@ -4,9 +4,11 @@
 
 - `src/app` - маршруты App Router, page/layout, route handlers.
   - `dashboard/*` - основная защищённая зона (chat/meetings/calls/admin/settings/contacts).
+  - `dashboard/features` - раздел «Возможности LighChat» (оглавление + 12 подстраниц `/dashboard/features/[topic]`); welcome-оверлей `FeaturesWelcomeOverlay` показывается один раз после регистрации (флаг `lc_features_welcome_v1` в `localStorage`, не пересекается с `PwaOnboarding`).
   - `meetings/[meetingId]` - вход в комнату встречи.
   - `api/giphy/search/route.ts` - серверный прокси к GIPHY API (gifs + animated stickers; ENV `GIPHY_API_KEY`).
 - `src/components` - UI-компоненты по доменам.
+  - `features/*` - модуль раздела «Возможности»: манифест тем (`features-data.ts`), билингвальный контент (`features-content.ts`), мини-мокапы интерфейса (`mocks/*`, `illustrations/*`, всего 12 тем + hero-композит), оглавление, страница темы, welcome-оверлей. Мокапы собраны из тех же дизайн-токенов и компонентов, что боевой UI (Card, Switch, glass-классы из `auth-glass-classes.ts`).
   - `chat/*` - окно чата, ввод, контекстные действия, медиа, 1:1 call overlay.
   - `chat/conversation-pages/ConversationGamesPanel.tsx`, `chat/games/durak/*` - web-вход в игры из профиля беседы и responsive-стол “Дурака”.
   - `meetings/*` - комната, сайдбар, controls, чат и опросы встречи.
@@ -73,6 +75,7 @@
   - `lib/features/push/push_native_call_service.dart` - интеграция native incoming-call UI (`flutter_callkit_incoming`), события `Accept/Decline/Timeout`, навигация в `/calls/incoming/:callId`, синхронизация iOS VoIP токена в `users/{uid}.voipTokens`.
   - `ios/Runner/AppDelegate.swift` - PushKit delegate для iOS VoIP push (`didUpdate credentials`, `didReceiveIncomingPushWith`), bridge в CallKit.
   - `lib/features/auth/ui/profile_screen.dart` - страница «Мой профиль» (редактирование базовых полей пользователя).
+  - `lib/features/features_tour/*` - раздел «Возможности LighChat» в mobile: 12 подстраниц на маршруте `/features` и `/features/:topic` (паритет с web `dashboard/features`); 12 мини-мокапов в `ui/feature_mocks.dart` повторяют визуал mobile-UI; `data/features_tour_storage.dart` хранит per-uid флаг `features_tour_shown_<uid>` в `SharedPreferences`. После welcome-анимации `_exitToChats()` редиректит на `/features?source=welcome` при `!FeaturesTourStorage.isShownFor(uid)`, иначе на `/chats`. Точка входа из меню аккаунта (`chat_account_screen.dart`, пункт `account_menu_features`).
 - `mobile/packages/lighchat_models` - доменные модели/DTO и мапперы (контракты Firestore на стороне Flutter).
 - `mobile/packages/lighchat_firebase` - слой доступа к Firebase (Auth/Firestore/FCM/Functions) для Flutter-клиента; `ChatRepository.createGroupChat` + callable `checkGroupInvitesAllowed` (паритет с web). На iOS часть callable-вызовов (`checkGroupInvitesAllowed`, secret-chat vault/unlock/media callables, игровые callables, voice transcription) идёт в обход плагина `cloud_functions` через `firebase_callable_http.dart` (прямой HTTPS-POST), т.к. SDK `FirebaseFunctions 12.9.0` крашит Release-сборку в `_swift_task_dealloc_specific (.cold.2)` на параллельных `async let` внутри `FunctionsContext`.
 - `mobile/packages/lighchat_ui` - дизайн-система Flutter (темы/типографика/общие виджеты).

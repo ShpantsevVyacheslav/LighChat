@@ -10,6 +10,7 @@ import { AudioCallOverlay } from '@/components/chat/AudioCallOverlay';
 import { useBadge } from '@/hooks/use-badge';
 import { cn } from '@/lib/utils';
 import { PwaOnboarding } from '@/components/pwa-onboarding';
+import { FeaturesWelcomeOverlay } from '@/components/features/features-welcome-overlay';
 import { LiveLocationProvider } from '@/components/location/LiveLocationProvider';
 import { LiveLocationStopBanner } from '@/components/location/LiveLocationStopBanner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -141,6 +142,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           {callsOverlayEnabled ? <AudioCallOverlay currentUser={user} /> : null}
           <PwaOnboarding />
+          <FeaturesWelcomeOverlay />
         </SidebarProvider>
       </LiveLocationProvider>
     </MobileChatOpenProvider>

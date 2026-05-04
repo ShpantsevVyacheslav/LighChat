@@ -101,6 +101,7 @@ class ChatAccountScreen extends ConsumerWidget {
                         profileQrLink: resolvedQrLink,
                       );
                     },
+                    onFeaturesTap: () => context.push('/features'),
                     onChatSettingsTap: () => context.push('/settings/chats'),
                     onNotificationsTap: () =>
                         context.push('/settings/notifications'),
@@ -179,6 +180,7 @@ class _AccountView extends StatelessWidget {
     required this.onBack,
     required this.onProfileTap,
     required this.onQrTap,
+    required this.onFeaturesTap,
     required this.onChatSettingsTap,
     required this.onNotificationsTap,
     required this.onPrivacyTap,
@@ -198,6 +200,7 @@ class _AccountView extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onProfileTap;
   final VoidCallback onQrTap;
+  final VoidCallback onFeaturesTap;
   final VoidCallback onChatSettingsTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onPrivacyTap;
@@ -316,6 +319,11 @@ class _AccountView extends StatelessWidget {
                         icon: Icons.person_outline_rounded,
                         title: l10n.account_menu_profile,
                         onTap: onProfileTap,
+                      ),
+                      _MenuItem(
+                        icon: Icons.auto_awesome_outlined,
+                        title: l10n.account_menu_features,
+                        onTap: onFeaturesTap,
                       ),
                       _MenuItem(
                         icon: Icons.chat_bubble_outline_rounded,

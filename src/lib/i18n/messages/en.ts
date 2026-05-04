@@ -186,6 +186,7 @@ export const messagesEn = {
   },
   accountMenu: {
     profile: 'Profile',
+    features: 'Features',
     chatSettings: 'Chat settings',
     admin: 'Administration',
     notifications: 'Notifications',

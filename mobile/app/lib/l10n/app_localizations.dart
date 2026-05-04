@@ -650,6 +650,12 @@ abstract class AppLocalizations {
   /// **'Профиль'**
   String get account_menu_profile;
 
+  /// No description provided for @account_menu_features.
+  ///
+  /// In ru, this message translates to:
+  /// **'Возможности'**
+  String get account_menu_features;
+
   /// No description provided for @account_menu_chat_settings.
   ///
   /// In ru, this message translates to:

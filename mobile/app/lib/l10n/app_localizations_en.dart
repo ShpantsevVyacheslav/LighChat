@@ -338,6 +338,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account_menu_profile => 'Profile';
 
   @override
+  String get account_menu_features => 'Features';
+
+  @override
   String get account_menu_chat_settings => 'Chat settings';
 
   @override
