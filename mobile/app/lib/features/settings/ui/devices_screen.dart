@@ -296,14 +296,25 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: FilledButton.tonalIcon(
-                          icon: const Icon(Icons.qr_code_2),
-                          onPressed: () =>
-                              context.push('/settings/e2ee-qr-pairing'),
-                          label: Text(l10n.devices_connect_new_device),
-                        ),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          FilledButton.tonalIcon(
+                            icon: const Icon(Icons.qr_code_2),
+                            onPressed: () =>
+                                context.push('/settings/e2ee-qr-pairing'),
+                            label: Text(l10n.devices_connect_new_device),
+                          ),
+                          // Доступ к password-backup'у ключей перенесён сюда
+                          // со страницы «Конфиденциальность» (web-паритет).
+                          FilledButton.tonalIcon(
+                            icon: const Icon(Icons.vpn_key_outlined),
+                            onPressed: () =>
+                                context.push('/settings/e2ee-recovery'),
+                            label: Text(l10n.privacy_key_backup_title),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       if (_loadError != null)

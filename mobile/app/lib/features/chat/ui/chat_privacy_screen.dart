@@ -206,8 +206,6 @@ class ChatPrivacyScreen extends ConsumerWidget {
                     savePatch(e2eeForNewDirectChats: v),
                 onE2eeEncryptedDataTypesChanged: (v) =>
                     savePatch(e2eeEncryptedDataTypes: v),
-                onOpenMyDevices: () => context.push('/settings/devices'),
-                onOpenKeyBackup: () => context.push('/settings/e2ee-recovery'),
                 onGroupPolicyChange: (v) => savePatch(groupInvitePolicy: v),
                 onGlobalSearchChanged: (v) =>
                     savePatch(showInGlobalUserSearch: v),
@@ -242,8 +240,6 @@ class _PrivacyView extends StatelessWidget {
     required this.onShowReadReceiptsChanged,
     required this.onE2eeForNewDirectChatsChanged,
     required this.onE2eeEncryptedDataTypesChanged,
-    required this.onOpenMyDevices,
-    required this.onOpenKeyBackup,
     required this.onGroupPolicyChange,
     required this.onGlobalSearchChanged,
     required this.onShowEmailChanged,
@@ -261,8 +257,6 @@ class _PrivacyView extends StatelessWidget {
   final ValueChanged<bool> onShowReadReceiptsChanged;
   final ValueChanged<bool> onE2eeForNewDirectChatsChanged;
   final ValueChanged<E2eeDataTypePolicy> onE2eeEncryptedDataTypesChanged;
-  final VoidCallback onOpenMyDevices;
-  final VoidCallback onOpenKeyBackup;
   final ValueChanged<String> onGroupPolicyChange;
   final ValueChanged<bool> onGlobalSearchChanged;
   final ValueChanged<bool> onShowEmailChanged;
@@ -404,16 +398,6 @@ class _PrivacyView extends StatelessWidget {
                         );
                         onE2eeEncryptedDataTypesChanged(next);
                       },
-                    ),
-                    _NavRow(
-                      title: l10n.privacy_my_devices_title,
-                      subtitle: l10n.privacy_my_devices_subtitle,
-                      onTap: onOpenMyDevices,
-                    ),
-                    _NavRow(
-                      title: l10n.privacy_key_backup_title,
-                      subtitle: l10n.privacy_key_backup_subtitle,
-                      onTap: onOpenKeyBackup,
                     ),
                   ],
                 ),
