@@ -739,18 +739,183 @@ class _RegisterFullScreenPage extends StatelessWidget {
   }
 }
 
-class _RegisterSheetBody extends ConsumerWidget {
+class _RegisterSheetBody extends ConsumerStatefulWidget {
   const _RegisterSheetBody();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return RegisterForm(
-      onDone: () {
-        Navigator.of(context).pop();
-        if (context.mounted) {
-          context.go('/chats');
-        }
-      },
+  ConsumerState<_RegisterSheetBody> createState() => _RegisterSheetBodyState();
+}
+
+class _RegisterSheetBodyState extends ConsumerState<_RegisterSheetBody> {
+  bool _busy = false;
+  String? _oauthError;
+
+  /// Запускает OAuth-вход и направляет: если профиль уже полный — в `/chats`,
+  /// если нет — в анкету `/auth/google-complete` (там же достраивается профиль).
+  /// Это и есть «регистрация через Google/Apple/Telegram/Yandex»: первый
+  /// успешный signIn создаёт users/{uid} через CF onUserCreated, дальше
+  /// дозаполняется при необходимости.
+  Future<void> _runOAuth(Future<void> Function() signIn) async {
+    setState(() {
+      _busy = true;
+      _oauthError = null;
+    });
+    try {
+      await signIn();
+      if (!mounted) return;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        return;
+      }
+      final status =
+          await getFirestoreRegistrationProfileStatusWithDeadline(user);
+      if (!mounted) return;
+      final next = googleRouteFromProfileStatus(status);
+      // Закрываем register-страницу, чтобы не остаться над dashboard'ом.
+      Navigator.of(context).pop();
+      if (!mounted) return;
+      context.go(next ?? '/chats');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _oauthError = friendlyAuthError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final firebaseReady = ref.watch(firebaseReadyProvider);
+    final repo = ref.watch(authRepositoryProvider);
+    final canOAuth = firebaseReady && repo != null && !_busy;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // OAuth-сетка как на этапе methods для входа: один вид UI →
+        // одинаковая иконка и поведение для регистрации тоже.
+        Row(
+          children: [
+            Expanded(
+              child: _SocialAuthIconTile(
+                dark: dark,
+                tooltip: 'Google',
+                onPressed: !canOAuth
+                    ? null
+                    : () => _runOAuth(() => repo.signInWithGoogle()),
+                child: const _GoogleBrandIcon(),
+              ),
+            ),
+            if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SocialAuthIconTile(
+                  dark: dark,
+                  tooltip: 'Apple',
+                  background: dark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.88),
+                  iconColor: Colors.white,
+                  onPressed: !canOAuth
+                      ? null
+                      : () => _runOAuth(() => repo.signInWithApple()),
+                  child: const Icon(Icons.apple, size: 24),
+                ),
+              ),
+            ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SocialAuthIconTile(
+                dark: dark,
+                tooltip: 'Telegram',
+                onPressed: (!firebaseReady || _busy)
+                    ? null
+                    : () {
+                        Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            fullscreenDialog: true,
+                            builder: (_) =>
+                                const TelegramSignInWebViewScreen(),
+                          ),
+                        );
+                      },
+                child: const _TelegramBrandIcon(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SocialAuthIconTile(
+                dark: dark,
+                tooltip: 'Yandex',
+                onPressed: (!firebaseReady || _busy)
+                    ? null
+                    : () {
+                        Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            fullscreenDialog: true,
+                            builder: (_) =>
+                                const YandexSignInWebViewScreen(),
+                          ),
+                        );
+                      },
+                child: const _YandexBrandIcon(),
+              ),
+            ),
+          ],
+        ),
+        if (_oauthError != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            _oauthError!,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: scheme.error),
+          ),
+        ],
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: Divider(
+                color:
+                    (dark ? Colors.white : scheme.onSurface).withValues(alpha: 0.12),
+                thickness: 1,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Text(
+                l10n.auth_or,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.4,
+                  color: (dark ? Colors.white : scheme.onSurface)
+                      .withValues(alpha: 0.42),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color:
+                    (dark ? Colors.white : scheme.onSurface).withValues(alpha: 0.12),
+                thickness: 1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        RegisterForm(
+          onDone: () {
+            Navigator.of(context).pop();
+            if (context.mounted) {
+              context.go('/chats');
+            }
+          },
+        ),
+      ],
     );
   }
 }
