@@ -31,6 +31,16 @@ String? validatePhone11(String value) {
   return null;
 }
 
+/// Допускает пустой телефон (0 цифр или только код страны "7").
+/// Используется при редактировании профиля, где номер опционален
+/// (например, для OAuth-аккаунтов без телефона).
+String? validatePhoneOptional(String value) {
+  final digits = normalizePhoneDigits(normalizePhoneRuToE164(value));
+  if (digits.isEmpty || digits == '7') return null;
+  if (digits.length != 11) return 'Введите полный номер телефона (11 цифр).';
+  return null;
+}
+
 String? validateEmail(String value) {
   final v = value.trim();
   if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v)) {

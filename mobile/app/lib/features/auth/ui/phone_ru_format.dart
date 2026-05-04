@@ -62,7 +62,21 @@ class PhoneRuMaskFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final masked = formatPhoneRuForDisplay(newValue.text);
+    var text = newValue.text;
+
+    // При удалении форматирующего символа (скобка, тире, пробел) маска тут же
+    // возвращала его обратно — пользователь не мог уменьшить число цифр и
+    // застревал, например, на «+7 (909)». Если backspace убрал только
+    // форматирующий символ, дополнительно отбрасываем последнюю цифру.
+    if (oldValue.text.length > newValue.text.length) {
+      final oldDigits = phoneDigitsOnly(oldValue.text);
+      final newDigits = phoneDigitsOnly(newValue.text);
+      if (oldDigits == newDigits && newDigits.isNotEmpty) {
+        text = newDigits.substring(0, newDigits.length - 1);
+      }
+    }
+
+    final masked = formatPhoneRuForDisplay(text);
     return TextEditingValue(
       text: masked,
       selection: TextSelection.collapsed(offset: masked.length),

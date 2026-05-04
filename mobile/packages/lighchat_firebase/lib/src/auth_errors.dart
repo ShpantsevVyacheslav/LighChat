@@ -27,6 +27,20 @@ String friendlyAuthError(Object error) {
         return error.message ?? 'Ошибка авторизации.';
     }
   }
+  if (error is FirebaseException) {
+    // Firestore / Storage / прочие SDK Firebase — отдельно от auth-ошибок.
+    switch (error.code) {
+      case 'permission-denied':
+      case 'PERMISSION_DENIED':
+        return 'Нет прав для этого действия. Попробуйте войти заново.';
+      case 'unavailable':
+        return 'Сервис временно недоступен. Попробуйте позже.';
+      case 'not-found':
+        return 'Данные не найдены. Попробуйте обновить профиль.';
+      default:
+        return error.message ?? 'Ошибка Firebase (${error.code}).';
+    }
+  }
   return 'Ошибка авторизации.';
 }
 

@@ -11,6 +11,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../chat/data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import 'auth_validators.dart';
 import 'avatar_picker_cropper.dart';
+import 'date_dd_mm_yyyy_formatter.dart';
 
 class RegisterForm extends ConsumerStatefulWidget {
   const RegisterForm({super.key, required this.onDone});
@@ -1122,29 +1123,6 @@ class _PhoneMaskFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
-      composing: TextRange.empty,
-    );
-  }
-}
-
-class DateDdMmYyyyFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) return const TextEditingValue(text: '');
-    final clipped = digits.length > 8 ? digits.substring(0, 8) : digits;
-    final b = StringBuffer();
-    for (var i = 0; i < clipped.length; i++) {
-      if (i == 2 || i == 4) b.write('.');
-      b.write(clipped[i]);
-    }
-    final text = b.toString();
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
       composing: TextRange.empty,
     );
   }

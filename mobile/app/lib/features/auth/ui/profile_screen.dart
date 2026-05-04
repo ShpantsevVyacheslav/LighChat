@@ -18,6 +18,7 @@ import '../data/profile_update_service.dart';
 import 'auth_validators.dart';
 import 'auth_glass.dart';
 import 'avatar_picker_cropper.dart';
+import 'date_dd_mm_yyyy_formatter.dart';
 import 'phone_ru_format.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -128,6 +129,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return value;
   }
 
+  /// Если в поле остался только префикс «+7» (или вовсе пусто), сохраняем
+  /// телефон как пустую строку, иначе — нормализованный E.164.
+  String _normalizePhoneForSave(String raw) {
+    final e164 = normalizePhoneRuToE164(raw);
+    final digits = phoneDigitsOnly(e164);
+    if (digits.length < 11) return '';
+    return e164;
+  }
+
   String? _validateDateForProfile(String value) {
     final normalized = _normalizeDateForSave(value);
     if (normalized.isEmpty) return null;
@@ -185,7 +195,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final errors = <String?>[
       validateName(_name.text),
       validateUsername(_username.text),
-      validatePhone11(_phone.text),
+      validatePhoneOptional(_phone.text),
       validateEmail(_email.text),
       _validateDateForProfile(_dob.text),
       validateBio(_bio.text),
@@ -265,7 +275,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         data: ProfileUpdateData(
           name: _name.text,
           username: _username.text,
-          phoneE164: normalizePhoneRuToE164(_phone.text),
+          phoneE164: _normalizePhoneForSave(_phone.text),
           email: _email.text,
           dateOfBirth: normalizedDob.isEmpty ? null : normalizedDob,
           bio: _bio.text.trim().isEmpty ? null : _bio.text.trim(),
@@ -275,7 +285,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         initial: ProfileUpdateData(
           name: initial.name,
           username: initial.username,
-          phoneE164: normalizePhoneRuToE164(initial.phone),
+          phoneE164: _normalizePhoneForSave(initial.phone),
           email: initial.email,
           dateOfBirth: _normalizeDateForSave(initial.dateOfBirth).trim().isEmpty
               ? null
@@ -628,6 +638,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     controller: _dob,
                                     enabled: !_busy,
                                     readOnly: !_editing,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [DateDdMmYyyyFormatter()],
                                     hintText: l10n.profile_placeholder_birthdate,
                                     textCapitalization: TextCapitalization.none,
                                   ),
