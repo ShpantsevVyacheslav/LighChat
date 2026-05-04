@@ -53,13 +53,32 @@ import 'features/welcome/ui/welcome_animation_screen.dart';
 /// redirect видит `currentUser == null` (ещё не восстановлен), и welcome-чек
 /// не срабатывает; повторный redirect после восстановления auth не
 /// запускается автоматически.
+///
+/// Также этот listener детектит «успешную авторизацию» (переход null→user
+/// или смену uid) и сбрасывает welcome-флаг для текущего uid, чтобы
+/// анимация показывалась **после каждой** авторизации, а не только при
+/// первом логине на устройстве. Cold-start с уже восстановленной session
+/// (previousUser == currentUser) не считается авторизацией — флаг не
+/// сбрасывается, анимация не повторяется без необходимости.
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier() {
-    _sub = FirebaseAuth.instance.authStateChanges().listen((_) {
+    _previousUid = FirebaseAuth.instance.currentUser?.uid;
+    _sub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      final prevUid = _previousUid;
+      final newUid = user?.uid;
+      // Sign-in event: был null (или другой uid) → теперь non-null uid.
+      if (newUid != null && newUid.isNotEmpty && newUid != prevUid) {
+        // На cold-start prevUid выставлен синхронно из currentUser в
+        // конструкторе, поэтому первое событие с тем же uid сюда не
+        // попадает — анимация не повторится при перезапуске.
+        FirstLoginAnimationStorage.clearForUid(newUid);
+      }
+      _previousUid = newUid;
       notifyListeners();
     });
   }
 
+  String? _previousUid;
   late final StreamSubscription<User?> _sub;
 
   @override

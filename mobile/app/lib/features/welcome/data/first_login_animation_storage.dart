@@ -46,6 +46,15 @@ class FirstLoginAnimationStorage {
   static Future<void> clearForCurrentUser() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.isEmpty) return;
+    await clearForUid(uid);
+  }
+
+  /// Сбрасывает флаг для конкретного uid. Вызывается из роутерного
+  /// auth-listener'а на каждый успешный sign-in (null→user или смена uid),
+  /// чтобы welcome-анимация показывалась после **каждой** авторизации, а не
+  /// только при первом логине на устройстве.
+  static Future<void> clearForUid(String uid) async {
+    if (uid.isEmpty) return;
     _shownCache.remove(uid);
     try {
       final prefs = await SharedPreferences.getInstance();
