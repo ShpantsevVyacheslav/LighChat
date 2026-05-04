@@ -86,7 +86,11 @@ export async function runConfirmQrLogin(
   const docData = snap.data() ?? {};
   const expiresAt = typeof docData.expiresAt === "string" ? docData.expiresAt : "";
   if (!expiresAt || new Date(expiresAt).getTime() < now.getTime()) {
-    try { await ref.delete(); } catch { /* ignore */ }
+    try {
+      await ref.delete();
+    } catch {
+      // ignore — TTL cleanup CF добьёт.
+    }
     throw new HttpsError("deadline-exceeded", "QR session expired.");
   }
   if (docData.state !== "awaiting_scan") {

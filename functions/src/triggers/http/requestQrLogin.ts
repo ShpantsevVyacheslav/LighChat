@@ -73,18 +73,18 @@ export async function runRequestQrLogin(
   data: RequestQrLoginInput,
   ctx: RequestQrLoginContext = {}
 ): Promise<RequestQrLoginResult> {
-  const pubKey = typeof data?.ephemeralPubKeySpki === "string"
-    ? data.ephemeralPubKeySpki.trim()
-    : "";
-  const platformRaw = typeof data?.devicePlatform === "string"
-    ? data.devicePlatform.trim().toLowerCase()
-    : "";
-  const labelRaw = typeof data?.deviceLabel === "string"
-    ? data.deviceLabel.trim().slice(0, 120)
-    : "";
-  const deviceId = typeof data?.deviceId === "string"
-    ? data.deviceId.trim().slice(0, 64)
-    : "";
+  const pubKey = typeof data?.ephemeralPubKeySpki === "string" ?
+    data.ephemeralPubKeySpki.trim() :
+    "";
+  const platformRaw = typeof data?.devicePlatform === "string" ?
+    data.devicePlatform.trim().toLowerCase() :
+    "";
+  const labelRaw = typeof data?.deviceLabel === "string" ?
+    data.deviceLabel.trim().slice(0, 120) :
+    "";
+  const deviceId = typeof data?.deviceId === "string" ?
+    data.deviceId.trim().slice(0, 64) :
+    "";
 
   if (!deviceId || deviceId.length < 4) {
     throw new HttpsError("invalid-argument", "Bad deviceId.");
@@ -128,9 +128,9 @@ export const requestQrLogin = onCall(
   async (request) => {
     const headers = request.rawRequest?.headers ?? {};
     const xff = headers["x-forwarded-for"];
-    const ipFromXff = typeof xff === "string"
-      ? xff.split(",")[0]?.trim() ?? ""
-      : Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
+    const ipFromXff = typeof xff === "string" ?
+      xff.split(",")[0]?.trim() ?? "" :
+      Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
     const ip = request.rawRequest?.ip || ipFromXff || "";
     const ua = typeof headers["user-agent"] === "string" ? headers["user-agent"] : "";
     try {
