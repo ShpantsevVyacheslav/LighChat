@@ -451,18 +451,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     : _openRegisterSheet,
                                 child: Text(l10n.auth_create_account),
                               ),
-                              const SizedBox(height: 8),
-                              TextButton.icon(
-                                icon: const Icon(Icons.qr_code_2, size: 18),
-                                onPressed: !firebaseReady
-                                    ? null
-                                    : () => context.push('/auth/qr'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor:
-                                      (dark ? Colors.white : scheme.onSurface)
-                                          .withValues(alpha: 0.78),
-                                ),
-                                label: Text(l10n.auth_qr_use_qr_login),
+                              const SizedBox(height: 12),
+                              _GradientPrimaryButton(
+                                enabled: firebaseReady,
+                                icon: Icons.qr_code_2,
+                                label: l10n.auth_qr_use_qr_login,
+                                onPressed: () => context.push('/auth/qr'),
                               ),
                             ],
                             const SizedBox(height: 4),
@@ -579,29 +573,34 @@ class _GoogleBrandIcon extends StatelessWidget {
 class _YandexBrandIcon extends StatelessWidget {
   const _YandexBrandIcon();
 
-  static const String _yandexSvg = '''
-<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="12" cy="12" r="12" fill="#FC3F1D"/>
-  <text
-    x="12"
-    y="12"
-    fill="#FFFFFF"
-    font-size="16"
-    font-weight="800"
-    text-anchor="middle"
-    dominant-baseline="central"
-    font-family="Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif"
-  >Я</text>
-</svg>
-''';
-
+  // Раньше иконка собиралась через `<text dominant-baseline="central">` в SVG,
+  // но flutter_svg рендерит этот атрибут неконсистентно — буква «Я» уходила
+  // вверх. Чистый Flutter-стек гарантирует геометрическое центрирование.
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.string(
-      _yandexSvg,
+    return const SizedBox(
       width: 24,
       height: 24,
-      fit: BoxFit.contain,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Color(0xFFFC3F1D),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            'Я',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              height: 1.0,
+              // height:1.0 убирает встроенный font leading; Center внутри
+              // SizedBox 24×24 даёт точный геометрический центр.
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -752,6 +751,73 @@ class _RegisterSheetBody extends ConsumerWidget {
           context.go('/chats');
         }
       },
+    );
+  }
+}
+
+/// Главная градиентная CTA-кнопка (паритет с «Sign in» в [`login_form.dart`]).
+/// Используется для «Sign in with QR» и других primary-действий, чтобы один и
+/// тот же визуальный аккорд звучал на entry- и methods-этапе экрана входа.
+class _GradientPrimaryButton extends StatelessWidget {
+  const _GradientPrimaryButton({
+    required this.enabled,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final bool enabled;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: enabled
+              ? const [
+                  Color(0xFF2E86FF),
+                  Color(0xFF5F90FF),
+                  Color(0xFF9A18FF),
+                ]
+              : [
+                  Colors.white.withValues(alpha: 0.18),
+                  Colors.white.withValues(alpha: 0.18),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: SizedBox(
+        height: 56,
+        child: TextButton(
+          onPressed: enabled ? onPressed : null,
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            foregroundColor: Colors.white,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 22, color: Colors.white),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

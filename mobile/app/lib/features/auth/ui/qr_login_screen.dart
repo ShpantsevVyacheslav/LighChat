@@ -34,7 +34,8 @@ class QrLoginScreen extends ConsumerStatefulWidget {
 
 enum _QrPhase { loading, ready, approving, rejected, error }
 
-class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
+class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
+    with SingleTickerProviderStateMixin {
   _QrPhase _phase = _QrPhase.loading;
   String? _error;
   String? _encodedQr;
@@ -46,6 +47,14 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
   bool _consuming = false;
   int _secondsLeft = 0;
 
+  /// Контроллер «луча маяка» — диагональный shimmer, идущий по QR-коду.
+  /// Полный цикл — 2.6с, потом перезапуск; не зависит от состояния, чтобы
+  /// анимация не моргала при автообновлении QR.
+  late final AnimationController _shineCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2600),
+  )..repeat();
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +63,7 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
 
   @override
   void dispose() {
+    _shineCtrl.dispose();
     _ticker?.cancel();
     _refreshTimer?.cancel();
     _sub?.cancel();
@@ -395,20 +405,48 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
         if (encoded == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        return QrImageView(
-          data: encoded,
-          version: QrVersions.auto,
-          padding: EdgeInsets.zero,
-          backgroundColor: Colors.transparent,
-          foregroundColor: dark ? Colors.white : Colors.black,
-          eyeStyle: QrEyeStyle(
-            eyeShape: QrEyeShape.square,
-            color: dark ? Colors.white : Colors.black,
-          ),
-          dataModuleStyle: QrDataModuleStyle(
-            dataModuleShape: QrDataModuleShape.square,
-            color: dark ? Colors.white : Colors.black,
-          ),
+        // QR с встроенным брендовым маяком в центре + анимированный
+        // диагональный shimmer-«луч». Маяк помещается через `embeddedImage`
+        // qr_flutter; чтобы scanner всё ещё уверенно читал код, повышаем
+        // ECC до high. Shimmer — отдельный painter поверх QR, использует
+        // `BlendMode.plus` чтобы добавлять свет, а не затирать модули.
+        final qrColor = dark ? Colors.white : Colors.black;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            QrImageView(
+              data: encoded,
+              version: QrVersions.auto,
+              errorCorrectionLevel: QrErrorCorrectLevel.H,
+              padding: EdgeInsets.zero,
+              backgroundColor: Colors.transparent,
+              eyeStyle: QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color: qrColor,
+              ),
+              dataModuleStyle: QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color: qrColor,
+              ),
+              embeddedImage:
+                  const AssetImage('assets/lighchat_mark.png'),
+              embeddedImageStyle: const QrEmbeddedImageStyle(
+                size: Size(56, 56),
+              ),
+            ),
+            IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _shineCtrl,
+                builder: (_, __) => CustomPaint(
+                  size: Size.infinite,
+                  painter: _LightSweepPainter(
+                    progress: _shineCtrl.value,
+                    color: qrColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       case _QrPhase.approving:
         return Center(
@@ -487,5 +525,74 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
           ),
         );
     }
+  }
+}
+
+/// Анимированный «луч маяка» поверх QR-кода: диагональная полоса с soft-edges,
+/// которая ездит из левого верхнего угла в правый нижний и обратно.
+///
+/// Использует [BlendMode.plus] — каждый кадр добавляет свет к нижележащим
+/// модулям QR, не маскируя их. Прозрачность пика — около 35%, чтобы любой
+/// сканер уверенно читал контраст.
+class _LightSweepPainter extends CustomPainter {
+  _LightSweepPainter({required this.progress, required this.color});
+
+  /// 0..1, замкнутая фаза анимации (контроллер `repeat()`).
+  final double progress;
+
+  /// Базовый цвет QR — берётся из foreground/eye/dataModule. Луч светит
+  /// «осветлённой» версией этого цвета: для тёмной темы — белый, для
+  /// светлой — мягкий тёплый белый, чтобы не выглядеть как засветка камеры.
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    // Полоса шириной ~22% размера QR. Плавно проходит от -ширины до +ширины,
+    // чтобы по краям полоса исчезала за пределы.
+    final stripeWidth = size.shortestSide * 0.22;
+    final travel = size.shortestSide + stripeWidth;
+    final t = progress; // 0..1
+    // Сместим начало по диагонали; sin-функция ускоряет середину прохода.
+    final dx = -stripeWidth + travel * t;
+    final dy = -stripeWidth + travel * t;
+
+    // Альфа пика. На светлой теме чуть мягче, чтобы не отдавать «вспышкой».
+    final isDark = color.computeLuminance() > 0.5;
+    final highlight = isDark
+        ? Colors.white.withValues(alpha: 0.35)
+        : const Color(0xFFFFF5E0).withValues(alpha: 0.45);
+
+    final shader = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Colors.transparent,
+        highlight.withValues(alpha: 0.0),
+        highlight,
+        highlight.withValues(alpha: 0.0),
+        Colors.transparent,
+      ],
+      stops: const [0.0, 0.42, 0.5, 0.58, 1.0],
+    ).createShader(
+      Rect.fromLTWH(
+        dx,
+        dy,
+        size.width + stripeWidth,
+        size.height + stripeWidth,
+      ),
+    );
+    final paint = Paint()
+      ..shader = shader
+      ..blendMode = BlendMode.plus;
+
+    canvas.saveLayer(rect, Paint());
+    canvas.drawRect(rect, paint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _LightSweepPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }
