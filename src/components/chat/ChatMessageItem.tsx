@@ -232,6 +232,16 @@ const ChatMessageItemComponent = ({
     );
     const isGifAttachment = useMemo(() => message.attachments?.some(att => att.name.startsWith('gif_')), [message.attachments]);
     const isStickerLike = isSticker || isGifAttachment;
+    /// Анимированный GIPHY-эмодзи (`sticker_giphy_*`) — особый под-класс
+    /// стикера, который рендерится крошечным (как unicode-эмодзи), а не
+    /// 208px-«полноразмерным» стикером. Логически попадает в `isStickerLike`,
+    /// поэтому общая sticker-логика (без пузыря и т.д.) уже работает.
+    const isAnimatedEmojiOnly = useMemo(
+        () =>
+            !!message.attachments?.length &&
+            message.attachments.every((att) => att.name.startsWith('sticker_giphy_')),
+        [message.attachments],
+    );
     const isPureEmoji = useMemo(
         () =>
             displayTextHtml &&
@@ -764,7 +774,16 @@ const ChatMessageItemComponent = ({
                                                     )}
                                                 >
                                                     {hasGridVisualMedia && (
-                                                        <div className="relative w-full min-w-[min(100%,169px)] shrink-0">
+                                                        <div
+                                                            className={cn(
+                                                                'relative shrink-0',
+                                                                isAnimatedEmojiOnly
+                                                                    // Анимированный эмодзи: размер как у unicode-эмодзи (~76px),
+                                                                    // override grid maxWidth из MessageMedia.
+                                                                    ? 'w-[76px] min-w-[76px] max-w-[76px] [&>div]:!min-w-[76px] [&>div]:!w-[76px] [&>div]:!max-w-[76px] [&>div]:!rounded-none'
+                                                                    : 'w-full min-w-[min(100%,169px)]',
+                                                            )}
+                                                        >
                                                             <MessageMedia
                                                                 attachments={message.attachments || []}
                                                                 isCurrentUser={isCurrentUser}

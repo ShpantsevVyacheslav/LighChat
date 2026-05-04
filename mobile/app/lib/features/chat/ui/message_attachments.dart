@@ -59,6 +59,14 @@ bool _isStickerAttachment(ChatAttachment a) {
   return name.startsWith('sticker_') || name.contains('/sticker_');
 }
 
+/// Анимированный эмодзи из GIPHY (`sticker_giphy_*`) — отдельный визуальный
+/// класс: рендерится **без пузыря** (как обычный стикер), но размером
+/// сравнимым с unicode-эмодзи, а не как полноценный 200px-стикер.
+bool _isAnimatedEmojiAttachment(ChatAttachment a) {
+  final name = a.name.toLowerCase();
+  return name.startsWith('sticker_giphy_');
+}
+
 bool _isGifInlineAttachment(ChatAttachment a) {
   return a.name.toLowerCase().startsWith('gif_');
 }
@@ -529,6 +537,41 @@ class _SingleVisualAttachment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = attachment;
+    // Анимированный эмодзи: маленький, как unicode-эмодзи (~76px),
+    // а не как полноразмерный 200px-стикер. Проверяем ДО `_isStickerAttachment`,
+    // т.к. имя начинается с `sticker_giphy_` и попадёт в общий sticker-ветку.
+    if (_isAnimatedEmojiAttachment(a)) {
+      const animEmojiSide = 76.0;
+      final maxSide = animEmojiSide.clamp(48.0, maxWidth);
+      final w = a.width;
+      final h = a.height;
+      double boxW, boxH;
+      if (w != null && h != null && w > 0 && h > 0) {
+        final aspect = w / h;
+        if (aspect >= 1) {
+          boxW = maxSide;
+          boxH = maxSide / aspect;
+        } else {
+          boxH = maxSide;
+          boxW = maxSide * aspect;
+        }
+      } else {
+        boxW = maxSide;
+        boxH = maxSide;
+      }
+      // Без ClipRRect — анимированные эмодзи прозрачные, скруглять нечего.
+      return SizedBox(
+        width: boxW,
+        height: boxH,
+        child: ChatCachedNetworkImage(
+          url: a.url,
+          fit: BoxFit.contain,
+          conversationId: conversationId,
+          messageId: messageId,
+          attachmentName: a.name,
+        ),
+      );
+    }
     if (_isStickerAttachment(a)) {
       final maxSide = (200.0).clamp(96.0, maxWidth);
       final w = a.width;
