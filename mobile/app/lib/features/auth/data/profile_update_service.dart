@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
@@ -59,7 +60,24 @@ Future<void> updateUserProfile({
     required String? key,
   }) async {
     if (key == null) return;
-    final snap = await fs.collection('registrationIndex').doc(key).get();
+    DocumentSnapshot<Map<String, dynamic>> snap;
+    try {
+      snap = await fs.collection('registrationIndex').doc(key).get();
+    } on FirebaseException catch (e) {
+      // Старые правила Firestore запрещали чтение несуществующих документов
+      // registrationIndex (resource == null → expression false). Если правило
+      // ещё не задеплоено — не блокируем сохранение: уникальность всё равно
+      // обеспечивает Cloud Function `onUserWriteSyncRegistrationIndex`.
+      if (e.code == 'permission-denied' || e.code == 'PERMISSION_DENIED') {
+        developer.log(
+          'Profile update: registrationIndex read denied — assuming key is free.',
+          name: 'lighchat.profile',
+          error: e,
+        );
+        return;
+      }
+      rethrow;
+    }
     if (!snap.exists) return;
     final owner = snap.data()?['uid'] as String?;
     if (owner == uid) return;
