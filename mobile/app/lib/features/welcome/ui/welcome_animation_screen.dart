@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:go_router/go_router.dart';
 
 import '../../../brand_colors.dart';
@@ -10,7 +11,7 @@ import '../../../l10n/app_localizations.dart';
 import '../data/first_login_animation_storage.dart';
 import 'welcome_painters.dart';
 
-const Duration _kTotalDuration = Duration(milliseconds: 3800);
+const Duration _kTotalDuration = Duration(milliseconds: 8000);
 const Duration _kReducedMotionHold = Duration(milliseconds: 800);
 
 class WelcomeAnimationScreen extends StatefulWidget {
@@ -30,11 +31,15 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
   // через `addListener` — это валидный паттерн для CustomPainter).
   final List<Offset> _trail = [];
 
+  // Haptic triggers (one-shot per playthrough)
+  final Set<String> _hapticFired = <String>{};
+
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: _kTotalDuration);
     _controller.addStatusListener(_onStatus);
+    _controller.addListener(_onTick);
 
     // Помечаем флаг сразу — чтобы force-kill посреди анимации не
     // приводил к повторному показу.
@@ -44,6 +49,25 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
     }
     if (kDebugMode) {
       debugPrint('[welcome-screen] mounted uid=$uid');
+    }
+  }
+
+  void _onTick() {
+    final t = _controller.value;
+    if (t > 0.18 && _hapticFired.add('lighthouse')) {
+      HapticFeedback.selectionClick();
+    }
+    if (t > 0.42 && _hapticFired.add('keeper')) {
+      HapticFeedback.lightImpact();
+    }
+    if (t > 0.66 && _hapticFired.add('throw')) {
+      HapticFeedback.mediumImpact();
+    }
+    if (t > 0.81 && _hapticFired.add('bubble')) {
+      HapticFeedback.lightImpact();
+    }
+    if (t > 0.94 && _hapticFired.add('logo')) {
+      HapticFeedback.mediumImpact();
     }
   }
 
@@ -87,6 +111,7 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
   @override
   void dispose() {
     _controller.removeStatusListener(_onStatus);
+    _controller.removeListener(_onTick);
     _controller.dispose();
     super.dispose();
   }
@@ -215,23 +240,171 @@ class _AnimatedStage extends StatelessWidget {
         return LayoutBuilder(
           builder: (context, c) {
             final size = Size(c.maxWidth, c.maxHeight);
-            final globalFade = _interval(t, 0.92, 1.0).clamp(0.0, 1.0);
-            return Opacity(
-              opacity: 1 - globalFade,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _BackgroundLayer(progress: _ease(t, 0.0, 0.07, Curves.easeOut), t: t),
-                  _LighthouseLayer(t: t, size: size),
-                  _KeeperLayer(t: t, size: size),
-                  _PlaneLayer(t: t, size: size, trail: trail),
-                  _BubbleLayer(t: t, size: size, locale: AppLocalizations.of(context)),
-                ],
-              ),
+            // Сцена выцветает только в финальной фазе (0.92..1.0), уступая
+            // место финальному логотипу + wordmark.
+            final sceneFade = _interval(t, 0.92, 1.0).clamp(0.0, 1.0);
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                Opacity(
+                  opacity: 1 - sceneFade,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _BackgroundLayer(progress: _ease(t, 0.0, 0.06, Curves.easeOut), t: t),
+                      _LighthouseLayer(t: t, size: size),
+                      _KeeperLayer(t: t, size: size),
+                      _PlaneLayer(t: t, size: size, trail: trail),
+                      _BubbleLayer(t: t, size: size, locale: AppLocalizations.of(context)),
+                    ],
+                  ),
+                ),
+                _FinalLogoLayer(t: t, size: size),
+              ],
             );
           },
         );
       },
+    );
+  }
+}
+
+/// Финальная фаза: PNG-логотип в центре + wordmark "LighChat" под ним.
+class _FinalLogoLayer extends StatelessWidget {
+  const _FinalLogoLayer({required this.t, required this.size});
+
+  final double t;
+  final Size size;
+
+  @override
+  Widget build(BuildContext context) {
+    final logoP = _ease(t, 0.93, 1.00, Curves.easeOutBack);
+    final wmP = _ease(t, 0.96, 1.00, Curves.easeOut);
+    if (logoP <= 0.001) return const SizedBox.shrink();
+    final logoSide = size.width * 0.55;
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            left: (size.width - logoSide) / 2,
+            top: size.height * 0.32,
+            width: logoSide,
+            height: logoSide,
+            child: Opacity(
+              opacity: logoP.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: logoP.clamp(0.0, 1.0),
+                child: Image.asset(
+                  'assets/lighchat_mark.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: size.height * 0.32 + logoSide + 12,
+            child: Opacity(
+              opacity: wmP.clamp(0.0, 1.0),
+              child: const _Wordmark(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Wordmark extends StatelessWidget {
+  const _Wordmark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text.rich(
+        const TextSpan(
+          children: [
+            TextSpan(
+              text: 'L',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+            // Dotless `i` — точка над `i` сделана отдельным span coral-цвета
+            // через WidgetSpan, чтобы попасть в брендовую палитру.
+            WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: _DottedI(),
+            ),
+            TextSpan(
+              text: 'gh',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+            TextSpan(
+              text: 'Chat',
+              style: TextStyle(
+                color: kBrandCoral,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DottedI extends StatelessWidget {
+  const _DottedI();
+
+  @override
+  Widget build(BuildContext context) {
+    // Используем dotless ı + сверху coral-точку. Размер согласован с 28sp text.
+    return SizedBox(
+      width: 12,
+      height: 32,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned(
+            left: 0,
+            top: 0,
+            child: Text(
+              'ı',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 3,
+            top: 4,
+            child: Container(
+              width: 5,
+              height: 5,
+              decoration: const BoxDecoration(
+                color: kBrandCoral,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
