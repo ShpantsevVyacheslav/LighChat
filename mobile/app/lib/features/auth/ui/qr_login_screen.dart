@@ -231,44 +231,57 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
   Future<void> _onSession(
     DocumentSnapshot<Map<String, dynamic>> snap,
   ) async {
-    if (_consuming) return;
-    if (!snap.exists) return;
-    final data = snap.data() ?? const <String, dynamic>{};
-    final state = data['state']?.toString();
-    if (state == 'approved') {
-      final customToken = data['customToken']?.toString() ?? '';
-      if (customToken.isEmpty) return;
-      _consuming = true;
-      if (!mounted) return;
-      setState(() => _phase = _QrPhase.approving);
-      try {
-        await FirebaseAuth.instance.signInWithCustomToken(customToken);
-        // Удаляем сессию (best-effort) — customToken одноразовый.
+    // Любая ошибка внутри листенера в release-iOS пропадает в Zone и роняет
+    // приложение через SIGABRT. Полный try/catch на всё тело — обязателен.
+    try {
+      if (_consuming) return;
+      if (!snap.exists) return;
+      final data = snap.data() ?? const <String, dynamic>{};
+      final state = data['state']?.toString();
+      if (state == 'approved') {
+        final customToken = data['customToken']?.toString() ?? '';
+        if (customToken.isEmpty) return;
+        _consuming = true;
+        if (!mounted) return;
+        setState(() => _phase = _QrPhase.approving);
         try {
-          await FirebaseFirestore.instance
-              .collection('qrLoginSessions')
-              .doc(snap.id)
-              .delete();
-        } catch (_) {
-          // cleanup CF добьёт.
+          await FirebaseAuth.instance.signInWithCustomToken(customToken);
+          // Удаляем сессию (best-effort) — customToken одноразовый.
+          try {
+            await FirebaseFirestore.instance
+                .collection('qrLoginSessions')
+                .doc(snap.id)
+                .delete();
+          } catch (_) {
+            // cleanup CF добьёт.
+          }
+          if (!mounted) return;
+          context.go('/chats');
+        } catch (e, st) {
+          debugPrint('[qr-login] signInWithCustomToken failed: $e\n$st');
+          if (!mounted) return;
+          setState(() {
+            _phase = _QrPhase.error;
+            _error = e.toString();
+            _consuming = false;
+          });
         }
+      } else if (state == 'rejected') {
         if (!mounted) return;
-        context.go('/chats');
-      } catch (e) {
-        if (!mounted) return;
-        setState(() {
-          _phase = _QrPhase.error;
-          _error = e.toString();
-          _consuming = false;
+        setState(() => _phase = _QrPhase.rejected);
+        // Через 2с авторефреш.
+        _refreshTimer?.cancel();
+        _refreshTimer = Timer(const Duration(seconds: 2), () {
+          if (mounted) _start();
         });
       }
-    } else if (state == 'rejected') {
+    } catch (e, st) {
+      debugPrint('[qr-login] _onSession unexpected: $e\n$st');
       if (!mounted) return;
-      setState(() => _phase = _QrPhase.rejected);
-      // Через 2с авторефреш.
-      _refreshTimer?.cancel();
-      _refreshTimer = Timer(const Duration(seconds: 2), () {
-        if (mounted) _start();
+      setState(() {
+        _phase = _QrPhase.error;
+        _error = 'Snapshot handler: $e';
+        _consuming = false;
       });
     }
   }
@@ -471,6 +484,13 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
                 'assets/lighchat_mark.png',
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
+                // Если asset вдруг недоступен в release-bundle, не валим
+                // экран — просто показываем мини-иконку маяка.
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.lightbulb_outline,
+                  size: 28,
+                  color: Color(0xFF1E3A5F),
+                ),
               ),
             ),
             IgnorePointer(
@@ -570,9 +590,10 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
 /// Анимированный «луч маяка» поверх QR-кода: диагональная полоса с soft-edges,
 /// которая ездит из левого верхнего угла в правый нижний и обратно.
 ///
-/// Использует [BlendMode.plus] — каждый кадр добавляет свет к нижележащим
-/// модулям QR, не маскируя их. Прозрачность пика — около 35%, чтобы любой
-/// сканер уверенно читал контраст.
+/// Использует обычный [BlendMode.srcOver] (default) с полупрозрачным
+/// градиентом — это безопасно на любом GPU, в т.ч. в release-iOS, где
+/// `BlendMode.plus` через `saveLayer` мог падать на старых устройствах.
+/// Эффект «свечения» получается за счёт alpha 25-40% поверх QR.
 class _LightSweepPainter extends CustomPainter {
   _LightSweepPainter({required this.progress, required this.color});
 
@@ -586,22 +607,27 @@ class _LightSweepPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
+    if (size.isEmpty || !size.isFinite) return;
     // Полоса шириной ~22% размера QR. Плавно проходит от -ширины до +ширины,
     // чтобы по краям полоса исчезала за пределы.
     final stripeWidth = size.shortestSide * 0.22;
     final travel = size.shortestSide + stripeWidth;
-    final t = progress; // 0..1
-    // Сместим начало по диагонали; sin-функция ускоряет середину прохода.
+    final t = progress.clamp(0.0, 1.0);
     final dx = -stripeWidth + travel * t;
     final dy = -stripeWidth + travel * t;
 
     // Альфа пика. На светлой теме чуть мягче, чтобы не отдавать «вспышкой».
     final isDark = color.computeLuminance() > 0.5;
     final highlight = isDark
-        ? Colors.white.withValues(alpha: 0.35)
-        : const Color(0xFFFFF5E0).withValues(alpha: 0.45);
+        ? Colors.white.withValues(alpha: 0.30)
+        : const Color(0xFFFFF5E0).withValues(alpha: 0.40);
 
+    final gradientRect = Rect.fromLTWH(
+      dx,
+      dy,
+      size.width + stripeWidth,
+      size.height + stripeWidth,
+    );
     final shader = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -613,21 +639,12 @@ class _LightSweepPainter extends CustomPainter {
         Colors.transparent,
       ],
       stops: const [0.0, 0.42, 0.5, 0.58, 1.0],
-    ).createShader(
-      Rect.fromLTWH(
-        dx,
-        dy,
-        size.width + stripeWidth,
-        size.height + stripeWidth,
-      ),
-    );
-    final paint = Paint()
-      ..shader = shader
-      ..blendMode = BlendMode.plus;
+    ).createShader(gradientRect);
 
-    canvas.saveLayer(rect, Paint());
-    canvas.drawRect(rect, paint);
-    canvas.restore();
+    final paint = Paint()..shader = shader;
+    // Default BlendMode.srcOver — поверх QR ложится полупрозрачный слой,
+    // никаких saveLayer/Plus, на любом GPU это работает одинаково.
+    canvas.drawRect(Offset.zero & size, paint);
   }
 
   @override
