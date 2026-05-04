@@ -85,6 +85,11 @@ export const messagesEn = {
       unsupportedQrTitle: 'Unsupported QR',
       unsupportedQrDesc: 'This QR is not a LighChat sign-in or pairing code.',
       errorTitle: 'Camera error',
+      serverErrorTitle: 'Server error',
+    },
+    alreadyApproved: {
+      title: 'Already approved',
+      body: 'This QR session is already approved. The other device should be signed in. If not, generate a new QR there.',
     },
     approve: {
       title: 'Allow this device to sign in?',

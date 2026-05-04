@@ -60,9 +60,10 @@ type Stage =
       lastConv?: string;
     }
   | { kind: 'success'; approved: ConfirmQrLoginResponseApproved }
+  | { kind: 'already-approved' }
   | { kind: 'rejected' }
   | { kind: 'pairing-redirect' }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; source: 'camera' | 'server'; message: string };
 
 type QrScannerDialogProps = {
   open: boolean;
@@ -78,9 +79,12 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
   const { toast } = useToast();
   const [stage, setStage] = React.useState<Stage>({ kind: 'scanning' });
   const consumedRef = React.useRef<string | null>(null);
+  /** Гард против двойного клика на «Разрешить» / двойного срабатывания confirm. */
+  const confirmingRef = React.useRef<string | null>(null);
 
   const reset = React.useCallback(() => {
     consumedRef.current = null;
+    confirmingRef.current = null;
     setStage({ kind: 'scanning' });
   }, []);
 
@@ -131,6 +135,11 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
   const handleAllow = React.useCallback(async () => {
     if (stage.kind !== 'awaiting-approve' || !user?.id) return;
     const { sessionId, nonce } = stage;
+    // Гард: одна и та же сессия не должна подтверждаться дважды (двойной клик
+    // или React-StrictMode дабл-инвок). Сервер ответит FAILED_PRECONDITION на
+    // повтор; мы хотим, чтобы пользователь увидел осмысленный экран.
+    if (confirmingRef.current === sessionId) return;
+    confirmingRef.current = sessionId;
     setStage({ kind: 'confirming', sessionId, nonce });
     try {
       const res = await confirmQrLoginFromScanner({
@@ -152,6 +161,7 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
       } catch (e) {
         setStage({
           kind: 'error',
+          source: 'server',
           message: e instanceof Error ? e.message : String(e),
         });
         return;
@@ -202,6 +212,7 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
       } catch (e) {
         setStage({
           kind: 'error',
+          source: 'server',
           message: e instanceof Error ? e.message : String(e),
         });
         return;
@@ -209,10 +220,26 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
 
       setStage({ kind: 'success', approved: res });
       onLinked?.();
-    } catch (e) {
+    } catch (e: unknown) {
+      // Если сессия уже approved (повторный confirm на тот же sessionId или
+      // зависший stale-документ), сервер вернёт FAILED_PRECONDITION с
+      // message 'QR session in state approved.'. Это не ошибка для нашего
+      // UX — нужное состояние уже достигнуто. Показываем успех / подсказку.
+      const code = (e as { code?: string })?.code ?? '';
+      const msg = e instanceof Error ? e.message : String(e);
+      if (
+        code === 'functions/failed-precondition' ||
+        /in state approved/i.test(msg)
+      ) {
+        setStage({ kind: 'already-approved' });
+        return;
+      }
+      // Сбрасываем гард, чтобы пользователь мог нажать «Сканировать ещё раз».
+      confirmingRef.current = null;
       setStage({
         kind: 'error',
-        message: e instanceof Error ? e.message : String(e),
+        source: 'server',
+        message: msg,
       });
     }
   }, [stage, firebaseApp, firestore, user?.id, onLinked, toast, t]);
@@ -249,7 +276,7 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
               onScan={handleScan}
               onError={(e) => {
                 const msg = e instanceof Error ? e.message : String(e);
-                setStage({ kind: 'error', message: msg });
+                setStage({ kind: 'error', source: 'camera', message: msg });
               }}
               constraints={{ facingMode: 'environment' }}
               scanDelay={250}
@@ -339,6 +366,23 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
           </div>
         )}
 
+        {stage.kind === 'already-approved' && (
+          <div className="space-y-2 text-center py-3">
+            <ShieldCheck className="h-8 w-8 mx-auto text-emerald-500" />
+            <p className="text-sm font-medium">
+              {t('devices.alreadyApproved.title')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t('devices.alreadyApproved.body')}
+            </p>
+            <DialogFooter>
+              <Button onClick={() => onOpenChange(false)}>
+                {t('common.close')}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
         {stage.kind === 'pairing-redirect' && (
           <div className="space-y-2 text-center py-3">
             <AlertTriangle className="h-8 w-8 mx-auto text-amber-500" />
@@ -359,7 +403,11 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
         {stage.kind === 'error' && (
           <div className="space-y-2 text-center py-3">
             <AlertTriangle className="h-8 w-8 mx-auto text-destructive" />
-            <p className="text-sm font-medium">{t('devices.scanner.errorTitle')}</p>
+            <p className="text-sm font-medium">
+              {stage.source === 'camera'
+                ? t('devices.scanner.errorTitle')
+                : t('devices.scanner.serverErrorTitle')}
+            </p>
             <p className="text-xs text-muted-foreground break-words">
               {stage.message}
             </p>

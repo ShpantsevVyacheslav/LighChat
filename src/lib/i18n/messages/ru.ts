@@ -90,6 +90,11 @@ export const messagesRu = {
       unsupportedQrTitle: 'Не поддерживается',
       unsupportedQrDesc: 'Этот QR не относится к LighChat.',
       errorTitle: 'Ошибка камеры',
+      serverErrorTitle: 'Ошибка сервера',
+    },
+    alreadyApproved: {
+      title: 'Уже подтверждено',
+      body: 'Эта QR-сессия уже одобрена — второе устройство должно было войти. Если этого не произошло, перегенерируйте QR на нём.',
     },
     approve: {
       title: 'Разрешить вход на этом устройстве?',
