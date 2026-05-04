@@ -59,4 +59,51 @@ void main() {
       expect(identical(f1, f2), isFalse);
     });
   });
+
+  group('LinkPreviewMetadataCache.peekResolved (sync path)', () {
+    test('возвращает (false, null) до первого запроса', () {
+      final cache = LinkPreviewMetadataCache();
+      final r = cache.peekResolved('https://example.invalid/a');
+      expect(r.isResolved, isFalse);
+      expect(r.data, isNull);
+    });
+
+    test('возвращает (false, null) пока запрос в полёте', () async {
+      final cache = LinkPreviewMetadataCache();
+      // Не await — Future ещё не зарезолвен.
+      final inflight = cache.get('https://example.invalid/b');
+      final r = cache.peekResolved('https://example.invalid/b');
+      expect(r.isResolved, isFalse);
+      expect(r.data, isNull);
+      await inflight; // на всякий случай дожидаемся, чтобы тест не висел
+    });
+
+    test('возвращает (true, null) после неуспешного резолва', () async {
+      final cache = LinkPreviewMetadataCache();
+      final url = 'https://example.invalid/c';
+      await cache.get(url); // зарезолвится в null (host lookup fail)
+      final r = cache.peekResolved(url);
+      expect(r.isResolved, isTrue);
+      expect(r.data, isNull);
+    });
+
+    test('peekResolved нечувствителен к фрагменту/трейлинг-слешу нормализации',
+        () async {
+      final cache = LinkPreviewMetadataCache();
+      // Кеш нормализует (отбрасывает fragment) — поэтому оба URL должны
+      // указывать на один и тот же ключ.
+      await cache.get('https://example.invalid/d#fragment');
+      final r = cache.peekResolved('https://example.invalid/d');
+      expect(r.isResolved, isTrue);
+    });
+
+    test('clear() сбрасывает sync-кеш', () async {
+      final cache = LinkPreviewMetadataCache();
+      final url = 'https://example.invalid/e';
+      await cache.get(url);
+      expect(cache.peekResolved(url).isResolved, isTrue);
+      cache.clear();
+      expect(cache.peekResolved(url).isResolved, isFalse);
+    });
+  });
 }

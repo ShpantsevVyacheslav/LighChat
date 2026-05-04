@@ -40,6 +40,26 @@ class MessageLinkPreviewCard extends StatelessWidget {
             alpha: dark ? 0.06 : 0.88,
           );
 
+    // Синхронная ветка — главный анти-flicker фикс. `FutureBuilder` после
+    // unmount/remount (cacheExtent в reverse: true CustomScrollView) ВСЕГДА
+    // проходит через `ConnectionState.waiting` один кадр в `initState`, даже
+    // если наш Future уже зарезолвен. Это даёт мерцание skeleton↔контент
+    // на каждом возврате карточки в viewport. Кеш умеет отвечать
+    // синхронно через `peekResolved` — если данные уже видели, рендерим
+    // сразу контент без `FutureBuilder` и без waiting-кадра.
+    final cached = _linkPreviewCache.peekResolved(url);
+    if (cached.isResolved) {
+      LinkPreviewFlickerDetector.recordDone(url);
+      final data = cached.data;
+      if (data == null) {
+        return const SizedBox.shrink();
+      }
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: _buildContent(context, data, scheme, border, bg),
+      );
+    }
+
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: FutureBuilder<LinkPreviewMetadata?>(
@@ -54,116 +74,126 @@ class MessageLinkPreviewCard extends StatelessWidget {
           if (data == null) {
             return const SizedBox.shrink();
           }
-          final hasPlayableVideo = _isPlayableVideo(data);
-          final textSection = Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (data.siteName != null) ...[
-                  Text(
-                    data.siteName!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.2,
-                      color: (isMine ? Colors.white : scheme.onSurface)
-                          .withValues(alpha: 0.65),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                ],
-                Text(
-                  data.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: (isMine ? Colors.white : scheme.onSurface)
-                        .withValues(alpha: 0.92),
-                    height: 1.15,
-                  ),
-                ),
-                if (data.description != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    data.description!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: (isMine ? Colors.white : scheme.onSurface)
-                          .withValues(alpha: 0.68),
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Text(
-                  url,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: (isMine ? Colors.white : scheme.primary)
-                        .withValues(alpha: 0.85),
-                  ),
-                ),
-              ],
-            ),
-          );
-
-          // For the video case we want tap-on-video to control playback and
-          // tap-on-text to open the URL — so we don't wrap the whole card in
-          // a single InkWell.
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: bg,
-              border: Border.all(color: border),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (hasPlayableVideo)
-                  _LinkPreviewInlineVideo(
-                    videoUrl: data.videoUrl!,
-                    posterUrl: data.imageUrl,
-                  )
-                else if (data.imageUrl != null)
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _open(context),
-                      child: SizedBox(
-                        height: 140,
-                        child: Image.network(
-                          data.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox.shrink(),
-                        ),
-                      ),
-                    ),
-                  ),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _open(context),
-                    child: textSection,
-                  ),
-                ),
-              ],
-            ),
-          );
+          return _buildContent(context, data, scheme, border, bg);
         },
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    LinkPreviewMetadata data,
+    ColorScheme scheme,
+    Color border,
+    Color bg,
+  ) {
+    final hasPlayableVideo = _isPlayableVideo(data);
+    final textSection = Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (data.siteName != null) ...[
+            Text(
+              data.siteName!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+                color: (isMine ? Colors.white : scheme.onSurface)
+                    .withValues(alpha: 0.65),
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+          Text(
+            data.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: (isMine ? Colors.white : scheme.onSurface)
+                  .withValues(alpha: 0.92),
+              height: 1.15,
+            ),
+          ),
+          if (data.description != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              data.description!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: (isMine ? Colors.white : scheme.onSurface)
+                    .withValues(alpha: 0.68),
+                height: 1.2,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            url,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: (isMine ? Colors.white : scheme.primary)
+                  .withValues(alpha: 0.85),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // For the video case we want tap-on-video to control playback and
+    // tap-on-text to open the URL — so we don't wrap the whole card in
+    // a single InkWell.
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: bg,
+        border: Border.all(color: border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (hasPlayableVideo)
+            _LinkPreviewInlineVideo(
+              videoUrl: data.videoUrl!,
+              posterUrl: data.imageUrl,
+            )
+          else if (data.imageUrl != null)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _open(context),
+                child: SizedBox(
+                  height: 140,
+                  child: Image.network(
+                    data.imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _open(context),
+              child: textSection,
+            ),
+          ),
+        ],
       ),
     );
   }

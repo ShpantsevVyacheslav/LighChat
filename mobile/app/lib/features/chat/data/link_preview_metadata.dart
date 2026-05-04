@@ -44,11 +44,34 @@ class LinkPreviewMetadata {
 ///   данные уже в памяти. На каждом ребилде ленты карточка моргала бы
 ///   skeleton↔контент, ломая высоту строки в `CustomScrollView`. Стабильная
 ///   ссылка убирает мерцание (см. `FutureBuilderState._subscribe`).
+/// Маркер «кеш ничего не нашёл по URL». Отличаем от «ещё не запрашивали» —
+/// последнее даёт `null` из `peekResolved`, первое — `_NegativeResult`.
+class _NegativeResult {
+  const _NegativeResult();
+}
+
+const _NegativeResult _kNegative = _NegativeResult();
+
 class LinkPreviewMetadataCache {
   LinkPreviewMetadataCache({this.timeout = const Duration(seconds: 6)});
 
   final Duration timeout;
   final Map<String, Future<LinkPreviewMetadata?>> _futures = {};
+
+  /// Зеркало уже зарезолвенных значений — для **синхронного** доступа.
+  /// Это критично: `FutureBuilder` при `initState` нового виджета (после
+  /// unmount/remount при скролле в `cacheExtent` `CustomScrollView`)
+  /// гарантированно проходит через `ConnectionState.waiting` (один кадр
+  /// skeleton) — вне зависимости от того, что наш `Future` уже зарезолвен,
+  /// и вне зависимости от identity. Это даёт мерцание высоты на каждом
+  /// возврате карточки в viewport. Чтобы этого избежать, виджет проверяет
+  /// `peekResolved(url)` синхронно и при попадании рендерит контент СРАЗУ,
+  /// без `FutureBuilder`. См. `MessageLinkPreviewCard.build`.
+  ///
+  /// Значения: `LinkPreviewMetadata` — успешный результат,
+  /// `_kNegative` — отрицательный (404/HTML без og-тегов и т.п.),
+  /// отсутствие ключа — ещё не запрашивали или в процессе.
+  final Map<String, Object> _resolvedSync = <String, Object>{};
 
   Future<LinkPreviewMetadata?> get(String url) {
     final key = _normalizeUrlKey(url);
@@ -64,7 +87,10 @@ class LinkPreviewMetadataCache {
       return existing;
     }
 
-    final future = _fetchAndParse(key);
+    final future = _fetchAndParse(key).then((value) {
+      _resolvedSync[key] = value ?? _kNegative;
+      return value;
+    });
     _futures[key] = future;
     if (kLogLinkPreviewDiagnostics) {
       debugPrint(
@@ -74,8 +100,24 @@ class LinkPreviewMetadataCache {
     return future;
   }
 
+  /// Синхронное чтение уже разрешённого результата.
+  ///
+  /// Возвращает:
+  ///   - `(true, metadata)` — успешный кеш,
+  ///   - `(true, null)` — отрицательный кеш (URL не дал валидного превью),
+  ///   - `(false, null)` — ещё не запрашивали или в процессе.
+  ({bool isResolved, LinkPreviewMetadata? data}) peekResolved(String url) {
+    final key = _normalizeUrlKey(url);
+    if (key == null) return (isResolved: true, data: null);
+    final v = _resolvedSync[key];
+    if (v == null) return (isResolved: false, data: null);
+    if (v is LinkPreviewMetadata) return (isResolved: true, data: v);
+    return (isResolved: true, data: null);
+  }
+
   void clear() {
     _futures.clear();
+    _resolvedSync.clear();
   }
 
   String? _normalizeUrlKey(String raw) {
