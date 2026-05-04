@@ -1482,6 +1482,10 @@
       "uids": {}
     }
   },
+  "conversation_durak_winner": "Победитель!",
+  "conversation_durak_play_again": "Сыграть ещё раз",
+  "conversation_durak_back_to_chat": "Вернуться в чат",
+  "conversation_game_lobby_waiting_opponent": "Ожидание соперника…",
   "conversation_durak_drop_zone": "Перетащи карту сюда, чтобы сыграть",
   "durak_settings_mode": "Режим",
   "durak_mode_podkidnoy": "Подкидной",

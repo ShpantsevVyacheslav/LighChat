@@ -1482,6 +1482,10 @@
       "uids": {}
     }
   },
+  "conversation_durak_winner": "Winner!",
+  "conversation_durak_play_again": "Play again",
+  "conversation_durak_back_to_chat": "Back to chat",
+  "conversation_game_lobby_waiting_opponent": "Waiting for opponent…",
   "conversation_durak_drop_zone": "Drop card here to play",
   "durak_settings_mode": "Mode",
   "durak_mode_podkidnoy": "Podkidnoy",

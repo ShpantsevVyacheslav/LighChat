@@ -2740,32 +2740,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversation_game_lobby_start => 'Start';
 
   @override
-  String get conversation_game_lobby_ready => 'Ready';
-
-  @override
-  String get conversation_game_lobby_waiting => 'Waiting…';
-
-  @override
-  String get conversation_game_lobby_start_game => 'Start game';
-
-  @override
-  String get conversation_durak_play_again => 'Play again';
-
-  @override
-  String get conversation_durak_back_to_chat => 'Back to chat';
-
-  @override
-  String get conversation_game_lobby_waiting_opponent => 'Waiting for an opponent…';
-
-  @override
-  String get conversation_durak_winner => 'Winner';
-
-  @override
-  String conversation_durak_loser(Object name) {
-    return 'Lost: $name';
-  }
-
-  @override
   String conversation_game_lobby_join_failed(Object error) {
     return 'Couldn’t join: $error';
   }
@@ -2834,6 +2808,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String conversation_durak_game_finished_winners(Object uids) {
     return 'Winners: $uids';
   }
+
+  @override
+  String get conversation_durak_winner => 'Winner!';
+
+  @override
+  String get conversation_durak_play_again => 'Play again';
+
+  @override
+  String get conversation_durak_back_to_chat => 'Back to chat';
+
+  @override
+  String get conversation_game_lobby_waiting_opponent =>
+      'Waiting for opponent…';
 
   @override
   String get conversation_durak_drop_zone => 'Drop card here to play';

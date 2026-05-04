@@ -4778,54 +4778,6 @@ abstract class AppLocalizations {
   /// **'Начать'**
   String get conversation_game_lobby_start;
 
-  /// No description provided for @conversation_game_lobby_ready.
-  ///
-  /// In ru, this message translates to:
-  /// **'Готов'**
-  String get conversation_game_lobby_ready;
-
-  /// No description provided for @conversation_game_lobby_waiting.
-  ///
-  /// In ru, this message translates to:
-  /// **'Ждём…'**
-  String get conversation_game_lobby_waiting;
-
-  /// No description provided for @conversation_game_lobby_start_game.
-  ///
-  /// In ru, this message translates to:
-  /// **'Начать игру'**
-  String get conversation_game_lobby_start_game;
-
-  /// No description provided for @conversation_durak_play_again.
-  ///
-  /// In ru, this message translates to:
-  /// **'Сыграть ещё раз'**
-  String get conversation_durak_play_again;
-
-  /// No description provided for @conversation_durak_winner.
-  ///
-  /// In ru, this message translates to:
-  /// **'Победитель'**
-  String get conversation_durak_winner;
-
-  /// No description provided for @conversation_durak_loser.
-  ///
-  /// In ru, this message translates to:
-  /// **'Проиграл: {name}'**
-  String conversation_durak_loser(Object name);
-
-  /// No description provided for @conversation_durak_back_to_chat.
-  ///
-  /// In ru, this message translates to:
-  /// **'Вернуться в чат'**
-  String get conversation_durak_back_to_chat;
-
-  /// No description provided for @conversation_game_lobby_waiting_opponent.
-  ///
-  /// In ru, this message translates to:
-  /// **'Ждём, пока подключится соперник…'**
-  String get conversation_game_lobby_waiting_opponent;
-
   /// No description provided for @conversation_game_lobby_join_failed.
   ///
   /// In ru, this message translates to:
@@ -4945,6 +4897,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Победили: {uids}'**
   String conversation_durak_game_finished_winners(Object uids);
+
+  /// No description provided for @conversation_durak_winner.
+  ///
+  /// In ru, this message translates to:
+  /// **'Победитель!'**
+  String get conversation_durak_winner;
+
+  /// No description provided for @conversation_durak_play_again.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сыграть ещё раз'**
+  String get conversation_durak_play_again;
+
+  /// No description provided for @conversation_durak_back_to_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вернуться в чат'**
+  String get conversation_durak_back_to_chat;
+
+  /// No description provided for @conversation_game_lobby_waiting_opponent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидание соперника…'**
+  String get conversation_game_lobby_waiting_opponent;
 
   /// No description provided for @conversation_durak_drop_zone.
   ///
