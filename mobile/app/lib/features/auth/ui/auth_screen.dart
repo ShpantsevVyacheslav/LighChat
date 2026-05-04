@@ -26,10 +26,16 @@ class AuthScreen extends ConsumerStatefulWidget {
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
+/// Этап stepper'а на экране входа.
+///  - [entry] — две большие CTA: «Войти» (→ /auth/qr) и «Создать аккаунт».
+///  - [methods] — текущая форма email/password + OAuth-сетка.
+enum _AuthStage { entry, methods }
+
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _busy = false;
   String? _error;
   bool _redirectingSignedInUser = false;
+  _AuthStage _stage = _AuthStage.entry;
 
   Future<void> _openRegisterSheet() async {
     await Navigator.of(context).push<void>(
@@ -72,6 +78,80 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return;
     }
     context.go(next);
+  }
+
+  /// Контент entry-этапа (две CTA: войти / создать аккаунт). Альтернативная
+  /// форма с email и OAuth-сеткой открывается по «Войти другим способом».
+  List<Widget> _buildEntryStage({
+    required AppLocalizations l10n,
+    required bool dark,
+    required ColorScheme scheme,
+    required bool firebaseReady,
+  }) {
+    return [
+      const SizedBox(height: 6),
+      FilledButton.icon(
+        icon: const Icon(Icons.qr_code_2, size: 20),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+        ),
+        onPressed: !firebaseReady ? null : () => context.push('/auth/qr'),
+        label: Text(
+          l10n.auth_entry_sign_in,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      OutlinedButton.icon(
+        icon: const Icon(Icons.person_add_alt_1, size: 20),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          side: BorderSide(
+            color: dark
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.black.withValues(alpha: 0.12),
+          ),
+          backgroundColor: dark
+              ? Colors.white.withValues(alpha: 0.03)
+              : Colors.white.withValues(alpha: 0.50),
+          foregroundColor: dark ? Colors.white : scheme.onSurface,
+        ),
+        onPressed: (!firebaseReady || _busy) ? null : _openRegisterSheet,
+        label: Text(
+          l10n.auth_entry_sign_up,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      const SizedBox(height: 18),
+      Center(
+        child: TextButton(
+          onPressed: () => setState(() => _stage = _AuthStage.methods),
+          style: TextButton.styleFrom(
+            foregroundColor:
+                (dark ? Colors.white : scheme.onSurface).withValues(alpha: 0.7),
+          ),
+          child: Text(
+            l10n.auth_qr_other_method,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 
   Future<bool> _run(
@@ -209,79 +289,64 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   textAlign: TextAlign.center,
                                 ),
                               ),
-                            LoginForm(onDone: () => context.go('/chats')),
-                            const SizedBox(height: 22),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Divider(
-                                    color:
-                                        (dark ? Colors.white : scheme.onSurface)
-                                            .withValues(alpha: 0.12),
-                                    thickness: 1,
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                  ),
-                                  child: Text(
-                                    l10n.auth_or,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.4,
-                                      color:
-                                          (dark
-                                                  ? Colors.white
-                                                  : scheme.onSurface)
-                                              .withValues(alpha: 0.42),
+                            if (_stage == _AuthStage.entry)
+                              ..._buildEntryStage(
+                                l10n: l10n,
+                                dark: dark,
+                                scheme: scheme,
+                                firebaseReady: firebaseReady,
+                              ),
+                            if (_stage == _AuthStage.methods) ...[
+                              LoginForm(onDone: () => context.go('/chats')),
+                              const SizedBox(height: 22),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Divider(
+                                      color: (dark
+                                              ? Colors.white
+                                              : scheme.onSurface)
+                                          .withValues(alpha: 0.12),
+                                      thickness: 1,
                                     ),
                                   ),
-                                ),
-                                Expanded(
-                                  child: Divider(
-                                    color:
-                                        (dark ? Colors.white : scheme.onSurface)
-                                            .withValues(alpha: 0.12),
-                                    thickness: 1,
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                    child: Text(
+                                      l10n.auth_or,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.4,
+                                        color:
+                                            (dark
+                                                    ? Colors.white
+                                                    : scheme.onSurface)
+                                                .withValues(alpha: 0.42),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _SocialAuthIconTile(
-                                    dark: dark,
-                                    tooltip: 'Google',
-                                    onPressed:
-                                        (!firebaseReady ||
-                                            repo == null ||
-                                            _busy)
-                                        ? null
-                                        : () => _continueOAuthAndRoute(
-                                            repo,
-                                            () => repo.signInWithGoogle(),
-                                          ),
-                                    child: const _GoogleBrandIcon(),
+                                  Expanded(
+                                    child: Divider(
+                                      color: (dark
+                                              ? Colors.white
+                                              : scheme.onSurface)
+                                          .withValues(alpha: 0.12),
+                                      thickness: 1,
+                                    ),
                                   ),
-                                ),
-                                if (defaultTargetPlatform ==
-                                    TargetPlatform.iOS) ...[
-                                  const SizedBox(width: 8),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
                                   Expanded(
                                     child: _SocialAuthIconTile(
                                       dark: dark,
-                                      tooltip: 'Apple',
-                                      background: dark
-                                          ? Colors.white.withValues(alpha: 0.08)
-                                          : Colors.black.withValues(
-                                              alpha: 0.88,
-                                            ),
-                                      iconColor: Colors.white,
+                                      tooltip: 'Google',
                                       onPressed:
                                           (!firebaseReady ||
                                               repo == null ||
@@ -289,77 +354,118 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                           ? null
                                           : () => _continueOAuthAndRoute(
                                               repo,
-                                              () => repo.signInWithApple(),
+                                              () => repo.signInWithGoogle(),
                                             ),
-                                      child: const Icon(Icons.apple, size: 24),
+                                      child: const _GoogleBrandIcon(),
+                                    ),
+                                  ),
+                                  if (defaultTargetPlatform ==
+                                      TargetPlatform.iOS) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _SocialAuthIconTile(
+                                        dark: dark,
+                                        tooltip: 'Apple',
+                                        background: dark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.08,
+                                              )
+                                            : Colors.black.withValues(
+                                                alpha: 0.88,
+                                              ),
+                                        iconColor: Colors.white,
+                                        onPressed:
+                                            (!firebaseReady ||
+                                                repo == null ||
+                                                _busy)
+                                            ? null
+                                            : () => _continueOAuthAndRoute(
+                                                repo,
+                                                () => repo.signInWithApple(),
+                                              ),
+                                        child:
+                                            const Icon(Icons.apple, size: 24),
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _SocialAuthIconTile(
+                                      dark: dark,
+                                      tooltip: 'Telegram',
+                                      onPressed: (!firebaseReady || _busy)
+                                          ? null
+                                          : () {
+                                              Navigator.of(context).push<void>(
+                                                MaterialPageRoute<void>(
+                                                  fullscreenDialog: true,
+                                                  builder: (_) =>
+                                                      const TelegramSignInWebViewScreen(),
+                                                ),
+                                              );
+                                            },
+                                      child: const _TelegramBrandIcon(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _SocialAuthIconTile(
+                                      dark: dark,
+                                      tooltip: 'Yandex',
+                                      onPressed: (!firebaseReady || _busy)
+                                          ? null
+                                          : () {
+                                              Navigator.of(context).push<void>(
+                                                MaterialPageRoute<void>(
+                                                  fullscreenDialog: true,
+                                                  builder: (_) =>
+                                                      const YandexSignInWebViewScreen(),
+                                                ),
+                                              );
+                                            },
+                                      child: const _YandexBrandIcon(),
                                     ),
                                   ),
                                 ],
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _SocialAuthIconTile(
-                                    dark: dark,
-                                    tooltip: 'Telegram',
-                                    onPressed: (!firebaseReady || _busy)
-                                        ? null
-                                        : () {
-                                            Navigator.of(context).push<void>(
-                                              MaterialPageRoute<void>(
-                                                fullscreenDialog: true,
-                                                builder: (_) =>
-                                                    const TelegramSignInWebViewScreen(),
-                                              ),
-                                            );
-                                          },
-                                    child: const _TelegramBrandIcon(),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _SocialAuthIconTile(
-                                    dark: dark,
-                                    tooltip: 'Yandex',
-                                    onPressed: (!firebaseReady || _busy)
-                                        ? null
-                                        : () {
-                                            Navigator.of(context).push<void>(
-                                              MaterialPageRoute<void>(
-                                                fullscreenDialog: true,
-                                                builder: (_) =>
-                                                    const YandexSignInWebViewScreen(),
-                                              ),
-                                            );
-                                          },
-                                    child: const _YandexBrandIcon(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(56),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                side: BorderSide(
-                                  color: dark
-                                      ? Colors.white.withValues(alpha: 0.18)
-                                      : Colors.black.withValues(alpha: 0.12),
-                                ),
-                                backgroundColor: dark
-                                    ? Colors.white.withValues(alpha: 0.03)
-                                    : Colors.white.withValues(alpha: 0.50),
-                                foregroundColor: dark
-                                    ? Colors.white
-                                    : scheme.onSurface,
                               ),
-                              onPressed: (!firebaseReady || _busy)
-                                  ? null
-                                  : _openRegisterSheet,
-                              child: Text(l10n.auth_create_account),
-                            ),
-                            const SizedBox(height: 12),
+                              const SizedBox(height: 8),
+                              OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(56),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  side: BorderSide(
+                                    color: dark
+                                        ? Colors.white.withValues(alpha: 0.18)
+                                        : Colors.black.withValues(alpha: 0.12),
+                                  ),
+                                  backgroundColor: dark
+                                      ? Colors.white.withValues(alpha: 0.03)
+                                      : Colors.white.withValues(alpha: 0.50),
+                                  foregroundColor:
+                                      dark ? Colors.white : scheme.onSurface,
+                                ),
+                                onPressed: (!firebaseReady || _busy)
+                                    ? null
+                                    : _openRegisterSheet,
+                                child: Text(l10n.auth_create_account),
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton.icon(
+                                icon: const Icon(Icons.qr_code_2, size: 18),
+                                onPressed: !firebaseReady
+                                    ? null
+                                    : () => context.push('/auth/qr'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor:
+                                      (dark ? Colors.white : scheme.onSurface)
+                                          .withValues(alpha: 0.78),
+                                ),
+                                label: Text(l10n.auth_qr_use_qr_login),
+                              ),
+                            ],
+                            const SizedBox(height: 4),
                             if (!keyboardVisible)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),

@@ -809,6 +809,22 @@
   "auth_redirecting_to_chats": "Переходим в чаты...",
   "auth_or": "или",
   "auth_create_account": "Создать аккаунт",
+  "auth_entry_sign_in": "Войти",
+  "auth_entry_sign_up": "Создать аккаунт",
+  "auth_qr_title": "Войти по QR",
+  "auth_qr_hint": "Откройте LighChat на устройстве, где вы уже вошли → Настройки → Устройства → Подключить новое устройство, и наведите камеру на этот код.",
+  "auth_qr_refresh_in": "Обновится через {seconds}с",
+  "@auth_qr_refresh_in": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "auth_qr_other_method": "Войти другим способом",
+  "auth_qr_approving": "Входим…",
+  "auth_qr_rejected": "Запрос отклонён",
+  "auth_qr_retry": "Повторить",
+  "auth_qr_unknown_error": "Не удалось сгенерировать QR-код.",
+  "auth_qr_use_qr_login": "Войти по QR",
   "auth_privacy_policy": "Политика конфиденциальности",
   "auth_error_open_privacy_policy": "Не удалось открыть политику конфиденциальности",
   "voice_transcript_show": "Показать текст",
@@ -883,6 +899,27 @@
   "devices_title": "Мои устройства",
   "devices_subtitle": "Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.",
   "devices_empty": "Устройств пока нет.",
+  "devices_connect_new_device": "Подключить новое устройство",
+  "devices_approve_title": "Разрешить вход на этом устройстве?",
+  "devices_approve_body_hint": "Убедитесь, что это ваше устройство, на котором вы только что показали QR.",
+  "devices_approve_allow": "Разрешить",
+  "devices_approve_deny": "Отклонить",
+  "devices_handover_progress_title": "Синхронизация зашифрованных чатов…",
+  "devices_handover_progress_body": "Обработано {done} из {total}",
+  "@devices_handover_progress_body": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "devices_handover_progress_starting": "Начинаем…",
+  "devices_handover_success_title": "Устройство подключено",
+  "devices_handover_success_body": "Устройство {label} получило доступ к зашифрованным чатам.",
+  "@devices_handover_success_body": {
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
   "devices_progress_rekeying": "Обновление чатов: {done} / {total}",
   "@devices_progress_rekeying": {
     "placeholders": {

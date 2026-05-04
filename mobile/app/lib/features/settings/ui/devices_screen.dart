@@ -17,6 +17,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -294,7 +295,17 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                               : scheme.onSurface.withValues(alpha: 0.65),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FilledButton.tonalIcon(
+                          icon: const Icon(Icons.qr_code_2),
+                          onPressed: () =>
+                              context.push('/settings/e2ee-qr-pairing'),
+                          label: Text(l10n.devices_connect_new_device),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       if (_loadError != null)
                         Text(
                           _loadError!,

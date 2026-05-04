@@ -1,0 +1,148 @@
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import * as admin from "firebase-admin";
+import * as logger from "firebase-functions/logger";
+import * as nodeCrypto from "node:crypto";
+
+/**
+ * Создаёт эфемерную QR-login сессию для нового устройства (Telegram-style):
+ *  - клиент (новое устройство, ещё без auth) запрашивает sessionId+nonce;
+ *  - сессия хранится в `qrLoginSessions/{sessionId}`, TTL 90с (60с QR + 30с задел);
+ *  - старое устройство сканирует QR, вызывает `confirmQrLogin`, та проставляет
+ *    customToken;
+ *  - новое устройство полит документ листенером, при `state == 'approved'`
+ *    использует `customToken` для signInWithCustomToken и удаляет документ.
+ *
+ * Поскольку вызов идёт ДО auth, callable не требует request.auth. Мы ограничиваем
+ * злоупотребления тем, что:
+ *   - sessionId — 24 байта рандомных, не угадывается;
+ *   - nonce — отдельный 24-байтный секрет, сервер сравнивает его SHA-256 в confirm;
+ *   - TTL короткий, scheduled cleanup собирает мусор.
+ *
+ * Логика поделена на чистое ядро [`runRequestQrLogin`] и onCall-обёртку — это
+ * позволяет покрыть ядро интеграционными тестами против Firestore-эмулятора без
+ * подъёма всего functions runtime (см. `functions/test/qr-login-emulator.spec.ts`).
+ */
+
+export type RequestQrLoginInput = {
+  ephemeralPubKeySpki?: unknown;
+  devicePlatform?: unknown;
+  deviceLabel?: unknown;
+  deviceId?: unknown;
+};
+
+export type RequestQrLoginContext = {
+  ip?: string;
+  userAgent?: string;
+};
+
+export type RequestQrLoginResult = {
+  sessionId: string;
+  nonce: string;
+  expiresAt: string;
+  ttlSec: number;
+};
+
+const PLATFORMS = new Set(["web", "ios", "android"]);
+export const QR_LOGIN_TTL_SEC = 90;
+
+function randomB64Url(byteLength: number): string {
+  const buf = nodeCrypto.randomBytes(byteLength);
+  return buf
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/** Серверный hash nonce — клиент знает только сырой nonce, сервер хранит SHA-256(sessionId|nonce). */
+export function hashNonceForStorage(nonce: string, sessionId: string): string {
+  return nodeCrypto
+    .createHash("sha256")
+    .update(`${sessionId}|${nonce}`, "utf8")
+    .digest("base64");
+}
+
+/**
+ * Чистое ядро `requestQrLogin`. Не зависит от Cloud Functions runtime —
+ * принимает Firestore-инстанс явно, что позволяет вызывать его в тестах
+ * против эмулятора. onCall-обёртка ниже просто прокидывает `admin.firestore()`
+ * и заголовки запроса.
+ */
+export async function runRequestQrLogin(
+  db: admin.firestore.Firestore,
+  data: RequestQrLoginInput,
+  ctx: RequestQrLoginContext = {}
+): Promise<RequestQrLoginResult> {
+  const pubKey = typeof data?.ephemeralPubKeySpki === "string"
+    ? data.ephemeralPubKeySpki.trim()
+    : "";
+  const platformRaw = typeof data?.devicePlatform === "string"
+    ? data.devicePlatform.trim().toLowerCase()
+    : "";
+  const labelRaw = typeof data?.deviceLabel === "string"
+    ? data.deviceLabel.trim().slice(0, 120)
+    : "";
+  const deviceId = typeof data?.deviceId === "string"
+    ? data.deviceId.trim().slice(0, 64)
+    : "";
+
+  if (!deviceId || deviceId.length < 4) {
+    throw new HttpsError("invalid-argument", "Bad deviceId.");
+  }
+  if (pubKey.length < 16 || pubKey.length > 4096) {
+    throw new HttpsError("invalid-argument", "Bad ephemeralPubKeySpki.");
+  }
+  const platform = PLATFORMS.has(platformRaw) ? platformRaw : "web";
+  const label = labelRaw || `${platform}-device`;
+
+  const sessionId = randomB64Url(24);
+  const nonce = randomB64Url(24);
+  const nowMs = Date.now();
+  const expiresAtIso = new Date(nowMs + QR_LOGIN_TTL_SEC * 1000).toISOString();
+  const createdAtIso = new Date(nowMs).toISOString();
+
+  await db.doc(`qrLoginSessions/${sessionId}`).set({
+    sessionId,
+    nonceHash: hashNonceForStorage(nonce, sessionId),
+    ephemeralPubKeySpki: pubKey,
+    devicePlatform: platform,
+    deviceLabel: label,
+    deviceId,
+    state: "awaiting_scan",
+    createdAt: createdAtIso,
+    expiresAt: expiresAtIso,
+    ip: (ctx.ip || "").slice(0, 64),
+    userAgent: (ctx.userAgent || "").slice(0, 256),
+  });
+
+  return {
+    sessionId,
+    nonce,
+    expiresAt: expiresAtIso,
+    ttlSec: QR_LOGIN_TTL_SEC,
+  };
+}
+
+export const requestQrLogin = onCall(
+  { region: "us-central1", cors: true },
+  async (request) => {
+    const headers = request.rawRequest?.headers ?? {};
+    const xff = headers["x-forwarded-for"];
+    const ipFromXff = typeof xff === "string"
+      ? xff.split(",")[0]?.trim() ?? ""
+      : Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
+    const ip = request.rawRequest?.ip || ipFromXff || "";
+    const ua = typeof headers["user-agent"] === "string" ? headers["user-agent"] : "";
+    try {
+      return await runRequestQrLogin(
+        admin.firestore(),
+        request.data as RequestQrLoginInput,
+        { ip, userAgent: ua }
+      );
+    } catch (e) {
+      if (e instanceof HttpsError) throw e;
+      logger.error("requestQrLogin: unexpected failure", e);
+      throw new HttpsError("internal", "Could not create QR login session.");
+    }
+  }
+);

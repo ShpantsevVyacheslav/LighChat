@@ -19,7 +19,7 @@
  */
 
 import * as React from 'react';
-import { Fingerprint, Loader2, Pencil, ShieldOff, Trash2 } from 'lucide-react';
+import { Fingerprint, Loader2, Pencil, ShieldOff, Trash2, QrCode } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { QrScannerDialog } from '@/components/settings/QrScannerDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -92,6 +93,7 @@ export function DevicesPanel() {
     last?: RevokeProgress;
   } | null>(null);
   const [revoking, setRevoking] = React.useState(false);
+  const [scannerOpen, setScannerOpen] = React.useState(false);
 
   const loadDevices = React.useCallback(async () => {
     if (!firestore || !user?.id) return;
@@ -200,11 +202,24 @@ export function DevicesPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Fingerprint className="h-4 w-4 text-muted-foreground" />
-          {t('devices.panelTitle')}
-        </CardTitle>
-        <CardDescription>{t('devices.panelDescription')}</CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Fingerprint className="h-4 w-4 text-muted-foreground" />
+              {t('devices.panelTitle')}
+            </CardTitle>
+            <CardDescription className="mt-1">{t('devices.panelDescription')}</CardDescription>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setScannerOpen(true)}
+            className="shrink-0 gap-1.5"
+          >
+            <QrCode className="h-3.5 w-3.5" />
+            {t('devices.connectNewDevice')}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {loadError && (
@@ -316,6 +331,14 @@ export function DevicesPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <QrScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onLinked={() => {
+          void loadDevices();
+        }}
+      />
 
       {/* Revoke dialog */}
       <AlertDialog

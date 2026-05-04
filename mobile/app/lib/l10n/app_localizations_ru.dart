@@ -1687,6 +1687,42 @@ class AppLocalizationsRu extends AppLocalizations {
   String get auth_create_account => 'Создать аккаунт';
 
   @override
+  String get auth_entry_sign_in => 'Войти';
+
+  @override
+  String get auth_entry_sign_up => 'Создать аккаунт';
+
+  @override
+  String get auth_qr_title => 'Войти по QR';
+
+  @override
+  String get auth_qr_hint =>
+      'Откройте LighChat на устройстве, где вы уже вошли → Настройки → Устройства → Подключить новое устройство, и наведите камеру на этот код.';
+
+  @override
+  String auth_qr_refresh_in(int seconds) {
+    return 'Обновится через ${seconds}с';
+  }
+
+  @override
+  String get auth_qr_other_method => 'Войти другим способом';
+
+  @override
+  String get auth_qr_approving => 'Входим…';
+
+  @override
+  String get auth_qr_rejected => 'Запрос отклонён';
+
+  @override
+  String get auth_qr_retry => 'Повторить';
+
+  @override
+  String get auth_qr_unknown_error => 'Не удалось сгенерировать QR-код.';
+
+  @override
+  String get auth_qr_use_qr_login => 'Войти по QR';
+
+  @override
   String get auth_privacy_policy => 'Политика конфиденциальности';
 
   @override
@@ -1852,6 +1888,42 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get devices_empty => 'Устройств пока нет.';
+
+  @override
+  String get devices_connect_new_device => 'Подключить новое устройство';
+
+  @override
+  String get devices_approve_title => 'Разрешить вход на этом устройстве?';
+
+  @override
+  String get devices_approve_body_hint =>
+      'Убедитесь, что это ваше устройство, на котором вы только что показали QR.';
+
+  @override
+  String get devices_approve_allow => 'Разрешить';
+
+  @override
+  String get devices_approve_deny => 'Отклонить';
+
+  @override
+  String get devices_handover_progress_title =>
+      'Синхронизация зашифрованных чатов…';
+
+  @override
+  String devices_handover_progress_body(int done, int total) {
+    return 'Обработано $done из $total';
+  }
+
+  @override
+  String get devices_handover_progress_starting => 'Начинаем…';
+
+  @override
+  String get devices_handover_success_title => 'Устройство подключено';
+
+  @override
+  String devices_handover_success_body(String label) {
+    return 'Устройство $label получило доступ к зашифрованным чатам.';
+  }
 
   @override
   String devices_progress_rekeying(Object done, Object total) {

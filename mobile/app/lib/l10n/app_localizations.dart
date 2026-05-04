@@ -2984,6 +2984,72 @@ abstract class AppLocalizations {
   /// **'Создать аккаунт'**
   String get auth_create_account;
 
+  /// No description provided for @auth_entry_sign_in.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти'**
+  String get auth_entry_sign_in;
+
+  /// No description provided for @auth_entry_sign_up.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать аккаунт'**
+  String get auth_entry_sign_up;
+
+  /// No description provided for @auth_qr_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти по QR'**
+  String get auth_qr_title;
+
+  /// No description provided for @auth_qr_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Откройте LighChat на устройстве, где вы уже вошли → Настройки → Устройства → Подключить новое устройство, и наведите камеру на этот код.'**
+  String get auth_qr_hint;
+
+  /// No description provided for @auth_qr_refresh_in.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновится через {seconds}с'**
+  String auth_qr_refresh_in(int seconds);
+
+  /// No description provided for @auth_qr_other_method.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти другим способом'**
+  String get auth_qr_other_method;
+
+  /// No description provided for @auth_qr_approving.
+  ///
+  /// In ru, this message translates to:
+  /// **'Входим…'**
+  String get auth_qr_approving;
+
+  /// No description provided for @auth_qr_rejected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запрос отклонён'**
+  String get auth_qr_rejected;
+
+  /// No description provided for @auth_qr_retry.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить'**
+  String get auth_qr_retry;
+
+  /// No description provided for @auth_qr_unknown_error.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось сгенерировать QR-код.'**
+  String get auth_qr_unknown_error;
+
+  /// No description provided for @auth_qr_use_qr_login.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти по QR'**
+  String get auth_qr_use_qr_login;
+
   /// No description provided for @auth_privacy_policy.
   ///
   /// In ru, this message translates to:
@@ -3277,6 +3343,66 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Устройств пока нет.'**
   String get devices_empty;
+
+  /// No description provided for @devices_connect_new_device.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключить новое устройство'**
+  String get devices_connect_new_device;
+
+  /// No description provided for @devices_approve_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить вход на этом устройстве?'**
+  String get devices_approve_title;
+
+  /// No description provided for @devices_approve_body_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Убедитесь, что это ваше устройство, на котором вы только что показали QR.'**
+  String get devices_approve_body_hint;
+
+  /// No description provided for @devices_approve_allow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить'**
+  String get devices_approve_allow;
+
+  /// No description provided for @devices_approve_deny.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отклонить'**
+  String get devices_approve_deny;
+
+  /// No description provided for @devices_handover_progress_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Синхронизация зашифрованных чатов…'**
+  String get devices_handover_progress_title;
+
+  /// No description provided for @devices_handover_progress_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обработано {done} из {total}'**
+  String devices_handover_progress_body(int done, int total);
+
+  /// No description provided for @devices_handover_progress_starting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Начинаем…'**
+  String get devices_handover_progress_starting;
+
+  /// No description provided for @devices_handover_success_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройство подключено'**
+  String get devices_handover_success_title;
+
+  /// No description provided for @devices_handover_success_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройство {label} получило доступ к зашифрованным чатам.'**
+  String devices_handover_success_body(String label);
 
   /// No description provided for @devices_progress_rekeying.
   ///

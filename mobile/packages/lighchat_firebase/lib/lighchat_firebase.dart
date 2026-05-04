@@ -44,6 +44,10 @@ export 'src/e2ee/revoke_device.dart';
 // Phase 6 recovery paths.
 export 'src/e2ee/password_backup.dart';
 export 'src/e2ee/pairing_qr.dart';
+// Telegram-style QR-login (parser only; signed call sits in app layer).
+export 'src/e2ee/qr_login_protocol.dart';
+// Гибридная передача доступа к E2EE-чатам новому устройству.
+export 'src/e2ee/device_link_handover.dart';
 // Phase 7 media encryption: per-file AES-GCM keys, chunked AEAD, symmetric wrap.
 export 'src/e2ee/media_crypto.dart';
 export 'src/e2ee/media_storage.dart';

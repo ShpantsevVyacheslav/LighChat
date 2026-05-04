@@ -7,6 +7,7 @@ export const messagesRu = {
     save: 'Сохранить',
     close: 'Закрыть',
     unknown: 'Неизвестный',
+    back: 'Назад',
   },
   settings: {
     language: {
@@ -74,9 +75,38 @@ export const messagesRu = {
     resetDefaultsButton: 'Сбросить настройки',
   },
   devices: {
+    pageTitle: 'Устройства',
+    pageSubtitle: 'Управление устройствами, у которых есть доступ к аккаунту и зашифрованным чатам.',
+    connectNewDevice: 'Подключить новое устройство',
     panelTitle: 'Мои устройства (E2EE)',
     panelDescription:
       'Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв устройства автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — после этого отозванное устройство больше не сможет читать новые сообщения.',
+    scanner: {
+      title: 'Подключить новое устройство',
+      description: 'Откройте LighChat на новом устройстве, выберите «Войти по QR» и наведите камеру на код.',
+      scanAgain: 'Сканировать ещё раз',
+      pairingRedirectTitle: 'Это QR для передачи E2EE-ключа',
+      pairingRedirectBody: 'Откройте «Устройства → Восстановление шифрования → QR-pairing».',
+      unsupportedQrTitle: 'Не поддерживается',
+      unsupportedQrDesc: 'Этот QR не относится к LighChat.',
+      errorTitle: 'Ошибка камеры',
+    },
+    approve: {
+      title: 'Разрешить вход на этом устройстве?',
+      bodyHint: 'Убедитесь, что это ваше устройство, на котором вы только что показали QR.',
+      allow: 'Разрешить',
+      deny: 'Отклонить',
+      deniedTitle: 'Запрос отклонён',
+    },
+    handover: {
+      progressTitle: 'Синхронизация зашифрованных чатов…',
+      progressBody: 'Обработано {done} из {total}',
+      progressStarting: 'Начинаем…',
+      successTitle: 'Устройство подключено',
+      successBody: 'Устройство {label} получило доступ к зашифрованным чатам.',
+      partialFailureTitle: 'Не все чаты обновлены',
+      partialFailureDesc: 'Готово {ok}, ошибок {fail}. Можно повторить из «Устройства».',
+    },
     empty: 'Устройств пока нет.',
     createdActivity: 'Создано: {created} • Активность: {activity}',
     revokedAt: 'Отозвано: {date}',
@@ -161,6 +191,7 @@ export const messagesRu = {
     admin: 'Администрирование',
     notifications: 'Уведомления',
     privacy: 'Конфиденциальность',
+    devices: 'Устройства',
     theme: 'Тема',
     themeLight: 'Светлая',
     themeDark: 'Тёмная',
@@ -218,6 +249,22 @@ export const messagesRu = {
     retry: 'Повторить',
   },
   auth: {
+    entry: {
+      signIn: 'Войти',
+      signUp: 'Создать аккаунт',
+    },
+    qr: {
+      title: 'Войти по QR',
+      hint: 'Откройте LighChat на устройстве, где вы уже вошли → Настройки → Устройства → Подключить новое устройство, и наведите камеру на этот код.',
+      refreshIn: 'Обновится через {sec}с',
+      otherMethod: 'Войти другим способом',
+      approving: 'Входим…',
+      rejected: 'Запрос отклонён',
+      retry: 'Повторить',
+    },
+    methods: {
+      useQr: 'Войти по QR',
+    },
     landingProfileIncomplete:
       'Вы вошли через Google, Apple или Telegram. Заполните оставшиеся поля в открывшейся форме — без них доступ к приложению недоступен.',
     loginEmailInvalid: 'Неверный формат email.',
@@ -383,6 +430,8 @@ export const messagesRu = {
     },
   },
   chat: {
+    encryptedSyncingBanner:
+      'Синхронизация зашифрованного чата… Сообщения появятся, как только устройство получит ключи.',
     newChat: {
       triggerAria: 'Новый чат',
       title: 'Новый чат',

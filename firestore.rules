@@ -273,6 +273,26 @@ service cloud.firestore {
     }
 
     /**
+     * Эфемерные QR-login сессии (Telegram-style привязка нового устройства).
+     *
+     *  - Создаётся Cloud Function `requestQrLogin` (Admin SDK), запись клиента
+     *    запрещена.
+     *  - Чтение: разрешено публично без auth, чтобы новое устройство (ещё не
+     *    залогиненное) могло слушать `state == 'approved'` и получить
+     *    `customToken`. SessionId/nonce — секреты с 192 бит энтропии, без них
+     *    sessionId не угадывается. Документ удаляется новым устройством после
+     *    использования customToken; scheduled cleanup чистит мусор.
+     *  - Update: запись только через `confirmQrLogin` (Admin SDK).
+     *  - Delete: разрешено любому signed-in (новому устройству после успеха;
+     *    отказ от записи допустим, scheduled cleanup доделает).
+     */
+    match /qrLoginSessions/{sessionId} {
+      allow read: if true;
+      allow create, update: if false;
+      allow delete: if isSignedIn();
+    }
+
+    /**
      * Индекс уникальности телефона / email / логина для регистрации до входа.
      * Заполняется только Cloud Functions (Admin SDK); клиент только get.
      */

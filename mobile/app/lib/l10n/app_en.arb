@@ -809,6 +809,22 @@
   "auth_redirecting_to_chats": "Taking you to chats…",
   "auth_or": "or",
   "auth_create_account": "Create account",
+  "auth_entry_sign_in": "Sign in",
+  "auth_entry_sign_up": "Create account",
+  "auth_qr_title": "Sign in with QR",
+  "auth_qr_hint": "Open LighChat on a device where you are already signed in → Settings → Devices → Connect new device, then scan this code.",
+  "auth_qr_refresh_in": "Refreshes in {seconds}s",
+  "@auth_qr_refresh_in": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "auth_qr_other_method": "Sign in another way",
+  "auth_qr_approving": "Signing in…",
+  "auth_qr_rejected": "Request rejected",
+  "auth_qr_retry": "Retry",
+  "auth_qr_unknown_error": "Could not generate the QR code.",
+  "auth_qr_use_qr_login": "Sign in with QR",
   "auth_privacy_policy": "Privacy policy",
   "auth_error_open_privacy_policy": "Couldn’t open the privacy policy",
   "voice_transcript_show": "Show text",
@@ -883,6 +899,27 @@
   "devices_title": "My devices",
   "devices_subtitle": "Devices where your encryption public key is published. Revoking creates a new key epoch for all encrypted chats — the revoked device won’t be able to read new messages.",
   "devices_empty": "No devices yet.",
+  "devices_connect_new_device": "Connect new device",
+  "devices_approve_title": "Allow this device to sign in?",
+  "devices_approve_body_hint": "Make sure this is your own device that just showed the QR code.",
+  "devices_approve_allow": "Allow",
+  "devices_approve_deny": "Deny",
+  "devices_handover_progress_title": "Syncing encrypted chats…",
+  "devices_handover_progress_body": "Updated {done} of {total}",
+  "@devices_handover_progress_body": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "devices_handover_progress_starting": "Starting…",
+  "devices_handover_success_title": "New device linked",
+  "devices_handover_success_body": "Device {label} now has access to your encrypted chats.",
+  "@devices_handover_success_body": {
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
   "devices_progress_rekeying": "Updating chats: {done} / {total}",
   "@devices_progress_rekeying": {
     "placeholders": {

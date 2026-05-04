@@ -9,6 +9,7 @@ import {
   BellRing,
   Shield,
   ShieldCheck,
+  Smartphone,
   LogOut,
   ChevronRight,
   Palette,
@@ -148,6 +149,7 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
           onClick={handleNav}
         />
         <ProfileMenuItem icon={Shield} label={t('accountMenu.privacy')} href="/dashboard/settings/privacy" onClick={handleNav} />
+        <ProfileMenuItem icon={Smartphone} label={t('accountMenu.devices')} href="/dashboard/settings/devices" onClick={handleNav} />
       </nav>
       <div className="h-px bg-border/50 mx-2 my-1" />
       <button

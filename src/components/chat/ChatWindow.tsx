@@ -72,6 +72,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { ArrowLeft, Loader2, Search, X, Video, Phone, MessageCircle, Swords, CalendarClock, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -227,6 +228,7 @@ export function ChatWindow({
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [openGameId, setOpenGameId] = useState<string | null>(null);
@@ -2358,6 +2360,12 @@ export function ChatWindow({
               conversationId={conversation.id}
               onOpenGame={openGameInWindow}
             />
+            {e2eeConv.e2eeAwaitingWrap && (
+              <div className="mx-3 my-2 flex items-center gap-2 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/40 dark:bg-amber-950/40 dark:text-amber-200">
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                <span className="leading-snug">{t('chat.encryptedSyncingBanner')}</span>
+              </div>
+            )}
             <div className="flex-1 min-h-0 relative min-w-0 overflow-hidden">
                 {!isFullyReady && (
                     <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">

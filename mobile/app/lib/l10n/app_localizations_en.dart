@@ -1671,6 +1671,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get auth_create_account => 'Create account';
 
   @override
+  String get auth_entry_sign_in => 'Sign in';
+
+  @override
+  String get auth_entry_sign_up => 'Create account';
+
+  @override
+  String get auth_qr_title => 'Sign in with QR';
+
+  @override
+  String get auth_qr_hint =>
+      'Open LighChat on a device where you are already signed in → Settings → Devices → Connect new device, then scan this code.';
+
+  @override
+  String auth_qr_refresh_in(int seconds) {
+    return 'Refreshes in ${seconds}s';
+  }
+
+  @override
+  String get auth_qr_other_method => 'Sign in another way';
+
+  @override
+  String get auth_qr_approving => 'Signing in…';
+
+  @override
+  String get auth_qr_rejected => 'Request rejected';
+
+  @override
+  String get auth_qr_retry => 'Retry';
+
+  @override
+  String get auth_qr_unknown_error => 'Could not generate the QR code.';
+
+  @override
+  String get auth_qr_use_qr_login => 'Sign in with QR';
+
+  @override
   String get auth_privacy_policy => 'Privacy policy';
 
   @override
@@ -1836,6 +1872,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get devices_empty => 'No devices yet.';
+
+  @override
+  String get devices_connect_new_device => 'Connect new device';
+
+  @override
+  String get devices_approve_title => 'Allow this device to sign in?';
+
+  @override
+  String get devices_approve_body_hint =>
+      'Make sure this is your own device that just showed the QR code.';
+
+  @override
+  String get devices_approve_allow => 'Allow';
+
+  @override
+  String get devices_approve_deny => 'Deny';
+
+  @override
+  String get devices_handover_progress_title => 'Syncing encrypted chats…';
+
+  @override
+  String devices_handover_progress_body(int done, int total) {
+    return 'Updated $done of $total';
+  }
+
+  @override
+  String get devices_handover_progress_starting => 'Starting…';
+
+  @override
+  String get devices_handover_success_title => 'New device linked';
+
+  @override
+  String devices_handover_success_body(String label) {
+    return 'Device $label now has access to your encrypted chats.';
+  }
 
   @override
   String devices_progress_rekeying(Object done, Object total) {

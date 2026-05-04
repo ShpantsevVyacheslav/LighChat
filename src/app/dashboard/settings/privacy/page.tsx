@@ -10,8 +10,6 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users } from "lucide-react";
-import { DevicesPanel } from "@/components/settings/DevicesPanel";
-import { E2eeRecoveryPanel } from "@/components/settings/E2eeRecoveryPanel";
 import { LanguageSettingsCard } from "@/components/settings/LanguageSettingsCard";
 
 export default function PrivacySettingsPage() {
@@ -64,9 +62,6 @@ export default function PrivacySettingsPage() {
       </div>
 
       <LanguageSettingsCard />
-
-      <DevicesPanel />
-      <E2eeRecoveryPanel />
 
       <Card>
         <CardHeader>

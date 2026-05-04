@@ -63,6 +63,13 @@ export function useE2eeConversation(
   /** Подавление шумных повторов unwrap-ошибок для одной и той же эпохи. */
   const unwrapFailureByEpochRef = useRef<Map<string, string>>(new Map());
   const [identityReady, setIdentityReady] = useState(false);
+  /**
+   * Текущее устройство ещё не получило свою обёртку chat-key для последней
+   * эпохи (например, мы только что вошли через QR и старое устройство ещё
+   * не успело re-wrap или ротировать эпоху). UI показывает плашку
+   * «Синхронизация зашифрованного чата…».
+   */
+  const [awaitingWrap, setAwaitingWrap] = useState(false);
 
   const e2eeEnabled = !!(conversation?.e2eeEnabled && (conversation?.e2eeKeyEpoch ?? 0) > 0);
   const e2eeEpoch = conversation?.e2eeKeyEpoch ?? 0;
@@ -71,6 +78,7 @@ export function useE2eeConversation(
     keyByEpochRef.current.clear();
     rawKeyByEpochRef.current.clear();
     unwrapFailureByEpochRef.current.clear();
+    setAwaitingWrap(false);
   }, [conversation?.id]);
 
   useEffect(() => {
@@ -150,11 +158,14 @@ export function useE2eeConversation(
         const aes = await unwrapChatKeyForMeV2(any.data, uid, identity, conversation.id);
         keyByEpochRef.current.set(cacheKey, aes);
         unwrapFailureByEpochRef.current.delete(cacheKey);
+        if (targetEpoch === e2eeEpoch) setAwaitingWrap(false);
         return aes;
       } catch (e) {
         const code = normalizeE2eeErrorCode(e);
         unwrapFailureByEpochRef.current.set(cacheKey, code);
-        if (!E2EE_UNWRAP_MISSING_CODES.has(code)) {
+        if (E2EE_UNWRAP_MISSING_CODES.has(code) && targetEpoch === e2eeEpoch) {
+          setAwaitingWrap(true);
+        } else if (!E2EE_UNWRAP_MISSING_CODES.has(code)) {
           console.warn('[e2ee] v2 unwrap failed', e);
         }
         throw new Error(code);
@@ -321,6 +332,7 @@ export function useE2eeConversation(
     e2eeEnabled,
     e2eeEpoch,
     e2eeIdentityReady: identityReady,
+    e2eeAwaitingWrap: awaitingWrap,
     encryptOutgoingHtmlV2,
     decryptMessagePayload,
     getChatKeyRawV2ForEpoch,

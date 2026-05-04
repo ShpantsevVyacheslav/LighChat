@@ -20,8 +20,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -37,6 +40,12 @@ enum _Mode { pick, initiator, donor }
 enum _InitiatorStage { starting, waiting, awaitingAccept, completed, error }
 
 enum _DonorStage { scanning, confirming, done, error }
+
+/// Стадии flow подключения нового устройства через QR-логин (Telegram-style).
+/// Отличается от [_DonorStage]: здесь старое устройство не передаёт свой
+/// приватник, а подтверждает custom-token и переоборачивает session-keys
+/// E2EE-чатов под новый publicKey (handoverDeviceAccessMobile).
+enum _LoginLinkStage { idle, awaitingApprove, confirming, syncing, done, error }
 
 class E2eeQrPairingScreen extends ConsumerStatefulWidget {
   const E2eeQrPairingScreen({super.key});
@@ -68,6 +77,16 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     facing: CameraFacing.back,
   );
   bool _donorProcessing = false;
+
+  // QR-LOGIN handover state (когда отсканировали login-QR, а не E2EE-pairing).
+  _LoginLinkStage _loginStage = _LoginLinkStage.idle;
+  String? _loginError;
+  String? _loginPendingSessionId;
+  String? _loginPendingNonce;
+  String? _loginNewDeviceLabel;
+  String? _loginNewDevicePlatform;
+  int _loginHandoverDone = 0;
+  int _loginHandoverTotal = 0;
 
   @override
   void dispose() {
@@ -245,6 +264,41 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
   Future<void> _onQrScanned(String raw) async {
     if (_donorProcessing) return;
     _donorProcessing = true;
+
+    // Сначала проверяем, не login-QR ли это (Telegram-style привязка нового
+    // устройства). Парсер возвращает null, если payload не совпал — тогда
+    // падаем в существующий E2EE-pairing flow.
+    final loginPayload = parseQrLoginPayload(raw);
+    if (loginPayload != null) {
+      // Сразу пытаемся подтянуть метаданные нового устройства из qrLoginSessions.
+      String label = '';
+      String platform = 'web';
+      try {
+        final docSnap = await FirebaseFirestore.instance
+            .collection('qrLoginSessions')
+            .doc(loginPayload.sessionId)
+            .get();
+        if (docSnap.exists) {
+          final d = docSnap.data() ?? const <String, dynamic>{};
+          label = (d['deviceLabel'] ?? '').toString();
+          platform = (d['devicePlatform'] ?? 'web').toString();
+        }
+      } catch (_) {
+        // Не критично — продолжаем без метаданных.
+      }
+      if (!mounted) return;
+      setState(() {
+        _loginStage = _LoginLinkStage.awaitingApprove;
+        _loginError = null;
+        _loginPendingSessionId = loginPayload.sessionId;
+        _loginPendingNonce = loginPayload.nonce;
+        _loginNewDeviceLabel = label.isEmpty ? null : label;
+        _loginNewDevicePlatform = platform;
+      });
+      _donorProcessing = false;
+      return;
+    }
+
     setState(() {
       _donorStage = _DonorStage.confirming;
       _donorError = null;
@@ -288,6 +342,125 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     } finally {
       _donorProcessing = false;
     }
+  }
+
+  // -------------------- QR-LOGIN handover (Telegram-style) --------------------
+
+  Future<void> _confirmLoginLink({required bool allow}) async {
+    final sessionId = _loginPendingSessionId;
+    final nonce = _loginPendingNonce;
+    if (sessionId == null || nonce == null) return;
+    if (!allow) {
+      // Отклоняем (best-effort). Возвращаемся к сканеру.
+      try {
+        final functions = FirebaseFunctions.instanceFor(
+          app: Firebase.app(),
+          region: 'us-central1',
+        );
+        await functions.httpsCallable(
+          'confirmQrLogin',
+          options: HttpsCallableOptions(timeout: const Duration(seconds: 15)),
+        ).call<dynamic>(<String, Object?>{
+          'sessionId': sessionId,
+          'nonce': nonce,
+          'allow': false,
+        });
+      } catch (_) {
+        // ignore — сессия скоро протухнет.
+      }
+      if (!mounted) return;
+      setState(() {
+        _loginStage = _LoginLinkStage.idle;
+        _loginPendingSessionId = null;
+        _loginPendingNonce = null;
+      });
+      return;
+    }
+
+    setState(() => _loginStage = _LoginLinkStage.confirming);
+    try {
+      final functions = FirebaseFunctions.instanceFor(
+        app: Firebase.app(),
+        region: 'us-central1',
+      );
+      final res = await functions
+          .httpsCallable(
+            'confirmQrLogin',
+            options:
+                HttpsCallableOptions(timeout: const Duration(seconds: 25)),
+          )
+          .call<dynamic>(<String, Object?>{
+        'sessionId': sessionId,
+        'nonce': nonce,
+        'allow': true,
+      });
+      final raw = res.data;
+      final m = raw is Map ? raw : const <Object?, Object?>{};
+      if (m['state'] != 'approved') {
+        throw StateError('CONFIRM_REJECTED');
+      }
+      final ephemeralPubKeySpki =
+          (m['ephemeralPubKeySpki'] ?? '').toString();
+      final newDeviceId = (m['deviceId'] ?? '').toString();
+      final platform = (m['devicePlatform'] ?? 'web').toString();
+      final label = (m['deviceLabel'] ?? '').toString();
+      if (ephemeralPubKeySpki.isEmpty || newDeviceId.isEmpty) {
+        throw StateError('BAD_CONFIRM_RESPONSE');
+      }
+
+      final uid = await _currentUid();
+      if (uid == null) throw StateError('NO_UID');
+      final donorIdentity = await getOrCreateMobileDeviceIdentity();
+
+      if (!mounted) return;
+      setState(() {
+        _loginStage = _LoginLinkStage.syncing;
+        _loginHandoverDone = 0;
+        _loginHandoverTotal = 0;
+      });
+
+      await handoverDeviceAccessMobile(
+        firestore: FirebaseFirestore.instance,
+        userId: uid,
+        donorIdentity: donorIdentity,
+        newDevice: IncomingDeviceInfo(
+          deviceId: newDeviceId,
+          publicKeySpkiB64: ephemeralPubKeySpki,
+          platform: platform,
+          label: label.isEmpty ? '$platform-device' : label,
+        ),
+        onProgress: (entry, done, total) {
+          if (!mounted) return;
+          setState(() {
+            _loginHandoverDone = done;
+            _loginHandoverTotal = total;
+          });
+        },
+      );
+
+      if (!mounted) return;
+      setState(() => _loginStage = _LoginLinkStage.done);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loginStage = _LoginLinkStage.error;
+        _loginError = e.toString();
+      });
+    }
+  }
+
+  void _resetLoginFlow() {
+    setState(() {
+      _loginStage = _LoginLinkStage.idle;
+      _loginError = null;
+      _loginPendingSessionId = null;
+      _loginPendingNonce = null;
+      _loginNewDeviceLabel = null;
+      _loginNewDevicePlatform = null;
+      _loginHandoverDone = 0;
+      _loginHandoverTotal = 0;
+      _donorStage = _DonorStage.scanning;
+    });
   }
 
   String _detectPlatform() {
@@ -511,6 +684,12 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
 
   List<Widget> _buildDonor() {
     final l10n = AppLocalizations.of(context)!;
+    // QR-login handover имеет приоритет над обычным donor flow:
+    // как только сканер распознал login-QR, мы показываем UX подтверждения
+    // нового устройства / прогресс синхронизации.
+    if (_loginStage != _LoginLinkStage.idle) {
+      return _buildLoginLink(l10n);
+    }
     switch (_donorStage) {
       case _DonorStage.scanning:
         return [
@@ -598,6 +777,196 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
                 _donorError = null;
               }),
               child: Text(l10n.common_retry),
+            ),
+          ),
+        ];
+    }
+  }
+
+  List<Widget> _buildLoginLink(AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    switch (_loginStage) {
+      case _LoginLinkStage.idle:
+        return const [];
+      case _LoginLinkStage.awaitingApprove:
+        return [
+          const SizedBox(height: 8),
+          Icon(
+            Icons.smartphone,
+            size: 44,
+            color: scheme.primary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.devices_approve_title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.devices_approve_body_hint,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: (dark ? Colors.white : scheme.onSurface)
+                  .withValues(alpha: 0.62),
+            ),
+          ),
+          if (_loginNewDeviceLabel != null ||
+              _loginNewDevicePlatform != null) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: (dark ? Colors.white : Colors.black)
+                      .withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  _loginNewDeviceLabel ??
+                      (_loginNewDevicePlatform ?? '').toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.block, size: 18),
+                  onPressed: () => _confirmLoginLink(allow: false),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  label: Text(l10n.devices_approve_deny),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.verified_user, size: 18),
+                  onPressed: () => _confirmLoginLink(allow: true),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  label: Text(l10n.devices_approve_allow),
+                ),
+              ),
+            ],
+          ),
+        ];
+      case _LoginLinkStage.confirming:
+        return const [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ];
+      case _LoginLinkStage.syncing:
+        return [
+          const SizedBox(height: 12),
+          const Center(
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            l10n.devices_handover_progress_title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _loginHandoverTotal > 0
+                ? l10n.devices_handover_progress_body(
+                    _loginHandoverDone,
+                    _loginHandoverTotal,
+                  )
+                : l10n.devices_handover_progress_starting,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: (dark ? Colors.white : scheme.onSurface)
+                  .withValues(alpha: 0.62),
+            ),
+          ),
+        ];
+      case _LoginLinkStage.done:
+        return [
+          const SizedBox(height: 16),
+          const Icon(
+            Icons.check_circle,
+            color: Color(0xFF34D399),
+            size: 44,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.devices_handover_success_title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.devices_handover_success_body(
+              _loginNewDeviceLabel ??
+                  (_loginNewDevicePlatform ?? 'device'),
+            ),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: (dark ? Colors.white : scheme.onSurface)
+                  .withValues(alpha: 0.62),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Center(
+            child: FilledButton(
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/settings/devices');
+                }
+              },
+              child: Text(l10n.common_done),
+            ),
+          ),
+        ];
+      case _LoginLinkStage.error:
+        return [
+          const SizedBox(height: 16),
+          const Icon(Icons.error_outline, color: Colors.redAccent, size: 44),
+          const SizedBox(height: 12),
+          Text(
+            _loginError ?? l10n.e2ee_qr_unknown_error,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.redAccent),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: _resetLoginFlow,
+              child: Text(l10n.e2ee_qr_back_to_pick_label),
             ),
           ),
         ];

@@ -11,6 +11,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "icons:pwa": "bash scripts/generate-pwa-icons.sh",
     "icons:mobile:from-pwa": "node scripts/sync-mobile-launcher-from-pwa.mjs",
     "brand:mark": "node scripts/transparent-lighchat-mark.mjs && npm run icons:pwa",
@@ -96,6 +98,7 @@
     "@tiptap/extension-underline": "^2.11.5",
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
+    "@yudiel/react-qr-scanner": "^2.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -142,6 +145,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
+    "vitest": "^2.1.9",
     "wait-on": "^7.2.0"
   }
 }

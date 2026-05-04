@@ -50,11 +50,15 @@ import {
   AUTH_LABEL_CLASS,
 } from "@/components/auth/auth-glass-classes";
 import { TelegramLoginDialog } from "@/components/auth/telegram-login-dialog";
+import { QrLoginPanel } from "@/components/auth/QrLoginPanel";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/hooks/use-i18n";
 import { PublicLanguageMenu } from "@/components/i18n/public-language-menu";
-import { Eye, EyeOff, Loader2, AlertCircle, UserPlus } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, UserPlus, QrCode } from "lucide-react";
+
+/** UI-фазы экрана авторизации. */
+type AuthStage = "entry" | "qr" | "methods";
 
 /** Фирменный знак: `public/brand/lighchat-mark.png` (квадратный PNG с альфой; см. `scripts/transparent-lighchat-mark.mjs`). */
 const BRAND_LOGO_SRC = "/brand/lighchat-mark.png";
@@ -236,6 +240,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const { t, locale } = useI18n();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [stage, setStage] = React.useState<AuthStage>("entry");
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -572,84 +577,128 @@ export default function AuthPage() {
                 {t('auth.landingProfileIncomplete')}
               </p>
             ) : null}
-            <HomeLoginEmailPasswordForm
-              key={locale}
-              profileIncomplete={profileIncomplete}
-              registerOpen={registerOpen}
-              error={error}
-              isSubmitting={isSubmitting}
-              onValidSubmit={onLogin}
-            />
 
-            <p
-              className={cn(
-                "my-3 text-center text-[9px] font-semibold uppercase tracking-wide text-slate-600/80 dark:text-white/45",
-                profileIncomplete && "hidden",
-              )}
-            >
-              {t("auth.dividerOr")}
-            </p>
+            {!profileIncomplete && stage === "entry" && (
+              <div className="flex flex-col gap-3 py-2">
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={() => setStage("qr")}
+                  className="h-12 w-full gap-2 rounded-[14px] text-sm font-semibold shadow-md shadow-primary/25 transition-all active:scale-[0.99]"
+                >
+                  <QrCode className="h-4 w-4" />
+                  {t("auth.entry.signIn")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleOpenRegister}
+                  className="h-12 w-full gap-2 rounded-[14px] border-white/50 bg-white/35 text-sm font-semibold backdrop-blur-md transition-all active:scale-[0.99] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  {t("auth.entry.signUp")}
+                </Button>
+              </div>
+            )}
 
-            <div className={cn("grid grid-cols-4 gap-1.5 sm:gap-2", profileIncomplete && "hidden")}>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onGoogleSignIn}
-                disabled={isSubmitting || profileIncomplete}
-                className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10"
-                title="Google"
-              >
-                <GoogleIcon className="h-[18px] w-[18px]" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onAppleSignIn}
-                disabled={isSubmitting || profileIncomplete}
-                className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] text-slate-900 dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
-                title="Apple"
-              >
-                <AppleIcon className="h-[18px] w-[18px]" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setTelegramDialogOpen(true)}
-                disabled={
-                  isSubmitting ||
-                  profileIncomplete ||
-                  TELEGRAM_BOT_NAME.length === 0
-                }
-                title={TELEGRAM_BOT_NAME ? "Telegram" : t("auth.telegramBotMissing")}
-                className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
-              >
-                <TelegramIcon className="h-[18px] w-[18px]" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void signInWithYandex()}
-                disabled={isSubmitting || profileIncomplete}
-                className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
-                title={t("auth.yandexTitle")}
-              >
-                <YandexIcon className="h-[18px] w-[18px]" title={t("auth.yandexTitle")} />
-              </Button>
-            </div>
-
-            {!profileIncomplete ? (
-              <div className="mt-3">
+            {!profileIncomplete && stage === "qr" && (
+              <div className="flex flex-col gap-3 py-1">
+                <QrLoginPanel
+                  onOtherMethodClick={() => setStage("methods")}
+                  onSignedIn={() => router.replace("/dashboard")}
+                />
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={handleOpenRegister}
-                  className="h-10 w-full gap-2 rounded-[12px] font-semibold text-primary hover:bg-primary/10 dark:text-sky-300 dark:hover:bg-white/10 dark:hover:text-sky-200"
+                  onClick={() => setStage("entry")}
+                  className="h-9 w-full rounded-full text-[11px] font-medium text-slate-500 hover:bg-white/30 dark:text-white/55 dark:hover:bg-white/10"
                 >
-                  <UserPlus className="h-4 w-4" />
-                  {t("auth.registerCta")}
+                  {t("common.back")}
                 </Button>
               </div>
-            ) : null}
+            )}
+
+            {!profileIncomplete && stage === "methods" && (
+              <>
+                <HomeLoginEmailPasswordForm
+                  key={locale}
+                  profileIncomplete={profileIncomplete}
+                  registerOpen={registerOpen}
+                  error={error}
+                  isSubmitting={isSubmitting}
+                  onValidSubmit={onLogin}
+                />
+
+                <p
+                  className="my-3 text-center text-[9px] font-semibold uppercase tracking-wide text-slate-600/80 dark:text-white/45"
+                >
+                  {t("auth.dividerOr")}
+                </p>
+
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onGoogleSignIn}
+                    disabled={isSubmitting}
+                    className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:hover:bg-white/10"
+                    title="Google"
+                  >
+                    <GoogleIcon className="h-[18px] w-[18px]" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onAppleSignIn}
+                    disabled={isSubmitting}
+                    className="h-10 rounded-[12px] border-white/50 bg-white/30 backdrop-blur-md transition-all active:scale-[0.97] text-slate-900 dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
+                    title="Apple"
+                  >
+                    <AppleIcon className="h-[18px] w-[18px]" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setTelegramDialogOpen(true)}
+                    disabled={isSubmitting || TELEGRAM_BOT_NAME.length === 0}
+                    title={TELEGRAM_BOT_NAME ? "Telegram" : t("auth.telegramBotMissing")}
+                    className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
+                  >
+                    <TelegramIcon className="h-[18px] w-[18px]" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void signInWithYandex()}
+                    disabled={isSubmitting}
+                    className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
+                    title={t("auth.yandexTitle")}
+                  >
+                    <YandexIcon className="h-[18px] w-[18px]" title={t("auth.yandexTitle")} />
+                  </Button>
+                </div>
+
+                <div className="mt-3 flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleOpenRegister}
+                    className="h-10 w-full gap-2 rounded-[12px] font-semibold text-primary hover:bg-primary/10 dark:text-sky-300 dark:hover:bg-white/10 dark:hover:text-sky-200"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    {t("auth.registerCta")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setStage("qr")}
+                    className="h-9 w-full gap-2 rounded-full text-xs font-medium text-slate-500 hover:bg-white/30 dark:text-white/55 dark:hover:bg-white/10"
+                  >
+                    <QrCode className="h-3.5 w-3.5" /> {t("auth.methods.useQr")}
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

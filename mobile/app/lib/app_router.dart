@@ -11,6 +11,7 @@ import 'l10n/app_localizations.dart';
 import 'features/auth/registration_profile_gate.dart';
 import 'features/auth/ui/auth_screen.dart';
 import 'features/auth/ui/google_complete_profile_screen.dart';
+import 'features/auth/ui/qr_login_screen.dart';
 import 'features/auth/ui/profile_screen.dart';
 import 'features/chat/ui/chat_forward_screen.dart';
 import 'features/chat/ui/chat_account_screen.dart';
@@ -90,7 +91,9 @@ GoRouter createRouter() {
       }
 
       // If user is already signed in, never land on auth screen.
-      if (isSignedIn && state.matchedLocation == '/auth') {
+      if (isSignedIn &&
+          (state.matchedLocation == '/auth' ||
+              state.matchedLocation == '/auth/qr')) {
         return '/chats';
       }
 
@@ -122,6 +125,10 @@ GoRouter createRouter() {
     },
     routes: <RouteBase>[
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      GoRoute(
+        path: '/auth/qr',
+        builder: (context, state) => const QrLoginScreen(),
+      ),
       GoRoute(
         path: '/auth/google-complete',
         builder: (context, state) => const GoogleCompleteProfileScreen(),

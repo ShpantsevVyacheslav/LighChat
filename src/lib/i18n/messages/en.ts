@@ -5,6 +5,7 @@ export const messagesEn = {
     save: 'Save',
     close: 'Close',
     unknown: 'Unknown',
+    back: 'Back',
   },
   settings: {
     language: {
@@ -69,9 +70,38 @@ export const messagesEn = {
     resetDefaultsButton: 'Reset settings',
   },
   devices: {
+    pageTitle: 'Devices',
+    pageSubtitle: 'Manage which devices have access to your account and your encrypted chats.',
+    connectNewDevice: 'Connect new device',
     panelTitle: 'My devices (E2EE)',
     panelDescription:
       'Devices where your encryption public key is published. Revoking a device creates a new key epoch in all encrypted chats — the revoked device can no longer read new messages.',
+    scanner: {
+      title: 'Connect new device',
+      description: 'Open LighChat on the new device, choose “Sign in with QR” and scan the code.',
+      scanAgain: 'Scan again',
+      pairingRedirectTitle: 'This is an E2EE pairing QR',
+      pairingRedirectBody: 'Use Devices → Encryption recovery → Open QR pairing instead.',
+      unsupportedQrTitle: 'Unsupported QR',
+      unsupportedQrDesc: 'This QR is not a LighChat sign-in or pairing code.',
+      errorTitle: 'Camera error',
+    },
+    approve: {
+      title: 'Allow this device to sign in?',
+      bodyHint: 'Make sure this is your own device that just showed the QR code.',
+      allow: 'Allow',
+      deny: 'Deny',
+      deniedTitle: 'Sign-in request rejected',
+    },
+    handover: {
+      progressTitle: 'Syncing encrypted chats…',
+      progressBody: 'Updated {done} of {total}',
+      progressStarting: 'Starting…',
+      successTitle: 'New device linked',
+      successBody: 'Device {label} now has access to your encrypted chats.',
+      partialFailureTitle: 'Some chats were not synced',
+      partialFailureDesc: 'Updated {ok}, errors {fail}. Open Devices to retry.',
+    },
     empty: 'No devices yet.',
     createdActivity: 'Created: {created} • Activity: {activity}',
     revokedAt: 'Revoked: {date}',
@@ -155,6 +185,7 @@ export const messagesEn = {
     admin: 'Administration',
     notifications: 'Notifications',
     privacy: 'Privacy',
+    devices: 'Devices',
     theme: 'Theme',
     themeLight: 'Light',
     themeDark: 'Dark',
@@ -212,6 +243,22 @@ export const messagesEn = {
     retry: 'Retry',
   },
   auth: {
+    entry: {
+      signIn: 'Sign in',
+      signUp: 'Create account',
+    },
+    qr: {
+      title: 'Sign in with QR',
+      hint: 'Open LighChat on a device where you are already signed in → Settings → Devices → Connect new device, then scan this code.',
+      refreshIn: 'Refreshes in {sec}s',
+      otherMethod: 'Sign in another way',
+      approving: 'Signing in…',
+      rejected: 'Request rejected',
+      retry: 'Retry',
+    },
+    methods: {
+      useQr: 'Sign in with QR',
+    },
     landingProfileIncomplete:
       'You signed in with Google, Apple, or Telegram. Complete the remaining fields in the form that opened — without them you cannot use the app.',
     loginEmailInvalid: 'Invalid email format.',
@@ -376,6 +423,8 @@ export const messagesEn = {
     },
   },
   chat: {
+    encryptedSyncingBanner:
+      'Syncing this encrypted chat… Messages will appear once your device receives the keys.',
     newChat: {
       triggerAria: 'New chat',
       title: 'New chat',
