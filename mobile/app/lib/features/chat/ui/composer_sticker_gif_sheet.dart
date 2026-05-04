@@ -495,11 +495,13 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     unawaited(_loadRecentGifs());
   }
 
-  /// Анимированный эмодзи отправляется как стикер (`sticker_giphy_*`),
-  /// чтобы получатель рендерил его без пузыря фиксированного размера.
+  /// Анимированный эмодзи отправляется с префиксом `sticker_emoji_giphy_*`,
+  /// чтобы получатель рендерил его как unicode-эмодзи (~76px), а не как
+  /// 200px-стикер. Префикс `sticker_giphy_*` зарезервирован за GIPHY-стикерами
+  /// из библиотеки (вкладка Стикеры → GIPHY).
   void _onPickAnimEmoji(GiphyGifItem item) {
     widget.onPickAttachment(
-      giphyItemToSendAttachment(item, asSticker: true),
+      giphyItemToSendAttachment(item, asAnimatedEmoji: true),
     );
   }
 

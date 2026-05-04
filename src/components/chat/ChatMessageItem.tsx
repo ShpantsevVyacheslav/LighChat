@@ -232,14 +232,18 @@ const ChatMessageItemComponent = ({
     );
     const isGifAttachment = useMemo(() => message.attachments?.some(att => att.name.startsWith('gif_')), [message.attachments]);
     const isStickerLike = isSticker || isGifAttachment;
-    /// Анимированный GIPHY-эмодзи (`sticker_giphy_*`) — особый под-класс
+    /// Анимированный GIPHY-эмодзи (`sticker_emoji_giphy_*`) — особый под-класс
     /// стикера, который рендерится крошечным (как unicode-эмодзи), а не
     /// 208px-«полноразмерным» стикером. Логически попадает в `isStickerLike`,
     /// поэтому общая sticker-логика (без пузыря и т.д.) уже работает.
+    /// Важно: `sticker_giphy_*` (без `_emoji_`) — GIPHY-стикер из библиотеки,
+    /// он остаётся в обычном sticker-размере.
     const isAnimatedEmojiOnly = useMemo(
         () =>
             !!message.attachments?.length &&
-            message.attachments.every((att) => att.name.startsWith('sticker_giphy_')),
+            message.attachments.every((att) =>
+                att.name.startsWith('sticker_emoji_giphy_'),
+            ),
         [message.attachments],
     );
     const isPureEmoji = useMemo(
@@ -782,6 +786,10 @@ const ChatMessageItemComponent = ({
                                                                     // override grid maxWidth из MessageMedia.
                                                                     ? 'w-[76px] min-w-[76px] max-w-[76px] [&>div]:!min-w-[76px] [&>div]:!w-[76px] [&>div]:!max-w-[76px] [&>div]:!rounded-none'
                                                                     : 'w-full min-w-[min(100%,169px)]',
+                                                                // Стикеры / эмодзи / GIF — компактный визуал и должны
+                                                                // прижиматься к краю экрана: мои справа, собеседника слева.
+                                                                isStickerLike &&
+                                                                    (isCurrentUser ? 'self-end' : 'self-start'),
                                                             )}
                                                         >
                                                             <MessageMedia

@@ -59,12 +59,15 @@ bool _isStickerAttachment(ChatAttachment a) {
   return name.startsWith('sticker_') || name.contains('/sticker_');
 }
 
-/// Анимированный эмодзи из GIPHY (`sticker_giphy_*`) — отдельный визуальный
-/// класс: рендерится **без пузыря** (как обычный стикер), но размером
-/// сравнимым с unicode-эмодзи, а не как полноценный 200px-стикер.
+/// Анимированный эмодзи из GIPHY (`sticker_emoji_giphy_*`) — отдельный
+/// визуальный класс: рендерится **без пузыря** (как обычный стикер), но
+/// размером сравнимым с unicode-эмодзи (~76px).
+///
+/// Важно: `sticker_giphy_*` (без `_emoji_`) — это GIPHY-стикер из библиотеки,
+/// он рендерится в обычном sticker-размере 200px и НЕ должен сюда попадать.
 bool _isAnimatedEmojiAttachment(ChatAttachment a) {
   final name = a.name.toLowerCase();
-  return name.startsWith('sticker_giphy_');
+  return name.startsWith('sticker_emoji_giphy_');
 }
 
 bool _isGifInlineAttachment(ChatAttachment a) {
@@ -79,7 +82,23 @@ double _attachmentsColumnWidth({
   final base = clampMediaWidth(available: available, maxWidth: gridMaxWidth);
   if (images.length != 1) return base;
   final a = images.first;
-  if (!_isImageAttachment(a) || _isStickerAttachment(a)) return base;
+  // Анимированный эмодзи: шринк-врап по реальному 76px размеру, чтобы
+  // внешний `Row(mainAxisAlignment: end/start)` прижал его к краю экрана.
+  if (_isAnimatedEmojiAttachment(a)) {
+    return clampMediaWidth(available: available, maxWidth: 76);
+  }
+  // Обычный стикер: шринк-врап по 200px (тот же визуальный размер из
+  // `_SingleVisualAttachment`), чтобы стикер прижимался к краю экрана,
+  // а не висел внутри 208px-колонки.
+  if (_isStickerAttachment(a)) {
+    return clampMediaWidth(available: available, maxWidth: 200);
+  }
+  // Одиночный inline-GIF (`gif_*`): такой же шринк-врап по 280px (см.
+  // `_SingleVisualAttachment` ветку GIF) — чтобы GIF прижимался к краю.
+  if (_isGifInlineAttachment(a)) {
+    return clampMediaWidth(available: available, maxWidth: 280);
+  }
+  if (!_isImageAttachment(a)) return base;
   final w = a.width;
   final h = a.height;
   if (w == null || h == null || w <= 0 || h <= 0 || w < h * 1.02) {
@@ -539,7 +558,7 @@ class _SingleVisualAttachment extends StatelessWidget {
     final a = attachment;
     // Анимированный эмодзи: маленький, как unicode-эмодзи (~76px),
     // а не как полноразмерный 200px-стикер. Проверяем ДО `_isStickerAttachment`,
-    // т.к. имя начинается с `sticker_giphy_` и попадёт в общий sticker-ветку.
+    // т.к. имя начинается с `sticker_emoji_giphy_` и попадёт в общий sticker-ветку.
     if (_isAnimatedEmojiAttachment(a)) {
       const animEmojiSide = 76.0;
       final maxSide = animEmojiSide.clamp(48.0, maxWidth);

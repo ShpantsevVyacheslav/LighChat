@@ -152,14 +152,28 @@ Future<GiphySearchOutcome> searchGifs(
   }
 }
 
-/// Преобразует GIPHY GIF/sticker в `ChatAttachment` для отправки.
-/// При [asSticker] = true имя начинается с `sticker_giphy_`, чтобы получатель
-/// рендерил вложение как стикер (без пузыря, фиксированный размер).
+/// Преобразует GIPHY GIF/sticker/emoji в `ChatAttachment` для отправки.
+///
+/// Префиксы имени файла различаются по визуальному размеру у получателя:
+///   - `gif_*`                 — inline GIF (обычный размер картинки в чате)
+///   - `sticker_giphy_*`       — стикер из GIPHY-библиотеки (200px без пузыря)
+///   - `sticker_emoji_giphy_*` — анимированный эмодзи (~76px, как unicode)
+///
+/// Детекторы в `message_attachments.dart` различают эти три случая
+/// по префиксу. Поэтому важно не путать `asSticker` и `asAnimatedEmoji`.
 ChatAttachment giphyItemToSendAttachment(
   GiphyGifItem item, {
   bool asSticker = false,
+  bool asAnimatedEmoji = false,
 }) {
-  final prefix = asSticker ? 'sticker_giphy_' : 'gif_';
+  final String prefix;
+  if (asAnimatedEmoji) {
+    prefix = 'sticker_emoji_giphy_';
+  } else if (asSticker) {
+    prefix = 'sticker_giphy_';
+  } else {
+    prefix = 'gif_';
+  }
   return ChatAttachment(
     url: item.url,
     name: '$prefix${item.id}.gif',

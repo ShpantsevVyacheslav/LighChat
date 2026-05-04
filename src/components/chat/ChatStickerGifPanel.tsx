@@ -291,11 +291,15 @@ export function ChatStickerGifPanel({
     [onPickGifAttachment],
   );
 
+  /// Анимированный эмодзи: префикс `sticker_emoji_giphy_*` чтобы получатель
+  /// рендерил его как unicode-эмодзи (~76px), а не как 200px-стикер.
+  /// `sticker_giphy_*` зарезервирован за GIPHY-стикерами из библиотеки
+  /// (вкладка Стикеры → GIPHY).
   const handleAnimEmojiPick = useCallback(
     (item: GiphyItem) => {
       const att: ChatAttachment = {
         url: item.url,
-        name: `sticker_giphy_${item.id}.gif`,
+        name: `sticker_emoji_giphy_${item.id}.gif`,
         type: 'image/gif',
         size: 0,
         ...(item.width && item.height
