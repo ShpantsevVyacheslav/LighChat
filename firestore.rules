@@ -280,8 +280,13 @@ service cloud.firestore {
       /**
        * До входа (регистрация) — чтение без auth. После входа: если владелец
        * индекса заблокировал читателя, не раскрываем привязку phone/email/login → uid.
+       *
+       * `resource == null` — несуществующий документ должен читаться: иначе
+       * клиент не сможет проверить «свободен ли новый телефон/email/логин» при
+       * редактировании профиля (см. profile_update_service.checkKeyAvailable).
        */
       allow read: if request.auth == null
+        || resource == null
         || (
           isSignedIn()
           && resource.data.keys().hasAll(['uid'])
