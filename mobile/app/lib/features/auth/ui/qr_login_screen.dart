@@ -188,6 +188,23 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
             _onSession,
             onError: (Object e, StackTrace st) {
               debugPrint('[qr-login] firestore listener error: $e\n$st');
+              // Самая частая причина — `firestore.rules` не задеплоены и
+              // коллекция `qrLoginSessions` падает по default-deny. Без
+              // листенера экран бесполезен — выводим понятную ошибку,
+              // вместо тихого «вечный QR».
+              final msg = e.toString();
+              final isPermission =
+                  msg.contains('permission-denied') ||
+                      msg.contains('PERMISSION_DENIED') ||
+                      msg.contains('Missing or insufficient permissions');
+              if (!mounted) return;
+              setState(() {
+                _phase = _QrPhase.error;
+                _error = isPermission
+                    ? 'Нет доступа к qrLoginSessions. Задеплойте правила:\n'
+                        '`firebase deploy --only firestore:rules`'
+                    : 'Listener: $msg';
+              });
             },
           );
     } catch (e, st) {
@@ -405,11 +422,11 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
         if (encoded == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        // QR с встроенным брендовым маяком в центре + анимированный
-        // диагональный shimmer-«луч». Маяк помещается через `embeddedImage`
-        // qr_flutter; чтобы scanner всё ещё уверенно читал код, повышаем
-        // ECC до high. Shimmer — отдельный painter поверх QR, использует
-        // `BlendMode.plus` чтобы добавлять свет, а не затирать модули.
+        // QR с врезанным маяком и анимированным диагональным shimmer-«лучом».
+        // Маяк рендерится **поверх** QR ручным Stack'ом (не через
+        // qr_flutter `embeddedImage`, который даёт некрасивые артефакты на
+        // тёмном фоне) — чёткий PNG в белом круге. ECC поднят до high,
+        // чтобы 30% перекрытие данных оставалось восстанавливаемым.
         final qrColor = dark ? Colors.white : Colors.black;
         return Stack(
           alignment: Alignment.center,
@@ -428,10 +445,32 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
                 dataModuleShape: QrDataModuleShape.square,
                 color: qrColor,
               ),
-              embeddedImage:
-                  const AssetImage('assets/lighchat_mark.png'),
-              embeddedImageStyle: const QrEmbeddedImageStyle(
-                size: Size(56, 56),
+            ),
+            // Брендовый маяк по центру.
+            // Размер ~14% стороны QR (≈32px при 232px QR) — это хорошо
+            // ложится на ECC level H (~30% избыточности) и оставляет
+            // контраст для скана. Белый круг под PNG нужен, чтобы PNG
+            // имел чистый фон вне зависимости от того, какие модули QR
+            // оказались под ним.
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Image.asset(
+                'assets/lighchat_mark.png',
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
             ),
             IgnorePointer(
