@@ -90,22 +90,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }) {
     return [
       const SizedBox(height: 6),
-      FilledButton.icon(
-        icon: const Icon(Icons.qr_code_2, size: 20),
-        style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-        ),
-        onPressed: !firebaseReady ? null : () => context.push('/auth/qr'),
-        label: Text(
-          l10n.auth_entry_sign_in,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+      // Главная CTA: тот же градиент, что у «Sign in» в LoginForm и у
+      // «Sign in with QR» на methods-этапе. Один визуальный аккорд для
+      // primary-действия на любой стадии экрана входа.
+      _GradientPrimaryButton(
+        enabled: firebaseReady,
+        icon: Icons.qr_code_2,
+        label: l10n.auth_entry_sign_in,
+        onPressed: () => context.push('/auth/qr'),
       ),
       const SizedBox(height: 12),
       OutlinedButton.icon(
