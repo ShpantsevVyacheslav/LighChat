@@ -105,6 +105,7 @@ class ChatAccountScreen extends ConsumerWidget {
                     onNotificationsTap: () =>
                         context.push('/settings/notifications'),
                     onPrivacyTap: () => context.push('/settings/privacy'),
+                    onDevicesTap: () => context.push('/settings/devices'),
                     onBlacklistTap: () => context.push('/settings/blacklist'),
                     onLanguageTap: () => context.push('/settings/language'),
                     onStorageTap: () => context.push('/settings/storage'),
@@ -181,6 +182,7 @@ class _AccountView extends StatelessWidget {
     required this.onChatSettingsTap,
     required this.onNotificationsTap,
     required this.onPrivacyTap,
+    required this.onDevicesTap,
     required this.onBlacklistTap,
     required this.onLanguageTap,
     required this.onStorageTap,
@@ -199,6 +201,7 @@ class _AccountView extends StatelessWidget {
   final VoidCallback onChatSettingsTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onPrivacyTap;
+  final VoidCallback onDevicesTap;
   final VoidCallback onBlacklistTap;
   final VoidCallback onLanguageTap;
   final VoidCallback onStorageTap;
@@ -328,6 +331,11 @@ class _AccountView extends StatelessWidget {
                         icon: Icons.access_time_rounded,
                         title: l10n.account_menu_privacy,
                         onTap: onPrivacyTap,
+                      ),
+                      _MenuItem(
+                        icon: Icons.smartphone_rounded,
+                        title: l10n.account_menu_devices,
+                        onTap: onDevicesTap,
                       ),
                       _MenuItem(
                         icon: Icons.block_rounded,

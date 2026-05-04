@@ -349,6 +349,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get account_menu_privacy => 'Конфиденциальность';
 
   @override
+  String get account_menu_devices => 'Устройства';
+
+  @override
   String get account_menu_blacklist => 'Черный список';
 
   @override

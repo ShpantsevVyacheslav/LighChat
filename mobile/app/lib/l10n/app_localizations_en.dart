@@ -347,6 +347,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account_menu_privacy => 'Privacy';
 
   @override
+  String get account_menu_devices => 'Devices';
+
+  @override
   String get account_menu_blacklist => 'Blacklist';
 
   @override

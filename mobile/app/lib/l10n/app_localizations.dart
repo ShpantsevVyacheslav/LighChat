@@ -668,6 +668,12 @@ abstract class AppLocalizations {
   /// **'Конфиденциальность'**
   String get account_menu_privacy;
 
+  /// No description provided for @account_menu_devices.
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройства'**
+  String get account_menu_devices;
+
   /// No description provided for @account_menu_blacklist.
   ///
   /// In ru, this message translates to:
