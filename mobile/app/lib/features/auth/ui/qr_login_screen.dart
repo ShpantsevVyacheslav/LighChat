@@ -8,12 +8,13 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
-    show debugPrint, defaultTargetPlatform, TargetPlatform;
+    show debugPrint, defaultTargetPlatform, TargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -111,27 +112,51 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
 
     Map<dynamic, dynamic> resData;
     try {
-      // Без `app: Firebase.app()` — берём default-app, чтобы не падать
-      // синхронно, если Firebase ещё не инициализирован полноценно.
-      final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
-      final callable = functions.httpsCallable(
-        'requestQrLogin',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
-      );
-      final res = await callable.call<dynamic>(<String, Object?>{
+      final body = <String, dynamic>{
         'ephemeralPubKeySpki': publicKeySpkiB64,
         'devicePlatform': platform,
         'deviceLabel': label,
         'deviceId': deviceId,
-      });
-      final raw = res.data;
-      resData = raw is Map ? raw : const <Object?, Object?>{};
+      };
+      // На iOS в release-сборке `cloud_functions` (gRPC + Swift Concurrency)
+      // даёт malloc-corruption / SIGABRT. На iOS используем прямой HTTPS-вызов
+      // через `callFirebaseCallableHttp` — он работает на чистом
+      // dart:io HttpClient и обходит проблемный плагин. На Android и web
+      // `FirebaseFunctions.instance` стабилен.
+      if (!kIsWeb && Platform.isIOS) {
+        final raw = await callFirebaseCallableHttp(
+          name: 'requestQrLogin',
+          region: 'us-central1',
+          data: body,
+          timeout: const Duration(seconds: 20),
+          allowUnauthenticated: true,
+        );
+        resData = raw is Map ? raw : const <Object?, Object?>{};
+      } else {
+        final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
+        final callable = functions.httpsCallable(
+          'requestQrLogin',
+          options:
+              HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+        );
+        final res = await callable.call<dynamic>(body);
+        final raw = res.data;
+        resData = raw is Map ? raw : const <Object?, Object?>{};
+      }
     } on FirebaseFunctionsException catch (e, st) {
       debugPrint('[qr-login] requestQrLogin callable failed: ${e.code}: ${e.message}\n$st');
       if (!mounted) return;
       setState(() {
         _phase = _QrPhase.error;
         _error = 'Сервер: ${e.code} ${e.message ?? ''}';
+      });
+      return;
+    } on FirebaseCallableHttpException catch (e, st) {
+      debugPrint('[qr-login] requestQrLogin http failed: ${e.code}: ${e.message}\n$st');
+      if (!mounted) return;
+      setState(() {
+        _phase = _QrPhase.error;
+        _error = 'Сервер: ${e.code} ${e.message}';
       });
       return;
     } catch (e, st) {

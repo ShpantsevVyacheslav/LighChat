@@ -78,12 +78,18 @@ class FirebaseCallableHttpException implements Exception {
 ///
 /// Возвращает `result` из ответа (обычно `Map<String, dynamic>`).
 /// При любом сбое бросает [FirebaseCallableHttpException].
+///
+/// [allowUnauthenticated] — для callable'ов, которые сервер сознательно
+/// разрешает вызывать без auth (например, `requestQrLogin` от ещё не
+/// залогиненного нового устройства). Если true и `currentUser == null`,
+/// запрос идёт без `Authorization` заголовка.
 Future<Object?> callFirebaseCallableHttp({
   required String name,
   required String region,
   required Map<String, dynamic> data,
   Duration timeout = const Duration(seconds: 40),
   Logger? logger,
+  bool allowUnauthenticated = false,
 }) async {
   final FirebaseApp app;
   try {
@@ -112,7 +118,7 @@ Future<Object?> callFirebaseCallableHttp({
 
   final auth = FirebaseAuth.instanceFor(app: app);
   final user = auth.currentUser;
-  if (user == null) {
+  if (user == null && !allowUnauthenticated) {
     throw const FirebaseCallableHttpException(
       code: 'unauthenticated',
       message: 'Пользователь не авторизован.',
@@ -120,18 +126,20 @@ Future<Object?> callFirebaseCallableHttp({
   }
 
   String? idToken;
-  try {
-    idToken = await user.getIdToken();
-  } catch (e, st) {
-    logger?.w(
-      'callFirebaseCallableHttp: getIdToken failed',
-      error: e,
-      stackTrace: st,
-    );
-    throw const FirebaseCallableHttpException(
-      code: 'auth-token-failed',
-      message: 'Не удалось получить токен авторизации.',
-    );
+  if (user != null) {
+    try {
+      idToken = await user.getIdToken();
+    } catch (e, st) {
+      logger?.w(
+        'callFirebaseCallableHttp: getIdToken failed',
+        error: e,
+        stackTrace: st,
+      );
+      throw const FirebaseCallableHttpException(
+        code: 'auth-token-failed',
+        message: 'Не удалось получить токен авторизации.',
+      );
+    }
   }
 
   final url = Uri.parse('https://$region-$projectId.cloudfunctions.net/$name');

@@ -17,6 +17,8 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -345,6 +347,42 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
 
   // -------------------- QR-LOGIN handover (Telegram-style) --------------------
 
+  /// На iOS в release-сборке `cloud_functions` плагин (gRPC + Swift Concurrency)
+  /// даёт malloc-corruption и SIGABRT. Используем прямой HTTPS-вызов через
+  /// `callFirebaseCallableHttp`. На Android и web `FirebaseFunctions.instance`
+  /// стабилен — оставляем его как было.
+  Future<Map<dynamic, dynamic>> _callConfirmQrLogin({
+    required String sessionId,
+    required String nonce,
+    required bool allow,
+  }) async {
+    final body = <String, dynamic>{
+      'sessionId': sessionId,
+      'nonce': nonce,
+      'allow': allow,
+    };
+    if (!kIsWeb && Platform.isIOS) {
+      final raw = await callFirebaseCallableHttp(
+        name: 'confirmQrLogin',
+        region: 'us-central1',
+        data: body,
+        timeout: Duration(seconds: allow ? 25 : 15),
+      );
+      return raw is Map ? raw : const <Object?, Object?>{};
+    }
+    final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
+    final res = await functions
+        .httpsCallable(
+          'confirmQrLogin',
+          options: HttpsCallableOptions(
+            timeout: Duration(seconds: allow ? 25 : 15),
+          ),
+        )
+        .call<dynamic>(body);
+    final raw = res.data;
+    return raw is Map ? raw : const <Object?, Object?>{};
+  }
+
   Future<void> _confirmLoginLink({required bool allow}) async {
     final sessionId = _loginPendingSessionId;
     final nonce = _loginPendingNonce;
@@ -352,15 +390,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     if (!allow) {
       // Отклоняем (best-effort). Возвращаемся к сканеру.
       try {
-        final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
-        await functions.httpsCallable(
-          'confirmQrLogin',
-          options: HttpsCallableOptions(timeout: const Duration(seconds: 15)),
-        ).call<dynamic>(<String, Object?>{
-          'sessionId': sessionId,
-          'nonce': nonce,
-          'allow': false,
-        });
+        await _callConfirmQrLogin(sessionId: sessionId, nonce: nonce, allow: false);
       } catch (_) {
         // ignore — сессия скоро протухнет.
       }
@@ -375,20 +405,11 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
 
     setState(() => _loginStage = _LoginLinkStage.confirming);
     try {
-      final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
-      final res = await functions
-          .httpsCallable(
-            'confirmQrLogin',
-            options:
-                HttpsCallableOptions(timeout: const Duration(seconds: 25)),
-          )
-          .call<dynamic>(<String, Object?>{
-        'sessionId': sessionId,
-        'nonce': nonce,
-        'allow': true,
-      });
-      final raw = res.data;
-      final m = raw is Map ? raw : const <Object?, Object?>{};
+      final m = await _callConfirmQrLogin(
+        sessionId: sessionId,
+        nonce: nonce,
+        allow: true,
+      );
       if (m['state'] != 'approved') {
         throw StateError('CONFIRM_REJECTED');
       }
