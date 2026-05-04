@@ -4,14 +4,22 @@ import * as admin from "firebase-admin";
 
 import { normalizeDurakSettings } from "../../lib/games/gameSettings";
 import {
+  allDefended,
+  allThrowersPassed,
   buildLegalMovesForUid,
   buildPublicView,
   buildSurrenderResult,
   computeAndApplyGameResult,
   discardTable,
   drawUpToSix,
+  getTurnInfo,
   nextUid,
+  passThrowIn,
   resetRoundTracking,
+  rotateAfterSuccessfulDefense,
+  rotateAfterTake,
+  shouldResolveTakingRound,
+  takeTable,
 } from "../../lib/games/durak/engine";
 import type { Card } from "../../lib/games/durak/cards";
 import type { DurakGameResult, DurakServerState } from "../../lib/games/durak/state";
@@ -123,20 +131,55 @@ export const cleanupDurakTurnTimeouts = onSchedule({
         let result: DurakGameResult = null;
         let nextStatus: "active" | "finished" = "active";
 
-        if (playerIds.length <= 2) {
-          // Two-player timeout => immediate loss.
+        // Compute turnKind from state directly (more robust than relying on publicView).
+        const turnInfo = getTurnInfo({ state, handsByUid });
+        const turnKind = turnInfo.turnKind;
+        const isPassWait = turnKind === "throwIn" || turnKind === "finishTurn" || turnKind === "wait";
+
+        if (isPassWait && turnUid !== state.defenderUid) {
+          // Thrower timer expired while waiting for pass/throw → auto-pass, not defeat.
+          try {
+            passThrowIn({ state, uid: turnUid, handsByUid });
+          } catch (_e) {
+            // Already passed or not a valid thrower — safe to ignore.
+          }
+
+          // Auto-finish if all defended and all throwers passed.
+          if (
+            state.taking !== true &&
+            (state.table?.attacks?.length ?? 0) > 0 &&
+            allDefended(state) &&
+            allThrowersPassed({ state, handsByUid })
+          ) {
+            discardTable({ state });
+            drawUpToSix({ state, handsByUid });
+            rotateAfterSuccessfulDefense(state);
+          }
+
+          // Resolve taking round if applicable.
+          if (shouldResolveTakingRound({ state, handsByUid })) {
+            takeTable({ state, handsByUid });
+            drawUpToSix({ state, handsByUid });
+            rotateAfterTake(state);
+          }
+
+          state.lastMoveAt = nowIso;
+          state.revision = (typeof state.revision === "number" ? state.revision : 0) + 1;
+          result = computeAndApplyGameResult({ state, handsByUid, nowIso });
+          nextStatus = result ? "finished" : "active";
+        } else if (playerIds.length <= 2) {
+          // Two-player timeout on actual move => immediate loss.
           result = buildSurrenderResult({ playerIds, loserUid: turnUid, nowIso });
           state.phase = "finished";
           state.lastMoveAt = nowIso;
           state.revision = (typeof state.revision === "number" ? state.revision : 0) + 1;
           nextStatus = "finished";
         } else {
-          // 3+ players => eliminate timed-out player and continue.
+          // 3+ players, actual move timeout => eliminate timed-out player.
           handsByUid[turnUid] = handsByUid[turnUid] ?? [];
           for (const c of handsByUid[turnUid]) state.discard.push(c);
           handsByUid[turnUid] = [];
 
-          // Discard current table to move on cleanly.
           discardTable({ state });
 
           nextPlayerIds = playerIds.filter((uid) => uid !== turnUid);
@@ -231,6 +274,8 @@ export const cleanupDurakTurnTimeouts = onSchedule({
         logger.info("[cleanupDurakTurnTimeouts] handled timeout", {
           gameId: doc.id,
           turnUid,
+          turnKind,
+          autoPass: isPassWait,
           status: nextStatus,
           playerCountBefore: playerIds.length,
           playerCountAfter: nextPlayerIds.length,

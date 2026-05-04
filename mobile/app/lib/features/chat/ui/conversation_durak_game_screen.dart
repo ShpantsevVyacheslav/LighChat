@@ -804,10 +804,6 @@ class _ConversationDurakGameScreenState
             final hasSelected = _selectedCard != null;
             final ranksOnTable = _tableRanks(attacks, defenses);
             final tableHasAttacks = attacks.isNotEmpty;
-            final allDefended =
-                tableHasAttacks &&
-                defenses.length == attacks.length &&
-                defenses.every((d) => d is Map);
             bool defenseSlotOpenAt(int attackIndex) => _isDefenseSlotOpen(
               attacks: attacks,
               defenses: defenses,
@@ -912,21 +908,6 @@ class _ConversationDurakGameScreenState
                 !isTaking;
             final canTake = ((_legalRevision >= 0 && _legalCanTake) || canTakeClient) && !isTaking;
 
-            final canFinishTurnRaw = publicView == null
-                ? null
-                : publicView['canFinishTurn'];
-            final canFinishTurnClient = canFinishTurnRaw is bool
-                ? canFinishTurnRaw
-                : allDefended && activeThrowerUid == null;
-            final canFinishTurn =
-                (_legalRevision >= 0 && _legalCanFinishTurn) || canFinishTurnClient;
-
-            final canBeat =
-                status == 'active' &&
-                me != null &&
-                me == attackerUid &&
-                canFinishTurn;
-
             final canTransfer =
                 status == 'active' &&
                 me != null &&
@@ -956,7 +937,6 @@ class _ConversationDurakGameScreenState
                   (tableHasAttacks &&
                       me == defenderUid &&
                       phase == 'defense') ||
-                  canBeat ||
                   canResolve ||
                   (activeThrowerUid != null &&
                       me == activeThrowerUid &&
@@ -966,13 +946,6 @@ class _ConversationDurakGameScreenState
 
             final primaryCandidates =
                 <({String id, String label, VoidCallback onTap})>[];
-            if (canBeat) {
-              primaryCandidates.add((
-                id: 'beat',
-                label: l10n.conversation_durak_action_beat,
-                onTap: () => unawaited(_sendMove(actionType: 'finishTurn')),
-              ));
-            }
             if (canTake) {
               primaryCandidates.add((
                 id: 'take',
@@ -1148,6 +1121,7 @@ class _ConversationDurakGameScreenState
                     onRematch: () => unawaited(
                       _handleRematchPressed(conversationId: conversationId),
                     ),
+                    onBackToChat: () => Navigator.of(context).pop(),
                     onNextTournamentGame: isTournamentGame
                         ? () => unawaited(
                               _handleNextTournamentGamePressed(
@@ -1465,6 +1439,10 @@ class _ConversationDurakGameScreenState
                           rankLabel: _rankLabel,
                           suitLabel: _suitLabel,
                           isRedSuit: _isRedSuit,
+                          shulerFoulMode: canFoul,
+                          onShulerFoulTap: canFoul
+                              ? () => unawaited(_callFoul())
+                              : null,
                         ),
                       ),
                       if (foulAt.isNotEmpty && foulMissed.isNotEmpty)
@@ -2139,6 +2117,7 @@ class _DurakFinishedCard extends StatelessWidget {
     required this.loserLabel,
     required this.rematchBusy,
     required this.onRematch,
+    required this.onBackToChat,
     this.isTournamentGame = false,
     this.tournamentId,
     this.onNextTournamentGame,
@@ -2149,6 +2128,7 @@ class _DurakFinishedCard extends StatelessWidget {
   final String loserLabel;
   final bool rematchBusy;
   final VoidCallback onRematch;
+  final VoidCallback onBackToChat;
   final bool isTournamentGame;
   final String? tournamentId;
   final VoidCallback? onNextTournamentGame;
@@ -2167,12 +2147,11 @@ class _DurakFinishedCard extends StatelessWidget {
                 width: 84,
                 height: 84,
                 padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
-                  color: const Color(0xFFB8EC5C),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFB8EC5C),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
+                child: ClipOval(
                   child: winnerAvatarUrl != null && winnerAvatarUrl!.isNotEmpty
                       ? Image.network(
                           winnerAvatarUrl!,
@@ -2194,8 +2173,8 @@ class _DurakFinishedCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  AppLocalizations.of(context)!.durak_winner,
-                  style: TextStyle(
+AppLocalizations.of(context)!.conversation_durak_winner,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 14,
                     color: Color(0xFF173217),
@@ -2254,12 +2233,33 @@ class _DurakFinishedCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2.2),
                         )
                       : Text(
-                          AppLocalizations.of(context)!.durak_play_again,
-                          style: TextStyle(
+AppLocalizations.of(context)!.conversation_durak_play_again,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
                         ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: 240,
+                height: 44,
+                child: TextButton(
+                  onPressed: onBackToChat,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white.withValues(alpha: 0.7),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context)!.conversation_durak_back_to_chat,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
             ],

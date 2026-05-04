@@ -140,7 +140,6 @@ export function getTurnInfo({
   if (state.phase === "finished") return { turnUid: null, turnKind: "finished" };
   const attacks = state.table?.attacks ?? [];
   if (attacks.length === 0) return { turnUid: state.attackerUid ?? null, turnKind: "attack" };
-  if (canFinishTurn({ state, handsByUid })) return { turnUid: state.attackerUid ?? null, turnKind: "finishTurn" };
   const thrower = currentThrowerUid(state, handsByUid);
   if (state.taking === true) {
     return thrower ? { turnUid: thrower, turnKind: "throwIn" } : { turnUid: null, turnKind: "wait" };
@@ -175,11 +174,13 @@ function canAttackCard({
   uid,
   card,
   handsByUid,
+  shulerEnabled,
 }: {
   state: DurakServerState;
   uid: string;
   card: Card;
   handsByUid: Record<string, Card[]>;
+  shulerEnabled?: boolean;
 }): boolean {
   if (state.table.attacks.length >= 6) return false;
   if (uid === state.defenderUid) return false;
@@ -198,7 +199,7 @@ function canAttackCard({
   } else {
     const cur = currentThrowerUid(state, handsByUid);
     if (cur !== uid) return false;
-    if (!isJoker(card) && !allowedAttackRanks(state).has(card.r)) return false;
+    if (!shulerEnabled && !isJoker(card) && !allowedAttackRanks(state).has(card.r)) return false;
   }
   const defenderHandSize = handsByUid[state.defenderUid]?.length ?? 0;
   return canThrowIn({ state, defenderHandSize });
@@ -221,10 +222,12 @@ export function buildLegalMovesForUid({
   const transferCardKeys: string[] = [];
   const defenseTargets: { attackIndex: number; cardKeys: string[] }[] = [];
 
+  const shulerEnabled = settings.shulerEnabled === true;
+
   if (state.phase !== "finished") {
     for (const c of hand) {
       const key = cardKey(c);
-      if (canAttackCard({ state, uid, card: c, handsByUid })) attackCardKeys.push(key);
+      if (canAttackCard({ state, uid, card: c, handsByUid, shulerEnabled })) attackCardKeys.push(key);
       if (canTransferCard({ state, uid, card: c, settings, handsByUid })) transferCardKeys.push(key);
     }
     if (uid === state.defenderUid && state.taking !== true) {
@@ -232,7 +235,7 @@ export function buildLegalMovesForUid({
         if (state.table.defenses[i] != null) continue;
         const attack = state.table.attacks[i];
         const cardKeys = hand
-          .filter((c) => beats({ attack, defense: c, trumpSuit: state.trumpSuit }))
+          .filter((c) => shulerEnabled || beats({ attack, defense: c, trumpSuit: state.trumpSuit }))
           .map((c) => cardKey(c));
         if (cardKeys.length > 0) defenseTargets.push({ attackIndex: i, cardKeys });
       }
@@ -250,10 +253,7 @@ export function buildLegalMovesForUid({
     state.table.attacks.length > 0 &&
     currentThrowerUid(state, handsByUid) === uid &&
     !(state.passedUids ?? []).includes(uid);
-  const canFinishTurnMove =
-    state.phase !== "finished" &&
-    uid === state.attackerUid &&
-    canFinishTurn({ state, handsByUid });
+  const canFinishTurnMove = false;
 
   return {
     revision,
@@ -657,9 +657,11 @@ export function applyAttack({
     }
   }
 
+  const wasThrowIn = state.table.attacks.length > 0;
   hand.splice(idx, 1);
   state.table.attacks.push(card);
   state.table.defenses.push(null);
+  if (wasThrowIn) state.passedUids = [];
   state.phase = derivePhase(state);
   // Joker rule: if joker is thrown in, defender must take (cannot defend).
   markTakingIfJokerOnTable(state, handsByUid);
@@ -706,9 +708,11 @@ export function applyAttackRelaxed({
   const idx = hand.findIndex((x) => cardKey(x) === cardKey(card));
   if (idx < 0) throw new HttpsError("failed-precondition", "CARD_NOT_IN_HAND");
 
+  const wasThrowIn = state.table.attacks.length > 0;
   hand.splice(idx, 1);
   state.table.attacks.push(card);
   state.table.defenses.push(null);
+  if (wasThrowIn) state.passedUids = [];
   state.phase = derivePhase(state);
   markTakingIfJokerOnTable(state, handsByUid);
 }
@@ -767,6 +771,9 @@ export function applyTransfer({
 
   // Pass defense to next player.
   state.defenderUid = nextUid(state.seats, state.defenderUid);
+  if (state.defenderUid === state.attackerUid) {
+    state.attackerUid = uid;
+  }
   state.throwerUids = computeThrowerUids({
     seats: state.seats,
     defenderUid: state.defenderUid,
@@ -808,6 +815,9 @@ export function applyTransferRelaxed({
   state.table.defenses.push(null);
 
   state.defenderUid = nextUid(state.seats, state.defenderUid);
+  if (state.defenderUid === state.attackerUid) {
+    state.attackerUid = uid;
+  }
   state.throwerUids = computeThrowerUids({
     seats: state.seats,
     defenderUid: state.defenderUid,

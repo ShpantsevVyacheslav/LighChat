@@ -2759,6 +2759,32 @@ class AppLocalizationsRu extends AppLocalizations {
   String get conversation_game_lobby_start => 'Начать';
 
   @override
+  String get conversation_game_lobby_ready => 'Готов';
+
+  @override
+  String get conversation_game_lobby_waiting => 'Ждём…';
+
+  @override
+  String get conversation_game_lobby_start_game => 'Начать игру';
+
+  @override
+  String get conversation_durak_play_again => 'Сыграть ещё раз';
+
+  @override
+  String get conversation_durak_back_to_chat => 'Вернуться в чат';
+
+  @override
+  String get conversation_game_lobby_waiting_opponent => 'Ждём, пока подключится соперник…';
+
+  @override
+  String get conversation_durak_winner => 'Победитель';
+
+  @override
+  String conversation_durak_loser(Object name) {
+    return 'Проиграл: $name';
+  }
+
+  @override
   String conversation_game_lobby_join_failed(Object error) {
     return 'Не удалось войти: $error';
   }
