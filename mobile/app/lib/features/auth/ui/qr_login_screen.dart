@@ -12,7 +12,8 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart'
+    show debugPrint, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -62,7 +63,11 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
   Future<void> _start() async {
     _ticker?.cancel();
     _refreshTimer?.cancel();
-    await _sub?.cancel();
+    try {
+      await _sub?.cancel();
+    } catch (_) {
+      // ignore
+    }
     _sub = null;
     _consuming = false;
     if (!mounted) return;
@@ -71,77 +76,129 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
       _error = null;
     });
 
+    // Платформу считаем сразу из const — `Theme.of(context).platform` не
+    // обращаемся, чтобы не уронить экран на ранней стадии mount.
+    final platform = defaultTargetPlatform == TargetPlatform.iOS
+        ? 'ios'
+        : 'android';
+    final label = 'mobile/$platform';
+
+    String? deviceId;
+    String? publicKeySpkiB64;
     try {
       final identity = await getOrCreateMobileDeviceIdentity();
-      final platform = Theme.of(context).platform == TargetPlatform.iOS
-          ? 'ios'
-          : 'android';
-      final label = 'mobile/$platform';
+      deviceId = identity.deviceId;
+      publicKeySpkiB64 = identity.publicKeySpkiB64;
+    } catch (e, st) {
+      debugPrint('[qr-login] identity init failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _phase = _QrPhase.error;
+        _error = 'Не удалось получить ключ устройства: $e';
+      });
+      return;
+    }
 
-      final functions = FirebaseFunctions.instanceFor(
-        app: Firebase.app(),
-        region: 'us-central1',
-      );
+    Map<dynamic, dynamic> resData;
+    try {
+      // Без `app: Firebase.app()` — берём default-app, чтобы не падать
+      // синхронно, если Firebase ещё не инициализирован полноценно.
+      final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
       final callable = functions.httpsCallable(
         'requestQrLogin',
         options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
       );
       final res = await callable.call<dynamic>(<String, Object?>{
-        'ephemeralPubKeySpki': identity.publicKeySpkiB64,
+        'ephemeralPubKeySpki': publicKeySpkiB64,
         'devicePlatform': platform,
         'deviceLabel': label,
-        'deviceId': identity.deviceId,
+        'deviceId': deviceId,
       });
       final raw = res.data;
-      final m = raw is Map ? raw : const <Object?, Object?>{};
-      final sessionId = m['sessionId']?.toString() ?? '';
-      final nonce = m['nonce']?.toString() ?? '';
-      final expiresIso = m['expiresAt']?.toString() ?? '';
-      if (sessionId.isEmpty || nonce.isEmpty) {
-        throw StateError('QR_LOGIN_BAD_RESPONSE');
-      }
-      final encoded = _encodeLoginQrPayload(
-        sessionId: sessionId,
-        nonce: nonce,
-      );
-      final expiresAt = DateTime.tryParse(expiresIso) ??
-          DateTime.now().add(const Duration(seconds: 90));
-
+      resData = raw is Map ? raw : const <Object?, Object?>{};
+    } on FirebaseFunctionsException catch (e, st) {
+      debugPrint('[qr-login] requestQrLogin callable failed: ${e.code}: ${e.message}\n$st');
       if (!mounted) return;
       setState(() {
-        _phase = _QrPhase.ready;
-        _encodedQr = encoded;
-        _sessionId = sessionId;
-        _expiresAt = expiresAt;
+        _phase = _QrPhase.error;
+        _error = 'Сервер: ${e.code} ${e.message ?? ''}';
       });
-
-      _sub = FirebaseFirestore.instance
-          .collection('qrLoginSessions')
-          .doc(sessionId)
-          .snapshots()
-          .listen(_onSession);
-
-      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) return;
-        final left =
-            _expiresAt?.difference(DateTime.now()).inSeconds ?? 0;
-        setState(() => _secondsLeft = left < 0 ? 0 : left);
-      });
-
-      // Автообновление за 5 секунд до TTL.
-      final refreshDelay = (expiresAt.difference(DateTime.now()) -
-              const Duration(seconds: 5));
-      _refreshTimer = Timer(
-        refreshDelay.isNegative ? const Duration(seconds: 1) : refreshDelay,
-        _start,
-      );
-    } catch (e) {
+      return;
+    } catch (e, st) {
+      debugPrint('[qr-login] requestQrLogin unexpected: $e\n$st');
       if (!mounted) return;
       setState(() {
         _phase = _QrPhase.error;
         _error = e.toString();
       });
+      return;
     }
+
+    final sessionId = resData['sessionId']?.toString() ?? '';
+    final nonce = resData['nonce']?.toString() ?? '';
+    final expiresIso = resData['expiresAt']?.toString() ?? '';
+    if (sessionId.isEmpty || nonce.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _phase = _QrPhase.error;
+        _error = 'QR_LOGIN_BAD_RESPONSE';
+      });
+      return;
+    }
+
+    String encoded;
+    try {
+      encoded = _encodeLoginQrPayload(sessionId: sessionId, nonce: nonce);
+    } catch (e, st) {
+      debugPrint('[qr-login] encode failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _phase = _QrPhase.error;
+        _error = 'Не удалось сгенерировать QR: $e';
+      });
+      return;
+    }
+    final expiresAt = DateTime.tryParse(expiresIso) ??
+        DateTime.now().add(const Duration(seconds: 90));
+
+    if (!mounted) return;
+    setState(() {
+      _phase = _QrPhase.ready;
+      _encodedQr = encoded;
+      _sessionId = sessionId;
+      _expiresAt = expiresAt;
+    });
+
+    try {
+      _sub = FirebaseFirestore.instance
+          .collection('qrLoginSessions')
+          .doc(sessionId)
+          .snapshots()
+          .listen(
+            _onSession,
+            onError: (Object e, StackTrace st) {
+              debugPrint('[qr-login] firestore listener error: $e\n$st');
+            },
+          );
+    } catch (e, st) {
+      debugPrint('[qr-login] failed to subscribe to session: $e\n$st');
+    }
+
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final left = _expiresAt?.difference(DateTime.now()).inSeconds ?? 0;
+      setState(() => _secondsLeft = left < 0 ? 0 : left);
+    });
+
+    // Автообновление за 5 секунд до TTL.
+    final refreshDelay =
+        expiresAt.difference(DateTime.now()) - const Duration(seconds: 5);
+    _refreshTimer = Timer(
+      refreshDelay.isNegative ? const Duration(seconds: 1) : refreshDelay,
+      () {
+        if (mounted) _start();
+      },
+    );
   }
 
   Future<void> _onSession(
@@ -183,7 +240,9 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
       setState(() => _phase = _QrPhase.rejected);
       // Через 2с авторефреш.
       _refreshTimer?.cancel();
-      _refreshTimer = Timer(const Duration(seconds: 2), _start);
+      _refreshTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted) _start();
+      });
     }
   }
 

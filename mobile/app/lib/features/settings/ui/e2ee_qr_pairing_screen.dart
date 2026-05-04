@@ -21,7 +21,6 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -353,10 +352,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     if (!allow) {
       // Отклоняем (best-effort). Возвращаемся к сканеру.
       try {
-        final functions = FirebaseFunctions.instanceFor(
-          app: Firebase.app(),
-          region: 'us-central1',
-        );
+        final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
         await functions.httpsCallable(
           'confirmQrLogin',
           options: HttpsCallableOptions(timeout: const Duration(seconds: 15)),
@@ -379,10 +375,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
 
     setState(() => _loginStage = _LoginLinkStage.confirming);
     try {
-      final functions = FirebaseFunctions.instanceFor(
-        app: Firebase.app(),
-        region: 'us-central1',
-      );
+      final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
       final res = await functions
           .httpsCallable(
             'confirmQrLogin',
