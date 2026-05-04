@@ -778,6 +778,13 @@ export type DurakPublicView = {
   roundDefenderHandLimit?: number | null;
   canFinishTurn?: boolean;
   result?: DurakGameResult;
+  shuler?: {
+    enabled?: boolean;
+    lastCheatUid?: string | null;
+    lastCheatAt?: string;
+    foulEvent?: { at: string; missedUids?: string[] };
+    pendingResolution?: { kind: string; at: string; byUid: string };
+  };
 };
 
 export type DurakGameResult = {

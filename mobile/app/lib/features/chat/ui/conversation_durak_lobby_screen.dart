@@ -193,7 +193,7 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
-                            'Ждём, пока подключится соперник…',
+                            l10n.conversation_game_lobby_waiting_opponent,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),
@@ -260,8 +260,8 @@ class ConversationDurakLobbyScreen extends StatelessWidget {
                             canJoin
                                 ? l10n.conversation_game_lobby_join
                                 : (canStart
-                                      ? 'Начать игру'
-                                      : (iAmReady ? 'Ждём…' : 'Готов')),
+                                      ? l10n.conversation_game_lobby_start_game
+                                      : (iAmReady ? l10n.conversation_game_lobby_waiting : l10n.conversation_game_lobby_ready)),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
@@ -477,7 +477,7 @@ class _EmptySlot extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ждём…',
+            AppLocalizations.of(context)!.conversation_game_lobby_waiting,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,

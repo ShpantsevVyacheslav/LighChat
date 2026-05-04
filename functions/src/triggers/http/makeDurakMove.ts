@@ -4,6 +4,8 @@ import * as admin from "firebase-admin";
 
 import { cardKey, parseCard } from "../../lib/games/durak/cards";
 import {
+  allDefended,
+  allThrowersPassed,
   applyAttack,
   applyAttackRelaxed,
   applyDefense,
@@ -15,9 +17,11 @@ import {
   buildSurrenderResult,
   computeAndApplyGameResult,
   derivePhase,
+  discardTable,
   drawUpToSix,
   markTaking,
   passThrowIn,
+  rotateAfterSuccessfulDefense,
   rotateAfterTake,
   shouldResolveTakingRound,
   takeTable,
@@ -345,6 +349,28 @@ export const makeDurakMove = onCall(
         }
         default:
           throw new HttpsError("invalid-argument", "UNKNOWN_ACTION");
+      }
+
+      // Auto-finish: when all attacks are defended and every thrower has passed,
+      // resolve the round automatically (no manual "Бито" button needed).
+      if (
+        !forcedResult &&
+        state.phase !== "finished" &&
+        state.taking !== true &&
+        !state.pendingResolution &&
+        (state.table?.attacks?.length ?? 0) > 0 &&
+        allDefended(state) &&
+        allThrowersPassed({ state, handsByUid: handsByUid as any })
+      ) {
+        const shulerEnabled = settings.shulerEnabled === true;
+        if (shulerEnabled && state.lastCheat) {
+          state.pendingResolution = { kind: "discard", at: nowIso, byUid: state.attackerUid };
+          state.phase = "resolution";
+        } else {
+          discardTable({ state });
+          drawUpToSix({ state, handsByUid: handsByUid as any });
+          rotateAfterSuccessfulDefense(state);
+        }
       }
 
       // Canon: if defender is taking, allow throw-ins to continue until resolved,
