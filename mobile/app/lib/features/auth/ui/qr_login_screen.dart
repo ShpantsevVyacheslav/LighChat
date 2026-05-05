@@ -384,10 +384,10 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
                           const SizedBox(height: 18),
                           Center(
                             child: GlassCard(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(14),
                               child: SizedBox(
-                                width: 248,
-                                height: 248,
+                                width: 304,
+                                height: 304,
                                 child: _buildQrCenter(dark, scheme, l10n),
                               ),
                             ),
@@ -509,48 +509,34 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
             ),
             // Брендовый маяк — самым верхним слоем.
             //
-            // Фон круга — брендовый navy (тот же, что в `AuthBrandHeader` и в
-            // backdrop-градиенте экрана auth). На белом фоне «речевая капля»
-            // маяка сливалась — теперь маяк рендерится в том же цветовом
-            // контексте, что в шапке: видны и navy-силуэт, и кремовая капля
-            // вокруг, и оранжевый луч.
-            //
-            // Размер 40×40 (~13% стороны QR при 308px box, и того меньше при
-            // 248px). ECC level H (~30% избыточности) более чем покрывает
-            // эту область — сканер уверенно читает код.
+            // Размер 28×28 (~9% стороны QR при 304px box). На ECC level H
+            // (~30% избыточности) сканер уверенно читает код, а сам маркер
+            // визуально не доминирует над QR.
             SizedBox(
-              width: 40,
-              height: 40,
+              width: 28,
+              height: 28,
               child: DecoratedBox(
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x55000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
+                      color: Color(0x66000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 1),
                     ),
                   ],
                 ),
                 child: ClipOval(
                   child: ColoredBox(
-                    // Brand navy. На светлой теме всё равно тёмный круг —
-                    // создаёт нужный контраст для маяка независимо от темы
-                    // QR-модулей.
+                    // Brand navy — даёт необходимый контраст маяку независимо
+                    // от темы QR-модулей.
                     color: Color(0xFF1E3A5F),
                     child: Padding(
-                      padding: const EdgeInsets.all(3),
-                      child: Image.asset(
-                        'assets/lighchat_mark.png',
+                      padding: EdgeInsets.all(2),
+                      child: Image(
+                        image: AssetImage('assets/lighchat_mark.png'),
                         fit: BoxFit.contain,
                         filterQuality: FilterQuality.high,
-                        // Если asset не загрузился — fallback на иконку,
-                        // экран не падает.
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.lightbulb_outline,
-                          size: 24,
-                          color: Color(0xFFECA048),
-                        ),
                       ),
                     ),
                   ),
@@ -660,19 +646,21 @@ class _LightSweepPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty || !size.isFinite) return;
-    // Полоса шириной ~22% размера QR. Плавно проходит от -ширины до +ширины,
-    // чтобы по краям полоса исчезала за пределы.
-    final stripeWidth = size.shortestSide * 0.22;
+    // Полоса шириной ~32% — заметно шире, чем раньше, чтобы переход света
+    // был хорошо виден поверх QR-модулей.
+    final stripeWidth = size.shortestSide * 0.32;
     final travel = size.shortestSide + stripeWidth;
     final t = progress.clamp(0.0, 1.0);
     final dx = -stripeWidth + travel * t;
     final dy = -stripeWidth + travel * t;
 
-    // Альфа пика. На светлой теме чуть мягче, чтобы не отдавать «вспышкой».
+    // Заметная альфа — чтобы «луч маяка» был хорошо различим даже на
+    // плотном QR-узоре. Тёплый кремовый оттенок ассоциируется со светом
+    // лампы маяка.
     final isDark = color.computeLuminance() > 0.5;
     final highlight = isDark
-        ? Colors.white.withValues(alpha: 0.30)
-        : const Color(0xFFFFF5E0).withValues(alpha: 0.40);
+        ? const Color(0xFFFFF5DC).withValues(alpha: 0.70)
+        : const Color(0xFFFFE8B0).withValues(alpha: 0.55);
 
     final gradientRect = Rect.fromLTWH(
       dx,
@@ -690,7 +678,7 @@ class _LightSweepPainter extends CustomPainter {
         highlight.withValues(alpha: 0.0),
         Colors.transparent,
       ],
-      stops: const [0.0, 0.42, 0.5, 0.58, 1.0],
+      stops: const [0.0, 0.40, 0.5, 0.60, 1.0],
     ).createShader(gradientRect);
 
     final paint = Paint()..shader = shader;
