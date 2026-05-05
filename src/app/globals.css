@@ -124,6 +124,13 @@
   .glass-panel { background-color: hsl(var(--glass-background)); backdrop-filter: blur(20px); border: 1px solid hsl(var(--glass-border)); }
   .animate-reaction-float { animation: reaction-float 4s ease-out forwards; }
   .animate-message-highlight { animation: message-highlight 2s ease-out forwards; }
+  /** Диагональный «луч маяка» поверх QR-кода авторизации (паритет с mobile). */
+  .animate-qr-shimmer { animation: qr-shimmer 2.6s linear infinite; }
+}
+
+@keyframes qr-shimmer {
+  0%   { transform: translate(-120%, -120%); }
+  100% { transform: translate(120%, 120%); }
 }
 
 .message-bubble-content blockquote {

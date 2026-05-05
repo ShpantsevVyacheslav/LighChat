@@ -193,7 +193,7 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
         </p>
       </div>
 
-      <div className="relative w-[208px] h-[208px] flex items-center justify-center rounded-[20px] border border-white/55 bg-white/55 shadow-inner shadow-black/5 backdrop-blur-md p-3 dark:border-white/15 dark:bg-white/[0.08]">
+      <div className="relative w-[272px] h-[272px] flex items-center justify-center rounded-[24px] border border-white/55 bg-white/55 shadow-inner shadow-black/5 backdrop-blur-md p-4 dark:border-white/15 dark:bg-white/[0.08]">
         {phase.kind === 'loading' && (
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         )}
@@ -201,15 +201,43 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
           <>
             <QRCodeCanvas
               value={phase.encoded}
-              size={184}
+              size={240}
               includeMargin={false}
-              level="M"
+              // ECC level High — оставляем 30% избыточности под маяк по
+              // центру (паритет с mobile qr_login_screen.dart).
+              level="H"
               bgColor="transparent"
               fgColor="currentColor"
               className="text-slate-900 dark:text-white"
             />
-            {/* Анимированная рамка-«сканлайн» — чисто декоративная */}
-            <div className="pointer-events-none absolute inset-2 rounded-[14px] border border-primary/40 animate-pulse" />
+            {/* Диагональный «луч маяка» — полупрозрачная кремовая полоса,
+                едет из левого верхнего угла в правый нижний.
+                Паритет визуального эффекта с mobile `_LightSweepPainter`. */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[20px]">
+              <div
+                className="absolute -inset-[10%] animate-qr-shimmer"
+                style={{
+                  background:
+                    'linear-gradient(135deg, transparent 38%, rgba(255,232,176,0.55) 50%, transparent 62%)',
+                }}
+              />
+            </div>
+            {/* Брендовый маяк по центру — navy-круг с PNG из шапки,
+                ~9% стороны QR (паритет с mobile). */}
+            <div
+              className="pointer-events-none absolute inset-0 flex items-center justify-center"
+              aria-hidden
+            >
+              <div className="relative h-[28px] w-[28px] rounded-full bg-[#1E3A5F] shadow-[0_2px_6px_rgba(0,0,0,0.4)] flex items-center justify-center overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/lighchat-mark.png"
+                  alt=""
+                  className="h-[24px] w-[24px] object-contain"
+                  draggable={false}
+                />
+              </div>
+            </div>
           </>
         )}
         {phase.kind === 'approving' && (
