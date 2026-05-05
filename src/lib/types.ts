@@ -820,6 +820,7 @@ export type DurakPublicView = {
     enabled?: boolean;
     lastCheatUid?: string | null;
     lastCheatAt?: string;
+    cheatPassedUid?: string | null;
     foulEvent?: { at: string; missedUids?: string[] };
     pendingResolution?: { kind: string; at: string; byUid: string };
   };
