@@ -78,6 +78,155 @@ class FeatureTopicContent {
   final List<String> howTo;
 }
 
+/// Тексты, которые попадают внутрь иллюстраций (имена, статусы, реплики).
+class FeaturesMockText {
+  const FeaturesMockText({
+    required this.e2eeBadge,
+    required this.peerAlice,
+    required this.peerBob,
+    required this.peerHello,
+    required this.fingerprintMatch,
+    required this.groupProject,
+    required this.secretStatus,
+    required this.secretMsg1,
+    required this.secretMsg2,
+    required this.teamDesign,
+    required this.disappearingStatus,
+    required this.disappearingMsg1,
+    required this.disappearingMsg2,
+    required this.disappearingMsg3,
+    required this.disappearingMsg4,
+    required this.peerMikhail,
+    required this.mikhailStatus,
+    required this.scheduledMsg1,
+    required this.scheduledMsg2,
+    required this.scheduledMsg3,
+    required this.scheduledQueueTitle,
+    required this.scheduledQueueDate,
+    required this.gamesBadge,
+    required this.gamesTrump,
+    required this.gamesDeck,
+    required this.meetingDuration,
+    required this.meetingSpeaking,
+    required this.callsAudioTitle,
+    required this.callsAudioMeta,
+    required this.callsCircleTitle,
+    required this.callsCircleMeta,
+    required this.folderAll,
+    required this.folderWork,
+    required this.folderFamily,
+    required this.folderStudy,
+    required this.folderStarred,
+    required this.folderWorkChats,
+    required this.chat1Name,
+    required this.chat1Last,
+    required this.chat2Name,
+    required this.chat2Last,
+    required this.chat3Name,
+    required this.chat3Last,
+    required this.threadTitle,
+    required this.threadReply1,
+    required this.threadReply2,
+    required this.liveLocationBanner,
+    required this.liveLocationStop,
+    required this.multiDevicePhone,
+    required this.multiDeviceDesktop,
+    required this.multiDevicePairing,
+    required this.multiDeviceBackup,
+    required this.multiDeviceBackupSub,
+    required this.stickerSearchHint,
+    required this.pollTitle,
+    required this.pollOption1,
+    required this.pollOption2,
+    required this.editorLabel,
+    required this.editorHint,
+    required this.privacyTitle,
+    required this.privacySubtitle,
+    required this.privacyOnline,
+    required this.privacyOnlineHint,
+    required this.privacyLastSeen,
+    required this.privacyLastSeenHint,
+    required this.privacyReceipts,
+    required this.privacyReceiptsHint,
+    required this.privacyGlobalSearch,
+    required this.privacyGlobalSearchHint,
+    required this.privacyGroupAdd,
+    required this.privacyGroupAddHint,
+  });
+
+  final String e2eeBadge;
+  final String peerAlice;
+  final String peerBob;
+  final String peerHello;
+  final String fingerprintMatch;
+  final String groupProject;
+  final String secretStatus;
+  final String secretMsg1;
+  final String secretMsg2;
+  final String teamDesign;
+  final String disappearingStatus;
+  final String disappearingMsg1;
+  final String disappearingMsg2;
+  final String disappearingMsg3;
+  final String disappearingMsg4;
+  final String peerMikhail;
+  final String mikhailStatus;
+  final String scheduledMsg1;
+  final String scheduledMsg2;
+  final String scheduledMsg3;
+  final String scheduledQueueTitle;
+  final String scheduledQueueDate;
+  final String gamesBadge;
+  final String gamesTrump;
+  final String gamesDeck;
+  final String meetingDuration;
+  final String meetingSpeaking;
+  final String callsAudioTitle;
+  final String callsAudioMeta;
+  final String callsCircleTitle;
+  final String callsCircleMeta;
+  final String folderAll;
+  final String folderWork;
+  final String folderFamily;
+  final String folderStudy;
+  final String folderStarred;
+  final String folderWorkChats;
+  final String chat1Name;
+  final String chat1Last;
+  final String chat2Name;
+  final String chat2Last;
+  final String chat3Name;
+  final String chat3Last;
+  final String threadTitle;
+  final String threadReply1;
+  final String threadReply2;
+  final String liveLocationBanner;
+  final String liveLocationStop;
+  final String multiDevicePhone;
+  final String multiDeviceDesktop;
+  final String multiDevicePairing;
+  final String multiDeviceBackup;
+  final String multiDeviceBackupSub;
+  final String stickerSearchHint;
+  final String pollTitle;
+  final String pollOption1;
+  final String pollOption2;
+  final String editorLabel;
+  final String editorHint;
+  final String privacyTitle;
+  final String privacySubtitle;
+  final String privacyOnline;
+  final String privacyOnlineHint;
+  final String privacyLastSeen;
+  final String privacyLastSeenHint;
+  final String privacyReceipts;
+  final String privacyReceiptsHint;
+  final String privacyGlobalSearch;
+  final String privacyGlobalSearchHint;
+  final String privacyGroupAdd;
+  final String privacyGroupAddHint;
+}
+
 class FeaturesContent {
   const FeaturesContent({
     required this.pageTitle,
@@ -99,6 +248,7 @@ class FeaturesContent {
     required this.welcomeSecondaryCta,
     required this.welcomeBullets,
     required this.topics,
+    required this.mockText,
   });
   final String pageTitle;
   final String pageSubtitle;
@@ -119,6 +269,7 @@ class FeaturesContent {
   final String welcomeSecondaryCta;
   final List<String> welcomeBullets;
   final Map<FeatureTopicId, FeatureTopicContent> topics;
+  final FeaturesMockText mockText;
 }
 
 class FeatureTopicMeta {
@@ -611,6 +762,79 @@ const _kRu = FeaturesContent(
       ],
     ),
   },
+  mockText: FeaturesMockText(
+    e2eeBadge: 'Сквозное шифрование',
+    peerAlice: 'Алиса',
+    peerBob: 'Боб',
+    peerHello: 'Привет, как дела?',
+    fingerprintMatch: 'совпали',
+    groupProject: 'Группа · Проект',
+    secretStatus: '6 участников',
+    secretMsg1: 'Файл с ценой — пришлю одним просмотром.',
+    secretMsg2: 'Принял. Запрет копий включён.',
+    teamDesign: 'Команда · Дизайн',
+    disappearingStatus: 'в сети',
+    disappearingMsg1: 'Делюсь черновиком — потом удалится.',
+    disappearingMsg2: 'Ок, дам комментарии до вечера.',
+    disappearingMsg3: 'Цвет хедера лучше тёмный.',
+    disappearingMsg4: 'Согласен. Применю и пушну.',
+    peerMikhail: 'Михаил',
+    mikhailStatus: 'был сегодня в 21:40',
+    scheduledMsg1: 'Не забудь напомнить про планёрку.',
+    scheduledMsg2: 'Уже поставил отправку на утро.',
+    scheduledMsg3: 'Доброе утро! Через 15 минут начинаем планёрку.',
+    scheduledQueueTitle: 'Запланированные',
+    scheduledQueueDate: 'завтра, 08:45',
+    gamesBadge: 'Дурак · ход Анны',
+    gamesTrump: 'Козырь',
+    gamesDeck: 'В колоде · 12',
+    meetingDuration: 'Встреча · 24:18',
+    meetingSpeaking: 'говорит',
+    callsAudioTitle: 'Аудио-звонок',
+    callsAudioMeta: '3:42 · качество HD',
+    callsCircleTitle: 'Видео-кружок',
+    callsCircleMeta: '0:42 / 1:00',
+    folderAll: 'Все',
+    folderWork: 'Работа',
+    folderFamily: 'Семья',
+    folderStudy: 'Учёба',
+    folderStarred: 'Избранное',
+    folderWorkChats: 'Работа · чаты',
+    chat1Name: 'Команда · Дизайн',
+    chat1Last: 'Юля: пушнул новый вариант',
+    chat2Name: 'Маркетинг',
+    chat2Last: 'Костя: отчёт готов',
+    chat3Name: 'CRM-релизы',
+    chat3Last: 'Алина: жду апрува',
+    threadTitle: 'Тред · «Цена пакета» · 6 ответов',
+    threadReply1: 'Думаю, 4990 будет в самый раз',
+    threadReply2: 'Поддерживаю',
+    liveLocationBanner: 'Вы делитесь геолокацией',
+    liveLocationStop: 'Остановить',
+    multiDevicePhone: 'Телефон',
+    multiDeviceDesktop: 'Desktop',
+    multiDevicePairing: 'QR-паринг',
+    multiDeviceBackup: 'Резервная копия ключей',
+    multiDeviceBackupSub: 'защищена паролем',
+    stickerSearchHint: 'поиск стикеров и GIF',
+    pollTitle: 'Куда едем в субботу?',
+    pollOption1: 'В горы',
+    pollOption2: 'На дачу',
+    editorLabel: 'Редактор',
+    editorHint: 'обрезать · подписать',
+    privacyTitle: 'Приватность',
+    privacySubtitle: 'Решайте, что видят другие.',
+    privacyOnline: 'Статус «онлайн»',
+    privacyOnlineHint: 'Видят, что вы сейчас в сети',
+    privacyLastSeen: 'Был в сети',
+    privacyLastSeenHint: 'Точное время последнего визита',
+    privacyReceipts: 'Отчёты о прочтении',
+    privacyReceiptsHint: 'Двойная галочка собеседнику',
+    privacyGlobalSearch: 'Глобальный поиск',
+    privacyGlobalSearchHint: 'Найти вас по имени могут все',
+    privacyGroupAdd: 'Добавление в группы',
+    privacyGroupAddHint: 'Только из контактов',
+  ),
 );
 
 // ---------- EN ----------
@@ -1017,4 +1241,77 @@ const _kEn = FeaturesContent(
       ],
     ),
   },
+  mockText: FeaturesMockText(
+    e2eeBadge: 'End-to-end encryption',
+    peerAlice: 'Alice',
+    peerBob: 'Bob',
+    peerHello: 'Hi, how are you?',
+    fingerprintMatch: 'match',
+    groupProject: 'Group · Project',
+    secretStatus: '6 members',
+    secretMsg1: 'Sending the price file as view-once.',
+    secretMsg2: 'Got it. Copy block is on.',
+    teamDesign: 'Team · Design',
+    disappearingStatus: 'online',
+    disappearingMsg1: 'Sharing the draft — it will vanish later.',
+    disappearingMsg2: 'OK, I’ll review by tonight.',
+    disappearingMsg3: 'A darker header would look better.',
+    disappearingMsg4: 'Agreed. Applying and pushing.',
+    peerMikhail: 'Michael',
+    mikhailStatus: 'last seen today at 21:40',
+    scheduledMsg1: 'Don’t forget about the standup reminder.',
+    scheduledMsg2: 'Already queued for the morning.',
+    scheduledMsg3: 'Good morning! Standup starts in 15 minutes.',
+    scheduledQueueTitle: 'Scheduled',
+    scheduledQueueDate: 'tomorrow, 08:45',
+    gamesBadge: 'Durak · Alice’s turn',
+    gamesTrump: 'Trump',
+    gamesDeck: 'Deck · 12',
+    meetingDuration: 'Meeting · 24:18',
+    meetingSpeaking: 'speaking',
+    callsAudioTitle: 'Audio call',
+    callsAudioMeta: '3:42 · HD quality',
+    callsCircleTitle: 'Video circle',
+    callsCircleMeta: '0:42 / 1:00',
+    folderAll: 'All',
+    folderWork: 'Work',
+    folderFamily: 'Family',
+    folderStudy: 'Study',
+    folderStarred: 'Starred',
+    folderWorkChats: 'Work · chats',
+    chat1Name: 'Team · Design',
+    chat1Last: 'Julia: pushed a new variant',
+    chat2Name: 'Marketing',
+    chat2Last: 'Konstantin: report is ready',
+    chat3Name: 'CRM releases',
+    chat3Last: 'Alina: waiting for approval',
+    threadTitle: 'Thread · “Plan price” · 6 replies',
+    threadReply1: 'I think 4990 fits best',
+    threadReply2: 'Agree',
+    liveLocationBanner: 'Sharing your location',
+    liveLocationStop: 'Stop',
+    multiDevicePhone: 'Phone',
+    multiDeviceDesktop: 'Desktop',
+    multiDevicePairing: 'QR pairing',
+    multiDeviceBackup: 'Key backup',
+    multiDeviceBackupSub: 'password-protected',
+    stickerSearchHint: 'search stickers and GIFs',
+    pollTitle: 'Where are we going on Saturday?',
+    pollOption1: 'To the mountains',
+    pollOption2: 'To the country',
+    editorLabel: 'Editor',
+    editorHint: 'crop · caption',
+    privacyTitle: 'Privacy',
+    privacySubtitle: 'You decide what others see.',
+    privacyOnline: 'Online status',
+    privacyOnlineHint: 'Others see you’re online now',
+    privacyLastSeen: 'Last seen',
+    privacyLastSeenHint: 'Exact time of your last visit',
+    privacyReceipts: 'Read receipts',
+    privacyReceiptsHint: 'Double check for the sender',
+    privacyGlobalSearch: 'Global search',
+    privacyGlobalSearchHint: 'Anyone can find you by name',
+    privacyGroupAdd: 'Adding to groups',
+    privacyGroupAddHint: 'Contacts only',
+  ),
 );

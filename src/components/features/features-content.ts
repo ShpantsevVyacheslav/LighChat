@@ -24,6 +24,93 @@ export type FeatureTopicContent = {
   howTo: string[];
 };
 
+/** Тексты, попадающие внутрь иллюстраций (имена, статусы, реплики). */
+export type FeaturesMockText = {
+  // Encryption
+  e2eeBadge: string;
+  peerAlice: string;
+  peerBob: string;
+  peerHello: string;
+  fingerprintMatch: string;
+  // Secret chats
+  groupProject: string;
+  secretStatus: string;
+  secretMsg1: string;
+  secretMsg2: string;
+  // Disappearing messages
+  teamDesign: string;
+  disappearingStatus: string;
+  disappearingMsg1: string;
+  disappearingMsg2: string;
+  disappearingMsg3: string;
+  disappearingMsg4: string;
+  // Scheduled
+  peerMikhail: string;
+  mikhailStatus: string;
+  scheduledMsg1: string;
+  scheduledMsg2: string;
+  scheduledMsg3: string;
+  scheduledQueueTitle: string;
+  scheduledQueueDate: string;
+  // Games
+  gamesBadge: string;
+  gamesTrump: string;
+  gamesDeck: string;
+  // Meetings
+  meetingDuration: string;
+  meetingSpeaking: string;
+  // Calls
+  callsAudioTitle: string;
+  callsAudioMeta: string;
+  callsCircleTitle: string;
+  callsCircleMeta: string;
+  // Folders
+  folderAll: string;
+  folderWork: string;
+  folderFamily: string;
+  folderStudy: string;
+  folderStarred: string;
+  folderWorkChats: string;
+  chat1Name: string;
+  chat1Last: string;
+  chat2Name: string;
+  chat2Last: string;
+  chat3Name: string;
+  chat3Last: string;
+  threadTitle: string;
+  threadReply1: string;
+  threadReply2: string;
+  // Live location
+  liveLocationBanner: string;
+  liveLocationStop: string;
+  // Multi-device
+  multiDevicePhone: string;
+  multiDeviceDesktop: string;
+  multiDevicePairing: string;
+  multiDeviceBackup: string;
+  multiDeviceBackupSub: string;
+  // Stickers
+  stickerSearchHint: string;
+  pollTitle: string;
+  pollOption1: string;
+  pollOption2: string;
+  editorLabel: string;
+  editorHint: string;
+  // Privacy
+  privacyTitle: string;
+  privacySubtitle: string;
+  privacyOnline: string;
+  privacyOnlineHint: string;
+  privacyLastSeen: string;
+  privacyLastSeenHint: string;
+  privacyReceipts: string;
+  privacyReceiptsHint: string;
+  privacyGlobalSearch: string;
+  privacyGlobalSearchHint: string;
+  privacyGroupAdd: string;
+  privacyGroupAddHint: string;
+};
+
 export type FeaturesContent = {
   pageTitle: string;
   pageSubtitle: string;
@@ -46,6 +133,7 @@ export type FeaturesContent = {
     bullets: string[];
   };
   topics: Record<FeatureTopicId, FeatureTopicContent>;
+  mockText: FeaturesMockText;
 };
 
 const ru: FeaturesContent = {
@@ -420,6 +508,79 @@ const ru: FeaturesContent = {
       ],
     },
   },
+  mockText: {
+    e2eeBadge: 'Сквозное шифрование',
+    peerAlice: 'Алиса',
+    peerBob: 'Боб',
+    peerHello: 'Привет, как дела?',
+    fingerprintMatch: 'совпали',
+    groupProject: 'Группа · Проект',
+    secretStatus: '6 участников',
+    secretMsg1: 'Файл с ценой — пришлю одним просмотром.',
+    secretMsg2: 'Принял. Запрет копий включён.',
+    teamDesign: 'Команда · Дизайн',
+    disappearingStatus: 'в сети',
+    disappearingMsg1: 'Делюсь черновиком — потом удалится.',
+    disappearingMsg2: 'Ок, дам комментарии до вечера.',
+    disappearingMsg3: 'Цвет хедера лучше тёмный.',
+    disappearingMsg4: 'Согласен. Применю и пушну.',
+    peerMikhail: 'Михаил',
+    mikhailStatus: 'был сегодня в 21:40',
+    scheduledMsg1: 'Не забудь напомнить про планёрку.',
+    scheduledMsg2: 'Уже поставил отправку на утро.',
+    scheduledMsg3: 'Доброе утро! Через 15 минут начинаем планёрку.',
+    scheduledQueueTitle: 'Запланированные',
+    scheduledQueueDate: 'завтра, 08:45',
+    gamesBadge: 'Дурак · ход Анны',
+    gamesTrump: 'Козырь',
+    gamesDeck: 'В колоде · 12',
+    meetingDuration: 'Встреча · 24:18',
+    meetingSpeaking: 'говорит',
+    callsAudioTitle: 'Аудио-звонок',
+    callsAudioMeta: '3:42 · качество HD',
+    callsCircleTitle: 'Видео-кружок',
+    callsCircleMeta: '0:42 / 1:00',
+    folderAll: 'Все',
+    folderWork: 'Работа',
+    folderFamily: 'Семья',
+    folderStudy: 'Учёба',
+    folderStarred: 'Избранное',
+    folderWorkChats: 'Работа · чаты',
+    chat1Name: 'Команда · Дизайн',
+    chat1Last: 'Юля: пушнул новый вариант',
+    chat2Name: 'Маркетинг',
+    chat2Last: 'Костя: отчёт готов',
+    chat3Name: 'CRM-релизы',
+    chat3Last: 'Алина: жду апрува',
+    threadTitle: 'Тред · «Цена пакета» · 6 ответов',
+    threadReply1: 'Думаю, 4990 будет в самый раз',
+    threadReply2: 'Поддерживаю',
+    liveLocationBanner: 'Вы делитесь геолокацией',
+    liveLocationStop: 'Остановить',
+    multiDevicePhone: 'Телефон',
+    multiDeviceDesktop: 'Desktop',
+    multiDevicePairing: 'QR-паринг',
+    multiDeviceBackup: 'Резервная копия ключей',
+    multiDeviceBackupSub: 'защищена паролем',
+    stickerSearchHint: 'поиск стикеров и GIF',
+    pollTitle: 'Куда едем в субботу?',
+    pollOption1: 'В горы',
+    pollOption2: 'На дачу',
+    editorLabel: 'Редактор',
+    editorHint: 'обрезать · подписать',
+    privacyTitle: 'Приватность',
+    privacySubtitle: 'Решайте, что видят другие.',
+    privacyOnline: 'Статус «онлайн»',
+    privacyOnlineHint: 'Видят, что вы сейчас в сети',
+    privacyLastSeen: 'Был в сети',
+    privacyLastSeenHint: 'Точное время последнего визита',
+    privacyReceipts: 'Отчёты о прочтении',
+    privacyReceiptsHint: 'Двойная галочка собеседнику',
+    privacyGlobalSearch: 'Глобальный поиск',
+    privacyGlobalSearchHint: 'Найти вас по имени могут все',
+    privacyGroupAdd: 'Добавление в группы',
+    privacyGroupAddHint: 'Только из контактов',
+  },
 };
 
 const en: FeaturesContent = {
@@ -793,6 +954,79 @@ const en: FeaturesContent = {
         'Reset returns the safe defaults.',
       ],
     },
+  },
+  mockText: {
+    e2eeBadge: 'End-to-end encryption',
+    peerAlice: 'Alice',
+    peerBob: 'Bob',
+    peerHello: 'Hi, how are you?',
+    fingerprintMatch: 'match',
+    groupProject: 'Group · Project',
+    secretStatus: '6 members',
+    secretMsg1: 'Sending the price file as view-once.',
+    secretMsg2: 'Got it. Copy block is on.',
+    teamDesign: 'Team · Design',
+    disappearingStatus: 'online',
+    disappearingMsg1: 'Sharing the draft — it will vanish later.',
+    disappearingMsg2: 'OK, I’ll review by tonight.',
+    disappearingMsg3: 'A darker header would look better.',
+    disappearingMsg4: 'Agreed. Applying and pushing.',
+    peerMikhail: 'Michael',
+    mikhailStatus: 'last seen today at 21:40',
+    scheduledMsg1: 'Don’t forget about the standup reminder.',
+    scheduledMsg2: 'Already queued for the morning.',
+    scheduledMsg3: 'Good morning! Standup starts in 15 minutes.',
+    scheduledQueueTitle: 'Scheduled',
+    scheduledQueueDate: 'tomorrow, 08:45',
+    gamesBadge: 'Durak · Alice’s turn',
+    gamesTrump: 'Trump',
+    gamesDeck: 'Deck · 12',
+    meetingDuration: 'Meeting · 24:18',
+    meetingSpeaking: 'speaking',
+    callsAudioTitle: 'Audio call',
+    callsAudioMeta: '3:42 · HD quality',
+    callsCircleTitle: 'Video circle',
+    callsCircleMeta: '0:42 / 1:00',
+    folderAll: 'All',
+    folderWork: 'Work',
+    folderFamily: 'Family',
+    folderStudy: 'Study',
+    folderStarred: 'Starred',
+    folderWorkChats: 'Work · chats',
+    chat1Name: 'Team · Design',
+    chat1Last: 'Julia: pushed a new variant',
+    chat2Name: 'Marketing',
+    chat2Last: 'Konstantin: report is ready',
+    chat3Name: 'CRM releases',
+    chat3Last: 'Alina: waiting for approval',
+    threadTitle: 'Thread · “Plan price” · 6 replies',
+    threadReply1: 'I think 4990 fits best',
+    threadReply2: 'Agree',
+    liveLocationBanner: 'Sharing your location',
+    liveLocationStop: 'Stop',
+    multiDevicePhone: 'Phone',
+    multiDeviceDesktop: 'Desktop',
+    multiDevicePairing: 'QR pairing',
+    multiDeviceBackup: 'Key backup',
+    multiDeviceBackupSub: 'password-protected',
+    stickerSearchHint: 'search stickers and GIFs',
+    pollTitle: 'Where are we going on Saturday?',
+    pollOption1: 'To the mountains',
+    pollOption2: 'To the country',
+    editorLabel: 'Editor',
+    editorHint: 'crop · caption',
+    privacyTitle: 'Privacy',
+    privacySubtitle: 'You decide what others see.',
+    privacyOnline: 'Online status',
+    privacyOnlineHint: 'Others see you’re online now',
+    privacyLastSeen: 'Last seen',
+    privacyLastSeenHint: 'Exact time of your last visit',
+    privacyReceipts: 'Read receipts',
+    privacyReceiptsHint: 'Double check for the sender',
+    privacyGlobalSearch: 'Global search',
+    privacyGlobalSearchHint: 'Anyone can find you by name',
+    privacyGroupAdd: 'Adding to groups',
+    privacyGroupAddHint: 'Contacts only',
   },
 };
 

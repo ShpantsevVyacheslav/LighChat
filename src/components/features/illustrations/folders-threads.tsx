@@ -1,14 +1,10 @@
+'use client';
+
 import * as React from 'react';
 import { CornerDownRight, Folder, FolderOpen, Pin, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const FOLDERS = [
-  { name: 'Все', count: 24, active: false, icon: Folder },
-  { name: 'Работа', count: 8, active: true, icon: FolderOpen },
-  { name: 'Семья', count: 4, active: false, icon: Folder },
-  { name: 'Учёба', count: 12, active: false, icon: Folder },
-  { name: 'Избранное', count: 3, active: false, icon: Star },
-];
+import { useI18n } from '@/hooks/use-i18n';
+import { getFeaturesContent } from '../features-content';
 
 /** Папки чатов слева (`ChatFolderRail`) + список + тред с двумя ответами. */
 export function MockFoldersThreads({
@@ -18,10 +14,24 @@ export function MockFoldersThreads({
   className?: string;
   compact?: boolean;
 }) {
+  const { locale } = useI18n();
+  const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
+  const folders = [
+    { name: t.folderAll, count: 24, active: false, icon: Folder },
+    { name: t.folderWork, count: 8, active: true, icon: FolderOpen },
+    { name: t.folderFamily, count: 4, active: false, icon: Folder },
+    { name: t.folderStudy, count: 12, active: false, icon: Folder },
+    { name: t.folderStarred, count: 3, active: false, icon: Star },
+  ];
+  const chats = [
+    { name: t.chat1Name, last: t.chat1Last, unread: 3, pinned: true },
+    { name: t.chat2Name, last: t.chat2Last, unread: 0, pinned: false },
+    { name: t.chat3Name, last: t.chat3Last, unread: 1, pinned: false },
+  ];
   return (
     <div className={cn('relative flex h-full w-full overflow-hidden', className)}>
       <aside className="flex w-[112px] flex-col gap-1 border-r border-black/5 dark:border-white/10 bg-background/40 p-2">
-        {FOLDERS.map((f, i) => {
+        {folders.map((f, i) => {
           const Icon = f.icon;
           return (
             <div
@@ -43,13 +53,9 @@ export function MockFoldersThreads({
       </aside>
       <div className="flex flex-1 flex-col p-3">
         <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Работа · чаты
+          {t.folderWorkChats}
         </p>
-        {[
-          { name: 'Команда · Дизайн', last: 'Юля: пушнул новый вариант', unread: 3, pinned: true },
-          { name: 'Маркетинг', last: 'Костя: отчёт готов', unread: 0, pinned: false },
-          { name: 'CRM-релизы', last: 'Алина: жду апрува', unread: 1, pinned: false },
-        ].map((c, i) => (
+        {chats.map((c, i) => (
           <div
             key={c.name}
             className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-foreground/5 animate-feat-bubble-in"
@@ -77,14 +83,14 @@ export function MockFoldersThreads({
           >
             <div className="flex items-center gap-1.5 text-[10px] font-semibold text-violet-500 dark:text-violet-300">
               <CornerDownRight className="h-3 w-3" aria-hidden />
-              Тред · «Цена пакета» · 6 ответов
+              {t.threadTitle}
             </div>
             <div className="mt-1.5 flex flex-col gap-1">
-              <div className="self-start rounded-xl rounded-tl-md bg-muted px-2 py-1 text-[11px] text-foreground">
-                Думаю, 4990 будет в самый раз
+              <div className="self-start rounded-xl rounded-tl-none bg-muted px-2 py-1 text-[11px] text-foreground">
+                {t.threadReply1}
               </div>
-              <div className="self-end rounded-xl rounded-tr-md bg-primary px-2 py-1 text-[11px] text-primary-foreground">
-                Поддерживаю
+              <div className="self-end rounded-xl rounded-tr-none bg-primary px-2 py-1 text-[11px] text-primary-foreground">
+                {t.threadReply2}
               </div>
             </div>
           </div>

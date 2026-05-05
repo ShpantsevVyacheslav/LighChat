@@ -1,6 +1,10 @@
+'use client';
+
 import * as React from 'react';
 import { Mic, PhoneOff, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
+import { getFeaturesContent } from '../features-content';
 
 const EQ_CLASSES = [
   'animate-feat-eq-1',
@@ -23,19 +27,21 @@ function Equalizer() {
   );
 }
 
-/** Аудио-звонок (pill-баннер как `AudioCallOverlay`) + видео-кружок (`VideoCirclePlayer`). */
+/** Аудио-звонок (`AudioCallOverlay`-стиль) + видео-кружок (`VideoCirclePlayer`). */
 export function MockCalls({ className, compact }: { className?: string; compact?: boolean }) {
+  const { locale } = useI18n();
+  const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
   return (
     <div className={cn('relative flex h-full w-full items-center justify-center p-4', className)}>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.18),transparent_70%)]" />
       <div className="relative flex w-full max-w-sm flex-col items-center gap-3">
         <div className="flex items-center gap-3 self-stretch rounded-3xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 backdrop-blur-md">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-sm font-bold text-emerald-950">
-            А
+            {t.peerAlice.charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">Анна · аудио-звонок</p>
-            <p className="text-[11px] text-muted-foreground">3:42 · качество HD · E2EE</p>
+            <p className="text-sm font-semibold text-foreground">{t.peerAlice} · {t.callsAudioTitle}</p>
+            <p className="text-[11px] text-muted-foreground">{t.callsAudioMeta}</p>
           </div>
           <Equalizer />
         </div>
@@ -44,7 +50,7 @@ export function MockCalls({ className, compact }: { className?: string; compact?
             <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-background shadow-2xl animate-feat-bubble-in">
               <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-primary" />
               <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold text-white drop-shadow">
-                М
+                {t.peerMikhail.charAt(0)}
               </div>
               <div className="absolute bottom-1 right-1 rounded-full bg-black/55 p-1 backdrop-blur-md">
                 <Video className="h-2.5 w-2.5 text-white" aria-hidden />
@@ -52,9 +58,8 @@ export function MockCalls({ className, compact }: { className?: string; compact?
               <div className="pointer-events-none absolute inset-0 ring-2 ring-emerald-400/0 animate-feat-speaker-pulse rounded-full" />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-semibold text-foreground">Видео-кружок</p>
-              <p className="text-[11px] text-muted-foreground">0:42 / 1:00 · автозапуск</p>
-              <p className="mt-1 text-[10px] uppercase tracking-wider text-emerald-500 dark:text-emerald-400">e2ee</p>
+              <p className="text-sm font-semibold text-foreground">{t.callsCircleTitle}</p>
+              <p className="text-[11px] text-muted-foreground">{t.callsCircleMeta}</p>
             </div>
           </div>
         ) : null}

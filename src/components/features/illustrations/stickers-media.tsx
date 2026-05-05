@@ -1,6 +1,10 @@
+'use client';
+
 import * as React from 'react';
 import { BarChart3, Heart, ImagePlus, Search, Sticker } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
+import { getFeaturesContent } from '../features-content';
 
 const FACES = [
   { glyph: '😀', accent: 'from-amber-300 to-amber-500' },
@@ -21,12 +25,14 @@ export function MockStickersMedia({
   className?: string;
   compact?: boolean;
 }) {
+  const { locale } = useI18n();
+  const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
   return (
     <div className={cn('relative flex h-full w-full flex-col p-3', className)}>
       <div className="flex items-center gap-2 rounded-full border border-black/5 dark:border-white/10 bg-background/80 px-3 py-1.5 backdrop-blur-md">
         <Search className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
         <span className="flex-1 text-[12px] text-muted-foreground">
-          поиск стикеров и GIF
+          {t.stickerSearchHint}
           <span className="ml-1 inline-block h-3 w-px bg-foreground/70 animate-feat-caret align-middle" />
         </span>
         <Sticker className="h-4 w-4 text-amber-500 dark:text-amber-400" aria-hidden />
@@ -53,13 +59,13 @@ export function MockStickersMedia({
             style={{ animationDelay: '600ms' }}
           >
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <BarChart3 className="h-3 w-3" aria-hidden /> Опрос
+              <BarChart3 className="h-3 w-3" aria-hidden /> Poll
             </div>
-            <p className="mt-1 text-[11px] font-semibold text-foreground">Куда едем в субботу?</p>
+            <p className="mt-1 text-[11px] font-semibold text-foreground">{t.pollTitle}</p>
             <div className="mt-1.5 space-y-1">
               {[
-                { name: 'В горы', pct: 62 },
-                { name: 'На дачу', pct: 31 },
+                { name: t.pollOption1, pct: 62 },
+                { name: t.pollOption2, pct: 31 },
               ].map((o) => (
                 <div key={o.name} className="relative h-5 overflow-hidden rounded-md bg-foreground/5">
                   <div
@@ -85,9 +91,9 @@ export function MockStickersMedia({
               </span>
               <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between rounded-md bg-black/45 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
                 <span className="inline-flex items-center gap-1">
-                  <ImagePlus className="h-3 w-3" aria-hidden /> Редактор
+                  <ImagePlus className="h-3 w-3" aria-hidden /> {t.editorLabel}
                 </span>
-                <span className="opacity-85">обрезать · подписать</span>
+                <span className="opacity-85">{t.editorHint}</span>
               </div>
             </div>
           </div>

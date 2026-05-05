@@ -1,18 +1,11 @@
 import * as React from 'react';
-import { Check, CheckCheck, Clock, EyeOff } from 'lucide-react';
+import { Check, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type MockBubbleProps = {
   side: 'incoming' | 'outgoing';
   text: string;
   time?: string;
-  /** Сообщение «в очереди»: значок часов, мягкая прозрачность. */
-  scheduled?: boolean;
-  scheduledHint?: string;
-  /** Исчезающее сообщение: пунктир и затухание. */
-  fading?: boolean;
-  /** «Тающее» сообщение: применяется зацикленная анимация. */
-  vanishing?: boolean;
   /** Прочитано (двойная галочка). По умолчанию для outgoing — true. */
   read?: boolean;
   /** Стиль клипа «хвостика»: повторяет реальный ChatMessageItem. */
@@ -26,19 +19,16 @@ export type MockBubbleProps = {
 
 /**
  * Презентационная копия `ChatMessageItem`-бабла:
- * - outgoing: `bg-primary text-primary-foreground` (как реальный чат);
- * - incoming: `bg-muted` (как реальный чат);
- * - tail-clip через `rounded-{tr|tl}-md`;
- * - двойная галочка времени, иконки часов/EyeOff, как в реальной строке meta.
+ *  - outgoing: `bg-primary text-primary-foreground` (как реальный чат);
+ *  - incoming: `bg-muted` (как реальный чат);
+ *  - tail-clip через `rounded-{tr|tl}-none` (square corner вверху);
+ *  - время + двойная галочка отрисованы **под пузырём** отдельной строкой,
+ *    как в реальном UI LighChat (не внутри пузыря).
  */
 export function MockMessageBubble({
   side,
   text,
   time = '12:34',
-  scheduled,
-  scheduledHint,
-  fading,
-  vanishing,
   read = true,
   withTail = true,
   animateIn = true,
@@ -49,8 +39,8 @@ export function MockMessageBubble({
   return (
     <div
       className={cn(
-        'flex w-full',
-        incoming ? 'justify-start' : 'justify-end',
+        'flex w-full flex-col gap-0.5',
+        incoming ? 'items-start' : 'items-end',
         animateIn && 'animate-feat-bubble-in',
         className
       )}
@@ -63,32 +53,24 @@ export function MockMessageBubble({
           withTail && (incoming ? 'rounded-tl-none' : 'rounded-tr-none'),
           incoming
             ? 'bg-muted text-foreground'
-            : 'bg-primary text-primary-foreground',
-          fading && 'border border-dashed border-current/30',
-          scheduled && 'opacity-90',
-          vanishing && 'animate-feat-fade-vanish'
+            : 'bg-primary text-primary-foreground'
         )}
       >
-        <span>{text}</span>
-        <span
-          className={cn(
-            'mt-0.5 ml-2 inline-flex items-center gap-0.5 text-[10px] align-middle',
-            incoming ? 'text-muted-foreground' : 'text-primary-foreground/85'
-          )}
-        >
-          {scheduled ? <Clock className="h-2.5 w-2.5" aria-hidden /> : null}
-          {fading ? <EyeOff className="h-2.5 w-2.5" aria-hidden /> : null}
-          <span>{time}</span>
-          {!incoming && !scheduled
-            ? read
-              ? <CheckCheck className="h-3 w-3" aria-hidden />
-              : <Check className="h-3 w-3" aria-hidden />
-            : null}
-        </span>
-        {scheduled && scheduledHint ? (
-          <span className="mt-0.5 block text-[10px] italic opacity-85">{scheduledHint}</span>
-        ) : null}
+        {text}
       </div>
+      {/* Meta под пузырём: время + галочки, как в реальном LighChat. */}
+      <span
+        className={cn(
+          'inline-flex items-center gap-0.5 px-1 text-[10px] text-muted-foreground'
+        )}
+      >
+        <span>{time}</span>
+        {!incoming
+          ? read
+            ? <CheckCheck className="h-3 w-3 text-primary" aria-hidden />
+            : <Check className="h-3 w-3" aria-hidden />
+          : null}
+      </span>
     </div>
   );
 }

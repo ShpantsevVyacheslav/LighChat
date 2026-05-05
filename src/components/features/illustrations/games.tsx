@@ -1,5 +1,9 @@
+'use client';
+
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
+import { getFeaturesContent } from '../features-content';
 
 const SUITS = [
   { glyph: '♠', color: 'text-zinc-900' },
@@ -49,12 +53,15 @@ function PlayingCard({
 
 /** Игровой стол «Дурака»: зелёное сукно, веер карт, бейдж хода, статус колоды. */
 export function MockGames({ className, compact }: { className?: string; compact?: boolean }) {
+  const { locale } = useI18n();
+  const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
   const cards = [
     { rank: '6', s: 0, r: -28 },
     { rank: '7', s: 1, r: -14 },
-    { rank: 'В', s: 2, r: 0 },
-    { rank: 'Д', s: 3, r: 14 },
-    { rank: 'К', s: 0, r: 28 },
+    // Используем символьные обозначения карт, а не локализованные «В/Д/К».
+    { rank: 'J', s: 2, r: 0 },
+    { rank: 'Q', s: 3, r: 14 },
+    { rank: 'K', s: 0, r: 28 },
   ];
   return (
     <div className={cn('relative flex h-full w-full items-center justify-center overflow-hidden', className)}>
@@ -65,7 +72,7 @@ export function MockGames({ className, compact }: { className?: string; compact?
           className="absolute left-3 top-3 rounded-full bg-amber-400/95 px-2 py-0.5 text-[10px] font-bold text-amber-950 shadow animate-feat-bubble-in"
           style={{ animationDelay: '0ms' }}
         >
-          Дурак · ход Анны
+          {t.gamesBadge}
         </div>
       ) : null}
       <div className="relative h-32 w-72 sm:h-40 sm:w-80">
@@ -85,8 +92,8 @@ export function MockGames({ className, compact }: { className?: string; compact?
           className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-2xl border border-white/10 bg-black/35 px-3 py-2 text-[11px] text-white backdrop-blur-md animate-feat-bubble-in"
           style={{ animationDelay: '900ms' }}
         >
-          <span className="font-semibold">Козырь · <span className="text-rose-300">♥</span></span>
-          <span className="opacity-85">В колоде · 12</span>
+          <span className="font-semibold">{t.gamesTrump} · <span className="text-rose-300">♥</span></span>
+          <span className="opacity-85">{t.gamesDeck}</span>
         </div>
       ) : null}
     </div>
