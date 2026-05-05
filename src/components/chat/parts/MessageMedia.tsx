@@ -22,6 +22,7 @@ interface MessageMediaProps {
   attachments: ChatAttachment[];
   isCurrentUser: boolean;
   onImageClick: (att: ChatAttachment) => void;
+  clipSelf?: boolean;
 }
 
 function cellAspectRatio(att: ChatAttachment, count: number, index: number): string {
@@ -57,7 +58,7 @@ function isGridCellGif(att: ChatAttachment): boolean {
  * Высота ячеек задаётся только aspect-ratio + ширина сетки; img/video — position:absolute,
  * чтобы интринсик-размеры файла не раздували верстку до/после загрузки (CLS).
  */
-export function MessageMedia({ attachments, isCurrentUser, onImageClick }: MessageMediaProps) {
+export function MessageMedia({ attachments, isCurrentUser, onImageClick, clipSelf = true }: MessageMediaProps) {
   if (!attachments || attachments.length === 0) return null;
 
   const visualAttachments = attachments.filter(isGridGalleryAttachment);
@@ -72,7 +73,8 @@ export function MessageMedia({ attachments, isCurrentUser, onImageClick }: Messa
   return (
     <div
       className={cn(
-        'grid gap-0.5 relative max-w-full overflow-hidden rounded-2xl w-full shrink-0 bg-transparent',
+        'grid gap-0.5 relative max-w-full overflow-hidden w-full shrink-0 bg-transparent',
+        clipSelf && 'rounded-2xl',
         count === 1 && 'grid-cols-1',
         count === 2 && 'grid-cols-2',
         count === 3 && 'grid-cols-2',

@@ -15,6 +15,7 @@ import '../data/sanitize_message_html.dart';
 import '../data/chat_poll_stub_text.dart';
 import '../data/chat_emoji_only.dart';
 import '../data/video_circle_utils.dart';
+import '../data/chat_media_gallery.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/link_preview_url_extractor.dart';
 import '../data/user_contacts_repository.dart';
@@ -1112,6 +1113,9 @@ class _ChatMessageBubble extends StatelessWidget {
     final singlePureEmoji = isPureEmoji
         ? _singleEmojiFromOnlyEmojiMessage(displayPlain)
         : null;
+    final hasGridVisualMedia = hasMedia &&
+        message.attachments.any(isChatGridGalleryAttachment);
+    final hasMediaWithCaption = hasGridVisualMedia && hasVisibleText;
     final linkPreviewUrl =
         (!hasMedia && !hasPoll && !hasLocation && hasVisibleText)
         ? extractFirstHttpUrl(displayPlain)
@@ -1215,102 +1219,103 @@ class _ChatMessageBubble extends StatelessWidget {
         ),
     ];
 
+    final textBaseStyle = TextStyle(
+      fontSize: textSize,
+      fontWeight: FontWeight.w500,
+      height: 1.25,
+      color: isMine
+          ? Colors.white
+          : (scheme.brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.92)
+                : scheme.onSurface),
+    );
+    final textLinkColor = isMine
+        ? Colors.white.withValues(alpha: 0.95)
+        : scheme.primary;
+    final textQuoteMaxFallback =
+        ChatMediaLayoutTokens.messageBubbleMaxWidth - 24.0;
+    String resolveMentionDisplayName(String mentionUserId, String fallback) {
+      final uid = mentionUserId.trim();
+      if (uid.isEmpty) {
+        final f = fallback.trim().replaceFirst(RegExp(r'^@+'), '');
+        return f.isNotEmpty ? f : fallback.trim();
+      }
+      final fallbackClean = fallback.trim().replaceFirst(RegExp(r'^@+'), '');
+      final profileName = (profileMap?[uid]?.name ?? '').trim();
+      final convName = (conversation?.participantInfo?[uid]?.name ?? '')
+          .trim();
+      final fallbackName = profileName.isNotEmpty
+          ? profileName
+          : (convName.isNotEmpty
+                ? convName
+                : (fallbackClean.isNotEmpty
+                      ? fallbackClean
+                      : l10n.new_chat_fallback_user_display_name));
+      final resolved = resolveContactDisplayName(
+        contactProfiles: contactProfiles,
+        contactUserId: uid,
+        fallbackName: fallbackName,
+      );
+      final clean = resolved.trim().replaceFirst(RegExp(r'^@+'), '');
+      if (clean.isNotEmpty) return clean;
+      if (fallbackClean.isNotEmpty) return fallbackClean;
+      return fallbackName;
+    }
+    List<InlineSpan> htmlSpans({double? quoteMaxWidth}) =>
+        messageHtmlToStyledSpans(
+          html,
+          base: textBaseStyle,
+          linkColor: textLinkColor,
+          quoteAccent: scheme.primary,
+          quoteMaxWidth: quoteMaxWidth ?? textQuoteMaxFallback,
+          mentionLabelResolver: resolveMentionDisplayName,
+          mentionFallbackLabel: AppLocalizations.of(context)!.mention_fallback_label,
+          onMentionTap: (userId) async {
+            final uid = userId.trim();
+            if (uid.isEmpty) return;
+            if (conversation == null || conversation!.isGroup != true) return;
+            if (!context.mounted) return;
+            if (uid == currentUserId) {
+              context.push('/account');
+              return;
+            }
+            context.push('/contacts/user/${Uri.encodeComponent(uid)}');
+          },
+          onLinkTap: (url) {
+            if (!context.mounted) return;
+            LinkWebViewScreen.open(context, url);
+          },
+        );
+
+    Widget? textContentOnly({required bool compact}) {
+      if (!hasVisibleText) return null;
+      final innerMax =
+          ChatMediaLayoutTokens.messageBubbleMaxWidth - (compact ? 20 : 24);
+      final textWidget = RichText(
+        textAlign: TextAlign.left,
+        text: TextSpan(children: htmlSpans()),
+      );
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: innerMax),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            textWidget,
+            if (linkPreviewUrl != null) ...[
+              const SizedBox(height: 10),
+              MessageLinkPreviewCard(url: linkPreviewUrl, isMine: isMine),
+            ],
+          ],
+        ),
+      );
+    }
+
     Widget textBubble({
       required bool compact,
       List<Widget> insertBeforeText = const [],
     }) {
-      final baseStyle = TextStyle(
-        fontSize: textSize,
-        fontWeight: FontWeight.w500,
-        height: 1.25,
-        color: isMine
-            ? Colors.white
-            : (scheme.brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.92)
-                  : scheme.onSurface),
-      );
-      final linkColorForHtml = isMine
-          ? Colors.white.withValues(alpha: 0.95)
-          : scheme.primary;
-      final quoteMaxFallback =
-          ChatMediaLayoutTokens.messageBubbleMaxWidth - 24.0;
-      String resolveMentionDisplayName(String mentionUserId, String fallback) {
-        final uid = mentionUserId.trim();
-        if (uid.isEmpty) {
-          final f = fallback.trim().replaceFirst(RegExp(r'^@+'), '');
-          return f.isNotEmpty ? f : fallback.trim();
-        }
-        final fallbackClean = fallback.trim().replaceFirst(RegExp(r'^@+'), '');
-        final profileName = (profileMap?[uid]?.name ?? '').trim();
-        final convName = (conversation?.participantInfo?[uid]?.name ?? '')
-            .trim();
-        final fallbackName = profileName.isNotEmpty
-            ? profileName
-            : (convName.isNotEmpty
-                  ? convName
-                  : (fallbackClean.isNotEmpty
-                        ? fallbackClean
-                        : l10n.new_chat_fallback_user_display_name));
-        final resolved = resolveContactDisplayName(
-          contactProfiles: contactProfiles,
-          contactUserId: uid,
-          fallbackName: fallbackName,
-        );
-        final clean = resolved.trim().replaceFirst(RegExp(r'^@+'), '');
-        if (clean.isNotEmpty) return clean;
-        if (fallbackClean.isNotEmpty) return fallbackClean;
-        return fallbackName;
-      }
-
-      List<InlineSpan> htmlSpans({double? quoteMaxWidth}) =>
-          messageHtmlToStyledSpans(
-            html,
-            base: baseStyle,
-            linkColor: linkColorForHtml,
-            quoteAccent: scheme.primary,
-            quoteMaxWidth: quoteMaxWidth ?? quoteMaxFallback,
-            mentionLabelResolver: resolveMentionDisplayName,
-            mentionFallbackLabel: AppLocalizations.of(context)!.mention_fallback_label,
-            onMentionTap: (userId) async {
-              final uid = userId.trim();
-              if (uid.isEmpty) return;
-              if (conversation == null || conversation!.isGroup != true) return;
-              if (!context.mounted) return;
-              if (uid == currentUserId) {
-                context.push('/account');
-                return;
-              }
-              context.push('/contacts/user/${Uri.encodeComponent(uid)}');
-            },
-            onLinkTap: (url) {
-              if (!context.mounted) return;
-              LinkWebViewScreen.open(context, url);
-            },
-          );
-
-      Widget? textBlock;
-      if (hasVisibleText) {
-        final innerMax =
-            ChatMediaLayoutTokens.messageBubbleMaxWidth - (compact ? 20 : 24);
-        final textWidget = RichText(
-          textAlign: TextAlign.left,
-          text: TextSpan(children: htmlSpans()),
-        );
-        textBlock = ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: innerMax),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              textWidget,
-              if (linkPreviewUrl != null) ...[
-                const SizedBox(height: 10),
-                MessageLinkPreviewCard(url: linkPreviewUrl, isMine: isMine),
-              ],
-            ],
-          ),
-        );
-      }
+      final textBlock = textContentOnly(compact: compact);
 
       return Container(
         decoration: BoxDecoration(
@@ -1604,6 +1609,65 @@ class _ChatMessageBubble extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      );
+    } else if (hasMediaWithCaption) {
+      final captionContent = textContentOnly(compact: true);
+      body = Column(
+        crossAxisAlignment: bubbleStackCrossAlign,
+        children: [
+          Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(
+                ChatMediaLayoutTokens.mediaCardRadius,
+              ),
+              color: isMine ? outgoingBg : incomingBg,
+              border: Border.all(
+                color: isMine
+                    ? const Color(0xFF4D92FF).withValues(alpha: 0.32)
+                    : Colors.white.withValues(
+                        alpha: scheme.brightness == Brightness.dark
+                            ? 0.10
+                            : 0.24,
+                      ),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                MessageAttachments(
+                  attachments: message.attachments,
+                  alignRight: isMine,
+                  conversationId: conversationId,
+                  messageId: message.id,
+                  messageCreatedAt: message.createdAt,
+                  isMine: isMine,
+                  deliveryStatus: message.deliveryStatus,
+                  readAt: message.readAt,
+                  showTimestamps: false,
+                  voiceTranscript: message.voiceTranscript,
+                  videoCirclePlayingSlotId: videoCirclePlayingSlotId,
+                  onOpenGridGallery: openGridGallery,
+                  mediaNorm: message.mediaNorm,
+                  onRetryMediaNorm: onRetryMediaNorm == null
+                      ? null
+                      : () => onRetryMediaNorm!(message),
+                  clipSelf: false,
+                ),
+                if (captionContent != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: ChatMediaLayoutTokens.captionBubblePaddingH,
+                      vertical: ChatMediaLayoutTokens.captionBubblePaddingV,
+                    ),
+                    child: captionContent,
+                  ),
+              ],
+            ),
+          ),
+          textMetaOutside(),
         ],
       );
     } else if (hasMedia && hasText) {

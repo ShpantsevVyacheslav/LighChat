@@ -289,6 +289,9 @@ const ChatMessageItemComponent = ({
         if (!list?.length) return false;
         return list.some(isGridGalleryAttachment);
     }, [message.attachments, message.isDeleted]);
+
+    const hasMediaWithCaption = hasGridVisualMedia && !!displayTextHtml?.trim() && !isStickerLike && !isVideoCircle && !isDeleted;
+
     /** Полноэкранный «кино»-режим только для сообщения из одного кружка; иначе сетка/видео сверху не прыгает при play. */
     const useFullBleedVideoCirclePlaying = useMemo(
         () => isVideoCircle && isVideoPlaying && !hasGridVisualMedia,
@@ -717,7 +720,7 @@ const ChatMessageItemComponent = ({
                                                     radiusClass,
                                                     'border-none shadow-sm',
                                                     isPollMessage && !isDeleted && !isMenuOpen && 'rounded-none shadow-none',
-                                                    isMenuOpen && hasGridVisualMedia ? 'overflow-hidden' : 'overflow-visible',
+                                                    (isMenuOpen && hasGridVisualMedia) || hasMediaWithCaption ? 'overflow-hidden' : 'overflow-visible',
                                                 ),
                                             !(isPureEmoji || isVideoCircle || isStickerLike || isDeleted || isPollMessage) &&
                                                 (isCurrentUser
@@ -798,6 +801,7 @@ const ChatMessageItemComponent = ({
                                                                 onImageClick={(att) =>
                                                                     isGridGalleryVideo(att) ? onOpenVideoViewer(att) : onOpenImageViewer(att)
                                                                 }
+                                                                clipSelf={!hasMediaWithCaption}
                                                             />
                                                             {isMediaOnly && showTimestamps && !isVideoCircle && !isStickerLike && (
                                                                 <>

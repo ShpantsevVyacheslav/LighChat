@@ -128,6 +128,7 @@ class MessageAttachments extends StatefulWidget {
     this.onOpenGridGallery,
     this.mediaNorm,
     this.onRetryMediaNorm,
+    this.clipSelf = true,
   });
 
   final List<ChatAttachment> attachments;
@@ -146,6 +147,8 @@ class MessageAttachments extends StatefulWidget {
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
   final ChatMediaNorm? mediaNorm;
   final Future<void> Function()? onRetryMediaNorm;
+
+  final bool clipSelf;
 
   @override
   State<MessageAttachments> createState() => _MessageAttachmentsState();
@@ -250,6 +253,7 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                       onOpenGridGallery: widget.onOpenGridGallery,
                       conversationId: widget.conversationId,
                       messageId: widget.messageId,
+                      clipSelf: widget.clipSelf,
                     ),
                   ),
                 if (voices.isNotEmpty) ...[
@@ -362,6 +366,7 @@ class _ImageGrid extends StatelessWidget {
     this.onOpenGridGallery,
     this.conversationId,
     this.messageId,
+    this.clipSelf = true,
   });
 
   final List<ChatAttachment> images;
@@ -370,6 +375,7 @@ class _ImageGrid extends StatelessWidget {
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
   final String? conversationId;
   final String? messageId;
+  final bool clipSelf;
 
   static const double _gap = 2;
   static const int _maxCells = 9;
@@ -387,7 +393,7 @@ class _ImageGrid extends StatelessWidget {
       return _SingleVisualAttachment(
         attachment: slice.first,
         maxWidth: maxWidth,
-        borderRadius: radius,
+        borderRadius: clipSelf ? radius : BorderRadius.zero,
         onOpenGridGallery: onOpenGridGallery,
         conversationId: conversationId,
         messageId: messageId,
@@ -520,17 +526,21 @@ class _ImageGrid extends StatelessWidget {
       }
     }
 
+    final content = SizedBox(
+      width: maxWidth,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: colChildren,
+      ),
+    );
+
+    if (!clipSelf) return content;
+
     return ClipRRect(
       borderRadius: radius,
       clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        width: maxWidth,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: colChildren,
-        ),
-      ),
+      child: content,
     );
   }
 }

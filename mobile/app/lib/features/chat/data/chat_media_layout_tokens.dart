@@ -17,6 +17,9 @@ class ChatMediaLayoutTokens {
   static const double captionToStatusGap = 0;
   static const double mediaCardRadius = 18;
 
+  static const double captionBubblePaddingH = 10;
+  static const double captionBubblePaddingV = 8;
+
   /// Зазор над рамкой «ответ на сообщение» (и под строкой «Переслано», если она есть).
   /// Между рамкой и пузырём ответа отступа нет — визуально единый блок.
   static const double replyPreviewToBodyGap = 12;
