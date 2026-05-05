@@ -13495,6 +13495,174 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Поиск стикеров…'**
   String get sticker_library_search_hint;
+
+  /// No description provided for @account_menu_energy_saving.
+  ///
+  /// In ru, this message translates to:
+  /// **'Энергосбережение'**
+  String get account_menu_energy_saving;
+
+  /// No description provided for @energy_saving_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Энергосбережение'**
+  String get energy_saving_title;
+
+  /// No description provided for @energy_saving_section_mode.
+  ///
+  /// In ru, this message translates to:
+  /// **'Режим энергосбережения'**
+  String get energy_saving_section_mode;
+
+  /// No description provided for @energy_saving_section_resource_heavy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ресурсоёмкие процессы'**
+  String get energy_saving_section_resource_heavy;
+
+  /// No description provided for @energy_saving_threshold_off.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выкл.'**
+  String get energy_saving_threshold_off;
+
+  /// No description provided for @energy_saving_threshold_always.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вкл.'**
+  String get energy_saving_threshold_always;
+
+  /// No description provided for @energy_saving_threshold_off_full.
+  ///
+  /// In ru, this message translates to:
+  /// **'Никогда'**
+  String get energy_saving_threshold_off_full;
+
+  /// No description provided for @energy_saving_threshold_always_full.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всегда'**
+  String get energy_saving_threshold_always_full;
+
+  /// No description provided for @energy_saving_threshold_at.
+  ///
+  /// In ru, this message translates to:
+  /// **'При заряде менее {percent}%'**
+  String energy_saving_threshold_at(int percent);
+
+  /// No description provided for @energy_saving_hint_off.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ресурсоёмкие эффекты никогда не отключаются автоматически.'**
+  String get energy_saving_hint_off;
+
+  /// No description provided for @energy_saving_hint_always.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ресурсоёмкие эффекты всегда отключены, независимо от уровня заряда.'**
+  String get energy_saving_hint_always;
+
+  /// No description provided for @energy_saving_hint_threshold.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автоматически отключать все ресурсоёмкие процессы при заряде менее {percent}%.'**
+  String energy_saving_hint_threshold(int percent);
+
+  /// No description provided for @energy_saving_current_battery.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текущий заряд: {percent}%'**
+  String energy_saving_current_battery(int percent);
+
+  /// No description provided for @energy_saving_active_now.
+  ///
+  /// In ru, this message translates to:
+  /// **'режим активен'**
+  String get energy_saving_active_now;
+
+  /// No description provided for @energy_saving_autoplay_video_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автозапуск видео'**
+  String get energy_saving_autoplay_video_title;
+
+  /// No description provided for @energy_saving_autoplay_video_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автозапуск и повторение видеосообщений и видео в чатах.'**
+  String get energy_saving_autoplay_video_subtitle;
+
+  /// No description provided for @energy_saving_autoplay_gif_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автозапуск GIF'**
+  String get energy_saving_autoplay_gif_title;
+
+  /// No description provided for @energy_saving_autoplay_gif_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автозапуск и повторение GIF в чатах и на клавиатуре.'**
+  String get energy_saving_autoplay_gif_subtitle;
+
+  /// No description provided for @energy_saving_animated_stickers_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Анимированные стикеры'**
+  String get energy_saving_animated_stickers_title;
+
+  /// No description provided for @energy_saving_animated_stickers_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторяющаяся анимация стикеров и полноэкранные эффекты Premium-стикеров.'**
+  String get energy_saving_animated_stickers_subtitle;
+
+  /// No description provided for @energy_saving_animated_emoji_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Анимированные эмодзи'**
+  String get energy_saving_animated_emoji_title;
+
+  /// No description provided for @energy_saving_animated_emoji_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторяющаяся анимация эмодзи в сообщениях, реакциях и статусах.'**
+  String get energy_saving_animated_emoji_subtitle;
+
+  /// No description provided for @energy_saving_interface_animations_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Анимации интерфейса'**
+  String get energy_saving_interface_animations_title;
+
+  /// No description provided for @energy_saving_interface_animations_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эффекты и анимации, которые делают LighChat плавнее и выразительнее.'**
+  String get energy_saving_interface_animations_subtitle;
+
+  /// No description provided for @energy_saving_media_preload_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Предзагрузка медиа'**
+  String get energy_saving_media_preload_title;
+
+  /// No description provided for @energy_saving_media_preload_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запуск загрузки медиафайлов при входе в список чатов.'**
+  String get energy_saving_media_preload_subtitle;
+
+  /// No description provided for @energy_saving_background_update_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновление в фоне'**
+  String get energy_saving_background_update_title;
+
+  /// No description provided for @energy_saving_background_update_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Быстрое обновление чатов при переключении между приложениями.'**
+  String get energy_saving_background_update_subtitle;
 }
 
 class _AppLocalizationsDelegate

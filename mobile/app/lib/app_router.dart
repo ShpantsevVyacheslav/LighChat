@@ -31,6 +31,7 @@ import 'features/chat/ui/chat_settings_screen.dart';
 import 'features/chat/ui/chat_screen.dart';
 import 'features/chat/ui/conversation_threads_screen.dart';
 import 'features/settings/ui/devices_screen.dart';
+import 'features/settings/ui/energy_saving_screen.dart';
 import 'features/settings/ui/e2ee_recovery_screen.dart';
 import 'features/settings/ui/e2ee_qr_pairing_screen.dart';
 import 'features/settings/ui/language_screen.dart';
@@ -337,6 +338,10 @@ GoRouter createRouter() {
       GoRoute(
         path: '/settings/storage',
         builder: (context, state) => const StorageSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/energy-saving',
+        builder: (context, state) => const EnergySavingScreen(),
       ),
       // Phase 6: recovery (password backup + QR pairing entry point).
       GoRoute(

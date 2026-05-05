@@ -7652,4 +7652,103 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sticker_library_search_hint => 'Search stickers...';
+
+  @override
+  String get account_menu_energy_saving => 'Power saving';
+
+  @override
+  String get energy_saving_title => 'Power saving';
+
+  @override
+  String get energy_saving_section_mode => 'Power saving mode';
+
+  @override
+  String get energy_saving_section_resource_heavy => 'Resource-heavy processes';
+
+  @override
+  String get energy_saving_threshold_off => 'Off';
+
+  @override
+  String get energy_saving_threshold_always => 'On';
+
+  @override
+  String get energy_saving_threshold_off_full => 'Never';
+
+  @override
+  String get energy_saving_threshold_always_full => 'Always';
+
+  @override
+  String energy_saving_threshold_at(int percent) {
+    return 'When battery is below $percent%';
+  }
+
+  @override
+  String get energy_saving_hint_off =>
+      'Resource-heavy effects are never auto-disabled.';
+
+  @override
+  String get energy_saving_hint_always =>
+      'Resource-heavy effects are always disabled regardless of battery level.';
+
+  @override
+  String energy_saving_hint_threshold(int percent) {
+    return 'Automatically disable all resource-heavy processes when battery drops below $percent%.';
+  }
+
+  @override
+  String energy_saving_current_battery(int percent) {
+    return 'Current battery: $percent%';
+  }
+
+  @override
+  String get energy_saving_active_now => 'mode is active';
+
+  @override
+  String get energy_saving_autoplay_video_title => 'Autoplay videos';
+
+  @override
+  String get energy_saving_autoplay_video_subtitle =>
+      'Autoplay and loop video messages and videos in chats.';
+
+  @override
+  String get energy_saving_autoplay_gif_title => 'Autoplay GIFs';
+
+  @override
+  String get energy_saving_autoplay_gif_subtitle =>
+      'Autoplay and loop GIFs in chats and on the keyboard.';
+
+  @override
+  String get energy_saving_animated_stickers_title => 'Animated stickers';
+
+  @override
+  String get energy_saving_animated_stickers_subtitle =>
+      'Looped sticker animations and full-screen Premium sticker effects.';
+
+  @override
+  String get energy_saving_animated_emoji_title => 'Animated emoji';
+
+  @override
+  String get energy_saving_animated_emoji_subtitle =>
+      'Looped emoji animation in messages, reactions and statuses.';
+
+  @override
+  String get energy_saving_interface_animations_title => 'Interface animations';
+
+  @override
+  String get energy_saving_interface_animations_subtitle =>
+      'Effects and animations that make LighChat smoother and more expressive.';
+
+  @override
+  String get energy_saving_media_preload_title => 'Media preload';
+
+  @override
+  String get energy_saving_media_preload_subtitle =>
+      'Start downloading media files when opening the chat list.';
+
+  @override
+  String get energy_saving_background_update_title => 'Background update';
+
+  @override
+  String get energy_saving_background_update_subtitle =>
+      'Quick chat updates when switching between apps.';
 }

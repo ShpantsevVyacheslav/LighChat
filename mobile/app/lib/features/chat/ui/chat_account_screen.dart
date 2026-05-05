@@ -110,6 +110,8 @@ class ChatAccountScreen extends ConsumerWidget {
                     onBlacklistTap: () => context.push('/settings/blacklist'),
                     onLanguageTap: () => context.push('/settings/language'),
                     onStorageTap: () => context.push('/settings/storage'),
+                    onEnergySavingTap: () =>
+                        context.push('/settings/energy-saving'),
                     onThemeTap: () async {
                       final repo = ref.read(chatSettingsRepositoryProvider);
                       if (repo == null) return;
@@ -188,6 +190,7 @@ class _AccountView extends StatelessWidget {
     required this.onBlacklistTap,
     required this.onLanguageTap,
     required this.onStorageTap,
+    required this.onEnergySavingTap,
     required this.onThemeTap,
     required this.onSignOutTap,
   });
@@ -208,6 +211,7 @@ class _AccountView extends StatelessWidget {
   final VoidCallback onBlacklistTap;
   final VoidCallback onLanguageTap;
   final VoidCallback onStorageTap;
+  final VoidCallback onEnergySavingTap;
   final VoidCallback onThemeTap;
   final VoidCallback onSignOutTap;
 
@@ -360,6 +364,11 @@ class _AccountView extends StatelessWidget {
                         icon: Icons.storage_rounded,
                         title: l10n.account_menu_storage,
                         onTap: onStorageTap,
+                      ),
+                      _MenuItem(
+                        icon: Icons.battery_saver_rounded,
+                        title: l10n.account_menu_energy_saving,
+                        onTap: onEnergySavingTap,
                       ),
                       _MenuItem(
                         icon: Icons.auto_awesome_outlined,

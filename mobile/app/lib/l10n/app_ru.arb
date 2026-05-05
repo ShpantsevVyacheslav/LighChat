@@ -3944,5 +3944,42 @@
   "welcomeSkip": "Пропустить",
   "welcomeReplayDebugTile": "Replay welcome animation (debug)",
   "sticker_scope_library": "Библиотека",
-  "sticker_library_search_hint": "Поиск стикеров…"
+  "sticker_library_search_hint": "Поиск стикеров…",
+  "account_menu_energy_saving": "Энергосбережение",
+  "energy_saving_title": "Энергосбережение",
+  "energy_saving_section_mode": "Режим энергосбережения",
+  "energy_saving_section_resource_heavy": "Ресурсоёмкие процессы",
+  "energy_saving_threshold_off": "Выкл.",
+  "energy_saving_threshold_always": "Вкл.",
+  "energy_saving_threshold_off_full": "Никогда",
+  "energy_saving_threshold_always_full": "Всегда",
+  "energy_saving_threshold_at": "При заряде менее {percent}%",
+  "@energy_saving_threshold_at": {
+    "placeholders": {"percent": {"type": "int"}}
+  },
+  "energy_saving_hint_off": "Ресурсоёмкие эффекты никогда не отключаются автоматически.",
+  "energy_saving_hint_always": "Ресурсоёмкие эффекты всегда отключены, независимо от уровня заряда.",
+  "energy_saving_hint_threshold": "Автоматически отключать все ресурсоёмкие процессы при заряде менее {percent}%.",
+  "@energy_saving_hint_threshold": {
+    "placeholders": {"percent": {"type": "int"}}
+  },
+  "energy_saving_current_battery": "Текущий заряд: {percent}%",
+  "@energy_saving_current_battery": {
+    "placeholders": {"percent": {"type": "int"}}
+  },
+  "energy_saving_active_now": "режим активен",
+  "energy_saving_autoplay_video_title": "Автозапуск видео",
+  "energy_saving_autoplay_video_subtitle": "Автозапуск и повторение видеосообщений и видео в чатах.",
+  "energy_saving_autoplay_gif_title": "Автозапуск GIF",
+  "energy_saving_autoplay_gif_subtitle": "Автозапуск и повторение GIF в чатах и на клавиатуре.",
+  "energy_saving_animated_stickers_title": "Анимированные стикеры",
+  "energy_saving_animated_stickers_subtitle": "Повторяющаяся анимация стикеров и полноэкранные эффекты Premium-стикеров.",
+  "energy_saving_animated_emoji_title": "Анимированные эмодзи",
+  "energy_saving_animated_emoji_subtitle": "Повторяющаяся анимация эмодзи в сообщениях, реакциях и статусах.",
+  "energy_saving_interface_animations_title": "Анимации интерфейса",
+  "energy_saving_interface_animations_subtitle": "Эффекты и анимации, которые делают LighChat плавнее и выразительнее.",
+  "energy_saving_media_preload_title": "Предзагрузка медиа",
+  "energy_saving_media_preload_subtitle": "Запуск загрузки медиафайлов при входе в список чатов.",
+  "energy_saving_background_update_title": "Обновление в фоне",
+  "energy_saving_background_update_subtitle": "Быстрое обновление чатов при переключении между приложениями."
 }

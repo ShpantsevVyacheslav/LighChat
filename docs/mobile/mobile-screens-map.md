@@ -20,6 +20,7 @@
 | `/settings/chats` | `ChatSettingsScreen` | [`chat_settings_screen.dart`](../../mobile/app/lib/features/chat/ui/chat_settings_screen.dart) |
 | `/settings/notifications` | `ChatNotificationsScreen` | [`chat_notifications_screen.dart`](../../mobile/app/lib/features/chat/ui/chat_notifications_screen.dart) |
 | `/settings/privacy` | `ChatPrivacyScreen` | [`chat_privacy_screen.dart`](../../mobile/app/lib/features/chat/ui/chat_privacy_screen.dart) |
+| `/settings/energy-saving` | `EnergySavingScreen` | [`energy_saving_screen.dart`](../../mobile/app/lib/features/settings/ui/energy_saving_screen.dart) |
 | `/chats/new` | `NewChatScreen` | [`new_chat_screen.dart`](../../mobile/app/lib/features/chat/ui/new_chat_screen.dart) |
 | `/chats/new/group` | `NewGroupChatScreen` | [`new_group_chat_screen.dart`](../../mobile/app/lib/features/chat/ui/new_group_chat_screen.dart) |
 | `/chats/forward` | `ChatForwardScreen` | [`chat_forward_screen.dart`](../../mobile/app/lib/features/chat/ui/chat_forward_screen.dart) |

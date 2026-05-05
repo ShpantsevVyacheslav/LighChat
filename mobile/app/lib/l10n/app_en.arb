@@ -3909,5 +3909,42 @@
   "welcomeSkip": "Skip",
   "welcomeReplayDebugTile": "Replay welcome animation (debug)",
   "sticker_scope_library": "Library",
-  "sticker_library_search_hint": "Search stickers..."
+  "sticker_library_search_hint": "Search stickers...",
+  "account_menu_energy_saving": "Power saving",
+  "energy_saving_title": "Power saving",
+  "energy_saving_section_mode": "Power saving mode",
+  "energy_saving_section_resource_heavy": "Resource-heavy processes",
+  "energy_saving_threshold_off": "Off",
+  "energy_saving_threshold_always": "On",
+  "energy_saving_threshold_off_full": "Never",
+  "energy_saving_threshold_always_full": "Always",
+  "energy_saving_threshold_at": "When battery is below {percent}%",
+  "@energy_saving_threshold_at": {
+    "placeholders": {"percent": {"type": "int"}}
+  },
+  "energy_saving_hint_off": "Resource-heavy effects are never auto-disabled.",
+  "energy_saving_hint_always": "Resource-heavy effects are always disabled regardless of battery level.",
+  "energy_saving_hint_threshold": "Automatically disable all resource-heavy processes when battery drops below {percent}%.",
+  "@energy_saving_hint_threshold": {
+    "placeholders": {"percent": {"type": "int"}}
+  },
+  "energy_saving_current_battery": "Current battery: {percent}%",
+  "@energy_saving_current_battery": {
+    "placeholders": {"percent": {"type": "int"}}
+  },
+  "energy_saving_active_now": "mode is active",
+  "energy_saving_autoplay_video_title": "Autoplay videos",
+  "energy_saving_autoplay_video_subtitle": "Autoplay and loop video messages and videos in chats.",
+  "energy_saving_autoplay_gif_title": "Autoplay GIFs",
+  "energy_saving_autoplay_gif_subtitle": "Autoplay and loop GIFs in chats and on the keyboard.",
+  "energy_saving_animated_stickers_title": "Animated stickers",
+  "energy_saving_animated_stickers_subtitle": "Looped sticker animations and full-screen Premium sticker effects.",
+  "energy_saving_animated_emoji_title": "Animated emoji",
+  "energy_saving_animated_emoji_subtitle": "Looped emoji animation in messages, reactions and statuses.",
+  "energy_saving_interface_animations_title": "Interface animations",
+  "energy_saving_interface_animations_subtitle": "Effects and animations that make LighChat smoother and more expressive.",
+  "energy_saving_media_preload_title": "Media preload",
+  "energy_saving_media_preload_subtitle": "Start downloading media files when opening the chat list.",
+  "energy_saving_background_update_title": "Background update",
+  "energy_saving_background_update_subtitle": "Quick chat updates when switching between apps."
 }

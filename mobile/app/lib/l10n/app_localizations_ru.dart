@@ -7689,4 +7689,103 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sticker_library_search_hint => 'Поиск стикеров…';
+
+  @override
+  String get account_menu_energy_saving => 'Энергосбережение';
+
+  @override
+  String get energy_saving_title => 'Энергосбережение';
+
+  @override
+  String get energy_saving_section_mode => 'Режим энергосбережения';
+
+  @override
+  String get energy_saving_section_resource_heavy => 'Ресурсоёмкие процессы';
+
+  @override
+  String get energy_saving_threshold_off => 'Выкл.';
+
+  @override
+  String get energy_saving_threshold_always => 'Вкл.';
+
+  @override
+  String get energy_saving_threshold_off_full => 'Никогда';
+
+  @override
+  String get energy_saving_threshold_always_full => 'Всегда';
+
+  @override
+  String energy_saving_threshold_at(int percent) {
+    return 'При заряде менее $percent%';
+  }
+
+  @override
+  String get energy_saving_hint_off =>
+      'Ресурсоёмкие эффекты никогда не отключаются автоматически.';
+
+  @override
+  String get energy_saving_hint_always =>
+      'Ресурсоёмкие эффекты всегда отключены, независимо от уровня заряда.';
+
+  @override
+  String energy_saving_hint_threshold(int percent) {
+    return 'Автоматически отключать все ресурсоёмкие процессы при заряде менее $percent%.';
+  }
+
+  @override
+  String energy_saving_current_battery(int percent) {
+    return 'Текущий заряд: $percent%';
+  }
+
+  @override
+  String get energy_saving_active_now => 'режим активен';
+
+  @override
+  String get energy_saving_autoplay_video_title => 'Автозапуск видео';
+
+  @override
+  String get energy_saving_autoplay_video_subtitle =>
+      'Автозапуск и повторение видеосообщений и видео в чатах.';
+
+  @override
+  String get energy_saving_autoplay_gif_title => 'Автозапуск GIF';
+
+  @override
+  String get energy_saving_autoplay_gif_subtitle =>
+      'Автозапуск и повторение GIF в чатах и на клавиатуре.';
+
+  @override
+  String get energy_saving_animated_stickers_title => 'Анимированные стикеры';
+
+  @override
+  String get energy_saving_animated_stickers_subtitle =>
+      'Повторяющаяся анимация стикеров и полноэкранные эффекты Premium-стикеров.';
+
+  @override
+  String get energy_saving_animated_emoji_title => 'Анимированные эмодзи';
+
+  @override
+  String get energy_saving_animated_emoji_subtitle =>
+      'Повторяющаяся анимация эмодзи в сообщениях, реакциях и статусах.';
+
+  @override
+  String get energy_saving_interface_animations_title => 'Анимации интерфейса';
+
+  @override
+  String get energy_saving_interface_animations_subtitle =>
+      'Эффекты и анимации, которые делают LighChat плавнее и выразительнее.';
+
+  @override
+  String get energy_saving_media_preload_title => 'Предзагрузка медиа';
+
+  @override
+  String get energy_saving_media_preload_subtitle =>
+      'Запуск загрузки медиафайлов при входе в список чатов.';
+
+  @override
+  String get energy_saving_background_update_title => 'Обновление в фоне';
+
+  @override
+  String get energy_saving_background_update_subtitle =>
+      'Быстрое обновление чатов при переключении между приложениями.';
 }

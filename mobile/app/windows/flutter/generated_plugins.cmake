@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  battery_plus
   cloud_firestore
   emoji_picker_flutter
   file_selector_windows
