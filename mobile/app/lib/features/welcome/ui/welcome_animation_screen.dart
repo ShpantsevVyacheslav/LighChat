@@ -13,7 +13,7 @@ import '../../features_tour/data/features_tour_storage.dart';
 import 'welcome_painters.dart';
 
 /// Master timeline ≈ 8s. Все фазы — нормализованные к [0..1] окна.
-const Duration _kTotalDuration = Duration(milliseconds: 8000);
+const Duration _kTotalDuration = Duration(milliseconds: 8700);
 const Duration _kReducedMotionHold = Duration(milliseconds: 1000);
 
 class WelcomeAnimationScreen extends StatefulWidget {
@@ -49,22 +49,22 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
 
   void _onTick() {
     final t = _controller.value;
-    if (t > 0.18 && _hapticFired.add('lighthouse')) {
+    if (t > 0.172 && _hapticFired.add('lighthouse')) {
       HapticFeedback.selectionClick();
     }
-    if (t > 0.42 && _hapticFired.add('keeper')) {
+    if (t > 0.294 && _hapticFired.add('keeper')) {
       HapticFeedback.lightImpact();
     }
-    if (t > 0.50 && _hapticFired.add('crab')) {
+    if (t > 0.368 && _hapticFired.add('crab')) {
       HapticFeedback.selectionClick();
     }
-    if (t > 0.66 && _hapticFired.add('throw')) {
+    if (t > 0.515 && _hapticFired.add('throw')) {
       HapticFeedback.mediumImpact();
     }
-    if (t > 0.81 && _hapticFired.add('bubble')) {
+    if (t > 0.653 && _hapticFired.add('bubble')) {
       HapticFeedback.lightImpact();
     }
-    if (t > 0.94 && _hapticFired.add('logo')) {
+    if (t > 0.822 && _hapticFired.add('logo')) {
       HapticFeedback.mediumImpact();
     }
   }
@@ -253,7 +253,7 @@ class _AnimatedStage extends StatelessWidget {
         return LayoutBuilder(
           builder: (context, c) {
             final size = Size(c.maxWidth, c.maxHeight);
-            final sceneFade = _interval(t, 0.92, 1.0).clamp(0.0, 1.0);
+            final sceneFade = _interval(t, 0.754, 0.828).clamp(0.0, 1.0);
             final l10n = AppLocalizations.of(context);
             return Stack(
               fit: StackFit.expand,
@@ -324,7 +324,7 @@ class _StarsLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fade = _ease(t, 0, 0.13, Curves.easeOut);
+    final fade = _ease(t, 0, 0.037, Curves.easeOut);
     return CustomPaint(
       painter: StarsPainter(t: t, seeds: kStarSeeds, fade: fade),
     );
@@ -337,7 +337,7 @@ class _MoonLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = _ease(t, 0.04, 0.18, Curves.easeOut) * 0.95;
+    final p = _ease(t, 0.006, 0.061, Curves.easeOut) * 0.95;
     return CustomPaint(painter: MoonPainter(opacity: p));
   }
 }
@@ -348,7 +348,7 @@ class _SeaLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = _ease(t, 0.07, 0.20, Curves.easeOut);
+    final p = _ease(t, 0.012, 0.080, Curves.easeOut);
     return CustomPaint(painter: SeaPainter(opacity: p, t: t));
   }
 }
@@ -360,7 +360,7 @@ class _IslandLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = _ease(t, 0.10, 0.28, Curves.easeOutCubic);
+    final p = _ease(t, 0.024, 0.098, Curves.easeOutCubic);
     return Opacity(
       opacity: p,
       child: Transform.translate(
@@ -378,9 +378,9 @@ class _LighthouseLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = _ease(t, 0.24, 0.44, Curves.easeOutCubic);
-    final beamI = _ease(t, 0.30, 0.46, Curves.easeOut);
-    final beamAngle = -0.4 + (t - 0.24) * 1.2;
+    final p = _ease(t, 0.080, 0.172, Curves.easeOutCubic);
+    final beamI = _ease(t, 0.098, 0.184, Curves.easeOut);
+    final beamAngle = -0.4 + (t - 0.080) * 1.2;
 
     final lhWidth = size.width * 0.36;
     final lhHeight = size.height * 0.55;
@@ -428,9 +428,9 @@ class _KeeperLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appear = _ease(t, 0.40, 0.54, Curves.easeOutBack);
-    final visible = _ease(t, 0.40, 0.50, Curves.easeOut);
-    final throwP = _ease(t, 0.56, 0.69, Curves.easeInOut);
+    final appear = _ease(t, 0.276, 0.405, Curves.easeOutBack);
+    final visible = _ease(t, 0.276, 0.368, Curves.easeOut);
+    final throwP = _ease(t, 0.423, 0.543, Curves.easeInOut);
 
     final kw = size.width * 0.16;
     final kh = size.height * 0.15;
@@ -462,13 +462,13 @@ class _CrabLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appear = _ease(t, 0.48, 0.62, Curves.easeOutBack);
-    final visible = _ease(t, 0.48, 0.58, Curves.easeOut);
+    final appear = _ease(t, 0.349, 0.478, Curves.easeOutBack);
+    final visible = _ease(t, 0.349, 0.441, Curves.easeOut);
     if (visible <= 0.001) return const SizedBox.shrink();
 
     final cw = size.width * 0.20;
     final ch = size.height * 0.075;
-    final bob = math.sin((t - 0.48) * math.pi * 8) * 2.0;
+    final bob = math.sin((t - 0.349) * math.pi * 8) * 2.0;
     final left = size.width * 0.20;
     final top = size.height * 0.84 + bob;
 
@@ -481,7 +481,7 @@ class _CrabLayer extends StatelessWidget {
       pupil = Offset(dx.clamp(-1.0, 1.0), dy.clamp(-1.0, 1.0));
     }
 
-    final wavePh = (t - 0.48) * math.pi * 6;
+    final wavePh = (t - 0.349) * math.pi * 6;
     final lWave = -15 + math.sin(wavePh) * 18;
     final rWave = 20 + math.sin(wavePh + math.pi) * 18;
 
@@ -525,9 +525,9 @@ class _PlaneLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appear = _ease(t, 0.66, 0.69, Curves.easeOutBack);
-    final flight = _ease(t, 0.66, 0.81, Curves.easeInOutCubic);
-    final morphOut = _ease(t, 0.79, 0.83, Curves.easeInOut);
+    final appear = _ease(t, 0.515, 0.543, Curves.easeOutBack);
+    final flight = _ease(t, 0.515, 0.653, Curves.easeInOutCubic);
+    final morphOut = _ease(t, 0.634, 0.671, Curves.easeInOut);
     final visibility = (appear * (1 - morphOut)).clamp(0.0, 1.0);
 
     if (visibility <= 0.001) {
@@ -605,9 +605,9 @@ class _BubbleLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final morphIn = _ease(t, 0.79, 0.86, Curves.elasticOut);
+    final morphIn = _ease(t, 0.634, 0.699, Curves.elasticOut);
     if (morphIn <= 0.001) return const SizedBox.shrink();
-    final typing = _ease(t, 0.81, 0.87, Curves.easeOut);
+    final typing = _ease(t, 0.653, 0.708, Curves.easeOut);
 
     final bubbleWidth = size.width * 0.72;
     final centerX = _target.dx * size.width;
@@ -724,8 +724,8 @@ class _FinalLogoLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final logoP = _ease(t, 0.93, 1.00, Curves.easeOutBack);
-    final wmP = _ease(t, 0.96, 1.00, Curves.easeOut);
+    final logoP = _ease(t, 0.763, 0.828, Curves.easeOutBack);
+    final wmP = _ease(t, 0.791, 0.828, Curves.easeOut);
     if (logoP <= 0.001) return const SizedBox.shrink();
     final logoSide = size.width * 0.55;
     return IgnorePointer(
