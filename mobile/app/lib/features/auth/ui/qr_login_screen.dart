@@ -465,9 +465,17 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
         // qr_flutter `embeddedImage`, который даёт некрасивые артефакты на
         // тёмном фоне) — чёткий PNG в белом круге. ECC поднят до high,
         // чтобы 30% перекрытие данных оставалось восстанавливаемым.
+        //
+        // Порядок слоёв критически важен:
+        //   [0] QR (модули)
+        //   [1] shimmer-overlay (полупрозрачная диагональная полоса)
+        //   [2] **маяк сверху всех** — чтобы shimmer его не затирал
+        // Иначе анимированный «луч» с alpha 30-40% ослабляет PNG до
+        // полупрозрачности, и в release-сборке он визуально пропадает.
         final qrColor = dark ? Colors.white : Colors.black;
         return Stack(
           alignment: Alignment.center,
+          fit: StackFit.passthrough,
           children: [
             QrImageView(
               data: encoded,
@@ -484,48 +492,54 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
                 color: qrColor,
               ),
             ),
-            // Брендовый маяк по центру.
-            // Размер ~14% стороны QR (≈32px при 232px QR) — это хорошо
-            // ложится на ECC level H (~30% избыточности) и оставляет
-            // контраст для скана. Белый круг под PNG нужен, чтобы PNG
-            // имел чистый фон вне зависимости от того, какие модули QR
-            // оказались под ним.
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
+            // Shimmer — ПОД маяком, чтобы свет шёл по QR-модулям, но не
+            // приглушал брендовый PNG в центре.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _shineCtrl,
+                  builder: (_, __) => CustomPaint(
+                    painter: _LightSweepPainter(
+                      progress: _shineCtrl.value,
+                      color: qrColor,
+                    ),
                   ),
-                ],
-              ),
-              padding: const EdgeInsets.all(4),
-              child: Image.asset(
-                'assets/lighchat_mark.png',
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-                // Если asset вдруг недоступен в release-bundle, не валим
-                // экран — просто показываем мини-иконку маяка.
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.lightbulb_outline,
-                  size: 28,
-                  color: Color(0xFF1E3A5F),
                 ),
               ),
             ),
-            IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _shineCtrl,
-                builder: (_, __) => CustomPaint(
-                  size: Size.infinite,
-                  painter: _LightSweepPainter(
-                    progress: _shineCtrl.value,
-                    color: qrColor,
+            // Брендовый маяк — самым верхним слоем. ClipOval надёжнее, чем
+            // `BoxDecoration(shape: circle)` для clip'а содержимого в
+            // release-iOS. Тот же ассет, что в `AuthBrandHeader`.
+            SizedBox(
+              width: 56,
+              height: 56,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: ColoredBox(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: Image.asset(
+                        'assets/lighchat_mark.png',
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.lightbulb_outline,
+                          size: 32,
+                          color: Color(0xFF1E3A5F),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
