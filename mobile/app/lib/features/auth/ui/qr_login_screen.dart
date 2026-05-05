@@ -475,7 +475,10 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
         final qrColor = dark ? Colors.white : Colors.black;
         return Stack(
           alignment: Alignment.center,
-          fit: StackFit.passthrough,
+          // НЕ ставим `fit: StackFit.passthrough` — он передаёт tight
+          // constraints (304×304) во все non-positioned children, и
+          // SizedBox маяка раздувается до размера всего Stack. Default
+          // loose-fit оставляет SizedBox в его реальных размерах.
           children: [
             QrImageView(
               data: encoded,
@@ -509,34 +512,39 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
             ),
             // Брендовый маяк — самым верхним слоем.
             //
-            // Размер 28×28 (~9% стороны QR при 304px box). На ECC level H
-            // (~30% избыточности) сканер уверенно читает код, а сам маркер
-            // визуально не доминирует над QR.
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x66000000),
-                      blurRadius: 6,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: ColoredBox(
-                    // Brand navy — даёт необходимый контраст маяку независимо
-                    // от темы QR-модулей.
-                    color: Color(0xFF1E3A5F),
-                    child: Padding(
-                      padding: EdgeInsets.all(2),
-                      child: Image(
-                        image: AssetImage('assets/lighchat_mark.png'),
-                        fit: BoxFit.contain,
-                        filterQuality: FilterQuality.high,
+            // Размер 36×36 (~12% стороны QR при 304px box). Паритет с
+            // Telegram-style QR (≈12%). ECC level H (~30% избыточности)
+            // покрывает с большим запасом, сканер читает уверенно.
+            //
+            // Center-обёртка явно фиксирует layout: SizedBox получает
+            // loose-constraints от Center, а не tight от Stack — иначе
+            // SizedBox(36×36) визуально раздувается до размеров Stack.
+            const Center(
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x66000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: ColoredBox(
+                      // Brand navy — контраст маяку независимо от темы QR.
+                      color: Color(0xFF1E3A5F),
+                      child: Padding(
+                        padding: EdgeInsets.all(3),
+                        child: Image(
+                          image: AssetImage('assets/lighchat_mark.png'),
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                        ),
                       ),
                     ),
                   ),

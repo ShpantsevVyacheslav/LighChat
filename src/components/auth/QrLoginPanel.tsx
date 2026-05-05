@@ -228,12 +228,12 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
               className="pointer-events-none absolute inset-0 flex items-center justify-center"
               aria-hidden
             >
-              <div className="relative h-[28px] w-[28px] rounded-full bg-[#1E3A5F] shadow-[0_2px_6px_rgba(0,0,0,0.4)] flex items-center justify-center overflow-hidden">
+              <div className="relative h-[36px] w-[36px] rounded-full bg-[#1E3A5F] shadow-[0_2px_6px_rgba(0,0,0,0.4)] flex items-center justify-center overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/brand/lighchat-mark.png"
                   alt=""
-                  className="h-[24px] w-[24px] object-contain"
+                  className="h-[30px] w-[30px] object-contain"
                   draggable={false}
                 />
               </div>
