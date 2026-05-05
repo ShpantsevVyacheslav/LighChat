@@ -244,7 +244,7 @@ const _kRu = FeaturesContent(
       'Короткий тур по тому, что делает LighChat быстрее, безопаснее и удобнее обычного мессенджера. Каждая фишка — на отдельной странице, с примером и шагами.',
   heroPrimary: 'Знакомьтесь с LighChat',
   heroSecondary:
-      'Сильное шифрование по умолчанию, секретные чаты с самоуничтожением, отложенные сообщения, видеовстречи и даже игры — всё в одном приложении и без рекламы.',
+      'Сквозное шифрование на выбор, секретные чаты с самоуничтожением, отложенные сообщения, видеовстречи и даже игры — всё в одном приложении и без рекламы.',
   highlightTitle: 'Самое полезное',
   highlightSubtitle: 'Пять возможностей, ради которых пользователи остаются с LighChat.',
   moreTitle: 'Ещё интересного',
@@ -260,16 +260,16 @@ const _kRu = FeaturesContent(
   welcomePrimaryCta: 'Посмотреть',
   welcomeSecondaryCta: 'Позже',
   welcomeBullets: [
-    'Сквозное шифрование сообщений и звонков',
+    'Сквозное шифрование чатов и звонков на выбор',
     'Секретные чаты с самоуничтожением',
     'Игры и видеовстречи прямо в чате',
   ],
   topics: {
     FeatureTopicId.encryption: FeatureTopicContent(
       title: 'Сквозное шифрование',
-      tagline: 'Сообщения видите только вы и собеседник.',
+      tagline: 'Включите — и сообщения видите только вы и собеседник.',
       summary:
-          'В LighChat сквозное шифрование (E2EE) включается автоматически для каждого личного чата и звонка. Сообщения и медиа зашифровываются прямо на вашем устройстве и расшифровываются только у получателя — серверы не видят содержимого даже технически.',
+          'Сквозное шифрование (E2EE) в LighChat — отдельный включаемый режим. Можно включить его глобально для всех новых чатов или только для конкретного диалога. Когда E2EE активен, сообщения и медиа шифруются прямо на вашем устройстве и расшифровываются только у получателя — серверы не видят содержимого даже технически.',
       ctaLabel: 'Перейти к устройствам',
       sections: [
         FeatureSection(
@@ -283,8 +283,8 @@ const _kRu = FeaturesContent(
               'Каждое устройство имеет свой отпечаток ключа — короткий код. Сравните его с собеседником лично или по другому каналу: если коды совпали, между вами нет «третьего». Это та же модель доверия, что используют Signal и WhatsApp в безопасных чатах.',
         ),
         FeatureSection(
-          title: 'Шифруется всё, что важно',
-          body: 'Шифруются не только текстовые сообщения. В личных чатах под защиту попадают голосовые, видео-кружки, фото, видео, файлы, превью ссылок и стикеры — без переключения режимов.',
+          title: 'Включается там, где нужно',
+          body: 'В Настройках можно включить E2EE для всех новых чатов разом, а в шапке любого диалога — для конкретной переписки. Когда режим активен, под защиту попадает всё содержимое чата, не только текст:',
           bullets: [
             'Текстовые сообщения и реакции',
             'Голосовые и видео-кружки',
@@ -299,9 +299,9 @@ const _kRu = FeaturesContent(
         ),
       ],
       howTo: [
-        'Откройте Настройки → Устройства.',
-        'Проверьте список устройств и отпечатки ключей.',
-        'Уберите устройства, которыми больше не пользуетесь.',
+        'В Настройках → Конфиденциальность включите E2EE по умолчанию для новых чатов.',
+        'Чтобы включить шифрование в существующем чате — откройте шапку и пункт «Шифрование».',
+        'В Настройках → Устройства сравните отпечатки ключей и включите резервную копию.',
       ],
     ),
     FeatureTopicId.secretChats: FeatureTopicContent(
@@ -454,7 +454,7 @@ const _kRu = FeaturesContent(
       title: 'Звонки и видео-кружки',
       tagline: 'От голосового до видео-открытки за секунду.',
       summary:
-          'Качественные 1:1-звонки на WebRTC с шифрованием по умолчанию и короткие видео-кружки прямо в ленте чата — для быстрых реплик, когда печатать долго, а голосового мало. Лицо, эмоция, голос — всё за пару секунд.',
+          'Качественные 1:1-звонки на WebRTC и короткие видео-кружки прямо в ленте чата — для быстрых реплик, когда печатать долго, а голосового мало. Лицо, эмоция, голос — всё за пару секунд. В чате со включённым E2EE звонки и кружки тоже идут зашифрованными.',
       ctaLabel: 'История звонков',
       sections: [
         FeatureSection(
@@ -466,8 +466,8 @@ const _kRu = FeaturesContent(
           body: 'Запишите кружок до 60 секунд: лицо, эмоция, короткий комментарий. Получатель смотрит прямо в ленте — кружок играет автоматически, без полноэкранного режима и распаковки.',
         ),
         FeatureSection(
-          title: 'Сквозное шифрование',
-          body: 'И звонки, и кружки шифруются от устройства до устройства. Серверу не достаётся ни звук, ни картинка — только зашифрованный поток для доставки.',
+          title: 'Сквозное шифрование, когда включено',
+          body: 'Если в чате включён E2EE, звонки и кружки идут от устройства до устройства зашифрованными — серверу не достаётся ни звук, ни картинка. Включите шифрование в шапке чата, и звонки и кружки автоматически подхватят защиту.',
         ),
       ],
       howTo: [
@@ -637,23 +637,23 @@ const _kEn = FeaturesContent(
   welcomePrimaryCta: 'Take a look',
   welcomeSecondaryCta: 'Later',
   welcomeBullets: [
-    'End-to-end encrypted messages and calls',
+    'Opt-in end-to-end encryption for chats and calls',
     'Secret chats that self-destruct',
     'Games and video meetings inside chat',
   ],
   topics: {
     FeatureTopicId.encryption: FeatureTopicContent(
       title: 'End-to-end encryption',
-      tagline: 'Only you and the recipient can read it.',
+      tagline: 'Turn it on — and only you and the recipient can read it.',
       summary:
-          'Every personal message and call is encrypted on your device and decrypted only on the other side.',
+          'E2EE in LighChat is an opt-in mode. Enable it globally for every new chat or just for one specific conversation. While E2EE is on, messages and media are encrypted on your device and decrypted only on the other side.',
       ctaLabel: 'Open devices',
       sections: [
         FeatureSection(title: 'Nobody else reads it', body: 'Keys live on your devices only.'),
         FeatureSection(title: 'Verify your peer', body: 'Compare the device fingerprint with your peer.'),
         FeatureSection(
-          title: 'Encrypts everything',
-          body: 'Encryption turns on automatically for text, voice, photos, files and media.',
+          title: 'Turn it on where you need it',
+          body: 'Enable E2EE for every new chat in Settings, or turn it on per-chat from the chat header. While the mode is on, everything in that chat travels encrypted:',
           bullets: [
             'Text messages and reactions',
             'Voice and video circles',
@@ -662,7 +662,11 @@ const _kEn = FeaturesContent(
           ],
         ),
       ],
-      howTo: ['Open Settings → Devices.', 'Review your devices and key fingerprints.', 'Remove devices you no longer use.'],
+      howTo: [
+        'In Settings → Privacy enable E2EE by default for new chats.',
+        'For an existing chat, open the header and pick Encryption.',
+        'In Settings → Devices compare key fingerprints with your peer.',
+      ],
     ),
     FeatureTopicId.secretChats: FeatureTopicContent(
       title: 'Secret chats',
@@ -736,11 +740,16 @@ const _kEn = FeaturesContent(
     FeatureTopicId.calls: FeatureTopicContent(
       title: 'Calls and video circles',
       tagline: 'From a voice call to a video postcard in a second.',
-      summary: 'High-quality 1:1 WebRTC calls and short video circles.',
+      summary:
+          'High-quality 1:1 WebRTC calls and short video circles in the chat feed. In chats where E2EE is on, calls and circles travel encrypted too.',
       ctaLabel: 'Call history',
       sections: [
         FeatureSection(title: 'Stable quality', body: 'Switches networks gracefully.'),
         FeatureSection(title: 'Video circles', body: 'Up to 60 seconds, plays inline.'),
+        FeatureSection(
+          title: 'End-to-end encrypted when enabled',
+          body: 'When E2EE is on in a chat, calls and circles travel device-to-device — no audio or video reaches the server.',
+        ),
       ],
       howTo: ['Tap the phone or camera icon.', 'For a circle: long-press the record button.', 'Release to send.'],
     ),

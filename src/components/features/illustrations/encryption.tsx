@@ -19,7 +19,7 @@ export function MockEncryption({
         {!compact ? (
           <div className="mx-auto mb-1 flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-500 dark:text-emerald-400">
             <ShieldCheck className="h-3 w-3" aria-hidden />
-            Сообщения зашифрованы
+            Шифрование включено в этом чате
           </div>
         ) : null}
         <MockMessageBubble side="incoming" text="Привет! Это точно ты?" time="12:31" delayMs={0} />
