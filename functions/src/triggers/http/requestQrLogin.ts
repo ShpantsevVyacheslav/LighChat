@@ -33,6 +33,10 @@ export type RequestQrLoginInput = {
 export type RequestQrLoginContext = {
   ip?: string;
   userAgent?: string;
+  /** ISO-2 country код, обычно из заголовка `X-Appengine-Country`. */
+  country?: string;
+  /** Город из заголовка `X-Appengine-City` (если доступен). */
+  city?: string;
 };
 
 export type RequestQrLoginResult = {
@@ -113,6 +117,8 @@ export async function runRequestQrLogin(
     expiresAt: expiresAtIso,
     ip: (ctx.ip || "").slice(0, 64),
     userAgent: (ctx.userAgent || "").slice(0, 256),
+    country: (ctx.country || "").slice(0, 8),
+    city: (ctx.city || "").slice(0, 64),
   });
 
   return {
@@ -133,11 +139,20 @@ export const requestQrLogin = onCall(
       Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
     const ip = request.rawRequest?.ip || ipFromXff || "";
     const ua = typeof headers["user-agent"] === "string" ? headers["user-agent"] : "";
+    // Google Cloud Functions/App Hosting проставляет эти заголовки на основе
+    // GeoIP клиентского запроса. Бесплатно и без external API — отлично для
+    // показа «последняя локация» на странице устройств.
+    const country = typeof headers["x-appengine-country"] === "string" ?
+      headers["x-appengine-country"] :
+      "";
+    const city = typeof headers["x-appengine-city"] === "string" ?
+      headers["x-appengine-city"] :
+      "";
     try {
       return await runRequestQrLogin(
         admin.firestore(),
         request.data as RequestQrLoginInput,
-        { ip, userAgent: ua }
+        { ip, userAgent: ua, country, city }
       );
     } catch (e) {
       if (e instanceof HttpsError) throw e;

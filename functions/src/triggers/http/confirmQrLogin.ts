@@ -150,6 +150,26 @@ export async function runConfirmQrLogin(
     throw new HttpsError("internal", "Could not write approval.");
   }
 
+  // Best-effort: записываем геолокацию устройства в e2eeDevices, чтобы UI
+  // на странице «Устройства» мог показать «последний вход: <city>, <country>».
+  // Если запись падает — не валим весь approve.
+  try {
+    const newDeviceId = typeof docData.deviceId === "string" ? docData.deviceId : "";
+    if (newDeviceId.length >= 4) {
+      const country = typeof docData.country === "string" ? docData.country : "";
+      const city = typeof docData.city === "string" ? docData.city : "";
+      const ip = typeof docData.ip === "string" ? docData.ip : "";
+      await db.doc(`users/${uid}/e2eeDevices/${newDeviceId}`).set({
+        lastLoginAt: approvedAtIso,
+        lastLoginCountry: country,
+        lastLoginCity: city,
+        lastLoginIp: ip,
+      }, { merge: true });
+    }
+  } catch (e) {
+    logger.warn("confirmQrLogin: failed to enrich e2eeDevice with location", e);
+  }
+
   return {
     state: "approved",
     uid,

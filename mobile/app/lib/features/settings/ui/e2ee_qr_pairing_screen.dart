@@ -38,6 +38,11 @@ import '../../shared/ui/app_back_button.dart';
 
 enum _Mode { pick, initiator, donor }
 
+/// Публичный enum для роута: позволяет открыть экран сразу в режиме
+/// сканера (когда `/settings/e2ee-qr-pairing?mode=donor` вызывается
+/// со страницы устройств — там promot pick не нужен).
+enum E2eeQrPairingInitialMode { pick, donor }
+
 enum _InitiatorStage { starting, waiting, awaitingAccept, completed, error }
 
 enum _DonorStage { scanning, confirming, done, error }
@@ -49,14 +54,21 @@ enum _DonorStage { scanning, confirming, done, error }
 enum _LoginLinkStage { idle, awaitingApprove, confirming, syncing, done, error }
 
 class E2eeQrPairingScreen extends ConsumerStatefulWidget {
-  const E2eeQrPairingScreen({super.key});
+  const E2eeQrPairingScreen({
+    super.key,
+    this.initialMode = E2eeQrPairingInitialMode.pick,
+  });
+
+  final E2eeQrPairingInitialMode initialMode;
 
   @override
   ConsumerState<E2eeQrPairingScreen> createState() => _E2eeQrPairingScreenState();
 }
 
 class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
-  _Mode _mode = _Mode.pick;
+  late _Mode _mode = widget.initialMode == E2eeQrPairingInitialMode.donor
+      ? _Mode.donor
+      : _Mode.pick;
 
   // INITIATOR state
   MobileInitiatorSession? _initSession;

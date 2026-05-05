@@ -10,11 +10,7 @@
 ///    с прогрессом; ошибки по отдельным чатам не прерывают общий процесс.
 library;
 
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +18,6 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
-import '../../shared/ui/app_back_button.dart';
 import '../../../l10n/app_localizations.dart';
 
 class DevicesScreen extends ConsumerStatefulWidget {
@@ -85,23 +80,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _loadError = e.toString());
-    }
-  }
-
-  String _shortFingerprint(String spkiB64) {
-    try {
-      final bytes = base64.decode(spkiB64);
-      final hash = sha256.convert(Uint8List.fromList(bytes));
-      final hex = hash.toString();
-      final head = hex.substring(0, 24).toUpperCase();
-      final buf = StringBuffer();
-      for (var i = 0; i < head.length; i += 4) {
-        if (i > 0) buf.write(' ');
-        buf.write(head.substring(i, i + 4));
-      }
-      return buf.toString();
-    } catch (_) {
-      return '';
     }
   }
 
@@ -258,65 +236,93 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
+    final titleColor = dark
+        ? Colors.white.withValues(alpha: 0.95)
+        : scheme.onSurface.withValues(alpha: 0.94);
     return Scaffold(
       body: AuthBackground(
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 2),
-              const Row(
-                children: [
-                  AppBackButton(fallbackLocation: '/settings/privacy'),
-                ],
+              const SizedBox(height: 8),
+              // Шапка как в Privacy/Notifications: круглая кнопка-стрелка +
+              // компактный жирный заголовок слева.
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Material(
+                      color: (dark ? Colors.white : scheme.surface).withValues(
+                        alpha: dark ? 0.08 : 0.74,
+                      ),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/account');
+                          }
+                        },
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            Icons.chevron_left_rounded,
+                            size: 30,
+                            color: titleColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      l10n.devices_title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 1.1,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 20),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        l10n.devices_title,
-                        style: TextStyle(
-                          fontSize: 38,
-                          height: 1.06,
-                          fontWeight: FontWeight.w800,
-                          color: dark ? Colors.white : scheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.devices_subtitle,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: dark
-                              ? Colors.white.withValues(alpha: 0.7)
-                              : scheme.onSurface.withValues(alpha: 0.65),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
+                      _DevicesSettingsCard(
+                        title: l10n.devices_title,
+                        subtitle: l10n.devices_subtitle,
+                        leadingIcon: Icons.smartphone_rounded,
                         children: [
-                          FilledButton.tonalIcon(
-                            icon: const Icon(Icons.qr_code_2),
-                            onPressed: () =>
-                                context.push('/settings/e2ee-qr-pairing'),
-                            label: Text(l10n.devices_connect_new_device),
-                          ),
-                          // Доступ к password-backup'у ключей перенесён сюда
-                          // со страницы «Конфиденциальность» (web-паритет).
-                          FilledButton.tonalIcon(
-                            icon: const Icon(Icons.vpn_key_outlined),
-                            onPressed: () =>
-                                context.push('/settings/e2ee-recovery'),
-                            label: Text(l10n.privacy_key_backup_title),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              FilledButton.tonalIcon(
+                                icon: const Icon(Icons.qr_code_scanner),
+                                onPressed: () => context.push(
+                                  '/settings/e2ee-qr-pairing?mode=donor',
+                                ),
+                                label: Text(l10n.devices_connect_new_device),
+                              ),
+                              FilledButton.tonalIcon(
+                                icon: const Icon(Icons.vpn_key_outlined),
+                                onPressed: () =>
+                                    context.push('/settings/e2ee-recovery'),
+                                label: Text(l10n.privacy_key_backup_title),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       if (_loadError != null)
                         Text(
                           _loadError!,
@@ -330,11 +336,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                           ),
                         ),
                       if (_devices != null && _devices!.isEmpty)
-                        Text(
-                          l10n.devices_empty,
-                          style: TextStyle(
-                            color: dark ? Colors.white70 : Colors.black54,
-                          ),
+                        _DevicesSettingsCard(
+                          title: l10n.devices_empty,
+                          children: const [SizedBox.shrink()],
                         ),
                       if (_devices != null)
                         for (final d in _devices!)
@@ -342,12 +346,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _DeviceCard(
                               device: d,
-                              isCurrent:
-                                  _identity?.deviceId == d.deviceId,
-                              fingerprint:
-                                  _shortFingerprint(d.publicKeySpkiB64),
-                              createdAt: _formatDate(d.createdAt),
+                              isCurrent: _identity?.deviceId == d.deviceId,
                               lastSeenAt: _formatDate(d.lastSeenAt),
+                              location: _deviceLocationLabel(d),
                               onRename: () => _onRename(d),
                               onRevoke: _revoking ? null : () => _onRevoke(d),
                             ),
@@ -360,7 +361,8 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                               const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               ),
                               const SizedBox(width: 10),
                               Text(
@@ -387,26 +389,59 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       ),
     );
   }
+
+  /// Достаёт подпись для локации устройства из доступных полей.
+  /// Сейчас в `e2eeDevices` локация не сохраняется — возвращаем `null`,
+  /// и UI не показывает строку. Ниже Cloud Function `confirmQrLogin`
+  /// заполнит `lastLoginCity` / `lastLoginCountry` из CF-headers
+  /// (`X-Appengine-Country`/`-City`).
+  String? _deviceLocationLabel(E2eeDeviceDoc device) {
+    // ignore: avoid_dynamic_calls
+    final dyn = device as dynamic;
+    String? city;
+    String? country;
+    try {
+      city = dyn.lastLoginCity as String?;
+    } catch (_) {}
+    try {
+      country = dyn.lastLoginCountry as String?;
+    } catch (_) {}
+    final parts = <String>[
+      if (city != null && city.isNotEmpty) city,
+      if (country != null && country.isNotEmpty) country.toUpperCase(),
+    ];
+    return parts.isEmpty ? null : parts.join(', ');
+  }
 }
 
 class _DeviceCard extends StatelessWidget {
   const _DeviceCard({
     required this.device,
     required this.isCurrent,
-    required this.fingerprint,
-    required this.createdAt,
     required this.lastSeenAt,
+    required this.location,
     required this.onRename,
     required this.onRevoke,
   });
 
   final E2eeDeviceDoc device;
   final bool isCurrent;
-  final String fingerprint;
-  final String createdAt;
   final String lastSeenAt;
+  final String? location;
   final VoidCallback onRename;
   final VoidCallback? onRevoke;
+
+  IconData _platformIcon(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'ios':
+        return Icons.phone_iphone_rounded;
+      case 'android':
+        return Icons.phone_android_rounded;
+      case 'web':
+      default:
+        return Icons.computer_rounded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -414,9 +449,12 @@ class _DeviceCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final isRevoked = device.revoked;
+    final mutedColor =
+        (dark ? Colors.white : scheme.onSurface).withValues(alpha: 0.62);
+
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         color: (dark ? const Color(0xFF08111B) : Colors.white).withValues(
           alpha: dark ? 0.86 : 0.84,
         ),
@@ -429,57 +467,84 @@ class _DeviceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  device.label.isNotEmpty ? device.label : device.deviceId,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: dark ? Colors.white : scheme.onSurface,
-                  ),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.primary.withValues(alpha: 0.14),
                 ),
-              ),
-              _TinyChip(
-                label: device.platform.toUpperCase(),
-                color: scheme.primary.withValues(alpha: 0.15),
-                textColor: scheme.primary,
-              ),
-              if (isCurrent && !isRevoked) ...[
-                const SizedBox(width: 6),
-                _TinyChip(
-                  label: l10n.devices_chip_current,
+                child: Icon(
+                  _platformIcon(device.platform),
+                  size: 18,
                   color: scheme.primary,
-                  textColor: scheme.onPrimary,
                 ),
-              ],
-              if (isRevoked) ...[
-                const SizedBox(width: 6),
-                _TinyChip(
-                  label: l10n.devices_chip_revoked,
-                  color: scheme.error.withValues(alpha: 0.15),
-                  textColor: scheme.error,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      device.label.isNotEmpty ? device.label : device.deviceId,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: dark ? Colors.white : scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      children: [
+                        if (isCurrent && !isRevoked)
+                          _TinyChip(
+                            label: l10n.devices_chip_current,
+                            color: scheme.primary,
+                            textColor: scheme.onPrimary,
+                          ),
+                        if (isRevoked)
+                          _TinyChip(
+                            label: l10n.devices_chip_revoked,
+                            color: scheme.error.withValues(alpha: 0.15),
+                            textColor: scheme.error,
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.devices_meta_created_activity(createdAt, lastSeenAt),
-            style: TextStyle(
-              fontSize: 12,
-              color: dark ? Colors.white60 : Colors.black54,
-            ),
-          ),
-          if (fingerprint.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              fingerprint,
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: 'monospace',
-                color: dark ? Colors.white60 : Colors.black54,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.access_time_rounded, size: 14, color: mutedColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  lastSeenAt,
+                  style: TextStyle(fontSize: 13, color: mutedColor),
+                ),
               ),
+            ],
+          ),
+          if (location != null && location!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.place_outlined, size: 14, color: mutedColor),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    location!,
+                    style: TextStyle(fontSize: 13, color: mutedColor),
+                  ),
+                ),
+              ],
             ),
           ],
           if (isRevoked && device.revokedAt != null) ...[
@@ -506,6 +571,83 @@ class _DeviceCard extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Карточка-обёртка в стиле `_SettingsCard` из chat_privacy_screen.dart.
+/// Дублируется здесь, потому что оригинал private в другом файле.
+class _DevicesSettingsCard extends StatelessWidget {
+  const _DevicesSettingsCard({
+    required this.title,
+    required this.children,
+    this.subtitle,
+    this.leadingIcon,
+  });
+
+  final String title;
+  final String? subtitle;
+  final List<Widget> children;
+  final IconData? leadingIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: (dark ? const Color(0xFF08111B) : Colors.white).withValues(
+          alpha: dark ? 0.86 : 0.84,
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: dark ? 0.12 : 0.44),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              if (leadingIcon != null) ...[
+                Icon(
+                  leadingIcon,
+                  size: 18,
+                  color: dark
+                      ? Colors.white.withValues(alpha: 0.72)
+                      : scheme.onSurface.withValues(alpha: 0.62),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: dark ? Colors.white : scheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle!,
+              style: TextStyle(
+                fontSize: 13,
+                color: dark
+                    ? Colors.white.withValues(alpha: 0.70)
+                    : scheme.onSurface.withValues(alpha: 0.68),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          ...children,
         ],
       ),
     );

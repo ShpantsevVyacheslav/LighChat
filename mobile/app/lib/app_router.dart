@@ -349,9 +349,19 @@ GoRouter createRouter() {
         builder: (context, state) => const E2eeRecoveryScreen(),
       ),
       // Phase 9 gap #1: полноценный QR-pairing экран (initiator + donor).
+      // Query `?mode=donor` сразу открывает сканер камеры (используется
+      // из `/settings/devices` при подключении нового устройства, где
+      // показывать собственный QR не нужно).
       GoRoute(
         path: '/settings/e2ee-qr-pairing',
-        builder: (context, state) => const E2eeQrPairingScreen(),
+        builder: (context, state) {
+          final mode = state.uri.queryParameters['mode'];
+          return E2eeQrPairingScreen(
+            initialMode: mode == 'donor'
+                ? E2eeQrPairingInitialMode.donor
+                : E2eeQrPairingInitialMode.pick,
+          );
+        },
       ),
       GoRoute(
         path: '/chats/secret-inbox',
