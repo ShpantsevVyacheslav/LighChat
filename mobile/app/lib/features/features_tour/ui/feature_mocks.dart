@@ -1,6 +1,310 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../data/features_data.dart';
+
+// ===== Анимационные хелперы =====
+
+/// Бесконечно «пульсирующий» виджет — масштаб + прозрачность.
+/// Используется для пина на карте и активного спикера встречи.
+class _RepeatingPulse extends StatefulWidget {
+  const _RepeatingPulse({
+    required this.child,
+    this.minScale = 1.0,
+    this.maxScale = 2.4,
+    this.delay = Duration.zero,
+  });
+  final Widget child;
+  final double minScale;
+  final double maxScale;
+  final Duration delay;
+
+  static const Duration _duration = Duration(milliseconds: 2200);
+
+  @override
+  State<_RepeatingPulse> createState() => _RepeatingPulseState();
+}
+
+class _RepeatingPulseState extends State<_RepeatingPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: _RepeatingPulse._duration);
+    Future<void>.delayed(widget.delay, () {
+      if (mounted) _c.repeat();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (context, child) {
+        final t = _c.value;
+        final scale = widget.minScale + (widget.maxScale - widget.minScale) * t;
+        final opacity = (1.0 - t).clamp(0.0, 1.0);
+        return Transform.scale(scale: scale, child: Opacity(opacity: opacity, child: child));
+      },
+    );
+  }
+}
+
+/// Бесконечно «дышащий» виджет — лёгкое колебание прозрачности.
+class _Breathing extends StatefulWidget {
+  const _Breathing({required this.child});
+  final Widget child;
+
+  @override
+  State<_Breathing> createState() => _BreathingState();
+}
+
+class _BreathingState extends State<_Breathing> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 2))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (context, child) =>
+          Opacity(opacity: 0.55 + 0.45 * _c.value, child: child),
+    );
+  }
+}
+
+/// Печатающий индикатор — три точки, которые подпрыгивают по очереди.
+class _TypingDots extends StatefulWidget {
+  const _TypingDots();
+  static const Color _color = Color(0xFF8E8E8E);
+
+  @override
+  State<_TypingDots> createState() => _TypingDotsState();
+}
+
+class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final t = _c.value;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            final phase = (t + i / 3) % 1.0;
+            final lift = math.sin(phase * 2 * math.pi).clamp(0.0, 1.0) * 3;
+            final opacity = 0.4 + math.sin(phase * 2 * math.pi).clamp(0.0, 1.0) * 0.6;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              child: Transform.translate(
+                offset: Offset(0, -lift),
+                child: Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                      color: _TypingDots._color.withValues(alpha: opacity),
+                      shape: BoxShape.circle),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+/// Эквалайзер — N полос, каждая со своей фазой.
+class _Equalizer extends StatefulWidget {
+  const _Equalizer({this.barCount = 7, this.color = Colors.white});
+  final int barCount;
+  final Color color;
+
+  @override
+  State<_Equalizer> createState() => _EqualizerState();
+}
+
+class _EqualizerState extends State<_Equalizer> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final t = _c.value;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(widget.barCount, (i) {
+            final phase = (t + i / widget.barCount) % 1.0;
+            final h = 4 + math.sin(phase * 2 * math.pi) * 6 + 6; // 4..16
+            return Container(
+              margin: const EdgeInsets.only(left: 1),
+              width: 2,
+              height: h,
+              color: widget.color,
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+/// Перемещается «сканирующая» полоса сверху вниз — для QR.
+class _QrScanLine extends StatefulWidget {
+  const _QrScanLine({required this.height});
+  final double height;
+
+  @override
+  State<_QrScanLine> createState() => _QrScanLineState();
+}
+
+class _QrScanLineState extends State<_QrScanLine> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        return Positioned(
+          top: 4 + (widget.height - 8) * _c.value,
+          left: 4,
+          right: 4,
+          child: Container(
+            height: 2,
+            decoration: BoxDecoration(
+              color: featureAccentEmerald.withValues(alpha: 0.85),
+              boxShadow: [
+                BoxShadow(
+                    color: featureAccentEmerald.withValues(alpha: 0.6),
+                    blurRadius: 6,
+                    spreadRadius: 1),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Элемент, появляющийся снизу с opacity-fade при первой компоновке.
+class _FadeInUp extends StatefulWidget {
+  const _FadeInUp({
+    required this.child,
+    this.delay = Duration.zero,
+  });
+  final Widget child;
+  final Duration delay;
+
+  static const Duration _duration = Duration(milliseconds: 500);
+
+  @override
+  State<_FadeInUp> createState() => _FadeInUpState();
+}
+
+class _FadeInUpState extends State<_FadeInUp> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: _FadeInUp._duration);
+    Future<void>.delayed(widget.delay, () {
+      if (mounted) _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (context, child) {
+        final t = Curves.easeOut.transform(_c.value);
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(offset: Offset(0, (1 - t) * 8), child: child),
+        );
+      },
+    );
+  }
+}
 
 /// Рамка-«экран» для мокапов: матовый фон + тонкая обводка + большой радиус.
 /// Повторяет визуальный язык чатов LighChat (Card / glass).
@@ -229,10 +533,16 @@ class _MockBubble extends StatelessWidget {
 }
 
 class _ChatLikeMock extends StatelessWidget {
-  const _ChatLikeMock({required this.header, required this.bubbles, this.footer});
+  const _ChatLikeMock({
+    required this.header,
+    required this.bubbles,
+    this.footer,
+    this.showTyping = false,
+  });
   final Widget header;
   final List<Widget> bubbles;
   final Widget? footer;
+  final bool showTyping;
 
   @override
   Widget build(BuildContext context) {
@@ -244,7 +554,23 @@ class _ChatLikeMock extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              for (final b in bubbles) b,
+              for (var i = 0; i < bubbles.length; i++)
+                _FadeInUp(delay: Duration(milliseconds: i * 250), child: bubbles[i]),
+              if (showTyping)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const _TypingDots(),
+                    ),
+                  ),
+                ),
               if (footer != null) ...[const Spacer(), footer!],
             ],
           ),
@@ -262,6 +588,7 @@ class MockEncryption extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ChatLikeMock(
       header: const _MockChatHeader(name: 'Анна', status: 'онлайн · защищено', withLock: true),
+      showTyping: true,
       bubbles: const [
         _MockBubble(text: 'Привет! Это точно ты?', outgoing: false, time: '12:31'),
         _MockBubble(text: 'Я. Сравним отпечатки ключей.', outgoing: true, time: '12:32'),
@@ -545,30 +872,46 @@ class MockMeetings extends StatelessWidget {
             childAspectRatio: 1.4,
             children: [
               for (var i = 0; i < tiles.length; i++)
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [tiles[i].$2.withValues(alpha: 0.85), tiles[i].$2.withValues(alpha: 0.55)],
-                    ),
-                    border: Border.all(
-                        color: i == 2
-                            ? featureAccentEmerald.withValues(alpha: 0.85)
-                            : Colors.white.withValues(alpha: 0.10),
-                        width: i == 2 ? 2 : 1),
-                  ),
-                  alignment: Alignment.center,
+                _FadeInUp(
+                  delay: Duration(milliseconds: i * 120),
                   child: Container(
-                    width: 28,
-                    height: 28,
                     decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.20), shape: BoxShape.circle),
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [tiles[i].$2.withValues(alpha: 0.85), tiles[i].$2.withValues(alpha: 0.55)],
+                      ),
+                      border: Border.all(
+                          color: i == 2
+                              ? featureAccentEmerald.withValues(alpha: 0.85)
+                              : Colors.white.withValues(alpha: 0.10),
+                          width: i == 2 ? 2 : 1),
+                    ),
                     alignment: Alignment.center,
-                    child: Text(tiles[i].$1,
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                    child: i == 2
+                        ? _Breathing(
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.30), shape: BoxShape.circle),
+                              alignment: Alignment.center,
+                              child: Text(tiles[i].$1,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                            ),
+                          )
+                        : Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.20), shape: BoxShape.circle),
+                            alignment: Alignment.center,
+                            child: Text(tiles[i].$1,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                          ),
                   ),
                 ),
             ],
@@ -608,13 +951,7 @@ class MockCalls extends StatelessWidget {
                 ],
               ),
             ),
-            for (final h in const <double>[4, 8, 12, 7, 10, 14, 6])
-              Container(
-                margin: const EdgeInsets.only(left: 1),
-                width: 2,
-                height: h,
-                color: featureAccentEmerald,
-              ),
+            _Equalizer(barCount: 7, color: featureAccentEmerald),
           ]),
         ),
         const SizedBox(height: 12),
@@ -802,20 +1139,51 @@ class MockLiveLocation extends StatelessWidget {
               ),
             ),
             Center(
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        color: featureAccentCoral.withValues(alpha: 0.6),
-                        blurRadius: 24,
-                        spreadRadius: 4),
-                  ],
-                ),
-                child: Icon(Icons.location_on_rounded, color: featureAccentCoral, size: 30),
+              child: SizedBox(
+                width: 80,
+                height: 80,
+                child: Stack(alignment: Alignment.center, children: [
+                  _RepeatingPulse(
+                    minScale: 1.0,
+                    maxScale: 2.6,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: featureAccentCoral.withValues(alpha: 0.45),
+                      ),
+                    ),
+                  ),
+                  _RepeatingPulse(
+                    minScale: 1.0,
+                    maxScale: 2.6,
+                    delay: const Duration(milliseconds: 1100),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: featureAccentCoral.withValues(alpha: 0.35),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                            color: featureAccentCoral.withValues(alpha: 0.6),
+                            blurRadius: 24,
+                            spreadRadius: 4),
+                      ],
+                    ),
+                    child: Icon(Icons.location_on_rounded, color: featureAccentCoral, size: 30),
+                  ),
+                ]),
               ),
             ),
             Container(
@@ -869,22 +1237,25 @@ class MockMultiDevice extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
-              Container(
-                width: 48,
-                height: 48,
-                color: Colors.white,
-                child: GridView.count(
-                  crossAxisCount: 6,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(2),
-                  mainAxisSpacing: 1,
-                  crossAxisSpacing: 1,
-                  children: List.generate(36, (i) {
-                    final on = ((i * 7) % 11) < 5 || (i % 7 == 0);
-                    return Container(color: on ? Colors.black : Colors.white);
-                  }),
+              Stack(children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  color: Colors.white,
+                  child: GridView.count(
+                    crossAxisCount: 6,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(2),
+                    mainAxisSpacing: 1,
+                    crossAxisSpacing: 1,
+                    children: List.generate(36, (i) {
+                      final on = ((i * 7) % 11) < 5 || (i % 7 == 0);
+                      return Container(color: on ? Colors.black : Colors.white);
+                    }),
+                  ),
                 ),
-              ),
+                const Positioned.fill(child: _QrScanLine(height: 48)),
+              ]),
             ],
           ),
         ),

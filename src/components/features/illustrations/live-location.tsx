@@ -2,6 +2,7 @@ import * as React from 'react';
 import { MapPin, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** Карта (gradient + grid) с пульсирующим пином и красным баннером `LiveLocationStopBanner`. */
 export function MockLiveLocation({
   className,
   compact,
@@ -19,23 +20,33 @@ export function MockLiveLocation({
       </svg>
       <div className="relative flex h-full w-full flex-col justify-between p-3">
         {!compact ? (
-          <div className="self-start rounded-full bg-rose-500 px-3 py-1 text-[11px] font-bold text-white shadow-lg">
+          <div
+            className="self-start rounded-full bg-rose-500 px-3 py-1 text-[11px] font-bold text-white shadow-lg animate-feat-bubble-in"
+            style={{ animationDelay: '0ms' }}
+          >
             Делитесь геолокацией · ещё 14 мин
           </div>
         ) : null}
-        <div className="relative mx-auto h-20 w-20">
-          <span className="absolute inset-0 animate-ping rounded-full bg-rose-500/40" />
-          <span className="absolute inset-2 rounded-full bg-rose-500/60" />
-          <span className="absolute inset-5 rounded-full bg-white/95 shadow-lg flex items-center justify-center">
+        <div className="relative mx-auto h-24 w-24">
+          <span className="absolute inset-0 rounded-full bg-rose-500/40 animate-feat-pin-pulse" />
+          <span
+            className="absolute inset-0 rounded-full bg-rose-500/40 animate-feat-pin-pulse"
+            style={{ animationDelay: '1.2s' }}
+          />
+          <span className="absolute inset-3 rounded-full bg-rose-500/70" />
+          <span className="absolute inset-7 rounded-full bg-white/95 shadow-lg flex items-center justify-center">
             <MapPin className="h-5 w-5 text-rose-500" aria-hidden />
           </span>
         </div>
         {!compact ? (
-          <div className="flex items-center gap-2 rounded-2xl border border-rose-400/30 bg-rose-500/15 px-3 py-2 backdrop-blur-md">
+          <div
+            className="flex items-center gap-2 rounded-2xl border border-rose-400/30 bg-rose-500/15 px-3 py-2 backdrop-blur-md animate-feat-bubble-in"
+            style={{ animationDelay: '300ms' }}
+          >
             <Square className="h-3.5 w-3.5 fill-rose-500 text-rose-500" aria-hidden />
             <div className="flex-1 leading-tight text-[11px]">
               <p className="font-semibold text-white">Остановить трансляцию</p>
-              <p className="text-white/80">Останется 14 минут — нажмите, чтобы прекратить</p>
+              <p className="text-white/85">Останется 14 минут — нажмите, чтобы прекратить</p>
             </div>
           </div>
         ) : null}

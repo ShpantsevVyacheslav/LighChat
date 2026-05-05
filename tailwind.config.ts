@@ -101,10 +101,120 @@ export default {
             height: '0',
           },
         },
+        /** Сообщение «всплывает» снизу с лёгким сдвигом — для мокапов в Возможностях. */
+        'feat-bubble-in': {
+          '0%': { opacity: '0', transform: 'translateY(8px) scale(0.96)' },
+          '60%': { opacity: '1' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        /** Растворение исчезающего сообщения. */
+        'feat-fade-vanish': {
+          '0%, 70%': { opacity: '0.55', filter: 'blur(0px)' },
+          '100%': { opacity: '0.05', filter: 'blur(2px)' },
+        },
+        /** «Тикающая» точка таймера. */
+        'feat-timer-tick': {
+          '0%, 49%': { transform: 'rotate(0deg)' },
+          '50%, 100%': { transform: 'rotate(180deg)' },
+        },
+        /** Бегущий чёрный модуль QR. */
+        'feat-qr-scan': {
+          '0%, 100%': { transform: 'translateY(0)', opacity: '0.6' },
+          '50%': { transform: 'translateY(56px)', opacity: '1' },
+        },
+        /** Эквалайзер — пульсация по полосам. */
+        'feat-eq-1': {
+          '0%, 100%': { height: '4px' },
+          '50%': { height: '12px' },
+        },
+        'feat-eq-2': {
+          '0%, 100%': { height: '8px' },
+          '50%': { height: '16px' },
+        },
+        'feat-eq-3': {
+          '0%, 100%': { height: '12px' },
+          '50%': { height: '6px' },
+        },
+        'feat-eq-4': {
+          '0%, 100%': { height: '6px' },
+          '50%': { height: '14px' },
+        },
+        /** Лёгкое «дыхание» подсветки активного спикера во встрече. */
+        'feat-speaker-pulse': {
+          '0%, 100%': { boxShadow: '0 0 0 0 hsl(160 84% 50% / 0.6)' },
+          '50%': { boxShadow: '0 0 0 6px hsl(160 84% 50% / 0)' },
+        },
+        /** Пульсирующий пин на карте. */
+        'feat-pin-pulse': {
+          '0%': { transform: 'scale(1)', opacity: '0.7' },
+          '100%': { transform: 'scale(2.6)', opacity: '0' },
+        },
+        /** Мигающий курсор в строке ввода. */
+        'feat-caret': {
+          '0%, 49%': { opacity: '1' },
+          '50%, 100%': { opacity: '0' },
+        },
+        /** Печатающий индикатор: 3 точки. */
+        'feat-typing-1': {
+          '0%, 80%, 100%': { transform: 'translateY(0)', opacity: '0.4' },
+          '40%': { transform: 'translateY(-3px)', opacity: '1' },
+        },
+        /** Карта «Дурака» появляется и поворачивается в веер. */
+        'feat-card-deal': {
+          '0%': { opacity: '0', transform: 'translate(-20px, 30px) rotate(0deg)' },
+          '100%': { opacity: '1' },
+        },
+        /** Бесконечно ползущий dash-контур секретного бабла. */
+        'feat-dash-march': {
+          '0%': { strokeDashoffset: '0' },
+          '100%': { strokeDashoffset: '12' },
+        },
+        /** Подсветка кнопки «отправить» расписания. */
+        'feat-clock-glow': {
+          '0%, 100%': { boxShadow: '0 0 0 0 hsl(var(--primary) / 0.4)' },
+          '50%': { boxShadow: '0 0 0 6px hsl(var(--primary) / 0)' },
+        },
+        /** Mock «свайп» переключателя приватности. */
+        'feat-switch-toggle': {
+          '0%, 45%': { transform: 'translateX(2px)' },
+          '55%, 100%': { transform: 'translateX(18px)' },
+        },
+        /** Hovering subtle plates motion на hero. */
+        'feat-float-1': {
+          '0%, 100%': { transform: 'translateY(0) rotate(-3deg)' },
+          '50%': { transform: 'translateY(-6px) rotate(-3deg)' },
+        },
+        'feat-float-2': {
+          '0%, 100%': { transform: 'translateY(0) rotate(2deg)' },
+          '50%': { transform: 'translateY(-4px) rotate(2deg)' },
+        },
+        'feat-float-3': {
+          '0%, 100%': { transform: 'translateY(0) rotate(-1deg)' },
+          '50%': { transform: 'translateY(-5px) rotate(-1deg)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'feat-bubble-in': 'feat-bubble-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'feat-fade-vanish': 'feat-fade-vanish 4s ease-in-out infinite',
+        'feat-timer-tick': 'feat-timer-tick 2s steps(1, end) infinite',
+        'feat-qr-scan': 'feat-qr-scan 2.4s ease-in-out infinite',
+        'feat-eq-1': 'feat-eq-1 0.9s ease-in-out infinite',
+        'feat-eq-2': 'feat-eq-2 1.1s ease-in-out infinite',
+        'feat-eq-3': 'feat-eq-3 0.8s ease-in-out infinite',
+        'feat-eq-4': 'feat-eq-4 1.2s ease-in-out infinite',
+        'feat-speaker-pulse': 'feat-speaker-pulse 2s ease-out infinite',
+        'feat-pin-pulse': 'feat-pin-pulse 2.4s ease-out infinite',
+        'feat-caret': 'feat-caret 1s steps(1, end) infinite',
+        'feat-typing': 'feat-typing-1 1.2s ease-in-out infinite',
+        'feat-card-deal': 'feat-card-deal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'feat-dash-march': 'feat-dash-march 0.6s linear infinite',
+        'feat-clock-glow': 'feat-clock-glow 2s ease-out infinite',
+        'feat-switch-toggle': 'feat-switch-toggle 3s ease-in-out infinite',
+        'feat-float-1': 'feat-float-1 6s ease-in-out infinite',
+        'feat-float-2': 'feat-float-2 7s ease-in-out infinite',
+        'feat-float-3': 'feat-float-3 8s ease-in-out infinite',
       },
     },
   },

@@ -1,28 +1,32 @@
 import * as React from 'react';
-import { Monitor, Smartphone, KeyRound } from 'lucide-react';
+import { KeyRound, Monitor, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function MiniQR() {
   return (
-    <div className="grid h-16 w-16 grid-cols-8 grid-rows-8 gap-px rounded-md bg-white p-1.5 shadow-md">
-      {Array.from({ length: 64 }).map((_, i) => {
-        // детерминированный псевдо-узор: углы (метки) + редкие модули
-        const row = Math.floor(i / 8);
-        const col = i % 8;
-        const isCorner =
-          (row < 3 && col < 3) ||
-          (row < 3 && col > 4) ||
-          (row > 4 && col < 3);
-        const cornerOuter = isCorner && (row === 0 || row === 2 || col === 0 || col === 2 || row === 6 || col === 6);
-        const cornerInner = isCorner && row === 1 && col === 1;
-        const sparse = ((i * 13) % 17) < 5;
-        const black = cornerOuter || cornerInner || (!isCorner && sparse);
-        return <span key={i} className={cn(black ? 'bg-black' : 'bg-white')} />;
-      })}
+    <div className="relative h-16 w-16 overflow-hidden rounded-md bg-white p-1.5 shadow-md">
+      <div className="grid h-full w-full grid-cols-8 grid-rows-8 gap-px">
+        {Array.from({ length: 64 }).map((_, i) => {
+          const row = Math.floor(i / 8);
+          const col = i % 8;
+          const isCorner =
+            (row < 3 && col < 3) ||
+            (row < 3 && col > 4) ||
+            (row > 4 && col < 3);
+          const cornerOuter = isCorner && (row === 0 || row === 2 || col === 0 || col === 2 || row === 6 || col === 6);
+          const cornerInner = isCorner && row === 1 && col === 1;
+          const sparse = ((i * 13) % 17) < 5;
+          const black = cornerOuter || cornerInner || (!isCorner && sparse);
+          return <span key={i} className={cn(black ? 'bg-black' : 'bg-white')} />;
+        })}
+      </div>
+      {/* Сканирующая полоса. */}
+      <span className="pointer-events-none absolute left-1.5 right-1.5 top-1.5 h-1 rounded-full bg-emerald-400/70 shadow-[0_0_8px_2px_rgba(16,185,129,0.4)] animate-feat-qr-scan" />
     </div>
   );
 }
 
+/** Пара устройств телефон↔ноутбук c QR между ними и панелью резервной копии ключей. */
 export function MockMultiDevice({
   className,
   compact,
@@ -45,7 +49,7 @@ export function MockMultiDevice({
         {!compact ? (
           <div className="flex flex-col items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <span className="h-px w-10 bg-muted-foreground/40" />
-            <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-emerald-300">QR-паринг</span>
+            <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-emerald-500 dark:text-emerald-300">QR-паринг</span>
             <span className="h-px w-10 bg-muted-foreground/40" />
           </div>
         ) : null}
@@ -58,17 +62,23 @@ export function MockMultiDevice({
               <div className="col-span-1 h-12 rounded bg-foreground/10" />
               <div className="col-span-2 h-12 rounded bg-foreground/10" />
             </div>
-            <div className="mt-1 h-3 rounded bg-foreground/10" />
+            <div className="mt-1 flex h-3 items-center gap-1">
+              <span className="block h-1.5 flex-1 rounded bg-foreground/10" />
+              <span className="block h-1.5 w-4 rounded bg-primary/40 animate-pulse" />
+            </div>
           </div>
           <div className="absolute -bottom-1 left-1/2 h-3 w-16 -translate-x-1/2 rounded-b-lg bg-foreground/80" />
         </div>
       </div>
       {!compact ? (
-        <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-[11px] text-emerald-300">
+        <div
+          className="absolute bottom-3 left-3 right-3 flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-600 dark:text-emerald-300 animate-feat-bubble-in"
+          style={{ animationDelay: '500ms' }}
+        >
           <KeyRound className="h-3.5 w-3.5" aria-hidden />
           <div className="flex-1 leading-tight">
             <p className="font-semibold">Резервная копия ключей · защищена паролем</p>
-            <p className="opacity-80">Восстановите чаты на любом новом устройстве</p>
+            <p className="opacity-85">Восстановите чаты на любом новом устройстве</p>
           </div>
         </div>
       ) : null}

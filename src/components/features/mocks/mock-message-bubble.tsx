@@ -11,11 +11,26 @@ export type MockBubbleProps = {
   scheduledHint?: string;
   /** Исчезающее сообщение: пунктир и затухание. */
   fading?: boolean;
+  /** «Тающее» сообщение: применяется зацикленная анимация. */
+  vanishing?: boolean;
   /** Прочитано (двойная галочка). По умолчанию для outgoing — true. */
   read?: boolean;
+  /** Стиль клипа «хвостика»: повторяет реальный ChatMessageItem. */
+  withTail?: boolean;
+  /** Анимировать появление (вход снизу). */
+  animateIn?: boolean;
+  /** Задержка для staggered. */
+  delayMs?: number;
   className?: string;
 };
 
+/**
+ * Презентационная копия `ChatMessageItem`-бабла:
+ * - outgoing: `bg-primary text-primary-foreground` (как реальный чат);
+ * - incoming: `bg-muted` (как реальный чат);
+ * - tail-clip через `rounded-{tr|tl}-md`;
+ * - двойная галочка времени, иконки часов/EyeOff, как в реальной строке meta.
+ */
 export function MockMessageBubble({
   side,
   text,
@@ -23,7 +38,11 @@ export function MockMessageBubble({
   scheduled,
   scheduledHint,
   fading,
+  vanishing,
   read = true,
+  withTail = true,
+  animateIn = true,
+  delayMs = 0,
   className,
 }: MockBubbleProps) {
   const incoming = side === 'incoming';
@@ -32,24 +51,28 @@ export function MockMessageBubble({
       className={cn(
         'flex w-full',
         incoming ? 'justify-start' : 'justify-end',
+        animateIn && 'animate-feat-bubble-in',
         className
       )}
+      style={animateIn ? { animationDelay: `${delayMs}ms` } : undefined}
     >
       <div
         className={cn(
-          'relative max-w-[78%] rounded-2xl px-3 py-2 text-sm leading-snug shadow-sm',
+          'relative max-w-[78%] px-3 py-2 text-[13px] leading-snug shadow-sm rounded-2xl',
+          withTail && (incoming ? 'rounded-tl-md' : 'rounded-tr-md'),
           incoming
-            ? 'rounded-bl-sm bg-background/80 text-foreground border border-black/5 dark:border-white/10'
-            : 'rounded-br-sm bg-primary text-primary-foreground',
-          fading && 'border-dashed opacity-60',
-          scheduled && 'opacity-80'
+            ? 'bg-muted text-foreground'
+            : 'bg-primary text-primary-foreground',
+          fading && 'border border-dashed border-current/30',
+          scheduled && 'opacity-90',
+          vanishing && 'animate-feat-fade-vanish'
         )}
       >
         <span>{text}</span>
         <span
           className={cn(
             'mt-0.5 ml-2 inline-flex items-center gap-0.5 text-[10px] align-middle',
-            incoming ? 'text-muted-foreground' : 'text-primary-foreground/80'
+            incoming ? 'text-muted-foreground' : 'text-primary-foreground/85'
           )}
         >
           {scheduled ? <Clock className="h-2.5 w-2.5" aria-hidden /> : null}
@@ -57,13 +80,30 @@ export function MockMessageBubble({
           <span>{time}</span>
           {!incoming && !scheduled
             ? read
-              ? <CheckCheck className="h-2.5 w-2.5" aria-hidden />
-              : <Check className="h-2.5 w-2.5" aria-hidden />
+              ? <CheckCheck className="h-3 w-3" aria-hidden />
+              : <Check className="h-3 w-3" aria-hidden />
             : null}
         </span>
         {scheduled && scheduledHint ? (
-          <span className="mt-1 block text-[10px] italic opacity-80">{scheduledHint}</span>
+          <span className="mt-0.5 block text-[10px] italic opacity-85">{scheduledHint}</span>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Печатающий индикатор «∙ ∙ ∙» в стиле incoming-бабла. */
+export function MockTypingBubble({ className }: { className?: string }) {
+  return (
+    <div className={cn('flex w-full justify-start', className)}>
+      <div className="flex items-center gap-1 rounded-2xl rounded-tl-md bg-muted px-3 py-2 shadow-sm">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="block h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-feat-typing"
+            style={{ animationDelay: `${i * 160}ms` }}
+          />
+        ))}
       </div>
     </div>
   );

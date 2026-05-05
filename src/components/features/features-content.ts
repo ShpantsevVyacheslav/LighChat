@@ -10,11 +10,11 @@ export type FeatureSection = {
 };
 
 export type FeatureTopicContent = {
-  /** Короткий заголовок (≤6 слов). */
+  /** Короткий заголовок. */
   title: string;
   /** Тизер на главной (1 строка). */
   tagline: string;
-  /** Подзаголовок на детальной странице (1–2 предложения). */
+  /** Подзаголовок на детальной странице (2–3 предложения). */
   summary: string;
   /** CTA-кнопка «Попробовать». */
   ctaLabel: string;
@@ -51,14 +51,14 @@ export type FeaturesContent = {
 const ru: FeaturesContent = {
   pageTitle: 'Возможности LighChat',
   pageSubtitle:
-    'Короткий тур по тому, что делает LighChat быстрее, безопаснее и интереснее обычного мессенджера.',
+    'Короткий тур по тому, что делает LighChat быстрее, безопаснее и удобнее обычного мессенджера. Каждая фишка — на отдельной странице, с примером и шагами.',
   pageHeroPrimary: 'Знакомьтесь с LighChat',
   pageHeroSecondary:
-    'Сильное шифрование, секретные чаты, отложенные сообщения и встроенные игры. Откройте всё за пару минут.',
+    'Сильное шифрование по умолчанию, секретные чаты с самоуничтожением, отложенные сообщения, видеовстречи и даже игры — всё в одном приложении и без рекламы. Откройте за пару минут.',
   highlightTitle: 'Самое полезное',
-  highlightSubtitle: 'Пять фишек, ради которых пользователи остаются.',
+  highlightSubtitle: 'Пять возможностей, ради которых пользователи остаются с LighChat.',
   moreTitle: 'Ещё интересного',
-  moreSubtitle: 'Что ещё умеет приложение, помимо переписки.',
+  moreSubtitle: 'Что приложение умеет помимо переписки — от папок и тредов до прямой геолокации.',
   helpfulTitle: 'Что это даёт',
   howToTitle: 'Как включить',
   relatedTitle: 'Смотрите также',
@@ -67,7 +67,7 @@ const ru: FeaturesContent = {
   welcomeOverlay: {
     title: 'Откройте возможности LighChat',
     subtitle:
-      'За 2 минуты покажем, чем LighChat отличается от привычных мессенджеров. Можно вернуться к туру в любой момент через настройки.',
+      'За две минуты покажем, чем LighChat отличается от привычных мессенджеров: шифрование, секретные чаты, игры и встречи. К туру можно вернуться в любой момент через меню настроек.',
     primaryCta: 'Посмотреть',
     secondaryCta: 'Позже',
     bullets: [
@@ -81,130 +81,155 @@ const ru: FeaturesContent = {
       title: 'Сквозное шифрование',
       tagline: 'Сообщения видите только вы и собеседник.',
       summary:
-        'Каждое личное сообщение и звонок шифруются на вашем устройстве и расшифровываются только у получателя. Серверы LighChat не могут прочитать переписку — даже если бы захотели.',
+        'В LighChat сквозное шифрование (E2EE) включается автоматически для каждого личного чата и звонка. Сообщения и медиа зашифровываются прямо на вашем устройстве и расшифровываются только у получателя — серверы не видят содержимого даже технически.',
       ctaLabel: 'Перейти к устройствам',
       sections: [
         {
           title: 'Никто посторонний не прочитает',
-          body: 'Ключи живут только на ваших устройствах. Сервер видит зашифрованный трафик и метаданные, но не содержимое сообщений и медиа.',
+          body: 'Ключи шифрования живут только на ваших устройствах и никогда не покидают их в открытом виде. Сервер видит зашифрованный поток и метаданные доставки, но не текст, не голос, не файлы и не превью ссылок. Даже если базу когда-то скомпрометируют — переписка останется недоступной.',
         },
         {
           title: 'Подтверждение собеседника',
-          body: 'Можно сравнить отпечаток ключа в карточке устройства — короткий цифровой код. Если он совпал у вас и собеседника, посередине нет «третьего».',
+          body: 'Каждое устройство имеет свой отпечаток ключа — короткий код. Сравните его с собеседником лично или по другому каналу: если коды совпали, между вами нет «третьего». Это та же модель доверия, что используют Signal и WhatsApp в безопасных чатах.',
         },
         {
-          title: 'Шифруется всё',
-          body: 'Шифрование включается автоматически для текста, голосовых, фото, файлов и медиа в личных чатах.',
+          title: 'Шифруется всё, что важно',
+          body: 'Шифруются не только текстовые сообщения. В личных чатах под защиту попадают голосовые, видео-кружки, фото, видео, файлы, превью ссылок и стикеры — без переключения режимов и галочек.',
           bullets: [
             'Текстовые сообщения и реакции',
             'Голосовые и видео-кружки',
-            'Фото, видео и файлы',
+            'Фото, видео и любые файлы',
             'Превью ссылок и стикеры',
           ],
         },
+        {
+          title: 'Восстановление без рисков',
+          body: 'Потеряли телефон? Зашифрованную копию ключей можно положить под пароль. Восстановление возможно только с этим паролем — никто, включая нас, не сможет получить доступ к ключам без него.',
+        },
       ],
       howTo: [
-        'Откройте Настройки → Устройства.',
-        'Проверьте список своих устройств и отпечатки ключей.',
-        'Уберите устройства, которыми больше не пользуетесь.',
+        'Откройте Настройки → Устройства, чтобы увидеть, где открыт ваш аккаунт.',
+        'Нажмите на устройство собеседника в карточке чата и сравните отпечаток.',
+        'Включите резервную копию ключей и придумайте надёжный пароль.',
       ],
     },
     'secret-chats': {
       title: 'Секретные чаты',
       tagline: 'Чаты, которые исчезают и не разрешают пересылать.',
       summary:
-        'Секретный чат живёт по строгим правилам: сообщения сами удаляются по таймеру, можно запретить пересылку, скриншоты и копирование, а медиа открывается один раз.',
+        'Секретный чат — отдельный, более строгий режим переписки. Сообщения сами удаляются по таймеру, пересылку и копирование можно полностью запретить, фото и видео открываются один раз, а сам чат закрывается отдельным паролем или биометрией.',
       ctaLabel: 'Начать секретный чат',
       sections: [
         {
           title: 'Самоуничтожение по таймеру',
-          body: 'Выбирайте, через сколько сообщения исчезают: от 5 минут до суток. Таймер отсчитывается у обеих сторон.',
+          body: 'Выберите, через сколько сообщения исчезают: от 5 минут до суток. Таймер отсчитывается синхронно у обеих сторон — после удаления восстановить переписку невозможно ни на одном из устройств.',
         },
         {
           title: 'Жёсткие ограничения',
-          body: 'Включите запрет на пересылку, цитирование и сохранение медиа. Серверная политика не пропустит копию мимо правил.',
+          body: 'Запретите пересылку, цитирование, копирование текста и сохранение медиа. Серверная политика не пропустит копию мимо правил, а попытка скриншота сопровождается уведомлением собеседнику.',
           bullets: [
-            'Запрет пересылки и цитат',
+            'Запрет пересылки и цитирования',
             'Запрет копирования текста',
             'Запрет сохранения медиа',
             'Одноразовый просмотр фото и видео',
           ],
         },
         {
-          title: 'Замок на чат',
-          body: 'Доступ к секретному чату можно закрыть отдельным паролем или биометрией — даже разблокированный телефон не выдаст переписку.',
+          title: 'Замок поверх шифрования',
+          body: 'Поверх обычного E2EE можно поставить отдельный пароль или Face ID/Touch ID на сам чат. Даже если телефон уже разблокирован и лежит на столе, заглянуть в секретный чат не получится — нужен второй фактор именно для него.',
+        },
+        {
+          title: 'Полный контроль доступа',
+          body: 'В любой момент можно мгновенно очистить переписку у обеих сторон или закрыть чат паролем. Это удобно для рабочих обсуждений, юридических вопросов и любых тем, где «слишком много» лишнее.',
         },
       ],
       howTo: [
-        'В чате нажмите шапку и откройте «Конфиденциальность».',
-        'Включите режим «Секретный чат» и задайте таймер.',
-        'Дополнительно включите запреты и замок.',
+        'В чате нажмите шапку и откройте раздел «Конфиденциальность».',
+        'Включите режим «Секретный чат» и задайте таймер удаления.',
+        'Дополнительно включите запреты на пересылку, копирование и медиа-сейв.',
       ],
     },
     'disappearing-messages': {
       title: 'Исчезающие сообщения',
       tagline: 'Переписка не копится в архивах.',
       summary:
-        'Включите таймер в обычном чате — и сообщения будут исчезать у всех участников через 1 час, сутки, неделю или месяц. Удобно для рабочих обсуждений и случайных тем.',
+        'В обычном чате не обязательно держать всё навсегда. Включите таймер — и сообщения будут аккуратно исчезать у всех участников через 1 час, сутки, неделю или месяц. Идеально для рабочих обсуждений, временных тем и просто гигиены переписки.',
       ctaLabel: 'Открыть чат',
       sections: [
         {
-          title: 'Удобные пресеты',
-          body: 'Готовые таймеры покрывают большинство случаев — от часа до тридцати дней. Время отсчитывается с момента отправки.',
-          bullets: ['1 час — для разовых вопросов', '24 часа — для дневной переписки', '7 дней — для недельных задач', '30 дней — длинный буфер'],
+          title: 'Готовые таймеры на любой случай',
+          body: 'Не нужно вычислять секунды — выбирайте подходящий пресет. Время отсчитывается с момента отправки и одинаково работает в личных чатах и группах.',
+          bullets: [
+            '1 час — для разовых вопросов',
+            '24 часа — для дневной переписки',
+            '7 дней — для недельных задач',
+            '30 дней — длинный буфер на месяц',
+          ],
         },
         {
           title: 'Чисто на всех устройствах',
-          body: 'Сообщения исчезают синхронно: на телефоне, в вебе и на десктопе. Отдельно чистить архив не нужно.',
+          body: 'Сообщения исчезают одновременно: на телефоне, в вебе и на десктопе. Не нужно вручную чистить архив или беспокоиться, что копия осталась на «другом устройстве».',
+        },
+        {
+          title: 'Никаких остатков в облаке',
+          body: 'Удалённые сообщения уходят и со стороны сервера. Из бэкапов их не достанут — это не «скрыто», а действительно удалено.',
         },
       ],
       howTo: [
         'Откройте чат и нажмите на шапку.',
-        'Раздел «Исчезающие сообщения» — выберите таймер.',
-        'Все новые сообщения будут жить заданное время.',
+        'Раздел «Исчезающие сообщения» — выберите подходящий таймер.',
+        'Все новые сообщения будут жить ровно столько, сколько нужно.',
       ],
     },
     'scheduled-messages': {
       title: 'Отложенные сообщения',
       tagline: 'Напишите сейчас — отправится в нужный момент.',
       summary:
-        'Готовите поздравление к утру или напоминание команде на понедельник? Поставьте сообщение в очередь — сервер LighChat сам отправит его в назначенное время.',
+        'Готовите поздравление к утру или рабочее напоминание команде на понедельник? Поставьте сообщение в очередь — отправит сервер LighChat ровно в назначенное время. Можно выключить телефон, закрыть приложение или даже разрядить батарею — сообщение всё равно уйдёт.',
       ctaLabel: 'Открыть чат',
       sections: [
         {
-          title: 'Точно в срок',
-          body: 'Отправка происходит на сервере, не на вашем телефоне. Можно выключить устройство и закрыть приложение — сообщение всё равно уйдёт.',
+          title: 'Отправка точно в срок',
+          body: 'Расписание исполняется на сервере, а не на вашем устройстве. В отличие от «локальных таймеров» в других мессенджерах, доставка не сорвётся, если телефон оказался в самолёте, метро или просто без сети.',
         },
         {
-          title: 'Полный контроль',
-          body: 'Все запланированные сообщения видны в отдельной панели. Можно изменить время, отредактировать текст или отменить отправку.',
+          title: 'Полный контроль очереди',
+          body: 'Все запланированные сообщения видны на отдельной панели. Можно изменить время или текст, отправить раньше срока или вовсе отменить отправку — пока сообщение не ушло, оно полностью под вашим контролем.',
+        },
+        {
+          title: 'Удобно для команд и личного',
+          body: 'Подходит для дни рождения, напоминаний, отчётов в начале рабочего дня и любых сообщений, которые «надо не забыть отправить». Часовые пояса учитываются автоматически.',
         },
       ],
       howTo: [
         'Введите текст сообщения как обычно.',
         'Зажмите кнопку отправки — выберите «Запланировать».',
-        'Выберите дату и время. Готово.',
+        'Выберите дату и время. Готово, сообщение в очереди.',
       ],
     },
     games: {
       title: 'Игры в чате',
       tagline: 'Зовите друзей в «Дурака» прямо в переписке.',
       summary:
-        'Не нужно ставить отдельное приложение. Запустите партию в «Дурака» прямо в чате — игра идёт в реальном времени, а карты выглядят так же красиво, как настоящие.',
+        'Не нужно ставить отдельное приложение и регистрироваться заново. Запустите партию в «Дурака» прямо в чате — игра идёт в реальном времени, карты выглядят по-настоящему, а ходы синхронизируются мгновенно. Простой повод собраться вечером.',
       ctaLabel: 'Открыть чат',
       sections: [
         {
-          title: 'Реальное время',
-          body: 'Игроки видят ходы друг друга мгновенно. Партия живёт пока вы в чате и сохраняется, если кто-то отвлёкся.',
+          title: 'Реальное время и атмосфера',
+          body: 'Игроки видят ходы друг друга мгновенно. Партия живёт, пока вы в чате, и ставится на паузу, если кто-то отвлёкся. Обсуждайте ходы и троллите проигравшего тут же в переписке — без переключения окон.',
         },
         {
-          title: 'Понятные правила',
-          body: 'Поддерживается классический «Дурак» с подкидыванием. Подсказки помогут новичку, а ветеран сразу узнает родные правила.',
+          title: 'Понятные правила и подсказки',
+          body: 'Поддерживается классический «Дурак подкидной» — те же правила, что вы знаете с детства. Подсказки помогут новичку, а опытный игрок сразу узнает родной вариант.',
+        },
+        {
+          title: 'Интегрировано в чат',
+          body: 'Стол игры открывается в самом сообщении, а итоги партии остаются в истории. Это не отдельное «гипер-казуальное» приложение, а часть переписки между друзьями.',
         },
       ],
       howTo: [
         'Откройте любой чат с другом или группу.',
-        'Нажмите «+» и выберите «Игра».',
+        'Нажмите «+» в строке ввода и выберите «Игра».',
         'Пригласите соперников — и сдавайте.',
       ],
     },
@@ -212,38 +237,46 @@ const ru: FeaturesContent = {
       title: 'Видеовстречи',
       tagline: 'До нескольких десятков человек на одном экране.',
       summary:
-        'Полноценные видеоконференции с сеткой участников, чатом, опросами и заявками на вход. Подключаться можно по ссылке — даже без аккаунта.',
+        'Полноценные видеоконференции с сеткой участников, общим чатом, опросами и заявками на вход. Подключаться можно по ссылке без аккаунта — достаточно открыть страницу в браузере. Подходит и для рабочих созвонов, и для встреч с близкими.',
       ctaLabel: 'Перейти к встречам',
       sections: [
         {
-          title: 'Удобная сетка',
-          body: 'Активный спикер выделяется автоматически. Можно закрепить нужного участника, отключить чужой звук или выйти из эфира на время.',
+          title: 'Удобная сетка и активный спикер',
+          body: 'Активный говорящий выделяется автоматически. Закрепите нужного участника, отключите чужой звук одним нажатием или временно выйдите из эфира — без потери места в комнате.',
         },
         {
-          title: 'Опросы и заявки',
-          body: 'Запускайте голосования прямо во время встречи. Закрытая комната принимает гостей по заявке — модератор подтверждает вход.',
+          title: 'Опросы и заявки на вход',
+          body: 'Запускайте голосования прямо во время встречи: одно решение, несколько ответов или анонимный режим. Закрытая комната принимает гостей по заявке — модератор подтверждает каждого вручную.',
+        },
+        {
+          title: 'Без приложений и аккаунтов',
+          body: 'Для гостей встреча открывается прямо в браузере по ссылке. Не нужно ставить отдельный клиент, регистрироваться или ждать установки обновлений.',
         },
       ],
       howTo: [
-        'Откройте раздел «Встречи».',
+        'Откройте раздел «Встречи» в приложении.',
         'Создайте новую комнату или подключитесь по ссылке.',
-        'Поделитесь ссылкой с участниками.',
+        'Поделитесь ссылкой с участниками — и начинайте.',
       ],
     },
     calls: {
       title: 'Звонки и видео-кружки',
       tagline: 'От голосового до видео-открытки за секунду.',
       summary:
-        'Качественные 1:1-звонки на WebRTC с шифрованием и короткие видео-кружки прямо в ленте чата — для коротких реплик, когда лень печатать.',
+        'Качественные 1:1-звонки на WebRTC с шифрованием по умолчанию и короткие видео-кружки прямо в ленте чата — для быстрых реплик, когда печатать долго, а голосового мало. Лицо, эмоция, голос — всё за пару секунд.',
       ctaLabel: 'История звонков',
       sections: [
         {
-          title: 'Стабильное качество',
-          body: 'Звонок переключается между сетями, держит звук в любом тоннеле и автоматически выбирает разрешение видео под канал.',
+          title: 'Стабильно даже в дороге',
+          body: 'Звонок аккуратно переключается между Wi-Fi и мобильной сетью, держит звук в любом тоннеле и автоматически выбирает разрешение видео под канал. Никаких «вы слышите меня?» каждые тридцать секунд.',
         },
         {
           title: 'Видео-кружки',
-          body: 'Запишите кружок до 60 секунд: лицо, эмоция, голос. Получатель смотрит без распаковки — кружок играет прямо в ленте.',
+          body: 'Запишите кружок до 60 секунд: лицо, эмоция, короткий комментарий. Получатель смотрит прямо в ленте — кружок играет автоматически, без полноэкранного режима и распаковки.',
+        },
+        {
+          title: 'Сквозное шифрование',
+          body: 'И звонки, и кружки шифруются от устройства до устройства. Серверу не достаётся ни звук, ни картинка — только зашифрованный поток для доставки.',
         },
       ],
       howTo: [
@@ -256,21 +289,25 @@ const ru: FeaturesContent = {
       title: 'Папки и треды',
       tagline: 'Сотни чатов — без хаоса в списке.',
       summary:
-        'Раскладывайте чаты по папкам — «Работа», «Семья», «Учёба», как удобно. А внутри группы запускайте треды по конкретным темам, чтобы основной чат не превращался в кашу.',
+        'Раскладывайте чаты по папкам — «Работа», «Семья», «Учёба», как удобно — и переключайтесь между ними одним касанием. А внутри групповых обсуждений запускайте треды по конкретным темам, чтобы основной чат не превращался в кашу.',
       ctaLabel: 'Открыть чаты',
       sections: [
         {
-          title: 'Свои папки',
-          body: 'Создайте сколько угодно папок и тяните в них любые чаты. Папки синхронизируются между телефоном, вебом и десктопом.',
+          title: 'Сколько угодно папок',
+          body: 'Создайте свои папки и тяните в них любые чаты — личные, группы, каналы. Папки синхронизируются между телефоном, вебом и десктопом, порядок сохраняется.',
         },
         {
           title: 'Треды в группах',
-          body: 'Ответ на сообщение можно открыть в отдельной ветке — обсуждение идёт там, а основной чат остаётся чистым.',
+          body: 'Ответ на сообщение можно открыть в отдельной ветке — обсуждение идёт там, а основной чат остаётся читаемым. Особенно ценно в больших командах и активных сообществах.',
+        },
+        {
+          title: 'Невидимые шумные чаты',
+          body: 'Папка с «тихими» чатами не звонит уведомлениями: настройки звука и бейджей задаются на уровне папки, а не для каждого чата отдельно.',
         },
       ],
       howTo: [
         'В списке чатов нажмите на полку папок и «Создать».',
-        'Перетащите чаты в нужную папку.',
+        'Перетащите чаты в нужную папку или назначьте автоправила.',
         'В группе — нажмите «Ответить в треде» под сообщением.',
       ],
     },
@@ -278,16 +315,20 @@ const ru: FeaturesContent = {
       title: 'Прямая трансляция геолокации',
       tagline: 'Покажите, где вы сейчас, не тыкая в карту.',
       summary:
-        'Включите трансляцию геолокации — собеседник в реальном времени видит, как вы двигаетесь. Удобно для встреч в новом месте и поездок.',
+        'Вместо обмена скриншотами карты включите прямую трансляцию геолокации — собеседник в реальном времени видит, как вы движетесь к точке встречи. Удобно для свиданий в новом районе, поездок и заботы о близких.',
       ctaLabel: 'Открыть чат',
       sections: [
         {
           title: 'Трансляция по таймеру',
-          body: 'Выберите, сколько делиться: 15 минут, час или 8 часов. По истечении трансляция останавливается автоматически.',
+          body: 'Выберите, сколько делиться: 15 минут, час или 8 часов. По истечении трансляция останавливается автоматически — не забудете отключить даже в спешке.',
         },
         {
           title: 'Никаких сюрпризов',
-          body: 'Пока вы делитесь — в чате висит баннер-напоминание. Остановить трансляцию можно одним нажатием.',
+          body: 'Пока трансляция идёт, в чате висит хорошо заметный красный баннер. Остановить можно одним нажатием — ровно столько шагов, сколько нужно.',
+        },
+        {
+          title: 'Бережно к батарее',
+          body: 'Используются те же системные API, что у штатных приложений «Карты», поэтому фоновая трансляция почти не сажает аккумулятор и не мешает уведомлениям.',
         },
       ],
       howTo: [
@@ -300,16 +341,20 @@ const ru: FeaturesContent = {
       title: 'Несколько устройств',
       tagline: 'Один аккаунт, много экранов, ничего не теряется.',
       summary:
-        'Подключайте телефон, планшет, веб и десктоп к одному аккаунту. Ключи шифрования синхронизируются через QR-паринг и резервную копию с паролем.',
+        'Подключайте телефон, планшет, веб и десктоп к одному аккаунту. Ключи шифрования синхронизируются через QR-паринг и зашифрованную резервную копию с паролем — переписка остаётся с вами, даже если потеряли все старые устройства.',
       ctaLabel: 'Управление устройствами',
       sections: [
         {
           title: 'Безопасный QR-паринг',
-          body: 'Чтобы подключить новое устройство, отсканируйте QR-код со старого. Ключи передаются напрямую и никогда не лежат в открытом виде на сервере.',
+          body: 'Чтобы подключить новое устройство, отсканируйте QR-код со старого. Ключи передаются между устройствами напрямую и никогда не лежат в открытом виде на сервере. Это занимает секунды и не требует ввода длинных паролей.',
         },
         {
           title: 'Резервная копия с паролем',
-          body: 'Зашифруйте копию ключей паролем — и восстанавливайте чаты на любом новом устройстве, даже если потеряли все старые.',
+          body: 'Зашифруйте копию ключей собственным паролем — и восстанавливайте чаты на любом новом устройстве, даже если потеряли все старые. Без пароля копия бесполезна никому, включая нас.',
+        },
+        {
+          title: 'Одинаковый опыт везде',
+          body: 'Веб, десктоп и мобильные приложения собраны на одной платформе. История чатов, папки, темы и настройки синхронизируются между всеми устройствами без задержек.',
         },
       ],
       howTo: [
@@ -322,46 +367,50 @@ const ru: FeaturesContent = {
       title: 'Стикеры и медиа',
       tagline: 'Эмоции, опросы и быстрые правки картинок.',
       summary:
-        'Богатые стикерпаки и GIF, опросы в один клик и встроенные редакторы фото и видео. Всё, чтобы сообщать ярче и быстрее.',
+        'Богатые стикерпаки, GIF-поиск прямо из строки ввода, опросы в один клик и встроенные редакторы фото и видео. Всё, чтобы общаться ярче и быстрее — без переключения на сторонние приложения и без потери качества.',
       ctaLabel: 'Открыть чат',
       sections: [
         {
           title: 'Стикеры и GIF',
-          body: 'Добавляйте свои стикерпаки и используйте паблик-каталог. GIF ищутся прямо в строке ввода без переключения приложений.',
+          body: 'Добавляйте свои стикерпаки и используйте паблик-каталог. GIF ищутся прямо в строке ввода без переключения приложений — а самые любимые попадают в «Недавние».',
         },
         {
           title: 'Опросы и реакции',
-          body: 'Запустите опрос за пару касаний: с одним или несколькими ответами, анонимно или открыто. Реакции на сообщения — для быстрого фидбэка.',
+          body: 'Запустите опрос за пару касаний: с одним или несколькими ответами, анонимно или открыто. Реакции на сообщения — для быстрого фидбэка, чтобы не засорять чат односложными ответами.',
         },
         {
           title: 'Редакторы фото и видео',
-          body: 'Кадрируйте, рисуйте, обрезайте видео и подписывайте — без сторонних приложений.',
+          body: 'Кадрируйте, рисуйте поверх, обрезайте видео и подписывайте — встроенные инструменты работают мгновенно и не теряют качество. Не нужно отдельного приложения, чтобы перед отправкой быстро привести медиа в порядок.',
         },
       ],
       howTo: [
         'В строке ввода нажмите смайл — стикеры и GIF.',
         'Для опроса: «+» → «Опрос».',
-        'Для редактора: коснитесь фото или видео в превью.',
+        'Для редактора: коснитесь фото или видео в превью отправки.',
       ],
     },
     privacy: {
       title: 'Тонкая приватность',
       tagline: 'Вы решаете, что видят другие.',
       summary:
-        'Каждая важная мелочь — отдельный переключатель: статус «онлайн», время «был в сети», прочитан или нет, кто может вас найти и добавить в группу.',
+        'Каждая важная мелочь — отдельный переключатель: статус «онлайн», время «был в сети», прочитан или нет, кто может вас найти и кто может добавить в группу. Настраивается за минуту и работает на всех устройствах.',
       ctaLabel: 'Открыть приватность',
       sections: [
         {
           title: 'Видимость активности',
-          body: 'Прячьте «онлайн» и «был в сети» от тех, кому не нужно. Можно отключить и отчёты о прочтении.',
+          body: 'Прячьте «онлайн» и «был в сети» от тех, кому это не нужно. Можно отключить и отчёты о прочтении — собеседники не увидят синюю галочку, и вам тоже её показывать не будут.',
         },
         {
           title: 'Кто вас найдёт',
-          body: 'Глобальный поиск можно отключить — и вы будете доступны только тем, у кого ваш контакт уже есть.',
+          body: 'Глобальный поиск можно отключить — и вы будете доступны только тем, у кого ваш контакт уже сохранён. Полезно, если не хотите получать сообщения от случайных людей.',
         },
         {
           title: 'Профиль для других',
-          body: 'Решайте, показывать ли почту, телефон, дату рождения и био в карточке профиля.',
+          body: 'Решайте, показывать ли почту, телефон, дату рождения и био в карточке профиля. Каждое поле — отдельный переключатель, без режимов «всё или ничего».',
+        },
+        {
+          title: 'Группы по правилам',
+          body: 'Выбирайте, кто может добавить вас в группу: все пользователи, только контакты или вообще никто. Это убирает 99% рекламных групп без блокировок и борьбы с автоприглашениями.',
         },
       ],
       howTo: [
@@ -376,14 +425,14 @@ const ru: FeaturesContent = {
 const en: FeaturesContent = {
   pageTitle: 'LighChat features',
   pageSubtitle:
-    'A short tour of what makes LighChat faster, safer and more fun than a regular messenger.',
+    'A short tour of what makes LighChat faster, safer and more useful than a regular messenger. Each feature has its own page with an example and steps.',
   pageHeroPrimary: 'Meet LighChat',
   pageHeroSecondary:
-    'Strong encryption, secret chats, scheduled messages and built-in games. Discover it all in a couple of minutes.',
+    'Strong encryption by default, secret chats that self-destruct, scheduled messages, video meetings and even games — all in one ad-free app. Discover it all in a couple of minutes.',
   highlightTitle: 'Most useful',
-  highlightSubtitle: 'Five reasons people stay.',
+  highlightSubtitle: 'Five reasons people stay with LighChat.',
   moreTitle: 'More to explore',
-  moreSubtitle: 'What else the app can do beyond chatting.',
+  moreSubtitle: 'What the app can do beyond chatting — folders, threads, live location and more.',
   helpfulTitle: 'What you get',
   howToTitle: 'How to enable',
   relatedTitle: 'See also',
@@ -392,7 +441,7 @@ const en: FeaturesContent = {
   welcomeOverlay: {
     title: 'Discover LighChat features',
     subtitle:
-      'Two minutes to see what makes LighChat different. You can come back to the tour any time from settings.',
+      'Two minutes to see what makes LighChat different: encryption, secret chats, games and meetings. You can come back to the tour any time from the settings menu.',
     primaryCta: 'Take a look',
     secondaryCta: 'Later',
     bullets: [
@@ -406,20 +455,20 @@ const en: FeaturesContent = {
       title: 'End-to-end encryption',
       tagline: 'Only you and the recipient can read it.',
       summary:
-        'Every personal message and call is encrypted on your device and decrypted only on the other side. LighChat servers cannot read your conversations — by design.',
+        'In LighChat, end-to-end encryption (E2EE) is enabled automatically for every personal chat and call. Messages and media are encrypted right on your device and decrypted only on the other side — servers cannot read the content even technically.',
       ctaLabel: 'Open devices',
       sections: [
         {
           title: 'Nobody else reads it',
-          body: 'Keys live on your devices only. The server sees encrypted traffic and metadata, but not the content of messages or media.',
+          body: 'Encryption keys live on your devices only and never leave them in plaintext. The server sees encrypted traffic and delivery metadata, but not text, voice, files or link previews. Even if the database were ever compromised, your conversations would stay private.',
         },
         {
           title: 'Verify your peer',
-          body: 'Compare the device fingerprint — a short numeric code — with your peer. If both match, there is nobody in the middle.',
+          body: 'Every device has a fingerprint — a short code. Compare it with your peer in person or over a separate channel: if the codes match, there is nobody in the middle. Same trust model as Signal and WhatsApp use in their secure chats.',
         },
         {
-          title: 'Encrypts everything',
-          body: 'Encryption turns on automatically for text, voice, photos, files and media in 1:1 chats.',
+          title: 'Encrypts everything that matters',
+          body: 'It is not just text. In personal chats, voice notes, video circles, photos, videos, files, link previews and stickers all travel encrypted — no toggles, no special modes.',
           bullets: [
             'Text messages and reactions',
             'Voice and video circles',
@@ -427,27 +476,31 @@ const en: FeaturesContent = {
             'Link previews and stickers',
           ],
         },
+        {
+          title: 'Recovery without trade-offs',
+          body: 'Lost your phone? You can keep an encrypted backup of your keys behind a password. Recovery only works with that password — nobody, including us, can reach the keys without it.',
+        },
       ],
       howTo: [
-        'Open Settings → Devices.',
-        'Review your devices and key fingerprints.',
-        'Remove devices you no longer use.',
+        'Open Settings → Devices to see where your account is signed in.',
+        'Tap your peer’s device card and compare the fingerprint.',
+        'Enable the password-protected key backup.',
       ],
     },
     'secret-chats': {
       title: 'Secret chats',
       tagline: 'Chats that disappear and refuse to forward.',
       summary:
-        'A secret chat plays by stricter rules: messages auto-delete on a timer, you can block forwarding, screenshots and copy, and media opens once.',
+        'A secret chat is a stricter mode of conversation. Messages auto-delete on a timer, you can fully block forwarding and copying, photos and videos open once, and the chat itself can be locked behind a separate password or biometrics.',
       ctaLabel: 'Start a secret chat',
       sections: [
         {
           title: 'Self-destructing timer',
-          body: 'Pick how long messages live, from 5 minutes to a day. The timer counts down on both sides.',
+          body: 'Pick how long messages live, from 5 minutes to a day. The timer counts down on both sides — once a message is gone, it cannot be recovered on any device.',
         },
         {
           title: 'Hard restrictions',
-          body: 'Block forwarding, quotes and saving media. Server-side policy enforces every rule.',
+          body: 'Block forwarding, quoting, text copying and saving media. Server-side policy enforces every rule, and screenshot attempts notify your peer.',
           bullets: [
             'No forwarding or quoting',
             'No copying text',
@@ -456,8 +509,12 @@ const en: FeaturesContent = {
           ],
         },
         {
-          title: 'Lock the chat',
-          body: 'Add a separate password or biometrics on top of a secret chat — even an unlocked phone will not reveal it.',
+          title: 'A lock on top of encryption',
+          body: 'On top of regular E2EE, you can put a separate password or Face ID/Touch ID on the chat itself. Even an unlocked phone left on a desk will not reveal it — the second factor is required for that specific chat.',
+        },
+        {
+          title: 'Full control of access',
+          body: 'You can wipe the conversation on both sides at any moment, or lock the chat. Handy for work topics, legal matters and anything where less is more.',
         },
       ],
       howTo: [
@@ -470,17 +527,26 @@ const en: FeaturesContent = {
       title: 'Disappearing messages',
       tagline: 'Stop hoarding old conversations.',
       summary:
-        'Set a timer in a regular chat and messages will vanish for everyone after 1 hour, a day, a week or a month. Great for work threads and casual topics.',
+        'You do not have to keep everything forever. Set a timer and messages quietly vanish for everyone after 1 hour, a day, a week or a month. Perfect for work threads, casual topics and basic conversation hygiene.',
       ctaLabel: 'Open chats',
       sections: [
         {
           title: 'Sensible presets',
-          body: 'Ready-made timers cover most cases, from one hour to thirty days. The clock starts at send time.',
-          bullets: ['1 hour for one-offs', '24 hours for daily threads', '7 days for weekly tasks', '30 days for a long buffer'],
+          body: 'No need to count seconds — pick a preset. The clock starts at send time and works the same in 1:1 chats and groups.',
+          bullets: [
+            '1 hour for one-offs',
+            '24 hours for daily threads',
+            '7 days for weekly tasks',
+            '30 days for a month-long buffer',
+          ],
         },
         {
           title: 'Clean across devices',
-          body: 'Messages disappear in sync — on phone, web and desktop. No archive cleanup needed.',
+          body: 'Messages disappear in sync — on phone, web and desktop. No archive cleanup, no worries about a copy left somewhere.',
+        },
+        {
+          title: 'No leftovers in the cloud',
+          body: 'Deleted messages are gone server-side too. They will not surface from a backup — this is not “hidden”, it is actually deleted.',
         },
       ],
       howTo: [
@@ -493,16 +559,20 @@ const en: FeaturesContent = {
       title: 'Scheduled messages',
       tagline: 'Write now, send later.',
       summary:
-        'Preparing a morning greeting or a Monday reminder? Queue the message and the LighChat server will deliver it at the right moment.',
+        'Preparing a morning greeting or a Monday team reminder? Queue the message and the LighChat server will deliver it at the right moment. You can power down the device, close the app or even drain the battery — your message will still go out.',
       ctaLabel: 'Open chats',
       sections: [
         {
           title: 'Always on time',
-          body: 'Delivery happens on the server, not on your phone. Power down the device, close the app — your message will still go out.',
+          body: 'Delivery happens on the server, not on your phone. Unlike local timers in other messengers, the send will not fail because the device is on a plane, in a tunnel or simply offline.',
         },
         {
-          title: 'Full control',
-          body: 'A separate panel shows every scheduled message. Edit time or text, or cancel the send.',
+          title: 'Full control of the queue',
+          body: 'A separate panel shows every scheduled message. Edit time or text, send earlier or cancel — until it leaves, the message is fully under your control.',
+        },
+        {
+          title: 'Great for teams and life',
+          body: 'Birthdays, reminders, morning standups and any “must not forget to send” messages. Time zones are handled automatically.',
         },
       ],
       howTo: [
@@ -515,21 +585,25 @@ const en: FeaturesContent = {
       title: 'Games in chat',
       tagline: 'Invite friends to a card game inside the chat.',
       summary:
-        'No separate app needed. Start a game of Durak right inside the chat — real-time, with cards that look like the real thing.',
+        'No separate app, no separate signup. Start a game of Durak right inside the chat — real-time, beautiful cards, instant moves. A simple reason to gather in the evening.',
       ctaLabel: 'Open chats',
       sections: [
         {
-          title: 'Real time',
-          body: 'Players see each other’s moves instantly. The match lives while you stay in the chat and pauses if someone steps away.',
+          title: 'Real time and atmosphere',
+          body: 'Players see each other’s moves instantly. The match lives while you stay in the chat and pauses when someone steps away. Trash-talk and discuss right in the same conversation, no window switching.',
         },
         {
-          title: 'Familiar rules',
-          body: 'Classic Durak with passing on. Hints help newcomers, and veterans will recognize their rules right away.',
+          title: 'Familiar rules with hints',
+          body: 'Classic “Durak with passing on” — the rules you know from childhood. Hints help newcomers; veterans recognise their game right away.',
+        },
+        {
+          title: 'Built into chat',
+          body: 'The table opens inside the message, and the result stays in chat history. It is part of the conversation between friends, not a separate hyper-casual app.',
         },
       ],
       howTo: [
         'Open any chat or group.',
-        'Tap “+” and pick Game.',
+        'Tap “+” in the input and pick Game.',
         'Invite opponents and deal.',
       ],
     },
@@ -537,21 +611,25 @@ const en: FeaturesContent = {
       title: 'Video meetings',
       tagline: 'Up to dozens of people on one screen.',
       summary:
-        'Full video meetings with a participant grid, chat, polls and join requests. Anyone can join by link — even without an account.',
+        'Full video meetings with a participant grid, a shared chat, polls and join requests. Guests can join by link with no account — the page opens right in their browser. Works for work calls and family hangouts alike.',
       ctaLabel: 'Open meetings',
       sections: [
         {
-          title: 'Convenient grid',
-          body: 'The active speaker is highlighted automatically. Pin the participant you need, mute someone or step out for a while.',
+          title: 'Convenient grid and active speaker',
+          body: 'The active speaker is highlighted automatically. Pin the participant you need, mute someone with one tap or step out for a while without losing your seat.',
         },
         {
           title: 'Polls and join requests',
-          body: 'Run polls during the call. Closed rooms accept guests by request — the moderator approves entry.',
+          body: 'Run polls during the call: single, multi-choice or anonymous. Closed rooms accept guests by request — the moderator approves each one manually.',
+        },
+        {
+          title: 'No apps, no accounts',
+          body: 'For guests, the meeting opens right in the browser by link. No client to install, no signup, no waiting for updates.',
         },
       ],
       howTo: [
         'Open the Meetings tab.',
-        'Create a new room or join by link.',
+        'Create a room or join by link.',
         'Share the link with participants.',
       ],
     },
@@ -559,21 +637,25 @@ const en: FeaturesContent = {
       title: 'Calls and video circles',
       tagline: 'From a voice call to a video postcard in a second.',
       summary:
-        'High-quality 1:1 WebRTC calls with encryption and short video circles right in the chat feed — perfect for quick replies when typing is too slow.',
+        'High-quality 1:1 WebRTC calls with encryption by default and short video circles right in the chat feed — for quick replies when typing is too slow and a voice note is not enough. Face, emotion, voice — all in seconds.',
       ctaLabel: 'Call history',
       sections: [
         {
-          title: 'Stable quality',
-          body: 'The call switches networks gracefully, keeps audio in any tunnel and adapts video resolution to bandwidth.',
+          title: 'Stable on the move',
+          body: 'The call switches between Wi-Fi and cellular gracefully, holds audio in any tunnel and adapts video resolution to bandwidth. No “can you hear me?” every thirty seconds.',
         },
         {
           title: 'Video circles',
-          body: 'Record a circle up to 60 seconds: face, emotion, voice. The receiver watches it inline — no extra taps.',
+          body: 'Record a circle up to 60 seconds: face, emotion, a short comment. The receiver watches it inline — the circle plays automatically, no fullscreen, no extra taps.',
+        },
+        {
+          title: 'End-to-end encrypted',
+          body: 'Both calls and circles are encrypted device-to-device. The server gets neither audio nor picture — only an encrypted stream for delivery.',
         },
       ],
       howTo: [
         'Tap the phone or camera icon in the chat header.',
-        'For a circle: long-press the record button in the input.',
+        'For a circle: long-press the record button.',
         'Release to send instantly.',
       ],
     },
@@ -581,21 +663,25 @@ const en: FeaturesContent = {
       title: 'Folders and threads',
       tagline: 'Hundreds of chats without the chaos.',
       summary:
-        'Sort chats into folders — Work, Family, Study, whatever fits. Inside groups, open threads on specific topics so the main chat stays clean.',
+        'Sort chats into folders — Work, Family, Study, whatever fits — and switch between them with one tap. Inside group conversations, open threads on specific topics so the main chat stays clean.',
       ctaLabel: 'Open chats',
       sections: [
         {
-          title: 'Custom folders',
-          body: 'Create as many folders as you need and drag any chat into them. Folders sync across phone, web and desktop.',
+          title: 'As many folders as you need',
+          body: 'Create your own folders and drag any chat into them — DMs, groups, channels. Folders sync across phone, web and desktop, order is preserved.',
         },
         {
           title: 'Threads in groups',
-          body: 'Reply to a message inside a thread — the discussion stays there while the main chat stays focused.',
+          body: 'Reply to a message inside a thread — the discussion stays there while the main chat stays readable. Especially valuable in big teams and active communities.',
+        },
+        {
+          title: 'Quiet noisy chats',
+          body: 'A folder of “quiet” chats does not ring with notifications: sound and badge settings live at the folder level, not per chat.',
         },
       ],
       howTo: [
-        'In the chat list, open the folder rail and tap Create.',
-        'Drag chats into the folder you want.',
+        'Open the folder rail and tap Create.',
+        'Drag chats into a folder or set rules.',
         'In a group, tap “Reply in thread” under any message.',
       ],
     },
@@ -603,20 +689,24 @@ const en: FeaturesContent = {
       title: 'Live location sharing',
       tagline: 'Show where you are without fiddling with the map.',
       summary:
-        'Turn on live location and your peer sees you move in real time. Great for meeting up at a new spot or during a trip.',
+        'Instead of swapping screenshots, turn on live location and your peer sees you move in real time. Great for meeting up at a new spot, road trips and keeping an eye on loved ones.',
       ctaLabel: 'Open chats',
       sections: [
         {
           title: 'Timed sharing',
-          body: 'Pick how long to share: 15 minutes, an hour or 8 hours. After that the stream stops on its own.',
+          body: 'Pick how long to share: 15 minutes, an hour or 8 hours. After that the stream stops on its own — you will not forget to turn it off.',
         },
         {
           title: 'No surprises',
-          body: 'While you share, a banner reminds you in the chat. One tap stops the stream.',
+          body: 'While you share, a clearly visible red banner stays in the chat. One tap stops the stream — exactly as many steps as needed.',
+        },
+        {
+          title: 'Battery-friendly',
+          body: 'Uses the same system APIs as native Maps apps, so background sharing barely drains the battery and does not interfere with notifications.',
         },
       ],
       howTo: [
-        'In a chat, tap “+” and pick Location.',
+        'In a chat, tap “+” → Location.',
         'Turn on Live and choose duration.',
         'Tap the red banner on top to stop.',
       ],
@@ -625,16 +715,20 @@ const en: FeaturesContent = {
       title: 'Multiple devices',
       tagline: 'One account, many screens, nothing lost.',
       summary:
-        'Connect phone, tablet, web and desktop to a single account. Encryption keys sync via QR pairing and a password-protected backup.',
+        'Connect phone, tablet, web and desktop to a single account. Encryption keys sync via QR pairing and an encrypted backup with a password — your conversations stay with you, even if you lose every old device.',
       ctaLabel: 'Manage devices',
       sections: [
         {
           title: 'Secure QR pairing',
-          body: 'Pair a new device by scanning a QR code from an old one. Keys travel directly and never sit in plaintext on the server.',
+          body: 'Pair a new device by scanning a QR code from an old one. Keys travel directly between devices and never sit in plaintext on the server. Takes seconds, no long passwords to type.',
         },
         {
           title: 'Password backup',
-          body: 'Encrypt a backup of your keys with a password — and recover chats on any new device, even if you lost the old ones.',
+          body: 'Encrypt a backup of your keys with your own password — and recover chats on any new device, even if you lost all the old ones. The backup is useless to anyone without that password, including us.',
+        },
+        {
+          title: 'Same experience everywhere',
+          body: 'Web, desktop and mobile are built on the same platform. Chat history, folders, themes and settings sync across devices without delays.',
         },
       ],
       howTo: [
@@ -647,24 +741,24 @@ const en: FeaturesContent = {
       title: 'Stickers and media',
       tagline: 'Emotion, polls and quick photo edits.',
       summary:
-        'Rich stickers and GIFs, one-tap polls and built-in photo and video editors. Everything to communicate brighter and faster.',
+        'Rich sticker packs, GIF search right inside the input, one-tap polls and built-in photo and video editors. Everything to communicate brighter and faster — no app switching, no quality loss.',
       ctaLabel: 'Open chats',
       sections: [
         {
           title: 'Stickers and GIFs',
-          body: 'Add your own packs and use the public catalog. Search GIFs right from the input — no app switching.',
+          body: 'Add your own packs and use the public catalog. Search GIFs right from the input — your favourites end up in Recent automatically.',
         },
         {
           title: 'Polls and reactions',
-          body: 'Spin up a poll in two taps: single or multiple choice, anonymous or open. Message reactions for quick feedback.',
+          body: 'Start a poll in two taps: single or multi-choice, anonymous or open. Message reactions for quick feedback, so chats do not fill up with one-word replies.',
         },
         {
           title: 'Photo and video editors',
-          body: 'Crop, draw, trim video and caption — without third-party apps.',
+          body: 'Crop, draw, trim video and caption — built-in tools work instantly without quality loss. No third-party app needed to tidy media before sending.',
         },
       ],
       howTo: [
-        'In the input, tap the smiley — stickers and GIFs.',
+        'Tap the smiley in the input — stickers and GIFs.',
         'For a poll: “+” → Poll.',
         'For the editor: tap a photo or video in the preview.',
       ],
@@ -673,26 +767,30 @@ const en: FeaturesContent = {
       title: 'Fine-grained privacy',
       tagline: 'You decide what others see.',
       summary:
-        'Every detail is its own toggle — Online, Last seen, Read receipts, who can find you and who can add you to a group.',
+        'Every detail is its own toggle: Online status, Last seen, Read receipts, who can find you and who can add you to a group. Set it up in a minute — it works on every device.',
       ctaLabel: 'Open privacy',
       sections: [
         {
           title: 'Activity visibility',
-          body: 'Hide Online and Last seen from the wrong eyes. Read receipts can be turned off too.',
+          body: 'Hide Online and Last seen from the wrong eyes. Read receipts can be turned off too — peers will not see the blue check, and you will not see theirs.',
         },
         {
           title: 'Who finds you',
-          body: 'Global search can be off — then you are reachable only to people who already have your contact.',
+          body: 'Global search can be off — then you are reachable only to people who already have your contact saved. Useful if you do not want random messages.',
         },
         {
           title: 'Profile for others',
-          body: 'Decide whether to show email, phone, date of birth and bio in the profile card.',
+          body: 'Decide whether to show email, phone, date of birth and bio in the profile card. Each field is its own toggle, no “all or nothing” mode.',
+        },
+        {
+          title: 'Groups by your rules',
+          body: 'Pick who can add you to a group: everyone, contacts only, or nobody. That removes 99% of marketing groups without blocklists or fighting auto-invites.',
         },
       ],
       howTo: [
         'Open Settings → Privacy.',
         'Walk through the toggles and pick your defaults.',
-        'Reset returns everything to the safe defaults.',
+        'Reset returns the safe defaults.',
       ],
     },
   },
