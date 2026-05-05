@@ -390,27 +390,26 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     );
   }
 
-  /// Достаёт подпись для локации устройства из доступных полей.
-  /// Сейчас в `e2eeDevices` локация не сохраняется — возвращаем `null`,
-  /// и UI не показывает строку. Ниже Cloud Function `confirmQrLogin`
-  /// заполнит `lastLoginCity` / `lastLoginCountry` из CF-headers
-  /// (`X-Appengine-Country`/`-City`).
   String? _deviceLocationLabel(E2eeDeviceDoc device) {
-    // ignore: avoid_dynamic_calls
-    final dyn = device as dynamic;
-    String? city;
-    String? country;
-    try {
-      city = dyn.lastLoginCity as String?;
-    } catch (_) {}
-    try {
-      country = dyn.lastLoginCountry as String?;
-    } catch (_) {}
+    final city = device.lastLoginCity;
+    final country = device.lastLoginCountry;
+    final hasCity = city != null && city.isNotEmpty && city != '?';
+    final hasCountry =
+        country != null && country.isNotEmpty && country != 'ZZ';
+    if (!hasCity && !hasCountry) return null;
     final parts = <String>[
-      if (city != null && city.isNotEmpty) city,
-      if (country != null && country.isNotEmpty) country.toUpperCase(),
+      if (hasCity) _tryDecodeUri(city!),
+      if (hasCountry) country!.toUpperCase(),
     ];
-    return parts.isEmpty ? null : parts.join(', ');
+    return parts.join(', ');
+  }
+
+  static String _tryDecodeUri(String value) {
+    try {
+      return Uri.decodeFull(value);
+    } catch (_) {
+      return value;
+    }
   }
 }
 

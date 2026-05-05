@@ -26,6 +26,8 @@ import {
   updateDoc,
   type Firestore,
 } from 'firebase/firestore';
+import { getApp } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { E2eeDeviceDocV2 } from '@/lib/types';
 import {
   exportPkcs8Private,
@@ -244,9 +246,38 @@ export async function publishE2eeDeviceV2(
       keyBundleVersion: 1,
     };
     await setDoc(docRef, payload);
+    void refreshDeviceLastLocation(identity.deviceId);
     return;
   }
   await updateDoc(docRef, { lastSeenAt: now });
+  void refreshDeviceLastLocation(identity.deviceId);
+}
+
+/**
+ * Best-effort обновление `lastLoginAt`/`lastLoginCity`/`lastLoginCountry`/`lastLoginIp`
+ * через Cloud Function. Сервер сам берёт IP/гео из своих заголовков, клиент
+ * только дёргает callable. Локальный throttle 30 минут — чтобы не дёргать
+ * функцию на каждый рендер страницы; серверный throttle тоже 30 минут.
+ *
+ * Ошибки и таймауты молча игнорируются: локация — украшение, не блокер.
+ */
+const LAST_LOC_LS_KEY = 'e2ee:lastLocationCallAt';
+const LAST_LOC_THROTTLE_MS = 30 * 60 * 1000;
+
+async function refreshDeviceLastLocation(deviceId: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const prev = window.localStorage.getItem(LAST_LOC_LS_KEY);
+    const prevMs = prev ? Number.parseInt(prev, 10) : 0;
+    if (Number.isFinite(prevMs) && Date.now() - prevMs < LAST_LOC_THROTTLE_MS) {
+      return;
+    }
+    const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'updateDeviceLastLocation');
+    await fn({ deviceId });
+    window.localStorage.setItem(LAST_LOC_LS_KEY, String(Date.now()));
+  } catch {
+    // best-effort, не падаем
+  }
 }
 
 /**

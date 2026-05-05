@@ -116,6 +116,14 @@ interface E2eeDeviceDocV2 {
   revokedAt?: string;
   revokedByDeviceId?: string;
   keyBundleVersion: 1;            // для будущих ключевых форматов
+  // Best-effort GeoIP-метаданные последнего входа. Пишутся серверными
+  // callable-функциями `confirmQrLogin` (при QR-логине) и
+  // `updateDeviceLastLocation` (на старте сессии, throttle 30 мин).
+  // Берутся из заголовков X-Appengine-Country / X-Appengine-City.
+  lastLoginAt?: string;
+  lastLoginCountry?: string;      // ISO-2 (например, 'RU', 'DE'); 'ZZ' = unknown
+  lastLoginCity?: string;         // city name; '?' = unknown
+  lastLoginIp?: string;
 }
 ```
 

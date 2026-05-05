@@ -22,9 +22,11 @@
 /// ```
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import 'device_identity.dart';
 
@@ -43,6 +45,10 @@ class E2eeDeviceDoc {
     this.revoked = false,
     this.revokedAt,
     this.revokedByDeviceId,
+    this.lastLoginAt,
+    this.lastLoginCountry,
+    this.lastLoginCity,
+    this.lastLoginIp,
   });
 
   final String deviceId;
@@ -55,6 +61,10 @@ class E2eeDeviceDoc {
   final bool revoked;
   final String? revokedAt;
   final String? revokedByDeviceId;
+  final String? lastLoginAt;
+  final String? lastLoginCountry;
+  final String? lastLoginCity;
+  final String? lastLoginIp;
 
   factory E2eeDeviceDoc.fromMap(String id, Map<String, dynamic> data) {
     return E2eeDeviceDoc(
@@ -68,6 +78,10 @@ class E2eeDeviceDoc {
       revoked: data['revoked'] == true,
       revokedAt: data['revokedAt'] as String?,
       revokedByDeviceId: data['revokedByDeviceId'] as String?,
+      lastLoginAt: data['lastLoginAt'] as String?,
+      lastLoginCountry: data['lastLoginCountry'] as String?,
+      lastLoginCity: data['lastLoginCity'] as String?,
+      lastLoginIp: data['lastLoginIp'] as String?,
     );
   }
 
@@ -126,9 +140,32 @@ Future<void> publishMobileDevice({
       lastSeenAt: nowIso,
     );
     await ref.set(doc.toInitialMap());
+    unawaited(_refreshDeviceLastLocation(identity.deviceId));
     return;
   }
   await ref.update(<String, Object?>{'lastSeenAt': nowIso});
+  unawaited(_refreshDeviceLastLocation(identity.deviceId));
+}
+
+/// In-memory throttle: на холодном старте делаем максимум один вызов callable
+/// `updateDeviceLastLocation` в [_locThrottle]. Серверный throttle 30 мин —
+/// последний рубеж от абуза.
+DateTime? _lastLocationCallAt;
+const Duration _locThrottle = Duration(minutes: 30);
+
+Future<void> _refreshDeviceLastLocation(String deviceId) async {
+  final prev = _lastLocationCallAt;
+  if (prev != null && DateTime.now().difference(prev) < _locThrottle) {
+    return;
+  }
+  try {
+    final fn = FirebaseFunctions.instanceFor(region: 'us-central1')
+        .httpsCallable('updateDeviceLastLocation');
+    await fn.call<dynamic>(<String, dynamic>{'deviceId': deviceId});
+    _lastLocationCallAt = DateTime.now();
+  } catch (_) {
+    // best-effort, локация — украшение, не блокер
+  }
 }
 
 /// Читает все активные устройства пользователя (revoked исключены). Нужен

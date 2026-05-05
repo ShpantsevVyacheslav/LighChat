@@ -567,6 +567,10 @@ export type E2eeDeviceDocV2 = {
   revokedAt?: string;
   revokedByDeviceId?: string;
   keyBundleVersion: 1;
+  lastLoginAt?: string;
+  lastLoginCountry?: string;
+  lastLoginCity?: string;
+  lastLoginIp?: string;
 };
 
 /**
