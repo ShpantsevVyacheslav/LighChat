@@ -4,11 +4,13 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../settings/data/energy_saving_preference.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/contact_display_name.dart';
 import '../data/sanitize_message_html.dart';
@@ -37,7 +39,7 @@ import 'message_swipe_to_reply.dart';
 typedef ChatMessageVisibleCallback =
     void Function(ChatMessage message, double visibleFraction);
 
-class ChatMessageList extends StatefulWidget {
+class ChatMessageList extends ConsumerStatefulWidget {
   const ChatMessageList({
     super.key,
     required this.messagesDesc,
@@ -183,7 +185,7 @@ class ChatMessageList extends StatefulWidget {
   }
 
   @override
-  State<ChatMessageList> createState() => _ChatMessageListState();
+  ConsumerState<ChatMessageList> createState() => _ChatMessageListState();
 }
 
 ScrollPhysics _chatMessageListPhysics() {
@@ -193,7 +195,7 @@ ScrollPhysics _chatMessageListPhysics() {
   return const ClampingScrollPhysics();
 }
 
-class _ChatMessageListState extends State<ChatMessageList> {
+class _ChatMessageListState extends ConsumerState<ChatMessageList> {
   static final Set<String> _sessionSeenEmojiBurstEventIds = <String>{};
 
   bool _didInitialScroll = false;
@@ -782,6 +784,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
   void _triggerEmojiBurst(String emoji) {
     final token = emoji.trim();
     if (token.isEmpty) return;
+    if (!ref.read(energySavingProvider).effectiveAnimatedEmoji) return;
     setState(() {
       _emojiBurstRunId += 1;
       _emojiBurstTrigger = _EmojiBurstTrigger(

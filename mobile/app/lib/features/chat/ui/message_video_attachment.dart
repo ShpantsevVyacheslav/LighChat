@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../settings/data/energy_saving_preference.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/video_attachment_diagnostics.dart';
 import 'chat_gallery_video_local_cache.dart';
@@ -14,7 +16,7 @@ import 'chat_vlc_network_media.dart';
 import 'video_cached_thumb_image.dart';
 
 /// Inline video: первый кадр через `video_player`, полноэкран — как раньше.
-class MessageVideoAttachment extends StatefulWidget {
+class MessageVideoAttachment extends ConsumerStatefulWidget {
   const MessageVideoAttachment({
     super.key,
     required this.attachment,
@@ -33,10 +35,12 @@ class MessageVideoAttachment extends StatefulWidget {
   final VoidCallback? onOpenInGallery;
 
   @override
-  State<MessageVideoAttachment> createState() => _MessageVideoAttachmentState();
+  ConsumerState<MessageVideoAttachment> createState() =>
+      _MessageVideoAttachmentState();
 }
 
-class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
+class _MessageVideoAttachmentState
+    extends ConsumerState<MessageVideoAttachment> {
   VideoPlayerController? _controller;
   bool _failed = false;
   bool _thumbReady = false;
@@ -167,6 +171,12 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
     if (c == null || !_thumbReady || _failed) return;
     if (!mounted) return;
     if (_autoplayPausedByUser) return;
+    final allowAutoplay =
+        ref.read(energySavingProvider).effectiveAutoplayVideo;
+    if (!allowAutoplay) {
+      if (c.value.isPlaying) unawaited(c.pause());
+      return;
+    }
     if (_visibleFraction >= _kAutoPlayVisible) {
       if (!c.value.isPlaying) {
         unawaited(c.play());
@@ -227,6 +237,23 @@ class _MessageVideoAttachmentState extends State<MessageVideoAttachment> {
 
   @override
   Widget build(BuildContext context) {
+    // React to energy-saving toggling: pause running playback if autoplay
+    // becomes disallowed (mode switched on, user flipped the toggle, or
+    // battery dropped below the threshold), resume on visibility otherwise.
+    ref.listen<bool>(
+      energySavingProvider.select((s) => s.effectiveAutoplayVideo),
+      (prev, next) {
+        if (!mounted) return;
+        if (!next) {
+          final ctrl = _controller;
+          if (ctrl != null && ctrl.value.isPlaying) {
+            unawaited(ctrl.pause());
+          }
+        } else {
+          _maybeAutoPlay();
+        }
+      },
+    );
     final scheme = Theme.of(context).colorScheme;
     final w = widget.attachment.width;
     final h = widget.attachment.height;
