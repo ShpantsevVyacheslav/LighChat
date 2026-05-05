@@ -449,6 +449,8 @@ export type PlatformSettingsDoc = {
    * Читатели поддерживают dual-read независимо от флага.
    */
   e2eeProtocolVersion?: 'v2' | 'auto' | 'off';
+  /** Произвольные feature flags для поэтапной раскатки фич. */
+  featureFlags?: Record<string, FeatureFlag>;
 };
 
 export type ReplyContext = {
@@ -703,6 +705,8 @@ export type ChatMessage = {
    * Клиент не изменяет (см. firestore.rules).
    */
   expireAt?: unknown;
+  /** Сообщение скрыто администратором (модерация). */
+  hiddenByAdmin?: MessageHiddenByAdmin;
 };
 
 /**
@@ -1023,4 +1027,131 @@ export type PrivacySettings = {
    * Приглашения в группы: everyone — без ограничения; contacts — только если вы в контактах у приглашающего; none — никто.
    */
   groupInvitePolicy?: GroupInvitePolicy;
+};
+
+// ─── Admin Audit Log ────────────────────────────────────────────────────────
+
+export type AuditAction =
+  | 'user.create'
+  | 'user.delete'
+  | 'user.block'
+  | 'user.unblock'
+  | 'user.role.change'
+  | 'user.password.reset'
+  | 'user.update'
+  | 'storage.settings.update'
+  | 'storage.quota.user'
+  | 'storage.quota.conversation'
+  | 'notification.broadcast'
+  | 'backfill.run'
+  | 'moderation.hide_message'
+  | 'moderation.unhide_message'
+  | 'moderation.review_report'
+  | 'ticket.status_change'
+  | 'feature_flag.update'
+  | 'announcement.create'
+  | 'announcement.update'
+  | 'session.terminate';
+
+export type AuditLogEntry = {
+  id: string;
+  actorId: string;
+  actorName: string;
+  action: AuditAction;
+  target: {
+    type: 'user' | 'conversation' | 'message' | 'system';
+    id: string;
+    name?: string;
+  };
+  details?: Record<string, unknown>;
+  createdAt: string;
+};
+
+// ─── Support Tickets ─────────────────────────────────────────────────��──────
+
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'medium' | 'high';
+export type TicketCategory = 'bug' | 'account' | 'feature' | 'other';
+
+export type SupportTicket = {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  subject: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  category: TicketCategory;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+};
+
+export type SupportTicketMessage = {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'user' | 'admin';
+  text: string;
+  createdAt: string;
+};
+
+// ─── Content Moderation ─────────────���───────────────────────────────────��───
+
+export type ReportReason = 'spam' | 'harassment' | 'inappropriate' | 'other';
+export type ReportStatus = 'pending' | 'reviewed' | 'action_taken' | 'dismissed';
+export type ModerationAction = 'hidden' | 'user_warned' | 'user_blocked' | 'none';
+
+export type MessageReport = {
+  id: string;
+  reporterId: string;
+  reporterName: string;
+  conversationId: string;
+  messageId: string;
+  messageSenderId: string;
+  messageSenderName?: string;
+  messageText?: string;
+  reason: ReportReason;
+  description?: string;
+  status: ReportStatus;
+  actionTaken?: ModerationAction;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+};
+
+export type MessageHiddenByAdmin = {
+  at: string;
+  by: string;
+  reason?: string;
+};
+
+// ─── Feature Flags ───────────────────────────────────────────────���──────────
+
+export type FeatureFlag = {
+  enabled: boolean;
+  description?: string;
+  updatedAt: string;
+  updatedBy: string;
+};
+
+// ─── Announcements ────────────────��─────────────────────────────────────────
+
+export type AnnouncementType = 'info' | 'warning' | 'maintenance' | 'update';
+
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  type: AnnouncementType;
+  isActive: boolean;
+  priority: number;
+  startsAt?: string;
+  expiresAt?: string;
+  targetRoles?: UserRole[];
+  createdAt: string;
+  createdBy: string;
+  dismissible: boolean;
 };

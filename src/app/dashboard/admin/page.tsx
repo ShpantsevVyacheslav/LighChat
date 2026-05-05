@@ -10,9 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { AdminStorageSettingsPanel } from '@/components/admin/admin-storage-settings-panel';
 import { AdminPushNotificationsPanel } from '@/components/admin/admin-push-notifications-panel';
-import { AdminSupportInboxPlaceholder } from '@/components/admin/admin-support-inbox-placeholder';
+import { AdminSupportInbox } from '@/components/admin/admin-support-inbox';
 import { AdminCapabilitiesRoadmapCard } from '@/components/admin/admin-capabilities-roadmap-card';
 import { AdminBackfillConversationMembersPanel } from '@/components/admin/admin-backfill-conversation-members-panel';
+import { AdminAuditLogPanel } from '@/components/admin/admin-audit-log-panel';
+import { AdminAnalyticsPanel } from '@/components/admin/admin-analytics-panel';
+import { AdminModerationPanel } from '@/components/admin/admin-moderation-panel';
+import { AdminFeatureFlagsPanel } from '@/components/admin/admin-feature-flags-panel';
+import { AdminAnnouncementsPanel } from '@/components/admin/admin-announcements-panel';
 import { UsersClient } from '@/components/admin/users-client';
 
 export const dynamic = 'force-dynamic';
@@ -57,14 +62,26 @@ export default function AdminPage() {
           <TabsTrigger value="users" className="rounded-xl">
             Пользователи
           </TabsTrigger>
+          <TabsTrigger value="analytics" className="rounded-xl">
+            Аналитика
+          </TabsTrigger>
+          <TabsTrigger value="moderation" className="rounded-xl">
+            Модерация
+          </TabsTrigger>
           <TabsTrigger value="storage" className="rounded-xl">
             Хранилище
           </TabsTrigger>
           <TabsTrigger value="push" className="rounded-xl">
             Уведомления
           </TabsTrigger>
+          <TabsTrigger value="audit" className="rounded-xl">
+            Аудит
+          </TabsTrigger>
           <TabsTrigger value="support" className="rounded-xl">
             Обращения
+          </TabsTrigger>
+          <TabsTrigger value="platform" className="rounded-xl">
+            Платформа
           </TabsTrigger>
           <TabsTrigger value="roadmap" className="rounded-xl">
             Развитие
@@ -104,6 +121,14 @@ export default function AdminPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="analytics" className="mt-0">
+          <AdminAnalyticsPanel />
+        </TabsContent>
+
+        <TabsContent value="moderation" className="mt-0">
+          <AdminModerationPanel />
+        </TabsContent>
+
         <TabsContent value="storage" className="mt-0">
           <AdminStorageSettingsPanel />
         </TabsContent>
@@ -112,8 +137,17 @@ export default function AdminPage() {
           <AdminPushNotificationsPanel />
         </TabsContent>
 
+        <TabsContent value="audit" className="mt-0">
+          <AdminAuditLogPanel />
+        </TabsContent>
+
         <TabsContent value="support" className="mt-0">
-          <AdminSupportInboxPlaceholder />
+          <AdminSupportInbox />
+        </TabsContent>
+
+        <TabsContent value="platform" className="mt-0 space-y-4">
+          <AdminAnnouncementsPanel />
+          <AdminFeatureFlagsPanel />
         </TabsContent>
 
         <TabsContent value="roadmap" className="mt-0">

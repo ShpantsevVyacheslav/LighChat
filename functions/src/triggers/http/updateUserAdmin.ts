@@ -1,6 +1,7 @@
 import { onCall, HttpsError, type CallableRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
+import { logAdminActionCF } from "../../lib/audit-log";
 
 const db = admin.firestore();
 
@@ -44,6 +45,15 @@ export const updateUserAdmin = onCall({ region: "us-central1" }, async (request:
 
     await db.collection("users").doc(uid).update(updatePayload);
     logger.log(`Profile document updated successfully for user: ${uid}`);
+
+    await logAdminActionCF({
+      db,
+      actorId: callerUid,
+      actorName: callerData?.name ?? "Admin",
+      action: "user.update",
+      target: { type: "user", id: uid, name: (userData as Record<string, unknown>).name as string | undefined },
+      details: { updatedFields: Object.keys(userData), passwordChanged: !!password },
+    }).catch((e) => logger.warn("Audit log failed:", e));
 
     return { success: true };
   } catch (error: unknown) {

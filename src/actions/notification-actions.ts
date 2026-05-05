@@ -2,6 +2,8 @@
 'use server';
 
 import { adminDb, adminMessaging } from '@/firebase/admin';
+import { assertAdminByIdToken } from '@/actions/admin-actions';
+import { logAdminAction } from '@/actions/audit-log-actions';
 import type { UserRole, Notification } from '@/lib/types';
 import type { MulticastMessage } from 'firebase-admin/messaging';
 
@@ -160,12 +162,22 @@ async function sendNotifications(
 }
 
 export async function sendNotificationToRoles(
+  idToken: string,
   roles: UserRole[],
   title: string,
   body: string,
   link?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const actor = await assertAdminByIdToken(idToken);
   const { tokens, userIds } = await getTokensForRoles(roles);
+
+  logAdminAction({
+    actorId: actor.uid,
+    actorName: actor.name,
+    action: 'notification.broadcast',
+    target: { type: 'system', id: 'broadcast' },
+    details: { roles, title, recipientCount: userIds.length },
+  }).catch(() => {});
   
   const finalLink = link || '/dashboard';
   
@@ -179,12 +191,23 @@ export async function sendNotificationToRoles(
 }
 
 export async function sendNotificationToUsers(
+  idToken: string | null,
   userIds: string[],
   title: string,
   body: string,
   link?: string,
   saveToDb: boolean = true
 ): Promise<{ success: boolean; error?: string }> {
+  if (idToken) {
+    const actor = await assertAdminByIdToken(idToken);
+    logAdminAction({
+      actorId: actor.uid,
+      actorName: actor.name,
+      action: 'notification.broadcast',
+      target: { type: 'system', id: 'targeted' },
+      details: { title, targetUserIds: userIds },
+    }).catch(() => {});
+  }
 
   const uniqueUserIds = [...new Set(userIds)];
   
@@ -205,9 +228,10 @@ export async function sendNotificationToUsers(
 
 export async function sendTestNotificationAction(userId: string) {
     return sendNotificationToUsers(
-        [userId], 
-        "Проверка связи", 
-        "Это тестовое уведомление. Если вы его видите, значит LighChat настроен правильно!", 
+        null,
+        [userId],
+        "Проверка связи",
+        "Это тестовое уведомление. Если вы его видите, значит LighChat настроен правильно!",
         "/dashboard/profile",
         true
     );

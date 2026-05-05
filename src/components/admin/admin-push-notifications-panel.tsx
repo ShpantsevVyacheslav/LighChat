@@ -16,12 +16,14 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { sendNotificationToRoles, sendNotificationToUsers } from '@/actions/notification-actions';
 import { Loader2, Bell } from 'lucide-react';
+import { useAuth as useFirebaseAuth } from '@/firebase';
 import type { UserRole } from '@/lib/types';
 
 type Audience = 'all' | 'admin' | 'worker' | 'uids';
 
 export function AdminPushNotificationsPanel() {
   const { toast } = useToast();
+  const firebaseAuth = useFirebaseAuth();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [link, setLink] = useState('/dashboard/chat');
@@ -36,6 +38,12 @@ export function AdminPushNotificationsPanel() {
     }
     setSending(true);
     try {
+      const idToken = await firebaseAuth?.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ variant: 'destructive', title: 'Не удалось получить токен авторизации' });
+        setSending(false);
+        return;
+      }
       let res: { success: boolean; error?: string };
       if (audience === 'uids') {
         const ids = uidsRaw
@@ -47,7 +55,7 @@ export function AdminPushNotificationsPanel() {
           setSending(false);
           return;
         }
-        res = await sendNotificationToUsers(ids, title.trim(), body.trim(), link.trim() || '/dashboard/chat', true);
+        res = await sendNotificationToUsers(idToken, ids, title.trim(), body.trim(), link.trim() || '/dashboard/chat', true);
       } else {
         const roles: UserRole[] =
           audience === 'all'
@@ -55,7 +63,7 @@ export function AdminPushNotificationsPanel() {
             : audience === 'admin'
               ? ['admin']
               : ['worker'];
-        res = await sendNotificationToRoles(roles, title.trim(), body.trim(), link.trim() || '/dashboard/chat');
+        res = await sendNotificationToRoles(idToken, roles, title.trim(), body.trim(), link.trim() || '/dashboard/chat');
       }
       if (res.success) {
         toast({ title: 'Уведомления отправлены' });

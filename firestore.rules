@@ -405,7 +405,9 @@ service cloud.firestore {
 
       /** Реестр устройств пользователя: текущие клиентские сессии, active/lastSeen/fcm. */
       match /devices/{deviceId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow write: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if isAdmin();
       }
 
       /** Избранные сообщения в чатах (только владелец). */
@@ -891,9 +893,39 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /supportTickets/{ticketId} {
+    match /adminAuditLog/{logId} {
       allow read: if isAdmin();
-      allow create, update, delete: if false;
+      allow write: if false;
+    }
+
+    match /supportTickets/{ticketId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid);
+        allow create: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid);
+        allow update, delete: if false;
+      }
+    }
+
+    match /messageReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /platformStats/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
   }
 }

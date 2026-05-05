@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   ShieldOff,
   KeyRound,
+  Monitor,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { userAvatarListUrl } from "@/lib/user-avatar-display";
@@ -47,6 +48,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { UserBlockDialog } from "@/components/admin/user-block-dialog";
 import { AdminResetPasswordDialog } from "@/components/admin/admin-reset-password-dialog";
+import { AdminUserSessionsDialog } from "@/components/admin/admin-user-sessions-dialog";
 import { isAccountBlocked } from "@/lib/account-block-utils";
 import { useToast } from "@/hooks/use-toast";
 import { ruEnSubstringMatch } from "@/lib/ru-latin-search-normalize";
@@ -68,6 +70,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [blockTarget, setBlockTarget] = useState<User | null>(null);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [sessionsTarget, setSessionsTarget] = useState<User | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const router = useRouter();
 
@@ -378,6 +381,10 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                               <KeyRound className="mr-2 h-4 w-4" />
                               {t("admin.usersList.resetPassword")}
                             </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setSessionsTarget(user)}>
+                              <Monitor className="mr-2 h-4 w-4" />
+                              Сессии
+                            </DropdownMenuItem>
                             {user.role !== "admin" && (
                               <DropdownMenuItem onSelect={() => void handleSetRole(user, "admin")}>
                                 <ShieldCheck className="mr-2 h-4 w-4" />
@@ -559,6 +566,14 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
             target={resetTarget}
             getIdToken={getIdToken}
           />
+          {sessionsTarget && (
+            <AdminUserSessionsDialog
+              open={!!sessionsTarget}
+              onOpenChange={(open) => !open && setSessionsTarget(null)}
+              targetUserId={sessionsTarget.id}
+              targetUserName={sessionsTarget.name}
+            />
+          )}
         </>
       )}
     </div>

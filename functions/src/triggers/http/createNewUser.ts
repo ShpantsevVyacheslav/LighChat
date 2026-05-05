@@ -1,6 +1,8 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
+import { generateUniqueUsernameAdmin } from "../../lib/generate-unique-username-admin";
+import { logAdminActionCF } from "../../lib/audit-log";
 
 const db = admin.firestore();
 
@@ -35,12 +37,20 @@ export const createNewUser = onCall({ region: "us-central1" }, async (request) =
       displayName: name,
     });
 
-    // 4. Create the Firestore profile document immediately (on the server side)
+    // 4. Generate a unique username
+    const username = await generateUniqueUsernameAdmin({
+      db,
+      uid: userRecord.uid,
+      fallbackCandidate: name,
+    });
+
+    // 5. Create the Firestore profile document immediately (on the server side)
     const newUserProfile = {
       id: userRecord.uid,
       name: name,
+      username,
       email: email,
-      role: role || "sales",
+      role: role || "worker",
       avatar: avatar || "",
       phone: phone || "",
       createdAt: new Date().toISOString(),
@@ -50,6 +60,15 @@ export const createNewUser = onCall({ region: "us-central1" }, async (request) =
 
     await db.collection("users").doc(userRecord.uid).set(newUserProfile);
     logger.log(`Successfully created Auth and Firestore profile for user: ${userRecord.uid}`);
+
+    await logAdminActionCF({
+      db,
+      actorId: callerUid,
+      actorName: callerData?.name ?? "Admin",
+      action: "user.create",
+      target: { type: "user", id: userRecord.uid, name },
+      details: { email, role: role || "worker" },
+    }).catch((e) => logger.warn("Audit log failed:", e));
 
     return { uid: userRecord.uid };
   } catch (error: unknown) {
