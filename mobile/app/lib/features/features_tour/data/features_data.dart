@@ -618,14 +618,14 @@ const _kRu = FeaturesContent(
 const _kEn = FeaturesContent(
   pageTitle: 'LighChat features',
   pageSubtitle:
-      'A short tour of what makes LighChat faster, safer and more fun than a regular messenger.',
+      'A short tour of what makes LighChat faster, safer and more useful than a regular messenger. Each feature has its own page with an example and steps.',
   heroPrimary: 'Meet LighChat',
   heroSecondary:
-      'Strong encryption, secret chats, scheduled messages and built-in games. Discover it all in a couple of minutes.',
+      'Opt-in end-to-end encryption, secret chats that self-destruct, scheduled messages, video meetings and even games — all in one ad-free app. Discover it all in a couple of minutes.',
   highlightTitle: 'Most useful',
-  highlightSubtitle: 'Five reasons people stay.',
+  highlightSubtitle: 'Five reasons people stay with LighChat.',
   moreTitle: 'More to explore',
-  moreSubtitle: 'What else the app can do beyond chatting.',
+  moreSubtitle: 'What the app can do beyond chatting — folders, threads, live location and more.',
   helpfulTitle: 'What you get',
   howToTitle: 'How to enable',
   relatedTitle: 'See also',
@@ -633,7 +633,7 @@ const _kEn = FeaturesContent(
   fromWelcomeBadge: 'Tour',
   welcomeTitle: 'Discover LighChat features',
   welcomeSubtitle:
-      'Two minutes to see what makes LighChat different. You can come back to the tour any time from settings.',
+      'Two minutes to see what makes LighChat different: encryption, secret chats, games and meetings. You can come back to the tour any time from the settings menu.',
   welcomePrimaryCta: 'Take a look',
   welcomeSecondaryCta: 'Later',
   welcomeBullets: [
@@ -646,14 +646,23 @@ const _kEn = FeaturesContent(
       title: 'End-to-end encryption',
       tagline: 'Turn it on — and only you and the recipient can read it.',
       summary:
-          'E2EE in LighChat is an opt-in mode. Enable it globally for every new chat or just for one specific conversation. While E2EE is on, messages and media are encrypted on your device and decrypted only on the other side.',
+          'End-to-end encryption (E2EE) in LighChat is an opt-in mode. Enable it globally for every new chat or just for one specific conversation. While E2EE is on, messages and media are encrypted right on your device and decrypted only on the other side — servers cannot read the content even technically.',
       ctaLabel: 'Open devices',
       sections: [
-        FeatureSection(title: 'Nobody else reads it', body: 'Keys live on your devices only.'),
-        FeatureSection(title: 'Verify your peer', body: 'Compare the device fingerprint with your peer.'),
+        FeatureSection(
+          title: 'Nobody else reads it',
+          body:
+              'Encryption keys live on your devices only and never leave them in plaintext. The server sees encrypted traffic and delivery metadata, but not text, voice, files or link previews. Even if the database were ever compromised, your conversations would stay private.',
+        ),
+        FeatureSection(
+          title: 'Verify your peer',
+          body:
+              'Every device has a fingerprint — a short code. Compare it with your peer in person or over a separate channel: if the codes match, there is nobody in the middle. Same trust model as Signal and WhatsApp use in their secure chats.',
+        ),
         FeatureSection(
           title: 'Turn it on where you need it',
-          body: 'Enable E2EE for every new chat in Settings, or turn it on per-chat from the chat header. While the mode is on, everything in that chat travels encrypted:',
+          body:
+              'In Settings you can enable E2EE for every new chat at once, or turn it on for a specific conversation from its header. Once the mode is active, everything in that chat travels encrypted — not just text:',
           bullets: [
             'Text messages and reactions',
             'Voice and video circles',
@@ -661,23 +670,34 @@ const _kEn = FeaturesContent(
             'Link previews and stickers',
           ],
         ),
+        FeatureSection(
+          title: 'Recovery without trade-offs',
+          body:
+              'Lost your phone? You can keep an encrypted backup of your keys behind a password. Recovery only works with that password — nobody, including us, can reach the keys without it.',
+        ),
       ],
       howTo: [
         'In Settings → Privacy enable E2EE by default for new chats.',
-        'For an existing chat, open the header and pick Encryption.',
-        'In Settings → Devices compare key fingerprints with your peer.',
+        'To turn it on in an existing chat, open the chat header and pick Encryption.',
+        'In Settings → Devices compare key fingerprints with your peer and enable the backup.',
       ],
     ),
     FeatureTopicId.secretChats: FeatureTopicContent(
       title: 'Secret chats',
       tagline: 'Chats that disappear and refuse to forward.',
-      summary: 'Stricter rules: timed self-destruct, no forwarding, view-once media.',
+      summary:
+          'A secret chat is a stricter mode of conversation. Messages auto-delete on a timer, you can fully block forwarding and copying, photos and videos open once, and the chat itself can be locked behind a separate password or biometrics.',
       ctaLabel: 'Start a secret chat',
       sections: [
-        FeatureSection(title: 'Self-destructing timer', body: 'From 5 minutes to a day.'),
+        FeatureSection(
+          title: 'Self-destructing timer',
+          body:
+              'Pick how long messages live, from 5 minutes to a day. The timer counts down on both sides — once a message is gone, it cannot be recovered on any device.',
+        ),
         FeatureSection(
           title: 'Hard restrictions',
-          body: 'Block forwarding, quotes and saving media.',
+          body:
+              'Block forwarding, quoting, text copying and saving media. Server-side policy enforces every rule, and screenshot attempts notify your peer.',
           bullets: [
             'No forwarding or quoting',
             'No copying text',
@@ -685,130 +705,316 @@ const _kEn = FeaturesContent(
             'View-once photos and videos',
           ],
         ),
-        FeatureSection(title: 'Lock the chat', body: 'Add a separate password or biometrics.'),
+        FeatureSection(
+          title: 'A lock on top of encryption',
+          body:
+              'On top of regular E2EE, you can put a separate password or Face ID/Touch ID on the chat itself. Even an unlocked phone left on a desk will not reveal it — the second factor is required for that specific chat.',
+        ),
+        FeatureSection(
+          title: 'Full control of access',
+          body:
+              'You can wipe the conversation on both sides at any moment, or lock the chat. Handy for work topics, legal matters and anything where less is more.',
+        ),
       ],
-      howTo: ['Tap the chat header and open Privacy.', 'Turn on Secret chat and set a timer.', 'Optionally enable restrictions and the lock.'],
+      howTo: [
+        'Tap the chat header and open Privacy.',
+        'Turn on Secret chat and set a timer.',
+        'Optionally enable restrictions and the lock.',
+      ],
     ),
     FeatureTopicId.disappearingMessages: FeatureTopicContent(
       title: 'Disappearing messages',
       tagline: 'Stop hoarding old conversations.',
-      summary: 'Set a timer in a regular chat and messages vanish for everyone.',
+      summary:
+          'You do not have to keep everything forever. Set a timer and messages quietly vanish for everyone after 1 hour, a day, a week or a month. Perfect for work threads, casual topics and basic conversation hygiene.',
       ctaLabel: 'Open chats',
       sections: [
         FeatureSection(
           title: 'Sensible presets',
-          body: 'Ready-made timers cover most cases.',
-          bullets: ['1 hour for one-offs', '24 hours for daily threads', '7 days for weekly tasks', '30 days for a long buffer'],
+          body: 'No need to count seconds — pick a preset. The clock starts at send time and works the same in 1:1 chats and groups.',
+          bullets: [
+            '1 hour for one-offs',
+            '24 hours for daily threads',
+            '7 days for weekly tasks',
+            '30 days for a month-long buffer',
+          ],
         ),
-        FeatureSection(title: 'Clean across devices', body: 'Disappear in sync on phone, web and desktop.'),
+        FeatureSection(
+          title: 'Clean across devices',
+          body:
+              'Messages disappear in sync — on phone, web and desktop. No archive cleanup, no worries about a copy left somewhere.',
+        ),
+        FeatureSection(
+          title: 'No leftovers in the cloud',
+          body:
+              'Deleted messages are gone server-side too. They will not surface from a backup — this is not “hidden”, it is actually deleted.',
+        ),
       ],
-      howTo: ['Open a chat and tap the header.', 'Disappearing messages — pick a timer.', 'New messages will live exactly that long.'],
+      howTo: [
+        'Open a chat and tap the header.',
+        'Disappearing messages — pick a timer.',
+        'New messages will live exactly that long.',
+      ],
     ),
     FeatureTopicId.scheduledMessages: FeatureTopicContent(
       title: 'Scheduled messages',
       tagline: 'Write now, send later.',
-      summary: 'The server delivers your message at the right moment.',
+      summary:
+          'Preparing a morning greeting or a Monday team reminder? Queue the message and the LighChat server will deliver it at the right moment. You can power down the device, close the app or even drain the battery — your message will still go out.',
       ctaLabel: 'Open chats',
       sections: [
-        FeatureSection(title: 'Always on time', body: 'Delivery happens on the server, not on your phone.'),
-        FeatureSection(title: 'Full control', body: 'Edit time or text, or cancel the send.'),
+        FeatureSection(
+          title: 'Always on time',
+          body:
+              'Delivery happens on the server, not on your phone. Unlike local timers in other messengers, the send will not fail because the device is on a plane, in a tunnel or simply offline.',
+        ),
+        FeatureSection(
+          title: 'Full control of the queue',
+          body:
+              'A separate panel shows every scheduled message. Edit time or text, send earlier or cancel — until it leaves, the message is fully under your control.',
+        ),
+        FeatureSection(
+          title: 'Great for teams and life',
+          body: 'Birthdays, reminders, morning standups and any “must not forget to send” messages. Time zones are handled automatically.',
+        ),
       ],
-      howTo: ['Type your message as usual.', 'Long-press the send button → Schedule.', 'Pick a date and time.'],
+      howTo: [
+        'Type your message as usual.',
+        'Long-press the send button → Schedule.',
+        'Pick a date and time. Done.',
+      ],
     ),
     FeatureTopicId.games: FeatureTopicContent(
       title: 'Games in chat',
       tagline: 'Invite friends to a card game inside the chat.',
-      summary: 'Start a game of Durak right inside the chat — real-time.',
+      summary:
+          'No separate app, no separate signup. Start a game of Durak right inside the chat — real-time, beautiful cards, instant moves. A simple reason to gather in the evening.',
       ctaLabel: 'Open chats',
       sections: [
-        FeatureSection(title: 'Real time', body: 'Players see each other’s moves instantly.'),
-        FeatureSection(title: 'Familiar rules', body: 'Classic Durak with passing on.'),
+        FeatureSection(
+          title: 'Real time and atmosphere',
+          body:
+              'Players see each other’s moves instantly. The match lives while you stay in the chat and pauses when someone steps away. Trash-talk and discuss right in the same conversation, no window switching.',
+        ),
+        FeatureSection(
+          title: 'Familiar rules with hints',
+          body: 'Classic “Durak with passing on” — the rules you know from childhood. Hints help newcomers; veterans recognise their game right away.',
+        ),
+        FeatureSection(
+          title: 'Built into chat',
+          body: 'The table opens inside the message, and the result stays in chat history. It is part of the conversation between friends, not a separate hyper-casual app.',
+        ),
       ],
-      howTo: ['Open any chat or group.', 'Tap “+” and pick Game.', 'Invite opponents and deal.'],
+      howTo: [
+        'Open any chat or group.',
+        'Tap “+” in the input and pick Game.',
+        'Invite opponents and deal.',
+      ],
     ),
     FeatureTopicId.meetings: FeatureTopicContent(
       title: 'Video meetings',
       tagline: 'Up to dozens of people on one screen.',
-      summary: 'Full video meetings with a participant grid, chat, polls and join requests.',
+      summary:
+          'Full video meetings with a participant grid, a shared chat, polls and join requests. Guests can join by link with no account — the page opens right in their browser. Works for work calls and family hangouts alike.',
       ctaLabel: 'Open meetings',
       sections: [
-        FeatureSection(title: 'Convenient grid', body: 'Active speaker is highlighted automatically.'),
-        FeatureSection(title: 'Polls and join requests', body: 'Run polls during the call.'),
+        FeatureSection(
+          title: 'Convenient grid and active speaker',
+          body:
+              'The active speaker is highlighted automatically. Pin the participant you need, mute someone with one tap or step out for a while without losing your seat.',
+        ),
+        FeatureSection(
+          title: 'Polls and join requests',
+          body:
+              'Run polls during the call: single, multi-choice or anonymous. Closed rooms accept guests by request — the moderator approves each one manually.',
+        ),
+        FeatureSection(
+          title: 'No apps, no accounts',
+          body:
+              'For guests, the meeting opens right in the browser by link. No client to install, no signup, no waiting for updates.',
+        ),
       ],
-      howTo: ['Open the Meetings tab.', 'Create a room or join by link.', 'Share the link with participants.'],
+      howTo: [
+        'Open the Meetings tab.',
+        'Create a room or join by link.',
+        'Share the link with participants.',
+      ],
     ),
     FeatureTopicId.calls: FeatureTopicContent(
       title: 'Calls and video circles',
       tagline: 'From a voice call to a video postcard in a second.',
       summary:
-          'High-quality 1:1 WebRTC calls and short video circles in the chat feed. In chats where E2EE is on, calls and circles travel encrypted too.',
+          'High-quality 1:1 WebRTC calls and short video circles right in the chat feed — for quick replies when typing is too slow and a voice note is not enough. Face, emotion, voice — all in seconds. In chats where E2EE is on, calls and circles travel encrypted too.',
       ctaLabel: 'Call history',
       sections: [
-        FeatureSection(title: 'Stable quality', body: 'Switches networks gracefully.'),
-        FeatureSection(title: 'Video circles', body: 'Up to 60 seconds, plays inline.'),
+        FeatureSection(
+          title: 'Stable on the move',
+          body:
+              'The call switches between Wi-Fi and cellular gracefully, holds audio in any tunnel and adapts video resolution to bandwidth. No “can you hear me?” every thirty seconds.',
+        ),
+        FeatureSection(
+          title: 'Video circles',
+          body:
+              'Record a circle up to 60 seconds: face, emotion, a short comment. The receiver watches it inline — the circle plays automatically, no fullscreen, no extra taps.',
+        ),
         FeatureSection(
           title: 'End-to-end encrypted when enabled',
-          body: 'When E2EE is on in a chat, calls and circles travel device-to-device — no audio or video reaches the server.',
+          body:
+              'When E2EE is on in the chat, calls and circles travel device-to-device — the server gets neither audio nor picture, only the stream for delivery. Turn encryption on in the chat header and calls and circles pick the protection up automatically.',
         ),
       ],
-      howTo: ['Tap the phone or camera icon.', 'For a circle: long-press the record button.', 'Release to send.'],
+      howTo: [
+        'Tap the phone or camera icon in the chat header.',
+        'For a circle: long-press the record button.',
+        'Release to send instantly.',
+      ],
     ),
     FeatureTopicId.foldersThreads: FeatureTopicContent(
       title: 'Folders and threads',
       tagline: 'Hundreds of chats without the chaos.',
-      summary: 'Sort chats into folders and open threads on specific topics.',
+      summary:
+          'Sort chats into folders — Work, Family, Study, whatever fits — and switch between them with one tap. Inside group conversations, open threads on specific topics so the main chat stays clean.',
       ctaLabel: 'Open chats',
       sections: [
-        FeatureSection(title: 'Custom folders', body: 'Create as many folders as you need.'),
-        FeatureSection(title: 'Threads in groups', body: 'Reply to a message inside a thread.'),
+        FeatureSection(
+          title: 'As many folders as you need',
+          body:
+              'Create your own folders and drag any chat into them — DMs, groups, channels. Folders sync across phone, web and desktop, order is preserved.',
+        ),
+        FeatureSection(
+          title: 'Threads in groups',
+          body:
+              'Reply to a message inside a thread — the discussion stays there while the main chat stays readable. Especially valuable in big teams and active communities.',
+        ),
+        FeatureSection(
+          title: 'Quiet noisy chats',
+          body:
+              'A folder of “quiet” chats does not ring with notifications: sound and badge settings live at the folder level, not per chat.',
+        ),
       ],
-      howTo: ['Open the folder rail and tap Create.', 'Drag chats into the folder.', 'In a group: Reply in thread.'],
+      howTo: [
+        'Open the folder rail and tap Create.',
+        'Drag chats into a folder or set rules.',
+        'In a group, tap “Reply in thread” under any message.',
+      ],
     ),
     FeatureTopicId.liveLocation: FeatureTopicContent(
       title: 'Live location sharing',
       tagline: 'Show where you are without fiddling with the map.',
-      summary: 'Your peer sees you move in real time.',
+      summary:
+          'Instead of swapping screenshots, turn on live location and your peer sees you move in real time. Great for meeting up at a new spot, road trips and keeping an eye on loved ones.',
       ctaLabel: 'Open chats',
       sections: [
-        FeatureSection(title: 'Timed sharing', body: '15 minutes, an hour or 8 hours.'),
-        FeatureSection(title: 'No surprises', body: 'A banner reminds you while sharing.'),
+        FeatureSection(
+          title: 'Timed sharing',
+          body: 'Pick how long to share: 15 minutes, an hour or 8 hours. After that the stream stops on its own — you will not forget to turn it off.',
+        ),
+        FeatureSection(
+          title: 'No surprises',
+          body: 'While you share, a clearly visible red banner stays in the chat. One tap stops the stream — exactly as many steps as needed.',
+        ),
+        FeatureSection(
+          title: 'Battery-friendly',
+          body: 'Uses the same system APIs as native Maps apps, so background sharing barely drains the battery and does not interfere with notifications.',
+        ),
       ],
-      howTo: ['In a chat tap “+” → Location.', 'Turn on Live and choose duration.', 'Tap the red banner to stop.'],
+      howTo: [
+        'In a chat, tap “+” → Location.',
+        'Turn on Live and choose duration.',
+        'Tap the red banner on top to stop.',
+      ],
     ),
     FeatureTopicId.multiDevice: FeatureTopicContent(
       title: 'Multiple devices',
       tagline: 'One account, many screens, nothing lost.',
-      summary: 'QR pairing and password-protected backup of keys.',
+      summary:
+          'Connect phone, tablet, web and desktop to a single account. Encryption keys sync via QR pairing and an encrypted backup with a password — your conversations stay with you, even if you lose every old device.',
       ctaLabel: 'Manage devices',
       sections: [
-        FeatureSection(title: 'Secure QR pairing', body: 'Keys travel directly between devices.'),
-        FeatureSection(title: 'Password backup', body: 'Recover chats on any new device.'),
+        FeatureSection(
+          title: 'Secure QR pairing',
+          body:
+              'Pair a new device by scanning a QR code from an old one. Keys travel directly between devices and never sit in plaintext on the server. Takes seconds, no long passwords to type.',
+        ),
+        FeatureSection(
+          title: 'Password backup',
+          body:
+              'Encrypt a backup of your keys with your own password — and recover chats on any new device, even if you lost all the old ones. The backup is useless to anyone without that password, including us.',
+        ),
+        FeatureSection(
+          title: 'Same experience everywhere',
+          body:
+              'Web, desktop and mobile are built on the same platform. Chat history, folders, themes and settings sync across devices without delays.',
+        ),
       ],
-      howTo: ['On a new device, choose Sign in with QR.', 'On an old device, open Settings → Devices.', 'Show the QR code.'],
+      howTo: [
+        'On a new device, choose Sign in with QR.',
+        'On an old device, open Settings → Devices.',
+        'Show the QR code. Done — keys are on the new device.',
+      ],
     ),
     FeatureTopicId.stickersMedia: FeatureTopicContent(
       title: 'Stickers and media',
       tagline: 'Emotion, polls and quick photo edits.',
-      summary: 'Rich stickers and GIFs, polls and built-in photo and video editors.',
+      summary:
+          'Rich sticker packs, GIF search right inside the input, one-tap polls and built-in photo and video editors. Everything to communicate brighter and faster — no app switching, no quality loss.',
       ctaLabel: 'Open chats',
       sections: [
-        FeatureSection(title: 'Stickers and GIFs', body: 'Add your own packs and search GIFs in the input.'),
-        FeatureSection(title: 'Polls and reactions', body: 'A poll in two taps; reactions for quick feedback.'),
-        FeatureSection(title: 'Photo and video editors', body: 'Crop, draw, trim — built-in.'),
+        FeatureSection(
+          title: 'Stickers and GIFs',
+          body:
+              'Add your own packs and use the public catalog. Search GIFs right from the input — your favourites end up in Recent automatically.',
+        ),
+        FeatureSection(
+          title: 'Polls and reactions',
+          body:
+              'Start a poll in two taps: single or multi-choice, anonymous or open. Message reactions for quick feedback, so chats do not fill up with one-word replies.',
+        ),
+        FeatureSection(
+          title: 'Photo and video editors',
+          body:
+              'Crop, draw, trim video and caption — built-in tools work instantly without quality loss. No third-party app needed to tidy media before sending.',
+        ),
       ],
-      howTo: ['Tap the smiley in the input.', 'For a poll: “+” → Poll.', 'For the editor: tap a photo or video preview.'],
+      howTo: [
+        'Tap the smiley in the input — stickers and GIFs.',
+        'For a poll: “+” → Poll.',
+        'For the editor: tap a photo or video in the preview.',
+      ],
     ),
     FeatureTopicId.privacy: FeatureTopicContent(
       title: 'Fine-grained privacy',
       tagline: 'You decide what others see.',
-      summary: 'Every detail is its own toggle.',
+      summary:
+          'Every detail is its own toggle: Online status, Last seen, Read receipts, who can find you and who can add you to a group. Set it up in a minute — it works on every device.',
       ctaLabel: 'Open privacy',
       sections: [
-        FeatureSection(title: 'Activity visibility', body: 'Hide Online and Last seen.'),
-        FeatureSection(title: 'Who finds you', body: 'Global search can be off.'),
-        FeatureSection(title: 'Profile for others', body: 'Decide what to show in the profile card.'),
+        FeatureSection(
+          title: 'Activity visibility',
+          body:
+              'Hide Online and Last seen from the wrong eyes. Read receipts can be turned off too — peers will not see the blue check, and you will not see theirs.',
+        ),
+        FeatureSection(
+          title: 'Who finds you',
+          body:
+              'Global search can be off — then you are reachable only to people who already have your contact saved. Useful if you do not want random messages.',
+        ),
+        FeatureSection(
+          title: 'Profile for others',
+          body:
+              'Decide whether to show email, phone, date of birth and bio in the profile card. Each field is its own toggle, no “all or nothing” mode.',
+        ),
+        FeatureSection(
+          title: 'Groups by your rules',
+          body:
+              'Pick who can add you to a group: everyone, contacts only, or nobody. That removes 99% of marketing groups without blocklists or fighting auto-invites.',
+        ),
       ],
-      howTo: ['Open Settings → Privacy.', 'Walk through the toggles.', 'Reset returns the safe defaults.'],
+      howTo: [
+        'Open Settings → Privacy.',
+        'Walk through the toggles and pick your defaults.',
+        'Reset returns the safe defaults.',
+      ],
     ),
   },
 );

@@ -493,11 +493,14 @@ class _MockBubble extends StatelessWidget {
             border: outgoing
                 ? null
                 : Border.all(color: scheme.onSurface.withValues(alpha: 0.06)),
+            // Tail-clip как в реальном `ChatMessageItem`:
+            //   outgoing → topRight = 0 (square corner справа сверху)
+            //   incoming → topLeft  = 0 (square corner слева сверху)
             borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(14),
-              topRight: const Radius.circular(14),
-              bottomLeft: Radius.circular(outgoing ? 14 : 4),
-              bottomRight: Radius.circular(outgoing ? 4 : 14),
+              topLeft: Radius.circular(outgoing ? 14 : 0),
+              topRight: Radius.circular(outgoing ? 0 : 14),
+              bottomLeft: const Radius.circular(14),
+              bottomRight: const Radius.circular(14),
             ),
           ),
           child: Column(
@@ -537,12 +540,10 @@ class _ChatLikeMock extends StatelessWidget {
     required this.header,
     required this.bubbles,
     this.footer,
-    this.showTyping = false,
   });
   final Widget header;
   final List<Widget> bubbles;
   final Widget? footer;
-  final bool showTyping;
 
   @override
   Widget build(BuildContext context) {
@@ -556,21 +557,6 @@ class _ChatLikeMock extends StatelessWidget {
             children: [
               for (var i = 0; i < bubbles.length; i++)
                 _FadeInUp(delay: Duration(milliseconds: i * 250), child: bubbles[i]),
-              if (showTyping)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const _TypingDots(),
-                    ),
-                  ),
-                ),
               if (footer != null) ...[const Spacer(), footer!],
             ],
           ),
@@ -582,36 +568,367 @@ class _ChatLikeMock extends StatelessWidget {
 
 // ---------- Конкретные мокапы ----------
 
-class MockEncryption extends StatelessWidget {
-  const MockEncryption({super.key});
+/// Бесконечно бегущая лента «шифр-данных» — hex-блоки уезжают вправо.
+class _CipherStream extends StatefulWidget {
+  const _CipherStream();
+
+  @override
+  State<_CipherStream> createState() => _CipherStreamState();
+}
+
+class _CipherStreamState extends State<_CipherStream> with SingleTickerProviderStateMixin {
+  static const List<String> _hex = [
+    '9F2A', '8B71', '4CC8', '3DEA', '5F02', 'A1B4', '0E77', 'C9D5',
+    '6F12', 'B83C', '7E0A', '21FE', 'D4A8', '5C19', 'E370', '08BD',
+  ];
+
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _ChatLikeMock(
-      header: const _MockChatHeader(name: 'Анна', status: 'онлайн · защищено', withLock: true),
-      showTyping: true,
-      bubbles: const [
-        _MockBubble(text: 'Привет! Это точно ты?', outgoing: false, time: '12:31'),
-        _MockBubble(text: 'Я. Сравним отпечатки ключей.', outgoing: true, time: '12:32'),
-        _MockBubble(text: 'Совпали — нас никто не слушает.', outgoing: false, time: '12:33'),
-      ],
-      footer: Align(
-        alignment: Alignment.centerRight,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: featureAccentEmerald.withValues(alpha: 0.15),
-            border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.35)),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.lock_rounded, size: 12, color: featureAccentEmerald),
-            const SizedBox(width: 4),
-            Text('Отпечаток · 5F2A · 8B91',
-                style: TextStyle(
-                    fontSize: 10, fontWeight: FontWeight.w700, color: featureAccentEmerald)),
-          ]),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final t = _c.value;
+          return LayoutBuilder(builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            final shift = -t * w; // полный цикл = ширина
+            return Stack(children: [
+              // Туннель-фон
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      featureAccentEmerald.withValues(alpha: 0.18),
+                      featureAccentEmerald.withValues(alpha: 0.06),
+                      featureAccentEmerald.withValues(alpha: 0.18),
+                    ],
+                  ),
+                  border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.30)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              // Бегущий ряд hex-блоков (повторим 2 раза для бесшовности)
+              Positioned(
+                left: shift,
+                top: 0,
+                bottom: 0,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < _hex.length * 2; i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Center(
+                          child: Opacity(
+                            opacity: 0.45 + 0.55 * ((math.sin((t * 6) + i * 0.6) + 1) / 2),
+                            child: Text(
+                              _hex[i % _hex.length],
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: featureAccentEmerald,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              // Лёгкий fade с краёв
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Row(children: [
+                    Container(
+                      width: 18,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Theme.of(context).colorScheme.surface.withValues(alpha: 0.85), Colors.transparent],
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 18,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerRight,
+                          end: Alignment.centerLeft,
+                          colors: [Theme.of(context).colorScheme.surface.withValues(alpha: 0.85), Colors.transparent],
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ]);
+          });
+        },
+      ),
+    );
+  }
+}
+
+/// Сообщение «отлетает вправо» (отправитель) и «прилетает слева» (получатель)
+/// в зацикленном цикле 4с.
+class _MessageFly extends StatefulWidget {
+  const _MessageFly({required this.child, required this.toRight});
+  final Widget child;
+  /// true: 0..1 → перенос вправо c затуханием; false: появление слева → 0.
+  final bool toRight;
+
+  @override
+  State<_MessageFly> createState() => _MessageFlyState();
+}
+
+class _MessageFlyState extends State<_MessageFly> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (context, child) {
+        final t = _c.value;
+        double opacity;
+        double dx;
+        if (widget.toRight) {
+          // 0..0.25 — стоит, 0.25..0.40 — улетает вправо.
+          if (t < 0.25) {
+            opacity = 1;
+            dx = 0;
+          } else if (t < 0.40) {
+            final p = (t - 0.25) / 0.15;
+            opacity = 1 - p;
+            dx = p * 16;
+          } else {
+            opacity = 0;
+            dx = 16;
+          }
+        } else {
+          // 0..0.60 — спрятано, 0.60..0.75 — прилёт слева.
+          if (t < 0.60) {
+            opacity = 0;
+            dx = -16;
+          } else if (t < 0.75) {
+            final p = (t - 0.60) / 0.15;
+            opacity = p;
+            dx = (1 - p) * -16;
+          } else {
+            opacity = 1;
+            dx = 0;
+          }
+        }
+        return Opacity(
+          opacity: opacity,
+          child: Transform.translate(offset: Offset(dx, 0), child: child),
+        );
+      },
+    );
+  }
+}
+
+/// Анимированная иллюстрация процесса E2EE: Алиса → шифр-туннель → Боб.
+/// Внизу — совпадающий отпечаток ключа, доказательство, что «третьего» нет.
+class MockEncryption extends StatelessWidget {
+  const MockEncryption({super.key});
+
+  Widget _peerBubble(BuildContext context, {required bool outgoing, required String text}) {
+    final scheme = Theme.of(context).colorScheme;
+    final bg = outgoing ? featureAccentPrimary : scheme.surface.withValues(alpha: 0.85);
+    final fg = outgoing ? Colors.white : scheme.onSurface;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 110),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        border: outgoing
+            ? null
+            : Border.all(color: scheme.onSurface.withValues(alpha: 0.06)),
+        // «Хвостик» — square corner вверху, как в реальном чате.
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(outgoing ? 14 : 0),
+          topRight: Radius.circular(outgoing ? 0 : 14),
+          bottomLeft: const Radius.circular(14),
+          bottomRight: const Radius.circular(14),
         ),
       ),
+      child: Text(text, style: TextStyle(color: fg, fontSize: 11, height: 1.25)),
+    );
+  }
+
+  Widget _avatar(BuildContext context, String letter, List<Color> colors) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      alignment: Alignment.center,
+      child: Text(letter,
+          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Заголовок-плашка с замком
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: featureAccentEmerald.withValues(alpha: 0.12),
+              border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.35)),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.lock_rounded, size: 12, color: featureAccentEmerald),
+              const SizedBox(width: 4),
+              Text('Сквозное шифрование',
+                  style: TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.w800, color: featureAccentEmerald)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Сцена: Алиса — туннель — Боб
+        Expanded(
+          child: Stack(children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              SizedBox(
+                width: 80,
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  _avatar(context, 'А', [const Color(0xFFF87171), const Color(0xFFB91C5C)]),
+                  const SizedBox(height: 4),
+                  const Text('Алиса',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  _MessageFly(
+                    toRight: true,
+                    child: _peerBubble(context, outgoing: true, text: 'Привет, как дела?'),
+                  ),
+                ]),
+              ),
+              const SizedBox(width: 6),
+              const Expanded(child: SizedBox(height: 44, child: _CipherStream())),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 80,
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  _avatar(context, 'Б', [featureAccentPrimary, const Color(0xFF7C3AED)]),
+                  const SizedBox(height: 4),
+                  const Text('Боб',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  _MessageFly(
+                    toRight: false,
+                    child: _peerBubble(context, outgoing: false, text: 'Привет, как дела?'),
+                  ),
+                ]),
+              ),
+            ]),
+            // Замок поверх центра туннеля
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _Breathing(
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
+                      border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.50)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: featureAccentEmerald.withValues(alpha: 0.35),
+                            blurRadius: 8,
+                            spreadRadius: 1),
+                      ],
+                    ),
+                    child: Icon(Icons.shield_rounded, size: 16, color: featureAccentEmerald),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        // Совпадающие отпечатки
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: featureAccentEmerald.withValues(alpha: 0.08),
+            border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.25)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(children: [
+            Text('5f2a · 8b91',
+                style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    color: featureAccentEmerald,
+                    fontWeight: FontWeight.w700)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: featureAccentEmerald.withValues(alpha: 0.20),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text('СОВПАЛИ',
+                  style: TextStyle(
+                      fontSize: 9, fontWeight: FontWeight.w800, color: featureAccentEmerald)),
+            ),
+            const Spacer(),
+            Text('5f2a · 8b91',
+                style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    color: featureAccentEmerald,
+                    fontWeight: FontWeight.w700)),
+          ]),
+        ),
+      ]),
     );
   }
 }

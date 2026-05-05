@@ -1,42 +1,126 @@
 import * as React from 'react';
-import { Fingerprint, ShieldCheck } from 'lucide-react';
+import { Lock, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MockChatHeader, MockChatInput } from '../mocks/mock-chat-header';
-import { MockMessageBubble, MockTypingBubble } from '../mocks/mock-message-bubble';
 
-/** Мини-чат с E2EE-баннером и бейджем отпечатка ключа (`E2eeFingerprintBadge`). */
-export function MockEncryption({
-  className,
-  compact,
-}: {
-  className?: string;
-  compact?: boolean;
-}) {
+const HEX_BLOCKS = [
+  '9F2A',
+  '8B71',
+  '4CC8',
+  '3DEA',
+  '5F02',
+  'A1B4',
+  '0E77',
+  'C9D5',
+  '6F12',
+  'B83C',
+  '7E0A',
+  '21FE',
+  'D4A8',
+  '5C19',
+  'E370',
+  '08BD',
+];
+
+/** Бегущая лента «шифр-данных» — повторяет hex дважды, чтобы при translateX(-50%) был бесшовный цикл. */
+function CipherStream({ className }: { className?: string }) {
+  const cells = [...HEX_BLOCKS, ...HEX_BLOCKS];
   return (
-    <div className={cn('relative flex h-full w-full flex-col', className)}>
-      <MockChatHeader name="Анна" status="онлайн · в сети" withLock />
-      <div className="flex flex-1 flex-col gap-1.5 overflow-hidden p-3">
-        {!compact ? (
-          <div className="mx-auto mb-1 flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-500 dark:text-emerald-400">
-            <ShieldCheck className="h-3 w-3" aria-hidden />
-            Шифрование включено в этом чате
-          </div>
-        ) : null}
-        <MockMessageBubble side="incoming" text="Привет! Это точно ты?" time="12:31" delayMs={0} />
-        <MockMessageBubble side="outgoing" text="Я. Сравним отпечаток ключа?" time="12:32" delayMs={300} />
-        {!compact ? <MockTypingBubble /> : null}
-        <MockMessageBubble side="incoming" text="Совпали — нас никто не слушает." time="12:33" delayMs={650} />
-        {!compact ? (
-          <div
-            className="mt-auto flex items-center gap-2 self-end rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300 animate-feat-bubble-in"
-            style={{ animationDelay: '900ms' }}
+    <div
+      className={cn(
+        'pointer-events-none relative flex h-full w-full items-center overflow-hidden',
+        className
+      )}
+    >
+      <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap pl-3 animate-feat-cipher-stream">
+        {cells.map((c, i) => (
+          <span
+            key={i}
+            className="font-mono text-[10px] font-semibold tracking-tight text-emerald-400/90 animate-feat-cipher-flicker"
+            style={{ animationDelay: `${(i % 8) * 90}ms` }}
           >
-            <Fingerprint className="h-3.5 w-3.5" aria-hidden />
-            <span className="font-mono">5f2a 8b91 3dcc 70a4</span>
-          </div>
-        ) : null}
+            {c}
+          </span>
+        ))}
       </div>
-      {!compact ? <MockChatInput /> : null}
+    </div>
+  );
+}
+
+/**
+ * Анимация процесса E2EE для пользователя без технического бэкграунда:
+ *  Алиса (с текстом)  →  поток зашифрованных hex-блоков  →  Боб (с тем же текстом)
+ *  Сверху — закрытый замок и подпись «Сквозное шифрование».
+ *  Снизу — одинаковые отпечатки ключей с обеих сторон (доказательство, что «третьего» нет).
+ */
+export function MockEncryption({ className }: { className?: string; compact?: boolean }) {
+  return (
+    <div className={cn('relative flex h-full w-full flex-col p-3', className)}>
+      {/* Заголовок-плашка с замком */}
+      <div className="mx-auto flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-300">
+        <Lock className="h-3 w-3 animate-feat-lock-cycle" aria-hidden />
+        Сквозное шифрование
+      </div>
+
+      {/* Сцена */}
+      <div className="relative mt-3 flex flex-1 items-center gap-2">
+        {/* Алиса */}
+        <div className="z-10 flex w-[28%] flex-col items-center gap-1">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-rose-600 text-sm font-bold text-white shadow">
+            А
+          </div>
+          <span className="text-[10px] font-semibold text-foreground">Алиса</span>
+          <div className="rounded-2xl rounded-br-none bg-primary px-2.5 py-1.5 text-[11px] text-primary-foreground shadow-sm animate-feat-msg-fly-right">
+            Привет, как дела?
+          </div>
+        </div>
+
+        {/* Канал шифрования */}
+        <div className="relative z-0 flex h-full flex-1 flex-col justify-center">
+          {/* Замок-«щит» поверх канала */}
+          <div className="pointer-events-none absolute -top-1 left-1/2 z-20 -translate-x-1/2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/40 bg-background/85 shadow-md backdrop-blur-md">
+              <ShieldCheck className="h-4 w-4 text-emerald-500 dark:text-emerald-400 animate-feat-lock-cycle" aria-hidden />
+            </div>
+          </div>
+          {/* Туннель */}
+          <div className="relative h-12 overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/15 via-emerald-400/5 to-emerald-500/15">
+            <CipherStream />
+            {/* Лёгкие fade-маски с краёв */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-background/90 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background/90 to-transparent" />
+          </div>
+          {/* Бегущие точки-стрелки под туннелем */}
+          <div className="mt-1 flex items-center justify-center gap-1.5">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className="h-1 w-1 rounded-full bg-emerald-500/70 animate-feat-arrow-pulse"
+                style={{ animationDelay: `${i * 200}ms` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Боб */}
+        <div className="z-10 flex w-[28%] flex-col items-center gap-1">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-sm font-bold text-primary-foreground shadow">
+            Б
+          </div>
+          <span className="text-[10px] font-semibold text-foreground">Боб</span>
+          <div className="rounded-2xl rounded-bl-none bg-muted px-2.5 py-1.5 text-[11px] text-foreground shadow-sm animate-feat-msg-fly-in">
+            Привет, как дела?
+          </div>
+        </div>
+      </div>
+
+      {/* Совпадающие отпечатки внизу */}
+      <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-2.5 py-1.5">
+        <span className="font-mono text-[9.5px] text-emerald-600 dark:text-emerald-300">5f2a · 8b91</span>
+        <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-200">
+          совпали
+        </span>
+        <span className="font-mono text-[9.5px] text-emerald-600 dark:text-emerald-300">5f2a · 8b91</span>
+      </div>
     </div>
   );
 }

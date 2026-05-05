@@ -59,7 +59,8 @@ export function MockMessageBubble({
       <div
         className={cn(
           'relative max-w-[78%] px-3 py-2 text-[13px] leading-snug shadow-sm rounded-2xl',
-          withTail && (incoming ? 'rounded-tl-md' : 'rounded-tr-md'),
+          // Реальный ChatMessageItem использует rounded-tr-none/tl-none для «хвостика».
+          withTail && (incoming ? 'rounded-tl-none' : 'rounded-tr-none'),
           incoming
             ? 'bg-muted text-foreground'
             : 'bg-primary text-primary-foreground',
@@ -96,7 +97,7 @@ export function MockMessageBubble({
 export function MockTypingBubble({ className }: { className?: string }) {
   return (
     <div className={cn('flex w-full justify-start', className)}>
-      <div className="flex items-center gap-1 rounded-2xl rounded-tl-md bg-muted px-3 py-2 shadow-sm">
+      <div className="flex items-center gap-1 rounded-2xl rounded-tl-none bg-muted px-3 py-2 shadow-sm">
         {[0, 1, 2].map((i) => (
           <span
             key={i}

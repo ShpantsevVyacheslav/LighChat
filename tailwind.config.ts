@@ -192,6 +192,39 @@ export default {
           '0%, 100%': { transform: 'translateY(0) rotate(-1deg)' },
           '50%': { transform: 'translateY(-5px) rotate(-1deg)' },
         },
+        /** Бегущая лента шифр-данных — слева направо, бесконечно. */
+        'feat-cipher-stream': {
+          '0%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(0%)' },
+        },
+        /** Мерцание hex-символа в потоке (3 фазы). */
+        'feat-cipher-flicker': {
+          '0%, 100%': { opacity: '0.85' },
+          '33%': { opacity: '0.45' },
+          '66%': { opacity: '1' },
+        },
+        /** «Шифрование»: замок поворачивается из открытого в закрытое и обратно. */
+        'feat-lock-cycle': {
+          '0%, 30%': { transform: 'rotate(0deg) scale(1)' },
+          '50%, 70%': { transform: 'rotate(0deg) scale(1.08)' },
+          '100%': { transform: 'rotate(0deg) scale(1)' },
+        },
+        /** Сообщение «отлетает» от отправителя в сторону потока шифрования. */
+        'feat-msg-fly-right': {
+          '0%, 25%': { transform: 'translateX(0)', opacity: '1' },
+          '40%': { transform: 'translateX(20px)', opacity: '0' },
+          '40.01%, 100%': { opacity: '0' },
+        },
+        /** Сообщение «прилетает» к получателю из потока. */
+        'feat-msg-fly-in': {
+          '0%, 60%': { transform: 'translateX(-20px)', opacity: '0' },
+          '75%, 100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        /** Бегущая стрелочка под потоком — пунктирный «traffic». */
+        'feat-arrow-pulse': {
+          '0%, 100%': { opacity: '0.3' },
+          '50%': { opacity: '1' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -215,6 +248,12 @@ export default {
         'feat-float-1': 'feat-float-1 6s ease-in-out infinite',
         'feat-float-2': 'feat-float-2 7s ease-in-out infinite',
         'feat-float-3': 'feat-float-3 8s ease-in-out infinite',
+        'feat-cipher-stream': 'feat-cipher-stream 6s linear infinite',
+        'feat-cipher-flicker': 'feat-cipher-flicker 1.6s ease-in-out infinite',
+        'feat-lock-cycle': 'feat-lock-cycle 4s ease-in-out infinite',
+        'feat-msg-fly-right': 'feat-msg-fly-right 4s ease-in-out infinite',
+        'feat-msg-fly-in': 'feat-msg-fly-in 4s ease-in-out infinite',
+        'feat-arrow-pulse': 'feat-arrow-pulse 1.4s ease-in-out infinite',
       },
     },
   },

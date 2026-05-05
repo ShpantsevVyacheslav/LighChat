@@ -1,11 +1,15 @@
 import * as React from 'react';
-import { ChevronLeft, Lock, MoreHorizontal, Phone, ShieldCheck, Timer, Video } from 'lucide-react';
+import { ArrowLeft, Lock, MessageCircle, Phone, Timer, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Презентационная копия шапки чата (`ChatWindow` + `ChatParticipantProfile`):
- * стрелка назад, аватар с онлайн-точкой, имя/статус, иконки звонка/видео и
- * меню. Опционально — замок (E2EE) и таймер (исчезающие/секретные).
+ * Презентационная копия шапки чата (`ChatWindow.tsx`):
+ * стрелка назад, аватар (h-11 w-11 в реале — здесь чуть меньше для мокапа),
+ * имя/статус, иконки тредов, видеозвонка (зелёный) и аудиозвонка. Опционально
+ * показываем замочек (E2EE) рядом с именем и таймер (исчезающие/секретные).
+ *
+ * Палитра иконок повторяет CHAT_HEADER_IOS из ChatWindow.tsx:
+ *   callVideo: text-[#34C759] dark:text-[#48E074]
  */
 export function MockChatHeader({
   name,
@@ -34,24 +38,21 @@ export function MockChatHeader({
         className
       )}
     >
-      <ChevronLeft className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-      <div className="relative h-9 w-9 shrink-0">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-bold text-primary-foreground shadow-sm">
+      <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-foreground/5" aria-label="back">
+        <ArrowLeft className="h-5 w-5 text-foreground" aria-hidden />
+      </button>
+      <div className="relative h-11 w-11 shrink-0">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-sm font-bold text-primary-foreground shadow-sm">
           {initial}
         </div>
         <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-[13px] font-semibold text-foreground">{name}</span>
-          {withLock ? (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-500 dark:text-emerald-400">
-              <ShieldCheck className="h-2.5 w-2.5" aria-hidden />
-              E2EE
-            </span>
-          ) : null}
+          <span className="truncate text-[14px] font-semibold text-foreground">{name}</span>
+          {withLock ? <Lock className="h-3 w-3 text-emerald-500 dark:text-emerald-400" aria-hidden /> : null}
         </div>
-        <span className="block truncate text-[10.5px] text-muted-foreground">{status}</span>
+        <span className="block truncate text-[11px] text-muted-foreground">{status}</span>
       </div>
       {withTimer ? (
         <div className="flex items-center gap-1 rounded-full border border-violet-400/40 bg-violet-400/10 px-2 py-0.5 text-[10px] font-bold text-violet-500 dark:text-violet-300">
@@ -61,24 +62,24 @@ export function MockChatHeader({
       ) : null}
       {withCallControls ? (
         <>
-          <button type="button" className="rounded-full p-1.5 text-muted-foreground hover:bg-foreground/5" aria-label="phone">
-            <Phone className="h-4 w-4" aria-hidden />
+          <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-foreground/5" aria-label="threads">
+            <MessageCircle className="h-[22px] w-[22px] text-foreground/85" strokeWidth={2} aria-hidden />
           </button>
-          <button type="button" className="rounded-full p-1.5 text-muted-foreground hover:bg-foreground/5" aria-label="video">
-            <Video className="h-4 w-4" aria-hidden />
+          <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-foreground/5" aria-label="video">
+            <Video className="h-[22px] w-[22px] text-[#34C759] dark:text-[#48E074]" strokeWidth={2} aria-hidden />
+          </button>
+          <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-foreground/5" aria-label="audio">
+            <Phone className="h-[22px] w-[22px] text-primary" strokeWidth={2} aria-hidden />
           </button>
         </>
       ) : null}
-      <button type="button" className="rounded-full p-1.5 text-muted-foreground hover:bg-foreground/5" aria-label="more">
-        <MoreHorizontal className="h-4 w-4" aria-hidden />
-      </button>
     </div>
   );
 }
 
 /**
- * Презентационная копия строки ввода (`ChatMessageInput`): «+», поле,
- * мигающий курсор, иконки эмодзи и микрофона. Без логики — просто визуал.
+ * Презентационная копия `ChatMessageInput`: «+», поле, мигающий курсор,
+ * иконки эмодзи и микрофона.
  */
 export function MockChatInput({
   placeholder = 'Сообщение',
@@ -95,7 +96,6 @@ export function MockChatInput({
       )}
     >
       <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground/5 text-foreground/70" aria-label="attach">
-        <Lock className="hidden" aria-hidden />
         <span className="text-base font-semibold">+</span>
       </button>
       <div className="flex h-9 flex-1 items-center gap-2 rounded-full border border-black/5 dark:border-white/10 bg-background/80 px-3">
