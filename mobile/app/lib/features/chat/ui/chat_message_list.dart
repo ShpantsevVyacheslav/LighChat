@@ -1619,56 +1619,69 @@ class _ChatMessageBubble extends StatelessWidget {
       body = Column(
         crossAxisAlignment: bubbleStackCrossAlign,
         children: [
-          Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(
-                ChatMediaLayoutTokens.mediaCardRadius,
-              ),
-              color: isMine ? outgoingBg : incomingBg,
-              border: Border.all(
-                color: isMine
-                    ? const Color(0xFF4D92FF).withValues(alpha: 0.32)
-                    : Colors.white.withValues(
-                        alpha: scheme.brightness == Brightness.dark
-                            ? 0.10
-                            : 0.24,
-                      ),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                MessageAttachments(
-                  attachments: message.attachments,
-                  alignRight: isMine,
-                  conversationId: conversationId,
-                  messageId: message.id,
-                  messageCreatedAt: message.createdAt,
-                  isMine: isMine,
-                  deliveryStatus: message.deliveryStatus,
-                  readAt: message.readAt,
-                  showTimestamps: false,
-                  voiceTranscript: message.voiceTranscript,
-                  videoCirclePlayingSlotId: videoCirclePlayingSlotId,
-                  onOpenGridGallery: openGridGallery,
-                  mediaNorm: message.mediaNorm,
-                  onRetryMediaNorm: onRetryMediaNorm == null
-                      ? null
-                      : () => onRetryMediaNorm!(message),
-                  clipSelf: false,
-                ),
-                if (captionContent != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: ChatMediaLayoutTokens.captionBubblePaddingH,
-                      vertical: ChatMediaLayoutTokens.captionBubblePaddingV,
+          LayoutBuilder(
+            builder: (ctx, constraints) {
+              final mediaWidth = computeMessageAttachmentsColumnWidth(
+                attachments: message.attachments,
+                available: constraints.maxWidth,
+              );
+              return SizedBox(
+                width: mediaWidth,
+                child: Container(
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      ChatMediaLayoutTokens.mediaCardRadius,
                     ),
-                    child: captionContent,
+                    color: isMine ? outgoingBg : incomingBg,
+                    border: Border.all(
+                      color: isMine
+                          ? const Color(0xFF4D92FF).withValues(alpha: 0.32)
+                          : Colors.white.withValues(
+                              alpha: scheme.brightness == Brightness.dark
+                                  ? 0.10
+                                  : 0.24,
+                            ),
+                    ),
                   ),
-              ],
-            ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      MessageAttachments(
+                        attachments: message.attachments,
+                        alignRight: isMine,
+                        conversationId: conversationId,
+                        messageId: message.id,
+                        messageCreatedAt: message.createdAt,
+                        isMine: isMine,
+                        deliveryStatus: message.deliveryStatus,
+                        readAt: message.readAt,
+                        showTimestamps: false,
+                        voiceTranscript: message.voiceTranscript,
+                        videoCirclePlayingSlotId: videoCirclePlayingSlotId,
+                        onOpenGridGallery: openGridGallery,
+                        mediaNorm: message.mediaNorm,
+                        onRetryMediaNorm: onRetryMediaNorm == null
+                            ? null
+                            : () => onRetryMediaNorm!(message),
+                        clipSelf: false,
+                      ),
+                      if (captionContent != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal:
+                                ChatMediaLayoutTokens.captionBubblePaddingH,
+                            vertical:
+                                ChatMediaLayoutTokens.captionBubblePaddingV,
+                          ),
+                          child: captionContent,
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           textMetaOutside(),
         ],

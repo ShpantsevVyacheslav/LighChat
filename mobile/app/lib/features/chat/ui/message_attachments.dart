@@ -111,6 +111,55 @@ double _attachmentsColumnWidth({
   );
 }
 
+/// Реальная ширина колонки `MessageAttachments` для заданных вложений
+/// и доступной ширины. Совпадает с `LayoutBuilder`-расчётом внутри `build`.
+double computeMessageAttachmentsColumnWidth({
+  required List<ChatAttachment> attachments,
+  required double available,
+}) {
+  if (attachments.isEmpty) return 0;
+  final images = <ChatAttachment>[];
+  final videoLike = <ChatAttachment>[];
+  final voices = <ChatAttachment>[];
+  for (final a in attachments) {
+    if (_isVoiceAttachment(a)) {
+      voices.add(a);
+    } else if (_isVideoAttachment(a)) {
+      videoLike.add(a);
+    } else if (_isImageAttachment(a)) {
+      images.add(a);
+    }
+  }
+  final allGifGrid = images.isNotEmpty &&
+      images.every((a) {
+        final t = (a.type ?? '').toLowerCase();
+        if (t == 'image/gif') return true;
+        final path = a.url.split('?').first.toLowerCase();
+        return path.endsWith('.gif');
+      });
+  final baseGridMax = allGifGrid
+      ? ChatMediaLayoutTokens.gifAlbumGridMaxWidth
+      : ChatMediaLayoutTokens.mediaGridMaxWidth;
+  final gridMaxWidth = images.length > 1
+      ? baseGridMax * ChatMediaLayoutTokens.mediaGridMosaicDisplayScale
+      : baseGridMax;
+  final onlyOneVideo =
+      videoLike.length == 1 && images.isEmpty && voices.isEmpty;
+  final v0 = onlyOneVideo ? videoLike.first : null;
+  final vw = v0?.width;
+  final vh = v0?.height;
+  final isLandscape =
+      vw != null && vh != null && vw > 0 && vh > 0 && vw >= vh * 1.02;
+  final videoScale = onlyOneVideo && isLandscape ? 1.125 : 1.5;
+  return _attachmentsColumnWidth(
+    available: available,
+    gridMaxWidth: (videoLike.isNotEmpty && images.isEmpty)
+        ? (gridMaxWidth * videoScale)
+        : gridMaxWidth,
+    images: images,
+  );
+}
+
 class MessageAttachments extends StatefulWidget {
   const MessageAttachments({
     super.key,
@@ -237,13 +286,11 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
               : gridMaxWidth,
           images: images,
         );
-        return Align(
-          alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
-          child: SizedBox(
-            width: width,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+        final inner = SizedBox(
+          width: width,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
                 if (images.isNotEmpty)
                   RepaintBoundary(
                     child: _ImageGrid(
@@ -308,17 +355,21 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                       ),
                     ),
                   ),
-                if (files.isNotEmpty) ...[
-                  const SizedBox(height: ChatMediaLayoutTokens.mediaToMediaGap),
-                  ...files.map(
-                    (f) => _isE2eeMediaDecryptErrorAttachment(f)
-                        ? _E2eeMediaDecryptErrorRow(att: f)
-                        : _FileRow(att: f),
-                  ),
-                ],
+              if (files.isNotEmpty) ...[
+                const SizedBox(height: ChatMediaLayoutTokens.mediaToMediaGap),
+                ...files.map(
+                  (f) => _isE2eeMediaDecryptErrorAttachment(f)
+                      ? _E2eeMediaDecryptErrorRow(att: f)
+                      : _FileRow(att: f),
+                ),
               ],
-            ),
+            ],
           ),
+        );
+        if (!widget.clipSelf) return inner;
+        return Align(
+          alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
+          child: inner,
         );
       },
     );
