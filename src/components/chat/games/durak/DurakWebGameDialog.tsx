@@ -263,8 +263,8 @@ export function DurakWebGameDialog({
       const at = a.s === trumpSuit;
       const bt = b.s === trumpSuit;
       if (at !== bt) return at ? 1 : -1;
-      const sa = suitOrder[a.s] ?? 9;
-      const sb = suitOrder[b.s] ?? 9;
+      const sa = a.s != null ? (suitOrder[a.s] ?? 9) : 9;
+      const sb = b.s != null ? (suitOrder[b.s] ?? 9) : 9;
       if (sa !== sb) return sa - sb;
       return rankValue(a) - rankValue(b);
     });
