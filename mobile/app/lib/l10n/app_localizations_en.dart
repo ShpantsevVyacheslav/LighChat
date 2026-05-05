@@ -7704,6 +7704,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get energy_saving_active_now => 'mode is active';
 
   @override
+  String get energy_saving_active_threshold =>
+      'Battery has reached the threshold — every effect below is temporarily disabled.';
+
+  @override
+  String get energy_saving_active_system =>
+      'System power saving is on — every effect below is temporarily disabled.';
+
+  @override
   String get energy_saving_autoplay_video_title => 'Autoplay videos';
 
   @override

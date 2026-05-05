@@ -11,6 +11,7 @@ EnergySavingState _state({
   bool mediaPreload = true,
   bool backgroundUpdate = true,
   int? batteryLevelPercent,
+  bool systemBatterySaverEnabled = false,
 }) {
   return EnergySavingState(
     threshold: threshold,
@@ -22,6 +23,7 @@ EnergySavingState _state({
     mediaPreload: mediaPreload,
     backgroundUpdate: backgroundUpdate,
     batteryLevelPercent: batteryLevelPercent,
+    systemBatterySaverEnabled: systemBatterySaverEnabled,
   );
 }
 
@@ -122,6 +124,19 @@ void main() {
           batteryLevelPercent: 100,
         ).isLowPowerActive,
         isFalse,
+      );
+    });
+
+    test('system battery saver activates regardless of threshold/level', () {
+      // Even with the threshold off and a fully charged battery, the OS-level
+      // saver mode should be respected.
+      expect(
+        _state(
+          threshold: EnergySavingThreshold.off,
+          batteryLevelPercent: 100,
+          systemBatterySaverEnabled: true,
+        ).isLowPowerActive,
+        isTrue,
       );
     });
   });

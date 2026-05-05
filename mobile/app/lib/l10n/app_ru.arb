@@ -3968,6 +3968,8 @@
     "placeholders": {"percent": {"type": "int"}}
   },
   "energy_saving_active_now": "режим активен",
+  "energy_saving_active_threshold": "Заряд достиг порога — все эффекты ниже временно отключены.",
+  "energy_saving_active_system": "Включён системный режим энергосбережения — все эффекты ниже временно отключены.",
   "energy_saving_autoplay_video_title": "Автозапуск видео",
   "energy_saving_autoplay_video_subtitle": "Автозапуск и повторение видеосообщений и видео в чатах.",
   "energy_saving_autoplay_gif_title": "Автозапуск GIF",

@@ -13580,6 +13580,18 @@ abstract class AppLocalizations {
   /// **'режим активен'**
   String get energy_saving_active_now;
 
+  /// No description provided for @energy_saving_active_threshold.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заряд достиг порога — все эффекты ниже временно отключены.'**
+  String get energy_saving_active_threshold;
+
+  /// No description provided for @energy_saving_active_system.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включён системный режим энергосбережения — все эффекты ниже временно отключены.'**
+  String get energy_saving_active_system;
+
   /// No description provided for @energy_saving_autoplay_video_title.
   ///
   /// In ru, this message translates to:

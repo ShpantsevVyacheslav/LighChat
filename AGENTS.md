@@ -22,6 +22,7 @@
 - `storage.rules` - правила Firebase Storage.
 - `electron` - desktop shell (main/preload).
 - `mobile/app/lib/features/welcome` - first-login welcome-анимация (per-uid флаг в SharedPreferences `first_login_animation_shown_<uid>`, redirect через `app_router.dart`).
+- `mobile/app/lib/features/settings/{ui/energy_saving_screen,data/energy_saving_preference}.dart` - экран «Энергосбережение» (Telegram-style); `EnergySavingNotifier` хранит флаги в SharedPreferences `energySaving.*`, слушает `battery_plus` (включая системный Low Power Mode), отдаёт `effective*`-геттеры. Маршрут `/settings/energy-saving`.
 - `src/app/dashboard/features` + `src/components/features/*` - раздел «Возможности LighChat» (web): оглавление + 12 подстраниц `/dashboard/features/[topic]`, welcome-оверлей `FeaturesWelcomeOverlay` (флаг `lc_features_welcome_v1` в `localStorage`). Точка входа — пункт «Возможности» в `DashboardAccountMenuContent`.
 - `mobile/app/lib/features/features_tour` - тот же раздел в mobile: маршруты `/features` и `/features/:topic`, per-uid флаг `features_tour_shown_<uid>` (`SharedPreferences`). После welcome-анимации `_exitToChats()` редиректит на `/features?source=welcome` при необходимости. Точка входа — пункт `account_menu_features` в `chat_account_screen.dart`.
 - `scripts` - утилиты сборки/брендинга.

@@ -58,13 +58,31 @@ class EnergySavingScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            _TogglesCard(
-              state: state,
-              notifier: notifier,
-              dark: dark,
-              scheme: scheme,
-              fg: fg,
-              l10n: l10n,
+            if (state.isLowPowerActive)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+                child: Text(
+                  state.systemBatterySaverEnabled
+                      ? l10n.energy_saving_active_system
+                      : l10n.energy_saving_active_threshold,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFFF8A4D),
+                  ),
+                ),
+              ),
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 220),
+              opacity: state.isLowPowerActive ? 0.55 : 1.0,
+              child: _TogglesCard(
+                state: state,
+                notifier: notifier,
+                dark: dark,
+                scheme: scheme,
+                fg: fg,
+                l10n: l10n,
+              ),
             ),
           ],
         ),

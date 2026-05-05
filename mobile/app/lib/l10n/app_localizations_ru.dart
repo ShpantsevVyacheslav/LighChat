@@ -7741,6 +7741,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get energy_saving_active_now => 'режим активен';
 
   @override
+  String get energy_saving_active_threshold =>
+      'Заряд достиг порога — все эффекты ниже временно отключены.';
+
+  @override
+  String get energy_saving_active_system =>
+      'Включён системный режим энергосбережения — все эффекты ниже временно отключены.';
+
+  @override
   String get energy_saving_autoplay_video_title => 'Автозапуск видео';
 
   @override

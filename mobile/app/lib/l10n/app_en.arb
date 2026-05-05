@@ -3933,6 +3933,8 @@
     "placeholders": {"percent": {"type": "int"}}
   },
   "energy_saving_active_now": "mode is active",
+  "energy_saving_active_threshold": "Battery has reached the threshold — every effect below is temporarily disabled.",
+  "energy_saving_active_system": "System power saving is on — every effect below is temporarily disabled.",
   "energy_saving_autoplay_video_title": "Autoplay videos",
   "energy_saving_autoplay_video_subtitle": "Autoplay and loop video messages and videos in chats.",
   "energy_saving_autoplay_gif_title": "Autoplay GIFs",

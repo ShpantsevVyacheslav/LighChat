@@ -42,6 +42,7 @@ class EnergySavingState {
     required this.mediaPreload,
     required this.backgroundUpdate,
     required this.batteryLevelPercent,
+    required this.systemBatterySaverEnabled,
   });
 
   /// Default values match Telegram's defaults: every effect is on, threshold
@@ -56,6 +57,7 @@ class EnergySavingState {
     mediaPreload: true,
     backgroundUpdate: true,
     batteryLevelPercent: null,
+    systemBatterySaverEnabled: false,
   );
 
   final EnergySavingThreshold threshold;
@@ -70,9 +72,17 @@ class EnergySavingState {
   /// Last reported battery level (0-100) or null if unknown.
   final int? batteryLevelPercent;
 
-  /// Whether the auto-disable rule is currently kicking in given the battery
-  /// level and selected threshold.
+  /// Whether the OS-level battery saver is currently on (Android Power Save,
+  /// iOS Low Power Mode). Reported by `battery_plus.isInBatterySaveMode`.
+  final bool systemBatterySaverEnabled;
+
+  /// Whether the auto-disable rule is currently kicking in. Activates if any
+  /// of the following is true:
+  /// - the user picked the [EnergySavingThreshold.always] stop;
+  /// - the user picked a numeric stop and battery level is at or below it;
+  /// - the OS-level battery saver mode is enabled (we follow the system).
   bool get isLowPowerActive {
+    if (systemBatterySaverEnabled) return true;
     final lvl = batteryLevelPercent;
     switch (threshold) {
       case EnergySavingThreshold.off:
@@ -105,6 +115,7 @@ class EnergySavingState {
     bool? mediaPreload,
     bool? backgroundUpdate,
     Object? batteryLevelPercent = _sentinel,
+    bool? systemBatterySaverEnabled,
   }) {
     return EnergySavingState(
       threshold: threshold ?? this.threshold,
@@ -118,6 +129,8 @@ class EnergySavingState {
       batteryLevelPercent: identical(batteryLevelPercent, _sentinel)
           ? this.batteryLevelPercent
           : batteryLevelPercent as int?,
+      systemBatterySaverEnabled:
+          systemBatterySaverEnabled ?? this.systemBatterySaverEnabled,
     );
   }
 }
@@ -182,26 +195,31 @@ class EnergySavingNotifier extends Notifier<EnergySavingState> {
     try {
       final battery = Battery();
       _battery = battery;
-      unawaited(_refreshBatteryLevel());
+      unawaited(_refreshBatterySnapshot());
       _batterySub = battery.onBatteryStateChanged.listen((_) {
-        unawaited(_refreshBatteryLevel());
+        unawaited(_refreshBatterySnapshot());
       });
     } catch (_) {
       // Platform may not support battery info (e.g. desktop test runs).
     }
   }
 
-  Future<void> _refreshBatteryLevel() async {
+  Future<void> _refreshBatterySnapshot() async {
     final battery = _battery;
     if (battery == null) return;
+    int? lvl;
+    bool? saver;
     try {
-      final lvl = await battery.batteryLevel;
-      final clamped = lvl.clamp(0, 100);
-      if (state.batteryLevelPercent == clamped) return;
-      state = state.copyWith(batteryLevelPercent: clamped);
-    } catch (_) {
-      // Ignore — keep previous value.
-    }
+      lvl = (await battery.batteryLevel).clamp(0, 100);
+    } catch (_) {/* keep previous */}
+    try {
+      saver = await battery.isInBatterySaveMode;
+    } catch (_) {/* keep previous */}
+    final next = state.copyWith(
+      batteryLevelPercent: lvl ?? state.batteryLevelPercent,
+      systemBatterySaverEnabled: saver ?? state.systemBatterySaverEnabled,
+    );
+    if (!_eq(state, next)) state = next;
   }
 
   Future<void> setThreshold(EnergySavingThreshold next) async {
@@ -265,7 +283,8 @@ class EnergySavingNotifier extends Notifier<EnergySavingState> {
       a.interfaceAnimations == b.interfaceAnimations &&
       a.mediaPreload == b.mediaPreload &&
       a.backgroundUpdate == b.backgroundUpdate &&
-      a.batteryLevelPercent == b.batteryLevelPercent;
+      a.batteryLevelPercent == b.batteryLevelPercent &&
+      a.systemBatterySaverEnabled == b.systemBatterySaverEnabled;
 }
 
 final energySavingProvider =
