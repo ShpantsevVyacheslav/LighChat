@@ -507,18 +507,26 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
                 ),
               ),
             ),
-            // Брендовый маяк — самым верхним слоем. ClipOval надёжнее, чем
-            // `BoxDecoration(shape: circle)` для clip'а содержимого в
-            // release-iOS. Тот же ассет, что в `AuthBrandHeader`.
+            // Брендовый маяк — самым верхним слоем.
+            //
+            // Фон круга — брендовый navy (тот же, что в `AuthBrandHeader` и в
+            // backdrop-градиенте экрана auth). На белом фоне «речевая капля»
+            // маяка сливалась — теперь маяк рендерится в том же цветовом
+            // контексте, что в шапке: видны и navy-силуэт, и кремовая капля
+            // вокруг, и оранжевый луч.
+            //
+            // Размер 40×40 (~13% стороны QR при 308px box, и того меньше при
+            // 248px). ECC level H (~30% избыточности) более чем покрывает
+            // эту область — сканер уверенно читает код.
             SizedBox(
-              width: 56,
-              height: 56,
+              width: 40,
+              height: 40,
               child: DecoratedBox(
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x33000000),
+                      color: Color(0x55000000),
                       blurRadius: 8,
                       offset: Offset(0, 2),
                     ),
@@ -526,17 +534,22 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
                 ),
                 child: ClipOval(
                   child: ColoredBox(
-                    color: Colors.white,
+                    // Brand navy. На светлой теме всё равно тёмный круг —
+                    // создаёт нужный контраст для маяка независимо от темы
+                    // QR-модулей.
+                    color: Color(0xFF1E3A5F),
                     child: Padding(
-                      padding: const EdgeInsets.all(5),
+                      padding: const EdgeInsets.all(3),
                       child: Image.asset(
                         'assets/lighchat_mark.png',
                         fit: BoxFit.contain,
                         filterQuality: FilterQuality.high,
+                        // Если asset не загрузился — fallback на иконку,
+                        // экран не падает.
                         errorBuilder: (_, __, ___) => const Icon(
                           Icons.lightbulb_outline,
-                          size: 32,
-                          color: Color(0xFF1E3A5F),
+                          size: 24,
+                          color: Color(0xFFECA048),
                         ),
                       ),
                     ),
