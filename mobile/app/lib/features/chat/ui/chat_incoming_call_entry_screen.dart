@@ -12,6 +12,7 @@ import '../data/chat_call_status.dart';
 import '../data/contact_display_name.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
+import '../../push/push_native_call_service.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_shell_backdrop.dart';
 import 'chat_video_call_screen.dart';
@@ -36,6 +37,7 @@ class _ChatIncomingCallEntryScreenState
   bool _opening = false;
   String? _openedCallId;
   bool _terminalRedirectScheduled = false;
+  bool? _autoAccept;
 
   Future<void> _openCallIfReady({
     required String callId,
@@ -50,6 +52,9 @@ class _ChatIncomingCallEntryScreenState
     if (_opening || _openedCallId == callId) return;
     _opening = true;
     _openedCallId = callId;
+    _autoAccept ??=
+        PushNativeCallService.instance.consumeNativeAccept(callId);
+    final autoAccept = _autoAccept ?? false;
 
     final route = MaterialPageRoute<void>(
       builder: (_) => isVideo
@@ -61,6 +66,7 @@ class _ChatIncomingCallEntryScreenState
               peerUserName: peerUserName,
               peerAvatarUrl: peerAvatarUrl,
               existingCallId: callId,
+              autoAccept: autoAccept,
             )
           : ChatAudioCallScreen(
               currentUserId: currentUserId,
@@ -70,6 +76,7 @@ class _ChatIncomingCallEntryScreenState
               peerUserName: peerUserName,
               peerAvatarUrl: peerAvatarUrl,
               existingCallId: callId,
+              autoAccept: autoAccept,
             ),
     );
 

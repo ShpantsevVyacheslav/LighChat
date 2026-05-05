@@ -22,6 +22,7 @@ class ChatVideoCallScreen extends StatefulWidget {
     this.currentUserAvatarUrl,
     this.peerAvatarUrl,
     this.existingCallId,
+    this.autoAccept = false,
   });
 
   final String currentUserId;
@@ -31,6 +32,7 @@ class ChatVideoCallScreen extends StatefulWidget {
   final String peerUserName;
   final String? peerAvatarUrl;
   final String? existingCallId;
+  final bool autoAccept;
 
   @override
   State<ChatVideoCallScreen> createState() => _ChatVideoCallScreenState();
@@ -171,6 +173,8 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
       await _ensurePeerReady();
       if (!_incoming) {
         await _makeOffer();
+      } else if (widget.autoAccept) {
+        await _acceptIncoming();
       }
     } catch (e) {
       if (!mounted) return;

@@ -25,6 +25,7 @@ class PushNativeCallService {
   StreamSubscription<CallEvent?>? _eventSub;
   bool _eventsBound = false;
   final Map<String, String> _callIdByCallkitId = <String, String>{};
+  final Set<String> _acceptedCallIds = <String>{};
   String? _deferredOpenCallId;
   String? _activeUid;
   String? _lastVoipToken;
@@ -65,6 +66,8 @@ class PushNativeCallService {
     _eventsBound = false;
     _activeUid = null;
     _lastVoipToken = null;
+    _acceptedCallIds.clear();
+    _callIdByCallkitId.clear();
   }
 
   void flushDeferredNavigation() {
@@ -74,6 +77,8 @@ class PushNativeCallService {
     _deferredOpenCallId = null;
     appGoRouterRef?.go('/calls/incoming/$callId');
   }
+
+  bool consumeNativeAccept(String callId) => _acceptedCallIds.remove(callId);
 
   void setActiveUserUid(String? uid) {
     final prevUid = _activeUid;
@@ -190,6 +195,9 @@ class PushNativeCallService {
       case Event.actionCallAccept:
       case Event.actionCallStart:
       case Event.actionCallConnected:
+        if (callId != null && callId.isNotEmpty) {
+          _acceptedCallIds.add(callId);
+        }
         if (callkitId != null) {
           try {
             await FlutterCallkitIncoming.endCall(callkitId);
@@ -201,8 +209,13 @@ class PushNativeCallService {
       case Event.actionCallDecline:
       case Event.actionCallEnded:
       case Event.actionCallTimeout:
-        if (callId != null && callId.isNotEmpty) {
+        if (callId != null &&
+            callId.isNotEmpty &&
+            !_acceptedCallIds.remove(callId)) {
           await _markCallRejectedOrEnded(callId);
+        }
+        if (callId != null && _deferredOpenCallId == callId) {
+          _deferredOpenCallId = null;
         }
         if (callkitId != null) {
           _callIdByCallkitId.remove(callkitId);

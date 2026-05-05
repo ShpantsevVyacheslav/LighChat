@@ -20,6 +20,7 @@ class ChatAudioCallScreen extends StatefulWidget {
     this.currentUserAvatarUrl,
     this.peerAvatarUrl,
     this.existingCallId,
+    this.autoAccept = false,
   });
 
   final String currentUserId;
@@ -29,6 +30,7 @@ class ChatAudioCallScreen extends StatefulWidget {
   final String peerUserName;
   final String? peerAvatarUrl;
   final String? existingCallId;
+  final bool autoAccept;
 
   @override
   State<ChatAudioCallScreen> createState() => _ChatAudioCallScreenState();
@@ -88,6 +90,8 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
       await _ensurePeerReady();
       if (!_incoming) {
         await _makeOffer();
+      } else if (widget.autoAccept) {
+        await _acceptIncoming();
       }
     } catch (e) {
       if (!mounted) return;
