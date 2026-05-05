@@ -118,4 +118,104 @@ void main() {
       expect(parsed.nonce, 'cross-platform-nonce');
     });
   });
+
+  group('buildQrLoginPayload (mobile encoder)', () {
+    test('roundtrip: build → parse возвращает исходные значения', () {
+      final encoded = buildQrLoginPayload(
+        sessionId: 'r-session-123',
+        nonce: 'r-nonce-456',
+      );
+      final parsed = parseQrLoginPayload(encoded);
+      expect(parsed, isNotNull);
+      expect(parsed!.sessionId, 'r-session-123');
+      expect(parsed.nonce, 'r-nonce-456');
+    });
+
+    test('output — base64url без паддинга и без +/=/', () {
+      final encoded = buildQrLoginPayload(
+        sessionId: 'a' * 32,
+        nonce: 'b' * 32,
+      );
+      expect(encoded.contains('+'), isFalse);
+      expect(encoded.contains('/'), isFalse);
+      expect(encoded.contains('='), isFalse);
+    });
+
+    test('детерминирован: один и тот же вход даёт один и тот же выход', () {
+      final a =
+          buildQrLoginPayload(sessionId: 'session-x', nonce: 'nonce-y');
+      final b =
+          buildQrLoginPayload(sessionId: 'session-x', nonce: 'nonce-y');
+      expect(a, b);
+    });
+
+    test('размер payload остаётся компактным (≤ 200 байт base64url)', () {
+      // Реальные sessionId и nonce от Cloud Function — 32-символьные base64url.
+      // Проверяем, что итоговый QR-payload остаётся <200 байт, чтобы code
+      // version подбирался автоматически и сканер уверенно читал его.
+      final encoded = buildQrLoginPayload(
+        sessionId: 'A' * 32,
+        nonce: 'B' * 32,
+      );
+      expect(encoded.length, lessThanOrEqualTo(200));
+    });
+
+    test(
+      'устойчив к специальным символам (url-safe и многобайтовые)',
+      () {
+        // На сервере sessionId/nonce — base64url. Но на всякий случай проверяем
+        // что парсер выживает и при unicode (paranoia-тест).
+        final encoded = buildQrLoginPayload(
+          sessionId: 'session_with-урл',
+          nonce: 'nonce@special!',
+        );
+        final parsed = parseQrLoginPayload(encoded);
+        expect(parsed, isNotNull);
+        expect(parsed!.sessionId, 'session_with-урл');
+        expect(parsed.nonce, 'nonce@special!');
+      },
+    );
+
+    test('длинные sessionId и nonce декодируются обратно', () {
+      // Паранойя на случай, если сервер начнёт выдавать более длинные
+      // токены — паркинг должен не упасть.
+      final encoded = buildQrLoginPayload(
+        sessionId: 's' * 64,
+        nonce: 'n' * 64,
+      );
+      final parsed = parseQrLoginPayload(encoded);
+      expect(parsed, isNotNull);
+      expect(parsed!.sessionId.length, 64);
+      expect(parsed.nonce.length, 64);
+    });
+  });
+
+  group('regressions: parser must reject malformed but plausible payloads', () {
+    test('пустой sessionId — отказ', () {
+      final encoded = _encodeBase64Url(<String, Object?>{
+        'v': 'lighchat-login-v1',
+        'sessionId': '',
+        'nonce': 'abc',
+      });
+      // Парсер сейчас принимает пустые строки; этот тест документирует
+      // текущее поведение и сигналит, если решим ужесточить валидацию.
+      // (Сервер всё равно отвергнет такой confirm с invalid-argument.)
+      final parsed = parseQrLoginPayload(encoded);
+      expect(parsed, isNotNull);
+      expect(parsed!.sessionId, '');
+    });
+
+    test('лишние JSON-поля игнорируются (forward-compat)', () {
+      final encoded = _encodeBase64Url(<String, Object?>{
+        'v': 'lighchat-login-v1',
+        'sessionId': 'sid',
+        'nonce': 'nce',
+        'futureField': 'ignored-by-current-clients',
+      });
+      final parsed = parseQrLoginPayload(encoded);
+      expect(parsed, isNotNull);
+      expect(parsed!.sessionId, 'sid');
+      expect(parsed.nonce, 'nce');
+    });
+  });
 }

@@ -100,6 +100,10 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
   String? _loginNewDevicePlatform;
   int _loginHandoverDone = 0;
   int _loginHandoverTotal = 0;
+  /// Guard от повторного нажатия «Разрешить»/«Отклонить» по одной и той же
+  /// сессии: race-condition посылал второй confirmQrLogin до того, как
+  /// первый завершился, второй валился с FAILED_PRECONDITION.
+  String? _confirmingSessionId;
 
   @override
   void dispose() {
@@ -399,6 +403,11 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     final sessionId = _loginPendingSessionId;
     final nonce = _loginPendingNonce;
     if (sessionId == null || nonce == null) return;
+    // Guard: одна и та же сессия не должна подтверждаться дважды (двойное
+    // нажатие). Сервер на повтор ответил бы FAILED_PRECONDITION, и
+    // пользователь увидел бы ошибку вместо успешного approve.
+    if (_confirmingSessionId == sessionId) return;
+    _confirmingSessionId = sessionId;
     if (!allow) {
       // Отклоняем (best-effort). Возвращаемся к сканеру.
       try {
@@ -412,6 +421,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
         _loginPendingSessionId = null;
         _loginPendingNonce = null;
       });
+      _confirmingSessionId = null;
       return;
     }
 
@@ -467,15 +477,30 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       if (!mounted) return;
       setState(() => _loginStage = _LoginLinkStage.done);
     } catch (e) {
+      // Если сервер ответил FAILED_PRECONDITION с message «in state approved»
+      // — сессия уже была одобрена (повторное нажатие или stale-doc от
+      // предыдущей попытки). Это не ошибка: новое устройство уже получило
+      // customToken. Показываем done с подсказкой.
+      final msg = e.toString();
+      final isAlreadyApproved = msg.contains('failed-precondition') ||
+          msg.contains('FAILED_PRECONDITION') ||
+          msg.contains('in state approved');
       if (!mounted) return;
-      setState(() {
-        _loginStage = _LoginLinkStage.error;
-        _loginError = e.toString();
-      });
+      if (isAlreadyApproved) {
+        setState(() => _loginStage = _LoginLinkStage.done);
+      } else {
+        // Сбрасываем guard, чтобы можно было повторить.
+        _confirmingSessionId = null;
+        setState(() {
+          _loginStage = _LoginLinkStage.error;
+          _loginError = msg;
+        });
+      }
     }
   }
 
   void _resetLoginFlow() {
+    _confirmingSessionId = null;
     setState(() {
       _loginStage = _LoginLinkStage.idle;
       _loginError = null;

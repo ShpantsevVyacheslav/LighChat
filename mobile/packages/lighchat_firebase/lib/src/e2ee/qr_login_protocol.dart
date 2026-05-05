@@ -1,7 +1,9 @@
 /// QR-login (Telegram-style) — mobile parity с web `src/lib/qr-login/protocol.ts`.
 ///
-/// Парсер только; HTTPS-callable вызовы реализуются в приложении напрямую через
-/// `cloud_functions/cloud_functions.dart`.
+/// Содержит **протокол**: build/parse base64-url JSON payload в формате
+/// `{v: 'lighchat-login-v1', sessionId, nonce}`. HTTPS-callable вызовы
+/// реализуются в приложении напрямую через `cloud_functions` или через
+/// `callFirebaseCallableHttp` (iOS).
 library;
 
 import 'dart:convert';
@@ -16,6 +18,27 @@ class QrLoginPayload {
 
   final String sessionId;
   final String nonce;
+}
+
+/// Сериализация payload в base64-url JSON без паддинга.
+///
+/// Идентична web-функции [`buildQrLoginPayload`](../../../../../../src/lib/qr-login/protocol.ts) —
+/// QR, сгенерированный любым клиентом, должен парситься обоими. Тесты
+/// проверяют это явно (`qr_login_protocol_test.dart`).
+String buildQrLoginPayload({
+  required String sessionId,
+  required String nonce,
+}) {
+  final json = jsonEncode(<String, Object?>{
+    'v': qrLoginProtocolVersion,
+    'sessionId': sessionId,
+    'nonce': nonce,
+  });
+  final b64 = base64.encode(utf8.encode(json));
+  return b64
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
+      .replaceAll('=', '');
 }
 
 /// Возвращает [QrLoginPayload] для login-QR или `null`, если payload — что-то

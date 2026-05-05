@@ -373,6 +373,130 @@ describe('runConfirmQrLogin', () => {
   });
 });
 
+describe('geo enrichment of e2eeDevices on approve', () => {
+  it('saves country/city from session into the new e2eeDevice doc', async () => {
+    // 1. requestQrLogin с заголовками, которые имитируют GCP
+    //    geo-headers `X-Appengine-Country` / `X-Appengine-City`.
+    const { sessionId, nonce } = await runRequestQrLogin(
+      adminDb,
+      {
+        ephemeralPubKeySpki: 'A'.repeat(120),
+        devicePlatform: 'ios',
+        deviceLabel: 'iPhone',
+        deviceId: 'GEO_TEST_NEW_DEVICE_ID01',
+      },
+      { ip: '203.0.113.5', userAgent: 'jest', country: 'PT', city: 'Lisbon' },
+    );
+
+    // 2. Cессия в Firestore должна содержать сохранённую гео-инфу.
+    const sessSnap = await adminDb.doc(`qrLoginSessions/${sessionId}`).get();
+    const sess = sessSnap.data() ?? {};
+    expect(sess.country).toBe('PT');
+    expect(sess.city).toBe('Lisbon');
+
+    // 3. confirmQrLogin от scanner-uid одобряет вход.
+    const issuer = (uid: string): Promise<string> =>
+      Promise.resolve(`ct:${uid}`);
+    await runConfirmQrLogin(
+      'scanner-uid-geo',
+      { sessionId, nonce, allow: true },
+      { db: adminDb, createCustomToken: issuer },
+    );
+
+    // 4. После approve admin SDK обновил `users/{scannerUid}/e2eeDevices/{newDeviceId}`
+    //    полями lastLoginCountry / lastLoginCity / lastLoginIp / lastLoginAt.
+    const deviceSnap = await adminDb
+      .doc('users/scanner-uid-geo/e2eeDevices/GEO_TEST_NEW_DEVICE_ID01')
+      .get();
+    expect(deviceSnap.exists).toBe(true);
+    const dev = deviceSnap.data() ?? {};
+    expect(dev.lastLoginCountry).toBe('PT');
+    expect(dev.lastLoginCity).toBe('Lisbon');
+    expect(dev.lastLoginIp).toBe('203.0.113.5');
+    expect(typeof dev.lastLoginAt).toBe('string');
+  });
+
+  it('omits empty country/city without crashing', async () => {
+    // Если GCP не проставил геолокацию (deploy в локальном эмуляторе или
+    // локальная сеть), ctx.country и ctx.city — пустые строки. Тест
+    // проверяет что approve всё равно проходит.
+    const { sessionId, nonce } = await runRequestQrLogin(adminDb, {
+      ephemeralPubKeySpki: 'A'.repeat(120),
+      devicePlatform: 'web',
+      deviceLabel: 'Local dev',
+      deviceId: 'NO_GEO_DEV_ID_2222',
+    });
+
+    const issuer = (uid: string): Promise<string> =>
+      Promise.resolve(`ct:${uid}`);
+    const res = await runConfirmQrLogin(
+      'scanner-no-geo',
+      { sessionId, nonce, allow: true },
+      { db: adminDb, createCustomToken: issuer },
+    );
+    expect(res.state).toBe('approved');
+
+    const deviceSnap = await adminDb
+      .doc('users/scanner-no-geo/e2eeDevices/NO_GEO_DEV_ID_2222')
+      .get();
+    // Документ создаётся даже если геолокации нет — это сигнал, что
+    // авторизация прошла, а UI просто не покажет строку location.
+    expect(deviceSnap.exists).toBe(true);
+    const dev = deviceSnap.data() ?? {};
+    expect(dev.lastLoginCountry).toBe('');
+    expect(dev.lastLoginCity).toBe('');
+  });
+});
+
+describe('regression: replay confirm with same allow=true', () => {
+  it('first call wins, second call rejected with failed-precondition (was the user-reported bug)', async () => {
+    // Симуляция бага из репорта:
+    // 1) Пользователь на mobile тапнул «Allow» — первый confirm одобрил.
+    // 2) UI обновился медленно, тапнули второй раз — второй confirm
+    //    видит state='approved' и валится с FAILED_PRECONDITION.
+    // На клиенте теперь ловим эту ошибку как «уже подтверждено» и
+    // показываем done вместо красного экрана.
+    const { sessionId, nonce } = await runRequestQrLogin(adminDb, {
+      ephemeralPubKeySpki: 'A'.repeat(120),
+      devicePlatform: 'ios',
+      deviceLabel: 'iPhone replay-test',
+      deviceId: 'REPLAY_TEST_NEW_ID_XX',
+    });
+
+    const issuer1 = (uid: string): Promise<string> =>
+      Promise.resolve(`first:${uid}`);
+    const ok = await runConfirmQrLogin(
+      'replay-scanner',
+      { sessionId, nonce, allow: true },
+      { db: adminDb, createCustomToken: issuer1 },
+    );
+    expect(ok.state).toBe('approved');
+
+    // Второй confirm с тем же sessionId — должен бросить
+    // failed-precondition; mobile/web клиент сейчас интерпретирует это
+    // как success (документ approved, токен уже выдан).
+    const issuer2 = (uid: string): Promise<string> =>
+      Promise.resolve(`second:${uid}`);
+    let captured: { code?: string; message?: string } | null = null;
+    try {
+      await runConfirmQrLogin(
+        'replay-scanner',
+        { sessionId, nonce, allow: true },
+        { db: adminDb, createCustomToken: issuer2 },
+      );
+    } catch (e) {
+      captured = e as { code?: string; message?: string };
+    }
+    expect(captured).not.toBeNull();
+    expect(captured?.code).toBe('failed-precondition');
+    expect(captured?.message ?? '').toMatch(/in state approved/i);
+
+    // customToken от первого вызова не перезаписан вторым.
+    const finalSnap = await adminDb.doc(`qrLoginSessions/${sessionId}`).get();
+    expect(finalSnap.data()?.customToken).toBe('first:replay-scanner');
+  });
+});
+
 describe('end-to-end QR-login roundtrip', () => {
   it('new device sees customToken via public read after approve', async () => {
     // 1. Новое устройство (без auth) запрашивает сессию через core.

@@ -7,7 +7,6 @@
 library;
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -183,7 +182,7 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
 
     String encoded;
     try {
-      encoded = _encodeLoginQrPayload(sessionId: sessionId, nonce: nonce);
+      encoded = buildQrLoginPayload(sessionId: sessionId, nonce: nonce);
     } catch (e, st) {
       debugPrint('[qr-login] encode failed: $e\n$st');
       if (!mounted) return;
@@ -311,25 +310,9 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
     }
   }
 
-  /// base64-url JSON `{v:'lighchat-login-v1',sessionId,nonce}`.
-  /// Дублирует [`buildQrLoginPayload`](../../../../packages/lighchat_firebase/lib/src/qr-login/protocol.ts)
-  /// (web-сторона), не делая публичный API в lighchat_firebase: парсер уже там
-  /// есть, а билдер нужен только для этого экрана.
-  String _encodeLoginQrPayload({
-    required String sessionId,
-    required String nonce,
-  }) {
-    final json = jsonEncode(<String, Object?>{
-      'v': 'lighchat-login-v1',
-      'sessionId': sessionId,
-      'nonce': nonce,
-    });
-    final b64 = base64.encode(utf8.encode(json));
-    return b64
-        .replaceAll('+', '-')
-        .replaceAll('/', '_')
-        .replaceAll('=', '');
-  }
+  // Билдер payload вынесен в публичный `buildQrLoginPayload` в
+  // `lighchat_firebase`, чтобы Dart-тесты могли проверять roundtrip
+  // против `parseQrLoginPayload`.
 
   @override
   Widget build(BuildContext context) {
