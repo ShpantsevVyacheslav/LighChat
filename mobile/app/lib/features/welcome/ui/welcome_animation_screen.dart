@@ -12,8 +12,9 @@ import '../data/first_login_animation_storage.dart';
 import '../../features_tour/data/features_tour_storage.dart';
 import 'welcome_painters.dart';
 
+/// Master timeline ≈ 8s. Все фазы — нормализованные к [0..1] окна.
 const Duration _kTotalDuration = Duration(milliseconds: 8000);
-const Duration _kReducedMotionHold = Duration(milliseconds: 800);
+const Duration _kReducedMotionHold = Duration(milliseconds: 1000);
 
 class WelcomeAnimationScreen extends StatefulWidget {
   const WelcomeAnimationScreen({super.key});
@@ -27,12 +28,7 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
   late final AnimationController _controller;
   bool _exited = false;
   bool _reducedMotion = false;
-
-  // Накопленные точки траектории для trail (обновляются в плановом порядке
-  // через `addListener` — это валидный паттерн для CustomPainter).
   final List<Offset> _trail = [];
-
-  // Haptic triggers (one-shot per playthrough)
   final Set<String> _hapticFired = <String>{};
 
   @override
@@ -42,8 +38,6 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
     _controller.addStatusListener(_onStatus);
     _controller.addListener(_onTick);
 
-    // Помечаем флаг сразу — чтобы force-kill посреди анимации не
-    // приводил к повторному показу.
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       FirstLoginAnimationStorage.markShownFor(uid);
@@ -60,6 +54,9 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
     }
     if (t > 0.42 && _hapticFired.add('keeper')) {
       HapticFeedback.lightImpact();
+    }
+    if (t > 0.50 && _hapticFired.add('crab')) {
+      HapticFeedback.selectionClick();
     }
     if (t > 0.66 && _hapticFired.add('throw')) {
       HapticFeedback.mediumImpact();
@@ -157,7 +154,6 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
 
 class _SkipButton extends StatelessWidget {
   const _SkipButton({required this.onSkip});
-
   final VoidCallback onSkip;
 
   @override
@@ -177,13 +173,8 @@ class _SkipButton extends StatelessWidget {
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white,
                 backgroundColor: Colors.white.withValues(alpha: 0.12),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
               ),
               child: Text(label),
             ),
@@ -194,7 +185,7 @@ class _SkipButton extends StatelessWidget {
   }
 }
 
-/// Статичный финальный кадр для reduced-motion.
+/// Static финальный кадр для reduced-motion.
 class _StaticFinalFrame extends StatelessWidget {
   const _StaticFinalFrame();
 
@@ -202,40 +193,44 @@ class _StaticFinalFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
       builder: (context, opacity, _) {
         return Opacity(
           opacity: opacity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const _BackgroundLayer(progress: 1, t: 0.5),
-              LayoutBuilder(
-                builder: (context, c) {
-                  final size = Size(c.maxWidth, c.maxHeight);
-                  return Stack(
-                    children: [
-                      Positioned(
-                        left: size.width * 0.20,
-                        top: size.height * 0.30,
-                        width: size.width * 0.60,
-                        height: size.height * 0.60,
-                        child: const CustomPaint(
-                          painter: LighthousePainter(),
-                        ),
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final size = Size(c.maxWidth, c.maxHeight);
+              final logoSide = size.width * 0.55;
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment(0.0, -0.4),
+                        radius: 1.1,
+                        colors: [kBrandNavy, Color(0xFF142849), kBrandNavyDark],
+                        stops: [0.0, 0.55, 1.0],
                       ),
-                      Positioned(
-                        left: size.width * 0.18,
-                        top: size.height * 0.48,
-                        width: size.width * 0.64,
-                        child: const _BubbleCard(visibleChars: 1.0),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+                    ),
+                  ),
+                  Positioned(
+                    left: (size.width - logoSide) / 2,
+                    top: size.height * 0.32,
+                    width: logoSide,
+                    height: logoSide,
+                    child: Image.asset('assets/lighchat_mark.png', fit: BoxFit.contain),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: size.height * 0.32 + logoSide + 12,
+                    child: const _Wordmark(),
+                  ),
+                ],
+              );
+            },
           ),
         );
       },
@@ -258,9 +253,8 @@ class _AnimatedStage extends StatelessWidget {
         return LayoutBuilder(
           builder: (context, c) {
             final size = Size(c.maxWidth, c.maxHeight);
-            // Сцена выцветает только в финальной фазе (0.92..1.0), уступая
-            // место финальному логотипу + wordmark.
             final sceneFade = _interval(t, 0.92, 1.0).clamp(0.0, 1.0);
+            final l10n = AppLocalizations.of(context);
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -269,11 +263,16 @@ class _AnimatedStage extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _BackgroundLayer(progress: _ease(t, 0.0, 0.06, Curves.easeOut), t: t),
+                      _BackgroundGradient(),
+                      _StarsLayer(t: t),
+                      _MoonLayer(t: t),
+                      _SeaLayer(t: t),
+                      _IslandLayer(t: t, size: size),
                       _LighthouseLayer(t: t, size: size),
                       _KeeperLayer(t: t, size: size),
+                      _CrabLayer(t: t, size: size, trail: trail),
                       _PlaneLayer(t: t, size: size, trail: trail),
-                      _BubbleLayer(t: t, size: size, locale: AppLocalizations.of(context)),
+                      _BubbleLayer(t: t, size: size, locale: l10n),
                     ],
                   ),
                 ),
@@ -287,148 +286,7 @@ class _AnimatedStage extends StatelessWidget {
   }
 }
 
-/// Финальная фаза: PNG-логотип в центре + wordmark "LighChat" под ним.
-class _FinalLogoLayer extends StatelessWidget {
-  const _FinalLogoLayer({required this.t, required this.size});
-
-  final double t;
-  final Size size;
-
-  @override
-  Widget build(BuildContext context) {
-    final logoP = _ease(t, 0.93, 1.00, Curves.easeOutBack);
-    final wmP = _ease(t, 0.96, 1.00, Curves.easeOut);
-    if (logoP <= 0.001) return const SizedBox.shrink();
-    final logoSide = size.width * 0.55;
-    return IgnorePointer(
-      child: Stack(
-        children: [
-          Positioned(
-            left: (size.width - logoSide) / 2,
-            top: size.height * 0.32,
-            width: logoSide,
-            height: logoSide,
-            child: Opacity(
-              opacity: logoP.clamp(0.0, 1.0),
-              child: Transform.scale(
-                scale: logoP.clamp(0.0, 1.0),
-                child: Image.asset(
-                  'assets/lighchat_mark.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: size.height * 0.32 + logoSide + 12,
-            child: Opacity(
-              opacity: wmP.clamp(0.0, 1.0),
-              child: const _Wordmark(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Wordmark extends StatelessWidget {
-  const _Wordmark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text.rich(
-        const TextSpan(
-          children: [
-            TextSpan(
-              text: 'L',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
-            ),
-            // Dotless `i` — точка над `i` сделана отдельным span coral-цвета
-            // через WidgetSpan, чтобы попасть в брендовую палитру.
-            WidgetSpan(
-              alignment: PlaceholderAlignment.baseline,
-              baseline: TextBaseline.alphabetic,
-              child: _DottedI(),
-            ),
-            TextSpan(
-              text: 'gh',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
-            ),
-            TextSpan(
-              text: 'Chat',
-              style: TextStyle(
-                color: kBrandCoral,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DottedI extends StatelessWidget {
-  const _DottedI();
-
-  @override
-  Widget build(BuildContext context) {
-    // Используем dotless ı + сверху coral-точку. Размер согласован с 28sp text.
-    return SizedBox(
-      width: 12,
-      height: 32,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          const Positioned(
-            left: 0,
-            top: 0,
-            child: Text(
-              'ı',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 3,
-            top: 4,
-            child: Container(
-              width: 5,
-              height: 5,
-              decoration: const BoxDecoration(
-                color: kBrandCoral,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Возвращает прогресс t, нормализованный в окне [start..end] (0..1) или 0/1
-/// за пределами. start/end — доли мастер-таймлайна.
+/// 0..1 normalized window over the master t.
 double _interval(double t, double start, double end) {
   if (t <= start) return 0;
   if (t >= end) return 1;
@@ -443,25 +301,71 @@ double _ease(double t, double start, double end, Curve curve) {
 // Layers
 // =============================================================================
 
-class _BackgroundLayer extends StatelessWidget {
-  const _BackgroundLayer({required this.progress, required this.t});
+class _BackgroundGradient extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(0.0, -0.4),
+          radius: 1.1,
+          colors: [kBrandNavy, Color(0xFF142849), kBrandNavyDark],
+          stops: [0.0, 0.55, 1.0],
+        ),
+      ),
+      child: SizedBox.expand(),
+    );
+  }
+}
 
-  final double progress;
+class _StarsLayer extends StatelessWidget {
+  const _StarsLayer({required this.t});
   final double t;
 
   @override
   Widget build(BuildContext context) {
+    final fade = _ease(t, 0, 0.13, Curves.easeOut);
+    return CustomPaint(
+      painter: StarsPainter(t: t, seeds: kStarSeeds, fade: fade),
+    );
+  }
+}
+
+class _MoonLayer extends StatelessWidget {
+  const _MoonLayer({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _ease(t, 0.04, 0.18, Curves.easeOut) * 0.95;
+    return CustomPaint(painter: MoonPainter(opacity: p));
+  }
+}
+
+class _SeaLayer extends StatelessWidget {
+  const _SeaLayer({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _ease(t, 0.07, 0.20, Curves.easeOut);
+    return CustomPaint(painter: SeaPainter(opacity: p, t: t));
+  }
+}
+
+class _IslandLayer extends StatelessWidget {
+  const _IslandLayer({required this.t, required this.size});
+  final double t;
+  final Size size;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _ease(t, 0.10, 0.28, Curves.easeOutCubic);
     return Opacity(
-      opacity: progress,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [kBrandNavy, kBrandNavyDark],
-          ),
-        ),
-        child: CustomPaint(painter: StarsPainter(t: t, seeds: kStarSeeds)),
+      opacity: p,
+      child: Transform.translate(
+        offset: Offset(0, (1 - p) * size.height * 0.10),
+        child: const CustomPaint(painter: IslandPainter()),
       ),
     );
   }
@@ -469,66 +373,134 @@ class _BackgroundLayer extends StatelessWidget {
 
 class _LighthouseLayer extends StatelessWidget {
   const _LighthouseLayer({required this.t, required this.size});
-
   final double t;
   final Size size;
 
   @override
   Widget build(BuildContext context) {
-    final p = _ease(t, 0.05, 0.18, Curves.easeOutCubic);
-    final beamIntensity = _ease(t, 0.10, 0.30, Curves.easeOut);
-    // Луч поворачивается медленно: ~1 оборот / 6с при общей продолжительности
-    // 3.8с — фактически ~0.63 оборота. Стартовый угол слегка повёрнут влево.
-    final beamAngle = -0.8 + (t * (math.pi * 2 / 6.0)) * (3.8);
+    final p = _ease(t, 0.24, 0.44, Curves.easeOutCubic);
+    final beamI = _ease(t, 0.30, 0.46, Curves.easeOut);
+    final beamAngle = -0.4 + (t - 0.24) * 1.2;
 
-    final tower = Positioned(
-      left: size.width * 0.20,
-      top: size.height * 0.30 + (1 - p) * size.height * 0.20,
-      width: size.width * 0.60,
-      height: size.height * 0.60,
-      child: Opacity(
-        opacity: p,
-        child: const CustomPaint(painter: LighthousePainter()),
-      ),
+    final lhWidth = size.width * 0.36;
+    final lhHeight = size.height * 0.55;
+    final lhLeft = (size.width - lhWidth) / 2;
+    final lhTop = size.height * 0.32 + (1 - p) * size.height * 0.12;
+    // Лампа находится на ~0.30 высоты sprite
+    final lampOrigin = Offset(
+      lhLeft + lhWidth * 0.5,
+      lhTop + lhHeight * 0.30,
     );
 
-    final beam = Positioned.fill(
-      child: IgnorePointer(
-        child: CustomPaint(
-          painter: LighthouseBeamPainter(
-            angle: beamAngle,
-            intensity: beamIntensity,
+    return Stack(
+      children: [
+        // Beam under tower so it appears emanating
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: LighthouseBeamPainter(
+                angle: beamAngle,
+                intensity: beamI,
+                origin: lampOrigin,
+              ),
+            ),
           ),
         ),
-      ),
+        Positioned(
+          left: lhLeft,
+          top: lhTop,
+          width: lhWidth,
+          height: lhHeight,
+          child: Opacity(
+            opacity: p,
+            child: const CustomPaint(painter: LighthousePainter()),
+          ),
+        ),
+      ],
     );
-
-    return Stack(children: [beam, tower]);
   }
 }
 
 class _KeeperLayer extends StatelessWidget {
   const _KeeperLayer({required this.t, required this.size});
-
   final double t;
   final Size size;
 
   @override
   Widget build(BuildContext context) {
-    final appear = _ease(t, 0.18, 0.30, Curves.easeInOut);
-    final throwP = _ease(t, 0.30, 0.40, Curves.easeInOut);
+    final appear = _ease(t, 0.40, 0.54, Curves.easeOutBack);
+    final visible = _ease(t, 0.40, 0.50, Curves.easeOut);
+    final throwP = _ease(t, 0.56, 0.69, Curves.easeInOut);
 
-    final keeperWidth = size.width * 0.10;
-    final keeperHeight = size.height * 0.08;
+    final kw = size.width * 0.16;
+    final kh = size.height * 0.15;
+    final left = size.width * 0.66;
+    final top = size.height * 0.71;
+
     return Positioned(
-      left: size.width * 0.42,
-      top: size.height * 0.39,
-      width: keeperWidth,
-      height: keeperHeight,
+      left: left,
+      top: top,
+      width: kw,
+      height: kh,
       child: Opacity(
-        opacity: appear,
-        child: CustomPaint(
-          painter: KeeperPainter(throwProgress: throwP),
+        opacity: visible,
+        child: Transform.scale(
+          scale: appear.clamp(0.0, 1.0),
+          alignment: Alignment.bottomCenter,
+          child: CustomPaint(painter: KeeperPainter(throwProgress: throwP)),
+        ),
+      ),
+    );
+  }
+}
+
+class _CrabLayer extends StatelessWidget {
+  const _CrabLayer({required this.t, required this.size, required this.trail});
+  final double t;
+  final Size size;
+  final List<Offset> trail;
+
+  @override
+  Widget build(BuildContext context) {
+    final appear = _ease(t, 0.48, 0.62, Curves.easeOutBack);
+    final visible = _ease(t, 0.48, 0.58, Curves.easeOut);
+    if (visible <= 0.001) return const SizedBox.shrink();
+
+    final cw = size.width * 0.20;
+    final ch = size.height * 0.075;
+    final bob = math.sin((t - 0.48) * math.pi * 8) * 2.0;
+    final left = size.width * 0.20;
+    final top = size.height * 0.84 + bob;
+
+    // Eye tracking: глядит на самолётик в полёте
+    Offset pupil = Offset.zero;
+    if (trail.isNotEmpty) {
+      final last = trail.last;
+      final dx = (last.dx - (left + cw / 2)) / (size.width * 0.3);
+      final dy = (last.dy - (top + ch / 2)) / (size.height * 0.2);
+      pupil = Offset(dx.clamp(-1.0, 1.0), dy.clamp(-1.0, 1.0));
+    }
+
+    final wavePh = (t - 0.48) * math.pi * 6;
+    final lWave = -15 + math.sin(wavePh) * 18;
+    final rWave = 20 + math.sin(wavePh + math.pi) * 18;
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: cw,
+      height: ch,
+      child: Opacity(
+        opacity: visible,
+        child: Transform.scale(
+          scale: appear.clamp(0.0, 1.0),
+          child: CustomPaint(
+            painter: CrabPainter(
+              clawWaveL: lWave,
+              clawWaveR: rWave,
+              pupilOffset: pupil,
+            ),
+          ),
         ),
       ),
     );
@@ -541,24 +513,21 @@ class _PlaneLayer extends StatelessWidget {
     required this.size,
     required this.trail,
   });
-
   final double t;
   final Size size;
   final List<Offset> trail;
 
-  // Контрольные точки кубической Безье в долях экрана.
-  static const _p0 = Offset(0.46, 0.43); // рука смотрителя
-  static const _p1 = Offset(0.20, 0.20); // вверх и влево
-  static const _p2 = Offset(0.70, 0.30); // дуга справа сверху
-  static const _p3 = Offset(0.50, 0.55); // целевая точка bubble
+  // Bezier control points (доли экрана)
+  static const _p0 = Offset(0.74, 0.74); // рука хранителя
+  static const _p1 = Offset(0.20, 0.20);
+  static const _p2 = Offset(0.70, 0.30);
+  static const _p3 = Offset(0.50, 0.55);
 
   @override
   Widget build(BuildContext context) {
-    // Самолётик появляется в (1300..1500), летит (1500..3000),
-    // конвертируется в bubble (3000..3500).
-    final appear = _ease(t, 0.342, 0.395, Curves.easeOutBack);
-    final flight = _ease(t, 0.395, 0.789, Curves.easeInOutCubic);
-    final morphOut = _ease(t, 0.789, 0.842, Curves.easeInOut);
+    final appear = _ease(t, 0.66, 0.69, Curves.easeOutBack);
+    final flight = _ease(t, 0.66, 0.81, Curves.easeInOutCubic);
+    final morphOut = _ease(t, 0.79, 0.83, Curves.easeInOut);
     final visibility = (appear * (1 - morphOut)).clamp(0.0, 1.0);
 
     if (visibility <= 0.001) {
@@ -571,42 +540,45 @@ class _PlaneLayer extends StatelessWidget {
     final p3 = Offset(_p3.dx * size.width, _p3.dy * size.height);
 
     final pos = cubicBezier(flight, p0, p1, p2, p3);
-    final tangent = cubicBezierTangent(flight, p0, p1, p2, p3);
-    final wobble = math.sin(t * math.pi * 12) * 4 * flight * (1 - flight) * 4;
-    final perpDx = -tangent.dy;
-    final perpDy = tangent.dx;
-    final perpLen = math.sqrt(perpDx * perpDx + perpDy * perpDy);
-    final wDx = perpLen == 0 ? 0.0 : perpDx / perpLen * wobble;
-    final wDy = perpLen == 0 ? 0.0 : perpDy / perpLen * wobble;
-    final finalPos = Offset(pos.dx + wDx, pos.dy + wDy);
+    final tan = cubicBezierTangent(flight, p0, p1, p2, p3);
+    final wobble = math.sin(t * math.pi * 14) * 5 * flight * (1 - flight) * 4;
+    final perp = Offset(-tan.dy, tan.dx);
+    final perpLen = perp.distance;
+    final wOff = perpLen == 0 ? Offset.zero : perp / perpLen * wobble;
+    final finalPos = pos + wOff;
+    final tilt = math.atan2(tan.dy, tan.dx);
 
-    final tilt = math.atan2(tangent.dy, tangent.dx);
-
-    // Обновляем trail (последние 8 точек).
     if (flight > 0 && flight < 1) {
       trail.add(finalPos);
-      if (trail.length > 8) trail.removeAt(0);
+      if (trail.length > 14) trail.removeAt(0);
     } else if (flight >= 1 && trail.isNotEmpty) {
       trail.clear();
     }
 
-    final planeSize = Size(size.width * 0.10, size.width * 0.08);
+    final planeW = size.width * 0.13;
+    final planeH = size.width * 0.10;
+
     return Stack(
       children: [
         Positioned.fill(
           child: IgnorePointer(
-            child: CustomPaint(painter: PaperPlaneTrailPainter(points: List.of(trail))),
+            child: CustomPaint(
+              painter: PaperPlaneTrailPainter(
+                points: List.of(trail),
+                fade: 1 - morphOut,
+              ),
+            ),
           ),
         ),
         Positioned(
-          left: finalPos.dx - planeSize.width / 2,
-          top: finalPos.dy - planeSize.height / 2,
-          width: planeSize.width,
-          height: planeSize.height,
+          left: finalPos.dx - planeW / 2,
+          top: finalPos.dy - planeH / 2,
+          width: planeW,
+          height: planeH,
           child: Opacity(
             opacity: visibility,
             child: Transform.scale(
-              scale: 0.4 + 0.6 * appear,
+              scale: 0.7 + 0.3 * appear,
               child: Transform.rotate(
                 angle: tilt,
                 child: const CustomPaint(painter: PaperPlanePainter()),
@@ -625,7 +597,6 @@ class _BubbleLayer extends StatelessWidget {
     required this.size,
     required this.locale,
   });
-
   final double t;
   final Size size;
   final AppLocalizations? locale;
@@ -634,18 +605,17 @@ class _BubbleLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final morphIn = _ease(t, 0.789, 0.921, Curves.elasticOut);
+    final morphIn = _ease(t, 0.79, 0.86, Curves.elasticOut);
     if (morphIn <= 0.001) return const SizedBox.shrink();
-    // Typing-эффект: символы "печатаются" 0.789..0.92.
-    final typing = _ease(t, 0.815, 0.92, Curves.easeOut);
+    final typing = _ease(t, 0.81, 0.87, Curves.easeOut);
 
-    final bubbleWidth = size.width * 0.64;
+    final bubbleWidth = size.width * 0.72;
     final centerX = _target.dx * size.width;
     final centerY = _target.dy * size.height;
 
     return Positioned(
       left: centerX - bubbleWidth / 2,
-      top: centerY - 30,
+      top: centerY - 32,
       width: bubbleWidth,
       child: Transform.scale(
         alignment: Alignment.centerLeft,
@@ -659,7 +629,6 @@ class _BubbleLayer extends StatelessWidget {
 class _BubbleCard extends StatelessWidget {
   const _BubbleCard({this.visibleChars = 1.0, this.locale});
 
-  /// 0..1, доля «напечатанного» текста.
   final double visibleChars;
   final AppLocalizations? locale;
 
@@ -674,7 +643,7 @@ class _BubbleCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: kBrandCoral,
           borderRadius: const BorderRadius.only(
@@ -685,8 +654,8 @@ class _BubbleCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 16,
+              color: Colors.black.withValues(alpha: 0.30),
+              blurRadius: 20,
               offset: const Offset(0, 6),
             ),
           ],
@@ -694,21 +663,23 @@ class _BubbleCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: Colors.white,
-              backgroundImage: const AssetImage('assets/lighchat_mark.png'),
-              onBackgroundImageError: (_, _) {},
+            // Аватар: настоящий PNG-логотип
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(shape: BoxShape.circle),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset('assets/lighchat_mark.png', fit: BoxFit.cover),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     'LighChat',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -746,8 +717,139 @@ class _BubbleCard extends StatelessWidget {
   }
 }
 
-/// Debug-only хелпер: сбрасывает welcome-флаг и переходит на /welcome.
-/// Используется ListTile в Storage Settings.
+class _FinalLogoLayer extends StatelessWidget {
+  const _FinalLogoLayer({required this.t, required this.size});
+  final double t;
+  final Size size;
+
+  @override
+  Widget build(BuildContext context) {
+    final logoP = _ease(t, 0.93, 1.00, Curves.easeOutBack);
+    final wmP = _ease(t, 0.96, 1.00, Curves.easeOut);
+    if (logoP <= 0.001) return const SizedBox.shrink();
+    final logoSide = size.width * 0.55;
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            left: (size.width - logoSide) / 2,
+            top: size.height * 0.32,
+            width: logoSide,
+            height: logoSide,
+            child: Opacity(
+              opacity: logoP.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: logoP.clamp(0.0, 1.0),
+                child: Image.asset('assets/lighchat_mark.png', fit: BoxFit.contain),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: size.height * 0.32 + logoSide + 12,
+            child: Opacity(
+              opacity: wmP.clamp(0.0, 1.0),
+              child: const _Wordmark(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Wordmark extends StatelessWidget {
+  const _Wordmark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text.rich(
+        const TextSpan(
+          children: [
+            TextSpan(
+              text: 'L',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+            WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: _DottedI(),
+            ),
+            TextSpan(
+              text: 'gh',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+            TextSpan(
+              text: 'Chat',
+              style: TextStyle(
+                color: kBrandCoral,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DottedI extends StatelessWidget {
+  const _DottedI();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 12,
+      height: 32,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned(
+            left: 0,
+            top: 0,
+            child: Text(
+              'ı',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 3,
+            top: 4,
+            child: Container(
+              width: 5,
+              height: 5,
+              decoration: const BoxDecoration(
+                color: kBrandCoral,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Debug-only helper: сбрасывает welcome-флаг и отправляет на /welcome.
 Future<void> debugReplayWelcomeAnimation(BuildContext context) async {
   if (!kDebugMode) return;
   await FirstLoginAnimationStorage.clearForCurrentUser();
