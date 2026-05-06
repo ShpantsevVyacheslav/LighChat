@@ -1,5 +1,5 @@
 name: lighchat_mobile
-description: "LighChat — приватный мессенджер с E2E-шифрованием, QR-мульти-девайс, кастомными темами и HD-видеозвонками. Альтернатива WhatsApp и Telegram для iOS и Android."
+description: "LighChat — приватный мессенджер с E2E-шифрованием, QR-мульти-девайс, аудио/видеозвонками, видеоконференциями, играми в чате и секретными чатами. Альтернатива WhatsApp и Telegram для iOS и Android."
 homepage: https://lighchat.online
 repository: https://github.com/ShpantsevVyacheslav/LighChat
 issue_tracker: https://github.com/ShpantsevVyacheslav/LighChat/issues

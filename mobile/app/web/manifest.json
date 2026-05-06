@@ -1,7 +1,7 @@
 {
     "name": "LighChat — безопасный мессенджер с QR-входом",
     "short_name": "LighChat",
-    "description": "Приватный мессенджер с E2E-шифрованием. Мульти-девайс через QR. HD-видеозвонки. Альтернатива WhatsApp и Telegram.",
+    "description": "Приватный мессенджер с E2E-шифрованием. Мульти-девайс через QR. Звонки, видеоконференции, игры, секретные чаты. Альтернатива WhatsApp и Telegram.",
     "lang": "ru-RU",
     "dir": "ltr",
     "categories": ["social", "communication", "productivity"],

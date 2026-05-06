@@ -35,9 +35,9 @@ const fontMontserrat = Montserrat({
 const SITE_URL = 'https://lighchat.online';
 const SITE_TITLE = 'LighChat — безопасный мессенджер с шифрованием и QR-входом';
 const SITE_DESCRIPTION =
-  'LighChat — приватный мессенджер с E2E-шифрованием, мульти-девайс через QR-код, кастомными темами и HD-видеозвонками. Альтернатива WhatsApp и Telegram. Бесплатно для iOS, Android, Web и Desktop.';
+  'LighChat — приватный мессенджер с E2E-шифрованием, мульти-девайс через QR-код, аудио и видеозвонками, видеоконференциями, играми в чате и секретными чатами. Альтернатива WhatsApp и Telegram. Бесплатно для iOS, Android, Web и Desktop.';
 const SITE_DESCRIPTION_SHORT =
-  'Приватный мессенджер с E2E-шифрованием. Мульти-девайс через QR. HD-видеозвонки. Альтернатива WhatsApp и Telegram. Бесплатно.';
+  'Приватный мессенджер с E2E-шифрованием. Мульти-девайс через QR. Звонки, видеоконференции, игры, секретные чаты. Бесплатно.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -54,20 +54,31 @@ export const metadata: Metadata = {
     'альтернатива whatsapp',
     'альтернатива telegram',
     'видеозвонки',
+    'аудиозвонки',
     'видеоконференции',
+    'видеовстречи онлайн',
+    'видеоконференция бесплатно',
     'e2e шифрование',
+    'секретные чаты',
+    'игры в чате',
+    'мессенджер с играми',
     'мессенджер на нескольких устройствах',
     'qr вход',
     'мульти-девайс мессенджер',
     'кастомные темы чатов',
+    'дурак онлайн',
     'messenger',
     'private messenger',
     'secure messaging',
     'encrypted chat',
+    'secret chats',
+    'in-chat games',
+    'video conferencing',
+    'video meetings',
+    'free video conference',
     'whatsapp alternative',
     'telegram alternative',
     'multi device messenger',
-    'video conferencing',
   ],
   authors: [{ name: 'LighChat Team', url: SITE_URL }],
   creator: 'LighChat',
@@ -161,7 +172,7 @@ export default function RootLayout({
               applicationCategory: 'CommunicationApplication',
               operatingSystem: 'iOS, Android, Windows, macOS, Linux, Web',
               description:
-                'Приватный мессенджер с E2E-шифрованием, мульти-девайс через QR и кастомными темами. Альтернатива WhatsApp и Telegram.',
+                'Приватный мессенджер с E2E-шифрованием, мульти-девайс через QR, аудио и видеозвонками, видеоконференциями, играми в чате и секретными чатами. Альтернатива WhatsApp и Telegram.',
               url: SITE_URL,
               offers: {
                 '@type': 'Offer',
@@ -176,7 +187,10 @@ export default function RootLayout({
               featureList: [
                 'End-to-end encryption',
                 'QR multi-device login',
-                'HD video calls',
+                'Audio and video calls',
+                'Video conferencing (meetings)',
+                'Secret chats',
+                'In-chat games',
                 'Custom chat themes',
                 'Cross-platform (iOS, Android, Web, Desktop)',
               ],

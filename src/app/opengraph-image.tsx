@@ -68,11 +68,11 @@ export default async function OpenGraphImage() {
               color: '#a5b4fc',
               fontSize: '32px',
               fontWeight: 500,
-              maxWidth: '900px',
+              maxWidth: '1000px',
               lineHeight: 1.3,
             }}
           >
-            E2E-шифрование · Мульти-девайс · HD-видеозвонки · Кастомные темы
+            Аудио и видеозвонки · Видеоконференции · Игры · Секретные чаты
           </div>
         </div>
 

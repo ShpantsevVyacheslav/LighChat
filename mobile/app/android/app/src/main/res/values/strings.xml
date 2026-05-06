@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LighChat</string>
-    <string name="app_description">Безопасный мессенджер с E2E-шифрованием, QR-мульти-девайс и HD-видеозвонками</string>
+    <string name="app_description">Безопасный мессенджер с E2E-шифрованием, QR-мульти-девайс, звонками, видеоконференциями, играми и секретными чатами</string>
 </resources>
