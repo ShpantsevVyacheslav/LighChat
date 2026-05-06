@@ -493,7 +493,21 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
                 ),
               ),
             ),
-            // Брендовый маяк — самым верхним слоем.
+            // «Вырез» под маяк — белый прямоугольник чуть больше круга.
+            // Перекрывает QR-модули, чтобы лого не сидело поверх тёмных
+            // пикселей. ECC level H (~30% избыточности) восстанавливает
+            // потерянные данные.
+            Center(
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            // Брендовый маяк — самым верхним слоем поверх halo.
             //
             // Размер 36×36 (~12% стороны QR при 304px box). Паритет с
             // Telegram-style QR (≈12%). ECC level H (~30% избыточности)

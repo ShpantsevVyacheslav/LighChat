@@ -274,7 +274,7 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
           <div className="rounded-md overflow-hidden bg-black aspect-square">
             <Scanner
               onScan={handleScan}
-              onError={(e) => {
+              onError={(e: unknown) => {
                 const msg = e instanceof Error ? e.message : String(e);
                 setStage({ kind: 'error', source: 'camera', message: msg });
               }}

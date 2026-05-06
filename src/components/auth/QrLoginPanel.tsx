@@ -193,7 +193,7 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
         </p>
       </div>
 
-      <div className="relative w-[272px] h-[272px] flex items-center justify-center rounded-[24px] border border-white/55 bg-white/55 shadow-inner shadow-black/5 backdrop-blur-md p-4 dark:border-white/15 dark:bg-white/[0.08]">
+      <div className="relative w-[272px] h-[272px] flex items-center justify-center rounded-[24px] bg-white p-4 shadow-md">
         {phase.kind === 'loading' && (
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         )}
@@ -206,9 +206,8 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
               // ECC level High — оставляем 30% избыточности под маяк по
               // центру (паритет с mobile qr_login_screen.dart).
               level="H"
-              bgColor="transparent"
-              fgColor="currentColor"
-              className="text-slate-900 dark:text-white"
+              bgColor="#ffffff"
+              fgColor="#0F172A"
             />
             {/* Диагональный «луч маяка» — полупрозрачная кремовая полоса,
                 едет из левого верхнего угла в правый нижний.
@@ -222,12 +221,16 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
                 }}
               />
             </div>
-            {/* Брендовый маяк по центру — navy-круг с PNG из шапки,
-                ~9% стороны QR (паритет с mobile). */}
+            {/* Брендовый маяк по центру — навешен поверх **выреза** в QR.
+                Под ним рисуется белый halo чуть больше круга маяка, чтобы
+                тёмные QR-модули не просвечивали из-под лого; ECC level H
+                восстанавливает потерянные данные. */}
             <div
               className="pointer-events-none absolute inset-0 flex items-center justify-center"
               aria-hidden
             >
+              {/* Halo: белый прямоугольник с rounded — «вырез» в QR. */}
+              <div className="absolute h-[48px] w-[48px] rounded-[10px] bg-white" />
               <div className="relative h-[36px] w-[36px] rounded-full bg-[#1E3A5F] shadow-[0_2px_6px_rgba(0,0,0,0.4)] flex items-center justify-center overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
