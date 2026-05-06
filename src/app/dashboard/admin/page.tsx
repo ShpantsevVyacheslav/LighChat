@@ -1,23 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Shield, Users, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Shield, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { AdminStorageSettingsPanel } from '@/components/admin/admin-storage-settings-panel';
 import { AdminPushNotificationsPanel } from '@/components/admin/admin-push-notifications-panel';
 import { AdminSupportInbox } from '@/components/admin/admin-support-inbox';
 import { AdminCapabilitiesRoadmapCard } from '@/components/admin/admin-capabilities-roadmap-card';
-import { AdminBackfillConversationMembersPanel } from '@/components/admin/admin-backfill-conversation-members-panel';
 import { AdminAuditLogPanel } from '@/components/admin/admin-audit-log-panel';
 import { AdminAnalyticsPanel } from '@/components/admin/admin-analytics-panel';
 import { AdminModerationPanel } from '@/components/admin/admin-moderation-panel';
 import { AdminFeatureFlagsPanel } from '@/components/admin/admin-feature-flags-panel';
 import { AdminAnnouncementsPanel } from '@/components/admin/admin-announcements-panel';
+import { AdminOverviewDashboard } from '@/components/admin/admin-overview-dashboard';
 import { UsersClient } from '@/components/admin/users-client';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -27,6 +24,7 @@ export default function AdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { t } = useI18n();
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (!isLoading && user && user.role !== 'admin') {
@@ -56,7 +54,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-muted/50 p-1">
           <TabsTrigger value="overview" className="rounded-xl">
             {t('adminPage.tabOverview')}
@@ -90,29 +88,8 @@ export default function AdminPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-0 space-y-4">
-          <Card className="rounded-3xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="h-5 w-5 text-primary" />
-                {t('adminPage.overviewUsersTitle')}
-              </CardTitle>
-              <CardDescription>
-                {t('adminPage.overviewUsersDescription')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="rounded-full">
-                <Link href="/dashboard/users">{t('adminPage.overviewUsersOpen')}</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <AdminBackfillConversationMembersPanel />
-
-          <p className="text-sm text-muted-foreground">
-            {t('adminPage.overviewStorageHint')}
-          </p>
+        <TabsContent value="overview" className="mt-0">
+          <AdminOverviewDashboard onNavigateTab={setActiveTab} />
         </TabsContent>
 
         <TabsContent value="users" className="mt-0">

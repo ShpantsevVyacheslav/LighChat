@@ -70,6 +70,143 @@ export async function fetchAnalyticsAction(input: {
   }
 }
 
+export type AdminOverviewMetrics = {
+  pendingReports: number;
+  openTickets: number;
+  blockedUsers: number;
+};
+
+export async function fetchAdminOverviewMetricsAction(input: {
+  idToken: string;
+}): Promise<{ ok: true; data: AdminOverviewMetrics } | { ok: false; error: string }> {
+  try {
+    await assertAdminByIdToken(input.idToken);
+
+    const [reportsSnap, ticketsInProgressSnap, ticketsOpenSnap, usersSnap] = await Promise.all([
+      adminDb.collection('messageReports').where('status', '==', 'pending').count().get(),
+      adminDb.collection('supportTickets').where('status', '==', 'in_progress').count().get(),
+      adminDb.collection('supportTickets').where('status', '==', 'open').count().get(),
+      adminDb.collection('users').where('accountBlock.active', '==', true).get(),
+    ]);
+
+    const nowMs = Date.now();
+    let blockedUsers = 0;
+    usersSnap.docs.forEach((doc) => {
+      const data = doc.data() as { accountBlock?: { active?: boolean; until?: string | null } };
+      const block = data.accountBlock;
+      if (!block?.active) return;
+      if (block.until == null) {
+        blockedUsers++;
+        return;
+      }
+      const untilMs = new Date(block.until).getTime();
+      if (Number.isFinite(untilMs) && untilMs > nowMs) blockedUsers++;
+    });
+
+    return {
+      ok: true,
+      data: {
+        pendingReports: reportsSnap.data().count,
+        openTickets: ticketsOpenSnap.data().count + ticketsInProgressSnap.data().count,
+        blockedUsers,
+      },
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
+    console.error('[fetchAdminOverviewMetricsAction]', e);
+    return { ok: false, error: 'Ошибка загрузки метрик' };
+  }
+}
+
+export type GeoBucket = { code: string; label: string; users: number };
+
+export type AdminGeoMetrics = {
+  totalKnown: number;
+  unknown: number;
+  topCountries: GeoBucket[];
+  topCities: GeoBucket[];
+  topCountryCode: string | null;
+};
+
+const COUNTRY_LABELS: Record<string, string> = {
+  RU: 'Россия', BY: 'Беларусь', KZ: 'Казахстан', UA: 'Украина', UZ: 'Узбекистан',
+  KG: 'Кыргызстан', AM: 'Армения', AZ: 'Азербайджан', GE: 'Грузия', MD: 'Молдова',
+  TJ: 'Таджикистан', TM: 'Туркменистан', US: 'США', DE: 'Германия', GB: 'Великобритания',
+  FR: 'Франция', IT: 'Италия', ES: 'Испания', PL: 'Польша', TR: 'Турция',
+  IL: 'Израиль', CN: 'Китай', IN: 'Индия', AE: 'ОАЭ', CA: 'Канада', NL: 'Нидерланды',
+  CZ: 'Чехия', RS: 'Сербия', LV: 'Латвия', LT: 'Литва', EE: 'Эстония', FI: 'Финляндия',
+};
+
+export async function fetchAdminGeoMetricsAction(input: {
+  idToken: string;
+  topCountryCode?: string | null;
+}): Promise<{ ok: true; data: AdminGeoMetrics } | { ok: false; error: string }> {
+  try {
+    await assertAdminByIdToken(input.idToken);
+
+    const devicesSnap = await adminDb.collectionGroup('e2eeDevices').get();
+
+    const userCountry = new Map<string, string>();
+    const userCity = new Map<string, string>();
+
+    devicesSnap.docs.forEach((doc) => {
+      const data = doc.data() as { lastLoginCountry?: string; lastLoginCity?: string; lastLoginAt?: string };
+      const userId = doc.ref.parent.parent?.id;
+      if (!userId) return;
+      const country = (data.lastLoginCountry || '').toUpperCase().trim();
+      const city = (data.lastLoginCity || '').trim();
+      if (country) {
+        if (!userCountry.has(userId)) userCountry.set(userId, country);
+      }
+      if (city) {
+        if (!userCity.has(userId)) userCity.set(userId, `${city}|${country}`);
+      }
+    });
+
+    const countryCounts = new Map<string, number>();
+    userCountry.forEach((c) => countryCounts.set(c, (countryCounts.get(c) ?? 0) + 1));
+
+    const topCountries: GeoBucket[] = Array.from(countryCounts.entries())
+      .map(([code, users]) => ({ code, label: COUNTRY_LABELS[code] ?? code, users }))
+      .sort((a, b) => b.users - a.users)
+      .slice(0, 10);
+
+    const totalKnown = userCountry.size;
+    const focusCountry = (input.topCountryCode || topCountries[0]?.code || '').toUpperCase();
+
+    const cityCounts = new Map<string, number>();
+    userCity.forEach((cityKey) => {
+      const [city, country] = cityKey.split('|');
+      if (focusCountry && country !== focusCountry) return;
+      cityCounts.set(city, (cityCounts.get(city) ?? 0) + 1);
+    });
+
+    const topCities: GeoBucket[] = Array.from(cityCounts.entries())
+      .map(([label, users]) => ({ code: label, label, users }))
+      .sort((a, b) => b.users - a.users)
+      .slice(0, 10);
+
+    const usersTotal = await adminDb.collection('users').where('deletedAt', '==', null).count().get();
+
+    return {
+      ok: true,
+      data: {
+        totalKnown,
+        unknown: Math.max(0, usersTotal.data().count - totalKnown),
+        topCountries,
+        topCities,
+        topCountryCode: focusCountry || null,
+      },
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
+    console.error('[fetchAdminGeoMetricsAction]', e);
+    return { ok: false, error: 'Ошибка загрузки геометрик' };
+  }
+}
+
 export async function computeDailyStatsAction(input: {
   idToken: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {

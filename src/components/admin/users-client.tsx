@@ -171,8 +171,8 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
 
         switch (sortConfig.key) {
           case 'name':
-            aVal = a.name.toLowerCase();
-            bVal = b.name.toLowerCase();
+            aVal = (a.name ?? '').toLowerCase();
+            bVal = (b.name ?? '').toLowerCase();
             break;
           case 'role':
             aVal = (a.role ? (a.role === "admin" ? t("admin.roles.admin") : t("admin.roles.worker")) : "").toLowerCase();
@@ -325,9 +325,9 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                     <div className="flex items-center gap-3">
                         <Avatar className="border border-white/10 shadow-sm">
                             <AvatarImage src={userAvatarListUrl(user)} alt={user.name} className="object-cover" />
-                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{(user.name ?? '?').charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <span className="font-medium truncate max-w-[150px]">{user.name}</span>
+                        <span className="font-medium truncate max-w-[150px]">{user.name ?? '—'}</span>
                     </div>
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate" title={user.email}>{user.email}</TableCell>
@@ -444,10 +444,10 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="shrink-0 border border-white/10 shadow-sm">
                       <AvatarImage src={userAvatarListUrl(user)} alt={user.name} className="object-cover" />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>{(user.name ?? '?').charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <CardTitle className="text-base leading-tight truncate">{user.name}</CardTitle>
+                      <CardTitle className="text-base leading-tight truncate">{user.name ?? '—'}</CardTitle>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1">
                         <p className="text-[10px] uppercase font-bold text-primary tracking-wider">
                           {user.role ? (user.role === "admin" ? t("admin.roles.admin") : t("admin.roles.worker")) : t("admin.usersList.dash")}
