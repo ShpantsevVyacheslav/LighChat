@@ -142,12 +142,19 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
     confirmingRef.current = sessionId;
     setStage({ kind: 'confirming', sessionId, nonce });
     try {
+      // [diag] Логируем каждый шаг — пользователь сообщил, что в консоли
+      // нет ошибок, но UI показывает «An internal error occurred». Хотим
+      // увидеть, на каком этапе цепочка падает.
+      // eslint-disable-next-line no-console
+      console.info('[qr-scan] step=confirmQrLogin start sessionId=', sessionId);
       const res = await confirmQrLoginFromScanner({
         firebaseApp,
         sessionId,
         nonce,
         allow: true,
       });
+      // eslint-disable-next-line no-console
+      console.info('[qr-scan] step=confirmQrLogin ok state=', res.state);
       if (res.state !== 'approved') {
         setStage({ kind: 'rejected' });
         return;
@@ -157,12 +164,18 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
       setStage({ kind: 'syncing', approved: res, done: 0, total: 0 });
       let identity: DeviceIdentityV2;
       try {
+        // eslint-disable-next-line no-console
+        console.info('[qr-scan] step=getOrCreateDeviceIdentityV2');
         identity = await getOrCreateDeviceIdentityV2();
+        // eslint-disable-next-line no-console
+        console.info('[qr-scan] step=getOrCreateDeviceIdentityV2 ok deviceId=', identity.deviceId);
       } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('[qr-scan] FAIL getOrCreateDeviceIdentityV2', e);
         setStage({
           kind: 'error',
           source: 'server',
-          message: e instanceof Error ? e.message : String(e),
+          message: `identity: ${e instanceof Error ? e.message : String(e)}`,
         });
         return;
       }
@@ -176,6 +189,13 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
         || (await deriveStableDeviceIdFromSpki(res.ephemeralPubKeySpki));
 
       try {
+        // eslint-disable-next-line no-console
+        console.info(
+          '[qr-scan] step=handover start newDeviceId=',
+          newDeviceId,
+          'label=',
+          newDeviceLabel
+        );
         const result = await handoverDeviceAccessV2({
           firestore,
           userId: user.id,
@@ -199,6 +219,8 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
             },
           },
         });
+        // eslint-disable-next-line no-console
+        console.info('[qr-scan] step=handover ok', result);
         if (result.failed > 0) {
           toast({
             variant: 'destructive',
@@ -210,10 +232,12 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
           });
         }
       } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('[qr-scan] FAIL handover', e);
         setStage({
           kind: 'error',
           source: 'server',
-          message: e instanceof Error ? e.message : String(e),
+          message: `handover: ${e instanceof Error ? e.message : String(e)}`,
         });
         return;
       }
@@ -236,10 +260,12 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
       }
       // Сбрасываем гард, чтобы пользователь мог нажать «Сканировать ещё раз».
       confirmingRef.current = null;
+      // eslint-disable-next-line no-console
+      console.error('[qr-scan] FAIL outer code=', code, 'msg=', msg, 'err=', e);
       setStage({
         kind: 'error',
         source: 'server',
-        message: msg,
+        message: `[${code || 'unknown'}] ${msg}`,
       });
     }
   }, [stage, firebaseApp, firestore, user?.id, onLinked, toast, t]);
