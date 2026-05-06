@@ -6,7 +6,13 @@ export const alt = 'LighChat — безопасный мессенджер с ш
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
+  /** Фирменный знак — маяк в чат-пузыре. Файл лежит рядом, чтобы edge runtime мог его подхватить. */
+  const markData = await fetch(new URL('./_og-mark.png', import.meta.url)).then(
+    (res) => res.arrayBuffer(),
+  );
+  const markSrc = `data:image/png;base64,${Buffer.from(markData).toString('base64')}`;
+
   return new ImageResponse(
     (
       <div
@@ -33,23 +39,14 @@ export default function OpenGraphImage() {
             letterSpacing: '-0.02em',
           }}
         >
-          <div
-            style={{
-              width: '88px',
-              height: '88px',
-              borderRadius: '24px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '52px',
-              color: '#fff',
-              fontWeight: 800,
-              boxShadow: '0 12px 40px rgba(99, 102, 241, 0.4)',
-            }}
-          >
-            L
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={markSrc}
+            width={104}
+            height={104}
+            alt=""
+            style={{ display: 'block' }}
+          />
           LighChat
         </div>
 
