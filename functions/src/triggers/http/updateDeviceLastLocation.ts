@@ -95,16 +95,16 @@ export const updateDeviceLastLocation = onCall(
     }
     const headers = request.rawRequest?.headers ?? {};
     const xff = headers["x-forwarded-for"];
-    const ipFromXff = typeof xff === "string"
-      ? xff.split(",")[0]?.trim() ?? ""
-      : Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
+    const ipFromXff = typeof xff === "string" ?
+      xff.split(",")[0]?.trim() ?? "" :
+      Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
     const ip = request.rawRequest?.ip || ipFromXff || "";
-    const country = typeof headers["x-appengine-country"] === "string"
-      ? headers["x-appengine-country"]
-      : "";
-    const city = typeof headers["x-appengine-city"] === "string"
-      ? headers["x-appengine-city"]
-      : "";
+    const country = typeof headers["x-appengine-country"] === "string" ?
+      headers["x-appengine-country"] :
+      "";
+    const city = typeof headers["x-appengine-city"] === "string" ?
+      headers["x-appengine-city"] :
+      "";
     try {
       return await runUpdateDeviceLastLocation(
         admin.firestore(),
