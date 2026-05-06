@@ -14,6 +14,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../data/meeting_active_speaker_resolve.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_peer_stats.dart';
+import '../data/meeting_pip_controller.dart';
 import '../data/meeting_providers.dart';
 import '../data/meeting_webrtc.dart';
 import '../data/virtual_background_controller.dart';
@@ -42,6 +43,8 @@ class MeetingRoomScreen extends ConsumerStatefulWidget {
     this.selfAvatar,
     this.selfAvatarThumb,
     this.selfRole,
+    this.initialMicMuted = false,
+    this.initialCameraOff = false,
   });
 
   final String meetingId;
@@ -50,6 +53,8 @@ class MeetingRoomScreen extends ConsumerStatefulWidget {
   final String? selfAvatar;
   final String? selfAvatarThumb;
   final String? selfRole;
+  final bool initialMicMuted;
+  final bool initialCameraOff;
 
   @override
   ConsumerState<MeetingRoomScreen> createState() => _MeetingRoomScreenState();
@@ -73,6 +78,29 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   /// который попадёт в общий счётчик «Уведомления» на нижней панели.
   int _chatSeenCount = -1;
 
+  /// Таймер ребилда UI каждые 15 сек, чтобы фильтрация по `lastSeen`
+  /// «снимала» отвалившихся участников даже когда Firestore не присылает
+  /// новых snapshot'ов. Cron на сервере чистит документы за 90 сек,
+  /// а мы скрываем участника локально уже через 60 сек.
+  Timer? _staleSweepTimer;
+
+  /// Окно «свежести» heartbeat'а. Heartbeat пишется раз в 20 сек
+  /// (см. [MeetingWebRtc]); 60-секундный буфер покрывает 2-3 пропуска.
+  static const Duration _staleThreshold = Duration(seconds: 60);
+
+  List<MeetingParticipant> _filterFresh(List<MeetingParticipant> all) {
+    final now = DateTime.now().toUtc();
+    final cutoff = now.subtract(_staleThreshold);
+    return all.where((p) {
+      // Самого себя никогда не скрываем — даже если heartbeat встал
+      // (например, мы в фоне).
+      if (p.id == widget.selfUid) return true;
+      final ls = p.lastSeen;
+      if (ls == null) return true;
+      return ls.toUtc().isAfter(cutoff);
+    }).toList(growable: false);
+  }
+
   /// Режим раскладки. Эквивалент `viewMode` из
   /// `src/components/meetings/MeetingRoom.tsx`.
   _MeetingViewMode _viewMode = _MeetingViewMode.grid;
@@ -89,6 +117,11 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
 
   StreamSubscription<VirtualBackgroundModeUpdate>? _vbSub;
   VirtualBackgroundMode _vbMode = VirtualBackgroundMode.none;
+
+  final MeetingPipController _pipController = MeetingPipController();
+  late final PipLifecycleObserver _pipLifecycle =
+      PipLifecycleObserver(_pipController);
+  bool _pipSupported = false;
 
   @override
   void initState() {
@@ -127,7 +160,11 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
 
       // Первые remoteIds возьмём из текущего snapshot'а; далее syncPeers
       // будет дёргаться из build() когда список участников меняется.
-      await webrtc.start(initialPeerIds: const <String>[]);
+      await webrtc.start(
+        initialPeerIds: const <String>[],
+        initialMicMuted: widget.initialMicMuted,
+        initialCameraOff: widget.initialCameraOff,
+      );
       if (!mounted) {
         await webrtc.dispose();
         return;
@@ -135,6 +172,15 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
       setState(() {
         _webrtc = webrtc;
         _initialized = true;
+      });
+      _staleSweepTimer ??= Timer.periodic(const Duration(seconds: 15), (_) {
+        if (mounted) setState(() {});
+      });
+
+      _pipLifecycle.attach();
+      _pipController.isSupported().then((ok) {
+        if (!mounted) return;
+        setState(() => _pipSupported = ok);
       });
     } catch (e) {
       if (!mounted) return;
@@ -250,6 +296,9 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
 
   @override
   void dispose() {
+    _staleSweepTimer?.cancel();
+    _staleSweepTimer = null;
+    _pipLifecycle.detach();
     // Подстраховка, если пользователь ушёл через systemback (pop).
     _eventsSub?.cancel();
     _vbSub?.cancel();
@@ -293,9 +342,10 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
             ),
             error: (e, _) => _errorBody(AppLocalizations.of(context)!.meeting_participants_error(e.toString())),
             data: (participants) {
+              final fresh = _filterFresh(participants);
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _syncPeersFromParticipants(participants);
-                final self = participants.firstWhere(
+                _syncPeersFromParticipants(fresh);
+                final self = fresh.firstWhere(
                   (p) => p.id == widget.selfUid,
                   orElse: () => MeetingParticipant(
                     id: widget.selfUid,
@@ -307,7 +357,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
               return _roomBody(
                 context,
                 meeting: meeting,
-                participants: participants,
+                participants: fresh,
                 requests: requestsAsync.asData?.value ??
                     const <MeetingRequestDoc>[],
                 isHostOrAdmin: isHostOrAdmin,
@@ -326,11 +376,8 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   ) {
     final vb = ref.read(virtualBackgroundControllerProvider);
 
-    final chatList = ref
-            .watch(meetingChatMessagesProvider(widget.meetingId))
-            .asData
-            ?.value ??
-        const [];
+    final chatAsync = ref.watch(meetingChatMessagesProvider(widget.meetingId));
+    final chatList = chatAsync.asData?.value ?? const [];
     final pollsList =
         ref.watch(meetingPollsProvider(widget.meetingId)).asData?.value ??
             const [];
@@ -340,16 +387,21 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         ? requests.where((r) => r.status == 'pending').length
         : 0;
 
-    if (_chatSeenCount < 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        setState(() => _chatSeenCount = chatList.length);
-      });
-    } else if (_sidebarOpen && _chatSeenCount != chatList.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        setState(() => _chatSeenCount = chatList.length);
-      });
+    // Стартовое значение «прочитано до этой длины» можно ставить ТОЛЬКО когда
+    // stream уже отдал начальный snapshot. Иначе поставим 0 при пустом
+    // chatList → подгрузка истории даст ложный unread = N.
+    if (chatAsync is AsyncData) {
+      if (_chatSeenCount < 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _chatSeenCount = chatList.length);
+        });
+      } else if (_sidebarOpen && _chatSeenCount != chatList.length) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _chatSeenCount = chatList.length);
+        });
+      }
     }
 
     final chatUnread = _chatSeenCount < 0
@@ -367,6 +419,12 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
       participantsCount: participants.length,
       notificationsCount: notificationsCount,
       onOpenNotifications: () => setState(() => _sidebarOpen = true),
+      onEnterPip: _pipSupported
+          ? () {
+              _pipLifecycle.suppressAutoOnce();
+              _pipController.enterPip();
+            }
+          : null,
       virtualBackgroundMode: vb.isPlatformBacked ? _vbMode : null,
       onToggleVirtualBackground:
           vb.isPlatformBacked ? _cycleVirtualBackground : null,

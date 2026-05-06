@@ -1,0 +1,106 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'dart:io' show Platform;
+
+/// Управление режимом «картинка-в-картинке» для активной видеоконференции.
+///
+/// Текущая реализация:
+/// - **Android**: вызывает нативный `enterPictureInPictureMode()` на текущей
+///   Activity через method channel `lighchat/pip:enter`. Flutter UI продолжает
+///   отрисовываться внутри Activity, никакого спец-рендера на native-стороне
+///   не нужно.
+/// - **iOS**: `lighchat/pip:isSupported` возвращает `true` только если
+///   зарегистрирован WebRTC-совместимый pipeline (AVSampleBufferDisplayLayer
+///   + content source). Текущий iOS-бридж AppDelegate.swift поддерживает
+///   только URL-видео и для live-конференции не подходит — поэтому
+///   `enterPip()` на iOS вернёт `false`, а кнопка PiP скрывается.
+///
+/// Авто-PiP при сворачивании приложения подключается через
+/// [PipLifecycleObserver] — он слушает `AppLifecycleState.inactive` и зовёт
+/// [enterPip] (без падения в случае iOS).
+class MeetingPipController {
+  MeetingPipController({MethodChannel? channel})
+      : _channel = channel ?? const MethodChannel('lighchat/pip');
+
+  final MethodChannel _channel;
+  bool? _supportedCache;
+
+  /// Поддерживает ли платформа PiP-режим **в контексте текущей реализации**
+  /// (не просто наличие API на уровне OS).
+  Future<bool> isSupported() async {
+    if (_supportedCache != null) return _supportedCache!;
+    if (Platform.isAndroid) {
+      // На Android Activity всегда умеет enterPictureInPictureMode при
+      // выставленном android:supportsPictureInPicture в манифесте — а он у нас
+      // выставлен. Метод-чек ниже валидирует наличие нативного handler'а.
+      try {
+        final v = await _channel.invokeMethod<bool>('isSupported');
+        _supportedCache = v ?? false;
+      } catch (e) {
+        if (kDebugMode) debugPrint('[pip] isSupported failed: $e');
+        _supportedCache = false;
+      }
+      return _supportedCache!;
+    }
+    if (Platform.isIOS) {
+      // iOS-бридж сейчас умеет только URL-видео; для live WebRTC нужен
+      // отдельный pipeline. До его готовности возвращаем false.
+      _supportedCache = false;
+      return false;
+    }
+    _supportedCache = false;
+    return false;
+  }
+
+  /// Войти в PiP-режим. Возвращает `true` при успехе.
+  Future<bool> enterPip() async {
+    if (!await isSupported()) return false;
+    try {
+      final ok = await _channel.invokeMethod<bool>('enter');
+      return ok ?? false;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[pip] enter failed: $e');
+      return false;
+    }
+  }
+}
+
+/// Слушает жизненный цикл приложения и автоматически входит в PiP при
+/// `AppLifecycleState.inactive` — т.е. когда пользователь свайпом сворачивает
+/// приложение, открывает app switcher или нажимает home-кнопку.
+///
+/// Регистрируется в `initState` экрана конференции, снимается в `dispose`.
+class PipLifecycleObserver with WidgetsBindingObserver {
+  PipLifecycleObserver(this._controller);
+
+  final MeetingPipController _controller;
+  bool _autoPipEnabled = true;
+
+  void attach() {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  void detach() {
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
+  // Если пользователь явно нажал PiP-кнопку — авто-режим уже не нужен,
+  // не дублируем переход.
+  void suppressAutoOnce() {
+    _autoPipEnabled = false;
+    Future<void>.delayed(const Duration(seconds: 5), () {
+      _autoPipEnabled = true;
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_autoPipEnabled) return;
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      // Не ждём результат — если уже в PiP / не поддерживается, просто игнор.
+      _controller.enterPip();
+    }
+  }
+}

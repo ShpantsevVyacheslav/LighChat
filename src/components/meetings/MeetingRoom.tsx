@@ -227,7 +227,28 @@ export function MeetingRoom({
     return onSnapshot(q, (snap) => setWaitingCount(snap.size));
   }, [firestore, meeting.id, isAdmin]);
 
-  const participantList = Object.values(rtc.participants);
+  // 15-сек тик — чтобы фильтр по lastSeen работал даже когда Firestore
+  // ничего не присылает (см. ниже useMemo participantList).
+  const [staleNowTick, setStaleNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setStaleNowTick(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  const participantList = useMemo(() => {
+    // Heartbeat пишется раз в 20 сек, cron на сервере чистит за 90 сек.
+    // Локально скрываем участника без свежего lastSeen за 60 сек —
+    // отвалившийся не «висит» в сетке до следующего snapshot/cron.
+    const STALE_MS = 60_000;
+    const cutoff = staleNowTick - STALE_MS;
+    return Object.values(rtc.participants).filter((p) => {
+      const ls = (p as { lastSeen?: string }).lastSeen;
+      if (!ls) return true;
+      const t = Date.parse(ls);
+      if (Number.isNaN(t)) return true;
+      return t > cutoff;
+    });
+  }, [rtc.participants, staleNowTick]);
   const totalPeople = participantList.length + 1;
 
   const tileScrollRef = useRef<HTMLDivElement>(null);

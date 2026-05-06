@@ -2116,6 +2116,7 @@
   "meeting_bg_image": "Image",
   "meeting_participants_button": "Members",
   "meeting_notifications_button": "Activity",
+  "meeting_pip_button": "Minimize",
   "contacts_title": "Contacts",
   "contacts_add_phone_prompt": "Add a phone number in your profile to search contacts by number.",
   "contacts_fallback_profile": "Profile",
@@ -2357,6 +2358,7 @@
   "meeting_join_enter_name": "Enter your name",
   "meeting_join_guest": "Guest",
   "meeting_join_as_label": "You'll join as",
+  "meeting_lobby_camera_blocked": "Camera permission is denied. You'll join with the camera off.",
   "meeting_join_button": "Join",
   "meeting_join_load_error": "Meeting load error: {error}",
   "@meeting_join_load_error": {

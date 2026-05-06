@@ -84,8 +84,15 @@ class MeetingWebRtc {
 
   /// Запуск: захват медиа, подписка на signals, heartbeat.
   /// [otherParticipantIds] — те, кто уже в комнате: для них мы сразу создаём peer.
-  Future<void> start({required List<String> initialPeerIds}) async {
+  /// [initialMicMuted]/[initialCameraOff] — состояние, выбранное в лобби.
+  Future<void> start({
+    required List<String> initialPeerIds,
+    bool initialMicMuted = false,
+    bool initialCameraOff = false,
+  }) async {
     _cachedIceConfig = await _ice.fetchConfig();
+    _micMuted = initialMicMuted;
+    _cameraMuted = initialCameraOff;
 
     _localStream = await navigator.mediaDevices.getUserMedia(<String, dynamic>{
       'audio': true,
@@ -93,6 +100,16 @@ class MeetingWebRtc {
         'facingMode': _frontCamera ? 'user' : 'environment',
       },
     });
+    if (initialMicMuted) {
+      for (final t in _localStream!.getAudioTracks()) {
+        t.enabled = false;
+      }
+    }
+    if (initialCameraOff) {
+      for (final t in _localStream!.getVideoTracks()) {
+        t.enabled = false;
+      }
+    }
 
     _signalsSub = _signaling.watchIncoming().listen(_handleIncomingSignals);
 

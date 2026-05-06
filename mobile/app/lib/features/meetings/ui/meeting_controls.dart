@@ -23,6 +23,7 @@ class MeetingControls extends StatelessWidget {
     this.participantsCount = 0,
     this.notificationsCount = 0,
     this.onOpenNotifications,
+    this.onEnterPip,
     this.virtualBackgroundMode,
     this.onToggleVirtualBackground,
     this.handRaised = false,
@@ -46,6 +47,11 @@ class MeetingControls extends StatelessWidget {
   /// Если > 0 — рисуется отдельная кнопка-«колокольчик» с бейджем.
   final int notificationsCount;
   final VoidCallback? onOpenNotifications;
+
+  /// Свернуть конференцию в PiP-окно. Если `null` — кнопка не показывается
+  /// (платформа не поддерживает PiP в текущей реализации, см.
+  /// `MeetingPipController.isSupported`).
+  final VoidCallback? onEnterPip;
   final VirtualBackgroundMode? virtualBackgroundMode;
   final VoidCallback? onToggleVirtualBackground;
 
@@ -119,6 +125,13 @@ class MeetingControls extends StatelessWidget {
           iconColor:
               screenShareSupported ? Colors.white : Colors.white54,
           onTap: onToggleScreenShare!,
+        ),
+      if (onEnterPip != null)
+        _IconButton(
+          icon: Icons.picture_in_picture_alt_rounded,
+          label: l10n.meeting_pip_button,
+          background: Colors.white24,
+          onTap: onEnterPip!,
         ),
       if (virtualBackgroundMode != null &&
           onToggleVirtualBackground != null)

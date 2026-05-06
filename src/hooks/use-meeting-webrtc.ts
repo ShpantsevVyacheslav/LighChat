@@ -6,6 +6,8 @@ import {
   serverTimestamp, query, where 
 } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { firebaseConfig } from '@/firebase/config';
+import { getAuth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { Meeting, User, MeetingSignal } from '@/lib/types';
@@ -850,6 +852,8 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     let unsubMyDoc: (() => void) | undefined;
     let unsubParticipants: (() => void) | undefined;
     let unsubSignals: (() => void) | undefined;
+    let tokenRefreshTimer: ReturnType<typeof setInterval> | undefined;
+    let pageHideHandler: (() => void) | undefined;
 
     mlog.info('lifecycle', 'participant effect: registering in Firestore', {
       isMediaReady,
@@ -896,6 +900,37 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
         if (!isMounted) return;
         updateDoc(myRef, { lastSeen: new Date().toISOString() }).catch(() => {});
       }, 20000);
+
+      // Гарантированный leave при закрытии вкладки/браузера/приложения.
+      // React-cleanup deleteDoc не успевает на pagehide, потому что Firestore SDK
+      // ставит запрос в очередь и неблокирующе шлёт его — браузер прерывает.
+      // Используем `fetch keepalive` к Firestore REST (DELETE), который браузер
+      // обязан довести до конца, даже если страница уже исчезла.
+      const leaveUrl = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/meetings/${meeting.id}/participants/${currentUser.id}`;
+      let cachedIdToken: string | null = null;
+      const refreshIdToken = async () => {
+        try {
+          const u = getAuth().currentUser;
+          if (!u) return;
+          cachedIdToken = await u.getIdToken();
+        } catch (e) {
+          mlog.v('lifecycle', 'cache idToken failed', { err: String(e) });
+        }
+      };
+      void refreshIdToken();
+      tokenRefreshTimer = setInterval(refreshIdToken, 30 * 60 * 1000);
+      pageHideHandler = () => {
+        if (!cachedIdToken) return;
+        try {
+          fetch(leaveUrl, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${cachedIdToken}` },
+            keepalive: true,
+          }).catch(() => {});
+        } catch {}
+      };
+      window.addEventListener('pagehide', pageHideHandler);
+      window.addEventListener('beforeunload', pageHideHandler);
 
       unsubMyDoc = onSnapshot(myRef, (snap) => {
         if (!isMounted) return;
@@ -1046,6 +1081,11 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
         isMounted = false;
         setIsParticipantSynced(false);
         if (heartbeat) clearInterval(heartbeat);
+        if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+        if (pageHideHandler) {
+          window.removeEventListener('pagehide', pageHideHandler);
+          window.removeEventListener('beforeunload', pageHideHandler);
+        }
         unsubMyDoc?.();
         unsubParticipants?.();
         unsubSignals?.();

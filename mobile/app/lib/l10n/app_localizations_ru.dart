@@ -4024,6 +4024,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get meeting_notifications_button => 'Активность';
 
   @override
+  String get meeting_pip_button => 'Свернуть';
+
+  @override
   String get settings_chats_bottom_nav_icons_title => 'Иконки нижнего меню';
 
   @override
@@ -4586,6 +4589,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meeting_join_as_label => 'Вы войдёте как';
+
+  @override
+  String get meeting_lobby_camera_blocked =>
+      'Доступ к камере не выдан. Вы войдёте с выключенной камерой.';
 
   @override
   String get meeting_join_button => 'Присоединиться';

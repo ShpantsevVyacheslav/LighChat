@@ -3997,6 +3997,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meeting_notifications_button => 'Activity';
 
   @override
+  String get meeting_pip_button => 'Minimize';
+
+  @override
   String get settings_chats_bottom_nav_icons_title => 'Bottom navigation icons';
 
   @override
@@ -4558,6 +4561,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meeting_join_as_label => 'You\'ll join as';
+
+  @override
+  String get meeting_lobby_camera_blocked =>
+      'Camera permission is denied. You\'ll join with the camera off.';
 
   @override
   String get meeting_join_button => 'Join';

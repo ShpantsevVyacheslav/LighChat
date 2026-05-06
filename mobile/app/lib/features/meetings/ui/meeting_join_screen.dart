@@ -1,6 +1,9 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,16 +53,111 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
   bool _sendingRequest = false;
   String? _lastError;
 
+  // Лобби: превью камеры + начальные mute-флаги, которые передадим в комнату.
+  final RTCVideoRenderer _previewRenderer = RTCVideoRenderer();
+  MediaStream? _previewStream;
+  bool _previewReady = false;
+  bool _previewDenied = false;
+  bool _initialMicMuted = false;
+  bool _initialCameraOff = false;
+  bool _consumed = false;
+
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.initialName ?? '');
     _requestId = _generateRequestId();
+    _bootstrapPreview();
+  }
+
+  Future<void> _bootstrapPreview() async {
+    await _previewRenderer.initialize();
+    try {
+      final cam = await Permission.camera.request();
+      final mic = await Permission.microphone.request();
+      if (cam.isDenied || cam.isPermanentlyDenied) {
+        if (mounted) {
+          setState(() {
+            _previewDenied = true;
+            _initialCameraOff = true;
+          });
+        }
+        return;
+      }
+      if (mic.isDenied || mic.isPermanentlyDenied) {
+        // Микро может быть запрещено — это нормально, просто start с muted=true.
+        _initialMicMuted = true;
+      }
+      final stream = await navigator.mediaDevices.getUserMedia(<String, dynamic>{
+        'audio': true,
+        'video': <String, dynamic>{'facingMode': 'user'},
+      });
+      if (!mounted) {
+        for (final t in stream.getTracks()) {
+          await t.stop();
+        }
+        await stream.dispose();
+        return;
+      }
+      _previewStream = stream;
+      _previewRenderer.srcObject = stream;
+      setState(() {
+        _previewReady = true;
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('[meeting-lobby] preview failed: $e');
+      if (mounted) {
+        setState(() {
+          _previewDenied = true;
+          _initialCameraOff = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _stopPreview() async {
+    final stream = _previewStream;
+    _previewStream = null;
+    _previewRenderer.srcObject = null;
+    if (stream != null) {
+      for (final t in stream.getTracks()) {
+        try {
+          await t.stop();
+        } catch (_) {}
+      }
+      try {
+        await stream.dispose();
+      } catch (_) {}
+    }
+  }
+
+  void _toggleMicLocal() {
+    setState(() => _initialMicMuted = !_initialMicMuted);
+    final s = _previewStream;
+    if (s != null) {
+      for (final t in s.getAudioTracks()) {
+        t.enabled = !_initialMicMuted;
+      }
+    }
+  }
+
+  void _toggleCameraLocal() {
+    setState(() => _initialCameraOff = !_initialCameraOff);
+    final s = _previewStream;
+    if (s != null) {
+      for (final t in s.getVideoTracks()) {
+        t.enabled = !_initialCameraOff;
+      }
+    }
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    if (!_consumed) {
+      _stopPreview();
+    }
+    _previewRenderer.dispose();
     super.dispose();
   }
 
@@ -123,6 +221,10 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
             ? widget.initialName!.trim()
             : AppLocalizations.of(context)!.meeting_join_guest)
         : resolved;
+    _consumed = true;
+    // Стрим лобби-превью гасим перед заходом в комнату — там WebRtc
+    // запросит свежий getUserMedia с теми же камерой/микрофоном.
+    _stopPreview();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => MeetingRoomScreen(
@@ -132,6 +234,8 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
           selfAvatar: _avatarUrl(),
           selfAvatarThumb: widget.initialAvatarThumb,
           selfRole: widget.role,
+          initialMicMuted: _initialMicMuted,
+          initialCameraOff: _initialCameraOff,
         ),
       ),
     );
@@ -180,9 +284,11 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
           if (meeting == null) {
             return _error(AppLocalizations.of(context)!.meeting_not_found);
           }
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: _body(context, meeting, ownRequest),
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              child: _body(context, meeting, ownRequest),
+            ),
           );
         },
       ),
@@ -197,6 +303,8 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _previewCard(context),
+        const SizedBox(height: 16),
         Text(
           meeting.name,
           style: const TextStyle(
@@ -321,6 +429,116 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
       color: const Color(0xFFF59E0B),
       title: l10n.meeting_waiting_title,
       subtitle: l10n.meeting_waiting_subtitle,
+    );
+  }
+
+  Widget _previewCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: AspectRatio(
+        aspectRatio: 4 / 3,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_previewReady && !_initialCameraOff)
+              Transform(
+                alignment: Alignment.center,
+                // mirror — как в вебе и привычно для self-view фронтальной камерой.
+                transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
+                child: RTCVideoView(
+                  _previewRenderer,
+                  objectFit:
+                      RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                ),
+              )
+            else
+              Center(
+                child: Icon(
+                  _previewDenied
+                      ? Icons.videocam_off_rounded
+                      : Icons.videocam_rounded,
+                  color: Colors.white24,
+                  size: 64,
+                ),
+              ),
+            if (_previewDenied)
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      l10n.meeting_lobby_camera_blocked,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _previewCircle(
+                    icon: _initialMicMuted
+                        ? Icons.mic_off_rounded
+                        : Icons.mic_rounded,
+                    bg: _initialMicMuted ? Colors.redAccent : Colors.black54,
+                    onTap: _toggleMicLocal,
+                  ),
+                  const SizedBox(width: 14),
+                  _previewCircle(
+                    icon: _initialCameraOff
+                        ? Icons.videocam_off_rounded
+                        : Icons.videocam_rounded,
+                    bg: _initialCameraOff ? Colors.redAccent : Colors.black54,
+                    onTap: _previewDenied ? null : _toggleCameraLocal,
+                    disabled: _previewDenied,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _previewCircle({
+    required IconData icon,
+    required Color bg,
+    required VoidCallback? onTap,
+    bool disabled = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 28,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: bg.withValues(alpha: disabled ? 0.4 : 0.85),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, color: Colors.white, size: 22),
+        ),
+      ),
     );
   }
 

@@ -7010,6 +7010,12 @@ abstract class AppLocalizations {
   /// **'Активность'**
   String get meeting_notifications_button;
 
+  /// No description provided for @meeting_pip_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Свернуть'**
+  String get meeting_pip_button;
+
   /// No description provided for @settings_chats_bottom_nav_icons_title.
   ///
   /// In ru, this message translates to:
@@ -8005,6 +8011,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Вы войдёте как'**
   String get meeting_join_as_label;
+
+  /// No description provided for @meeting_lobby_camera_blocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступ к камере не выдан. Вы войдёте с выключенной камерой.'**
+  String get meeting_lobby_camera_blocked;
 
   /// No description provided for @meeting_join_button.
   ///

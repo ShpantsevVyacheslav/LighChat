@@ -2116,6 +2116,7 @@
   "meeting_bg_image": "Картинка",
   "meeting_participants_button": "Участники",
   "meeting_notifications_button": "Активность",
+  "meeting_pip_button": "Свернуть",
   "settings_chats_bottom_nav_icons_title": "Иконки нижнего меню",
   "settings_chats_bottom_nav_icons_subtitle": "Выбор иконок и визуального стиля как на вебе.",
   "settings_chats_nav_colorful": "Цветные",
@@ -2413,6 +2414,7 @@
   "meeting_join_enter_name": "Укажите имя",
   "meeting_join_guest": "Гость",
   "meeting_join_as_label": "Вы войдёте как",
+  "meeting_lobby_camera_blocked": "Доступ к камере не выдан. Вы войдёте с выключенной камерой.",
   "meeting_join_button": "Присоединиться",
   "meeting_join_load_error": "Ошибка загрузки митинга: {error}",
   "@meeting_join_load_error": {
