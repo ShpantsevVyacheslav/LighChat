@@ -107,7 +107,7 @@ class _BrandDottedIPainter extends CustomPainter {
 
   // Inter Heavy metrics: x-height ≈ 0.518 em, baseline = 1 em, ascender ≈ 0.78 em.
   static const _xHeight = 0.48; // top of stem (≈ top of "g")
-  static const _baseline = 0.96; // bottom of stem (≈ bottom of "L")
+  static const _baseline = 1.0; // bottom of stem (точно baseline = низ "L")
   static const _dotCenter = 0.22; // центр coral-точки над stem
   static const _stemWidthRatio = 0.55;
   static const _dotRadiusRatio = 0.30;

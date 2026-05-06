@@ -821,7 +821,7 @@ class _DottedIPainter extends CustomPainter {
   // Inter / SF Heavy metrics (нормализованы к em-квадрату):
   //   x-height ≈ 0.518 em, baseline = 1.0 em, asсender ≈ 0.78 em
   static const _xHeight = 0.48; // top of stem (top of "g")
-  static const _baseline = 0.96; // bottom of stem (bottom of "L")
+  static const _baseline = 1.0; // bottom of stem (точно baseline = низ "L" / "h")
   static const _dotCenter = 0.22; // центр точки над stem
   static const _stemWidthRatio = 0.55; // % container width
   static const _dotRadiusRatio = 0.30; // % container width

@@ -41,8 +41,8 @@ export function AuthBrandWordmarkTitle({
         className="inline-block fill-[#1E3A5F] dark:fill-[#c5d9ed]"
         style={{ width: "0.30em", height: "1em", verticalAlign: "baseline" }}
       >
-        {/* stem от x-height (48) до baseline (96) — как у "g" / "L" */}
-        <rect x="7" y="48" width="18" height="48" rx="9" />
+        {/* stem от x-height (48) до baseline (100) — как у "g" / "L" */}
+        <rect x="7" y="48" width="18" height="52" rx="9" />
         {/* coral dot — диаметр ≈ stem width, центрирован над stem */}
         <circle cx="16" cy="22" r="9.6" fill="#E9967A" />
       </svg>
