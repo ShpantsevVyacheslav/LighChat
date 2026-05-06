@@ -25,7 +25,14 @@ Future<void> showFeaturesWelcomeSheet(BuildContext context) {
 class _FeaturesWelcomeSheet extends StatelessWidget {
   const _FeaturesWelcomeSheet();
 
-  static const _coral = Color(0xFFE9967A);
+  /// Палитра primary CTA — один в один с «Sign in» из `auth_screen.dart`
+  /// (`_GradientPrimaryButton`): синий → синий → фиолетовый. Один и тот же
+  /// визуальный аккорд для primary-действий по всему мобильному UI.
+  static const List<Color> _ctaGradient = [
+    Color(0xFF2E86FF),
+    Color(0xFF5F90FF),
+    Color(0xFF9A18FF),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -111,12 +118,19 @@ class _FeaturesWelcomeSheet extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: _coral.withValues(alpha: 0.15),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0x332E86FF),
+                        Color(0x339A18FF),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   alignment: Alignment.center,
                   child: const Icon(Icons.auto_awesome,
-                      size: 22, color: _coral),
+                      size: 22, color: Color(0xFF5F90FF)),
                 ),
               ),
 
@@ -168,28 +182,37 @@ class _FeaturesWelcomeSheet extends StatelessWidget {
                 ]),
               ),
 
-              // Кнопки
+              // Primary CTA — тот же градиент, что у «Sign in».
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      context.push('/features?source=welcome');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _coral,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shadowColor: _coral.withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      textStyle: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w800),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: _ctaGradient,
                     ),
-                    child: Text(content.welcomePrimaryCta),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        context.push('/features?source=welcome');
+                      },
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22)),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        content.welcomePrimaryCta,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700),
+                      ),
+                    ),
                   ),
                 ),
               ),
