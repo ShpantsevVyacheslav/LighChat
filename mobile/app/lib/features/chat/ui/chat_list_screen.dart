@@ -21,6 +21,8 @@ import 'chat_folder_bar.dart';
 import 'chat_list_item.dart';
 import 'chat_bottom_nav.dart';
 import 'chat_shell_backdrop.dart';
+import '../../features_tour/data/features_welcome_pending.dart';
+import '../../features_tour/ui/features_welcome_sheet.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
@@ -30,6 +32,21 @@ class ChatListScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Если auth-listener пометил «нужно показать модалку» (после
+    // успешного логина) — показываем `FeaturesWelcomeSheet` поверх /chats
+    // на следующем кадре. `consume()` атомарен, повторного показа не
+    // будет, пока снова не залогинимся.
+    if (FeaturesWelcomePending.consume()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(showFeaturesWelcomeSheet(context));
+      });
+    }
+  }
+
   void _retryBoot({String? uid}) {
     ref.invalidate(authUserProvider);
     if (uid != null && uid.isNotEmpty) {

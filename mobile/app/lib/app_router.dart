@@ -49,6 +49,7 @@ import 'features/chat/ui/thread_route_payload.dart';
 import 'features/welcome/data/first_login_animation_storage.dart';
 import 'features/welcome/ui/welcome_animation_screen.dart';
 import 'features/features_tour/data/features_data.dart';
+import 'features/features_tour/data/features_welcome_pending.dart';
 import 'features/features_tour/ui/features_index_screen.dart';
 import 'features/features_tour/ui/features_topic_screen.dart';
 
@@ -76,6 +77,9 @@ class _AuthRefreshNotifier extends ChangeNotifier {
         // конструкторе, поэтому первое событие с тем же uid сюда не
         // попадает — анимация не повторится при перезапуске.
         FirstLoginAnimationStorage.clearForUid(newUid);
+        // Помечаем «нужно показать `FeaturesWelcomeSheet` при следующем
+        // заходе на /chats» — модалка всплывает после каждого логина.
+        FeaturesWelcomePending.markPending();
       }
       _previousUid = newUid;
       notifyListeners();
