@@ -3,6 +3,8 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import * as nodeCrypto from "node:crypto";
 
+import { callerIpKey, consumeRateLimit } from "../../lib/rate-limit";
+
 /**
  * Создаёт эфемерную QR-login сессию для нового устройства (Telegram-style):
  *  - клиент (новое устройство, ещё без auth) запрашивает sessionId+nonce;
@@ -147,6 +149,20 @@ export const requestQrLogin = onCall(
       Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
     const ip = request.rawRequest?.ip || ipFromXff || "";
     const ua = typeof headers["user-agent"] === "string" ? headers["user-agent"] : "";
+
+    // SECURITY: this callable is intentionally pre-auth (it issues a QR
+    // pairing session BEFORE the new device has any credentials). That makes
+    // it a dream DoS target — every call writes a new Firestore document. Cap
+    // each source IP to 10 calls per minute. App Check, when enforced, will
+    // reduce this further by rejecting non-app callers entirely.
+    const rl = await consumeRateLimit(admin.firestore(), {
+      key: `requestQrLogin:${callerIpKey(request.rawRequest)}`,
+      limit: 10,
+      windowSec: 60,
+    });
+    if (!rl.allowed) {
+      throw new HttpsError("resource-exhausted", "RATE_LIMITED");
+    }
     // Google Cloud Functions/App Hosting проставляет эти заголовки на основе
     // GeoIP клиентского запроса. Бесплатно и без external API — отлично для
     // показа «последняя локация» на странице устройств.
