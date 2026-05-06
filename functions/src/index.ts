@@ -23,6 +23,7 @@ export { updateUserAdmin } from './triggers/http/updateUserAdmin';
 export { backfillConversationMembers } from './triggers/http/backfillConversationMembers';
 export { backfillOutgoingBlocks } from './triggers/http/backfillOutgoingBlocks';
 export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationIndex';
+export { migrateDeviceLocationToPrivate } from './triggers/http/migrateDeviceLocationToPrivate';
 export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
 export { retryChatMediaTranscode } from './triggers/http/retryChatMediaTranscode';

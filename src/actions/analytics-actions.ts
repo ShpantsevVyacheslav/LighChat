@@ -145,24 +145,33 @@ export async function fetchAdminGeoMetricsAction(input: {
   try {
     await assertAdminByIdToken(input.idToken);
 
-    const devicesSnap = await adminDb.collectionGroup('e2eeDevices').get();
+    // SECURITY: read geo from the PRIVATE `users/{uid}/devices` collection,
+    // not from the world-readable e2eeDevices. New writes go to `devices`
+    // (see confirmQrLogin / updateDeviceLastLocation). To keep the dashboard
+    // useful during the migration window, we also read e2eeDevices as a
+    // fallback — but never trust public-side fields preferentially. Once the
+    // backfill has run and existing e2eeDevices docs are scrubbed, the
+    // fallback can be removed.
+    const [privateSnap, legacySnap] = await Promise.all([
+      adminDb.collectionGroup('devices').get(),
+      adminDb.collectionGroup('e2eeDevices').get(),
+    ]);
 
     const userCountry = new Map<string, string>();
     const userCity = new Map<string, string>();
 
-    devicesSnap.docs.forEach((doc) => {
+    const ingest = (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
       const data = doc.data() as { lastLoginCountry?: string; lastLoginCity?: string; lastLoginAt?: string };
       const userId = doc.ref.parent.parent?.id;
       if (!userId) return;
       const country = (data.lastLoginCountry || '').toUpperCase().trim();
       const city = (data.lastLoginCity || '').trim();
-      if (country) {
-        if (!userCountry.has(userId)) userCountry.set(userId, country);
-      }
-      if (city) {
-        if (!userCity.has(userId)) userCity.set(userId, `${city}|${country}`);
-      }
-    });
+      if (country && !userCountry.has(userId)) userCountry.set(userId, country);
+      if (city && !userCity.has(userId)) userCity.set(userId, `${city}|${country}`);
+    };
+    // Private collection wins (newer, authoritative); legacy fills the gaps.
+    privateSnap.docs.forEach(ingest);
+    legacySnap.docs.forEach(ingest);
 
     const countryCounts = new Map<string, number>();
     userCountry.forEach((c) => countryCounts.set(c, (countryCounts.get(c) ?? 0) + 1));
