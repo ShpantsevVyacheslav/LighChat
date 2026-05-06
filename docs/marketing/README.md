@@ -13,7 +13,8 @@
 | **[competitor-research-2026-05.md](competitor-research-2026-05.md)** | Полный конкурентный анализ: 15 глобальных игроков, глубокий разбор РФ-рынка, топ-5 международных рынков, USP LighChat |
 | **[aso-keywords-recommendations.md](aso-keywords-recommendations.md)** | Готовые к копированию ASO-строки для 5 сторов и 8 локалей: title, subtitle, keyword field, descriptions, скриншоты, A/B тесты |
 | **[mobile-ua-strategy.md](mobile-ua-strategy.md)** | Стратегия user acquisition: каналы, CPI бенчмарки, attribution стек, виральные механики, push & retention, бюджеты |
-| **[action-plan-90d.md](action-plan-90d.md)** | Пошаговый план на 6 спринтов × 2 недели: задачи, роли, приоритеты, метрики |
+| **🚀 [bootstrap-plan-90d.md](bootstrap-plan-90d.md)** | **Реальный план для соло-разработчика без рекламного бюджета.** $0 на UA, цель 5K–10K органических установок за 90 дней. Контент + ASO + комьюнити + cold outreach |
+| [action-plan-90d.md](action-plan-90d.md) | Расширенный план с бюджетом $45K (Сценарий B). Используется как референс при появлении средств |
 
 ---
 
@@ -52,49 +53,66 @@
 
 | Сценарий | Бюджет | Ожидаемые установки | MAU | CAC blended |
 |---|---:|---:|---:|---:|
+| **🚀 Bootstrap (текущий путь)** | **~$130 (только сторы + домен)** | **5K–10K (органика)** | **2K+** | **$0** (cost: только время) |
 | A — Минимальный | $15K | 25K–40K | 12K–20K | $0.40 |
 | **B — Оптимальный** | **$45K** | **75K–125K** | **40K–70K** | **$0.45** |
 | C — Агрессивный | $150K | 250K–400K | 150K–250K | $0.50 |
 
+→ **Текущий план:** идём по Bootstrap. См. [bootstrap-plan-90d.md](bootstrap-plan-90d.md).
+
 ---
 
-## 🚀 Что делать прямо сейчас (первые 7 дней)
+## 🚀 Что делать прямо сейчас — bootstrap режим (первые 7 дней)
 
-### День 1
-- [ ] Зарегистрировать аккаунты разработчика во всех 5 сторах (App Store, Google Play, RuStore, AppGallery, NashStore)
-- [ ] Подписаться на AppsFlyer (free tier до 12K conversions/мес) и Amplitude (free до 10M events)
+> Полный детальный план см. в [bootstrap-plan-90d.md](bootstrap-plan-90d.md).
+
+### День 1 (~$130 единоразово)
+- [ ] Купить домен lighchat.com (~$15)
+- [ ] Зарегистрировать Apple Developer Program ($99/год)
+- [ ] Зарегистрировать Google Play Console ($25 разово)
+- [ ] Открыть Cloudflare account (бесплатно, для лендинга)
 
 ### День 2–3
-- [ ] Подготовить metadata для всех сторов из [aso-keywords-recommendations.md](aso-keywords-recommendations.md) — title, subtitle, descriptions
-- [ ] Заказать у дизайнера 32 скриншота (8 экранов × 4 устройства) для RU + EN
+- [ ] Подготовить тексты лендинга и сторов из [aso-keywords-recommendations.md](aso-keywords-recommendations.md)
+- [ ] Сверстать одностраничный лендинг (Astro/Next.js → Cloudflare Pages, бесплатно) и задеплоить
 
 ### День 4–5
-- [ ] Подключить AppsFlyer SDK + 10 ключевых событий из [mobile-ua-strategy.md](mobile-ua-strategy.md#42-ключевые-события-для-трекинга-минимум)
-- [ ] Подключить Universal Links + App Links для домена lighchat.com
+- [ ] Создать 3 варианта иконки в Figma free
+- [ ] Сделать 8 скриншотов (DIY в Figma + screenshot generator) RU + EN
 
 ### День 6–7
-- [ ] Загрузить первые билды во все 5 сторов
-- [ ] Подать в RuStore Developer Relations запрос на featured
+- [ ] Зарегистрироваться в RuStore + AppGallery + NashStore (бесплатно)
+- [ ] Полирнуть README репозитория на GitHub: badges, скриншоты, "Star us!", contributing guide
+- [ ] Создать Telegram-канал @lighchat и личный X/Twitter
 
-### Параллельно
-- [ ] Изучить App Store Review Guidelines для messaging apps (предотвратить отклонение)
-- [ ] Создать Telegram-канал и YouTube-канал (понадобятся в Sprint 4)
+### Параллельно (на 1-й неделе)
+- [ ] Изучить App Store Review Guidelines для messaging apps
+- [ ] Подключить Firebase Analytics + Amplitude free tier (вместо платного AppsFlyer)
+- [ ] Внедрить Universal Links / App Links для будущей виральности
 
 ---
 
 ## 📊 Главные метрики для еженедельного мониторинга
 
+### Bootstrap-цели (актуальный путь)
+| Метрика | Цель D90 |
+|---|---|
+| Cumulative installs | **5,000–10,000 (органика)** |
+| MAU | **2,000+** |
+| D7 retention | ≥ 18% |
+| K-factor | ≥ 0.3 |
+| Average store rating | ≥ 4.4 |
+| Crash rate | < 0.5% |
+| Cumulative spend | **~$130** (только сторы + домен) |
+| GitHub stars | 100+ |
+| Telegram-канал подписчиков | 500+ |
+
+### Цели при бюджетном сценарии B (для будущего)
 | Метрика | Цель D90 |
 |---|---|
 | Cumulative installs | 75,000+ |
 | MAU | 40,000+ |
-| D1 retention | ≥ 35% |
-| D7 retention | ≥ 18% |
-| D30 retention | ≥ 10% |
-| K-factor | ≥ 0.4 |
-| Average store rating | ≥ 4.4 |
-| Crash rate | < 0.5% |
-| Cumulative spend | ≤ $45K (Сценарий B) |
+| Cumulative spend | ≤ $45K |
 | Blended CAC | ≤ $0.60 |
 
 ---
