@@ -433,19 +433,34 @@ class FeatureMockFrame extends StatelessWidget {
 //  Шапка чата + бабл — без выдуманных индикаторов
 // =====================================================================
 
-/// Шапка чата как в реальном `ChatWindow`: ArrowLeft + аватар + имя/статус
-/// + иконки тредов/видео/аудио. Никаких пилюль с таймером или E2EE-бейджей —
-/// в реальном UI их нет.
+/// Шапка чата в iOS-стиле LighChat (см. реальный `ChatWindow` на мобилке):
+///  - стрелка-back в круглой полупрозрачной пилюле,
+///  - аватар (~36px) с маленькой online-точкой,
+///  - имя (`Last seen ...` под ним),
+///  - 4 круглые иконки-чипа справа: треды, поиск, видео-камера, телефон.
+/// Иконки белые на полупрозрачно-сером фоне — как в реальной мобилке.
 class _MockChatHeader extends StatelessWidget {
   const _MockChatHeader({required this.name, required this.status});
   final String name;
   final String status;
 
+  static Widget _chip(IconData icon, {Color? iconColor}) {
+    return Container(
+      width: 30,
+      height: 30,
+      margin: const EdgeInsets.only(left: 5),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.black.withValues(alpha: 0.30),
+      ),
+      alignment: Alignment.center,
+      child: Icon(icon, size: 15, color: iconColor ?? Colors.white),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final iconColor = scheme.onSurface.withValues(alpha: 0.85);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
@@ -455,12 +470,23 @@ class _MockChatHeader extends StatelessWidget {
         color: scheme.surface.withValues(alpha: 0.5),
       ),
       child: Row(children: [
-        Icon(Icons.chevron_left_rounded, size: 22, color: scheme.onSurface),
-        const SizedBox(width: 6),
+        // Back chip
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withValues(alpha: 0.30),
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.chevron_left_rounded, size: 18, color: Colors.white),
+        ),
+        const SizedBox(width: 8),
+        // Avatar
         Stack(clipBehavior: Clip.none, children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -473,7 +499,7 @@ class _MockChatHeader extends StatelessWidget {
             child: Text(
               name.isEmpty ? '?' : name.characters.first.toUpperCase(),
               style: const TextStyle(
-                  color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+                  color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
             ),
           ),
           Positioned(
@@ -511,13 +537,10 @@ class _MockChatHeader extends StatelessWidget {
             ],
           ),
         ),
-        Icon(Icons.chat_bubble_outline_rounded, size: 18, color: iconColor),
-        const SizedBox(width: 6),
-        Icon(Icons.videocam_outlined,
-            size: 18,
-            color: dark ? const Color(0xFF48E074) : const Color(0xFF34C759)),
-        const SizedBox(width: 6),
-        Icon(Icons.phone_outlined, size: 18, color: featureAccentPrimary),
+        _chip(Icons.chat_bubble_outline_rounded),
+        _chip(Icons.search_rounded),
+        _chip(Icons.videocam_outlined),
+        _chip(Icons.phone_outlined),
       ]),
     );
   }
@@ -1051,95 +1074,462 @@ class MockScheduled extends StatelessWidget {
   }
 }
 
-// --- 5. Games: «Дурак», веер карт ---
+// --- 5. Games: реальный стол «Дурака» ---
+
+/// Игральная карта в стиле реального `DurakCardWidget`.
+class _DurakCard extends StatelessWidget {
+  const _DurakCard({
+    this.rank,
+    this.suit,
+    this.red = false,
+    this.trump = false,
+    this.faceDown = false,
+    this.width = 44,
+    this.height = 64,
+  });
+  final String? rank;
+  final String? suit;
+  final bool red;
+  final bool trump;
+  final bool faceDown;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    if (faceDown) {
+      return Container(
+        width: width,
+        height: height,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.40),
+                blurRadius: 6,
+                offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF2C3E66), Color(0xFF1A2540)],
+            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          ),
+          alignment: Alignment.center,
+          child: Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
+            ),
+          ),
+        ),
+      );
+    }
+    final fg = red ? const Color(0xFFDC2626) : const Color(0xFF111827);
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F7FB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: trump
+              ? const Color(0xFFFBBF24).withValues(alpha: 0.85)
+              : Colors.black.withValues(alpha: 0.15),
+          width: trump ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.30),
+              blurRadius: 6,
+              offset: const Offset(0, 4)),
+          if (trump)
+            BoxShadow(
+                color: const Color(0xFFFBBF24).withValues(alpha: 0.30), blurRadius: 8),
+        ],
+      ),
+      child: Stack(children: [
+        Positioned(
+          left: 4,
+          top: 3,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(rank ?? '',
+                  style: TextStyle(
+                      color: fg, fontWeight: FontWeight.w900, fontSize: 11, height: 1)),
+              Text(suit ?? '',
+                  style: TextStyle(
+                      color: fg, fontWeight: FontWeight.w900, fontSize: 12, height: 1)),
+            ],
+          ),
+        ),
+        Center(
+          child: Text(suit ?? '',
+              style: TextStyle(
+                  color: fg.withValues(alpha: 0.92),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22)),
+        ),
+        Positioned(
+          right: 4,
+          bottom: 3,
+          child: RotatedBox(
+            quarterTurns: 2,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(rank ?? '',
+                    style: TextStyle(
+                        color: fg, fontWeight: FontWeight.w900, fontSize: 11, height: 1)),
+                Text(suit ?? '',
+                    style: TextStyle(
+                        color: fg, fontWeight: FontWeight.w900, fontSize: 12, height: 1)),
+              ],
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// Полоска игрока с аватаром, именем и количеством карт в руке.
+class _PlayerStrip extends StatelessWidget {
+  const _PlayerStrip({
+    required this.name,
+    required this.initial,
+    required this.cards,
+  });
+  final String name;
+  final String initial;
+  final int cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.40),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withValues(alpha: 0.20),
+          ),
+          alignment: Alignment.center,
+          child: Text(initial,
+              style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+        ),
+        const SizedBox(width: 5),
+        Text(name,
+            style: const TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
+        const SizedBox(width: 5),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text('$cards',
+              style: const TextStyle(
+                  fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white)),
+        ),
+      ]),
+    );
+  }
+}
 
 class MockGames extends StatelessWidget {
   const MockGames({super.key});
   @override
   Widget build(BuildContext context) {
     final t = _mockText(context);
-    final cards = ['6♠', '7♥', 'J♦', 'Q♣', 'K♠'];
+
+    // Пары на столе.
+    final pairs = <(String aR, String aS, bool aRed, String? dR, String? dS, bool dRed)>[
+      ('7', '♣', false, '9', '♣', false),
+      ('10', '♦', true, 'Q', '♦', true),
+      ('J', '♠', false, null, null, false),
+    ];
+    // Рука игрока.
+    final hand = <(String r, String s, bool red, bool trump)>[
+      ('6', '♠', false, false),
+      ('8', '♥', true, false),
+      ('9', '♥', true, true),
+      ('J', '♥', true, true),
+      ('Q', '♣', false, false),
+      ('A', '♦', true, false),
+    ];
+
     return Stack(fit: StackFit.expand, children: [
+      // Зелёное сукно
       Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1F5F47), Color(0xFF0F2D24)],
+          gradient: RadialGradient(
+            center: Alignment(0, -0.2),
+            radius: 1.3,
+            colors: [Color(0xFF1F5F47), Color(0xFF0F2D24), Color(0xFF081C16)],
           ),
         ),
       ),
-      Positioned(
-        top: 8,
-        left: 8,
+      Positioned.fill(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: featureAccentAmber,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF6EE7B7).withValues(alpha: 0.10)),
+            color: const Color(0xFF0F2D24).withValues(alpha: 0.30),
           ),
-          child: Text(t.gamesBadge,
-              style: const TextStyle(
-                  color: Color(0xFF3F2D00), fontSize: 10, fontWeight: FontWeight.w700)),
         ),
       ),
-      Center(
-        child: SizedBox(
-          width: 220,
-          height: 110,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              for (var i = 0; i < cards.length; i++)
-                Transform.translate(
-                  offset: Offset((i - 2) * 28.0, -4),
-                  child: Transform.rotate(
-                    angle: (i - 2) * 0.20,
-                    child: Container(
-                      width: 50,
-                      height: 78,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 8)],
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: Text(cards[i],
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: cards[i].contains('♥') || cards[i].contains('♦')
-                                    ? Colors.red
-                                    : Colors.black)),
+
+      Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+        child: Column(children: [
+          // Топ: соперник + бейдж «ваш ход»
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _PlayerStrip(name: t.gamesOpponent, initial: 'A', cards: 5),
+            const Spacer(),
+            _FadeInUp(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBBF24),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(t.gamesYourTurn,
+                    style: const TextStyle(
+                        color: Color(0xFF3F2D00),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ]),
+          // Карты соперника (рубашкой), веер
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: SizedBox(
+              height: 36,
+              child: Stack(alignment: Alignment.topCenter, children: [
+                for (var i = 0; i < 5; i++)
+                  Transform.translate(
+                    offset: Offset((i - 2) * 14.0, 0),
+                    child: Transform.rotate(
+                      angle: (i - 2) * 0.10,
+                      child: _FadeInUp(
+                        delay: Duration(milliseconds: i * 80),
+                        child: const _DurakCard(faceDown: true, width: 22, height: 32),
                       ),
                     ),
                   ),
+              ]),
+            ),
+          ),
+          // Стол + колода+козырь
+          Expanded(
+            child: Stack(children: [
+              // Колода + козырь слева
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    SizedBox(
+                      width: 46,
+                      height: 44,
+                      child: Stack(clipBehavior: Clip.none, children: [
+                        const Positioned(
+                          top: 0,
+                          left: 4,
+                          child: _DurakCard(faceDown: true, width: 28, height: 40),
+                        ),
+                        const Positioned(
+                          top: 2,
+                          left: 6,
+                          child: _DurakCard(faceDown: true, width: 28, height: 40),
+                        ),
+                        // Козырь — лежит горизонтально внизу
+                        Positioned(
+                          bottom: -4,
+                          left: 14,
+                          child: Transform.rotate(
+                            angle: 1.5708,
+                            child: const _DurakCard(
+                                rank: 'J',
+                                suit: '♥',
+                                red: true,
+                                trump: true,
+                                width: 28,
+                                height: 40),
+                          ),
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text('${t.gamesDeck} · 12',
+                          style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                    ),
+                  ]),
                 ),
-            ],
+              ),
+              // Пары на столе
+              Center(
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+                  for (var i = 0; i < pairs.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: SizedBox(
+                        width: 50,
+                        height: 60,
+                        child: _FadeInUp(
+                          delay: Duration(milliseconds: 200 + i * 180),
+                          child: Stack(children: [
+                            _DurakCard(
+                                rank: pairs[i].$1,
+                                suit: pairs[i].$2,
+                                red: pairs[i].$3,
+                                width: 36,
+                                height: 52),
+                            if (pairs[i].$4 != null)
+                              Positioned(
+                                left: 10,
+                                top: 8,
+                                child: Transform.rotate(
+                                  angle: 0.12,
+                                  child: _DurakCard(
+                                      rank: pairs[i].$4,
+                                      suit: pairs[i].$5,
+                                      red: pairs[i].$6,
+                                      width: 36,
+                                      height: 52),
+                                ),
+                              )
+                            else
+                              Positioned(
+                                left: 10,
+                                top: 8,
+                                child: Container(
+                                  width: 36,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.45),
+                                        style: BorderStyle.solid),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(Icons.add_rounded,
+                                      size: 16, color: Colors.white54),
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                ]),
+              ),
+            ]),
           ),
-        ),
-      ),
-      Positioned(
-        bottom: 8,
-        left: 8,
-        right: 8,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.30),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-            borderRadius: BorderRadius.circular(14),
+          // Действия
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: BoxDecoration(
+                    color: featureAccentEmerald,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(t.gamesActionBeat,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(t.gamesActionTake,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ]),
           ),
-          child: Row(children: [
-            Text('${t.gamesTrump} · ♥',
-                style: const TextStyle(color: Colors.white, fontSize: 10)),
-            const Spacer(),
-            Text(t.gamesDeck,
-                style: const TextStyle(color: Colors.white70, fontSize: 10)),
-          ]),
-        ),
+          // Рука игрока — веер
+          SizedBox(
+            height: 56,
+            child: Stack(alignment: Alignment.bottomCenter, children: [
+              for (var i = 0; i < hand.length; i++)
+                Builder(builder: (context) {
+                  final offset = i - (hand.length - 1) / 2;
+                  return Positioned(
+                    bottom: -2 + (offset.abs() * 1.2),
+                    left: null,
+                    child: Transform.translate(
+                      offset: Offset(offset * 22, 0),
+                      child: Transform.rotate(
+                        angle: offset * 0.14,
+                        child: _FadeInUp(
+                          delay: Duration(milliseconds: 600 + i * 80),
+                          child: _DurakCard(
+                              rank: hand[i].$1,
+                              suit: hand[i].$2,
+                              red: hand[i].$3,
+                              trump: hand[i].$4,
+                              width: 36,
+                              height: 52),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+            ]),
+          ),
+        ]),
       ),
     ]);
   }

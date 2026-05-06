@@ -106,6 +106,11 @@ class FeaturesMockText {
     required this.gamesBadge,
     required this.gamesTrump,
     required this.gamesDeck,
+    required this.gamesYou,
+    required this.gamesOpponent,
+    required this.gamesYourTurn,
+    required this.gamesActionBeat,
+    required this.gamesActionTake,
     required this.meetingDuration,
     required this.meetingSpeaking,
     required this.callsAudioTitle,
@@ -179,6 +184,11 @@ class FeaturesMockText {
   final String gamesBadge;
   final String gamesTrump;
   final String gamesDeck;
+  final String gamesYou;
+  final String gamesOpponent;
+  final String gamesYourTurn;
+  final String gamesActionBeat;
+  final String gamesActionTake;
   final String meetingDuration;
   final String meetingSpeaking;
   final String callsAudioTitle;
@@ -785,9 +795,14 @@ const _kRu = FeaturesContent(
     scheduledMsg3: 'Доброе утро! Через 15 минут начинаем планёрку.',
     scheduledQueueTitle: 'Запланированные',
     scheduledQueueDate: 'завтра, 08:45',
-    gamesBadge: 'Дурак · ход Анны',
+    gamesBadge: 'Дурак · ваш ход',
     gamesTrump: 'Козырь',
-    gamesDeck: 'В колоде · 12',
+    gamesDeck: 'Колода',
+    gamesYou: 'Вы',
+    gamesOpponent: 'Анна',
+    gamesYourTurn: 'Ваш ход',
+    gamesActionBeat: 'Бить',
+    gamesActionTake: 'Взять',
     meetingDuration: 'Встреча · 24:18',
     meetingSpeaking: 'говорит',
     callsAudioTitle: 'Аудио-звонок',
@@ -1264,9 +1279,14 @@ const _kEn = FeaturesContent(
     scheduledMsg3: 'Good morning! Standup starts in 15 minutes.',
     scheduledQueueTitle: 'Scheduled',
     scheduledQueueDate: 'tomorrow, 08:45',
-    gamesBadge: 'Durak · Alice’s turn',
+    gamesBadge: 'Durak · your turn',
     gamesTrump: 'Trump',
-    gamesDeck: 'Deck · 12',
+    gamesDeck: 'Deck',
+    gamesYou: 'You',
+    gamesOpponent: 'Alice',
+    gamesYourTurn: 'Your turn',
+    gamesActionBeat: 'Beat',
+    gamesActionTake: 'Take',
     meetingDuration: 'Meeting · 24:18',
     meetingSpeaking: 'speaking',
     callsAudioTitle: 'Audio call',

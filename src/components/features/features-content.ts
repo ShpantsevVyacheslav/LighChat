@@ -56,6 +56,11 @@ export type FeaturesMockText = {
   gamesBadge: string;
   gamesTrump: string;
   gamesDeck: string;
+  gamesYou: string;
+  gamesOpponent: string;
+  gamesYourTurn: string;
+  gamesActionBeat: string;
+  gamesActionTake: string;
   // Meetings
   meetingDuration: string;
   meetingSpeaking: string;
@@ -531,9 +536,14 @@ const ru: FeaturesContent = {
     scheduledMsg3: 'Доброе утро! Через 15 минут начинаем планёрку.',
     scheduledQueueTitle: 'Запланированные',
     scheduledQueueDate: 'завтра, 08:45',
-    gamesBadge: 'Дурак · ход Анны',
+    gamesBadge: 'Дурак · ваш ход',
     gamesTrump: 'Козырь',
-    gamesDeck: 'В колоде · 12',
+    gamesDeck: 'Колода',
+    gamesYou: 'Вы',
+    gamesOpponent: 'Анна',
+    gamesYourTurn: 'Ваш ход',
+    gamesActionBeat: 'Бить',
+    gamesActionTake: 'Взять',
     meetingDuration: 'Встреча · 24:18',
     meetingSpeaking: 'говорит',
     callsAudioTitle: 'Аудио-звонок',
@@ -978,9 +988,14 @@ const en: FeaturesContent = {
     scheduledMsg3: 'Good morning! Standup starts in 15 minutes.',
     scheduledQueueTitle: 'Scheduled',
     scheduledQueueDate: 'tomorrow, 08:45',
-    gamesBadge: 'Durak · Alice’s turn',
+    gamesBadge: 'Durak · your turn',
     gamesTrump: 'Trump',
-    gamesDeck: 'Deck · 12',
+    gamesDeck: 'Deck',
+    gamesYou: 'You',
+    gamesOpponent: 'Alice',
+    gamesYourTurn: 'Your turn',
+    gamesActionBeat: 'Beat',
+    gamesActionTake: 'Take',
     meetingDuration: 'Meeting · 24:18',
     meetingSpeaking: 'speaking',
     callsAudioTitle: 'Audio call',
