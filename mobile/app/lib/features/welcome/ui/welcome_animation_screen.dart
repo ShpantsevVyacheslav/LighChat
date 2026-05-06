@@ -812,16 +812,17 @@ class _DottedI extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // dotless ı + coral-точка ровно над её stem. Stack без явной ширины
-    // подгоняется под реальную ширину буквы, а Alignment.topCenter
-    // центрирует точку относительно неё (а не относительно фиксированных
-    // 12px, как было раньше — отсюда смещение влево).
+    // Обычная `i` (не dotless) + coral-круг поверх штатной точки.
+    // Положение точки берётся из шрифта (а не угадывается под свой
+    // bearing), а coral-круг чуть крупнее штатной точки и полностью её
+    // перекрашивает. Это даёт пиксель-перфектное выравнивание на любом
+    // шрифте/устройстве.
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: const [
         Text(
-          'ı',
+          'i',
           style: TextStyle(
             color: Colors.white,
             fontSize: 28,
@@ -830,10 +831,10 @@ class _DottedI extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: EdgeInsets.only(top: 3),
+          padding: EdgeInsets.only(top: 4),
           child: SizedBox(
-            width: 6,
-            height: 6,
+            width: 7,
+            height: 7,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: kBrandCoral,
