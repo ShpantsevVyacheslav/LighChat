@@ -2,7 +2,7 @@
 
 import { adminAuth, adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
-import { logAdminAction } from '@/actions/audit-log-actions';
+import { logAdminAction } from '@/lib/server/audit-log';
 
 export type DeviceSession = {
   deviceId: string;

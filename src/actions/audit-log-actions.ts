@@ -4,25 +4,11 @@ import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
 import type { AuditAction, AuditLogEntry } from '@/lib/types';
 
-export async function logAdminAction(params: {
-  actorId: string;
-  actorName: string;
-  action: AuditAction;
-  target: AuditLogEntry['target'];
-  details?: Record<string, unknown>;
-}): Promise<void> {
-  const ref = adminDb.collection('adminAuditLog').doc();
-  const entry: AuditLogEntry = {
-    id: ref.id,
-    actorId: params.actorId,
-    actorName: params.actorName,
-    action: params.action,
-    target: params.target,
-    details: params.details,
-    createdAt: new Date().toISOString(),
-  };
-  await ref.set(entry);
-}
+// SECURITY: logAdminAction was previously exported from this 'use server' file,
+// which made it a publicly-callable RPC endpoint. Any unauthenticated client
+// could forge audit log entries (impersonate "admin X did Y" or flood the log
+// to hide real admin actions). It now lives in '@/lib/server/audit-log' as an
+// internal helper. Server actions must import it from there.
 
 export async function fetchAuditLogAction(input: {
   idToken: string;

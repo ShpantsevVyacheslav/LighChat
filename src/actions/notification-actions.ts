@@ -3,9 +3,30 @@
 
 import { adminDb, adminMessaging } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
-import { logAdminAction } from '@/actions/audit-log-actions';
+import { logAdminAction } from '@/lib/server/audit-log';
 import type { UserRole, Notification } from '@/lib/types';
 import type { MulticastMessage } from 'firebase-admin/messaging';
+
+/**
+ * SECURITY: notification "link" is delivered via FCM and used by service
+ * workers (public/sw.js, public/firebase-messaging-sw.js) to call
+ * clients.openWindow(). Absolute URLs would let any caller craft a phishing
+ * push that opens https://attacker.tld on tap. Restrict to same-origin
+ * internal paths only. The service workers also re-validate this on receive.
+ */
+function sanitizeNotificationLink(link: string | undefined | null): string {
+  const fallback = '/dashboard';
+  if (typeof link !== 'string') return fallback;
+  const trimmed = link.trim();
+  if (!trimmed.startsWith('/')) return fallback;
+  // Reject protocol-relative ("//evil"), backslash tricks, path traversal.
+  if (trimmed.startsWith('//') || trimmed.startsWith('/\\')) return fallback;
+  if (trimmed.includes('..')) return fallback;
+  // Reject control characters / whitespace smuggling.
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1f\x7f]/.test(trimmed)) return fallback;
+  return trimmed;
+}
 
 // Helper function to save notifications to Firestore
 async function saveNotificationsForUsers(userIds: string[], title: string, body: string, link: string) {
@@ -115,7 +136,7 @@ async function sendNotifications(
     return { success: true };
   }
 
-  const finalLink = link || '/dashboard';
+  const finalLink = sanitizeNotificationLink(link);
 
   const message: MulticastMessage & {
     data: Record<string, string>;
@@ -178,9 +199,9 @@ export async function sendNotificationToRoles(
     target: { type: 'system', id: 'broadcast' },
     details: { roles, title, recipientCount: userIds.length },
   }).catch(() => {});
-  
-  const finalLink = link || '/dashboard';
-  
+
+  const finalLink = sanitizeNotificationLink(link);
+
   try {
     await saveNotificationsForUsers(userIds, title, body, finalLink);
   } catch (e) {
@@ -190,29 +211,31 @@ export async function sendNotificationToRoles(
   return sendNotifications(tokens, title, body, finalLink, false);
 }
 
+// SECURITY: idToken is now REQUIRED. Previously it was nullable, and the
+// (now removed) sendTestNotificationAction passed null — turning this into an
+// anonymous RPC that wrote arbitrary entries to any user's notifications
+// collection and emitted FCM pushes with an attacker-controlled link.
 export async function sendNotificationToUsers(
-  idToken: string | null,
+  idToken: string,
   userIds: string[],
   title: string,
   body: string,
   link?: string,
   saveToDb: boolean = true
 ): Promise<{ success: boolean; error?: string }> {
-  if (idToken) {
-    const actor = await assertAdminByIdToken(idToken);
-    logAdminAction({
-      actorId: actor.uid,
-      actorName: actor.name,
-      action: 'notification.broadcast',
-      target: { type: 'system', id: 'targeted' },
-      details: { title, targetUserIds: userIds },
-    }).catch(() => {});
-  }
+  const actor = await assertAdminByIdToken(idToken);
+  logAdminAction({
+    actorId: actor.uid,
+    actorName: actor.name,
+    action: 'notification.broadcast',
+    target: { type: 'system', id: 'targeted' },
+    details: { title, targetUserIds: userIds },
+  }).catch(() => {});
 
   const uniqueUserIds = [...new Set(userIds)];
-  
-  const finalLink = link || '/dashboard';
-  
+
+  const finalLink = sanitizeNotificationLink(link);
+
   if (saveToDb) {
     try {
       await saveNotificationsForUsers(uniqueUserIds, title, body, finalLink);
@@ -220,19 +243,15 @@ export async function sendNotificationToUsers(
       console.error('Failed to save notifications for users:', e);
     }
   }
-  
+
   const isDataOnly = !saveToDb;
   const tokens = await getTokensForUserIds(uniqueUserIds);
   return sendNotifications(tokens, title, body, finalLink, isDataOnly);
 }
 
-export async function sendTestNotificationAction(userId: string) {
-    return sendNotificationToUsers(
-        null,
-        [userId],
-        "Проверка связи",
-        "Это тестовое уведомление. Если вы его видите, значит LighChat настроен правильно!",
-        "/dashboard/profile",
-        true
-    );
-}
+// REMOVED: sendTestNotificationAction was a 'use server' export that called
+// sendNotificationToUsers(null, ...) — anonymous push to any uid with an
+// attacker-controlled link. There is no legitimate caller in the codebase.
+// If a test push is ever needed, build it as an admin-only callable that
+// targets the caller's own uid and re-uses sendNotificationToUsers with the
+// caller's idToken.

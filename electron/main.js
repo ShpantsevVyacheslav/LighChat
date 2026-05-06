@@ -26,6 +26,35 @@ function isElectronDebug() {
   return v === '1' || v === 'true';
 }
 
+// SECURITY: the only origins that may host the LighChat UI inside the main
+// window. Used by the navigation guards and the permission handler.
+const APP_ALLOWED_ORIGINS = new Set([
+  'http://localhost:3000', // dev
+  'http://localhost:3434', // bundled-Next prod
+]);
+
+function isAppOrigin(rawUrl) {
+  try {
+    const u = new URL(String(rawUrl || ''));
+    return APP_ALLOWED_ORIGINS.has(`${u.protocol}//${u.host}`);
+  } catch {
+    return false;
+  }
+}
+
+function isMainWindowFrame(event) {
+  // SECURITY: only the main window's main frame may invoke privileged IPC.
+  // Reject popups, auth-popup frames, devtools frames, etc.
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return false;
+    if (event.sender !== mainWindow.webContents) return false;
+    const frameUrl = event.senderFrame && event.senderFrame.url;
+    return isAppOrigin(frameUrl);
+  } catch {
+    return false;
+  }
+}
+
 // Установка ID для корректной работы уведомлений в Windows
 if (process.platform === 'win32') {
   app.setAppUserModelId("com.lighchat.app");
@@ -105,8 +134,17 @@ function createWindow() {
     height: 800,
     title: "LighChat",
     webPreferences: {
+      // SECURITY: hardened defaults for Electron renderer. Without these, an
+      // XSS in the Next-app pivots into Node-privileged main via preload.
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,                  // OS sandbox for renderer + preload
+      webSecurity: true,              // enforce same-origin / CSP
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      webviewTag: false,              // no <webview> attack surface
+      navigateOnDragDrop: false,
+      spellcheck: false,
       preload: path.join(__dirname, 'preload.js')
     },
     backgroundColor: '#0a0e17',
@@ -199,16 +237,69 @@ function createWindow() {
     `);
   }
 
-  session.defaultSession.setPermissionCheckHandler(() => true);
-  session.defaultSession.setPermissionRequestHandler((wc, p, cb) => cb(true));
+  // SECURITY: allowlist of origins that may request browser-level permissions
+  // (camera, mic, clipboard, notifications, etc.). The previous handlers
+  // unconditionally returned true for ALL origins and ALL permissions —
+  // a compromised auth popup or any cross-origin frame could silently grab
+  // media-device or display-capture access.
+  const ALLOWED_PERMISSIONS = new Set([
+    'notifications',
+    'media',
+    'clipboard-read',
+    'clipboard-sanitized-write',
+    'fullscreen',
+    'pointerLock',
+  ]);
+  const isPermissionRequesterAllowed = (webContents) => {
+    try {
+      const origin = new URL(webContents.getURL()).origin;
+      return APP_ALLOWED_ORIGINS.has(origin);
+    } catch {
+      return false;
+    }
+  };
+  session.defaultSession.setPermissionCheckHandler((wc, permission) => {
+    if (!wc) return false;
+    return isPermissionRequesterAllowed(wc) && ALLOWED_PERMISSIONS.has(permission);
+  });
+  session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
+    cb(isPermissionRequesterAllowed(wc) && ALLOWED_PERMISSIONS.has(permission));
+  });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isAllowedAuthPopupUrl(url)) {
-      return { action: 'allow' };
+      // SECURITY: do NOT inherit the main window's preload/webPreferences.
+      // The auth popup must NOT have access to electronAPI / IPC channels.
+      // Without this override, a redirect chain inside the popup that lands
+      // on a less-trusted page would still hold preload privileges.
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            webSecurity: true,
+            allowRunningInsecureContent: false,
+            experimentalFeatures: false,
+            webviewTag: false,
+            preload: undefined,
+          },
+        },
+      };
     }
 
-    if (url.startsWith('http')) {
-      shell.openExternal(url);
+    // SECURITY: only delegate to the system browser for https:/mailto:.
+    // The previous startsWith('http') accepted "httpsabuse://...", "http://"
+    // (downgrade) and any URL prefix beginning with "http". URL parsing here
+    // also strips any embedded payload that confuses ShellExecute on Windows.
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'https:' || u.protocol === 'mailto:') {
+        shell.openExternal(u.toString());
+      }
+    } catch {
+      // ignore malformed URLs
     }
     return { action: 'deny' };
   });
@@ -219,7 +310,12 @@ function createWindow() {
 }
 
 // IPC Listeners
-ipcMain.on('request-focus', () => {
+// SECURITY: every privileged IPC channel must validate the sender frame.
+// Without this, a popup or webview could steer the main window or set a
+// nonsense badge count. set-badge also coerces its argument: app.setBadgeCount
+// crashes on some platforms when given a non-integer.
+ipcMain.on('request-focus', (event) => {
+  if (!isMainWindowFrame(event)) return;
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
@@ -228,9 +324,10 @@ ipcMain.on('request-focus', () => {
 });
 
 ipcMain.on('set-badge', (event, count) => {
-  if (app.setBadgeCount) {
-    app.setBadgeCount(count);
-  }
+  if (!isMainWindowFrame(event)) return;
+  if (!app.setBadgeCount) return;
+  const n = Math.max(0, Math.min(9999, Number.parseInt(count, 10) || 0));
+  app.setBadgeCount(n);
 });
 
 function escapeHtml(s) {
@@ -399,7 +496,41 @@ async function startLocalNextServer() {
   return url;
 }
 
+// SECURITY: applies to every WebContents (main window, auth popup, anything
+// future). Locks navigation to app origins and explicitly allowed auth-popup
+// hosts; everything else is either delegated to the system browser
+// (https/mailto) or denied. Also blocks <webview> attachment as belt-and-
+// suspenders against `webviewTag: false` regressions.
+function installWebContentsHardening() {
+  app.on('web-contents-created', (_e, contents) => {
+    contents.on('will-navigate', (event, url) => {
+      let parsed;
+      try { parsed = new URL(url); } catch { event.preventDefault(); return; }
+      const origin = `${parsed.protocol}//${parsed.host}`;
+      if (APP_ALLOWED_ORIGINS.has(origin)) return; // allow same-app navigation
+      if (isAllowedAuthPopupUrl(url)) return;      // allow legitimate OAuth flow
+      event.preventDefault();
+      if (parsed.protocol === 'https:' || parsed.protocol === 'mailto:') {
+        shell.openExternal(parsed.toString());
+      }
+    });
+    contents.on('will-attach-webview', (event) => {
+      event.preventDefault();
+    });
+    contents.on('will-redirect', (event, url) => {
+      // Same policy as will-navigate; covers server-side redirects too.
+      let parsed;
+      try { parsed = new URL(url); } catch { event.preventDefault(); return; }
+      const origin = `${parsed.protocol}//${parsed.host}`;
+      if (APP_ALLOWED_ORIGINS.has(origin)) return;
+      if (isAllowedAuthPopupUrl(url)) return;
+      event.preventDefault();
+    });
+  });
+}
+
 app.whenReady().then(() => {
+  installWebContentsHardening();
   registerMediaProtocol();
   createWindow();
   app.on('activate', () => {

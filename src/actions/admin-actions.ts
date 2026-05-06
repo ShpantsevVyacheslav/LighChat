@@ -1,7 +1,7 @@
 'use server';
 
 import { adminAuth, adminDb } from '@/firebase/admin';
-import { logAdminAction } from '@/actions/audit-log-actions';
+import { logAdminAction } from '@/lib/server/audit-log';
 
 export async function assertAdminByIdToken(idToken: string): Promise<{ uid: string; name: string }> {
   if (!idToken?.trim()) throw new Error('UNAUTHORIZED');

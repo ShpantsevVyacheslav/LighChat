@@ -344,7 +344,31 @@ service cloud.firestore {
         || !(resource.data.blockedUserIds is list)
         || !(request.auth.uid in resource.data.blockedUserIds)
       );
-      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // SECURITY: previously this allowed `request.auth.uid == userId` to write
+      // ANY fields on create — including `role: 'admin'`. The async
+      // `onUserCreated` trigger sees `snap.exists` and skips its tx.set, so the
+      // client-supplied admin role would persist, granting full admin access.
+      //
+      // Self-create is now restricted: privileged fields may be present in the
+      // payload (the registration UI writes role:'worker' and deletedAt:null
+      // alongside profile fields), but ONLY with safe values. An attacker
+      // cannot ship role:'admin', a non-null deletedAt, an inflated quota, or
+      // any non-null accountBlock. Admin-initiated creates remain unrestricted
+      // (server-side via Admin SDK bypass).
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (
+          request.auth.uid == userId
+          && (!('role' in request.resource.data)
+              || request.resource.data.role == 'worker'
+              || request.resource.data.role == null)
+          && (!('deletedAt' in request.resource.data)
+              || request.resource.data.deletedAt == null)
+          && (!('accountBlock' in request.resource.data)
+              || request.resource.data.accountBlock == null)
+          && !('storageQuotaBytes' in request.resource.data)
+        )
+      );
       allow update: if isSignedIn() && (
         isAdmin() ||
         (request.auth.uid == userId && !userSensitiveKeysChanged(userId))

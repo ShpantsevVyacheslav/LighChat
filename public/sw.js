@@ -14,6 +14,26 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+/**
+ * SECURITY: notification "link" arrives via FCM data and is passed to
+ * clients.openWindow(). Without validation, anyone able to deliver a push
+ * could open an arbitrary external URL on tap (phishing). Restrict to
+ * same-origin internal paths only.
+ */
+function safeNotificationLink(raw) {
+  const fallback = '/dashboard';
+  if (typeof raw !== 'string') return fallback;
+  const v = raw.trim();
+  if (!v.startsWith('/')) return fallback;
+  if (v.startsWith('//') || v.startsWith('/\\')) return fallback;
+  if (v.indexOf('..') !== -1) return fallback;
+  for (var i = 0; i < v.length; i++) {
+    var c = v.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return fallback;
+  }
+  return v;
+}
+
 /** Абсолютный URL: Safari/macOS часто не подхватывает относительный icon для web-push. */
 function pushIconUrl(payload) {
   const origin = self.location.origin;
@@ -50,7 +70,7 @@ messaging.onBackgroundMessage((payload) => {
     icon: iconUrl,
     badge: iconUrl,
     data: {
-      link: payload.data?.link || '/dashboard'
+      link: safeNotificationLink(payload.data?.link)
     }
   };
 
@@ -60,8 +80,10 @@ messaging.onBackgroundMessage((payload) => {
 // Обработка клика по уведомлению
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
-  const targetUrl = event.notification.data?.link || '/dashboard';
+
+  // SECURITY: re-validate even if the stored link was sanitized at receive
+  // time — defends against stale notifications created before SW upgrade.
+  const targetUrl = safeNotificationLink(event.notification.data?.link);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
@@ -71,7 +93,7 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      // Если нет, открываем новое
+      // Если нет, открываем новое (relative URL → same-origin guarantee)
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }

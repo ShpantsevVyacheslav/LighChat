@@ -2,7 +2,7 @@
 
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
-import { logAdminAction } from '@/actions/audit-log-actions';
+import { logAdminAction } from '@/lib/server/audit-log';
 import type { SupportTicket, SupportTicketMessage, TicketStatus } from '@/lib/types';
 
 export async function createSupportTicketAction(input: {

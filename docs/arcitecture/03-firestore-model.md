@@ -5,6 +5,7 @@
 ## Коллекции верхнего уровня
 
 - `users/{userId}` - профиль, роль, presence, настройки; опционально `fcmTokens` (массив строк FCM), `voipTokens` (массив iOS PushKit token для нативного входящего звонка), `notificationSettings` (глобальная политика push), `profileQrLink` (персональная web-ссылка профиля для QR-кода/шаринга), `blockedUserIds` (массив uid заблокированных пользователей — см. правила и CF `onuserwriteblocksideeffects`).
+  - **Security invariant (create):** клиентский self-create НЕ может выставить `role` ≠ `worker|null`, ненулевой `accountBlock|deletedAt`, или `storageQuotaBytes` любого значения. Это закрывает privilege-escalation, при которой клиент опережал async-триггер `onUserCreated` и записывал себе `role: 'admin'` (см. `firestore.rules` секцию `match /users/{userId}`). Триггер `onUserCreated` дозаполняет отсутствующие привилегированные поля (`role`, `deletedAt`) серверными дефолтами через merge — корректно работает и когда клиент опередил его, и наоборот.
   - `outgoingBlocks/{blockedUserId}` — зеркало `blockedUserIds` (пустой маркер-документ на каждого заблокированного). Пишет только Admin SDK (CF при изменении `blockedUserIds`); читать могут владелец `userId` и `blockedUserId` (нужно для правил `userBlocks` через `exists`, без `get(users/{blocker})`, который для заблокированного читателя запрещён правилом профиля).
   - `chatConversationPrefs/{conversationId}` - персональные настройки чата для аккаунта (`notificationsMuted`, `notificationShowPreview`, обои и т.д.).
   - `notifications/{notificationId}`

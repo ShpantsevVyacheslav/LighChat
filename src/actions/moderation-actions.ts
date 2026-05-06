@@ -2,7 +2,7 @@
 
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
-import { logAdminAction } from '@/actions/audit-log-actions';
+import { logAdminAction } from '@/lib/server/audit-log';
 import type { MessageReport, ReportStatus, ModerationAction, MessageHiddenByAdmin } from '@/lib/types';
 
 export async function createMessageReportAction(input: {

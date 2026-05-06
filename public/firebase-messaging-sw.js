@@ -10,6 +10,28 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+/**
+ * SECURITY: notification "link" arrives via FCM data and is passed to
+ * clients.openWindow(). Without validation, anyone able to deliver a push
+ * (including via a server action that misses an auth check) could open an
+ * arbitrary external URL on tap — phishing vector. Restrict to internal,
+ * absolute paths only.
+ */
+function safeNotificationLink(raw) {
+  const fallback = '/dashboard';
+  if (typeof raw !== 'string') return fallback;
+  const v = raw.trim();
+  if (!v.startsWith('/')) return fallback;
+  if (v.startsWith('//') || v.startsWith('/\\')) return fallback;
+  if (v.indexOf('..') !== -1) return fallback;
+  // Reject control characters and DEL — defense in depth against URL smuggling.
+  for (var i = 0; i < v.length; i++) {
+    var c = v.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return fallback;
+  }
+  return v;
+}
+
 function pushIconUrl(payload) {
   const origin = self.location.origin;
   const fallback = origin + '/pwa/icon-192.png';
@@ -38,7 +60,7 @@ messaging.onBackgroundMessage((payload) => {
       badge: iconUrl,
       silent: silent === true,
       data: {
-        link: payload.data.link || '/dashboard'
+        link: safeNotificationLink(payload.data.link)
       }
     };
 
@@ -48,8 +70,10 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const link = event.notification.data?.link || '/dashboard';
-  
+  // Re-validate at click time as well: even if a stale notification was created
+  // before the SW upgrade, the open MUST be same-origin.
+  const link = safeNotificationLink(event.notification.data?.link);
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
@@ -58,6 +82,8 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       if (clients.openWindow) {
+        // openWindow with a relative URL resolves against the SW scope,
+        // guaranteeing same-origin navigation.
         return clients.openWindow(link);
       }
     })

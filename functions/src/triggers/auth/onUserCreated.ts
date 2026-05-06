@@ -48,16 +48,36 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
 
   try {
     let wroteDefaults = false;
+    let backfilledPrivileged = false;
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(userRef);
-      if (snap.exists) {
+      if (!snap.exists) {
+        tx.set(userRef, userProfile);
+        wroteDefaults = true;
         return;
       }
-      tx.set(userRef, userProfile);
-      wroteDefaults = true;
+      // SECURITY: Firestore rules now forbid the client from setting `role`,
+      // `accountBlock`, `deletedAt`, `storageQuotaBytes` on create (CVE: an
+      // attacker could otherwise self-promote to admin by racing this trigger).
+      // If the client wrote the profile first, those privileged fields will be
+      // missing — backfill them here from the trusted server-side defaults.
+      const data = snap.data() ?? {};
+      const merge: Record<string, unknown> = {};
+      if (!Object.prototype.hasOwnProperty.call(data, "role")) {
+        merge.role = isAnonymous ? null : "worker";
+      }
+      if (!Object.prototype.hasOwnProperty.call(data, "deletedAt")) {
+        merge.deletedAt = null;
+      }
+      if (Object.keys(merge).length > 0) {
+        tx.set(userRef, merge, { merge: true });
+        backfilledPrivileged = true;
+      }
     });
     if (wroteDefaults) {
       logger.log(`Created default profile for user: ${user.uid} (Anonymous: ${isAnonymous})`);
+    } else if (backfilledPrivileged) {
+      logger.log(`users/${user.uid} existed; backfilled privileged defaults.`);
     } else {
       logger.log(`users/${user.uid} already had profile; onUserCreated skipped write.`);
     }
