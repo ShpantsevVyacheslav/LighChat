@@ -28,6 +28,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
+import '../firebase_callable_http.dart';
 import 'device_identity.dart';
 
 /// Документ устройства в виде, в котором мы читаем его обратно. Поля опционны,
@@ -159,9 +160,22 @@ Future<void> _refreshDeviceLastLocation(String deviceId) async {
     return;
   }
   try {
-    final fn = FirebaseFunctions.instanceFor(region: 'us-central1')
-        .httpsCallable('updateDeviceLastLocation');
-    await fn.call<dynamic>(<String, dynamic>{'deviceId': deviceId});
+    // iOS Release: `cloud_functions` плагин (FunctionsContext.context с тремя
+    // параллельными `async let` в Swift Concurrency) воспроизводимо крашит
+    // процесс в `_swift_task_dealloc_specific` (SIGABRT). Идём напрямую через
+    // HTTPS, как уже сделано для qr-login / secret-chat / checkGroupInvites.
+    if (Platform.isIOS) {
+      await callFirebaseCallableHttp(
+        name: 'updateDeviceLastLocation',
+        region: 'us-central1',
+        data: <String, dynamic>{'deviceId': deviceId},
+        timeout: const Duration(seconds: 30),
+      );
+    } else {
+      final fn = FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable('updateDeviceLastLocation');
+      await fn.call<dynamic>(<String, dynamic>{'deviceId': deviceId});
+    }
     _lastLocationCallAt = DateTime.now();
   } catch (_) {
     // best-effort, локация — украшение, не блокер
