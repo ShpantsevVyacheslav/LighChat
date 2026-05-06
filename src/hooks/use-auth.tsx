@@ -283,6 +283,12 @@ interface AuthContextType {
   resendPendingEmailVerification: () => Promise<{ ok: true } | { ok: false; message: string }>;
   createNewAuthUser: (email: string, password: string) => Promise<UserCredential>;
   isAuthenticated: boolean;
+  /**
+   * Гость видеоконференции (Firebase Anonymous Auth, без профиля в Firestore).
+   * Имеет `user` и `firebaseUser`, но НЕ должен попадать в дашборд / редактировать
+   * профиль; `isAuthenticated` для гостя false (см. `contextValue` ниже).
+   */
+  isGuest: boolean;
   isLoading: boolean;
   isUpdatingUser: boolean;
   error: string | null;
@@ -1693,7 +1699,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     updateUser,
     resendPendingEmailVerification,
     createNewAuthUser,
-    isAuthenticated: !!appUser,
+    /**
+     * Гость (Anonymous Auth) считается НЕ-аутентифицированным для приложения:
+     * dashboard layout / home redirects используют `isAuthenticated`, и без этого
+     * фильтра гость уходит на `/dashboard/profile` через ветку «incomplete profile»
+     * (см. dashboard/layout.tsx). MeetingPage берёт `user` напрямую — там guest
+     * по-прежнему доступен.
+     */
+    isAuthenticated: !!appUser && !firebaseUser?.isAnonymous,
+    isGuest: !!firebaseUser?.isAnonymous,
     isLoading,
     isUpdatingUser,
     error,

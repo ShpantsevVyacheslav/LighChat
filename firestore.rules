@@ -7,6 +7,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    /**
+     * Гость видеоконференции (Firebase Anonymous Auth). Имеет uid (для чтения
+     * митинга и для своих request/participant), но не должен трогать users/{uid}
+     * (см. ниже) и любые другие профили / чаты.
+     */
+    function isAnonymousGuest() {
+      return isSignedIn()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
     /** Роль из Firestore: поле role (строка) должно быть ровно «admin». */
     function isAdmin() {
       return isSignedIn()
@@ -355,7 +365,11 @@ service cloud.firestore {
       // cannot ship role:'admin', a non-null deletedAt, an inflated quota, or
       // any non-null accountBlock. Admin-initiated creates remain unrestricted
       // (server-side via Admin SDK bypass).
-      allow create: if isSignedIn() && (
+      // SECURITY: гость (Anonymous Auth) НЕ должен «дозаполнить профиль» через
+      // /dashboard/profile (фронт уже редиректит на `/`, но клиент мог бы
+      // попытаться записать напрямую — режем здесь). `users/{uid}` для гостя
+      // создаёт `onUserCreated` через Admin SDK.
+      allow create: if isSignedIn() && !isAnonymousGuest() && (
         isAdmin() ||
         (
           request.auth.uid == userId
@@ -369,7 +383,7 @@ service cloud.firestore {
           && !('storageQuotaBytes' in request.resource.data)
         )
       );
-      allow update: if isSignedIn() && (
+      allow update: if isSignedIn() && !isAnonymousGuest() && (
         isAdmin() ||
         (request.auth.uid == userId && !userSensitiveKeysChanged(userId))
       );

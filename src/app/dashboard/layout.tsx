@@ -57,7 +57,7 @@ function AuthenticatedLayoutBody({
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isGuest, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [callsOverlayEnabled, setCallsOverlayEnabled] = React.useState(false);
@@ -80,6 +80,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.push('/');
     }
   }, [isLoading, isAuthenticated, router]);
+
+  /**
+   * Гость видеоконференции (Firebase Anonymous Auth) не должен попадать в дашборд
+   * и тем более редактировать `/dashboard/profile`. После выхода из митинга
+   * `MeetingRoom` шлёт на `/dashboard/meetings` — здесь мы перехватываем и
+   * выкидываем на главную, чтобы guest не оказался в анкете «дозаполнения профиля».
+   */
+  React.useEffect(() => {
+    if (!isLoading && isGuest) {
+      router.replace('/');
+    }
+  }, [isLoading, isGuest, router]);
 
   React.useEffect(() => {
     if (
@@ -107,7 +119,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  if (isLoading || !isAuthenticated || !user) {
+  if (isLoading || !isAuthenticated || !user || isGuest) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Icons.spinner className="h-8 w-8 animate-spin text-primary" />

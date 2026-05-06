@@ -168,16 +168,21 @@
 
 1. Создаётся `meetings/{meetingId}`.
 2. Перед входом открывается `JoinMeeting`; на публичной ссылке `/meetings/[meetingId]` поле имени показывается и для анонимных гостей (Firebase anonymous), чтобы имя задавалось до подключения WebRTC.
-3. Участники входят в `participants`; trigger обновляет `userMeetings`.
-4. ICE-настройки для meetings и 1:1 calls берутся из общего `src/lib/webrtc-ice-servers.ts`: клиент запрашивает `/api/webrtc/ice`, где сервер получает временные TURN-credentials (Metered) по приватным ENV `METERED_DOMAIN`/`METERED_API_KEY`; при ошибке используется STUN fallback.
-5. Signaling: `meetings/{id}/signals`.
-6. Встроенный чат: `meetings/{id}/messages`; опросы: `meetings/{id}/polls`.
-7. Для приватных встреч запросы в `meetings/{id}/requests` через callable функции.
+3. **Гостевой доступ (Anonymous Auth):**
+   - В [`use-auth.tsx`](../src/hooks/use-auth.tsx) для `firebaseUser.isAnonymous` `isAuthenticated=false` и `isGuest=true`. Гость получает in-memory `user` (нужен `MeetingPage`), но dashboard layout считает его не-аутентифицированным и редиректит на `/`. Без этого ветка «incomplete profile» (`isRegistrationProfileComplete(user)` для гостя false) уводила гостя на `/dashboard/profile` и предлагала «дозаполнить профиль».
+   - `firestore.rules` для `users/{uid}` запрещают `create`/`update` от `isAnonymousGuest()` (claim `request.auth.token.firebase.sign_in_provider == 'anonymous'`) — defense-in-depth, чтобы клиент не мог писать профиль из обхода UI. Документ `users/{uid}` для гостя продолжает создавать `onUserCreated` через Admin SDK.
+   - Scheduled CF [`cleanupGuestAccounts`](../functions/src/triggers/scheduler/cleanupGuestAccounts.ts) раз в час удаляет анонимные Auth-записи старше 24 часов и `recursiveDelete` их `users/{uid}`/`userChats/{uid}`/`userContacts/{uid}`/`userCalls/{uid}`/`userMeetings/{uid}`. Фильтр гостя — `providerData.length === 0` и uid без префиксов `tg_`/`ya_` (custom-token бриджей).
+4. Участники входят в `participants`; trigger обновляет `userMeetings`.
+5. ICE-настройки для meetings и 1:1 calls берутся из общего `src/lib/webrtc-ice-servers.ts`: клиент запрашивает `/api/webrtc/ice`, где сервер получает временные TURN-credentials (Metered) по приватным ENV `METERED_DOMAIN`/`METERED_API_KEY`; при ошибке используется STUN fallback.
+6. Signaling: `meetings/{id}/signals`.
+7. Встроенный чат: `meetings/{id}/messages`; опросы: `meetings/{id}/polls`.
+8. Для приватных встреч запросы в `meetings/{id}/requests` через callable функции.
 
 ## 6) Админ и служебные потоки
 
 - Callable admin endpoints (`createNewUser`, `updateUserAdmin`, backfill-операции).
 - Периодический scheduler `checkUserPresence` чистит stale presence/meeting records и переводит `calls.status=calling` старше 60 секунд в `missed`.
+- Scheduled CF [`cleanupGuestAccounts`](../functions/src/triggers/scheduler/cleanupGuestAccounts.ts) раз в час удаляет гостевые (Anonymous Auth) аккаунты старше 24 часов и их Firestore-документы (см. §5 ›3 «Гостевой доступ»).
 - Server actions в `src/actions/*` выполняют read-heavy/privileged операции для UI-панелей.
 
 ## 7) iOS PWA performance guards
