@@ -319,16 +319,35 @@ class _AccountView extends StatelessWidget {
                   child: ListView(
                     padding: EdgeInsets.zero,
                     children: [
+                      // Группа 1: Аккаунт и приватность
                       _MenuItem(
                         icon: Icons.person_outline_rounded,
                         title: l10n.account_menu_profile,
                         onTap: onProfileTap,
                       ),
                       _MenuItem(
-                        icon: Icons.auto_awesome_outlined,
-                        title: l10n.account_menu_features,
-                        onTap: onFeaturesTap,
+                        icon: Icons.shield_outlined,
+                        title: l10n.account_menu_privacy,
+                        onTap: onPrivacyTap,
                       ),
+                      _MenuItem(
+                        icon: Icons.block_rounded,
+                        title: l10n.account_menu_blacklist,
+                        onTap: onBlacklistTap,
+                      ),
+                      _MenuItem(
+                        icon: Icons.smartphone_rounded,
+                        title: l10n.account_menu_devices,
+                        onTap: onDevicesTap,
+                      ),
+                      const SizedBox(height: 8),
+                      Divider(
+                        height: 1,
+                        color: (dark ? Colors.white : scheme.onSurface)
+                            .withValues(alpha: dark ? 0.12 : 0.14),
+                      ),
+                      const SizedBox(height: 8),
+                      // Группа 2: Чат и уведомления
                       _MenuItem(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: l10n.account_menu_chat_settings,
@@ -340,19 +359,23 @@ class _AccountView extends StatelessWidget {
                         onTap: onNotificationsTap,
                       ),
                       _MenuItem(
-                        icon: Icons.access_time_rounded,
-                        title: l10n.account_menu_privacy,
-                        onTap: onPrivacyTap,
+                        icon: Icons.auto_awesome_outlined,
+                        title: l10n.account_menu_features,
+                        onTap: onFeaturesTap,
                       ),
-                      _MenuItem(
-                        icon: Icons.smartphone_rounded,
-                        title: l10n.account_menu_devices,
-                        onTap: onDevicesTap,
+                      const SizedBox(height: 8),
+                      Divider(
+                        height: 1,
+                        color: (dark ? Colors.white : scheme.onSurface)
+                            .withValues(alpha: dark ? 0.12 : 0.14),
                       ),
+                      const SizedBox(height: 8),
+                      // Группа 3: Приложение
                       _MenuItem(
-                        icon: Icons.block_rounded,
-                        title: l10n.account_menu_blacklist,
-                        onTap: onBlacklistTap,
+                        icon: Icons.palette_outlined,
+                        title: l10n.account_menu_theme,
+                        trailing: '· $themeLabel',
+                        onTap: onThemeTap,
                       ),
                       _MenuItem(
                         icon: Icons.language_rounded,
@@ -369,12 +392,6 @@ class _AccountView extends StatelessWidget {
                         icon: Icons.battery_saver_rounded,
                         title: l10n.account_menu_energy_saving,
                         onTap: onEnergySavingTap,
-                      ),
-                      _MenuItem(
-                        icon: Icons.auto_awesome_outlined,
-                        title: l10n.account_menu_theme,
-                        trailing: '· $themeLabel',
-                        onTap: onThemeTap,
                       ),
                       const SizedBox(height: 10),
                       Divider(

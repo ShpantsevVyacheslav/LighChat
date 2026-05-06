@@ -50,6 +50,7 @@ class _MeetingEntryScreenState extends ConsumerState<MeetingEntryScreen> {
         return MeetingJoinScreen(
           meetingId: widget.meetingId,
           selfUid: user.uid,
+          isGuest: user.isAnonymous,
           initialName: displayName.isNotEmpty
               ? displayName
               : (user.isAnonymous ? '' : l10n.meeting_entry_participant_fallback),

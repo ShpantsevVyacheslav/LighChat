@@ -24,6 +24,7 @@ class MeetingJoinScreen extends ConsumerStatefulWidget {
     super.key,
     required this.meetingId,
     required this.selfUid,
+    required this.isGuest,
     this.initialName,
     this.initialAvatar,
     this.initialAvatarThumb,
@@ -32,6 +33,7 @@ class MeetingJoinScreen extends ConsumerStatefulWidget {
 
   final String meetingId;
   final String selfUid;
+  final bool isGuest;
   final String? initialName;
   final String? initialAvatar;
   final String? initialAvatarThumb;
@@ -77,7 +79,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
   }
 
   Future<void> _submitRequest() async {
-    final name = _nameCtrl.text.trim();
+    final name = _resolveName();
     if (name.isEmpty) {
       setState(() => _lastError = AppLocalizations.of(context)!.meeting_join_enter_name);
       return;
@@ -107,10 +109,20 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
     }
   }
 
+  String _resolveName() {
+    if (!widget.isGuest) {
+      return (widget.initialName ?? '').trim();
+    }
+    return _nameCtrl.text.trim();
+  }
+
   void _goToRoom() {
-    final name = _nameCtrl.text.trim().isEmpty
-        ? (widget.initialName ?? AppLocalizations.of(context)!.meeting_join_guest)
-        : _nameCtrl.text.trim();
+    final resolved = _resolveName();
+    final name = resolved.isEmpty
+        ? (widget.initialName?.trim().isNotEmpty == true
+            ? widget.initialName!.trim()
+            : AppLocalizations.of(context)!.meeting_join_guest)
+        : resolved;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => MeetingRoomScreen(
@@ -201,21 +213,24 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
           style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const SizedBox(height: 20),
-        TextField(
-          controller: _nameCtrl,
-          textCapitalization: TextCapitalization.words,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.meeting_name_label,
-            labelStyle: const TextStyle(color: Colors.white70),
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.08),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+        if (widget.isGuest)
+          TextField(
+            controller: _nameCtrl,
+            textCapitalization: TextCapitalization.words,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.meeting_name_label,
+              labelStyle: const TextStyle(color: Colors.white70),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.08),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
-          ),
-        ),
+          )
+        else
+          _identityCard(context),
         if (_lastError != null) ...[
           const SizedBox(height: 8),
           Text(
@@ -306,6 +321,67 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
       color: const Color(0xFFF59E0B),
       title: l10n.meeting_waiting_title,
       subtitle: l10n.meeting_waiting_subtitle,
+    );
+  }
+
+  Widget _identityCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final name = (widget.initialName ?? '').trim();
+    final displayName = name.isEmpty ? l10n.meeting_join_guest : name;
+    final avatar = widget.initialAvatar;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.white.withValues(alpha: 0.12),
+            backgroundImage:
+                (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
+            child: (avatar == null || avatar.isEmpty)
+                ? Text(
+                    displayName.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.meeting_join_as_label,
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -18,6 +18,7 @@ import '../data/meeting_providers.dart';
 import '../data/meeting_webrtc.dart';
 import '../data/virtual_background_controller.dart';
 import 'meeting_controls.dart';
+import 'meeting_floating_messages.dart';
 import 'meeting_participant_tile.dart';
 import 'meeting_reactions_overlay.dart';
 import 'meeting_sidebar.dart';
@@ -66,6 +67,11 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   bool _initialized = false;
   bool _leaving = false;
   String? _initError;
+
+  /// Сколько chat-сообщений уже «увидел» пользователь (синхронизируется
+  /// при открытии сайдбара). Разница с текущей длиной ленты — это unread,
+  /// который попадёт в общий счётчик «Уведомления» на нижней панели.
+  int _chatSeenCount = -1;
 
   /// Режим раскладки. Эквивалент `viewMode` из
   /// `src/components/meetings/MeetingRoom.tsx`.
@@ -319,6 +325,39 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     bool isHostOrAdmin,
   ) {
     final vb = ref.read(virtualBackgroundControllerProvider);
+
+    final chatList = ref
+            .watch(meetingChatMessagesProvider(widget.meetingId))
+            .asData
+            ?.value ??
+        const [];
+    final pollsList =
+        ref.watch(meetingPollsProvider(widget.meetingId)).asData?.value ??
+            const [];
+    final activePollsCount =
+        pollsList.where((p) => p.status == 'active').length;
+    final pendingRequestsCount = isHostOrAdmin
+        ? requests.where((r) => r.status == 'pending').length
+        : 0;
+
+    if (_chatSeenCount < 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _chatSeenCount = chatList.length);
+      });
+    } else if (_sidebarOpen && _chatSeenCount != chatList.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _chatSeenCount = chatList.length);
+      });
+    }
+
+    final chatUnread = _chatSeenCount < 0
+        ? 0
+        : (chatList.length - _chatSeenCount).clamp(0, 99999);
+    final notificationsCount =
+        chatUnread + activePollsCount + pendingRequestsCount;
+
     return MeetingControls(
       micMuted: _webrtc?.micMuted ?? false,
       cameraMuted: _webrtc?.cameraMuted ?? false,
@@ -326,9 +365,8 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
       screenSharing: _webrtc?.screenSharing ?? false,
       screenShareSupported: _screenShareSupported,
       participantsCount: participants.length,
-      requestsCount: isHostOrAdmin
-          ? requests.where((r) => r.status == 'pending').length
-          : 0,
+      notificationsCount: notificationsCount,
+      onOpenNotifications: () => setState(() => _sidebarOpen = true),
       virtualBackgroundMode: vb.isPlatformBacked ? _vbMode : null,
       onToggleVirtualBackground:
           vb.isPlatformBacked ? _cycleVirtualBackground : null,
@@ -440,6 +478,16 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         Positioned.fill(
           child: IgnorePointer(
             child: MeetingReactionsOverlay(participants: participants),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 110,
+          child: MeetingFloatingMessages(
+            meetingId: widget.meetingId,
+            selfUid: widget.selfUid,
+            enabled: !_sidebarOpen,
           ),
         ),
         if (_sidebarOpen)

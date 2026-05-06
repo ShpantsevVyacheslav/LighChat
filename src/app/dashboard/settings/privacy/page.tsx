@@ -10,7 +10,6 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, RotateCcw, Mail, Smartphone, Cake, UserRound, Search, Users } from "lucide-react";
-import { LanguageSettingsCard } from "@/components/settings/LanguageSettingsCard";
 
 export default function PrivacySettingsPage() {
   const { user, isLoading } = useAuth();
@@ -60,8 +59,6 @@ export default function PrivacySettingsPage() {
           <p className="text-xs sm:text-sm text-muted-foreground">{t("privacy.pageSubtitle")}</p>
         </div>
       </div>
-
-      <LanguageSettingsCard />
 
       <Card>
         <CardHeader>

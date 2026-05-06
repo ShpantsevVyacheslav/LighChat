@@ -33,7 +33,6 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
   final TextEditingController _title = TextEditingController();
   _MeetingDuration _duration = _MeetingDuration.none;
   bool _isPrivate = true;
-  bool _waitingRoom = false;
   bool _creating = false;
 
   @override
@@ -374,8 +373,6 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            _waitingRoomCheckbox(context),
           ],
         ),
       ),
@@ -521,65 +518,6 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                 onChanged: (v) => setState(() => _isPrivate = v),
                 activeTrackColor: scheme.primary.withValues(alpha: 0.65),
                 activeThumbColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _waitingRoomCheckbox(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-    final dark = scheme.brightness == Brightness.dark;
-    final fg = dark ? Colors.white : scheme.onSurface;
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () => setState(() => _waitingRoom = !_waitingRoom),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: Checkbox(
-                value: _waitingRoom,
-                onChanged: (v) => setState(() => _waitingRoom = v ?? false),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                side: BorderSide(color: fg.withValues(alpha: 0.35), width: 1.4),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.chat_meetings_waiting_room_toggle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: fg.withValues(alpha: 0.92),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.chat_meetings_waiting_room_toggle_subtitle,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: fg.withValues(alpha: 0.55),
-                      height: 1.3,
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
@@ -740,7 +678,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
       final meetingId = await repo.createMeeting(
         hostId: user.uid,
         name: name,
-        isPrivate: _isPrivate || _waitingRoom,
+        isPrivate: _isPrivate,
         duration: _duration.asDuration(),
       );
       if (!mounted) return;

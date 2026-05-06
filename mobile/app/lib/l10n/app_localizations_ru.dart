@@ -1452,13 +1452,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Загружайте фоны и размывайте задний план при желании. Изображение из галереи. Также доступна загрузка собственных фонов.';
 
   @override
-  String get chat_meetings_waiting_room_toggle => 'Добавить комнату ожидания';
-
-  @override
-  String get chat_meetings_waiting_room_toggle_subtitle =>
-      'Только хозяин комнаты может дать разрешение на подключение и блокировать';
-
-  @override
   String get chat_meetings_create_button => 'Создать встречу';
 
   @override
@@ -4028,6 +4021,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get meeting_participants_button => 'Участники';
 
   @override
+  String get meeting_notifications_button => 'Активность';
+
+  @override
   String get settings_chats_bottom_nav_icons_title => 'Иконки нижнего меню';
 
   @override
@@ -4587,6 +4583,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meeting_join_guest => 'Гость';
+
+  @override
+  String get meeting_join_as_label => 'Вы войдёте как';
 
   @override
   String get meeting_join_button => 'Присоединиться';

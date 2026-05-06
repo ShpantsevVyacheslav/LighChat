@@ -2582,18 +2582,6 @@ abstract class AppLocalizations {
   /// **'Загружайте фоны и размывайте задний план при желании. Изображение из галереи. Также доступна загрузка собственных фонов.'**
   String get chat_meetings_backgrounds_desc;
 
-  /// No description provided for @chat_meetings_waiting_room_toggle.
-  ///
-  /// In ru, this message translates to:
-  /// **'Добавить комнату ожидания'**
-  String get chat_meetings_waiting_room_toggle;
-
-  /// No description provided for @chat_meetings_waiting_room_toggle_subtitle.
-  ///
-  /// In ru, this message translates to:
-  /// **'Только хозяин комнаты может дать разрешение на подключение и блокировать'**
-  String get chat_meetings_waiting_room_toggle_subtitle;
-
   /// No description provided for @chat_meetings_create_button.
   ///
   /// In ru, this message translates to:
@@ -7016,6 +7004,12 @@ abstract class AppLocalizations {
   /// **'Участники'**
   String get meeting_participants_button;
 
+  /// No description provided for @meeting_notifications_button.
+  ///
+  /// In ru, this message translates to:
+  /// **'Активность'**
+  String get meeting_notifications_button;
+
   /// No description provided for @settings_chats_bottom_nav_icons_title.
   ///
   /// In ru, this message translates to:
@@ -8005,6 +7999,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Гость'**
   String get meeting_join_guest;
+
+  /// No description provided for @meeting_join_as_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы войдёте как'**
+  String get meeting_join_as_label;
 
   /// No description provided for @meeting_join_button.
   ///

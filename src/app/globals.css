@@ -172,6 +172,17 @@
   100% { background-color: transparent; }
 }
 
+@keyframes floating-call-message-in {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.92); }
+  10%  { opacity: 1; transform: translateY(0) scale(1); }
+  85%  { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-12px) scale(0.96); }
+}
+
+.floating-call-message {
+  animation: floating-call-message-in 5s ease-out forwards;
+}
+
 @keyframes reaction-float {
   0% { transform: translateY(0) translateX(0) scale(0.5); opacity: 0; }
   10% { opacity: 1; transform: translateY(-60px) translateX(10px) scale(1.4); }

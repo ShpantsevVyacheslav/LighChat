@@ -58,12 +58,29 @@ class _MeetingReactionsOverlayState extends State<MeetingReactionsOverlay>
   }
 
   void _spawn(String emoji) {
+    final burstSize = 14 + _rnd.nextInt(5);
+    for (var i = 0; i < burstSize; i++) {
+      final delay = Duration(milliseconds: _rnd.nextInt(700));
+      Future.delayed(delay, () {
+        if (!mounted) return;
+        _spawnSingle(emoji);
+      });
+    }
+  }
+
+  void _spawnSingle(String emoji) {
     final ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2800),
+      duration: Duration(milliseconds: 2400 + _rnd.nextInt(1800)),
     );
-    final left = 4.0 + _rnd.nextDouble() * 92.0;
-    final item = _FlyItem(emoji: emoji, controller: ctrl, leftPercent: left);
+    final left = 18.0 + _rnd.nextDouble() * 64.0;
+    final scale = 0.7 + _rnd.nextDouble() * 0.7;
+    final item = _FlyItem(
+      emoji: emoji,
+      controller: ctrl,
+      leftPercent: left,
+      scale: scale,
+    );
     _active.add(item);
     ctrl.addListener(() {
       if (mounted) setState(() {});
@@ -104,7 +121,7 @@ class _MeetingReactionsOverlayState extends State<MeetingReactionsOverlay>
                   child: Opacity(
                     opacity: (1.0 - item.controller.value).clamp(0.0, 1.0),
                     child: Transform.scale(
-                      scale: 0.8 + item.controller.value * 0.7,
+                      scale: item.scale * (0.6 + item.controller.value * 0.7),
                       child: Text(
                         item.emoji,
                         style: const TextStyle(fontSize: 56),
@@ -125,8 +142,10 @@ class _FlyItem {
     required this.emoji,
     required this.controller,
     required this.leftPercent,
+    required this.scale,
   });
   final String emoji;
   final AnimationController controller;
   final double leftPercent;
+  final double scale;
 }

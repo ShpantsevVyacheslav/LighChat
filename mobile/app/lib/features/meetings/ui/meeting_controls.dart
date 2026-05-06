@@ -21,7 +21,8 @@ class MeetingControls extends StatelessWidget {
     required this.onOpenSidebar,
     required this.onLeave,
     this.participantsCount = 0,
-    this.requestsCount = 0,
+    this.notificationsCount = 0,
+    this.onOpenNotifications,
     this.virtualBackgroundMode,
     this.onToggleVirtualBackground,
     this.handRaised = false,
@@ -40,7 +41,11 @@ class MeetingControls extends StatelessWidget {
   final VoidCallback onOpenSidebar;
   final VoidCallback onLeave;
   final int participantsCount;
-  final int requestsCount;
+
+  /// Сумма chat-unread + активных голосований + pending заявок (для админа).
+  /// Если > 0 — рисуется отдельная кнопка-«колокольчик» с бейджем.
+  final int notificationsCount;
+  final VoidCallback? onOpenNotifications;
   final VirtualBackgroundMode? virtualBackgroundMode;
   final VoidCallback? onToggleVirtualBackground;
 
@@ -125,17 +130,28 @@ class MeetingControls extends StatelessWidget {
               : const Color(0xFF6D28D9),
           onTap: onToggleVirtualBackground!,
         ),
+      if (onOpenNotifications != null)
+        _IconButton(
+          icon: notificationsCount > 0
+              ? Icons.notifications_active_rounded
+              : Icons.notifications_none_rounded,
+          label: l10n.meeting_notifications_button,
+          background: notificationsCount > 0
+              ? const Color(0xFFDC2626)
+              : Colors.white24,
+          onTap: onOpenNotifications!,
+          badge: notificationsCount > 0
+              ? (notificationsCount > 99 ? '99+' : notificationsCount.toString())
+              : null,
+          badgeColor: Colors.white,
+        ),
       _IconButton(
         icon: Icons.people_rounded,
         label: l10n.meeting_participants_button,
         background: Colors.white24,
         onTap: onOpenSidebar,
-        badge: requestsCount > 0
-            ? requestsCount.toString()
-            : (participantsCount > 0
-                ? participantsCount.toString()
-                : null),
-        badgeColor: requestsCount > 0 ? Colors.amber : Colors.white70,
+        badge: participantsCount > 0 ? participantsCount.toString() : null,
+        badgeColor: Colors.white70,
       ),
       _IconButton(
         icon: Icons.call_end_rounded,

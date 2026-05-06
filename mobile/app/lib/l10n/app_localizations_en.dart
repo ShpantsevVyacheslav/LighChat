@@ -1437,13 +1437,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Upload backgrounds and blur your background if you want. Pick an image from the gallery or upload your own backgrounds.';
 
   @override
-  String get chat_meetings_waiting_room_toggle => 'Add waiting room';
-
-  @override
-  String get chat_meetings_waiting_room_toggle_subtitle =>
-      'Only the host can admit participants and block access.';
-
-  @override
   String get chat_meetings_create_button => 'Create meeting';
 
   @override
@@ -4001,6 +3994,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meeting_participants_button => 'Members';
 
   @override
+  String get meeting_notifications_button => 'Activity';
+
+  @override
   String get settings_chats_bottom_nav_icons_title => 'Bottom navigation icons';
 
   @override
@@ -4559,6 +4555,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meeting_join_guest => 'Guest';
+
+  @override
+  String get meeting_join_as_label => 'You\'ll join as';
 
   @override
   String get meeting_join_button => 'Join';

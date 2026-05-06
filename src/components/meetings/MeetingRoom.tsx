@@ -39,6 +39,9 @@ interface FlyingEmoji {
   id: string;
   emoji: string;
   left: number;
+  delay: number;
+  duration: number;
+  scale: number;
 }
 
 const STANDARD_BG_LIST = [
@@ -76,6 +79,7 @@ export function MeetingRoom({
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [flyingEmojis, setFlyingEmojis] = useState<FlyingEmoji[]>([]);
   const reactionsSeenRef = useRef<Record<string, string | null | undefined>>({});
+  const [floatingMessages, setFloatingMessages] = useState<{ id: string; senderId: string; senderName: string; text: string; avatar?: string }[]>([]);
   
   const lastSpeakerSwitchTime = useRef<number>(0);
   const SPEAKER_SWITCH_GRACE_PERIOD = 2500; 
@@ -99,12 +103,25 @@ export function MeetingRoom({
   , [meeting, currentUser.id]);
 
   const spawnFlyingEmoji = useCallback((emoji: string) => {
-    const id = `${Date.now()}-${Math.random()}`;
-    const left = 40 + Math.random() * 20; 
-    setFlyingEmojis(prev => [...prev, { id, emoji, left }]);
+    const burstSize = 14 + Math.floor(Math.random() * 5);
+    const burstStamp = `${Date.now()}-${Math.random()}`;
+    const items: FlyingEmoji[] = [];
+    for (let i = 0; i < burstSize; i++) {
+      items.push({
+        id: `${burstStamp}-${i}`,
+        emoji,
+        left: 18 + Math.random() * 64,
+        delay: Math.random() * 700,
+        duration: 3200 + Math.random() * 1800,
+        scale: 0.7 + Math.random() * 0.7,
+      });
+    }
+    setFlyingEmojis(prev => [...prev, ...items]);
+    const maxLifetime = Math.max(...items.map(it => it.delay + it.duration)) + 200;
     setTimeout(() => {
-      setFlyingEmojis(prev => prev.filter(e => e.id !== id));
-    }, 4000);
+      const ids = new Set(items.map(it => it.id));
+      setFlyingEmojis(prev => prev.filter(e => !ids.has(e.id)));
+    }, maxLifetime);
   }, []);
 
   useEffect(() => {
@@ -159,8 +176,31 @@ export function MeetingRoom({
       if (newAdded.length > 0 && activeSidebarTab !== 'chat') {
           setUnreadChatCount(prev => prev + newAdded.length);
       }
+      if (!isInitial && activeSidebarTab !== 'chat' && newAdded.length > 0) {
+        for (const c of newAdded) {
+          const data = c.doc.data() as { text?: string; senderName?: string; senderId?: string; senderAvatar?: string; isDeleted?: boolean };
+          if (data.isDeleted) continue;
+          const text = (data.text ?? '').trim();
+          if (!text) continue;
+          if (data.senderId === currentUser.id) continue;
+          const id = c.doc.id;
+          setFloatingMessages(prev => {
+            const next = [...prev.filter(m => m.id !== id), {
+              id,
+              senderId: data.senderId ?? '',
+              senderName: data.senderName ?? '',
+              text,
+              avatar: data.senderAvatar,
+            }];
+            return next.slice(-3);
+          });
+          setTimeout(() => {
+            setFloatingMessages(prev => prev.filter(m => m.id !== id));
+          }, 5000);
+        }
+      }
     });
-  }, [firestore, meeting.id, activeSidebarTab, rtc.isParticipantSynced]);
+  }, [firestore, meeting.id, activeSidebarTab, rtc.isParticipantSynced, currentUser.id]);
 
   useEffect(() => {
     if (!firestore || !rtc.isParticipantSynced) return;
@@ -545,7 +585,8 @@ export function MeetingRoom({
                     onToggleChat={() => handleToggleTab('chat')} 
                     onToggleParticipants={() => handleToggleTab('participants')}
                     onTogglePolls={() => handleToggleTab('polls')}
-                    onSendReaction={(emoji) => { 
+                    onSendReaction={(emoji) => {
+                        spawnFlyingEmoji(emoji);
                         updateDoc(doc(firestore!, `meetings/${meeting.id}/participants`, currentUser.id), { reaction: emoji });
                         setTimeout(() => updateDoc(doc(firestore!, `meetings/${meeting.id}/participants`, currentUser.id), { reaction: null }), 3000);
                     }} onSwitchCamera={rtc.switchCamera}
@@ -562,9 +603,41 @@ export function MeetingRoom({
         />
       </div>
 
+      {floatingMessages.length > 0 && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] z-[90] pointer-events-none flex flex-col items-center gap-2 max-w-[min(420px,90vw)] w-full">
+          {floatingMessages.map(m => (
+            <div
+              key={m.id}
+              className="floating-call-message w-full bg-black/70 backdrop-blur-md text-white rounded-2xl px-3 py-2 flex items-start gap-2 shadow-lg border border-white/10"
+            >
+              {m.avatar ? (
+                <img src={m.avatar} alt="" className="h-7 w-7 rounded-full flex-shrink-0 object-cover" />
+              ) : (
+                <div className="h-7 w-7 rounded-full bg-white/15 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                  {(m.senderName || '?').slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-semibold text-white/80 truncate">{m.senderName || 'Гость'}</div>
+                <div className="text-sm leading-snug break-words line-clamp-2">{m.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
         {flyingEmojis.map(item => (
-          <div key={item.id} className="absolute bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] text-6xl animate-reaction-float select-none will-change-transform" style={{ left: `${item.left}%` }}>{item.emoji}</div>
+          <div
+            key={item.id}
+            className="absolute bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] text-6xl animate-reaction-float select-none will-change-transform"
+            style={{
+              left: `${item.left}%`,
+              animationDelay: `${item.delay}ms`,
+              animationDuration: `${item.duration}ms`,
+              fontSize: `${item.scale * 3.75}rem`,
+            }}
+          >{item.emoji}</div>
         ))}
       </div>
     </div>

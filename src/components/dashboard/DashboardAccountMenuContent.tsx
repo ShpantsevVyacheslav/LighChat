@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Palette,
   Sparkles,
+  UserX,
+  Languages,
 } from 'lucide-react';
 import type { AppThemePreference, UserRole } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,11 +38,13 @@ function ProfileMenuItem({
   label,
   href,
   onClick,
+  trailing,
 }: {
   icon: React.ElementType;
   label: string;
   href: string;
   onClick: () => void;
+  trailing?: string;
 }) {
   return (
     <Link
@@ -48,9 +52,12 @@ function ProfileMenuItem({
       onClick={onClick}
       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-foreground/5 transition-colors group"
     >
-      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-      <span className="flex-1">{label}</span>
-      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+      <span className="flex-1 min-w-0">
+        <span className="font-medium">{label}</span>
+        {trailing && <span className="text-muted-foreground"> · {trailing}</span>}
+      </span>
+      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
     </Link>
   );
 }
@@ -69,7 +76,14 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
   const { isMobile, setOpenMobile } = useSidebar();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, preference } = useI18n();
+
+  const currentLanguageLabel =
+    preference === 'ru'
+      ? t('settings.language.ru')
+      : preference === 'en'
+        ? t('settings.language.en')
+        : t('settings.language.system');
 
   const handleNav = React.useCallback(() => {
     onNavigate();
@@ -127,18 +141,30 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
         </div>
       </div>
       <div className="h-px bg-border/50 mx-2 my-1" />
+      {/* Group 1: Аккаунт и приватность */}
       <nav className="flex flex-col gap-0.5">
-        <ProfileMenuItem icon={UserCircle} label={t('accountMenu.profile')} href="/dashboard/profile" onClick={handleNav} />
         <ProfileMenuItem
-          icon={Sparkles}
-          label={t('accountMenu.features')}
-          href="/dashboard/features"
+          icon={UserCircle}
+          label={t('accountMenu.profile')}
+          href="/dashboard/profile"
           onClick={handleNav}
         />
         <ProfileMenuItem
-          icon={MessageSquare}
-          label={t('accountMenu.chatSettings')}
-          href="/dashboard/settings/chats"
+          icon={Shield}
+          label={t('accountMenu.privacy')}
+          href="/dashboard/settings/privacy"
+          onClick={handleNav}
+        />
+        <ProfileMenuItem
+          icon={UserX}
+          label={t('accountMenu.blacklist')}
+          href="/dashboard/profile/blocked"
+          onClick={handleNav}
+        />
+        <ProfileMenuItem
+          icon={Smartphone}
+          label={t('accountMenu.devices')}
+          href="/dashboard/settings/devices"
           onClick={handleNav}
         />
         {role === 'admin' && (
@@ -149,29 +175,53 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
             onClick={handleNav}
           />
         )}
+      </nav>
+      <div className="h-px bg-border/50 mx-2 my-1" />
+      {/* Group 2: Чат и уведомления */}
+      <nav className="flex flex-col gap-0.5">
+        <ProfileMenuItem
+          icon={MessageSquare}
+          label={t('accountMenu.chatSettings')}
+          href="/dashboard/settings/chats"
+          onClick={handleNav}
+        />
         <ProfileMenuItem
           icon={BellRing}
           label={t('accountMenu.notifications')}
           href="/dashboard/settings/notifications"
           onClick={handleNav}
         />
-        <ProfileMenuItem icon={Shield} label={t('accountMenu.privacy')} href="/dashboard/settings/privacy" onClick={handleNav} />
-        <ProfileMenuItem icon={Smartphone} label={t('accountMenu.devices')} href="/dashboard/settings/devices" onClick={handleNav} />
+        <ProfileMenuItem
+          icon={Sparkles}
+          label={t('accountMenu.features')}
+          href="/dashboard/features"
+          onClick={handleNav}
+        />
       </nav>
       <div className="h-px bg-border/50 mx-2 my-1" />
-      <button
-        type="button"
-        onClick={cycleTheme}
-        className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-foreground/5 transition-colors text-left group"
-        aria-label={t('accountMenu.themeAria', { label: currentThemeLabel })}
-      >
-        <Palette className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-        <span className="flex-1 min-w-0">
-          <span className="font-medium">{t('accountMenu.theme')}</span>
-          <span className="text-muted-foreground"> · {currentThemeLabel}</span>
-        </span>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" aria-hidden />
-      </button>
+      {/* Group 3: Приложение */}
+      <nav className="flex flex-col gap-0.5">
+        <ProfileMenuItem
+          icon={Languages}
+          label={t('accountMenu.language')}
+          href="/dashboard/settings/language"
+          onClick={handleNav}
+          trailing={currentLanguageLabel}
+        />
+        <button
+          type="button"
+          onClick={cycleTheme}
+          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-foreground/5 transition-colors text-left group"
+          aria-label={t('accountMenu.themeAria', { label: currentThemeLabel })}
+        >
+          <Palette className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          <span className="flex-1 min-w-0">
+            <span className="font-medium">{t('accountMenu.theme')}</span>
+            <span className="text-muted-foreground"> · {currentThemeLabel}</span>
+          </span>
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" aria-hidden />
+        </button>
+      </nav>
       <div className="h-px bg-border/50 mx-2 my-1" />
       <button
         type="button"
