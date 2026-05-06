@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LighChat</string>
+    <string name="app_description">Mensageiro seguro com criptografia E2E, login multi-dispositivo via QR e videochamadas em HD</string>
+</resources>

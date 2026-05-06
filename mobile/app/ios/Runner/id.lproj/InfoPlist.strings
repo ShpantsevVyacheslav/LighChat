@@ -1,0 +1,9 @@
+"CFBundleDisplayName" = "LighChat";
+"CFBundleName" = "LighChat";
+"NSCameraUsageDescription" = "Untuk mengambil foto dan video untuk pesan obrolan";
+"NSContactsUsageDescription" = "Untuk menemukan teman dan menyinkronkan kontak dari buku telepon";
+"NSFaceIDUsageDescription" = "Untuk membuka obrolan rahasia dan mengonfirmasi tindakan brankas";
+"NSLocationWhenInUseUsageDescription" = "Untuk mengirim dan memperbarui lokasi Anda di obrolan";
+"NSMicrophoneUsageDescription" = "Untuk merekam video dengan suara di obrolan";
+"NSPhotoLibraryAddUsageDescription" = "Untuk menyimpan foto dan video dari obrolan ke galeri";
+"NSPhotoLibraryUsageDescription" = "Untuk melampirkan foto dan video dari galeri";

@@ -92,14 +92,7 @@ export const metadata: Metadata = {
     siteName: 'LighChat',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION_SHORT,
-    images: [
-      {
-        url: '/og/og-1200x630.png',
-        width: 1200,
-        height: 630,
-        alt: 'LighChat — безопасный мессенджер с шифрованием и QR-входом',
-      },
-    ],
+    /** Картинка предоставляется через `src/app/opengraph-image.tsx` (динамическая генерация). */
   },
   twitter: {
     card: 'summary_large_image',
@@ -107,7 +100,7 @@ export const metadata: Metadata = {
     creator: '@lighchat',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION_SHORT,
-    images: ['/og/og-1200x630.png'],
+    /** Картинка предоставляется через `src/app/twitter-image.tsx` (если нужна отдельная) — пока используется OG-картинка. */
   },
   robots: {
     index: true,
@@ -157,6 +150,39 @@ export default function RootLayout({
       className={cn(fontInter.variable, fontSpaceGrotesk.variable, fontMontserrat.variable)}
     >
       <head>
+        {/** JSON-LD: SoftwareApplication schema для rich-snippets в Google. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'LighChat',
+              applicationCategory: 'CommunicationApplication',
+              operatingSystem: 'iOS, Android, Windows, macOS, Linux, Web',
+              description:
+                'Приватный мессенджер с E2E-шифрованием, мульти-девайс через QR и кастомными темами. Альтернатива WhatsApp и Telegram.',
+              url: SITE_URL,
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'RUB',
+              },
+              publisher: {
+                '@type': 'Organization',
+                name: 'LighChat',
+                url: SITE_URL,
+              },
+              featureList: [
+                'End-to-end encryption',
+                'QR multi-device login',
+                'HD video calls',
+                'Custom chat themes',
+                'Cross-platform (iOS, Android, Web, Desktop)',
+              ],
+            }),
+          }}
+        />
         {/* Automatic recovery from ChunkLoadError */}
         <script
           dangerouslySetInnerHTML={{

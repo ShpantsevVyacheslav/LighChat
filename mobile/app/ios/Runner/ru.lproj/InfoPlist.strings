@@ -1,0 +1,9 @@
+"CFBundleDisplayName" = "LighChat";
+"CFBundleName" = "LighChat";
+"NSCameraUsageDescription" = "Чтобы снимать фото и видео для сообщений в чате";
+"NSContactsUsageDescription" = "Чтобы находить знакомых и синхронизировать контакты из телефонной книги";
+"NSFaceIDUsageDescription" = "Для разблокировки секретных чатов и подтверждения действий в хранилище";
+"NSLocationWhenInUseUsageDescription" = "Чтобы отправлять и обновлять геолокацию в чате";
+"NSMicrophoneUsageDescription" = "Для записи видео со звуком в чате";
+"NSPhotoLibraryAddUsageDescription" = "Чтобы сохранять фото и видео из чата в галерею";
+"NSPhotoLibraryUsageDescription" = "Чтобы прикреплять фото и видео из галереи";

@@ -1,0 +1,9 @@
+"CFBundleDisplayName" = "LighChat";
+"CFBundleName" = "LighChat";
+"NSCameraUsageDescription" = "Para tomar fotos y videos para mensajes en el chat";
+"NSContactsUsageDescription" = "Para encontrar conocidos y sincronizar contactos de tu agenda";
+"NSFaceIDUsageDescription" = "Para desbloquear chats secretos y confirmar acciones en la bóveda";
+"NSLocationWhenInUseUsageDescription" = "Para enviar y actualizar tu ubicación en el chat";
+"NSMicrophoneUsageDescription" = "Para grabar videos con sonido en el chat";
+"NSPhotoLibraryAddUsageDescription" = "Para guardar fotos y videos del chat en tu galería";
+"NSPhotoLibraryUsageDescription" = "Para adjuntar fotos y videos de tu galería";

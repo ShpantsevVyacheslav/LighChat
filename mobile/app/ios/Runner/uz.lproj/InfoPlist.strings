@@ -1,0 +1,9 @@
+"CFBundleDisplayName" = "LighChat";
+"CFBundleName" = "LighChat";
+"NSCameraUsageDescription" = "Chat xabarlari uchun foto va video olish";
+"NSContactsUsageDescription" = "Tanishlarni topish va telefon kitobidan kontaktlarni sinxronlash";
+"NSFaceIDUsageDescription" = "Maxfiy chatlarni ochish va amallarni tasdiqlash uchun";
+"NSLocationWhenInUseUsageDescription" = "Chatda joylashuvni yuborish va yangilash uchun";
+"NSMicrophoneUsageDescription" = "Chatda video va ovozni yozish uchun";
+"NSPhotoLibraryAddUsageDescription" = "Chatdan foto va videolarni galereyaga saqlash uchun";
+"NSPhotoLibraryUsageDescription" = "Galereyadan foto va video qo'shish uchun";
