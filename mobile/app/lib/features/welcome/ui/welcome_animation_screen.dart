@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../brand_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features_tour/data/features_welcome_pending.dart';
 import '../data/first_login_animation_storage.dart';
 import 'welcome_painters.dart';
 
@@ -98,11 +99,12 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
     if (_exited || !mounted) return;
     _exited = true;
     _controller.stop();
-    // После welcome-анимации всегда идём на /chats. Приглашение в тур
-    // («Discover LighChat features») показывается отдельной модалкой
-    // (`FeaturesWelcomeSheet`) поверх /chats — это управляется
-    // `FeaturesWelcomePending`, который уже помечен из
-    // `_AuthRefreshNotifier` на каждый успешный sign-in.
+    // Помечаем pending ровно перед переходом на /chats — чтобы
+    // `FeaturesWelcomeSheet` всплыл ПОСЛЕ welcome-анимации, а не до.
+    // Если ставить pending в `_AuthRefreshNotifier` (как было раньше),
+    // chat_list_screen успеет открыть sheet до того, как мы уйдём
+    // на /welcome (т.к. SharedPreferences-redirect асинхронный).
+    FeaturesWelcomePending.markPending();
     context.go('/chats');
   }
 
