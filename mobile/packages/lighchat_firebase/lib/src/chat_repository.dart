@@ -1542,6 +1542,32 @@ class ChatRepository {
       'unreadCounts.$userId': 0,
       'unreadThreadCounts.$userId': 0,
     });
+
+    // Чистим избранные сообщения текущего пользователя по этому чату — иначе
+    // ранее starred сообщения остаются на странице "Starred" с кэшированным
+    // previewText даже после очистки истории.
+    try {
+      final starredCol = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('starredChatMessages')
+          .where('conversationId', isEqualTo: conversationId);
+      final snap = await starredCol.get();
+      const chunkSize = 400;
+      for (var i = 0; i < snap.docs.length; i += chunkSize) {
+        final end = (i + chunkSize < snap.docs.length)
+            ? i + chunkSize
+            : snap.docs.length;
+        final batch = _firestore.batch();
+        for (final doc in snap.docs.sublist(i, end)) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+    } catch (_) {
+      // Не блокируем основное действие — сами entries отфильтруются на UI
+      // по clearedAt cutoff'у при рендере.
+    }
   }
 
   String _readFlightKey({

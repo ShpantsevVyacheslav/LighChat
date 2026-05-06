@@ -976,8 +976,19 @@ class _ChatPartnerProfileSheetState
     final msgsAsync = ref.watch(
       messagesProvider((conversationId: widget.conversationId, limit: 400)),
     );
+    // Cutoff "очистка чата для меня": сообщения до этой метки не должны
+    // попадать в счётчики профиля, иначе после Clear Chat остаются висеть.
+    final clearedAtCutoff = DateTime.tryParse(
+      widget.conversation.clearedAt?[widget.currentUserId] ?? '',
+    )?.toUtc();
+    List<ChatMessage> filterCleared(List<ChatMessage> src) {
+      if (clearedAtCutoff == null) return src;
+      return src
+          .where((m) => m.createdAt.toUtc().isAfter(clearedAtCutoff))
+          .toList(growable: false);
+    }
     final mediaCount = msgsAsync.when(
-      data: (m) => profileMediaDocsCount(m),
+      data: (m) => profileMediaDocsCount(filterCleared(m)),
       loading: () => 0,
       error: (_, _) => 0,
     );
@@ -992,8 +1003,9 @@ class _ChatPartnerProfileSheetState
     final starredLabel = starredCount == 0 ? l10n.common_none : '$starredCount';
 
     final threadsCount = msgsAsync.when(
-      data: (m) =>
-          m.where((x) => !x.isDeleted && (x.threadCount ?? 0) > 0).length,
+      data: (m) => filterCleared(
+        m,
+      ).where((x) => !x.isDeleted && (x.threadCount ?? 0) > 0).length,
       loading: () => 0,
       error: (_, _) => 0,
     );

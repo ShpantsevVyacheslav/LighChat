@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,11 @@ class ConversationStarredScreen extends ConsumerWidget {
         conversationId: conversationId,
       )),
     );
+    // Cutoff "очистка чата для меня": если starred entry осталась после очистки
+    // (race / старая запись) — не показываем её.
+    final clearedAtCutoff = DateTime.tryParse(
+      conversation.clearedAt?[currentUserId] ?? '',
+    )?.toUtc();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -43,7 +49,16 @@ class ConversationStarredScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Expanded(
                 child: starredAsync.when(
-                  data: (entries) {
+                  data: (rawEntries) {
+                    final entries = clearedAtCutoff == null
+                        ? rawEntries
+                        : rawEntries
+                              .where(
+                                (e) => e.createdAt.toUtc().isAfter(
+                                  clearedAtCutoff,
+                                ),
+                              )
+                              .toList(growable: false);
                     if (entries.isEmpty) {
                       return _emptyState(context);
                     }
@@ -121,6 +136,8 @@ class _StarredMessageTile extends ConsumerWidget {
   final Conversation conversation;
   final StarredChatMessageEntry entry;
 
+  static final Set<String> _purgedDocIds = <String>{};
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -132,6 +149,26 @@ class _StarredMessageTile extends ConsumerWidget {
     );
     final l10n = AppLocalizations.of(context)!;
     final message = msgAsync.asData?.value;
+    // Базовое сообщение soft-deleted — entry осталась сиротой. Скрываем и
+    // подчищаем серверную запись, чтобы счётчик "Starred" в профиле
+    // тоже схлопнулся.
+    if (message != null && message.isDeleted) {
+      if (_purgedDocIds.add(entry.docId)) {
+        Future<void>.microtask(() async {
+          try {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUserId)
+                .collection('starredChatMessages')
+                .doc(entry.docId)
+                .delete();
+          } catch (_) {
+            _purgedDocIds.remove(entry.docId);
+          }
+        });
+      }
+      return const SizedBox.shrink();
+    }
     final senderName = _senderName(
       l10n: l10n,
       senderId: message?.senderId ?? '',

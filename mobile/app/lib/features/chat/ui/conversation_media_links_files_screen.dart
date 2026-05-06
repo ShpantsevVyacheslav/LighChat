@@ -206,7 +206,17 @@ class _ConversationMediaLinksFilesScreenState
   }
 
   Widget _content(BuildContext context, List<ChatMessage> msgsDesc) {
-    final msgsAsc = [...msgsDesc]
+    // Уважаем "Clear chat for me": сообщения до cutoff'а не должны попадать
+    // ни в одну вкладку галереи, чтобы профильный счётчик совпадал с UI.
+    final cutoff = DateTime.tryParse(
+      widget.conversation.clearedAt?[widget.currentUserId] ?? '',
+    )?.toUtc();
+    final filtered = cutoff == null
+        ? msgsDesc
+        : msgsDesc
+              .where((m) => m.createdAt.toUtc().isAfter(cutoff))
+              .toList(growable: false);
+    final msgsAsc = [...filtered]
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     final mediaItems = collectChatMediaGalleryItems(msgsAsc);
     final circles = _collectCircleItems(msgsAsc);
