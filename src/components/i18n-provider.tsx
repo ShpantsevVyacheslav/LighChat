@@ -3,6 +3,7 @@
 import * as React from 'react';
 import {
   APP_LANGUAGE_STORAGE_KEY,
+  browserDefaultLocale,
   parseAppLanguagePreference,
   resolveWebLocale,
   type AppLanguagePreference,
@@ -85,10 +86,27 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
+/**
+ * Используется в `not-found.tsx` и `error.tsx`, которые в Next.js App Router
+ * могут оказаться вне provider'ов при определённых ошибочных рендерах. Раньше
+ * мы кидали — это превращало любую runtime-ошибку в "Критическую ошибку"
+ * (`global-error.tsx`), маскируя оригинальный bug. Теперь при отсутствии
+ * provider'а возвращаем degradate-значение по `navigator.language`.
+ */
 export function useI18nContext(): I18nContextValue {
   const ctx = React.useContext(I18nContext);
-  if (!ctx) {
-    throw new Error('useI18nContext must be used within I18nProvider');
-  }
-  return ctx;
+  if (ctx) return ctx;
+  return FALLBACK_I18N_CONTEXT;
 }
+
+const FALLBACK_I18N_CONTEXT: I18nContextValue = (() => {
+  const locale = browserDefaultLocale();
+  const messages = locale === 'en' ? messagesEn : messagesRu;
+  return {
+    preference: 'system',
+    locale,
+    setPreference: () => {},
+    t: (path, params) => translate(messages, path, params),
+    messages,
+  };
+})();
