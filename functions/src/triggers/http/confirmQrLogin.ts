@@ -189,14 +189,31 @@ export const confirmQrLogin = onCall(
     if (!request.auth?.uid) {
       throw new HttpsError("unauthenticated", "Sign in to approve a new device.");
     }
-    return runConfirmQrLogin(
-      request.auth.uid,
-      request.data as ConfirmQrLoginInput,
-      {
-        db: admin.firestore(),
-        createCustomToken: (uid: string) =>
-          admin.auth().createCustomToken(uid, { qrLogin: true }),
-      }
-    );
+    try {
+      return await runConfirmQrLogin(
+        request.auth.uid,
+        request.data as ConfirmQrLoginInput,
+        {
+          db: admin.firestore(),
+          createCustomToken: (uid: string) =>
+            admin.auth().createCustomToken(uid, { qrLogin: true }),
+        }
+      );
+    } catch (e) {
+      // HttpsError со специфичным code пробрасываем как есть.
+      if (e instanceof HttpsError) throw e;
+      // Любую другую ошибку логируем с контекстом и оборачиваем в
+      // HttpsError("internal") с осмысленным message — иначе клиент
+      // увидит «An internal error occurred» без подсказки, а в Cloud
+      // Functions log будет тишина.
+      const msg = e instanceof Error ? e.message : String(e);
+      const stack = e instanceof Error ? e.stack : undefined;
+      logger.error("confirmQrLogin: uncaught error", {
+        uid: request.auth.uid,
+        error: msg,
+        stack,
+      });
+      throw new HttpsError("internal", `confirmQrLogin failed: ${msg}`);
+    }
   }
 );

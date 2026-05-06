@@ -164,8 +164,13 @@ export const requestQrLogin = onCall(
       );
     } catch (e) {
       if (e instanceof HttpsError) throw e;
-      logger.error("requestQrLogin: unexpected failure", e);
-      throw new HttpsError("internal", "Could not create QR login session.");
+      const msg = e instanceof Error ? e.message : String(e);
+      const stack = e instanceof Error ? e.stack : undefined;
+      logger.error("requestQrLogin: unexpected failure", {
+        error: msg,
+        stack,
+      });
+      throw new HttpsError("internal", `requestQrLogin failed: ${msg}`);
     }
   }
 );
