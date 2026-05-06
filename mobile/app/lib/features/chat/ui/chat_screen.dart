@@ -142,6 +142,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String? _sessionUnreadSeparatorAnchorMessageId;
   String _suppressReadConversationResetKey = '';
 
+  /// Отложенное скрытие разделителя «Непрочитанные сообщения» — линия живёт ещё
+  /// несколько секунд после того, как все сообщения над ней стали прочитанными,
+  /// чтобы пользователь успел заметить позицию.
+  Timer? _hideUnreadSeparatorTimer;
+  static const Duration _kUnreadSeparatorLinger = Duration(seconds: 5);
+
   /// После подгрузки истории не дергать сразу повторный запрос у верхнего края.
   DateTime? _nearOldestCooldownUntil;
   ReplyContext? _replyingTo;
@@ -533,6 +539,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _anchorUnreadStep = 0;
       _initialOpenPositionResolved = false;
       _sessionUnreadSeparatorAnchorMessageId = null;
+      _hideUnreadSeparatorTimer?.cancel();
+      _hideUnreadSeparatorTimer = null;
       _sessionReadIds.clear();
       _suppressReadConversationResetKey = '';
       _nearOldestCooldownUntil = null;
@@ -580,7 +588,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // must not appear as unread messages.
     if (m.senderId == '__system__' || m.systemEvent != null) return false;
     if (m.senderId == viewerId) return false;
-    return m.readAt == null;
+    if (m.readAt != null) return false;
+    // Личная отметка прочтения (режим скрытых read-receipts):
+    // см. ChatRepository.markMessagesAsRead(skipReadReceipt: true).
+    final personal = m.readByUid?[viewerId];
+    return personal == null;
   }
 
   int _loadedIncomingUnreadCount(List<ChatMessage> sortedAsc, String viewerId) {
@@ -623,9 +635,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required String viewerId,
   }) {
     if (_loadedIncomingUnreadCount(sortedAsc, viewerId) == 0) {
-      _sessionUnreadSeparatorAnchorMessageId = null;
+      // Не сбрасываем якорь сразу — даём пользователю время заметить разделитель.
+      // Если новые непрочитанные не пришли в течение _kUnreadSeparatorLinger,
+      // плашка скрывается; иначе таймер отменяется ниже по else-ветке.
+      if (_sessionUnreadSeparatorAnchorMessageId != null &&
+          _hideUnreadSeparatorTimer == null) {
+        _hideUnreadSeparatorTimer = Timer(_kUnreadSeparatorLinger, () {
+          if (!mounted) return;
+          setState(() {
+            _sessionUnreadSeparatorAnchorMessageId = null;
+            _hideUnreadSeparatorTimer = null;
+          });
+        });
+      }
       return;
     }
+    _hideUnreadSeparatorTimer?.cancel();
+    _hideUnreadSeparatorTimer = null;
     _sessionUnreadSeparatorAnchorMessageId ??= _oldestIncomingUnreadId(
       sortedAsc,
       viewerId,
@@ -637,7 +663,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     String userId,
     bool allowReadReceipts,
   ) async {
-    if (!allowReadReceipts) return;
     if (!_isIncomingUnreadForViewer(message, userId)) return;
     final id = message.id.trim();
     if (id.isEmpty) return;
@@ -647,10 +672,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (repo == null) return;
     _sessionReadIds.add(id);
     try {
+      // skipReadReceipt: режим приватности — пишем только личный readByUid.{me},
+      // публичный readAt не трогаем, чтобы собеседник не видел галочки.
       await repo.markMessagesAsRead(
         conversationId: widget.conversationId,
         userId: userId,
         messageIds: <String>[id],
+        skipReadReceipt: !allowReadReceipts,
       );
     } catch (_) {
       _sessionReadIds.remove(id);
@@ -665,15 +693,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }) async {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
-    if (!allowReadReceipts) {
-      try {
-        await repo.markConversationAsRead(
-          conversationId: widget.conversationId,
-          userId: userId,
-        );
-      } catch (_) {}
-      return;
-    }
     final toMark = unreadIds
         .where((id) => !_sessionReadIds.contains(id))
         .toList(growable: false);
@@ -684,6 +703,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           conversationId: widget.conversationId,
           userId: userId,
           messageIds: toMark,
+          skipReadReceipt: !allowReadReceipts,
         );
       } catch (_) {
         _sessionReadIds.removeAll(toMark);
@@ -838,6 +858,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       unawaited(_persistChatDraftSnapshotForConv(uid, widget.conversationId));
     }
     _flashHighlightTimer?.cancel();
+    _hideUnreadSeparatorTimer?.cancel();
     _scrollController.removeListener(_onPinnedBarScrollSync);
     _controller.removeListener(_scheduleChatDraftSave);
     _composerFocusNode.dispose();

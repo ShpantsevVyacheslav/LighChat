@@ -1581,12 +1581,18 @@ class ChatRepository {
   }
 
   /// Web parity: отметить сообщения прочитанными и декрементнуть unread-счётчик.
+  ///
+  /// [skipReadReceipt] — режим скрытых read-receipts: НЕ обновляет публичный
+  /// `readAt` (собеседник не видит галочки прочтения), вместо этого пишет
+  /// персональную метку `readByUid.{userId}` и декрементирует `unreadCounts`
+  /// как обычно — чтобы у самого пользователя сбрасывался счётчик и якорь.
   Future<void> markMessagesAsRead({
     required String conversationId,
     required String userId,
     required List<String> messageIds,
     bool isThread = false,
     String? threadParentMessageId,
+    bool skipReadReceipt = false,
   }) async {
     final convId = conversationId.trim();
     final uid = userId.trim();
@@ -1628,7 +1634,11 @@ class ChatRepository {
             messageId: id,
             threadParentMessageId: isThread ? parentId : null,
           );
-          batch.update(ref, <String, Object?>{'readAt': now});
+          final update = <String, Object?>{
+            'readByUid.$uid': now,
+            if (!skipReadReceipt) 'readAt': now,
+          };
+          batch.update(ref, update);
         }
         final convRef = _firestore.collection('conversations').doc(convId);
         final counterField = isThread
@@ -1667,6 +1677,7 @@ class ChatRepository {
     required List<String> messageIds,
     bool isThread = false,
     String? threadParentMessageId,
+    bool skipReadReceipt = false,
   }) async {
     const chunkSize = 200;
     if (messageIds.isEmpty) return;
@@ -1678,6 +1689,7 @@ class ChatRepository {
         messageIds: chunk,
         isThread: isThread,
         threadParentMessageId: threadParentMessageId,
+        skipReadReceipt: skipReadReceipt,
       );
     }
   }

@@ -327,7 +327,9 @@ export function ChatWindow({
   const hasScrolledToUnreadRef = useRef(false);
   /** Якорь: 0 — следующий клик ведёт к первому непрочитанному; 1 — к низу и сброс счётчика. */
   const anchorUnreadStepRef = useRef(0);
-  const suppressUnreadResetKeyRef = useRef('');
+  /** Отложенное скрытие разделителя «Непрочитанные сообщения», чтобы он успевал быть замеченным. */
+  const hideUnreadSeparatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const UNREAD_SEPARATOR_LINGER_MS = 5000;
 
   const messageInputRef = useRef<ChatMessageInputHandle>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -490,7 +492,10 @@ export function ChatWindow({
         setE2eePlaintextByMessageId({});
         setReplyingTo(null);
         setEditingMessage(null);
-        suppressUnreadResetKeyRef.current = '';
+        if (hideUnreadSeparatorTimerRef.current) {
+            clearTimeout(hideUnreadSeparatorTimerRef.current);
+            hideUnreadSeparatorTimerRef.current = null;
+        }
         prevConvIdRef.current = conversation.id;
     }
 
@@ -753,57 +758,69 @@ export function ChatWindow({
     [firestore, currentUser.id, conversation.id, messagesForList, e2eePlaintextByMessageId, toast]
   );
 
-  /** Сколько входящих в загруженном окне ещё без readAt — бейдж якоря и разделитель, чтобы не расходиться с conversation.unreadCounts. */
+  /**
+   * Сколько входящих в загруженном окне ещё без отметки прочтения для текущего пользователя.
+   * Учитывает и публичный `readAt`, и личный `readByUid[me]` — последний пишется в режиме
+   * скрытых read-receipts вместо публичной галочки, см. {@link markMessagesAsRead}.
+   */
   const incomingUnreadCount = useMemo(
     () => messagesForList.filter((m) => isIncomingUnreadForViewer(m, currentUser.id)).length,
     [messagesForList, currentUser.id]
   );
-  // При скрытых read-receipts readAt не обновляется намеренно, поэтому для якоря
-  // и связанных UI-состояний опираемся на conversation.unreadCounts.
-  const unreadCountForAnchor = suppressReadReceipts ? unreadCount : incomingUnreadCount;
+  const unreadCountForAnchor = incomingUnreadCount;
+
+  /**
+   * Запланировать скрытие разделителя «Непрочитанные сообщения» с задержкой —
+   * чтобы юзер успел заметить, что новых сообщений больше нет, прежде чем линия
+   * исчезнет. Если за это время прилетит ещё одно непрочитанное — таймер
+   * отменяется и разделитель остаётся на месте.
+   */
+  const scheduleHideUnreadSeparator = useCallback(() => {
+    if (hideUnreadSeparatorTimerRef.current) return;
+    hideUnreadSeparatorTimerRef.current = setTimeout(() => {
+      hideUnreadSeparatorTimerRef.current = null;
+      setUnreadSeparatorId(null);
+      hasClearedSeparatorRef.current = true;
+    }, UNREAD_SEPARATOR_LINGER_MS);
+  }, []);
+
+  const cancelHideUnreadSeparator = useCallback(() => {
+    if (hideUnreadSeparatorTimerRef.current) {
+      clearTimeout(hideUnreadSeparatorTimerRef.current);
+      hideUnreadSeparatorTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    if (!firestore || !suppressReadReceipts) return;
-    if (!isFullyReady || !hasScrolledToUnread) return;
-    const totalUnread = unreadCount + unreadThreadCount;
-    if (totalUnread <= 0) {
-      suppressUnreadResetKeyRef.current = '';
-      return;
-    }
-    const key = `${conversation.id}:${totalUnread}`;
-    if (suppressUnreadResetKeyRef.current === key) return;
-    suppressUnreadResetKeyRef.current = key;
-    void markConversationAsRead(firestore, conversation.id, currentUser.id);
-  }, [
-    firestore,
-    suppressReadReceipts,
-    isFullyReady,
-    hasScrolledToUnread,
-    conversation.id,
-    currentUser.id,
-    unreadCount,
-    unreadThreadCount,
-  ]);
+    return () => {
+      if (hideUnreadSeparatorTimerRef.current) {
+        clearTimeout(hideUnreadSeparatorTimerRef.current);
+        hideUnreadSeparatorTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const prevUnreadCount = useRef(unreadCount);
   useEffect(() => {
     if (!isFullyReady) return;
-    
+
     if (unreadCount > prevUnreadCount.current) {
       /** Новые непрочитанные с сервера: снова разрешаем разделитель (иначе при приходе с низа hasClearedSeparatorRef блокирует id и «стартовый» скролл не завершается — пометка read не включается). */
-            hasClearedSeparatorRef.current = false;
+      hasClearedSeparatorRef.current = false;
       anchorUnreadStepRef.current = 0;
+      cancelHideUnreadSeparator();
     }
     prevUnreadCount.current = unreadCount;
 
-    if (unreadCountForAnchor === 0 || suppressReadReceipts) {
+    if (unreadCountForAnchor === 0) {
       if (unreadSeparatorId) {
-          setUnreadSeparatorId(null);
-          hasClearedSeparatorRef.current = false;
+        scheduleHideUnreadSeparator();
       }
       anchorUnreadStepRef.current = 0;
       return;
     }
+
+    cancelHideUnreadSeparator();
 
     if (!unreadSeparatorId && !hasClearedSeparatorRef.current) {
       const oldestUnread = messagesForList.find((m) => isIncomingUnreadForViewer(m, currentUser.id));
@@ -818,7 +835,8 @@ export function ChatWindow({
     messagesForList,
     currentUser.id,
     unreadCountForAnchor,
-    suppressReadReceipts,
+    scheduleHideUnreadSeparator,
+    cancelHideUnreadSeparator,
   ]);
 
   const flatItems = useMemo(
@@ -933,7 +951,9 @@ export function ChatWindow({
 
   useEffect(() => {
     if (isFullyReady && !hasScrolledToUnread && virtuosoRef.current && flatItems.length > 0) {
-        if (!suppressReadReceipts && unreadCountForAnchor > 0 && !unreadSeparatorId) return;
+        // Дождёмся появления разделителя (его выставляет эффект выше): иначе при alignToBottom
+        // первый rangeChanged успеет пометить всё прочитанным до того, как мы провернём скролл.
+        if (unreadCountForAnchor > 0 && !unreadSeparatorId) return;
 
         const timer = setTimeout(() => {
             const unreadSeparatorIdx = flatItems.findIndex(item => item.type === 'unread-separator');
@@ -960,7 +980,6 @@ export function ChatWindow({
     flatItems,
     unreadCountForAnchor,
     unreadSeparatorId,
-    suppressReadReceipts,
   ]);
 
   const handleRangeChanged = useCallback((range: { startIndex: number; endIndex: number }) => {
@@ -970,13 +989,11 @@ export function ChatWindow({
     const currentItems = flatItemsRef.current;
     const lastIdx = currentItems.length - 1;
     if (lastIdx >= 0 && range.endIndex >= lastIdx && hasScrolledToUnreadRef.current) {
-        setUnreadSeparatorId(prev => {
-            if (prev !== null) {
-                hasClearedSeparatorRef.current = true;
-                return null;
-            }
-            return prev;
-        });
+        // Юзер докрутил до низа — скрываем разделитель не сразу, а через linger,
+        // чтобы он успевал быть замеченным и не «мигал» при быстрой прокрутке.
+        if (unreadSeparatorId !== null) {
+            scheduleHideUnreadSeparator();
+        }
     }
 
     const pins = sortedPinsRef.current;
@@ -984,7 +1001,7 @@ export function ChatWindow({
       const idx = pickPinnedBarIndexForViewport(pins, flatItemsRef.current, range.startIndex, range.endIndex);
       setBarPinIndex(idx);
     }
-  }, [isFullyReady, firestore, conversation.id, currentUser.id]);
+  }, [isFullyReady, firestore, conversation.id, currentUser.id, unreadSeparatorId, scheduleHideUnreadSeparator]);
 
   const allMediaItems = useMemo((): MediaViewerItem[] => {
     const items: MediaViewerItem[] = [];
@@ -2016,14 +2033,6 @@ export function ChatWindow({
       .filter((m) => isIncomingUnreadForViewer(m, currentUser.id))
       .map((m) => m.id);
 
-    if (suppressReadReceipts && unreadCount > 0) {
-      logAnchorDebug('suppress-reset', { unreadCount });
-      virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
-      anchorUnreadStepRef.current = 0;
-      void markConversationAsRead(firestore, conversation.id, currentUser.id);
-      return;
-    }
-
     if (unreadIds.length > 0) {
       if (anchorUnreadStepRef.current === 0) {
         logAnchorDebug('jump-to-unread', { unreadIds: unreadIds.length, separatorIdx });
@@ -2041,16 +2050,24 @@ export function ChatWindow({
         anchorUnreadStepRef.current = 1;
         return;
       }
-        logAnchorDebug('mark-all-read', { unreadIds: unreadIds.length });
+        logAnchorDebug('mark-all-read', { unreadIds: unreadIds.length, suppressReadReceipts });
         virtuosoRef.current?.scrollToIndex({ index: lastIdx, align: 'end', behavior: 'smooth' });
       anchorUnreadStepRef.current = 0;
       void (async () => {
-        if (suppressReadReceipts) {
-          await markConversationAsRead(firestore, conversation.id, currentUser.id);
-          return;
-        }
         try {
-          await markManyMessagesAsRead(firestore, conversation.id, currentUser.id, unreadIds);
+          // skipReadReceipt=true в режиме приватности: не пишем публичный readAt
+          // (собеседник не получит галочки), но всё равно декрементируем
+          // unreadCounts.{me} и пишем личный readByUid.{me} — чтобы у самого
+          // пользователя сбрасывался счётчик и якорь.
+          await markManyMessagesAsRead(
+            firestore,
+            conversation.id,
+            currentUser.id,
+            unreadIds,
+            false,
+            undefined,
+            suppressReadReceipts,
+          );
           unreadIds.forEach((id) => sessionReadIds.current.add(id));
           await markConversationAsRead(firestore, conversation.id, currentUser.id);
         } catch (e) {
@@ -2443,9 +2460,10 @@ export function ChatWindow({
                                 currentUserId={currentUser.id}
                                 conversationId={conversation.id}
                                 firestore={firestore}
-                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread && !suppressReadReceipts}
+                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread}
                                 viewportLayoutKey={viewportScrollerKey}
                                 sessionReadIds={sessionReadIds}
+                                suppressReadReceipts={suppressReadReceipts}
                               >
                                 <div className="py-1 px-4">
                                   <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />

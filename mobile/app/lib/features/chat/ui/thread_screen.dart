@@ -145,6 +145,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   /// Паритет основного чата: разделитель не «едет» при прочитке в сессии.
   String? _sessionUnreadSeparatorAnchorMessageId;
   String _suppressThreadUnreadResetKey = '';
+
+  /// Отложенное скрытие разделителя «Непрочитанные сообщения» — паритет с
+  /// основным чатом и вебом: линия живёт ещё несколько секунд.
+  Timer? _hideUnreadSeparatorTimer;
+  static const Duration _kUnreadSeparatorLinger = Duration(seconds: 5);
   bool _sendBusy = false;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
@@ -198,6 +203,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   void dispose() {
     _messageExpiryTimer?.cancel();
     _flashHighlightTimer?.cancel();
+    _hideUnreadSeparatorTimer?.cancel();
     _scrollController.dispose();
     _composerController.dispose();
     _composerFocus.dispose();
@@ -224,6 +230,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       _threadAtBottom = true;
       _anchorUnreadStep = 0;
       _sessionUnreadSeparatorAnchorMessageId = null;
+      _hideUnreadSeparatorTimer?.cancel();
+      _hideUnreadSeparatorTimer = null;
       _suppressThreadUnreadResetKey = '';
       _sessionReadIds.clear();
       _pendingFocusMessageId = widget.focusMessageId?.trim();
@@ -252,7 +260,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     // must not appear as unread messages.
     if (m.senderId == '__system__' || m.systemEvent != null) return false;
     if (m.senderId == viewerId) return false;
-    return m.readAt == null;
+    if (m.readAt != null) return false;
+    final personal = m.readByUid?[viewerId];
+    return personal == null;
   }
 
   int _loadedIncomingUnreadCount(List<ChatMessage> sortedAsc, String viewerId) {
@@ -295,9 +305,20 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     required String viewerId,
   }) {
     if (_loadedIncomingUnreadCount(sortedAsc, viewerId) == 0) {
-      _sessionUnreadSeparatorAnchorMessageId = null;
+      if (_sessionUnreadSeparatorAnchorMessageId != null &&
+          _hideUnreadSeparatorTimer == null) {
+        _hideUnreadSeparatorTimer = Timer(_kUnreadSeparatorLinger, () {
+          if (!mounted) return;
+          setState(() {
+            _sessionUnreadSeparatorAnchorMessageId = null;
+            _hideUnreadSeparatorTimer = null;
+          });
+        });
+      }
       return;
     }
+    _hideUnreadSeparatorTimer?.cancel();
+    _hideUnreadSeparatorTimer = null;
     _sessionUnreadSeparatorAnchorMessageId ??= _oldestIncomingUnreadId(
       sortedAsc,
       viewerId,
@@ -309,7 +330,6 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     String userId,
     bool allowReadReceipts,
   ) async {
-    if (!allowReadReceipts) return;
     if (!_isIncomingUnreadForViewer(message, userId)) return;
     final id = message.id.trim();
     if (id.isEmpty) return;
@@ -325,6 +345,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         messageIds: <String>[id],
         isThread: true,
         threadParentMessageId: widget.parentMessageId,
+        skipReadReceipt: !allowReadReceipts,
       );
     } catch (_) {
       _sessionReadIds.remove(id);
@@ -339,24 +360,6 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     if (unreadIds.isEmpty) return;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
-    if (!allowReadReceipts) {
-      final toReset = unreadIds
-          .where((id) => !_sessionReadIds.contains(id))
-          .toList(growable: false);
-      if (toReset.isEmpty) return;
-      _sessionReadIds.addAll(toReset);
-      try {
-        await repo.markThreadMessagesSeenWithoutReceipt(
-          conversationId: widget.conversationId,
-          userId: userId,
-          threadParentMessageId: widget.parentMessageId,
-          unreadCount: toReset.length,
-        );
-      } catch (_) {
-        _sessionReadIds.removeAll(toReset);
-      }
-      return;
-    }
     final toMark = unreadIds
         .where((id) => !_sessionReadIds.contains(id))
         .toList(growable: false);
@@ -367,6 +370,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         conversationId: widget.conversationId,
         userId: userId,
         messageIds: toMark,
+        skipReadReceipt: !allowReadReceipts,
         isThread: true,
         threadParentMessageId: widget.parentMessageId,
       );

@@ -97,6 +97,11 @@ export const getUnreadIncrementUpdate = (participantIds: string[], senderId: str
 /**
  * Marks specific messages as read and decrements the conversation counter.
  * Uses strict in-flight tracking to prevent negative counters from race conditions.
+ *
+ * @param skipReadReceipt — режим скрытых read-receipts: НЕ обновляет публичный
+ *   `readAt` (собеседник не видит галочки прочтения), вместо этого пишет
+ *   персональную метку `readByUid.{userId}` и декрементирует `unreadCounts`
+ *   как обычно — чтобы у самого пользователя сбрасывался счётчик и якорь.
  */
 export async function markMessagesAsRead(
     firestore: Firestore,
@@ -104,7 +109,8 @@ export async function markMessagesAsRead(
     userId: string,
     messageIds: string[],
     isThread: boolean = false,
-    threadParentId?: string
+    threadParentId?: string,
+    skipReadReceipt: boolean = false,
 ) {
     if (!firestore || !conversationId || !userId || messageIds.length === 0) return;
 
@@ -117,16 +123,19 @@ export async function markMessagesAsRead(
 
     const convRef = doc(firestore, 'conversations', conversationId);
     const now = new Date().toISOString();
-    
+
     try {
         const batch = writeBatch(firestore);
-        
+
         filteredIds.forEach(id => {
             const path = isThread && threadParentId
                 ? `conversations/${conversationId}/messages/${threadParentId}/thread/${id}`
                 : `conversations/${conversationId}/messages/${id}`;
             const msgRef = doc(firestore, path);
-            batch.update(msgRef, { readAt: now });
+            const update: Record<string, unknown> = skipReadReceipt
+                ? { [`readByUid.${userId}`]: now }
+                : { readAt: now, [`readByUid.${userId}`]: now };
+            batch.update(msgRef, update);
         });
 
         const counterField = isThread ? `unreadThreadCounts.${userId}` : `unreadCounts.${userId}`;
@@ -160,7 +169,8 @@ export async function markManyMessagesAsRead(
     userId: string,
     messageIds: string[],
     isThread: boolean = false,
-    threadParentId?: string
+    threadParentId?: string,
+    skipReadReceipt: boolean = false,
 ) {
     const CHUNK = 200;
     for (let i = 0; i < messageIds.length; i += CHUNK) {
@@ -170,7 +180,8 @@ export async function markManyMessagesAsRead(
             userId,
             messageIds.slice(i, i + CHUNK),
             isThread,
-            threadParentId
+            threadParentId,
+            skipReadReceipt,
         );
     }
 }

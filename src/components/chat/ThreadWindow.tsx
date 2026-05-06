@@ -38,7 +38,7 @@ import { parseISO, isToday, isYesterday, format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { MediaViewer, type MediaViewerItem } from '@/components/chat/media-viewer';
-import { getReplyPreview, markThreadMessagesSeenWithoutReadReceipt } from '@/lib/chat-utils';
+import { getReplyPreview } from '@/lib/chat-utils';
 import { HISTORY_PAGE_SIZE, INITIAL_MESSAGE_LIMIT } from '@/components/chat/chat-message-limits';
 import { ChatDateListAnchor } from '@/components/chat/ChatDateListAnchor';
 import { ChatFloatingDateLabel } from '@/components/chat/ChatFloatingDateLabel';
@@ -389,10 +389,13 @@ export function ThreadWindow({
     );
 
     const isIncomingUnreadForViewer = useCallback(
-        (m: Pick<ChatMessage, 'senderId' | 'readAt' | 'systemEvent'>) => {
+        (m: Pick<ChatMessage, 'senderId' | 'readAt' | 'systemEvent' | 'readByUid'>) => {
             if (m.senderId === '__system__' || m.systemEvent != null) return false;
             if (m.senderId === currentUser.id) return false;
-            return !m.readAt;
+            if (m.readAt) return false;
+            // Личная отметка прочтения (режим скрытых read-receipts).
+            const personal = m.readByUid?.[currentUser.id];
+            return !personal;
         },
         [currentUser.id]
     );
@@ -401,36 +404,12 @@ export function ThreadWindow({
         return allMessages.filter((m) => isIncomingUnreadForViewer(m)).length;
     }, [allMessages, isIncomingUnreadForViewer]);
 
-    useEffect(() => {
-        if (!suppressReadReceipts) return;
-        if (!firestore || !isFullyReady || !hasScrolledToUnread) return;
-        const pendingIds = allMessages
-            .filter((m) => isIncomingUnreadForViewer(m) && !sessionReadIds.current.has(m.id))
-            .map((m) => m.id);
-        if (pendingIds.length === 0) return;
-
-        pendingIds.forEach((id) => sessionReadIds.current.add(id));
-        void markThreadMessagesSeenWithoutReadReceipt(
-            firestore,
-            conversation.id,
-            currentUser.id,
-            parentMessage.id,
-            pendingIds.length
-        ).catch((e) => {
-            console.error('[ThreadWindow] suppress-read-receipts thread reset failed', e);
-            pendingIds.forEach((id) => sessionReadIds.current.delete(id));
-        });
-    }, [
-        suppressReadReceipts,
-        firestore,
-        isFullyReady,
-        hasScrolledToUnread,
-        allMessages,
-        isIncomingUnreadForViewer,
-        conversation.id,
-        currentUser.id,
-        parentMessage.id,
-    ]);
+    // Раньше тут был отдельный путь сброса unreadThreadCounts через
+    // markThreadMessagesSeenWithoutReadReceipt — нужный потому, что
+    // viewport-маркировка была отключена при suppressReadReceipts.
+    // Теперь markMessagesAsRead умеет skipReadReceipt и пишет персональный
+    // readByUid вместо публичного readAt, поэтому общий путь IntersectionObserver
+    // обрабатывает оба режима одинаково.
 
     const prevUnreadCount = useRef(unreadCount);
     useEffect(() => {
@@ -1401,11 +1380,12 @@ export function ThreadWindow({
                                 currentUserId={currentUser.id}
                                 conversationId={conversation.id}
                                 firestore={firestore}
-                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread && !suppressReadReceipts}
+                                canMarkReadByViewport={isFullyReady && hasScrolledToUnread}
                                 viewportLayoutKey={viewportScrollerKey}
                                 sessionReadIds={sessionReadIds}
                                 isThread
                                 threadParentId={parentMessage.id}
+                                suppressReadReceipts={suppressReadReceipts}
                             >
                                 <div className="px-4 py-1">
                                     <ChatMessageItem 

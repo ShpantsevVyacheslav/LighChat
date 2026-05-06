@@ -868,6 +868,7 @@ class ChatMessage {
     this.reactions,
     required this.createdAt,
     this.readAt,
+    this.readByUid,
     this.updatedAt,
     this.forwardedFrom,
     this.deliveryStatus,
@@ -898,6 +899,12 @@ class ChatMessage {
   final Map<String, List<ReactionEntry>>? reactions;
   final DateTime createdAt;
   final DateTime? readAt;
+
+  /// Личные отметки прочтения по uid. Пишутся в режиме скрытых read-receipts
+  /// (`privacySettings.showReadReceipts == false`) вместо публичного `readAt`,
+  /// чтобы у самого пользователя сбрасывался unread-счётчик и якорь, но
+  /// собеседник не видел галочки прочтения.
+  final Map<String, DateTime>? readByUid;
   final String? updatedAt;
   final ForwardedFrom? forwardedFrom;
 
@@ -960,6 +967,7 @@ class ChatMessage {
     final isDeletedRaw = data['isDeleted'];
     final reactionsRaw = data['reactions'];
     final readAtRaw = data['readAt'];
+    final readByUidRaw = data['readByUid'];
     final updatedAtRaw = data['updatedAt'];
     final forwardedFromRaw = data['forwardedFrom'];
     final deliveryStatusRaw = data['deliveryStatus'];
@@ -1052,6 +1060,23 @@ class ChatMessage {
       readAt = DateTime.tryParse(readAtRaw);
     }
 
+    Map<String, DateTime>? readByUid;
+    if (readByUidRaw is Map) {
+      final m = <String, DateTime>{};
+      for (final e in readByUidRaw.entries) {
+        final k = e.key.toString();
+        if (k.isEmpty) continue;
+        final v = e.value;
+        if (v is Timestamp) {
+          m[k] = v.toDate();
+        } else if (v is String && v.isNotEmpty) {
+          final parsed = DateTime.tryParse(v);
+          if (parsed != null) m[k] = parsed;
+        }
+      }
+      if (m.isNotEmpty) readByUid = m;
+    }
+
     DateTime? expireAt;
     if (expireAtRaw is Timestamp) {
       expireAt = expireAtRaw.toDate();
@@ -1076,6 +1101,7 @@ class ChatMessage {
       reactions: reactions,
       createdAt: createdAt,
       readAt: readAt,
+      readByUid: readByUid,
       updatedAt: updatedAt,
       forwardedFrom: forwardedFrom,
       deliveryStatus: deliveryStatus,

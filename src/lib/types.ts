@@ -677,6 +677,14 @@ export type ChatMessage = {
   e2ee?: ChatMessageE2eePayload;
   createdAt: string;
   readAt: string | null;
+  /**
+   * Личные отметки прочтения по uid (ISO timestamp).
+   * Пишутся, когда пользователь просматривает сообщение с включённой настройкой
+   * приватности «не показывать собеседнику, что прочитал»: публичный `readAt`
+   * не обновляется, но локально (для самого пользователя и сброса unreadCounts)
+   * считается прочитанным.
+   */
+  readByUid?: Record<string, string>;
   updatedAt?: string | null;
   attachments?: ChatAttachment[];
   /** Статус серверной нормализации медиа (webm/mov → mp4/m4a). */

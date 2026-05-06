@@ -71,7 +71,7 @@ function observeWithPool(root: HTMLElement, element: Element, cb: ObserverCallba
 
 export type MessageReadOnViewportProps = {
   messageId: string;
-  message: Pick<ChatMessage, 'senderId' | 'readAt'>;
+  message: Pick<ChatMessage, 'senderId' | 'readAt' | 'readByUid'>;
   currentUserId: string;
   conversationId: string;
   firestore: Firestore | null;
@@ -82,6 +82,8 @@ export type MessageReadOnViewportProps = {
   sessionReadIds: MutableRefObject<Set<string>>;
   isThread?: boolean;
   threadParentId?: string;
+  /** Скрытые read-receipts: пишем личную метку readByUid.{me} вместо публичного readAt. */
+  suppressReadReceipts?: boolean;
   children: ReactNode;
 };
 
@@ -100,22 +102,25 @@ export function MessageReadOnViewport({
   sessionReadIds,
   isThread = false,
   threadParentId,
+  suppressReadReceipts = false,
   children,
 }: MessageReadOnViewportProps) {
   const scrollerRef = useChatViewportScrollerRef();
   const wrapRef = useRef<HTMLDivElement>(null);
   const senderId = message.senderId;
   const readAt = message.readAt;
+  const personalReadAt = message.readByUid?.[currentUserId] ?? null;
 
   useEffect(() => {
     const root = scrollerRef?.current ?? null;
     const el = wrapRef.current;
     if (!canMarkReadByViewport || !root || !el || !firestore) return;
-    if (!isIncomingUnreadForViewer({ senderId, readAt }, currentUserId)) return;
+    const probe = { senderId, readAt, readByUid: personalReadAt ? { [currentUserId]: personalReadAt } : undefined };
+    if (!isIncomingUnreadForViewer(probe, currentUserId)) return;
 
     const tryMark = () => {
       if (!firestore) return;
-      if (!isIncomingUnreadForViewer({ senderId, readAt }, currentUserId)) return;
+      if (!isIncomingUnreadForViewer(probe, currentUserId)) return;
       if (sessionReadIds.current.has(messageId)) return;
       sessionReadIds.current.add(messageId);
       void markMessagesAsRead(
@@ -124,7 +129,8 @@ export function MessageReadOnViewport({
         currentUserId,
         [messageId],
         isThread,
-        threadParentId
+        threadParentId,
+        suppressReadReceipts,
       ).catch((e) => {
         console.error('[MessageReadOnViewport] mark read failed', e);
         sessionReadIds.current.delete(messageId);
@@ -146,6 +152,7 @@ export function MessageReadOnViewport({
     messageId,
     senderId,
     readAt,
+    personalReadAt,
     currentUserId,
     canMarkReadByViewport,
     viewportLayoutKey,
@@ -154,6 +161,7 @@ export function MessageReadOnViewport({
     isThread,
     threadParentId,
     sessionReadIds,
+    suppressReadReceipts,
   ]);
 
   return (
