@@ -107,14 +107,19 @@ class _BrandDottedIPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final stem = RRect.fromRectAndRadius(
-      Rect.fromLTRB(0, h * 0.30, w, h * 0.95),
-      Radius.circular(w * 0.18),
+    // Узкий stem по центру (Inter Heavy "i" — это вертикальная полоска)
+    final stemWidth = w * 0.55;
+    final stemX = (w - stemWidth) / 2;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(stemX, h * 0.32, stemWidth, h * 0.55),
+        Radius.circular(stemWidth * 0.5),
+      ),
+      Paint()..color = stemColor,
     );
-    canvas.drawRRect(stem, Paint()..color = stemColor);
     canvas.drawCircle(
-      Offset(w * 0.5, h * 0.13),
-      w * 0.62,
+      Offset(w * 0.5, h * 0.14),
+      stemWidth * 0.78,
       Paint()..color = dotColor,
     );
   }

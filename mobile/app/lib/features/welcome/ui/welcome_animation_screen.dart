@@ -805,7 +805,7 @@ class _DottedI extends StatelessWidget {
     const fontSize = 28.0;
     return SizedBox(
       width: fontSize * 0.32,
-      height: fontSize * 1.18,
+      height: fontSize * 1.05,
       child: const CustomPaint(
         painter: _DottedIPainter(stemColor: Colors.white),
       ),
@@ -822,15 +822,22 @@ class _DottedIPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    // Stem
-    final stemRect = RRect.fromRectAndRadius(
-      Rect.fromLTRB(0, h * 0.30, w, h * 0.95),
-      Radius.circular(w * 0.18),
+    // Stem — узкая полоска по центру, как в Inter/SF Heavy
+    final stemWidth = w * 0.55;
+    final stemX = (w - stemWidth) / 2;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(stemX, h * 0.32, stemWidth, h * 0.55),
+        Radius.circular(stemWidth * 0.5),
+      ),
+      Paint()..color = stemColor,
     );
-    canvas.drawRRect(stemRect, Paint()..color = stemColor);
-    // Coral dot — чуть крупнее ширины stem, центр над ним
-    final dotR = w * 0.62;
-    canvas.drawCircle(Offset(w * 0.5, h * 0.12), dotR, Paint()..color = kBrandCoral);
+    // Coral точка над stem, диаметр ≈ stemWidth * 1.55
+    canvas.drawCircle(
+      Offset(w * 0.5, h * 0.14),
+      stemWidth * 0.78,
+      Paint()..color = kBrandCoral,
+    );
   }
 
   @override
