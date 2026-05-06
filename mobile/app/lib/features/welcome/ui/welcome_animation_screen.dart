@@ -751,33 +751,27 @@ class _Wordmark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // height: 1.0 нужен чтобы line-box каждой буквы совпадал с em-box
+    // (= fontSize). При этом наш custom-painted `i` (высота = fontSize)
+    // совпадает с буквами по baseline и x-height детерминированно.
+    const wordStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 28,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.6,
+      height: 1.0,
+    );
     return Center(
       child: Text.rich(
         const TextSpan(
           children: [
-            TextSpan(
-              text: 'L',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
-            ),
+            TextSpan(text: 'L', style: wordStyle),
             WidgetSpan(
               alignment: PlaceholderAlignment.baseline,
               baseline: TextBaseline.alphabetic,
               child: _DottedI(),
             ),
-            TextSpan(
-              text: 'gh',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
-            ),
+            TextSpan(text: 'gh', style: wordStyle),
             TextSpan(
               text: 'Chat',
               style: TextStyle(
@@ -785,6 +779,7 @@ class _Wordmark extends StatelessWidget {
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.6,
+                height: 1.0,
               ),
             ),
           ],
@@ -803,9 +798,12 @@ class _DottedI extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const fontSize = 28.0;
+    // height = fontSize ровно как у Text с height: 1.0 — тогда наш widget
+    // и буквы L/g/h занимают одинаковую line-box, можно ровнять по
+    // baseline и x-height детерминированно.
     return SizedBox(
       width: fontSize * 0.32,
-      height: fontSize * 1.05,
+      height: fontSize,
       child: const CustomPaint(
         painter: _DottedIPainter(stemColor: Colors.white),
       ),
@@ -818,24 +816,30 @@ class _DottedIPainter extends CustomPainter {
 
   final Color stemColor;
 
+  // Inter / SF Heavy metrics (нормализованы к em-квадрату):
+  //   x-height ≈ 0.518 em, baseline = 1.0 em, asсender ≈ 0.78 em
+  static const _xHeight = 0.48; // top of stem (top of "g")
+  static const _baseline = 0.96; // bottom of stem (bottom of "L")
+  static const _dotCenter = 0.22; // центр точки над stem
+  static const _stemWidthRatio = 0.55; // % container width
+  static const _dotRadiusRatio = 0.30; // % container width
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    // Stem — узкая полоска по центру, как в Inter/SF Heavy
-    final stemWidth = w * 0.55;
+    final stemWidth = w * _stemWidthRatio;
     final stemX = (w - stemWidth) / 2;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(stemX, h * 0.32, stemWidth, h * 0.55),
+        Rect.fromLTRB(stemX, h * _xHeight, stemX + stemWidth, h * _baseline),
         Radius.circular(stemWidth * 0.5),
       ),
       Paint()..color = stemColor,
     );
-    // Coral точка над stem, диаметр ≈ stemWidth * 1.55
     canvas.drawCircle(
-      Offset(w * 0.5, h * 0.14),
-      stemWidth * 0.78,
+      Offset(w * 0.5, h * _dotCenter),
+      w * _dotRadiusRatio,
       Paint()..color = kBrandCoral,
     );
   }

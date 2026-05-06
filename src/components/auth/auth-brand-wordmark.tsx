@@ -37,13 +37,14 @@ export function AuthBrandWordmarkTitle({
           чтобы исключить задвоение со штатной точкой шрифта. */}
       <svg
         aria-hidden
-        viewBox="0 0 32 105"
+        viewBox="0 0 32 100"
         className="inline-block fill-[#1E3A5F] dark:fill-[#c5d9ed]"
         style={{ width: "0.30em", height: "1em", verticalAlign: "baseline" }}
       >
-        {/* узкий stem по центру + coral dot — как Inter Heavy "i" */}
-        <rect x="7" y="34" width="18" height="55" rx="9" />
-        <circle cx="16" cy="15" r="14" fill="#E9967A" />
+        {/* stem от x-height (48) до baseline (96) — как у "g" / "L" */}
+        <rect x="7" y="48" width="18" height="48" rx="9" />
+        {/* coral dot — диаметр ≈ stem width, центрирован над stem */}
+        <circle cx="16" cy="22" r="9.6" fill="#E9967A" />
       </svg>
       <span className="text-[#1E3A5F] dark:text-[#c5d9ed]">gh</span>
       <span className="text-[#E9967A]">Chat</span>

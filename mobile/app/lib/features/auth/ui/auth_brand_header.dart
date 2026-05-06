@@ -87,9 +87,11 @@ class _BrandDottedI extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // height = fontSize (как у Text с height: 1.0) — благодаря этому stem
+    // сядет ровно от x-height ("g") до baseline ("L").
     return SizedBox(
       width: fontSize * 0.30,
-      height: fontSize * 1.05,
+      height: fontSize,
       child: CustomPaint(
         painter: _BrandDottedIPainter(stemColor: stemColor, dotColor: dotColor),
       ),
@@ -103,23 +105,29 @@ class _BrandDottedIPainter extends CustomPainter {
   final Color stemColor;
   final Color dotColor;
 
+  // Inter Heavy metrics: x-height ≈ 0.518 em, baseline = 1 em, ascender ≈ 0.78 em.
+  static const _xHeight = 0.48; // top of stem (≈ top of "g")
+  static const _baseline = 0.96; // bottom of stem (≈ bottom of "L")
+  static const _dotCenter = 0.22; // центр coral-точки над stem
+  static const _stemWidthRatio = 0.55;
+  static const _dotRadiusRatio = 0.30;
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    // Узкий stem по центру (Inter Heavy "i" — это вертикальная полоска)
-    final stemWidth = w * 0.55;
+    final stemWidth = w * _stemWidthRatio;
     final stemX = (w - stemWidth) / 2;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(stemX, h * 0.32, stemWidth, h * 0.55),
+        Rect.fromLTRB(stemX, h * _xHeight, stemX + stemWidth, h * _baseline),
         Radius.circular(stemWidth * 0.5),
       ),
       Paint()..color = stemColor,
     );
     canvas.drawCircle(
-      Offset(w * 0.5, h * 0.14),
-      stemWidth * 0.78,
+      Offset(w * 0.5, h * _dotCenter),
+      w * _dotRadiusRatio,
       Paint()..color = dotColor,
     );
   }
