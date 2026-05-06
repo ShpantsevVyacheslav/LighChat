@@ -21,13 +21,15 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { useI18n } from '@/hooks/use-i18n';
+
 const DURATION_OPTIONS = [
-  { label: '15 минут', value: '15' },
-  { label: '30 минут', value: '30' },
-  { label: '1 час', value: '60' },
-  { label: '2 часа', value: '120' },
-  { label: '4 часа', value: '240' },
-  { label: 'Без ограничений', value: 'infinity' },
+  { labelKey: 'm15' as const, value: '15' },
+  { labelKey: 'm30' as const, value: '30' },
+  { labelKey: 'h1' as const, value: '60' },
+  { labelKey: 'h2' as const, value: '120' },
+  { labelKey: 'h4' as const, value: '240' },
+  { labelKey: 'infinity' as const, value: 'infinity' },
 ];
 
 export default function MeetingsDashboardPage() {
@@ -40,6 +42,8 @@ export default function MeetingsDashboardPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const { t, locale } = useI18n();
+  const dateLocale = locale === 'en' ? undefined : ru;
 
   const userMeetingsIndexRef = useMemoFirebase(() => {
     if (!firestore || !user || !user.id) return null;
@@ -89,7 +93,7 @@ export default function MeetingsDashboardPage() {
       };
 
       await setDoc(doc(firestore, 'meetings', meetingId), meetingData);
-      toast({ title: 'Встреча создана', description: 'Перенаправляем в комнату...' });
+      toast({ title: t('meetingsPage.toastCreatedTitle'), description: t('meetingsPage.toastCreatedDesc') });
       router.push(`/meetings/${meetingId}`);
     } catch (error: unknown) {
       console.error("Meeting creation error:", error);
@@ -99,8 +103,8 @@ export default function MeetingsDashboardPage() {
         'message' in error &&
         typeof (error as { message?: unknown }).message === 'string'
           ? (error as { message: string }).message
-          : 'Unknown error';
-      toast({ variant: 'destructive', title: 'Ошибка', description: message });
+          : t('meetingsPage.fallbackCreateError');
+      toast({ variant: 'destructive', title: t('meetingsPage.toastErrorTitle'), description: message });
       setIsCreating(false);
     }
   };
@@ -118,21 +122,21 @@ export default function MeetingsDashboardPage() {
       <div className="flex items-center gap-2">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
-            <Video className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Видеовстречи
+            <Video className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> {t('meetingsPage.pageTitle')}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Создавайте конференции и управляйте доступом участников.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{t('meetingsPage.pageSubtitle')}</p>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">Новая встреча</h2>
+          <h2 className="text-lg font-semibold leading-none tracking-tight">{t('meetingsPage.sectionNew')}</h2>
             <form onSubmit={handleCreateMeeting} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Название встречи</Label>
-                <Input 
-                  id="name" 
-                  placeholder="Напр: Обсуждение логистики" 
+                <Label htmlFor="name">{t('meetingsPage.nameLabel')}</Label>
+                <Input
+                  id="name"
+                  placeholder={t('meetingsPage.namePlaceholder')}
                   value={meetingName}
                   onChange={(e) => setMeetingName(e.target.value)}
                   className="rounded-2xl h-12"
@@ -140,43 +144,43 @@ export default function MeetingsDashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label>Длительность</Label>
+                    <Label>{t('meetingsPage.durationLabel')}</Label>
                     <Select value={duration} onValueChange={setDuration}>
                     <SelectTrigger className="rounded-2xl h-12">
-                        <SelectValue placeholder="Выберите" />
+                        <SelectValue placeholder={t('meetingsPage.durationPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl">
                         {DURATION_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        <SelectItem key={opt.value} value={opt.value}>{t(`meetingsPage.durationOption.${opt.labelKey}`)}</SelectItem>
                         ))}
                     </SelectContent>
                     </Select>
                 </div>
                 <div className="space-y-2">
-                    <Label>Тип доступа</Label>
+                    <Label>{t('meetingsPage.accessLabel')}</Label>
                     <div className="flex items-center gap-3 h-12 bg-muted/30 rounded-2xl px-4 border">
                         {isPrivate ? <ShieldAlert className="h-4 w-4 text-amber-500" /> : <ShieldCheck className="h-4 w-4 text-green-500" />}
-                        <span className="text-sm font-medium flex-1">{isPrivate ? 'Приватная' : 'Открытая'}</span>
+                        <span className="text-sm font-medium flex-1">{isPrivate ? t('meetingsPage.accessPrivate') : t('meetingsPage.accessOpen')}</span>
                         <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
                     </div>
                 </div>
               </div>
-              
+
               <div className="p-3 bg-muted/50 rounded-2xl space-y-1">
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                    {isPrivate ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />} 
-                    Особенности {isPrivate ? 'приватной' : 'открытой'} комнаты:
+                    {isPrivate ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                    {t('meetingsPage.featuresPrefix')} {isPrivate ? t('meetingsPage.featuresPrivate') : t('meetingsPage.featuresOpen')} {t('meetingsPage.featuresSuffix')}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                    {isPrivate 
-                        ? 'Новые участники попадают в зал ожидания. Хост должен одобрить их вход вручную.' 
-                        : 'Любой человек, имеющий ссылку, может сразу присоединиться к беседе.'}
+                    {isPrivate
+                        ? t('meetingsPage.descriptionPrivate')
+                        : t('meetingsPage.descriptionOpen')}
                 </p>
               </div>
 
               <Button type="submit" className="w-full rounded-2xl gap-2 h-14 text-lg font-bold shadow-lg shadow-primary/20" disabled={isCreating || !meetingName.trim()}>
                 {isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-                Создать встречу
+                {t('meetingsPage.submit')}
               </Button>
             </form>
         </section>
@@ -184,19 +188,19 @@ export default function MeetingsDashboardPage() {
         <div className="space-y-8">
           <section className="space-y-3">
             <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
-              <LinkIcon className="h-5 w-5 text-primary shrink-0" /> Зал ожидания
+              <LinkIcon className="h-5 w-5 text-primary shrink-0" /> {t('meetingsPage.waitingRoomTitle')}
             </h2>
             <p className="text-sm text-muted-foreground font-medium opacity-90 leading-relaxed">
-              В приватных комнатах вы полностью контролируете список участников. Пока вы не нажмете «Принять», гость будет видеть экран ожидания.
+              {t('meetingsPage.waitingRoomBody')}
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
-              <Users className="h-5 w-5 shrink-0" /> Виртуальные фоны
+              <Users className="h-5 w-5 shrink-0" /> {t('meetingsPage.virtualBackgroundsTitle')}
             </h2>
             <p className="text-sm text-muted-foreground font-medium opacity-90 leading-relaxed">
-              Участники могут размыть задний план или выбрать изображение из галереи. Также доступна загрузка собственных фонов.
+              {t('meetingsPage.virtualBackgroundsBody')}
             </p>
           </section>
         </div>
@@ -204,7 +208,7 @@ export default function MeetingsDashboardPage() {
 
       <div className="pt-8 border-t">
         <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
-            <History className="text-muted-foreground h-5 w-5" /> Ваша история
+            <History className="text-muted-foreground h-5 w-5" /> {t('meetingsPage.historyHeading')}
         </h2>
 
         {isIndexLoading || isHistoryLoading ? (
@@ -235,14 +239,14 @@ export default function MeetingsDashboardPage() {
                                     {!isExpired && (
                                         <DropdownMenuItem className="rounded-xl cursor-pointer" asChild>
                                             <Link href={`/dashboard/meetings/${m.id}/edit`}>
-                                                <Settings className="h-4 w-4 mr-2" /> Настройки
+                                                <Settings className="h-4 w-4 mr-2" /> {t('meetingsPage.cardSettings')}
                                             </Link>
                                         </DropdownMenuItem>
                                     )}
                                     {(m.hostId === user?.id || isExpired) && (
                                         <DropdownMenuItem className="rounded-xl text-destructive focus:text-destructive cursor-pointer" asChild>
                                             <Link href={`/dashboard/meetings/${m.id}/delete`}>
-                                                <Trash2 className="h-4 w-4 mr-2" /> Удалить
+                                                <Trash2 className="h-4 w-4 mr-2" /> {t('meetingsPage.cardDelete')}
                                             </Link>
                                         </DropdownMenuItem>
                                     )}
@@ -253,25 +257,25 @@ export default function MeetingsDashboardPage() {
                             <CardTitle className="text-lg truncate pr-6 leading-tight flex items-center gap-2">
                                 {m.name}
                                 {m.isPrivate && (
-                                  <div title="Приватная">
+                                  <div title={t('meetingsPage.badgePrivateTitle')}>
                                     <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                                   </div>
                                 )}
                             </CardTitle>
                             <CardDescription className="flex items-center gap-1.5 font-medium opacity-70">
                                 <Clock className="h-3 w-3" />
-                                {format(parseISO(m.createdAt), 'dd MMMM, HH:mm', { locale: ru })}
+                                {format(parseISO(m.createdAt), 'dd MMMM, HH:mm', { locale: dateLocale })}
                             </CardDescription>
                         </CardHeader>
                         <CardFooter className="mt-auto pt-4">
                             {isExpired ? (
                                 <Button variant="outline" disabled className="w-full rounded-2xl h-11 border-dashed text-muted-foreground font-bold">
-                                    <Ban className="mr-2 h-4 w-4" /> Срок истек
+                                    <Ban className="mr-2 h-4 w-4" /> {t('meetingsPage.cardExpired')}
                                 </Button>
                             ) : (
                                 <Button variant="secondary" className="w-full rounded-2xl h-11 font-bold group/btn active:scale-95 transition-all" asChild>
                                     <Link href={`/meetings/${m.id}`}>
-                                        Войти <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                        {t('meetingsPage.cardJoin')} <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                                     </Link>
                                 </Button>
                             )}
@@ -284,8 +288,8 @@ export default function MeetingsDashboardPage() {
                 <div className="p-4 bg-muted rounded-full mb-4 opacity-40">
                     <CalendarIcon className="h-12 w-12" />
                 </div>
-                <p className="font-medium text-lg">История встреч пуста</p>
-                <p className="text-sm opacity-60">Здесь будут отображаться ваши недавние конференции</p>
+                <p className="font-medium text-lg">{t('meetingsPage.historyEmptyTitle')}</p>
+                <p className="text-sm opacity-60">{t('meetingsPage.historyEmptyHint')}</p>
             </div>
         )}
       </div>

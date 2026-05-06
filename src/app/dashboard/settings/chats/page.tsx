@@ -16,52 +16,41 @@ import { MessageSquare, Check, RotateCcw, ImagePlus, Loader2, Trash2 } from "luc
 import { cn } from "@/lib/utils";
 import { BUBBLE_RADIUS_OPTIONS, bubbleRadiusToClass, normalizeBubbleRadius } from "@/lib/chat-bubble-radius";
 import { BottomNavIconsSettingsSection } from "@/components/settings/BottomNavIconsSettingsSection";
+import { useI18n } from "@/hooks/use-i18n";
 
 const FONT_SIZES = [
-  { value: "small" as const, label: "Мелкий", textClass: "text-xs" },
-  { value: "medium" as const, label: "Средний", textClass: "text-sm" },
-  { value: "large" as const, label: "Крупный", textClass: "text-base" },
+  { value: "small" as const, labelKey: "small" as const, textClass: "text-xs" },
+  { value: "medium" as const, labelKey: "medium" as const, textClass: "text-sm" },
+  { value: "large" as const, labelKey: "large" as const, textClass: "text-base" },
 ];
 
 const EMOJI_BURST_PROFILES = [
-  {
-    value: "lite" as const,
-    label: "Lite",
-    description: "Минимальная нагрузка и мягкая анимация.",
-  },
-  {
-    value: "balanced" as const,
-    label: "Balanced",
-    description: "Автобаланс между вау-эффектом и производительностью.",
-  },
-  {
-    value: "cinematic" as const,
-    label: "Cinematic",
-    description: "Максимум глубины, частиц и динамики.",
-  },
+  { value: "lite" as const, labelKey: "liteLabel" as const, descriptionKey: "liteDescription" as const },
+  { value: "balanced" as const, labelKey: "balancedLabel" as const, descriptionKey: "balancedDescription" as const },
+  { value: "cinematic" as const, labelKey: "cinematicLabel" as const, descriptionKey: "cinematicDescription" as const },
 ];
 
 const BUBBLE_COLORS = [
-  { value: null, label: "По умолчанию" },
-  { value: "#3B82F6", label: "Синий" },
-  { value: "#10B981", label: "Зелёный" },
-  { value: "#8B5CF6", label: "Фиолетовый" },
-  { value: "#F59E0B", label: "Оранжевый" },
-  { value: "#EF4444", label: "Красный" },
-  { value: "#EC4899", label: "Розовый" },
-  { value: "#06B6D4", label: "Бирюзовый" },
+  { value: null, labelKey: "default" as const },
+  { value: "#3B82F6", labelKey: "blue" as const },
+  { value: "#10B981", labelKey: "green" as const },
+  { value: "#8B5CF6", labelKey: "purple" as const },
+  { value: "#F59E0B", labelKey: "orange" as const },
+  { value: "#EF4444", labelKey: "red" as const },
+  { value: "#EC4899", labelKey: "pink" as const },
+  { value: "#06B6D4", labelKey: "teal" as const },
 ];
 
 const WALLPAPERS = [
-  { value: null, label: "Без фона", isGradient: false },
-  { value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", label: "Фиолетовый", isGradient: true },
-  { value: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", label: "Розовый", isGradient: true },
-  { value: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", label: "Голубой", isGradient: true },
-  { value: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", label: "Зелёный", isGradient: true },
-  { value: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)", label: "Закат", isGradient: true },
-  { value: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)", label: "Лавандовый", isGradient: true },
-  { value: "linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%)", label: "Ночь", isGradient: true },
-  { value: "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)", label: "Мята", isGradient: true },
+  { value: null, labelKey: "none" as const, isGradient: false },
+  { value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", labelKey: "purple" as const, isGradient: true },
+  { value: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", labelKey: "pink" as const, isGradient: true },
+  { value: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", labelKey: "blue" as const, isGradient: true },
+  { value: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", labelKey: "green" as const, isGradient: true },
+  { value: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)", labelKey: "sunset" as const, isGradient: true },
+  { value: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)", labelKey: "lavender" as const, isGradient: true },
+  { value: "linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%)", labelKey: "night" as const, isGradient: true },
+  { value: "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)", labelKey: "mint" as const, isGradient: true },
 ];
 
 function getDisplayColor(hex: string | null, fallback: string) {
@@ -77,6 +66,7 @@ export default function ChatSettingsPage() {
   const { user, isLoading } = useAuth();
   const { chatSettings, updateChatSettings } = useSettings();
   const { toast } = useToast();
+  const { t } = useI18n();
   const firestore = useFirestore();
   const storage = useStorage();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,14 +75,14 @@ export default function ChatSettingsPage() {
   const handleUpdate = async (patch: Partial<typeof chatSettings>) => {
     const ok = await updateChatSettings(patch);
     if (!ok) {
-      toast({ variant: "destructive", title: "Ошибка", description: "Не удалось сохранить настройки." });
+      toast({ variant: "destructive", title: t('chatSettings.toastSaveErrorTitle'), description: t('chatSettings.toastSaveErrorDesc') });
     }
   };
 
   const handleReset = async () => {
     const ok = await updateChatSettings(DEFAULT_CHAT_SETTINGS);
     if (ok) {
-      toast({ title: "Сброшено", description: "Настройки чатов восстановлены по умолчанию." });
+      toast({ title: t('chatSettings.toastResetTitle'), description: t('chatSettings.toastResetDesc') });
     }
   };
 
@@ -102,7 +92,7 @@ export default function ChatSettingsPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (!file.type.startsWith("image/")) {
-      toast({ variant: "destructive", title: "Ошибка", description: "Выберите изображение (JPG, PNG, WebP)." });
+      toast({ variant: "destructive", title: t('chatSettings.toastWallpaperTypeErrorTitle'), description: t('chatSettings.toastWallpaperTypeErrorDesc') });
       return;
     }
 
@@ -117,10 +107,10 @@ export default function ChatSettingsPage() {
       const url = await getDownloadURL(ref);
       await updateDoc(doc(firestore, "users", user.id), { customBackgrounds: arrayUnion(url) });
       await handleUpdate({ chatWallpaper: url });
-      toast({ title: "Готово", description: "Фон загружен и применён." });
+      toast({ title: t('chatSettings.toastWallpaperOkTitle'), description: t('chatSettings.toastWallpaperOkDesc') });
     } catch (err) {
       console.error("Wallpaper upload failed:", err);
-      toast({ variant: "destructive", title: "Ошибка", description: "Не удалось загрузить изображение." });
+      toast({ variant: "destructive", title: t('chatSettings.toastWallpaperUploadErrorTitle'), description: t('chatSettings.toastWallpaperUploadErrorDesc') });
     } finally {
       setUploading(false);
     }
@@ -162,16 +152,16 @@ export default function ChatSettingsPage() {
       <div className="animate-in fade-in slide-in-from-top-4 duration-700 flex items-center gap-2">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
-            <MessageSquare className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Настройки чатов
+            <MessageSquare className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> {t('chatSettings.pageTitle')}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Внешний вид сообщений и чатов.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{t('chatSettings.pageSubtitle')}</p>
         </div>
       </div>
 
       <BottomNavIconsSettingsSection />
 
       <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight">Предпросмотр</h2>
+        <h2 className="text-base font-semibold leading-none tracking-tight">{t('chatSettings.previewHeading')}</h2>
         <div
             className="relative rounded-2xl overflow-hidden p-4 min-h-[160px] flex flex-col justify-end gap-2"
             style={{
@@ -199,7 +189,7 @@ export default function ChatSettingsPage() {
                   color: chatSettings.incomingBubbleColor ? "#fff" : "var(--foreground)",
                 }}
               >
-                Привет! Как дела?
+                {t('chatSettings.previewIncoming')}
               </div>
               {chatSettings.showTimestamps && <span className="text-[10px] text-muted-foreground ml-1">11:58</span>}
             </div>
@@ -215,7 +205,7 @@ export default function ChatSettingsPage() {
                 )}
                 style={{ backgroundColor: outgoingColor }}
               >
-                Отлично, спасибо!
+                {t('chatSettings.previewOutgoing')}
               </div>
               {chatSettings.showTimestamps && <span className="text-[10px] text-muted-foreground mr-1">12:00</span>}
             </div>
@@ -223,16 +213,17 @@ export default function ChatSettingsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight">Исходящие сообщения</h2>
+        <h2 className="text-base font-semibold leading-none tracking-tight">{t('chatSettings.sectionOutgoing')}</h2>
         <div className="flex flex-wrap gap-3">
             {BUBBLE_COLORS.map((opt) => {
               const isActive = chatSettings.bubbleColor === opt.value;
               const bg = opt.value ?? "hsl(var(--primary))";
+              const colorLabel = t(`chatSettings.bubbleColor.${opt.labelKey}`);
               return (
                 <button
                   key={opt.value ?? "default"}
                   type="button"
-                  title={opt.label}
+                  title={colorLabel}
                   onClick={() => handleUpdate({ bubbleColor: opt.value })}
                   className={cn(
                     "relative h-10 w-10 rounded-full border-2 transition-all hover:scale-110 active:scale-95",
@@ -248,16 +239,17 @@ export default function ChatSettingsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight">Входящие сообщения</h2>
+        <h2 className="text-base font-semibold leading-none tracking-tight">{t('chatSettings.sectionIncoming')}</h2>
         <div className="flex flex-wrap gap-3">
             {BUBBLE_COLORS.map((opt) => {
               const isActive = chatSettings.incomingBubbleColor === opt.value;
               const bg = opt.value ?? "hsl(var(--muted))";
+              const colorLabel = t(`chatSettings.bubbleColor.${opt.labelKey}`);
               return (
                 <button
                   key={opt.value ?? "default-in"}
                   type="button"
-                  title={opt.label}
+                  title={colorLabel}
                   onClick={() => handleUpdate({ incomingBubbleColor: opt.value })}
                   className={cn(
                     "relative h-10 w-10 rounded-full border-2 transition-all hover:scale-110 active:scale-95",
@@ -273,7 +265,7 @@ export default function ChatSettingsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight">Размер шрифта</h2>
+        <h2 className="text-base font-semibold leading-none tracking-tight">{t('chatSettings.sectionFontSize')}</h2>
         <div className="flex gap-2">
             {FONT_SIZES.map((opt) => (
               <Button
@@ -283,14 +275,14 @@ export default function ChatSettingsPage() {
                 className="rounded-xl flex-1"
                 onClick={() => handleUpdate({ fontSize: opt.value })}
               >
-                <span className={opt.textClass}>{opt.label}</span>
+                <span className={opt.textClass}>{t(`chatSettings.fontSize.${opt.labelKey}`)}</span>
               </Button>
             ))}
         </div>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight">Форма пузырьков</h2>
+        <h2 className="text-base font-semibold leading-none tracking-tight">{t('chatSettings.sectionBubbleShape')}</h2>
         <div className="grid grid-cols-2 gap-3 max-w-md">
             {BUBBLE_RADIUS_OPTIONS.map((opt) => {
               const isActive = activeBubblePreset === opt.value;
@@ -307,16 +299,16 @@ export default function ChatSettingsPage() {
                   <div className="w-full flex flex-col gap-2.5 min-h-[76px] justify-center">
                     <div className="flex justify-end w-full">
                       <div className={cn("px-3.5 py-2 min-w-[4.5rem] text-center text-[11px] text-white bg-primary shadow-sm rounded-tr-none", opt.radius)}>
-                        Привет
+                        {t('chatSettings.bubbleShapePreviewOut')}
                       </div>
                     </div>
                     <div className="flex justify-start w-full">
                       <div className={cn("px-3.5 py-2 min-w-[5rem] text-center text-[11px] bg-muted-foreground/20 shadow-sm rounded-tl-none", opt.radius)}>
-                        Как дела?
+                        {t('chatSettings.bubbleShapePreviewIn')}
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs font-medium">{opt.label}</span>
+                  <span className="text-xs font-medium">{t(`chatSettings.bubbleRadius.${opt.labelKey}`)}</span>
                 </button>
               );
             })}
@@ -324,11 +316,12 @@ export default function ChatSettingsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight">Фон чата</h2>
+        <h2 className="text-base font-semibold leading-none tracking-tight">{t('chatSettings.sectionWallpaper')}</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {WALLPAPERS.map((wp) => {
               const isActive = currentWallpaper === wp.value;
+              const wpLabel = t(`chatSettings.wallpaperLabel.${wp.labelKey}`);
               return (
                 <button
                   key={wp.value ?? "none"}
@@ -342,7 +335,7 @@ export default function ChatSettingsPage() {
                 >
                   {!wp.value && (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground text-[10px] font-medium">
-                      Нет
+                      {t('chatSettings.wallpaperNone')}
                     </div>
                   )}
                   {isActive && (
@@ -352,7 +345,7 @@ export default function ChatSettingsPage() {
                   )}
                   {wp.value && (
                     <span className="absolute bottom-1 left-0 right-0 text-center text-[9px] font-medium text-white drop-shadow-md">
-                      {wp.label}
+                      {wpLabel}
                     </span>
                   )}
                 </button>
@@ -362,7 +355,7 @@ export default function ChatSettingsPage() {
 
           {/* Custom wallpapers section */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Ваши фоны</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t('chatSettings.customWallpapersHeading')}</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {(user.customBackgrounds || []).map((url) => {
                 const isActive = currentWallpaper === url;
@@ -407,12 +400,12 @@ export default function ChatSettingsPage() {
                 ) : (
                   <>
                     <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-[9px] text-muted-foreground font-medium">Добавить</span>
+                    <span className="text-[9px] text-muted-foreground font-medium">{t('chatSettings.addCustomWallpaper')}</span>
                   </>
                 )}
               </button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">Изображения затемняются автоматически для читаемости.</p>
+            <p className="text-[10px] text-muted-foreground mt-2">{t('chatSettings.customWallpaperHint')}</p>
           </div>
 
           <input
@@ -426,13 +419,13 @@ export default function ChatSettingsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-base font-semibold leading-none tracking-tight">Дополнительно</h2>
+        <h2 className="text-base font-semibold leading-none tracking-tight">{t('chatSettings.sectionExtra')}</h2>
         <div className="space-y-5">
           <div className="space-y-3">
             <div>
-              <Label className="text-sm font-medium">Эффекты эмодзи</Label>
+              <Label className="text-sm font-medium">{t('chatSettings.emojiEffectsLabel')}</Label>
               <p className="text-xs text-muted-foreground">
-                Профиль fullscreen-анимации при тапе по одиночному эмодзи в чате.
+                {t('chatSettings.emojiEffectsHint')}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -450,9 +443,9 @@ export default function ChatSettingsPage() {
                         : "border-border bg-card hover:bg-muted/40"
                     )}
                   >
-                    <div className="text-sm font-semibold">{opt.label}</div>
+                    <div className="text-sm font-semibold">{t(`chatSettings.emojiBurst.${opt.labelKey}`)}</div>
                     <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                      {opt.description}
+                      {t(`chatSettings.emojiBurst.${opt.descriptionKey}`)}
                     </div>
                   </button>
                 );
@@ -461,8 +454,8 @@ export default function ChatSettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Показывать время</Label>
-              <p className="text-xs text-muted-foreground">Время отправки под каждым сообщением.</p>
+              <Label className="text-sm font-medium">{t('chatSettings.showTimestampsLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('chatSettings.showTimestampsHint')}</p>
             </div>
             <Switch
               checked={chatSettings.showTimestamps}
@@ -476,7 +469,7 @@ export default function ChatSettingsPage() {
       <div className="flex justify-center pt-2">
         <Button variant="ghost" onClick={handleReset} className="rounded-full gap-2 text-sm text-muted-foreground hover:text-foreground">
           <RotateCcw className="h-4 w-4" />
-          Сбросить настройки
+          {t('chatSettings.resetButton')}
         </Button>
       </div>
     </div>

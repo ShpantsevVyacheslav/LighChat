@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useI18n } from '@/hooks/use-i18n';
 
 export default function DeleteUserPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function DeleteUserPage() {
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
+  const { t } = useI18n();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const userId = typeof params.userId === 'string' ? params.userId : '';
@@ -27,7 +29,7 @@ export default function DeleteUserPage() {
   const handleConfirmDelete = async () => {
     if (!userId || currentUser?.id === userId || !firebaseApp) {
         if (currentUser?.id === userId) {
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Нельзя удалить самого себя.' });
+            toast({ variant: 'destructive', title: t('usersAdmin.deleteUser.toastSelfDeleteTitle'), description: t('usersAdmin.deleteUser.toastSelfDeleteDesc') });
         }
         return;
     };
@@ -44,8 +46,8 @@ export default function DeleteUserPage() {
       });
 
       toast({
-        title: 'Пользователь удален',
-        description: `Пользователь "${user?.name}" был успешно архивирован через сервер.`,
+        title: t('usersAdmin.deleteUser.toastDeletedTitle'),
+        description: t('usersAdmin.deleteUser.toastDeletedDescNamed', { name: user?.name ?? '' }),
       });
       router.push('/dashboard/users');
     } catch (error: unknown) {
@@ -59,8 +61,8 @@ export default function DeleteUserPage() {
           : undefined;
       toast({
         variant: 'destructive',
-        title: 'Ошибка при удалении',
-        description: message || 'Произошла ошибка при выполнении операции на сервере.',
+        title: t('usersAdmin.deleteUser.toastErrorTitle'),
+        description: message || t('usersAdmin.deleteUser.fallbackError'),
       });
       setIsDeleting(false);
     }
@@ -85,7 +87,7 @@ export default function DeleteUserPage() {
       onConfirm={handleConfirmDelete}
       isPending={isDeleting}
       itemName={user?.name || ''}
-      itemType="пользователя"
+      itemType={t('usersAdmin.deleteUser.itemType')}
     />
   );
 }

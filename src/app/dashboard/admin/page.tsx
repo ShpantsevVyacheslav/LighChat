@@ -19,12 +19,14 @@ import { AdminModerationPanel } from '@/components/admin/admin-moderation-panel'
 import { AdminFeatureFlagsPanel } from '@/components/admin/admin-feature-flags-panel';
 import { AdminAnnouncementsPanel } from '@/components/admin/admin-announcements-panel';
 import { UsersClient } from '@/components/admin/users-client';
+import { useI18n } from '@/hooks/use-i18n';
 
 export const dynamic = 'force-dynamic';
 
 export default function AdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!isLoading && user && user.role !== 'admin') {
@@ -36,7 +38,7 @@ export default function AdminPage() {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden />
-        <span className="sr-only">Загрузка…</span>
+        <span className="sr-only">{t('errors.loadingSr')}</span>
       </div>
     );
   }
@@ -46,10 +48,10 @@ export default function AdminPage() {
       <div className="animate-in fade-in slide-in-from-top-4 duration-700 flex items-center gap-2">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
-            <Shield className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Администрирование
+            <Shield className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> {t('adminPage.pageTitle')}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Блокировки, роли и пароли — в разделе «Пользователи»; глобальные настройки — ниже.
+            {t('adminPage.pageSubtitle')}
           </p>
         </div>
       </div>
@@ -57,34 +59,34 @@ export default function AdminPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-muted/50 p-1">
           <TabsTrigger value="overview" className="rounded-xl">
-            Обзор
+            {t('adminPage.tabOverview')}
           </TabsTrigger>
           <TabsTrigger value="users" className="rounded-xl">
-            Пользователи
+            {t('adminPage.tabUsers')}
           </TabsTrigger>
           <TabsTrigger value="analytics" className="rounded-xl">
-            Аналитика
+            {t('adminPage.tabAnalytics')}
           </TabsTrigger>
           <TabsTrigger value="moderation" className="rounded-xl">
-            Модерация
+            {t('adminPage.tabModeration')}
           </TabsTrigger>
           <TabsTrigger value="storage" className="rounded-xl">
-            Хранилище
+            {t('adminPage.tabStorage')}
           </TabsTrigger>
           <TabsTrigger value="push" className="rounded-xl">
-            Уведомления
+            {t('adminPage.tabPush')}
           </TabsTrigger>
           <TabsTrigger value="audit" className="rounded-xl">
-            Аудит
+            {t('adminPage.tabAudit')}
           </TabsTrigger>
           <TabsTrigger value="support" className="rounded-xl">
-            Обращения
+            {t('adminPage.tabSupport')}
           </TabsTrigger>
           <TabsTrigger value="platform" className="rounded-xl">
-            Платформа
+            {t('adminPage.tabPlatform')}
           </TabsTrigger>
           <TabsTrigger value="roadmap" className="rounded-xl">
-            Развитие
+            {t('adminPage.tabRoadmap')}
           </TabsTrigger>
         </TabsList>
 
@@ -93,16 +95,15 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Users className="h-5 w-5 text-primary" />
-                Пользователи
+                {t('adminPage.overviewUsersTitle')}
               </CardTitle>
               <CardDescription>
-                Блокировка учётных записей (временная или постоянная), разблокировка, сброс пароля через Firebase Admin
-                и назначение администраторов выполняются в списке пользователей.
+                {t('adminPage.overviewUsersDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button asChild className="rounded-full">
-                <Link href="/dashboard/users">Открыть список пользователей</Link>
+                <Link href="/dashboard/users">{t('adminPage.overviewUsersOpen')}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -110,8 +111,7 @@ export default function AdminPage() {
           <AdminBackfillConversationMembersPanel />
 
           <p className="text-sm text-muted-foreground">
-            Политики хранения медиа, общая квота Storage и лимиты по пользователям/чатам настраиваются во вкладке «Хранилище».
-            Реальное удаление файлов и FIFO при переполнении квоты выполняется Cloud Functions (подключите отдельно).
+            {t('adminPage.overviewStorageHint')}
           </p>
         </TabsContent>
 

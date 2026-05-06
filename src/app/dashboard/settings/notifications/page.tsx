@@ -10,11 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BellRing, RotateCcw } from "lucide-react";
+import { useI18n } from "@/hooks/use-i18n";
 
 export default function NotificationSettingsPage() {
   const { user, isLoading } = useAuth();
   const { notificationSettings, updateNotificationSettings } = useSettings();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const clientTimeZone =
     typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
@@ -26,7 +28,7 @@ export default function NotificationSettingsPage() {
         : patch;
     const ok = await updateNotificationSettings(withTz);
     if (!ok) {
-      toast({ variant: "destructive", title: "Ошибка", description: "Не удалось сохранить настройки." });
+      toast({ variant: "destructive", title: t('notifications.toastSaveErrorTitle'), description: t('notifications.toastSaveErrorDesc') });
     }
   };
 
@@ -37,7 +39,7 @@ export default function NotificationSettingsPage() {
         : DEFAULT_NOTIFICATION_SETTINGS;
     const ok = await updateNotificationSettings(withTz);
     if (ok) {
-      toast({ title: "Сброшено", description: "Настройки уведомлений восстановлены по умолчанию." });
+      toast({ title: t('notifications.toastResetTitle'), description: t('notifications.toastResetDesc') });
     }
   };
 
@@ -55,7 +57,7 @@ export default function NotificationSettingsPage() {
       <div className="animate-in fade-in slide-in-from-top-4 duration-700 flex items-center gap-2">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 leading-tight">
-            <BellRing className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> Уведомления
+            <BellRing className="text-primary h-6 w-6 sm:h-8 sm:w-8" /> {t('notifications.pageTitle')}
           </h1>
         </div>
       </div>
@@ -63,13 +65,13 @@ export default function NotificationSettingsPage() {
       {/* Main toggles */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Основные</CardTitle>
+          <CardTitle className="text-base">{t('notifications.mainCardTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Отключить все</Label>
-              <p className="text-xs text-muted-foreground">Полностью выключить уведомления.</p>
+              <Label className="text-sm font-medium">{t('notifications.muteAllLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('notifications.muteAllHint')}</p>
             </div>
             <Switch
               checked={notificationSettings.muteAll}
@@ -78,8 +80,8 @@ export default function NotificationSettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Звук</Label>
-              <p className="text-xs text-muted-foreground">Воспроизводить звук при новом сообщении.</p>
+              <Label className="text-sm font-medium">{t('notifications.soundLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('notifications.soundHint')}</p>
             </div>
             <Switch
               checked={notificationSettings.soundEnabled}
@@ -89,8 +91,8 @@ export default function NotificationSettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Предпросмотр</Label>
-              <p className="text-xs text-muted-foreground">Показывать текст сообщения в уведомлении.</p>
+              <Label className="text-sm font-medium">{t('notifications.previewLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('notifications.previewHint')}</p>
             </div>
             <Switch
               checked={notificationSettings.showPreview}
@@ -104,13 +106,13 @@ export default function NotificationSettingsPage() {
       {/* Quiet hours */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Тихие часы</CardTitle>
-          <CardDescription>Уведомления не будут беспокоить в указанный период.</CardDescription>
+          <CardTitle className="text-base">{t('notifications.quietCardTitle')}</CardTitle>
+          <CardDescription>{t('notifications.quietCardDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label className="text-sm font-medium">Включить тихие часы</Label>
+              <Label className="text-sm font-medium">{t('notifications.quietEnableLabel')}</Label>
             </div>
             <Switch
               checked={notificationSettings.quietHoursEnabled}
@@ -121,7 +123,7 @@ export default function NotificationSettingsPage() {
           {notificationSettings.quietHoursEnabled && !notificationSettings.muteAll && (
             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="flex-1">
-                <Label className="text-xs text-muted-foreground mb-1 block">С</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">{t('notifications.quietFromLabel')}</Label>
                 <Input
                   type="time"
                   value={notificationSettings.quietHoursStart}
@@ -131,7 +133,7 @@ export default function NotificationSettingsPage() {
               </div>
               <span className="text-muted-foreground mt-5">—</span>
               <div className="flex-1">
-                <Label className="text-xs text-muted-foreground mb-1 block">До</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">{t('notifications.quietToLabel')}</Label>
                 <Input
                   type="time"
                   value={notificationSettings.quietHoursEnd}
@@ -148,7 +150,7 @@ export default function NotificationSettingsPage() {
       <div className="flex justify-center pt-2">
         <Button variant="ghost" onClick={handleReset} className="rounded-full gap-2 text-sm text-muted-foreground hover:text-foreground">
           <RotateCcw className="h-4 w-4" />
-          Сбросить настройки
+          {t('notifications.resetButton')}
         </Button>
       </div>
     </div>

@@ -18,11 +18,11 @@ const LEGACY_TO_VALUE: Record<string, BubbleRadiusValue> = {
 /** Скруглённые (как раньше) и квадратные (без скругления углов) */
 export const BUBBLE_RADIUS_OPTIONS: ReadonlyArray<{
   value: BubbleRadiusValue;
-  label: string;
+  labelKey: 'rounded' | 'square';
   radius: string;
 }> = [
-  { value: "rounded", label: "Скруглённые", radius: "rounded-2xl" },
-  { value: "square", label: "Квадратные", radius: "rounded-none" },
+  { value: "rounded", labelKey: "rounded", radius: "rounded-2xl" },
+  { value: "square", labelKey: "square", radius: "rounded-none" },
 ];
 
 const RADIUS_CLASS_MAP: Record<BubbleRadiusValue, string> = {

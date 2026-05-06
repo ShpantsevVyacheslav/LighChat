@@ -18,12 +18,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 
 export default function DeleteMeetingPage() {
   const router = useRouter();
   const params = useParams();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   
   const meetingId = typeof params.meetingId === 'string' ? params.meetingId : '';
   const meetingRef = useMemoFirebase(() => (firestore && meetingId ? doc(firestore, 'meetings', meetingId) : null), [firestore, meetingId]);
@@ -37,7 +39,7 @@ export default function DeleteMeetingPage() {
     setIsDeleting(true);
     try {
       await deleteDoc(meetingRef);
-      toast({ title: 'Встреча удалена' });
+      toast({ title: t('meetingsPage.deleteMeeting.toastDeleted') });
       router.push('/dashboard/meetings');
     } catch (error: unknown) {
       const message =
@@ -46,10 +48,10 @@ export default function DeleteMeetingPage() {
         'message' in error &&
         typeof (error as { message?: unknown }).message === 'string'
           ? (error as { message: string }).message
-          : 'Не удалось удалить встречу.';
+          : t('meetingsPage.deleteMeeting.fallbackError');
       toast({
         variant: 'destructive',
-        title: 'Ошибка при удалении',
+        title: t('meetingsPage.deleteMeeting.toastErrorTitle'),
         description: message,
       });
       setIsDeleting(false);
@@ -68,16 +70,16 @@ export default function DeleteMeetingPage() {
     <AlertDialog open={true} onOpenChange={(open) => !open && !isDeleting && router.back()}>
       <AlertDialogContent className="rounded-[2.5rem]">
         <AlertDialogHeader>
-          <AlertDialogTitle>Удалить встречу?</AlertDialogTitle>
+          <AlertDialogTitle>{t('meetingsPage.deleteMeeting.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Вы уверены? Это действие нельзя отменить. Запись о встрече &quot;{meeting?.name}&quot; будет навсегда удалена из истории.
+            {t('meetingsPage.deleteMeeting.descriptionNamed', { name: meeting?.name ?? '' })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>{t('meetingsPage.deleteMeeting.cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90 text-white">
             {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Удалить
+            {t('meetingsPage.deleteMeeting.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

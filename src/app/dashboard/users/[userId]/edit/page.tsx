@@ -16,11 +16,13 @@ import {
 } from '@/components/ui/dialog';
 import { UserForm, type UserFormSavePayload } from '@/components/admin/user-form';
 import { Loader2 } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 
 export default function EditUserPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isSaving, setIsSaving] = useState(false);
 
   const userId = typeof params.userId === 'string' ? params.userId : '';
@@ -49,8 +51,8 @@ export default function EditUserPage() {
         });
         
         toast({
-            title: 'Пользователь обновлен',
-            description: `Данные пользователя "${data.name}" были успешно обновлены через сервер.`,
+            title: t('usersAdmin.edit.toastUpdatedTitle'),
+            description: t('usersAdmin.edit.toastUpdatedDescNamed', { name: data.name }),
         });
         router.push('/dashboard/users');
     } catch (e: unknown) {
@@ -64,8 +66,8 @@ export default function EditUserPage() {
             : undefined;
         toast({
             variant: 'destructive',
-            title: 'Ошибка при обновлении',
-            description: message || 'Не удалось обновить профиль пользователя. Проверьте права доступа.',
+            title: t('usersAdmin.edit.toastErrorTitle'),
+            description: message || t('usersAdmin.edit.fallbackError'),
         });
         setIsSaving(false);
     }
@@ -82,9 +84,9 @@ export default function EditUserPage() {
     >
       <DialogContent className="rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Редактировать пользователя</DialogTitle>
+          <DialogTitle>{t('usersAdmin.edit.dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Измените данные пользователя. Нажмите &quot;Сохранить&quot;, когда закончите.
+            {t('usersAdmin.edit.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
         {isLoading ? (

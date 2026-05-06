@@ -6,11 +6,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { buildDashboardChatOpenUrl } from '@/lib/dashboard-conversation-url';
 import { ConversationUtilityRouteSheet } from '@/components/chat/conversation-pages/ConversationUtilityRouteSheet';
 import { LeaveGroupPanel } from '@/components/chat/conversation-pages/LeaveGroupPanel';
+import { useI18n } from '@/hooks/use-i18n';
 
 export default function LeaveConversationPage() {
   const router = useRouter();
   const params = useParams();
   const { user: currentUser, isLoading } = useAuth();
+  const { t } = useI18n();
   const conversationId = typeof params.conversationId === 'string' ? params.conversationId : '';
 
   const handleCancel = () => {
@@ -28,7 +30,7 @@ export default function LeaveConversationPage() {
   if (!conversationId) return null;
 
   return (
-    <ConversationUtilityRouteSheet title="Покинуть группу" conversationId={conversationId}>
+    <ConversationUtilityRouteSheet title={t('chatOps.leaveDialog.title')} conversationId={conversationId}>
       <LeaveGroupPanel conversationId={conversationId} currentUser={currentUser} onCancel={handleCancel} />
     </ConversationUtilityRouteSheet>
   );

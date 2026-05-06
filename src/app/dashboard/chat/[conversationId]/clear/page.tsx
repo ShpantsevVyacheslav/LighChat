@@ -8,6 +8,7 @@ import { useDoc, useFirestore, useMemoFirebase, useUser as useFirebaseUser } fro
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,7 @@ export default function ClearConversationPage() {
   const { user: currentUser } = useAuth();
   const { user: firebaseAuthUser } = useFirebaseUser();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isClearing, setIsClearing] = useState(false);
 
   const conversationId = typeof params.conversationId === 'string' ? params.conversationId : '';
@@ -39,8 +41,8 @@ export default function ClearConversationPage() {
     if (!uid) {
       toast({
         variant: 'destructive',
-        title: 'Ошибка',
-        description: 'Нет активной сессии. Обновите страницу и войдите снова.',
+        title: t('chatOps.clearDialog.toastNoSessionTitle'),
+        description: t('chatOps.clearDialog.toastNoSessionDesc'),
       });
       return;
     }
@@ -56,8 +58,10 @@ export default function ClearConversationPage() {
       });
       
       toast({
-        title: 'История очищена',
-        description: `История переписки в чате "${conversation?.name || 'с пользователем'}" удалена для вас.`,
+        title: t('chatOps.clearDialog.toastClearedTitle'),
+        description: conversation?.name
+          ? t('chatOps.clearDialog.toastClearedDescNamed', { name: conversation.name })
+          : t('chatOps.clearDialog.toastClearedDescFallback'),
       });
       router.push('/dashboard/chat');
     } catch (error: unknown) {
@@ -68,10 +72,10 @@ export default function ClearConversationPage() {
         'message' in error &&
         typeof (error as { message?: unknown }).message === 'string'
           ? (error as { message: string }).message
-          : 'Не удалось очистить историю.';
+          : t('chatOps.clearDialog.fallbackError');
       toast({
         variant: 'destructive',
-        title: 'Ошибка',
+        title: t('chatOps.clearDialog.toastErrorTitle'),
         description: message,
       });
       setIsClearing(false);
@@ -97,20 +101,20 @@ export default function ClearConversationPage() {
     >
       <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>Очистить историю?</AlertDialogTitle>
+          <AlertDialogTitle>{t('chatOps.clearDialog.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Все текущие сообщения и обсуждения будут удалены из вашего окна чата. Собеседник по-прежнему будет видеть всю историю.
+            {t('chatOps.clearDialog.description')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isClearing}>Отмена</AlertDialogCancel>
+          <AlertDialogCancel disabled={isClearing}>{t('chatOps.clearDialog.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirmClear}
             disabled={isClearing}
             className="rounded-full font-bold"
           >
             {isClearing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Очистить для меня
+            {t('chatOps.clearDialog.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

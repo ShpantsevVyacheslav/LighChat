@@ -8,6 +8,7 @@ import type { Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useUser as useFirebaseUser } from '@/firebase';
+import { useI18n } from '@/hooks/use-i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,7 @@ export default function DeleteConversationPage() {
   const { toast } = useToast();
   const { user: authUser } = useAuth();
   const { user: firebaseAuthUser } = useFirebaseUser();
+  const { t } = useI18n();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const conversationId = typeof params.conversationId === 'string' ? params.conversationId : '';
@@ -50,8 +52,8 @@ export default function DeleteConversationPage() {
         }
       }
       toast({
-        title: 'Чат удален',
-        description: `Переписка была успешно удалена для всех участников.`,
+        title: t('chatOps.deleteDialog.toastDeletedTitle'),
+        description: t('chatOps.deleteDialog.toastDeletedDesc'),
       });
       router.push('/dashboard/chat');
     } catch (error: unknown) {
@@ -73,9 +75,8 @@ export default function DeleteConversationPage() {
             conversationIds: arrayRemove(conversationId),
           });
           toast({
-            title: 'Чат скрыт',
-            description:
-              'Вы больше не участник этого чата, поэтому он удалён только из вашего списка.',
+            title: t('chatOps.deleteDialog.toastHiddenTitle'),
+            description: t('chatOps.deleteDialog.toastHiddenDesc'),
           });
           router.push('/dashboard/chat');
           return;
@@ -89,7 +90,7 @@ export default function DeleteConversationPage() {
         'message' in error &&
         typeof (error as { message?: unknown }).message === 'string'
           ? (error as { message: string }).message
-          : 'Не удалось удалить чат.';
+          : t('chatOps.deleteDialog.fallbackError');
       console.error(
         'Failed to delete chat:',
         error,
@@ -97,7 +98,7 @@ export default function DeleteConversationPage() {
       );
       toast({
         variant: 'destructive',
-        title: 'Ошибка при удалении',
+        title: t('chatOps.deleteDialog.toastErrorTitle'),
         description: message,
       });
       setIsDeleting(false);
@@ -123,20 +124,20 @@ export default function DeleteConversationPage() {
     >
       <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>Удалить чат?</AlertDialogTitle>
+          <AlertDialogTitle>{t('chatOps.deleteDialog.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Переписка будет безвозвратно удалена для всех участников. Это действие невозможно отменить.
+            {t('chatOps.deleteDialog.description')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>{t('chatOps.deleteDialog.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirmDelete}
             disabled={isDeleting}
             className="bg-destructive hover:bg-destructive/90 rounded-full font-bold"
           >
             {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Удалить для всех
+            {t('chatOps.deleteDialog.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

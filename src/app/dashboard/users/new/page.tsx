@@ -14,22 +14,24 @@ import {
 } from '@/components/ui/dialog';
 import { UserForm, type UserFormSavePayload } from '@/components/admin/user-form';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useI18n } from '@/hooks/use-i18n';
 
 export default function NewUserPage() {
   const router = useRouter();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async (data: UserFormSavePayload) => {
     setIsSaving(true);
     if (!data.password) {
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Пароль обязателен для нового пользователя.'});
+        toast({ variant: 'destructive', title: t('usersAdmin.create.toastPasswordRequiredTitle'), description: t('usersAdmin.create.toastPasswordRequiredDesc')});
         setIsSaving(false);
         return;
     }
     if (!firebaseApp) {
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Сервис Firebase не доступен.'});
+        toast({ variant: 'destructive', title: t('usersAdmin.create.toastFirebaseUnavailableTitle'), description: t('usersAdmin.create.toastFirebaseUnavailableDesc')});
         setIsSaving(false);
         return;
     }
@@ -48,14 +50,14 @@ export default function NewUserPage() {
           phone: data.phone,
           avatar: data.avatar
       });
-      
+
       toast({
-        title: 'Пользователь создан',
-        description: `Аккаунт для "${data.name}" был успешно создан на сервере.`,
+        title: t('usersAdmin.create.toastCreatedTitle'),
+        description: t('usersAdmin.create.toastCreatedDescNamed', { name: data.name }),
       });
       router.push('/dashboard/users');
     } catch (error: unknown) {
-      let errorMessage = 'Произошла неизвестная ошибка.';
+      let errorMessage = t('usersAdmin.create.errorUnknown');
       if (
         typeof error === 'object' &&
         error != null &&
@@ -64,7 +66,7 @@ export default function NewUserPage() {
       ) {
         errorMessage = (error as { message: string }).message;
       }
-      
+
       const code =
         typeof error === 'object' && error != null && 'code' in error
           ? (error as { code?: unknown }).code
@@ -72,20 +74,20 @@ export default function NewUserPage() {
       if (typeof code === 'string') {
         switch (code) {
             case 'functions/already-exists':
-                errorMessage = 'Этот email уже используется.';
+                errorMessage = t('usersAdmin.create.errorAlreadyExists');
                 break;
             case 'functions/permission-denied':
-                errorMessage = 'У вас нет прав для выполнения этой операции.';
+                errorMessage = t('usersAdmin.create.errorPermissionDenied');
                 break;
             case 'functions/internal':
-                errorMessage = 'Произошла внутренняя ошибка сервера при создании пользователя.';
+                errorMessage = t('usersAdmin.create.errorInternal');
                 break;
         }
       }
-      
+
       toast({
         variant: 'destructive',
-        title: 'Ошибка при создании',
+        title: t('usersAdmin.create.toastErrorTitle'),
         description: errorMessage,
       });
     } finally {
@@ -104,9 +106,9 @@ export default function NewUserPage() {
     >
       <DialogContent className="rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Новый пользователь</DialogTitle>
+          <DialogTitle>{t('usersAdmin.create.dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Создайте новую учетную запись. Все данные будут сохранены в облаке.
+            {t('usersAdmin.create.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
         <UserForm

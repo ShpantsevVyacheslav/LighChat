@@ -5,16 +5,18 @@ import { useRouter } from "next/navigation";
 import { signInWithCustomToken } from "firebase/auth";
 
 import { useFirebaseApp, useAuth } from "@/firebase";
+import { useI18n } from "@/hooks/use-i18n";
 
 export function YandexOauthFinishInner() {
   const app = useFirebaseApp();
   const auth = useAuth();
   const router = useRouter();
-  const [message, setMessage] = React.useState("Завершаем вход через Яндекс…");
+  const { t } = useI18n();
+  const [message, setMessage] = React.useState(t('yandexFinish.inProgress'));
 
   React.useEffect(() => {
     if (!app || !auth) {
-      setMessage("Firebase не инициализирован. Обновите страницу.");
+      setMessage(t('yandexFinish.firebaseUninitialized'));
       return;
     }
 
@@ -26,7 +28,7 @@ export function YandexOauthFinishInner() {
       const params = new URLSearchParams(hash);
       const token = params.get("customToken");
       if (!token || token.trim().length === 0) {
-        setMessage("Нет токена входа. Откройте вход с главной страницы ещё раз.");
+        setMessage(t('yandexFinish.missingToken'));
         return;
       }
 
@@ -39,13 +41,13 @@ export function YandexOauthFinishInner() {
         const msg =
           typeof e === "object" && e !== null && "message" in e
             ? String((e as { message: unknown }).message)
-            : "Не удалось войти через Яндекс.";
+            : t('yandexFinish.fallbackError');
         setMessage(msg);
       }
     };
 
     void run();
-  }, [app, auth, router]);
+  }, [app, auth, router, t]);
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">

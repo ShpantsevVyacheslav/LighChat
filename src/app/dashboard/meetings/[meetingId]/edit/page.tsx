@@ -23,15 +23,16 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Settings, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { addMinutes } from 'date-fns';
+import { useI18n } from '@/hooks/use-i18n';
 
 const DURATION_OPTIONS = [
-  { label: 'Оставить как есть', value: 'current' },
-  { label: 'Без ограничений', value: 'infinity' },
-  { label: 'Завершить через 15 мин', value: '15' },
-  { label: 'Завершить через 30 мин', value: '30' },
-  { label: 'Завершить через 1 час', value: '60' },
-  { label: 'Завершить через 2 часа', value: '120' },
-  { label: 'Завершить через 4 часа', value: '240' },
+  { labelKey: 'current' as const, value: 'current' },
+  { labelKey: 'infinity' as const, value: 'infinity' },
+  { labelKey: 'm15' as const, value: '15' },
+  { labelKey: 'm30' as const, value: '30' },
+  { labelKey: 'h1' as const, value: '60' },
+  { labelKey: 'h2' as const, value: '120' },
+  { labelKey: 'h4' as const, value: '240' },
 ];
 
 export default function EditMeetingPage() {
@@ -39,6 +40,7 @@ export default function EditMeetingPage() {
   const params = useParams();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   
   const meetingId = typeof params.meetingId === 'string' ? params.meetingId : '';
   const meetingRef = useMemoFirebase(() => (firestore && meetingId ? doc(firestore, 'meetings', meetingId) : null), [firestore, meetingId]);
@@ -73,7 +75,7 @@ export default function EditMeetingPage() {
       }
 
       await updateDoc(meetingRef, updateData);
-      toast({ title: 'Настройки обновлены' });
+      toast({ title: t('meetingsPage.edit.toastUpdated') });
       router.push('/dashboard/meetings');
     } catch (error: unknown) {
       const message =
@@ -82,10 +84,10 @@ export default function EditMeetingPage() {
         'message' in error &&
         typeof (error as { message?: unknown }).message === 'string'
           ? (error as { message: string }).message
-          : 'Не удалось обновить настройки.';
+          : t('meetingsPage.edit.fallbackError');
       toast({
         variant: 'destructive',
-        title: 'Ошибка',
+        title: t('meetingsPage.edit.toastErrorTitle'),
         description: message,
       });
       setIsSaving(false);
@@ -105,54 +107,54 @@ export default function EditMeetingPage() {
       <AlertDialogContent className="rounded-[2.5rem] max-w-md border-none shadow-2xl">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-primary" /> Настройки встречи
+            <Settings className="h-5 w-5 text-primary" /> {t('meetingsPage.edit.dialogTitle')}
           </AlertDialogTitle>
-          <AlertDialogDescription>Измените параметры конференции.</AlertDialogDescription>
+          <AlertDialogDescription>{t('meetingsPage.edit.dialogDescription')}</AlertDialogDescription>
         </AlertDialogHeader>
-        
+
         <div className="py-6 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider opacity-60">Название</Label>
-            <Input 
+            <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider opacity-60">{t('meetingsPage.edit.nameLabel')}</Label>
+            <Input
                 id="name"
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="rounded-2xl h-12 bg-muted/50 border-none"
-                placeholder="Название встречи"
+                placeholder={t('meetingsPage.edit.namePlaceholder')}
                 autoFocus
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider opacity-60">Срок жизни комнаты</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider opacity-60">{t('meetingsPage.edit.lifetimeLabel')}</Label>
             <Select value={duration} onValueChange={setDuration}>
                 <SelectTrigger className="rounded-2xl h-12 bg-muted/50 border-none">
-                    <SelectValue placeholder="Выберите длительность" />
+                    <SelectValue placeholder={t('meetingsPage.edit.lifetimePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
                     {DURATION_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        <SelectItem key={opt.value} value={opt.value}>{t(`meetingsPage.edit.durationOption.${opt.labelKey}`)}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground px-2">Текущий статус: {meeting?.expiresAt ? 'Лимитирована' : 'Без ограничений'}</p>
+            <p className="text-[10px] text-muted-foreground px-2">{t('meetingsPage.edit.lifetimeStatusPrefix')} {meeting?.expiresAt ? t('meetingsPage.edit.lifetimeStatusLimited') : t('meetingsPage.edit.lifetimeStatusInfinite')}</p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider opacity-60">Приватность</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider opacity-60">{t('meetingsPage.edit.privacyLabel')}</Label>
             <div className="flex items-center gap-3 h-12 bg-muted/30 rounded-2xl px-4 border border-border/50">
                 {isPrivate ? <ShieldAlert className="h-4 w-4 text-amber-500" /> : <ShieldCheck className="h-4 w-4 text-green-500" />}
-                <span className="text-sm font-medium flex-1">{isPrivate ? 'Приватная (нужно одобрение)' : 'Открытая (вход по ссылке)'}</span>
+                <span className="text-sm font-medium flex-1">{isPrivate ? t('meetingsPage.edit.privacyPrivate') : t('meetingsPage.edit.privacyOpen')}</span>
                 <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
             </div>
           </div>
         </div>
 
         <AlertDialogFooter className="bg-muted/10 p-2 -mx-6 -mb-6 mt-4">
-          <AlertDialogCancel disabled={isSaving} className="rounded-2xl border-none bg-transparent hover:bg-muted">Отмена</AlertDialogCancel>
+          <AlertDialogCancel disabled={isSaving} className="rounded-2xl border-none bg-transparent hover:bg-muted">{t('meetingsPage.edit.cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={(e) => { e.preventDefault(); handleSave(); }} disabled={isSaving || !name.trim()} className="rounded-2xl px-8 font-bold">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Сохранить
+            {t('meetingsPage.edit.save')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
