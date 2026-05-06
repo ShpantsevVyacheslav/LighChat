@@ -14,6 +14,7 @@
 | **[aso-keywords-recommendations.md](aso-keywords-recommendations.md)** | Готовые к копированию ASO-строки для 5 сторов и 8 локалей: title, subtitle, keyword field, descriptions, скриншоты, A/B тесты |
 | **[mobile-ua-strategy.md](mobile-ua-strategy.md)** | Стратегия user acquisition: каналы, CPI бенчмарки, attribution стек, виральные механики, push & retention, бюджеты |
 | **🚀 [bootstrap-plan-90d.md](bootstrap-plan-90d.md)** | **Реальный план для соло-разработчика без рекламного бюджета.** $0 на UA, цель 5K–10K органических установок за 90 дней. Контент + ASO + комьюнити + cold outreach |
+| **🔑 [seo-keywords-implementation.md](seo-keywords-implementation.md)** | **Куда в коде вшивать SEO/ASO ключевые слова.** Конкретные файлы (layout.tsx, manifest.json, pubspec.yaml, Info.plist, AndroidManifest.xml, robots.txt, sitemap.ts), готовые патчи, чек-лист проверки |
 | [action-plan-90d.md](action-plan-90d.md) | Расширенный план с бюджетом $45K (Сценарий B). Используется как референс при появлении средств |
 
 ---
