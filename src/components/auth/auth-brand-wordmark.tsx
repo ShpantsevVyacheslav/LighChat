@@ -33,13 +33,17 @@ export function AuthBrandWordmarkTitle({
       )}
     >
       <span className="text-[#1E3A5F] dark:text-[#c5d9ed]">L</span>
-      <span className="relative inline-block text-[#1E3A5F] dark:text-[#c5d9ed]">
-        ı
-        <span
-          className="pointer-events-none absolute left-1/2 top-[0.1em] h-[0.17em] w-[0.17em] min-h-[2px] min-w-[2px] -translate-x-1/2 rounded-full bg-[#E9967A]"
-          aria-hidden
-        />
-      </span>
+      {/* "i" со встроенной coral-точкой — одной SVG-фигурой,
+          чтобы исключить задвоение со штатной точкой шрифта. */}
+      <svg
+        aria-hidden
+        viewBox="0 0 22 100"
+        className="inline-block align-baseline fill-[#1E3A5F] dark:fill-[#c5d9ed]"
+        style={{ width: "0.30em", height: "1em", verticalAlign: "baseline" }}
+      >
+        <rect x="0" y="30" width="22" height="62" rx="4" />
+        <circle cx="11" cy="13" r="13" fill="#E9967A" />
+      </svg>
       <span className="text-[#1E3A5F] dark:text-[#c5d9ed]">gh</span>
       <span className="text-[#E9967A]">Chat</span>
     </Tag>

@@ -36,34 +36,15 @@ class AuthBrandHeader extends StatelessWidget {
                 color: lighColor,
               ),
             ),
-            SizedBox(
-              width: 16,
-              height: 42,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Text(
-                    'i',
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w700,
-                      height: 1,
-                      letterSpacing: -0.4,
-                      color: lighColor,
-                    ),
-                  ),
-                  Positioned(
-                    top: 3,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: orangeDot,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
+            // Pixel-perfect "i" со встроенной orange-точкой — рисуем stem
+            // и точку одним CustomPaint, чтобы не было задвоения со
+            // штатной точкой шрифта.
+            Padding(
+              padding: const EdgeInsets.only(left: 2, right: 2),
+              child: _BrandDottedI(
+                stemColor: lighColor,
+                dotColor: orangeDot,
+                fontSize: 40,
               ),
             ),
             Text(
@@ -91,4 +72,54 @@ class AuthBrandHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+class _BrandDottedI extends StatelessWidget {
+  const _BrandDottedI({
+    required this.stemColor,
+    required this.dotColor,
+    required this.fontSize,
+  });
+
+  final Color stemColor;
+  final Color dotColor;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: fontSize * 0.30,
+      height: fontSize * 1.05,
+      child: CustomPaint(
+        painter: _BrandDottedIPainter(stemColor: stemColor, dotColor: dotColor),
+      ),
+    );
+  }
+}
+
+class _BrandDottedIPainter extends CustomPainter {
+  const _BrandDottedIPainter({required this.stemColor, required this.dotColor});
+
+  final Color stemColor;
+  final Color dotColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final stem = RRect.fromRectAndRadius(
+      Rect.fromLTRB(0, h * 0.30, w, h * 0.95),
+      Radius.circular(w * 0.18),
+    );
+    canvas.drawRRect(stem, Paint()..color = stemColor);
+    canvas.drawCircle(
+      Offset(w * 0.5, h * 0.13),
+      w * 0.62,
+      Paint()..color = dotColor,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BrandDottedIPainter old) =>
+      old.stemColor != stemColor || old.dotColor != dotColor;
 }

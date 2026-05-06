@@ -807,45 +807,47 @@ class _Wordmark extends StatelessWidget {
   }
 }
 
+/// Pixel-perfect `i` со встроенной coral-точкой. Чтобы избежать задвоения
+/// со штатной точкой шрифта (которая позиционируется по font metrics, не
+/// зависит от нашего layout), рисуем stem и точку в одном CustomPaint.
 class _DottedI extends StatelessWidget {
   const _DottedI();
 
   @override
   Widget build(BuildContext context) {
-    // Обычная `i` (не dotless) + coral-круг поверх штатной точки.
-    // Положение точки берётся из шрифта (а не угадывается под свой
-    // bearing), а coral-круг чуть крупнее штатной точки и полностью её
-    // перекрашивает. Это даёт пиксель-перфектное выравнивание на любом
-    // шрифте/устройстве.
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: const [
-        Text(
-          'i',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.6,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(top: 4),
-          child: SizedBox(
-            width: 7,
-            height: 7,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: kBrandCoral,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        ),
-      ],
+    const fontSize = 28.0;
+    return SizedBox(
+      width: fontSize * 0.32,
+      height: fontSize * 1.18,
+      child: const CustomPaint(
+        painter: _DottedIPainter(stemColor: Colors.white),
+      ),
     );
   }
+}
+
+class _DottedIPainter extends CustomPainter {
+  const _DottedIPainter({required this.stemColor});
+
+  final Color stemColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    // Stem
+    final stemRect = RRect.fromRectAndRadius(
+      Rect.fromLTRB(0, h * 0.30, w, h * 0.95),
+      Radius.circular(w * 0.18),
+    );
+    canvas.drawRRect(stemRect, Paint()..color = stemColor);
+    // Coral dot — чуть крупнее ширины stem, центр над ним
+    final dotR = w * 0.62;
+    canvas.drawCircle(Offset(w * 0.5, h * 0.12), dotR, Paint()..color = kBrandCoral);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedIPainter old) => old.stemColor != stemColor;
 }
 
 /// Debug-only helper: сбрасывает welcome-флаг и отправляет на /welcome.
