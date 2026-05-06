@@ -94,6 +94,20 @@ class _DeviceSessionFirestoreSyncState extends State<DeviceSessionFirestoreSync>
     bool markLogin = false,
   }) async {
     try {
+      // После signInWithCustomToken (QR-login) auth-state приходит на
+      // FlutterAuth раньше, чем cloud_firestore plugin прокидывает свежий
+      // ID-token в свои gRPC-стримы. Первая запись падает в
+      // PERMISSION_DENIED. `getIdToken()` дожидается реального токена и
+      // одновременно триггерит обновление firestore-каналов.
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && user.uid == uid) {
+          await user.getIdToken();
+        }
+      } catch (_) {
+        // Если token-getter упал — попробуем write всё равно. На худшой
+        // случай словим PERMISSION_DENIED ниже и retry'нет heartbeat.
+      }
       final deviceId = await _deviceId();
       final now = DateTime.now().toUtc().toIso8601String();
       final firestore = FirebaseFirestore.instance;

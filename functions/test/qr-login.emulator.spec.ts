@@ -209,6 +209,48 @@ describe('runRequestQrLogin', () => {
       runRequestQrLogin(adminDb, { ...validInput, ephemeralPubKeySpki: 'short' })
     ).rejects.toMatchObject({ code: 'invalid-argument' });
   });
+
+  // Регрессия: deviceId дальше попадает в Firestore document-path
+  // `users/{uid}/e2eeDevices/{newDeviceId}`. Если разрешить там `/`, `.` или
+  // control-символы, путь распадётся на лишние сегменты, и admin SDK бросит
+  // непрозрачный Internal — на клиенте это и есть «An internal error occurred».
+  it('rejects deviceId with slash (would corrupt Firestore path)', async () => {
+    await expect(
+      runRequestQrLogin(adminDb, { ...validInput, deviceId: 'abc/def' })
+    ).rejects.toMatchObject({ code: 'invalid-argument' });
+  });
+
+  it('rejects deviceId with dots (Firestore reserves leading dot)', async () => {
+    await expect(
+      runRequestQrLogin(adminDb, { ...validInput, deviceId: '../escape' })
+    ).rejects.toMatchObject({ code: 'invalid-argument' });
+  });
+
+  it('rejects deviceId with whitespace', async () => {
+    await expect(
+      runRequestQrLogin(adminDb, { ...validInput, deviceId: 'has space' })
+    ).rejects.toMatchObject({ code: 'invalid-argument' });
+  });
+
+  it('accepts ULID-style deviceId (uppercase + digits)', async () => {
+    const ulid = '01HQABCDEFGHJKMNPQRSTV0123';
+    const res = await runRequestQrLogin(adminDb, {
+      ...validInput,
+      deviceId: ulid,
+    });
+    const snap = await adminDb.doc(`qrLoginSessions/${res.sessionId}`).get();
+    expect(snap.data()?.deviceId).toBe(ulid);
+  });
+
+  it('accepts dashed/underscored ids (mobile + iOS variants)', async () => {
+    const id = 'q-uid_with-dashes_and_underscores_12';
+    const res = await runRequestQrLogin(adminDb, {
+      ...validInput,
+      deviceId: id,
+    });
+    const snap = await adminDb.doc(`qrLoginSessions/${res.sessionId}`).get();
+    expect(snap.data()?.deviceId).toBe(id);
+  });
 });
 
 describe('runConfirmQrLogin', () => {
@@ -414,6 +456,43 @@ describe('geo enrichment of e2eeDevices on approve', () => {
     expect(dev.lastLoginCity).toBe('Lisbon');
     expect(dev.lastLoginIp).toBe('203.0.113.5');
     expect(typeof dev.lastLoginAt).toBe('string');
+  });
+
+  it('skips enrichment if session has malformed deviceId (legacy session)', async () => {
+    // Если в `qrLoginSessions` остался документ с deviceId, который не
+    // удовлетворяет regex (например, после миграции старого формата), то
+    // запись `users/{uid}/e2eeDevices/{newDeviceId}` распалась бы по
+    // путю и упала бы Internal. Проверяем, что approve НЕ падает —
+    // location-enrichment просто пропускается.
+    const sessionId = 'a'.repeat(32);
+    const nonceRaw = 'b'.repeat(32);
+    await adminDb.doc(`qrLoginSessions/${sessionId}`).set({
+      sessionId,
+      // hashNonceForStorage(nonce, sessionId) — без него confirm не пройдёт.
+      nonceHash: hashNonceForStorage(nonceRaw, sessionId),
+      ephemeralPubKeySpki: 'A'.repeat(120),
+      devicePlatform: 'ios',
+      deviceLabel: 'Legacy iPhone',
+      deviceId: 'bad/device/id', // ← нелегальный путь
+      state: 'awaiting_scan',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    const issuer = (uid: string): Promise<string> =>
+      Promise.resolve(`ct:${uid}`);
+    const res = await runConfirmQrLogin(
+      'scanner-malformed',
+      { sessionId, nonce: nonceRaw, allow: true },
+      { db: adminDb, createCustomToken: issuer },
+    );
+    // Approve состоялся — это главное.
+    expect(res.state).toBe('approved');
+    // А в e2eeDevices ничего не записалось (deviceId небезопасный).
+    const devSnap = await adminDb
+      .collection('users/scanner-malformed/e2eeDevices')
+      .get();
+    expect(devSnap.size).toBe(0);
   });
 
   it('omits empty country/city without crashing', async () => {

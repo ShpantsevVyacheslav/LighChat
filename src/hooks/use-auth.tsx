@@ -893,6 +893,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const safeWrite = async (active: boolean, markLogin = false) => {
       if (disposed) return;
       try {
+        // После signInWithCustomToken (QR-login) auth-state на JS-объекте
+        // обновляется быстрее, чем Firestore-SDK прокидывает свежий
+        // ID-token в свои gRPC-каналы. Если первая запись в
+        // `users/{uid}/devices/{deviceId}` идёт до пропагации — Firestore
+        // отвечает PERMISSION_DENIED. `getIdToken()` гарантирует, что
+        // токен действительно есть, а заодно триггерит обновление
+        // всех Firestore-streams.
+        await firebaseUser.getIdToken().catch(() => {});
         await writeDeviceSession({
           firestore,
           uid,

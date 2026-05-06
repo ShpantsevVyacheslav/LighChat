@@ -155,7 +155,10 @@ export async function runConfirmQrLogin(
   // Если запись падает — не валим весь approve.
   try {
     const newDeviceId = typeof docData.deviceId === "string" ? docData.deviceId : "";
-    if (newDeviceId.length >= 4) {
+    // Дополнительная защита: deviceId должен быть валидным document-id.
+    // Старые qrLoginSessions, созданные без regex-валидации, могут содержать
+    // мусор — пропускаем enrichment, чтобы не уронить approve.
+    if (newDeviceId.length >= 4 && /^[A-Za-z0-9_-]+$/.test(newDeviceId)) {
       const country = typeof docData.country === "string" ? docData.country : "";
       const city = typeof docData.city === "string" ? docData.city : "";
       const ip = typeof docData.ip === "string" ? docData.ip : "";

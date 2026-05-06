@@ -93,6 +93,14 @@ export async function runRequestQrLogin(
   if (!deviceId || deviceId.length < 4) {
     throw new HttpsError("invalid-argument", "Bad deviceId.");
   }
+  // deviceId дальше попадёт в Firestore document path (`e2eeDevices/{id}`).
+  // Любые `/`, `.`, control-chars и т.п. ломают путь и вызывают
+  // непрозрачную "internal" ошибку в Cloud Function. Жёстко требуем
+  // безопасный набор символов — все наши клиенты (web ULID, mobile ULID)
+  // ему удовлетворяют.
+  if (!/^[A-Za-z0-9_-]+$/.test(deviceId)) {
+    throw new HttpsError("invalid-argument", "Bad deviceId format.");
+  }
   if (pubKey.length < 16 || pubKey.length > 4096) {
     throw new HttpsError("invalid-argument", "Bad ephemeralPubKeySpki.");
   }
