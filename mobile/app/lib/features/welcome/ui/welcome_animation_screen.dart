@@ -380,7 +380,7 @@ class _LighthouseLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = _ease(t, 0.080, 0.172, Curves.easeOutCubic);
     final beamI = _ease(t, 0.098, 0.184, Curves.easeOut);
-    final beamAngle = -0.4 + (t - 0.080) * 1.2;
+    final beamAngle = -0.4 + (t - 0.080) * 1.8;
 
     final lhWidth = size.width * 0.36;
     final lhHeight = size.height * 0.55;
@@ -812,39 +812,37 @@ class _DottedI extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 12,
-      height: 32,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          const Positioned(
-            left: 0,
-            top: 0,
-            child: Text(
-              'ı',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
-            ),
+    // dotless ı + coral-точка ровно над её stem. Stack без явной ширины
+    // подгоняется под реальную ширину буквы, а Alignment.topCenter
+    // центрирует точку относительно неё (а не относительно фиксированных
+    // 12px, как было раньше — отсюда смещение влево).
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: const [
+        Text(
+          'ı',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
           ),
-          Positioned(
-            left: 3,
-            top: 4,
-            child: Container(
-              width: 5,
-              height: 5,
-              decoration: const BoxDecoration(
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: 3),
+          child: SizedBox(
+            width: 6,
+            height: 6,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
                 color: kBrandCoral,
                 shape: BoxShape.circle,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
