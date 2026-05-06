@@ -31,9 +31,48 @@ class _YandexSignInWebViewScreenState
   String _currentUrl = '';
   var _tokenHandled = false;
 
+  // SECURITY: only our own host may finalize the OAuth flow with a custom
+  // token. Yandex hosts (passport/oauth) are allowed to load (it's the user's
+  // login screen) but MUST NOT yield a token to us. Without this gate, an
+  // open redirect on Yandex side or an attacker-controlled host would be
+  // able to feed `#customToken=…` into signInWithCustomToken.
+  static final Set<String> _allowedTokenHosts = <String>{
+    'lighchat.online',
+    'www.lighchat.online',
+  };
+  static final Set<String> _allowedNavigationHosts = <String>{
+    'lighchat.online',
+    'www.lighchat.online',
+    'oauth.yandex.ru',
+    'oauth.yandex.com',
+    'passport.yandex.ru',
+    'passport.yandex.com',
+    'sso.passport.yandex.ru',
+    'yandex.ru',
+    'yandex.com',
+  };
+
+  bool _isTrustedTokenHost(String? host) {
+    if (host == null) return false;
+    return _allowedTokenHosts.contains(host.toLowerCase());
+  }
+
+  bool _isAllowedNavigationHost(String? host) {
+    if (host == null) return false;
+    final h = host.toLowerCase();
+    if (_allowedNavigationHosts.contains(h)) return true;
+    // Permit *.yandex.<tld> subdomains for the SSO flow (passport-frontend
+    // assets, captcha, mobile-passport, etc.).
+    return h.endsWith('.yandex.ru') || h.endsWith('.yandex.com') || h.endsWith('.yandex.net');
+  }
+
   String? _customTokenFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
+      // SECURITY: refuse tokens from anything that is not our origin.
+      if (uri.scheme != 'https' || !_isTrustedTokenHost(uri.host)) {
+        return null;
+      }
       if (uri.fragment.startsWith('customToken=')) {
         final v = uri.fragment.substring('customToken='.length);
         final decoded = Uri.decodeComponent(v);
@@ -47,8 +86,21 @@ class _YandexSignInWebViewScreenState
     return null;
   }
 
+  bool _isCurrentlyOnTrustedTokenHost() {
+    try {
+      final u = Uri.parse(_currentUrl);
+      return u.scheme == 'https' && _isTrustedTokenHost(u.host);
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _tryReadTokenFromDocumentHash() async {
     if (_tokenHandled || !mounted) return;
+    // SECURITY: only execute the JS-read on our own host. Otherwise a third-
+    // party page that happens to contain `/auth/yandex` in its path would
+    // run our injected JS and potentially leak/forge the hash content.
+    if (!_isCurrentlyOnTrustedTokenHost()) return;
     try {
       final r = await _controller.runJavaScriptReturningResult(
         "(function(){var m=(location.hash||'').match(/customToken=([^&^#]+)/);"
@@ -89,6 +141,19 @@ class _YandexSignInWebViewScreenState
             final token = _customTokenFromUrl(next);
             if (token != null) {
               unawaited(_onCustomToken(token));
+              return NavigationDecision.prevent;
+            }
+            // SECURITY: pin navigation to our own host or Yandex SSO hosts.
+            // Anything else is opened in the system browser instead, so an
+            // open-redirect from Yandex into attacker.tld can't run JS in
+            // the same WebView context where we read the token hash.
+            try {
+              final u = Uri.parse(next);
+              if (u.scheme == 'https' && !_isAllowedNavigationHost(u.host)) {
+                await _launchExternal(next);
+                return NavigationDecision.prevent;
+              }
+            } catch (_) {
               return NavigationDecision.prevent;
             }
             if (mounted) {

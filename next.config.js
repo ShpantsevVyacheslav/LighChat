@@ -39,6 +39,55 @@ const nextConfig = {
             key: 'Cache-Control',
             value: 'no-store, max-age=0, must-revalidate',
           },
+          // SECURITY: defense-in-depth response headers. Without these, an XSS
+          // anywhere in the chat (e.g. via a future regression in DOMPurify)
+          // has the maximum possible blast radius. We deliberately do NOT add
+          // a strict Content-Security-Policy yet — the app still has inline
+          // bootstrap scripts in layout.tsx and dynamic Tailwind styles, and
+          // adding CSP without nonces would either neuter it (`unsafe-inline`)
+          // or break the app. CSP is tracked separately in
+          // docs/security-audit-2026-05-followups.md.
+          {
+            // Force browsers to honor server-declared Content-Type and never
+            // sniff. Closes "image-served-as-script" and similar tricks.
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            // Block clickjacking by refusing to be framed by anyone. Prevents
+            // a malicious site from iframing our app and overlaying a fake UI
+            // to trick the user into actions on their real session.
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            // Lock the browser into HTTPS for two years; preload-eligible
+            // configuration. Mitigates SSL-strip / first-visit downgrade.
+            // Safe because we only ship over HTTPS in production; this header
+            // is harmless on http://localhost during dev (browsers ignore it
+            // for non-secure responses).
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            // Don't leak the full referring URL (which often contains chat
+            // ids, OAuth state, etc.) to third-party hosts. Keep origin only
+            // for cross-site, full URL for same-site so analytics still work.
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            // Default-deny powerful browser APIs we don't need globally.
+            // Calls/meeting screens that DO use camera/microphone/display-
+            // capture / geolocation are same-origin (`self`) and unaffected.
+            // FLoC is killed by `interest-cohort=()`.
+            key: 'Permissions-Policy',
+            value:
+              'camera=(self), microphone=(self), geolocation=(self), ' +
+              'display-capture=(self), payment=(), usb=(), bluetooth=(), ' +
+              'serial=(), midi=(), magnetometer=(), gyroscope=(), ' +
+              'accelerometer=(), interest-cohort=()',
+          },
         ],
       },
     ];

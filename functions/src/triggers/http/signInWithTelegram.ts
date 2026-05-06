@@ -8,6 +8,7 @@ import {
 } from "../../lib/telegram-widget-verify";
 import { mergeProviderPhoneAndAvatarIntoUserDoc } from "../../lib/merge-provider-profile-firestore";
 import { generateUniqueUsernameAdmin } from "../../lib/generate-unique-username-admin";
+import { callerIpKey, consumeRateLimit } from "../../lib/rate-limit";
 
 const telegramBotToken = defineSecret("TELEGRAM_BOT_TOKEN");
 
@@ -153,6 +154,20 @@ export const signInWithTelegram = onCall(
     cors: true,
   },
   async (request) => {
+    // SECURITY: pre-auth callable. Per-IP rate limit (10 req / minute).
+    // Same rationale as requestQrLogin: stop automated brute-force /
+    // resource exhaustion before we touch HMAC verification, Firestore writes
+    // or Auth user creation. Once App Check is enforced this becomes a
+    // belt-and-suspenders second line of defence.
+    const rlIp = await consumeRateLimit(admin.firestore(), {
+      key: `signInWithTelegram:ip:${callerIpKey(request.rawRequest)}`,
+      limit: 10,
+      windowSec: 60,
+    });
+    if (!rlIp.allowed) {
+      throw new HttpsError("resource-exhausted", "RATE_LIMITED");
+    }
+
     const botToken = telegramBotToken.value().trim();
     if (!botToken) {
       throw new HttpsError(

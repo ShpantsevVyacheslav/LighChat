@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Pre-Android 12 (API < 31) Auto Backup configuration.
+  We disable backup entirely because the app holds chat caches, drafts and
+  per-device persistent identifiers in SharedPreferences. Restoring those on a
+  different physical device would (a) leak chat content to whoever buys/finds
+  the device, and (b) duplicate session-identity across devices.
+
+  Android picks this file via android:fullBackupContent in AndroidManifest.
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

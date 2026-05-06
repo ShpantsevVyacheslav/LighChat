@@ -3,6 +3,13 @@ import { logger } from "firebase-functions";
 import { defineSecret } from "firebase-functions/params";
 import * as admin from "firebase-admin";
 
+import {
+  assertSafeUrl,
+  FIREBASE_MEDIA_HOSTS_EXACT,
+  FIREBASE_MEDIA_HOST_SUFFIXES,
+  SsrfGuardError,
+} from "../../lib/ssrf-guard";
+
 type RequestData = {
   conversationId?: unknown;
   messageId?: unknown;
@@ -137,7 +144,28 @@ export const transcribeVoiceMessage = onCall(
       throw new HttpsError("failed-precondition", "VOICE_TOO_LARGE");
     }
 
-    const resp = await fetch(url);
+    // SECURITY: `url` was written by an arbitrary chat participant via
+    // attachments[].url. Without this guard, a malicious peer could redirect
+    // our fetch to http://169.254.169.254/computeMetadata/... and exfiltrate
+    // the function's service-account token via OpenAI's response or by
+    // inflating storage costs against attacker-controlled hosts. Restrict to
+    // Firebase Storage / signed-URL hosts and block private IPs.
+    let safeUrl: URL;
+    try {
+      safeUrl = await assertSafeUrl(url, {
+        allowedSchemes: ["https:"],
+        allowedHostsExact: FIREBASE_MEDIA_HOSTS_EXACT,
+        allowedHostSuffixes: FIREBASE_MEDIA_HOST_SUFFIXES,
+      });
+    } catch (e) {
+      if (e instanceof SsrfGuardError) {
+        logger.warn("[transcribeVoiceMessage] rejected url", { code: e.code, hint: e.message });
+        throw new HttpsError("failed-precondition", "VOICE_URL_NOT_ALLOWED");
+      }
+      throw e;
+    }
+
+    const resp = await fetch(safeUrl.toString(), { redirect: "error" });
     if (!resp.ok) {
       throw new HttpsError("internal", "VOICE_DOWNLOAD_FAILED");
     }

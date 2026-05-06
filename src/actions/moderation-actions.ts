@@ -1,13 +1,20 @@
 'use server';
 
 import { adminDb } from '@/firebase/admin';
-import { assertAdminByIdToken } from '@/actions/admin-actions';
+import { assertAdminByIdToken, verifyUserByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
 import type { MessageReport, ReportStatus, ModerationAction, MessageHiddenByAdmin } from '@/lib/types';
 
+/**
+ * SECURITY: previously this RPC took `reporterId` and `reporterName` as
+ * client-supplied strings. Anyone could submit reports against any sender
+ * while pretending to be any uid — useful for false-flag harassment, false
+ * mass-reporting, and clogging the moderation queue under stolen identities.
+ * Now we require an idToken and derive reporterId/reporterName server-side
+ * from Firebase Auth + the trusted users/{uid} profile.
+ */
 export async function createMessageReportAction(input: {
-  reporterId: string;
-  reporterName: string;
+  idToken: string;
   conversationId: string;
   messageId: string;
   messageSenderId: string;
@@ -17,11 +24,12 @@ export async function createMessageReportAction(input: {
   description?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
+    const reporter = await verifyUserByIdToken(input.idToken);
     const ref = adminDb.collection('messageReports').doc();
     const report: MessageReport = {
       id: ref.id,
-      reporterId: input.reporterId,
-      reporterName: input.reporterName,
+      reporterId: reporter.uid,
+      reporterName: reporter.name,
       conversationId: input.conversationId,
       messageId: input.messageId,
       messageSenderId: input.messageSenderId,
@@ -34,7 +42,10 @@ export async function createMessageReportAction(input: {
     };
     await ref.set(report);
     return { ok: true };
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'UNAUTHORIZED') return { ok: false, error: 'Требуется вход' };
+    if (msg === 'BLOCKED') return { ok: false, error: 'Аккаунт заблокирован' };
     console.error('[createMessageReportAction]', e);
     return { ok: false, error: 'Не удалось отправить жалобу' };
   }

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { createMessageReportAction } from '@/actions/moderation-actions';
 import type { ReportReason } from '@/lib/types';
@@ -44,17 +45,20 @@ export function ReportMessageDialog({
   messageText,
 }: ReportMessageDialogProps) {
   const { user } = useAuth();
+  const { user: firebaseUser } = useUser();
   const { toast } = useToast();
   const [reason, setReason] = useState<ReportReason>('inappropriate');
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
 
   const submit = async () => {
-    if (!user) return;
+    if (!user || !firebaseUser) return;
     setSending(true);
+    // SECURITY: server derives reporterId/reporterName from this idToken via
+    // verifyUserByIdToken; client cannot impersonate another uid.
+    const idToken = await firebaseUser.getIdToken();
     const res = await createMessageReportAction({
-      reporterId: user.id,
-      reporterName: user.name,
+      idToken,
       conversationId,
       messageId,
       messageSenderId,

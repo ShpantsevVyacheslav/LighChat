@@ -40,7 +40,21 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
+            // (See docs/security-audit-2026-05-followups.md C7 — production
+            //  keystore must come from key.properties outside the repo.)
             signingConfig = signingConfigs.getByName("debug")
+
+            // SECURITY: enable R8 + resource shrinking for release. Removes
+            // unused code (smaller APK + fewer attack-surface entry points),
+            // and strips Kotlin/Java debug metadata so reverse engineering
+            // becomes more expensive. proguard-rules.pro keeps the symbols
+            // required at runtime by reflection (Flutter, Firebase, etc.).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 

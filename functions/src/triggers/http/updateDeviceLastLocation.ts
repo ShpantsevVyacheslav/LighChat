@@ -10,7 +10,13 @@ import * as logger from "firebase-functions/logger";
  * До этого локация писалась только в момент QR-логина (`confirmQrLogin`). Эта
  * функция позволяет освежать её на каждом старте сессии — клиент дёргает
  * callable, сервер берёт IP/гео из своих заголовков и пишет в
- * `users/{uid}/e2eeDevices/{deviceId}` через merge.
+ * `users/{uid}/devices/{deviceId}` через merge.
+ *
+ * SECURITY: location data lives in the PRIVATE `users/{uid}/devices` collection,
+ * not in the world-readable `users/{uid}/e2eeDevices`. Public e2eeDevices is
+ * required for cross-peer key lookup (each device must publish its public key
+ * so others can wrap chat-keys for it); putting IP/city there exposed every
+ * user's last-known location to every other signed-in user.
  *
  * Throttle на сервере: если `lastLoginAt` моложе `THROTTLE_MIN_AGE_SEC`, ничего
  * не пишем (экономим запись в Firestore и предотвращаем абуз). Клиенты тоже
@@ -55,13 +61,23 @@ export async function runUpdateDeviceLastLocation(
     return { updated: false, reason: "no_geo" };
   }
 
-  const ref = db.doc(`users/${uid}/e2eeDevices/${deviceId}`);
-  const snap = await ref.get();
-  if (!snap.exists) {
-    return { updated: false, reason: "device_missing" };
+  // Read throttle metadata from the private devices collection. The doc may
+  // not exist yet (first time we're writing geo for this device) — that's OK,
+  // we still proceed to write below. Only "device_missing" if the device is
+  // not registered at all in either devices/ or e2eeDevices/ (legitimate
+  // session marker should exist via device_session_firestore_sync).
+  const privateRef = db.doc(`users/${uid}/devices/${deviceId}`);
+  const privateSnap = await privateRef.get();
+  if (!privateSnap.exists) {
+    // Fall back to e2eeDevices presence as a sign that the device has at
+    // least announced its public key — we still won't WRITE to e2eeDevices.
+    const e2eeSnap = await db.doc(`users/${uid}/e2eeDevices/${deviceId}`).get();
+    if (!e2eeSnap.exists) {
+      return { updated: false, reason: "device_missing" };
+    }
   }
 
-  const existing = snap.data() ?? {};
+  const existing = privateSnap.data() ?? {};
   const lastIso = typeof existing.lastLoginAt === "string" ? existing.lastLoginAt : "";
   if (lastIso) {
     const lastMs = Date.parse(lastIso);
@@ -74,7 +90,7 @@ export async function runUpdateDeviceLastLocation(
   }
 
   const nowIso = new Date().toISOString();
-  await ref.set(
+  await privateRef.set(
     {
       lastLoginAt: nowIso,
       lastLoginCountry: country,

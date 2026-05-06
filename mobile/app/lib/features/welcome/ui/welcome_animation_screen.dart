@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../brand_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features_tour/data/features_welcome_pending.dart';
 import '../data/first_login_animation_storage.dart';
 import 'welcome_painters.dart';
 
@@ -98,11 +99,12 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
     if (_exited || !mounted) return;
     _exited = true;
     _controller.stop();
-    // После welcome-анимации всегда идём на /chats. Приглашение в тур
-    // («Discover LighChat features») показывается отдельной модалкой
-    // (`FeaturesWelcomeSheet`) поверх /chats — это управляется
-    // `FeaturesWelcomePending`, который уже помечен из
-    // `_AuthRefreshNotifier` на каждый успешный sign-in.
+    // Помечаем pending ровно перед переходом на /chats — чтобы
+    // `FeaturesWelcomeSheet` всплыл ПОСЛЕ welcome-анимации, а не до.
+    // Если ставить pending в `_AuthRefreshNotifier` (как было раньше),
+    // chat_list_screen успеет открыть sheet до того, как мы уйдём
+    // на /welcome (т.к. SharedPreferences-redirect асинхронный).
+    FeaturesWelcomePending.markPending();
     context.go('/chats');
   }
 
@@ -819,7 +821,7 @@ class _DottedIPainter extends CustomPainter {
   // Inter / SF Heavy metrics (нормализованы к em-квадрату):
   //   x-height ≈ 0.518 em, baseline = 1.0 em, asсender ≈ 0.78 em
   static const _xHeight = 0.48; // top of stem (top of "g")
-  static const _baseline = 0.96; // bottom of stem (bottom of "L")
+  static const _baseline = 1.0; // bottom of stem (точно baseline = низ "L" / "h")
   static const _dotCenter = 0.22; // центр точки над stem
   static const _stemWidthRatio = 0.55; // % container width
   static const _dotRadiusRatio = 0.30; // % container width

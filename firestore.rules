@@ -267,6 +267,34 @@ service cloud.firestore {
       return !request.resource.data.keys().hasAny(['expireAt']);
     }
 
+    /**
+     * SECURITY: server-enforced size caps on user-supplied message content.
+     * Without these, a single client can create arbitrarily large message
+     * documents (Firestore allows up to ~1 MiB per doc), which gives a cheap
+     * way to (a) DoS the storage quota, (b) make the chat list crawl when a
+     * recipient hydrates 200+ huge messages, (c) crash mobile clients that
+     * mmap text into UI lists.
+     *
+     * Limits chosen to be roomy for normal product use:
+     *  - text: 16 384 chars (Telegram allows 4 096; we leave headroom for
+     *    formatting markdown / quotes inside the same field).
+     *  - attachments: 20 entries.
+     *  - replyTo / linkPreview / pendingPoll: each is a single object —
+     *    we only enforce that they're map/list of expected shape, the doc-
+     *    level 1 MiB cap is enough.
+     *  - systemEvent.type: 64 chars (a routing string, not a message body).
+     */
+    function chatMessageSizeOk() {
+      let d = request.resource.data;
+      return (!('text' in d) || d.text == null || (d.text is string && d.text.size() <= 16384))
+        && (!('attachments' in d) || d.attachments == null
+            || (d.attachments is list && d.attachments.size() <= 20))
+        && (!('systemEvent' in d) || d.systemEvent == null
+            || (d.systemEvent is map
+                && (!('type' in d.systemEvent)
+                    || (d.systemEvent.type is string && d.systemEvent.type.size() <= 64))));
+    }
+
     /** Клиент не добавляет/не меняет/не удаляет `expireAt` на сообщениях. */
     function chatMessageExpireAtUnchanged() {
       let had = resource.data.keys().hasAny(['expireAt']);
@@ -532,9 +560,15 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isMeetingMember(meetingId);
+        // SECURITY: same size cap as conversation messages — block megabyte-
+        // sized text payloads from a single participant.
         allow create: if isMeetingMember(meetingId)
-          && request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if isMeetingMember(meetingId) && (
+          && request.resource.data.senderId == request.auth.uid
+          && chatMessageSizeOk();
+        allow update: if isMeetingMember(meetingId)
+          && (resource.data.senderId == request.auth.uid || isMeetingAdmin(meetingId))
+          && chatMessageSizeOk();
+        allow delete: if isMeetingMember(meetingId) && (
           resource.data.senderId == request.auth.uid
           || isMeetingAdmin(meetingId)
         );
@@ -689,7 +723,16 @@ service cloud.firestore {
           && conversationSecretChatUnchanged()
         )
       );
-      allow delete: if isSignedIn() && uidIsConversationParticipantFromData(resource.data);
+      // SECURITY: previously ANY group member could delete the conversation
+      // doc — and the cascade trigger then wiped userChats for everyone,
+      // making the chat disappear for all 2..N members with no recovery.
+      // Restrict group deletion to creator/admins; DM (1:1, isGroup != true)
+      // can still be removed by either participant.
+      allow delete: if isSignedIn() && (
+        isAdmin()
+        || (resource.data.isGroup != true && uidIsConversationParticipantFromData(resource.data))
+        || (resource.data.isGroup == true && isGroupAdminOrCreatorFromConvData(resource.data))
+      );
 
       /** Индекс участников для правил подколлекций; запись только с сервера (Admin SDK). */
       match /members/{memberId} {
@@ -740,6 +783,7 @@ service cloud.firestore {
         allow create: if isConversationMember(conversationId)
           && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
           && chatMessageCreateWithoutExpireAt()
+          && chatMessageSizeOk()
           && (
           (
             canReadSecretChat(conversationId, conversationData(conversationId))
@@ -781,12 +825,14 @@ service cloud.firestore {
             && canReadSecretChat(conversationId, conversationData(conversationId))
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
             && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
-            && chatMessageCreateWithoutExpireAt();
+            && chatMessageCreateWithoutExpireAt()
+            && chatMessageSizeOk();
           allow update: if isConversationMember(conversationId)
             && canReadSecretChat(conversationId, conversationData(conversationId))
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
             && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
-            && chatMessageExpireAtUnchanged();
+            && chatMessageExpireAtUnchanged()
+            && chatMessageSizeOk();
           allow delete: if isConversationMember(conversationId)
             && canReadSecretChat(conversationId, conversationData(conversationId))
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
@@ -944,7 +990,11 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid);
-        allow create: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid);
+        // SECURITY: cap support-ticket message body to prevent flooding the
+        // ticket with megabyte-sized text payloads.
+        allow create: if (isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid))
+          && (!('text' in request.resource.data)
+              || (request.resource.data.text is string && request.resource.data.text.size() <= 8000));
         allow update, delete: if false;
       }
     }

@@ -18,11 +18,28 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+    <!--
+        SECURITY:
+        - allowBackup="false": запрещает выгрузку данных приложения через
+          adb backup и Google Drive Auto Backup. Иначе на root-устройстве
+          / при включённом cloud backup пользователя весь SharedPreferences
+          (cache чатов, drafts, persistent device-id) можно вытащить в plain.
+        - dataExtractionRules: явная политика для Android 12+ device-to-
+          device transfer и cloud backup — пустая (всё запрещено).
+        - usesCleartextTraffic="false": запрещает HTTP-трафик из приложения
+          (на API < 28, где default иначе разрешает).
+        - Снят android:requestLegacyExternalStorage — deprecated, на API ≥30
+          игнорируется, на API 29 это opt-out из Scoped Storage и больше не
+          нужен (доступ к фото/видео идёт через READ_MEDIA_*).
+    -->
     <application
         android:label="lighchat_mobile"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

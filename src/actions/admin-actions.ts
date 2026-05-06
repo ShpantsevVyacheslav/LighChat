@@ -13,6 +13,37 @@ export async function assertAdminByIdToken(idToken: string): Promise<{ uid: stri
 }
 
 /**
+ * SECURITY: helper for non-admin server actions that need to know WHO the
+ * caller is. Server actions previously took `userId`/`reporterId` as a plain
+ * argument and trusted the client — anyone could submit a report or open a
+ * support ticket *as someone else* (impersonation). This helper validates
+ * a Firebase ID token and returns the trusted identity from server-side
+ * profile data; the caller MUST use the returned values, not whatever the
+ * client claimed.
+ *
+ * Throws 'UNAUTHORIZED' if the token is missing/invalid, 'BLOCKED' if the
+ * account is soft-deleted or under accountBlock.
+ */
+export async function verifyUserByIdToken(idToken: string): Promise<{
+  uid: string;
+  name: string;
+  email: string;
+}> {
+  if (!idToken?.trim()) throw new Error('UNAUTHORIZED');
+  const decoded = await adminAuth.verifyIdToken(idToken);
+  const snap = await adminDb.collection('users').doc(decoded.uid).get();
+  const data = snap.data();
+  if (!data) throw new Error('UNAUTHORIZED');
+  if (data.deletedAt) throw new Error('BLOCKED');
+  if (data.accountBlock && typeof data.accountBlock === 'object') throw new Error('BLOCKED');
+  return {
+    uid: decoded.uid,
+    name: typeof data.name === 'string' && data.name ? data.name : 'User',
+    email: typeof data.email === 'string' ? data.email : (decoded.email ?? ''),
+  };
+}
+
+/**
  * Сброс пароля Firebase Auth для пользователя (только platform admin).
  * Клиент передаёт свежий ID token текущего администратора.
  */

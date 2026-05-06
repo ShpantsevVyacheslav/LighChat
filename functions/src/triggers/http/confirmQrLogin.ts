@@ -150,19 +150,21 @@ export async function runConfirmQrLogin(
     throw new HttpsError("internal", "Could not write approval.");
   }
 
-  // Best-effort: записываем геолокацию устройства в e2eeDevices, чтобы UI
-  // на странице «Устройства» мог показать «последний вход: <city>, <country>».
-  // Если запись падает — не валим весь approve.
+  // SECURITY: persist last-login geo (IP/city/country) in the PRIVATE
+  // users/{uid}/devices/{deviceId} document, NOT in users/{uid}/e2eeDevices.
+  // The latter is intentionally world-readable (any signed-in user must be
+  // able to fetch a peer's public keys to wrap chat-keys for them) — putting
+  // PII there exposed every user's IP and city to every other user (stalker
+  // risk). The `devices` collection has rule
+  //   allow read: if request.auth.uid == userId || isAdmin()
+  // so only the owner sees their own location history.
   try {
     const newDeviceId = typeof docData.deviceId === "string" ? docData.deviceId : "";
-    // Дополнительная защита: deviceId должен быть валидным document-id.
-    // Старые qrLoginSessions, созданные без regex-валидации, могут содержать
-    // мусор — пропускаем enrichment, чтобы не уронить approve.
     if (newDeviceId.length >= 4 && /^[A-Za-z0-9_-]+$/.test(newDeviceId)) {
       const country = typeof docData.country === "string" ? docData.country : "";
       const city = typeof docData.city === "string" ? docData.city : "";
       const ip = typeof docData.ip === "string" ? docData.ip : "";
-      await db.doc(`users/${uid}/e2eeDevices/${newDeviceId}`).set({
+      await db.doc(`users/${uid}/devices/${newDeviceId}`).set({
         lastLoginAt: approvedAtIso,
         lastLoginCountry: country,
         lastLoginCity: city,
@@ -170,7 +172,7 @@ export async function runConfirmQrLogin(
       }, { merge: true });
     }
   } catch (e) {
-    logger.warn("confirmQrLogin: failed to enrich e2eeDevice with location", e);
+    logger.warn("confirmQrLogin: failed to enrich device with location", e);
   }
 
   return {

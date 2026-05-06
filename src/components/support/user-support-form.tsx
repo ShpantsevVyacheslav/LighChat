@@ -15,11 +15,13 @@ import {
 } from '@/components/ui/select';
 import { Loader2, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/firebase';
 import { createSupportTicketAction } from '@/actions/support-ticket-actions';
 import type { TicketCategory, TicketPriority } from '@/lib/types';
 
 export function UserSupportForm() {
   const { user } = useAuth();
+  const { user: firebaseUser } = useUser();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState<TicketCategory>('other');
@@ -28,12 +30,13 @@ export function UserSupportForm() {
   const [success, setSuccess] = useState(false);
 
   const submit = async () => {
-    if (!user || !subject.trim() || !message.trim()) return;
+    if (!user || !firebaseUser || !subject.trim() || !message.trim()) return;
     setSending(true);
+    // SECURITY: server derives userId/userName/userEmail from this token,
+    // never trust the client-side `user` object for ticket attribution.
+    const idToken = await firebaseUser.getIdToken();
     const res = await createSupportTicketAction({
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
+      idToken,
       subject: subject.trim(),
       category,
       priority,

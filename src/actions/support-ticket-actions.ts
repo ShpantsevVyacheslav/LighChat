@@ -1,29 +1,42 @@
 'use server';
 
 import { adminDb } from '@/firebase/admin';
-import { assertAdminByIdToken } from '@/actions/admin-actions';
+import { assertAdminByIdToken, verifyUserByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
 import type { SupportTicket, SupportTicketMessage, TicketStatus } from '@/lib/types';
 
+/**
+ * SECURITY: identity now comes from idToken, not client-supplied userId/
+ * userName/userEmail. Without this, anyone could open tickets under any
+ * other user's identity (e.g. for social-engineering attacks against
+ * support staff or to flood the queue from spoofed accounts). Subject,
+ * message, category, priority remain client-controlled and length-capped.
+ */
+const SUBJECT_MAX = 200;
+const MESSAGE_MAX = 4000;
+
 export async function createSupportTicketAction(input: {
-  userId: string;
-  userName: string;
-  userEmail: string;
+  idToken: string;
   subject: string;
   category: SupportTicket['category'];
   priority: SupportTicket['priority'];
   message: string;
 }): Promise<{ ok: true; ticketId: string } | { ok: false; error: string }> {
   try {
+    const reporter = await verifyUserByIdToken(input.idToken);
+    const subject = (input.subject ?? '').toString().trim().slice(0, SUBJECT_MAX);
+    const message = (input.message ?? '').toString().trim().slice(0, MESSAGE_MAX);
+    if (!subject || !message) return { ok: false, error: 'Заполните тему и сообщение' };
+
     const ref = adminDb.collection('supportTickets').doc();
     const now = new Date().toISOString();
 
     const ticket: SupportTicket = {
       id: ref.id,
-      userId: input.userId,
-      userName: input.userName,
-      userEmail: input.userEmail,
-      subject: input.subject,
+      userId: reporter.uid,
+      userName: reporter.name,
+      userEmail: reporter.email,
+      subject,
       status: 'open',
       priority: input.priority,
       category: input.category,
@@ -35,16 +48,19 @@ export async function createSupportTicketAction(input: {
     const msgRef = ref.collection('messages').doc();
     const msg: SupportTicketMessage = {
       id: msgRef.id,
-      senderId: input.userId,
-      senderName: input.userName,
+      senderId: reporter.uid,
+      senderName: reporter.name,
       senderRole: 'user',
-      text: input.message,
+      text: message,
       createdAt: now,
     };
     await msgRef.set(msg);
 
     return { ok: true, ticketId: ref.id };
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'UNAUTHORIZED') return { ok: false, error: 'Требуется вход' };
+    if (msg === 'BLOCKED') return { ok: false, error: 'Аккаунт заблокирован' };
     console.error('[createSupportTicketAction]', e);
     return { ok: false, error: 'Не удалось создать обращение' };
   }
