@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { buildYandexAuthorizeUrl } from "@/lib/server/yandex-oauth";
+import { resolvePublicOrigin } from "@/lib/server/public-origin";
 
 export const runtime = "nodejs";
 
@@ -25,18 +26,13 @@ function getYandexScope(): string | undefined {
   return raw.length > 0 ? raw : undefined;
 }
 
-function publicOrigin(request: NextRequest): string {
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  if (forwardedHost) {
-    const proto = forwardedProto?.split(",")[0]?.trim() || "https";
-    return `${proto}://${forwardedHost.split(",")[0].trim()}`;
-  }
-  return request.nextUrl.origin;
-}
-
 /**
  * Старт OAuth: редирект на Яндекс + HttpOnly cookie с state (CSRF).
+ *
+ * SECURITY: redirect_uri is built against the result of resolvePublicOrigin
+ * (env-driven + static allow-list). Previously we trusted x-forwarded-host
+ * unconditionally — a host-header-injection attacker could redirect Яндекс to
+ * an attacker-owned host and steal the authorization code at callback.
  */
 export async function GET(request: NextRequest) {
   const clientId = getYandexClientId();
@@ -51,7 +47,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const origin = publicOrigin(request);
+  const origin = resolvePublicOrigin(request);
   const redirectUri = `${origin}/api/auth/yandex/callback`;
   const state = randomBytes(24).toString("hex");
   const url = buildYandexAuthorizeUrl({

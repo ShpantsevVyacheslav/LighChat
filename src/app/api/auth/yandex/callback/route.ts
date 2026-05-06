@@ -6,6 +6,7 @@ import {
   yandexFetchLoginInfo,
 } from "@/lib/server/yandex-oauth";
 import { issueFirebaseCustomTokenForYandexProfile } from "@/lib/server/yandex-firebase-custom-token";
+import { resolvePublicOrigin } from "@/lib/server/public-origin";
 
 export const runtime = "nodejs";
 
@@ -23,18 +24,8 @@ function getYandexClientSecret(): string {
   return (process.env.YANDEX_CLIENT_SECRET ?? "").trim();
 }
 
-function publicOrigin(request: NextRequest): string {
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  if (forwardedHost) {
-    const proto = forwardedProto?.split(",")[0]?.trim() || "https";
-    return `${proto}://${forwardedHost.split(",")[0].trim()}`;
-  }
-  return request.nextUrl.origin;
-}
-
 function redirectWithError(request: NextRequest, code: string): NextResponse {
-  const origin = publicOrigin(request);
+  const origin = resolvePublicOrigin(request);
   const url = new URL("/", origin);
   url.searchParams.set("yandex_error", code);
   const res = NextResponse.redirect(url);
@@ -71,7 +62,7 @@ export async function GET(request: NextRequest) {
       return redirectWithError(request, "bad_state");
     }
 
-    const origin = publicOrigin(request);
+    const origin = resolvePublicOrigin(request);
     const redirectUri = `${origin}/api/auth/yandex/callback`;
 
     const { access_token } = await yandexExchangeAuthorizationCode({
