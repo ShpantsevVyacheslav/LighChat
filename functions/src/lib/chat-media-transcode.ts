@@ -7,6 +7,13 @@ import ffmpeg from "fluent-ffmpeg";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 
+import {
+  assertSafeUrl,
+  FIREBASE_MEDIA_HOSTS_EXACT,
+  FIREBASE_MEDIA_HOST_SUFFIXES,
+  SsrfGuardError,
+} from "./ssrf-guard";
+
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 /** Лимит входного файла (байт); сверх — пропуск с логом. */
@@ -90,7 +97,25 @@ function runFfmpegAudio(inputPath: string, outputPath: string): Promise<void> {
 }
 
 async function downloadToFile(url: string, dest: string): Promise<number> {
-  const res = await fetch(url);
+  // SECURITY: `url` ultimately came from a chat participant via
+  // attachments[].url — same SSRF surface as transcribeVoiceMessage. Restrict
+  // to Firebase Storage / signed-URL hosts and block resolution to private
+  // IPs (cloud metadata, LAN, link-local). `redirect: 'error'` ensures a
+  // 302 to a private host can't bypass the pre-flight check.
+  let safe: URL;
+  try {
+    safe = await assertSafeUrl(url, {
+      allowedSchemes: ["https:"],
+      allowedHostsExact: FIREBASE_MEDIA_HOSTS_EXACT,
+      allowedHostSuffixes: FIREBASE_MEDIA_HOST_SUFFIXES,
+    });
+  } catch (e) {
+    if (e instanceof SsrfGuardError) {
+      throw new Error(`url rejected: ${e.code}`);
+    }
+    throw e;
+  }
+  const res = await fetch(safe.toString(), { redirect: "error" });
   if (!res.ok) {
     throw new Error(`download failed: ${res.status}`);
   }

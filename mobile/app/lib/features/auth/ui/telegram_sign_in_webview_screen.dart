@@ -32,6 +32,37 @@ class _TelegramSignInWebViewScreenState
   String? _error;
   String _currentUrl = '';
 
+  // SECURITY: only the bridge page (lighchat.online or the configured override)
+  // is allowed to deliver a custom token / talk to the JS channel. Any other
+  // host that ends up loaded inside the WebView (open redirect, OAuth chain
+  // gone wrong, attacker-controlled subresource navigating top-level) MUST NOT
+  // be able to call signInWithCustomToken.
+  static final Set<String> _allowedAuthHosts = (() {
+    final hosts = <String>{};
+    try {
+      hosts.add(Uri.parse(telegramAuthBridgePageUrl()).host.toLowerCase());
+    } catch (_) {}
+    // Belt-and-suspenders: even if the env override sets a host, we always
+    // also accept the canonical production hosts.
+    hosts.add('lighchat.online');
+    hosts.add('www.lighchat.online');
+    return hosts.where((h) => h.isNotEmpty).toSet();
+  })();
+
+  bool _isTrustedAuthHost(String? host) {
+    if (host == null) return false;
+    return _allowedAuthHosts.contains(host.toLowerCase());
+  }
+
+  bool _isCurrentlyOnTrustedHost() {
+    try {
+      final u = Uri.parse(_currentUrl);
+      return u.scheme == 'https' && _isTrustedAuthHost(u.host);
+    } catch (_) {
+      return false;
+    }
+  }
+
   bool _isTelegramExternalUrl(String url) {
     return url.startsWith('tg://') ||
         url.startsWith('https://t.me/') ||
@@ -43,6 +74,15 @@ class _TelegramSignInWebViewScreenState
   String? _customTokenFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
+      // SECURITY: only accept tokens from our own bridge host. Without this,
+      // any redirect chain that lands on `https://attacker.tld/#customToken=…`
+      // would feed the token directly into signInWithCustomToken. Even though
+      // a custom token can only be signed by our own admin SDK, an open-
+      // redirect from our auth flow could be weaponised to slip a stolen
+      // token through (see High-1 in the mobile audit).
+      if (uri.scheme != 'https' || !_isTrustedAuthHost(uri.host)) {
+        return null;
+      }
       // Hash: #customToken=...
       if (uri.fragment.startsWith('customToken=')) {
         final v = uri.fragment.substring('customToken='.length);
@@ -78,6 +118,14 @@ class _TelegramSignInWebViewScreenState
       ..addJavaScriptChannel(
         'TelegramAuth',
         onMessageReceived: (JavaScriptMessage message) {
+          // SECURITY: gate the JS channel by the host currently loaded in the
+          // WebView. JavaScriptChannel does not expose the originating frame
+          // host directly, but `_currentUrl` is updated from
+          // onNavigationRequest/onPageStarted, so a non-trusted page being
+          // active is detectable. Without this, any third-party page reached
+          // via redirect could call window.TelegramAuth.postMessage(...) and
+          // hand us an arbitrary string masquerading as a custom token.
+          if (!_isCurrentlyOnTrustedHost()) return;
           unawaited(_onCustomToken(message.message));
         },
       )
@@ -95,6 +143,20 @@ class _TelegramSignInWebViewScreenState
               if (!ok && mounted) {
                 setState(() => _error = AppLocalizations.of(context)!.telegram_sign_in_open_telegram_failed);
               }
+              return NavigationDecision.prevent;
+            }
+            // SECURITY: keep the WebView pinned to trusted hosts. Anything
+            // off-host is opened in the system browser instead — that way we
+            // never run attacker JS in a context that has access to our
+            // TelegramAuth channel. This blocks open-redirect-into-attacker
+            // chains and accidental third-party iframe escalation.
+            try {
+              final u = Uri.parse(next);
+              if (u.scheme == 'https' && !_isTrustedAuthHost(u.host)) {
+                await _launchExternal(next);
+                return NavigationDecision.prevent;
+              }
+            } catch (_) {
               return NavigationDecision.prevent;
             }
             if (mounted) {
