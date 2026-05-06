@@ -32,9 +32,94 @@ const fontMontserrat = Montserrat({
   preload: false,
 });
 
+const SITE_URL = 'https://lighchat.online';
+const SITE_TITLE = 'LighChat — безопасный мессенджер с шифрованием и QR-входом';
+const SITE_DESCRIPTION =
+  'LighChat — приватный мессенджер с E2E-шифрованием, мульти-девайс через QR-код, кастомными темами и HD-видеозвонками. Альтернатива WhatsApp и Telegram. Бесплатно для iOS, Android, Web и Desktop.';
+const SITE_DESCRIPTION_SHORT =
+  'Приватный мессенджер с E2E-шифрованием. Мульти-девайс через QR. HD-видеозвонки. Альтернатива WhatsApp и Telegram. Бесплатно.';
+
 export const metadata: Metadata = {
-  title: 'LighChat',
-  description: 'Messenger & Video Conferencing',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: '%s | LighChat',
+  },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    'мессенджер',
+    'безопасный мессенджер',
+    'приватный мессенджер',
+    'мессенджер с шифрованием',
+    'альтернатива whatsapp',
+    'альтернатива telegram',
+    'видеозвонки',
+    'видеоконференции',
+    'e2e шифрование',
+    'мессенджер на нескольких устройствах',
+    'qr вход',
+    'мульти-девайс мессенджер',
+    'кастомные темы чатов',
+    'messenger',
+    'private messenger',
+    'secure messaging',
+    'encrypted chat',
+    'whatsapp alternative',
+    'telegram alternative',
+    'multi device messenger',
+    'video conferencing',
+  ],
+  authors: [{ name: 'LighChat Team', url: SITE_URL }],
+  creator: 'LighChat',
+  publisher: 'LighChat',
+  applicationName: 'LighChat',
+  category: 'communication',
+  classification: 'Communication, Social Networking, Productivity',
+  manifest: '/manifest.json',
+  alternates: {
+    canonical: SITE_URL,
+    languages: {
+      'ru-RU': SITE_URL,
+      'en-US': SITE_URL,
+      'x-default': SITE_URL,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    alternateLocale: ['en_US'],
+    url: SITE_URL,
+    siteName: 'LighChat',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION_SHORT,
+    images: [
+      {
+        url: '/og/og-1200x630.png',
+        width: 1200,
+        height: 630,
+        alt: 'LighChat — безопасный мессенджер с шифрованием и QR-входом',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@lighchat',
+    creator: '@lighchat',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION_SHORT,
+    images: ['/og/og-1200x630.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   /** Вкладка: прозрачный фавикон (`favicon-*.png`). Рабочий стол / PWA: `manifest` и apple-touch — знак с белым полем ~18% (`scripts/shrink-pwa-icon.mjs`). Сборка: `npm run brand:mark` / `npm run icons:pwa`. */
   icons: {
     icon: [
@@ -43,8 +128,6 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
-  applicationName: 'LighChat',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
