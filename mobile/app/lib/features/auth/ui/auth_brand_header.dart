@@ -22,9 +22,13 @@ class AuthBrandHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
+        // CrossAxisAlignment.baseline + явный Baseline-widget для нашего
+        // CustomPaint — без этого Row выровнял бы виджеты по нижнему краю
+        // bbox, и stem "i" уехал бы в descender-зону (ниже baseline "L").
         Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
               'L',
@@ -36,15 +40,19 @@ class AuthBrandHeader extends StatelessWidget {
                 color: lighColor,
               ),
             ),
-            // Pixel-perfect "i" со встроенной orange-точкой — рисуем stem
-            // и точку одним CustomPaint, чтобы не было задвоения со
-            // штатной точкой шрифта.
+            // Baseline даёт виджету alphabetic-baseline = его bottom (40px).
+            // Внутри painter'а stem рисуется до h*1.0 — значит ровно до
+            // baseline ряда, как у "L".
             Padding(
               padding: const EdgeInsets.only(left: 2, right: 2),
-              child: _BrandDottedI(
-                stemColor: lighColor,
-                dotColor: orangeDot,
-                fontSize: 40,
+              child: Baseline(
+                baseline: 40,
+                baselineType: TextBaseline.alphabetic,
+                child: _BrandDottedI(
+                  stemColor: lighColor,
+                  dotColor: orangeDot,
+                  fontSize: 40,
+                ),
               ),
             ),
             Text(
