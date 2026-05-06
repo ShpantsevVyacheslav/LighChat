@@ -689,7 +689,16 @@ service cloud.firestore {
           && conversationSecretChatUnchanged()
         )
       );
-      allow delete: if isSignedIn() && uidIsConversationParticipantFromData(resource.data);
+      // SECURITY: previously ANY group member could delete the conversation
+      // doc — and the cascade trigger then wiped userChats for everyone,
+      // making the chat disappear for all 2..N members with no recovery.
+      // Restrict group deletion to creator/admins; DM (1:1, isGroup != true)
+      // can still be removed by either participant.
+      allow delete: if isSignedIn() && (
+        isAdmin()
+        || (resource.data.isGroup != true && uidIsConversationParticipantFromData(resource.data))
+        || (resource.data.isGroup == true && isGroupAdminOrCreatorFromConvData(resource.data))
+      );
 
       /** Индекс участников для правил подколлекций; запись только с сервера (Admin SDK). */
       match /members/{memberId} {

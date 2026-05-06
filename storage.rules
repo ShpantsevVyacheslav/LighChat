@@ -37,6 +37,30 @@ service firebase.storage {
         && (!isSecretChat(convId) || hasActiveSecretChatAccess(convId));
     }
 
+    // SECURITY: defense against (1) storage-quota DoS via huge uploads and
+    // (2) firebasestorage.googleapis.com hosting attacker-supplied HTML/SVG
+    // (which would be served with the user-controlled Content-Type, enabling
+    // XSS at the storage origin). 220 MiB matches our largest legitimate
+    // attachment (long video). Allow common chat media + PDF; reject HTML/SVG.
+    function isAcceptableChatMediaSize() {
+      return request.resource.size < 220 * 1024 * 1024;
+    }
+    function isAcceptableChatMediaType() {
+      return request.resource.contentType is string
+        && (request.resource.contentType.matches('image/(jpeg|png|gif|webp|heic|heif)')
+            || request.resource.contentType.matches('video/(mp4|webm|quicktime|x-matroska)')
+            || request.resource.contentType.matches('audio/(mpeg|mp4|aac|ogg|wav|webm|x-m4a)')
+            || request.resource.contentType == 'application/pdf'
+            || request.resource.contentType == 'application/octet-stream');
+    }
+    function isAcceptableImageSize() {
+      return request.resource.size < 16 * 1024 * 1024;
+    }
+    function isAcceptableImageType() {
+      return request.resource.contentType is string
+        && request.resource.contentType.matches('image/(jpeg|png|gif|webp|heic|heif)');
+    }
+
     /** Статика звонка — без JWT в клиенте для первого запроса. */
     match /audio/{fileName} {
       allow read: if true;
@@ -52,7 +76,11 @@ service firebase.storage {
     /** Вложения чата и тредов: только участники диалога. */
     match /chat-attachments/{conversationId}/{allPaths=**} {
       allow read: if isConversationMember(conversationId);
-      allow write: if isConversationMember(conversationId);
+      // delete не требует resource.contentType/size; create+update — требуют.
+      allow delete: if isConversationMember(conversationId);
+      allow write: if isConversationMember(conversationId)
+        && isAcceptableChatMediaSize()
+        && isAcceptableChatMediaType();
     }
 
     /**
@@ -64,50 +92,79 @@ service firebase.storage {
     match /chat-attachments-enc/{conversationId}/{messageId}/{fileId}/{allPaths=**} {
       allow read: if isConversationMember(conversationId)
         && (!isSecretChat(conversationId) || hasActiveSecretMediaKeyGrant(conversationId, messageId, fileId));
-      allow write: if isConversationMember(conversationId);
+      allow delete: if isConversationMember(conversationId);
+      // E2EE chunks have application/octet-stream content-type — covered by our allow-list.
+      allow write: if isConversationMember(conversationId)
+        && isAcceptableChatMediaSize();
     }
 
     // Fallback for any other E2EE path under chat-attachments-enc.
     match /chat-attachments-enc/{conversationId}/{allPaths=**} {
       allow read: if isConversationMember(conversationId);
-      allow write: if isConversationMember(conversationId);
+      allow delete: if isConversationMember(conversationId);
+      allow write: if isConversationMember(conversationId)
+        && isAcceptableChatMediaSize();
     }
 
     match /group-avatars/{conversationId}/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if isConversationMember(conversationId);
+      allow delete: if isConversationMember(conversationId);
+      allow write: if isConversationMember(conversationId)
+        && isAcceptableImageSize() && isAcceptableImageType();
     }
 
     match /avatars/{userId}/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if signedIn() && (request.auth.uid == userId || isFirestoreAdmin());
+      allow delete: if signedIn() && (request.auth.uid == userId || isFirestoreAdmin());
+      allow write: if signedIn() && (request.auth.uid == userId || isFirestoreAdmin())
+        && isAcceptableImageSize() && isAcceptableImageType();
     }
 
     match /wallpapers/{userId}/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == userId;
+      allow delete: if signedIn() && request.auth.uid == userId;
+      allow write: if signedIn() && request.auth.uid == userId
+        && isAcceptableImageSize() && isAcceptableImageType();
     }
 
     match /users/{userId}/sticker-packs/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == userId;
+      allow delete: if signedIn() && request.auth.uid == userId;
+      allow write: if signedIn() && request.auth.uid == userId
+        && isAcceptableImageSize() && isAcceptableImageType();
     }
 
     /** Общие стикеры каталога (только админ записывает). */
     match /public/sticker-packs/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if isFirestoreAdmin();
+      allow delete: if isFirestoreAdmin();
+      allow write: if isFirestoreAdmin()
+        && isAcceptableImageSize() && isAcceptableImageType();
     }
 
     match /users/{userId}/backgrounds/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == userId;
+      allow delete: if signedIn() && request.auth.uid == userId;
+      allow write: if signedIn() && request.auth.uid == userId
+        && isAcceptableImageSize() && isAcceptableImageType();
     }
 
-    /** Чат встречи (не привязан к conversations/). */
+    /**
+     * Чат встречи (не привязан к conversations/). SECURITY: read оставляем
+     * для всех signedIn (кросс-тенант ссылки на ассеты митингов сейчас часть
+     * UX-дизайна), но WRITE сужаем до участников митинга — раньше любой
+     * залогиненный мог перезаписать вложения чужого митинга.
+     */
     match /meeting-attachments/{meetingId}/{allPaths=**} {
+      function isMeetingMemberStorage() {
+        return signedIn()
+          && firestore.exists(/databases/(default)/documents/meetings/$(meetingId)/participants/$(request.auth.uid));
+      }
       allow read: if signedIn();
-      allow write: if signedIn();
+      allow delete: if isMeetingMemberStorage();
+      allow write: if isMeetingMemberStorage()
+        && isAcceptableChatMediaSize()
+        && isAcceptableChatMediaType();
     }
 
     match /{allPaths=**} {
