@@ -10,6 +10,12 @@ import {
 } from '@/lib/i18n/preference';
 import { messagesEn } from '@/lib/i18n/messages/en';
 import { messagesRu } from '@/lib/i18n/messages/ru';
+import { messagesKk } from '@/lib/i18n/messages/kk';
+import { messagesUz } from '@/lib/i18n/messages/uz';
+import { messagesTr } from '@/lib/i18n/messages/tr';
+import { messagesId } from '@/lib/i18n/messages/id';
+import { messagesPtBr } from '@/lib/i18n/messages/pt-BR';
+import { messagesEsMx } from '@/lib/i18n/messages/es-MX';
 import { translate } from '@/lib/i18n/translate';
 import type { AppMessages } from '@/lib/i18n/messages/en';
 
@@ -46,7 +52,18 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const locale = React.useMemo(() => resolveWebLocale(preference), [preference]);
 
-  const messages = locale === 'en' ? messagesEn : messagesRu;
+  const MESSAGES_MAP: Record<ResolvedWebLocale, AppMessages> = {
+    ru: messagesRu,
+    en: messagesEn,
+    kk: messagesKk,
+    uz: messagesUz,
+    tr: messagesTr,
+    id: messagesId,
+    'pt-BR': messagesPtBr,
+    'es-MX': messagesEsMx,
+  };
+
+  const messages = MESSAGES_MAP[locale] ?? messagesRu;
 
   const t = React.useCallback(
     (path: string, params?: Record<string, string | number>) => translate(messages, path, params),

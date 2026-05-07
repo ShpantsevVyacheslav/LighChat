@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useI18n } from '@/hooks/use-i18n';
 import type { AppLanguagePreference } from '@/lib/i18n/preference';
+import { SUPPORTED_LOCALES, LANGUAGE_NATIVE_NAMES } from '@/lib/i18n/preference';
 
 export function LanguageSettingsCard() {
   const { preference, setPreference, t } = useI18n();
@@ -32,18 +33,14 @@ export function LanguageSettingsCard() {
               {t('settings.language.system')}
             </Label>
           </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="ru" id="lang-ru" />
-            <Label htmlFor="lang-ru" className="font-normal cursor-pointer">
-              {t('settings.language.ru')}
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="en" id="lang-en" />
-            <Label htmlFor="lang-en" className="font-normal cursor-pointer">
-              {t('settings.language.en')}
-            </Label>
-          </div>
+          {SUPPORTED_LOCALES.map((loc) => (
+            <div key={loc} className="flex items-center space-x-2">
+              <RadioGroupItem value={loc} id={`lang-${loc}`} />
+              <Label htmlFor={`lang-${loc}`} className="font-normal cursor-pointer">
+                {LANGUAGE_NATIVE_NAMES[loc]}
+              </Label>
+            </div>
+          ))}
         </RadioGroup>
       </CardContent>
     </Card>

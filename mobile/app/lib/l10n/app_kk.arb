@@ -1,0 +1,3972 @@
+{
+  "@@locale": "kk",
+  "secret_chat_title": "Құпия чат",
+  "secret_chats_title": "Құпия чаттар",
+  "secret_chat_locked_title": "Құпия чат бұғатталған",
+  "secret_chat_locked_subtitle": "Енгізіңіз PIN-код, небы открыть чат және посмотреть хабарламалар.",
+  "secret_chat_unlock_title": "Ашу құпия чат",
+  "secret_chat_unlock_subtitle": "Для открытия чаттың қажет PIN-код.",
+  "secret_chat_unlock_action": "Ашу",
+  "secret_chat_set_pin_and_unlock": "Орнату PIN және открыть",
+  "secret_chat_pin_label": "PIN-код (4 цифры)",
+  "secret_chat_pin_invalid": "Енгізіңіз 4 цифры",
+  "secret_chat_already_exists": "Құпия чат этим пользователем уже существует.",
+  "secret_chat_exists_badge": "Создан",
+  "secret_chat_unlock_failed": "Сәтсіз открыть. Қайталап көріңіз.",
+  "secret_chat_action_not_allowed": "Бұл әрекет запрещебірақ в секретном чатта",
+  "secret_chat_remember_pin": "Запомнить PIN на этом құрылғыда",
+  "secret_chat_unlock_biometric": "Ашу помощью биометрии",
+  "secret_chat_biometric_reason": "Ашу құпия чат",
+  "secret_chat_biometric_no_saved_pin": "Енгізіңіз PIN один раз, небы включить биометрию",
+  "secret_chat_ttl_title": "Срок жизнжәне құпия чаттың",
+  "secret_chat_settings_title": "Параметрлер құпия чаттың",
+  "secret_chat_settings_subtitle": "Срок жизни, қолжетімділік және ограничения",
+  "secret_chat_settings_not_secret": "Осы чат не является секретным",
+  "secret_chat_settings_ttl": "Срок жизни",
+  "secret_chat_settings_time_left": "Осталось: {value}",
+  "@secret_chat_settings_time_left": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "secret_chat_settings_expires_at": "Истекает: {iso}",
+  "@secret_chat_settings_expires_at": {
+    "placeholders": {
+      "iso": {}
+    }
+  },
+  "secret_chat_settings_unlock_grant_ttl": "Длительность открытия",
+  "secret_chat_settings_unlock_grant_ttl_subtitle": "Сколько действует қолжетімділік после открытия",
+  "secret_chat_settings_no_copy": "Тыйым салу копирование",
+  "secret_chat_settings_no_forward": "Тыйым салу пересылку",
+  "secret_chat_settings_no_save": "Тыйым салу сохранение медиа",
+  "secret_chat_settings_screenshot_protection": "Защита скриншотов (Android)",
+  "secret_chat_settings_media_views": "Лимиты қаралым медиа",
+  "secret_chat_settings_media_views_subtitle": "Best-effort лимиты қаралым у получатталя",
+  "secret_chat_media_type_image": "Суреттер",
+  "secret_chat_media_type_video": "Видео",
+  "secret_chat_media_type_voice": "Голососізе",
+  "secret_chat_media_type_location": "Локация",
+  "secret_chat_media_type_file": "Файлдар",
+  "secret_chat_media_views_unlimited": "Безлимит",
+  "secret_chat_compose_create": "Құпия чат құру",
+  "secret_chat_compose_vault_pin_subtitle": "Міндетті емес: 4-цифровой PIN для қолжетімділіка тізімге секретных чатов (сохраняется на құрылғыда для биометрии).",
+  "secret_chat_compose_require_unlock_pin": "Требовать PIN пржәне открытижәне чаттың",
+  "secret_chat_settings_read_only_hint": "Параметры задаются пржәне созданижәне және дальше не меняются.",
+  "secret_chat_settings_delete": "Жою құпия чат",
+  "secret_chat_settings_delete_confirm_title": "Жою осы құпия чат?",
+  "secret_chat_settings_delete_confirm_body": "Хабарламалар және медиа будут удалены у обоих усағаттников.",
+  "privacy_secret_vault_title": "Секретное қойма",
+  "privacy_secret_vault_subtitle": "Глобальный PIN және биометрия для вжүріса в құпия чаттар.",
+  "privacy_secret_vault_change_pin": "Орнату немесе сменить PIN храннемесеща",
+  "privacy_secret_vault_change_pin_subtitle": "Еслжәне PIN уже бар, подтвердите старым PIN немесе биометрией.",
+  "privacy_secret_vault_bio_subtitle": "Проверить биометрию және валидировать локальбірақ сохраненный PIN.",
+  "privacy_secret_vault_bio_reason": "Подтвердите қолжетімділік секретным чаттыңм",
+  "privacy_secret_vault_current_pin": "Текущий PIN",
+  "privacy_secret_vault_new_pin": "Носізй PIN",
+  "privacy_secret_vault_repeat_pin": "Повторите носізй PIN",
+  "privacy_secret_vault_pin_mismatch": "PIN-кодтар не совпадают",
+  "privacy_secret_vault_pin_updated": "PIN храннемесеща обновлен",
+  "privacy_secret_vault_bio_unavailable": "Биометрия неқолжетімділікна на этом құрылғыда",
+  "privacy_secret_vault_bio_verified": "Проверка биометрижәне пройдена",
+  "privacy_secret_vault_setup_required": "Сначала настройте PIN немесе биометрию в разделе Құпиялылық.",
+  "privacy_secret_vault_network_timeout": "Таймаут сети. Попробуйте снова.",
+  "privacy_secret_vault_error": "Қате секретного храннемесеща: {error}",
+  "@privacy_secret_vault_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "tournament_title": "Турнир",
+  "tournament_subtitle": "Турнирная таблица және серижәне партий",
+  "tournament_new_game": "Жаңа партия",
+  "tournament_standings": "Таблица",
+  "tournament_standings_empty": "Әзірге жоқ результатов",
+  "tournament_games": "Партии",
+  "tournament_games_empty": "Әзірге жоқ партий",
+  "tournament_points": "{pts} очков",
+  "@tournament_points": {
+    "placeholders": {
+      "pts": {}
+    }
+  },
+  "tournament_games_played": "{n} игр",
+  "@tournament_games_played": {
+    "placeholders": {
+      "n": {}
+    }
+  },
+  "tournament_create_failed": "Сәтсіз создать турнир: {err}",
+  "@tournament_create_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_create_game_failed": "Сәтсіз создать партию: {err}",
+  "@tournament_create_game_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_game_players": "Ойыншылар: {names}",
+  "@tournament_game_players": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "tournament_game_result_draw": "Результат: ничья",
+  "tournament_game_result_loser": "Результат: дурак — {name}",
+  "@tournament_game_result_loser": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "tournament_game_place": "Место {place}",
+  "@tournament_game_place": {
+    "placeholders": {
+      "place": {}
+    }
+  },
+  "durak_dm_lobby_banner": "Собеседник создал лоббжәне «Дурак» — қосылу",
+  "durak_dm_lobby_open": "Ашу лобби",
+  "conversation_game_lobby_cancel": "Завершить ожидание",
+  "conversation_game_lobby_cancel_failed": "Сәтсіз завершить ожидание: {err}",
+  "@conversation_game_lobby_cancel_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "secret_chat_media_views_count": "{count} қаралым",
+  "@secret_chat_media_views_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "secret_chat_settings_load_failed": "Сәтсіз загрузить: {error}",
+  "@secret_chat_settings_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "secret_chat_settings_save_failed": "Сәтсіз сохранить: {error}",
+  "@secret_chat_settings_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "secret_chat_settings_reset_strict": "Сброс строгим настройкам",
+  "secret_chat_settings_reset_strict_subtitle": "Қосулыючит барлығы запреты және установит лимит қаралым медиа = 1",
+  "settings_language_title": "Тіл",
+  "settings_language_system": "Системный",
+  "settings_language_ru": "Русский",
+  "settings_language_en": "English",
+  "settings_language_hint_system": "Пржәне сізборе «Системный» тіл соответствует настройкам құрылғылар.",
+  "account_menu_profile": "Профиль",
+  "account_menu_features": "Возможности",
+  "account_menu_chat_settings": "Параметрлер чатов",
+  "account_menu_notifications": "Хабарландырулар",
+  "account_menu_privacy": "Құпиялылық",
+  "account_menu_devices": "Құрылғылар",
+  "account_menu_blacklist": "Черный тізім",
+  "account_menu_language": "Тіл",
+  "account_menu_storage": "Қойма",
+  "account_menu_theme": "Солқырып",
+  "account_menu_sign_out": "Шығу",
+  "storage_settings_title": "Қойма",
+  "storage_settings_subtitle": "Управляйте локальным кэшем на құрылғыда: не хранить, не чистить және сколько места сізделять.",
+  "storage_settings_total_label": "Бос емес на құрылғыда",
+  "storage_settings_budget_label": "Лимит кэша: {gb} ГБ",
+  "@storage_settings_budget_label": {
+    "placeholders": {
+      "gb": {}
+    }
+  },
+  "storage_unit_gb": "ГБ",
+  "storage_settings_clear_all_button": "Очистить весь кэш",
+  "storage_settings_trim_button": "Поджать до лимита",
+  "storage_settings_policy_title": "Не хранить локально",
+  "storage_settings_budget_slider_title": "Лимит кэша",
+  "storage_settings_breakdown_title": "Разбивка по типам",
+  "storage_settings_breakdown_empty": "Локальный кэш әзірге пуст.",
+  "storage_settings_chats_title": "Разбивка по чаттыңм",
+  "storage_settings_chats_empty": "Әзірге жоқ кэша, привязанного чаттыңм.",
+  "storage_settings_chat_subtitle": "{count} элементов · {size}",
+  "@storage_settings_chat_subtitle": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "storage_settings_general_title": "Кэш без привязкжәне чатқа",
+  "storage_settings_general_hint": "Записи, которые сәтсіз однозначбірақ связать конкретным чатом (legacy/глобальный кэш).",
+  "storage_settings_general_empty": "Общий кэш пуст.",
+  "storage_settings_chat_files_empty": "Локальных файлов для этого чаттың әзірге жоқ.",
+  "storage_settings_clear_chat_action": "Очистить кэш чаттың",
+  "storage_settings_clear_all_title": "Очистить локальный кэш?",
+  "storage_settings_clear_all_body": "Будут удалены кэшированные файлдар, превью, черновикжәне және офлайн-снимкжәне тізімнің чатов на этом құрылғыда.",
+  "storage_settings_clear_chat_title": "Очистить кэш «{chat}»?",
+  "@storage_settings_clear_chat_title": {
+    "placeholders": {
+      "chat": {}
+    }
+  },
+  "storage_settings_clear_chat_body": "Удалится только локальный кэш этого чаттың. Облачные хабарламалар не затрагиваются.",
+  "storage_settings_snackbar_cleared": "Локальный кэш очищен",
+  "storage_settings_snackbar_budget_already_ok": "Кэш уже укладывается в лимит",
+  "storage_settings_snackbar_budget_trimmed": "Освобождено: {size}",
+  "@storage_settings_snackbar_budget_trimmed": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_settings_error_empty": "Сәтсіз собрать статистику храннемесеща",
+  "storage_category_e2ee_media": "E2EE медиа-кэш",
+  "storage_category_e2ee_media_subtitle": "Расшифрованные медиа секретных чатов для быстрого повторного открытия.",
+  "storage_category_e2ee_text": "E2EE текст-кэш",
+  "storage_category_e2ee_text_subtitle": "Расшифрованный текст хабарламалар по чаттыңм для мгновенного рендера.",
+  "storage_category_drafts": "Черновикжәне хабарламалар",
+  "storage_category_drafts_subtitle": "Неотправленные черновикжәне по чаттыңм.",
+  "storage_category_chat_list_snapshot": "Офлайн-тізім чатов",
+  "storage_category_chat_list_snapshot_subtitle": "Соңғы снимок тізімнің чатов для быстрого старта без сети.",
+  "storage_category_profile_cards": "Мини-кэш профилей",
+  "storage_category_profile_cards_subtitle": "Имена және аватары для ускорения интерфейса.",
+  "storage_category_video_downloads": "Кэш загруженных видео",
+  "storage_category_video_downloads_subtitle": "Локальные копижәне видео из просмотрщика медиа.",
+  "storage_category_video_thumbs": "Превью-кадры видео",
+  "storage_category_video_thumbs_subtitle": "Сгенерированные персізе кадры для видео.",
+  "storage_category_chat_images": "Фото в чаттыңх",
+  "storage_category_chat_images_subtitle": "Кэшированные фотографижәне және стикеры из открытых чатов.",
+  "storage_media_type_video": "Видео",
+  "storage_media_type_photo": "Фотографии",
+  "storage_media_type_files": "Файлдар",
+  "storage_media_type_other": "Басқа",
+  "storage_settings_device_usage": "Занимает {pct}% лимита кэша",
+  "@storage_settings_device_usage": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_settings_clear_all_hint": "Барлығы медиа останутся в облаке. Пржәне необжүрісимостжәне сіз сможете загрузить их снова.",
+  "storage_auto_delete_title": "Автоудаление кэшированных медиа",
+  "storage_auto_delete_personal": "Личные чаттар",
+  "storage_auto_delete_groups": "Топтар",
+  "storage_auto_delete_never": "Ешқашан",
+  "storage_auto_delete_3_days": "3 күн",
+  "storage_auto_delete_1_week": "1 нед.",
+  "storage_auto_delete_1_month": "1 ай",
+  "storage_auto_delete_3_months": "3 ай",
+  "storage_auto_delete_hint": "Фотографии, видео және басқа файлдар, которые сіз не открывалжәне в течение этого срока, будут удалены құрылғылар для экономижәне места.",
+  "storage_chat_detail_share": "На осы чат прижүрісится {pct}% кэша",
+  "@storage_chat_detail_share": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_chat_detail_media_tab": "Медиа",
+  "storage_chat_detail_select_all": "Сізбрать барлығы",
+  "storage_chat_detail_deselect_all": "Снять барлығы",
+  "storage_chat_detail_clear_button": "Очистить кэш {size}",
+  "@storage_chat_detail_clear_button": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_chat_detail_clear_button_empty": "Сізберите файлдар для удаления",
+  "storage_chat_detail_tab_empty": "В этой вкладке ничего жоқ.",
+  "storage_chat_detail_delete_title": "Жою сізбранные файлдар?",
+  "storage_chat_detail_delete_body": "{count} файлов ({size}) болады удалебірақ құрылғылар. Облачные копижәне не затрагиваются.",
+  "@storage_chat_detail_delete_body": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "profile_delete_account": "Жою аккаунт",
+  "profile_delete_account_confirm_title": "Жою аккаунт безвозвратно?",
+  "profile_delete_account_confirm_body": "Сіздің аккаунт болады удалён из Firebase Auth және барлығы сіздіңжәне құжаттар в Firestore будут удалены без возможностжәне восстановления. У собеседников останутся сіздіңжәне чаттар в режиме только чтение.",
+  "profile_delete_account_confirm_action": "Жою аккаунт",
+  "profile_delete_account_error": "Сәтсіз удалить аккаунт: {error}",
+  "@profile_delete_account_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_readonly_deleted_user": "Аккаунт удалён. Чат қолжетімділікен только для чтения.",
+  "blacklist_empty": "Жоқ бұғатталғанных пользователей",
+  "blacklist_action_unblock": "Бұғаттан шығару",
+  "blacklist_unblock_confirm_title": "Бұғаттан шығару?",
+  "blacklist_unblock_confirm_body": "Пользователь снова сможет писать вам (еслжәне политика контактілер позволит) және видеть сіздің профиль в поиске.",
+  "blacklist_unblock_success": "Пользователь разблокирован",
+  "blacklist_unblock_error": "Сәтсіз бұғаттан шығару: {error}",
+  "@blacklist_unblock_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "partner_profile_block_confirm_title": "Бұғаттау пользователя?",
+  "partner_profile_block_confirm_body": "Он не увидит чат вами, не сможет найтжәне вас в поиске және добавить в контактілер. У него сіз пропадёте из контактілер. Сіз сохраните переписку, бірақ не сможете писать ему, әзірге он в тізімде бұғатталғанных.",
+  "partner_profile_block_action": "Бұғаттау",
+  "partner_profile_block_success": "Пользователь бұғатталған",
+  "partner_profile_block_error": "Сәтсіз бұғаттау: {error}",
+  "@partner_profile_block_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "common_soon": "Скоро",
+  "common_theme_prefix": "Солқырып: {label}",
+  "@common_theme_prefix": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "common_error_cannot_save_theme": "Сәтсіз сохранить тему: {error}",
+  "@common_error_cannot_save_theme": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "common_error_cannot_sign_out": "Сәтсіз сізйти: {error}",
+  "@common_error_cannot_sign_out": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "account_error_profile": "Қате профиля: {error}",
+  "@account_error_profile": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_title": "Хабарландырулар",
+  "notifications_section_main": "Основные",
+  "notifications_mute_all_title": "Отключить барлығы",
+  "notifications_mute_all_subtitle": "Полностью сізключить хабарландырулар.",
+  "notifications_sound_title": "Дыбыс",
+  "notifications_sound_subtitle": "Воспроизводить дыбыс пржәне новом хабарламада.",
+  "notifications_preview_title": "Предпросмотр",
+  "notifications_preview_subtitle": "Показывать текст хабарламалар в уведомлении.",
+  "notifications_section_quiet_hours": "Тихие сағаты",
+  "notifications_quiet_hours_subtitle": "Хабарландырулар не будут беспокоить в указанный период.",
+  "notifications_quiet_hours_enable_title": "Қосу тихие сағаты",
+  "notifications_reset_button": "Сбросить настройки",
+  "notifications_error_cannot_save": "Сәтсіз сохранить настройки: {error}",
+  "@notifications_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_error_load": "Қате загрузкжәне хабарландырулар: {error}",
+  "@notifications_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_title": "Приватность чаттың",
+  "privacy_error_cannot_save": "Сәтсіз сохранить настройки: {error}",
+  "@privacy_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_error_load": "Қате загрузкжәне конфиденциальности: {error}",
+  "@privacy_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_e2ee_section": "Сквозное шифрлау",
+  "privacy_e2ee_enable_for_all_chats": "Қосу шифрлау (E2E) для барлығых чатов",
+  "privacy_e2ee_what_encrypt": "Не шифруем в E2EE чаттыңх",
+  "privacy_e2ee_text": "Текст хабарламалар",
+  "privacy_e2ee_media": "Вложения (медиа/файлдар)",
+  "privacy_my_devices_title": "Можәне құрылғылар",
+  "privacy_my_devices_subtitle": "Тізім құрылғылар опубликованным ключом. Переименовать немесе отозвать.",
+  "privacy_key_backup_title": "Резервное копирование және передача ключа",
+  "privacy_key_backup_subtitle": "Құру backup паролем немесе передать ключ другому құрылғыға по QR.",
+  "privacy_visibility_section": "Видимость",
+  "privacy_online_title": "Мәртебе онлайн",
+  "privacy_online_subtitle": "Басқа пользователжәне видят, не сіз в сети.",
+  "privacy_last_seen_title": "Соңғы визит",
+  "privacy_last_seen_subtitle": "Показывать время последнего посещения.",
+  "privacy_read_receipts_title": "Индикатор прочтения",
+  "privacy_read_receipts_subtitle": "Показывать отправителям, не сіз прочиталжәне хабарлама.",
+  "privacy_group_invites_section": "Шақырулар в топтар",
+  "privacy_group_invites_subtitle": "Кім мүмкін добавлять вас в групповой чат.",
+  "privacy_group_invites_everyone": "Барлығы пользователи",
+  "privacy_group_invites_contacts": "Только контактілер",
+  "privacy_group_invites_nobody": "Ешкім",
+  "privacy_global_search_section": "Іздеу собеседников",
+  "privacy_global_search_subtitle": "Кім мүмкін найтжәне вас по именжәне среджәне барлығых пользователей приложения.",
+  "privacy_global_search_title": "Глобальный поиск",
+  "privacy_global_search_hint": "Еслжәне сізключено, сіз не отображаетесь в тізімде «Барлығы пользователи» пржәне созданижәне чаттың. В блоке «Контактілер» сіз по-прежнему видны тем, кім добавил вас в контактілер.",
+  "privacy_profile_for_others_section": "Профиль для других",
+  "privacy_profile_for_others_subtitle": "Не показывать в карточке контакта және в профиле из беседы.",
+  "privacy_email_subtitle": "Адрес почты в профиле собеседника.",
+  "privacy_phone_title": "Телефон нөмірі",
+  "privacy_phone_subtitle": "В профиле және в тізімде контактілер у других.",
+  "privacy_birthdate_title": "Жәнеәсол рождения",
+  "privacy_birthdate_subtitle": "Поле «День рождения» в профиле.",
+  "privacy_about_title": "О себе",
+  "privacy_about_subtitle": "Текст биографижәне в профиле.",
+  "privacy_reset_button": "Сбросить настройки",
+  "common_cancel": "Болдырмау",
+  "common_create": "Құру",
+  "common_delete": "Жою",
+  "common_choose": "Сізбрать",
+  "common_save": "Сақтау",
+  "common_close": "Жабу",
+  "common_nothing_found": "Ничего не найдено",
+  "common_retry": "Қайталап көру",
+  "auth_login_email_label": "Email",
+  "auth_login_password_label": "Құпиясөз",
+  "auth_login_password_hint": "Құпиясөз",
+  "auth_login_sign_in": "Кіру",
+  "auth_login_forgot_password": "Забылжәне құпиясөз?",
+  "auth_login_error_enter_email_for_reset": "Енгізіңіз email для восстановления пароля",
+  "profile_title": "Профиль",
+  "profile_edit_tooltip": "Өңдеу",
+  "profile_full_name_label": "ФИО",
+  "profile_full_name_hint": "Аты",
+  "profile_username_label": "Логин",
+  "profile_email_label": "Email",
+  "profile_phone_label": "Телефон",
+  "profile_birthdate_label": "Жәнеәсол рождения",
+  "profile_about_label": "О себе",
+  "profile_about_hint": "Кратко о себе",
+  "profile_password_toggle_show": "Өзгерту құпиясөз",
+  "profile_password_toggle_hide": "Скрыть смену пароля",
+  "profile_password_new_label": "Носізй құпиясөз",
+  "profile_password_confirm_label": "Повторите құпиясөз",
+  "profile_password_tooltip_show": "Показать құпиясөз",
+  "profile_password_tooltip_hide": "Скрыть",
+  "profile_placeholder_username": "username",
+  "profile_placeholder_email": "name@example.com",
+  "profile_placeholder_phone": "+7900 000-00-00",
+  "profile_placeholder_birthdate": "ДД.ММ.ГГГГ",
+  "profile_placeholder_password_dots": "••••••••",
+  "profile_password_error_fill_both": "Заполните носізй құпиясөз және повтор.",
+  "settings_chats_title": "Параметрлер чатов",
+  "settings_chats_preview": "Предпросмотр",
+  "settings_chats_outgoing": "Исжүрісящие хабарламалар",
+  "settings_chats_incoming": "Вжүрісящие хабарламалар",
+  "settings_chats_font_size": "Өлшем шрифта",
+  "settings_chats_font_small": "Мелкий",
+  "settings_chats_font_medium": "Средний",
+  "settings_chats_font_large": "Крупный",
+  "settings_chats_bubble_shape": "Форма пузырьков",
+  "settings_chats_bubble_rounded": "Округлённые",
+  "settings_chats_bubble_square": "Квадратные",
+  "settings_chats_chat_background": "Фон чаттың",
+  "settings_chats_chat_background_pick_hint": "Сізберите фото из галережәне немесе настройте",
+  "settings_chats_advanced": "Дополнительно",
+  "settings_chats_show_time": "Показывать время",
+  "settings_chats_show_time_subtitle": "Время отправкжәне под хабарламаларми",
+  "settings_chats_reset": "Сбросить настройки",
+  "settings_chats_error_cannot_save": "Сәтсіз сохранить: {error}",
+  "@settings_chats_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_load": "Қате загрузкжәне фона: {error}",
+  "@settings_chats_error_wallpaper_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_delete": "Қате удаления фона: {error}",
+  "@settings_chats_error_wallpaper_delete": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_wallpaper_delete_confirm_title": "Жою фон?",
+  "settings_chats_wallpaper_delete_confirm_body": "Осы фон болады удалён из сіздіңего тізімнің.",
+  "settings_chats_icon_picker_title": "Иконка: «{label}»",
+  "@settings_chats_icon_picker_title": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "settings_chats_icon_picker_search_hint": "Іздеу по названию…",
+  "settings_chats_icon_color": "Цвет иконки",
+  "settings_chats_reset_icon_size": "Сбросить өлшем",
+  "settings_chats_reset_icon_stroke": "Сбросить толщину",
+  "settings_chats_tile_background": "Фон плиткжәне под иконкой",
+  "settings_chats_default_gradient": "Градиент по умолчанию",
+  "settings_chats_inherit_global": "Наследовать глобальных",
+  "settings_chats_no_background": "Без фона",
+  "settings_chats_no_background_on": "Без фона (вкл.)",
+  "chat_list_title": "Чаттар",
+  "chat_list_search_hint": "Іздеу…",
+  "chat_list_loading_connecting": "Қосылуда аккаунту…",
+  "chat_list_loading_conversations": "Жүктелуде бесед…",
+  "chat_list_loading_list": "Жүктелуде тізімнің чатов…",
+  "chat_list_loading_sign_out": "Сізжүріс…",
+  "chat_list_empty_search_title": "Чаттар не найдены",
+  "chat_list_empty_search_body": "Попробуйте изменить запрос. Іздеу работает по именжәне пользователя және логину.",
+  "chat_list_empty_folder_title": "В этой папке әзірге бос",
+  "chat_list_empty_folder_body": "Переключитесь на другую папку немесе создайте носізй чат через кнопку вверху.",
+  "chat_list_empty_all_title": "Әзірге жоқ чатов",
+  "chat_list_empty_all_body": "Создайте носізй чат, небы начать переписку.",
+  "chat_list_action_new_folder": "Жаңа папка",
+  "chat_list_action_new_chat": "Носізй чат",
+  "chat_list_action_create": "Құру",
+  "chat_list_action_close": "Жабу",
+  "chat_list_folders_title": "Папки",
+  "chat_list_folders_subtitle": "Сізберите папкжәне для этого чаттың.",
+  "chat_list_folders_empty": "Әзірге жоқ кастомных папок.",
+  "chat_list_create_folder_title": "Жаңа папка",
+  "chat_list_create_folder_subtitle": "Создайте папку для быстрой фильтрацижәне чатов.",
+  "chat_list_create_folder_name_label": "НАЗВАНИЕ ПАПКИ",
+  "chat_list_create_folder_chats_label": "ЧАТЫ ({count})",
+  "@chat_list_create_folder_chats_label": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_list_create_folder_select_all": "Таңдау ВСЁ",
+  "chat_list_create_folder_reset": "СБРОСИТЬ",
+  "chat_list_create_folder_search_hint": "Іздеу по названию…",
+  "chat_list_create_folder_no_matches": "Поджүрісящие чаттар не найдены",
+  "chat_list_folder_default_starred": "Таңдаулылар",
+  "chat_list_folder_default_all": "Барлығы",
+  "chat_list_folder_default_new": "Носізе",
+  "chat_list_folder_default_direct": "Личные",
+  "chat_list_folder_default_groups": "Топтар",
+  "chat_list_yesterday": "Кеше",
+  "chat_list_folder_delete_action": "Жою",
+  "chat_list_folder_delete_title": "Жою папку?",
+  "chat_list_folder_delete_body": "Папка \"{name}\" болады удалена. Чаттар останутся на месте.",
+  "@chat_list_folder_delete_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_open_starred": "Сәтсіз открыть Таңдаулылар: {error}",
+  "@chat_list_error_open_starred": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_delete_folder": "Сәтсіз удалить папку: {error}",
+  "@chat_list_error_delete_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_pin_not_available": "В этой папке закрепление неқолжетімділікно.",
+  "chat_list_pin_pinned_in_folder": "Чат закреплен в папке \"{name}\"",
+  "@chat_list_pin_pinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_pin_unpinned_in_folder": "Чат откреплен из папкжәне \"{name}\"",
+  "@chat_list_pin_unpinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_toggle_pin": "Сәтсіз изменить закрепление: {error}",
+  "@chat_list_error_toggle_pin": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_update_folder": "Сәтсіз жаңарту папку: {error}",
+  "@chat_list_error_update_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_clear_history_title": "Очистить историю?",
+  "chat_list_clear_history_body": "Хабарламалар исчезнут только из сіздіңего окна чаттың. У собеседника история останется.",
+  "chat_list_clear_history_confirm": "Тазалау",
+  "chat_list_error_clear_history": "Сәтсіз очистить историю: {error}",
+  "@chat_list_error_clear_history": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_mark_read": "Сәтсіз пометить чат қалай прочитанный: {error}",
+  "@chat_list_error_mark_read": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_delete_chat_title": "Чатты жою?",
+  "chat_list_delete_chat_body": "Переписка болады безвозвратбірақ удалена для барлығых усағаттников. Бұл әрекет болмайды отменить.",
+  "chat_list_delete_chat_confirm": "Жою",
+  "chat_list_error_delete_chat": "Сәтсіз удалить чат: {error}",
+  "@chat_list_error_delete_chat": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_context_folders": "Папки",
+  "chat_list_context_unpin": "Босату чат",
+  "chat_list_context_pin": "Бекіту чат",
+  "chat_list_context_mark_all_read": "Оқу барлығы",
+  "chat_list_context_clear_history": "Очистить историю",
+  "chat_list_context_delete_chat": "Чатты жою",
+  "chat_list_snackbar_history_cleared": "История очищена.",
+  "chat_list_snackbar_marked_read": "Чат помечен қалай прочитанный.",
+  "chat_list_error_generic": "Қате: {error}",
+  "@chat_list_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_calls_title": "Қоңыраулар",
+  "chat_calls_search_hint": "Іздеу по имени…",
+  "chat_calls_empty": "История звонков пуста.",
+  "chat_calls_nothing_found": "Ничего не найдено.",
+  "chat_calls_error_load": "Сәтсіз загрузить қоңыраулар:\n{error}",
+  "@chat_calls_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_reply_cancel_tooltip": "Болдырмау ответ",
+  "voice_preview_tooltip_cancel": "Болдырмау",
+  "voice_preview_tooltip_send": "Жіберу",
+  "profile_qr_title": "Мой QR-код",
+  "profile_qr_tooltip_close": "Жабу",
+  "profile_qr_share_title": "Мой профиль в LighChat",
+  "profile_qr_share_subject": "LighChat профилі",
+  "chat_media_norm_pending_title": "Обрабатываем {mediaKind}…",
+  "@chat_media_norm_pending_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_failed_title": "Сәтсіз обработать {mediaKind}",
+  "@chat_media_norm_failed_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_pending_subtitle": "Файл станет қолжетімділікен после серверной нормализации.",
+  "chat_media_norm_failed_subtitle": "Попробуйте запустить обработку повторно.",
+  "conversation_threads_title": "Обсуждения",
+  "conversation_threads_empty": "Жоқ обсуждений",
+  "conversation_threads_root_attachment": "Вложение",
+  "conversation_threads_root_message": "Хабарлама",
+  "conversation_threads_snippet_you": "Сіз: {text}",
+  "@conversation_threads_snippet_you": {
+    "placeholders": {
+      "text": {}
+    }
+  },
+  "conversation_threads_day_today": "Бүгін",
+  "conversation_threads_day_yesterday": "Кеше",
+  "conversation_threads_replies_badge": "{count, plural, one{{count} жауап} other{{count} жауап}}",
+  "@conversation_threads_replies_badge": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_meetings_title": "Видеокездесулер",
+  "chat_meetings_subtitle": "Создавайте конференцижәне және управляйте қолжетімділіком усағаттников",
+  "chat_meetings_section_new": "Жаңа кездесу",
+  "chat_meetings_field_title_label": "Название кездесулер",
+  "chat_meetings_field_title_hint": "Напр. Обсуждение логистики",
+  "chat_meetings_field_duration_label": "Длительность",
+  "chat_meetings_duration_unlimited": "Без ограничения",
+  "chat_meetings_duration_15m": "15 минут",
+  "chat_meetings_duration_30m": "30 минут",
+  "chat_meetings_duration_1h": "1 сағат",
+  "chat_meetings_duration_90m": "1,5 сағат",
+  "chat_meetings_field_access_label": "Тип қолжетімділіка",
+  "chat_meetings_access_private": "Закрытая",
+  "chat_meetings_access_public": "Открытая",
+  "chat_meetings_waiting_room_title": "Зал ожидания",
+  "chat_meetings_waiting_room_desc": "В режиме зала ожидания сіз полностью контролируете тізім усағаттников. Әзірге сіз не нажмёте «Қабылдау», гость болады видеть экран ожидания.",
+  "chat_meetings_backgrounds_title": "Виртуальные фоны",
+  "chat_meetings_backgrounds_desc": "Загружайте фоны және размывайте задний план пржәне желании. Сурет из галереи. Также қолжетімділікна загрузка собственных фонов.",
+  "chat_meetings_waiting_room_toggle": "Қосу комнату ожидания",
+  "chat_meetings_waiting_room_toggle_subtitle": "Только хозяин комнаты мүмкін дать рұқсат на қосылуда және блокировать",
+  "chat_meetings_create_button": "Кездесу құру",
+  "chat_meetings_snackbar_enter_title": "Укажите название кездесулер",
+  "chat_meetings_snackbar_auth_required": "Нужна авторизация для создания кездесулер",
+  "chat_meetings_error_create_failed": "Сәтсіз создать встречу: {error}",
+  "@chat_meetings_error_create_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_history_title": "Сіздіңа история",
+  "chat_meetings_history_empty": "История встреч пуста",
+  "chat_meetings_history_error": "Сәтсіз загрузить историю встреч: {error}",
+  "@chat_meetings_history_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_status_live": "идёт",
+  "chat_meetings_status_finished": "завершена",
+  "chat_meetings_badge_private": "закрытая",
+  "chat_contacts_search_hint": "Іздеу контактілер...",
+  "chat_contacts_permission_denied": "Қолжетімділік контактам не предоставлен.",
+  "chat_contacts_sync_error": "Қате синхронизацижәне контактілер: {error}",
+  "@chat_contacts_sync_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_invite_prepare_failed": "Сәтсіз подготовить шақыру: {error}",
+  "@chat_contacts_invite_prepare_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_matches_not_found": "Совпадений не найдено.",
+  "chat_contacts_added_count": "Қосылды контактілер: {count}.",
+  "@chat_contacts_added_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_contacts_invite_text": "Поставь LighChat: https://lighchat.online\nПриглашаю тебя в LighChat — вот сілтеме на установку.",
+  "chat_contacts_invite_subject": "Шақыру в LighChat",
+  "chat_contacts_error_load": "Қате загрузкжәне контактілер: {error}",
+  "@chat_contacts_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_item_draft_line": "Черновик · {line}",
+  "@chat_list_item_draft_line": {
+    "placeholders": {
+      "line": {}
+    }
+  },
+  "chat_list_item_chat_created": "Чат создан",
+  "chat_list_item_no_messages_yet": "Әзірге жоқ хабарламалар",
+  "chat_list_item_history_cleared": "История очищена",
+  "chat_list_firebase_not_configured": "Firebase ещё не бапталды.",
+  "new_chat_title": "Носізй чат",
+  "new_chat_subtitle": "Сізберите пользователя, небы начать диалог, немесе создайте топты.",
+  "new_chat_search_hint": "Аты, ник немесе @username…",
+  "new_chat_create_group": "Топ құру",
+  "new_chat_section_phone_contacts": "КОНТАКТЫ ТЕЛЕФОНА",
+  "new_chat_section_contacts": "КОНТАКТЫ",
+  "new_chat_section_all_users": "ВСЕ ПОЛЬЗОВАТЕЛИ",
+  "new_chat_empty_no_users": "Жоқ пользователей, которымжәне можбірақ начать чат.",
+  "new_chat_empty_not_found": "Никого не найдено.",
+  "new_chat_error_contacts": "Контактілер: {error}",
+  "@new_chat_error_contacts": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "new_chat_fallback_user_display_name": "Пользователь",
+  "new_group_role_badge_admin": "Әкімші",
+  "new_group_role_badge_worker": "СОТРУДНИК",
+  "new_group_error_auth_session": "Қате авторизации: {error}",
+  "@new_group_error_auth_session": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invite_subject": "Шақыру в LighChat",
+  "invite_text": "Поставь LighChat: https://lighchat.online\\nПриглашаю тебя в LighChat — вот сілтеме на установку.",
+  "new_group_title": "Топ құру",
+  "new_group_search_hint": "Іздеу пользователей…",
+  "new_group_pick_photo_tooltip": "Нажмите, небы сізбрать фото топтар. Удерживайте, небы убрать.",
+  "new_group_name_label": "Название топтар",
+  "new_group_name_hint": "Название",
+  "new_group_description_label": "Сипаттама",
+  "new_group_description_hint": "Міндетті емес",
+  "new_group_members_count": "Усағаттникжәне ({count})",
+  "@new_group_members_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "new_group_add_members_section": "ДОБАВИТЬ УЧАСТНИКОВ",
+  "new_group_empty_no_users": "Жоқ пользователей для добавления.",
+  "new_group_empty_not_found": "Никого не найдено.",
+  "new_group_error_name_required": "Енгізіңіз название топтар.",
+  "new_group_error_members_required": "Добавьте хотя бы одного усағаттника.",
+  "new_group_action_create": "Құру",
+  "group_members_title": "Усағаттники",
+  "group_members_invite_link": "Шақыру по сілтемеде",
+  "group_members_admin_badge": "Әкімші",
+  "group_members_invite_text": "Присоединяйся группе {groupName} в LighChat: {inviteLink}",
+  "@group_members_invite_text": {
+    "placeholders": {
+      "groupName": {},
+      "inviteLink": {}
+    }
+  },
+  "group_members_error_min_admin": "В группе должен остаться хотя бы один әкімші.",
+  "group_members_error_cannot_remove_creator": "Болмайды снять права әкімшіні создателя топтар.",
+  "group_members_remove_admin": "Әкімші снят",
+  "group_members_make_admin": "Назначен әкімші",
+  "auth_brand_tagline": "Безопасный мессенджер",
+  "auth_firebase_not_ready": "Firebase не готов. Проверь `firebase_options.dart` және GoogleService-Info.plist.",
+  "auth_redirecting_to_chats": "Пережүрісим в чаттар...",
+  "auth_or": "немесе",
+  "auth_create_account": "Аккаунт құру",
+  "auth_entry_sign_in": "Кіру",
+  "auth_entry_sign_up": "Аккаунт құру",
+  "auth_qr_title": "Кіру по QR",
+  "auth_qr_hint": "Откройте LighChat на құрылғыда, қайда сіз уже вошлжәне → Параметрлер → Құрылғылар → Подключить жаңа құрылғы, және наведите камеру на осы код.",
+  "auth_qr_refresh_in": "Обновится через {seconds}с",
+  "@auth_qr_refresh_in": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "auth_qr_other_method": "Кіру другим способом",
+  "auth_qr_approving": "Вжүрісим…",
+  "auth_qr_rejected": "Запрос отклонён",
+  "auth_qr_retry": "Повторить",
+  "auth_qr_unknown_error": "Сәтсіз сгенерировать QR-код.",
+  "auth_qr_use_qr_login": "Кіру по QR",
+  "auth_privacy_policy": "Политика конфиденциальности",
+  "auth_error_open_privacy_policy": "Сәтсіз открыть политику конфиденциальности",
+  "voice_transcript_show": "Показать текст",
+  "voice_transcript_hide": "Скрыть текст",
+  "voice_transcript_copy": "Көшіру",
+  "voice_transcript_loading": "Транскрибация…",
+  "voice_transcript_failed": "Сәтсіз получить текст.",
+  "voice_attachment_media_kind_audio": "аудио",
+  "voice_attachment_load_failed": "Сәтсіз загрузить",
+  "voice_attachment_title_voice_message": "Голосовое хабарлама",
+  "voice_transcript_error": "Сәтсіз сделать транскрибацию: {error}",
+  "@voice_transcript_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_messages_title": "Хабарламалар",
+  "chat_call_decline": "Қабылдамау",
+  "chat_call_open": "Ашу",
+  "chat_call_accept": "Қабылдау",
+  "video_call_error_init": "Қате видеозвонка: {error}",
+  "@video_call_error_init": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_ended": "Қоңырау завершён",
+  "video_call_status_missed": "Пропущенный қоңырау",
+  "video_call_status_cancelled": "Қоңырау отменён",
+  "video_call_error_offer_not_ready": "Оффер ещё не готов, попробуйте снова",
+  "video_call_error_invalid_call_data": "Некорректные деректер звонка",
+  "video_call_error_accept_failed": "Сәтсіз принять қоңырау: {error}",
+  "@video_call_error_accept_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_incoming": "Вжүрісящий видеоқоңырау",
+  "video_call_connecting": "Видеоқоңырау…",
+  "video_call_pip_tooltip": "Картинка в картинке",
+  "video_call_mini_window_tooltip": "Мини-окно",
+  "chat_delete_message_title_single": "Хабарламаны жою?",
+  "chat_delete_message_title_multi": "Жою хабарламалар?",
+  "chat_delete_message_body_single": "Хабарлама болады скрыто у барлығых.",
+  "chat_delete_message_body_multi": "Болады удалебірақ хабарламалар: {count}",
+  "@chat_delete_message_body_multi": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_delete_file_title": "Жою файл?",
+  "chat_delete_file_body": "Болады удалён только осы файл из хабарламалар.",
+  "forward_title": "Переслать",
+  "forward_empty_no_messages": "Жоқ хабарламалар для пересылки",
+  "forward_error_not_authorized": "Не авторизован",
+  "forward_empty_no_recipients": "Жоқ контактілер және чатов для пересылки",
+  "forward_search_hint": "Іздеу контактілер…",
+  "forward_empty_no_available_recipients": "Қолжетімділікных получатталей жоқ.\nМожбірақ пересылать только контактам және в сіздіңжәне активные чаттар.",
+  "forward_empty_not_found": "Ничего не найдено",
+  "forward_action_pick_recipients": "Сізберите получатталей",
+  "forward_action_send": "Жіберу",
+  "forward_error_generic": "Қате: {error}",
+  "@forward_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "forward_sender_fallback": "Усағаттник",
+  "forward_error_profiles_load": "Сәтсіз загрузить профнемесе для открытия чаттың",
+  "forward_error_send_no_permissions": "Сәтсіз переслать: жоқ прав на сізбранные чаттар немесе чат көбірек неқолжетімділікен.",
+  "forward_error_send_forbidden_chat": "Сәтсіз переслать: қолжетімділік одному из чатов запрещён.",
+  "devices_title": "Можәне құрылғылар",
+  "devices_subtitle": "Тізім құрылғылар, на которых опубликован сіздің публичный ключ шифрования. Отзыв автоматическжәне создаёт новую эпоху ключей во барлығых зашифрованных чаттыңх — отозванное құрылғы көбірек не увидит носізе хабарламалар.",
+  "devices_empty": "Құрылғылар әзірге жоқ.",
+  "devices_connect_new_device": "Подключить жаңа құрылғы",
+  "devices_approve_title": "Рұқсат беру вжүріс на этом құрылғыда?",
+  "devices_approve_body_hint": "Убедитесь, не бұл сіздіңе құрылғы, на котором сіз жаңа ғана показалжәне QR.",
+  "devices_approve_allow": "Рұқсат беру",
+  "devices_approve_deny": "Қабылдамау",
+  "devices_handover_progress_title": "Синхронизация зашифрованных чатов…",
+  "devices_handover_progress_body": "Обработабірақ {done} из {total}",
+  "@devices_handover_progress_body": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "devices_handover_progress_starting": "Начинаем…",
+  "devices_handover_success_title": "Құрылғы қосылды",
+  "devices_handover_success_body": "Құрылғы {label} получило қолжетімділік зашифрованным чаттыңм.",
+  "@devices_handover_success_body": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "devices_progress_rekeying": "Жаңарту чатов: {done} / {total}",
+  "@devices_progress_rekeying": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
+  "devices_chip_current": "Бұл құрылғы",
+  "devices_chip_revoked": "Отозвано",
+  "devices_meta_created_activity": "Создано: {createdAt}  •  Активность: {lastSeenAt}",
+  "@devices_meta_created_activity": {
+    "placeholders": {
+      "createdAt": {},
+      "lastSeenAt": {}
+    }
+  },
+  "devices_meta_revoked_at": "Отозвано: {revokedAt}",
+  "@devices_meta_revoked_at": {
+    "placeholders": {
+      "revokedAt": {}
+    }
+  },
+  "devices_action_rename": "Переименовать",
+  "devices_action_revoke": "Отозвать",
+  "devices_dialog_rename_title": "Переименовать құрылғы",
+  "devices_dialog_rename_hint": "Например, iPhone 15 — Safari",
+  "devices_error_rename_failed": "Сәтсіз переименовать: {error}",
+  "@devices_error_rename_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "devices_dialog_revoke_title": "Отозвать құрылғы?",
+  "devices_dialog_revoke_body_current": "Сіз собираетесь отозвать ТЕКУЩЕЕ құрылғы. После этого сіз не сможете читать носізе хабарламалар в зашифрованных чаттыңх этого клиента.",
+  "devices_dialog_revoke_body_other": "Құрылғы көбірек не сможет читать носізе хабарламалар в зашифрованных чаттыңх. Ескі хабарламалар останутся қолжетімділікны на нём.",
+  "devices_snackbar_revoked": "Құрылғы отозвано. Обновлебірақ чатов: {rekeyed}{suffix}",
+  "@devices_snackbar_revoked": {
+    "placeholders": {
+      "rekeyed": {},
+      "suffix": {}
+    }
+  },
+  "devices_snackbar_failed_suffix": ", қателер: {count}",
+  "@devices_snackbar_failed_suffix": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "devices_error_revoke_failed": "Қате revoke: {error}",
+  "@devices_error_revoke_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_recovery_title": "E2EE — резервирование",
+  "e2ee_password_label": "Құпиясөз",
+  "e2ee_password_confirm_label": "Повторите құпиясөз",
+  "e2ee_password_min_length": "Ең аз {count} символов",
+  "@e2ee_password_min_length": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "e2ee_password_mismatch": "Паролжәне не совпадают",
+  "e2ee_backup_create_title": "Құру backup ключа",
+  "e2ee_backup_restore_title": "Восстановить по паролю",
+  "e2ee_backup_restore_action": "Восстановить",
+  "e2ee_backup_create_error": "Сәтсіз создать backup: {error}",
+  "@e2ee_backup_create_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_restore_error": "Сәтсіз восстановить: {error}",
+  "@e2ee_backup_restore_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_wrong_password": "Неверный құпиясөз",
+  "e2ee_backup_not_found": "Backup не найден",
+  "e2ee_recovery_error_generic": "Қате: {error}",
+  "@e2ee_recovery_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_password_card_title": "Backup паролем",
+  "e2ee_backup_password_card_description": "Создайте зашифрованный backup приватного ключа. Еслжәне потеряете барлығы құрылғылар, сможете восстановить его на новом, зная только құпиясөз. Құпиясөз болмайды восстановить — записывайте надёжно.",
+  "e2ee_backup_overwrite": "Перезаписать backup",
+  "e2ee_backup_create": "Құру backup",
+  "e2ee_backup_restore": "Восстановить из backup",
+  "e2ee_backup_already_have": "У меня уже бар backup",
+  "e2ee_qr_transfer_title": "Передача ключа по QR",
+  "e2ee_qr_transfer_description": "На новом құрылғыда показываем QR, на старом сканируем камерой. Сверяете 6-значный код — приватный ключ переносится безопасно.",
+  "e2ee_qr_transfer_open": "Ашу QR-pairing",
+  "media_viewer_action_reply": "Ответить",
+  "media_viewer_action_forward": "Переслать",
+  "media_viewer_action_send": "Жіберу",
+  "media_viewer_action_save": "Сақтау",
+  "media_viewer_action_show_in_chat": "Показать в чатта",
+  "media_viewer_action_delete": "Жою",
+  "media_viewer_error_no_gallery_access": "Жоқ қолжетімділіка сохранению в галерею",
+  "media_viewer_error_share_unavailable_web": "Шаринг неқолжетімділікен в веб-нұсқа",
+  "media_viewer_error_file_not_found": "Файл не найден",
+  "media_viewer_error_bad_media_url": "Неверная сілтеме на медиа",
+  "media_viewer_error_bad_url": "Неверная сілтеме",
+  "media_viewer_error_unsupported_media_scheme": "Неподдерживаемый тип медиа",
+  "media_viewer_error_http_status": "Қате сервера (HTTP {status})",
+  "@media_viewer_error_http_status": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "media_viewer_error_save_failed": "Сәтсіз сохранить: {error}",
+  "@media_viewer_error_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_error_send_failed": "Сәтсіз отправить: {error}",
+  "@media_viewer_error_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_video_playback_speed": "Скорость воспроизведения",
+  "media_viewer_video_quality": "Качество",
+  "media_viewer_video_quality_auto": "Авто",
+  "media_viewer_error_quality_switch_failed": "Сәтсіз переключить качество",
+  "media_viewer_error_pip_open_failed": "Сәтсіз открыть PiP",
+  "media_viewer_pip_not_supported": "Картинка в картинке не поддерживается на этом құрылғыда.",
+  "media_viewer_video_processing": "Видео обрабатывается на сервере және скоро станет қолжетімділікно.",
+  "media_viewer_video_playback_failed": "Сәтсіз воспроизвестжәне видео.",
+  "common_none": "Жоқ",
+  "group_member_role_admin": "Әкімші",
+  "group_member_role_worker": "Усағаттник",
+  "profile_no_photo_to_view": "Жоқ фото профиля для просмотра.",
+  "profile_chat_id_copied_toast": "Идентификатор чаттың скопирован",
+  "auth_register_error_open_link": "Сәтсіз открыть сілтемені",
+  "new_chat_error_self_profile_not_found": "Не найден профиль в каталоге. Попробуйте сізйтжәне және войтжәне снова.",
+  "disappearing_messages_title": "Исчезающие хабарламалар",
+  "disappearing_messages_intro": "Носізе хабарламалар автоматическжәне удаляются из базы после сізбранного временжәне (от момента отправки). Уже отправленные не меняются.",
+  "disappearing_messages_admin_only": "Только әкімшілер топтар могут менять осы параметр. Қазір: {summary}.",
+  "@disappearing_messages_admin_only": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "disappearing_messages_snackbar_off": "Исчезающие хабарламалар сізключены.",
+  "disappearing_messages_snackbar_updated": "Таймер обновлён.",
+  "disappearing_preset_off": "Өшірулі",
+  "disappearing_preset_1h": "1 ч",
+  "disappearing_preset_24h": "24 ч",
+  "disappearing_preset_7d": "7 дн.",
+  "disappearing_preset_30d": "30 дн.",
+  "disappearing_ttl_summary_off": "Өшірулі",
+  "disappearing_ttl_minutes": "{count} мин",
+  "@disappearing_ttl_minutes": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_hours": "{count} ч",
+  "@disappearing_ttl_hours": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_days": "{count} дн.",
+  "@disappearing_ttl_days": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_weeks": "{count} нед.",
+  "@disappearing_ttl_weeks": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "conversation_profile_e2ee_on": "Қосулы",
+  "conversation_profile_e2ee_off": "Өшірулі",
+  "conversation_profile_e2ee_subtitle_on": "Сквозное шифрлау включено. Нажмите для подробностей.",
+  "conversation_profile_e2ee_subtitle_off": "Сквозное шифрлау сізключено. Нажмите, небы включить.",
+  "partner_profile_title_fallback_group": "Групповой чат",
+  "partner_profile_title_fallback_saved": "Таңдаулылар",
+  "partner_profile_title_fallback_chat": "Чат",
+  "partner_profile_subtitle_group_member_count": "{count} усағаттников",
+  "@partner_profile_subtitle_group_member_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "partner_profile_subtitle_saved_messages": "Хабарламалар және заметкжәне только для вас",
+  "partner_profile_error_cannot_contact_user": "С этим пользователем болмайды связаться.",
+  "partner_profile_error_open_chat": "Сәтсіз открыть чат: {error}",
+  "@partner_profile_error_open_chat": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "partner_profile_call_peer_fallback": "Собеседник",
+  "partner_profile_chat_not_created": "Чат ещё не создан",
+  "partner_profile_notifications_muted": "Хабарландырулар отключены",
+  "partner_profile_notifications_unmuted": "Хабарландырулар включены",
+  "partner_profile_notifications_change_failed": "Сәтсіз изменить хабарландырулар",
+  "partner_profile_removed_from_contacts": "Жойылды из контактілер",
+  "partner_profile_remove_contact_failed": "Сәтсіз удалить из контактілер",
+  "partner_profile_contact_sent": "Контакт отправлен",
+  "partner_profile_share_failed_copied": "Сәтсіз открыть шаринг. Текст контакта скопирован.",
+  "partner_profile_share_contact_header": "Контакт в LighChat",
+  "partner_profile_share_avatar_line": "Аватар: {url}",
+  "@partner_profile_share_avatar_line": {
+    "placeholders": {
+      "url": {}
+    }
+  },
+  "partner_profile_share_profile_line": "Профиль: {url}",
+  "@partner_profile_share_profile_line": {
+    "placeholders": {
+      "url": {}
+    }
+  },
+  "partner_profile_share_contact_subject": "Контакт LighChat: {name}",
+  "@partner_profile_share_contact_subject": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "partner_profile_tooltip_back": "Артқа",
+  "partner_profile_tooltip_close": "Жабу",
+  "partner_profile_edit_contact_short": "Изм.",
+  "partner_profile_tooltip_copy_chat_id": "Көшіру ID чаттың",
+  "partner_profile_action_chats": "Чаттар",
+  "partner_profile_action_voice_call": "Қоңырау",
+  "partner_profile_action_video": "Видео",
+  "partner_profile_action_share": "Бөлісу",
+  "partner_profile_action_notifications": "Хабарландырулар",
+  "partner_profile_menu_members": "Усағаттники",
+  "partner_profile_menu_edit_group": "Өңдеу топты",
+  "partner_profile_menu_media_links_files": "Медиа, ссылкжәне және файлдар",
+  "partner_profile_menu_starred": "Таңдаулылар",
+  "partner_profile_menu_threads": "Обсуждения",
+  "partner_profile_menu_games": "Ойындар",
+  "partner_profile_menu_block": "Бұғаттау",
+  "partner_profile_menu_unblock": "Бұғаттан шығару",
+  "partner_profile_menu_notifications": "Хабарландырулар",
+  "partner_profile_menu_chat_theme": "Солқырып чаттың",
+  "partner_profile_menu_advanced_privacy": "Расширенная приватность чаттың",
+  "partner_profile_privacy_trailing_default": "По умолчанию",
+  "partner_profile_menu_encryption": "Шифрлау",
+  "partner_profile_no_common_groups": "Жоқ ОБЩИХ ГРУПП",
+  "partner_profile_create_group_with": "Топ құру {name}",
+  "@partner_profile_create_group_with": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "partner_profile_leave_group": "Шығу топты",
+  "partner_profile_contacts_and_data": "Контактілер және деректер",
+  "partner_profile_field_system_role": "Роль в системе",
+  "partner_profile_field_email": "Электрондық пошта",
+  "partner_profile_field_phone": "Телефон",
+  "partner_profile_field_birthday": "День рождения",
+  "partner_profile_field_bio": "О себе",
+  "partner_profile_add_to_contacts": "Қосу в контактілер",
+  "partner_profile_remove_from_contacts": "Жою из контактілер",
+  "thread_search_hint": "Іздеу в обсуждении…",
+  "thread_search_tooltip_clear": "Очистить",
+  "thread_search_tooltip_search": "Іздеу",
+  "thread_reply_count": "{count, plural, =0{{count} жауап} one{{count} жауап} other{{count} жауап}}",
+  "@thread_reply_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thread_message_not_found": "Хабарлама не найдено",
+  "thread_screen_title_fallback": "Обсуждение",
+  "thread_load_replies_error": "Қате ветки: {error}",
+  "@thread_load_replies_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_message_empty_placeholder": "Хабарлама",
+  "chat_sender_you": "Сіз",
+  "chat_clipboard_nothing_to_paste": "Нечего вставлять из буфера",
+  "chat_clipboard_paste_failed": "Сәтсіз вставить содержимое буфера: {error}",
+  "@chat_clipboard_paste_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_send_failed": "Сәтсіз отправить: {error}",
+  "@chat_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_send_video_circle_failed": "Сәтсіз отправить кружок: {error}",
+  "@chat_send_video_circle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_service_unavailable": "Сервис неқолжетімділікен",
+  "chat_repository_unavailable": "Сервис чаттың неқолжетімділікен",
+  "chat_still_loading": "Чат ещё загружается",
+  "chat_no_participants": "Жоқ усағаттников чаттың",
+  "chat_location_ios_geolocator_missing": "Геолокация не подключена в iOS-сборке. В каталоге mobile/app/ios сізполните pod install және пересоберите приложение.",
+  "chat_location_services_disabled": "Қосулыючите службу геолокации",
+  "chat_location_permission_denied": "Жоқ қолжетімділіка геолокации",
+  "chat_location_send_failed": "Сәтсіз отправить геолокацию: {error}",
+  "@chat_location_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_poll_send_timeout": "Опрос не отправлен: таймаут",
+  "chat_poll_send_firebase": "Опрос не отправлен (Firestore): {details}",
+  "@chat_poll_send_firebase": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "chat_poll_send_known_error": "Опрос не отправлен: {details}",
+  "@chat_poll_send_known_error": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "chat_poll_send_failed": "Сәтсіз отправить опрос: {error}",
+  "@chat_poll_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_delete_action_failed": "Сәтсіз удалить: {error}",
+  "@chat_delete_action_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_media_transcode_retry_started": "Повторная обработка запущена",
+  "chat_media_transcode_retry_failed": "Сәтсіз запустить обработку: {error}",
+  "@chat_media_transcode_retry_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_parent_load_error": "Қате: {error}",
+  "@chat_parent_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_message_not_found_in_loaded_history": "Хабарлама не найдебірақ в загруженной истории",
+  "chat_finish_editing_first": "Сначала завершите редактирование",
+  "chat_send_voice_failed": "Сәтсіз отправить голосовое: {error}",
+  "@chat_send_voice_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_starred_removed": "Жойылды из избранного",
+  "chat_starred_added": "Қосылды в таңдаулылар",
+  "chat_starred_toggle_failed": "Сәтсіз изменить таңдаулылар: {error}",
+  "@chat_starred_toggle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_reaction_toggle_failed": "Сәтсіз поставить реакцию: {error}",
+  "@chat_reaction_toggle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_emoji_burst_sync_failed": "Сәтсіз синхронизировать эффект эмодзи: {error}",
+  "@chat_emoji_burst_sync_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_pin_already_pinned": "Хабарлама уже бекітілді",
+  "chat_pin_limit_reached": "Лимит закреплённых ({count})",
+  "@chat_pin_limit_reached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chat_pin_failed": "Сәтсіз бекіту: {error}",
+  "@chat_pin_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_unpin_failed": "Сәтсіз босату: {error}",
+  "@chat_unpin_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_text_copied": "Текст скопирован",
+  "chat_edit_attachments_not_allowed": "Пржәне редактированижәне вложения неқолжетімділікны",
+  "chat_edit_text_empty": "Текст не мүмкін быть пустым",
+  "chat_e2ee_unavailable": "Шифрлау неқолжетімділікно: {code}",
+  "@chat_e2ee_unavailable": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "chat_save_failed": "Сәтсіз сохранить: {error}",
+  "@chat_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_load_messages_error": "Қате загрузкжәне хабарламалар: {error}",
+  "@chat_load_messages_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_conversation_error": "Conversation error: {error}",
+  "@chat_conversation_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_auth_error": "Қате авторизации: {error}",
+  "@chat_auth_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_poll_label": "Опрос",
+  "chat_location_label": "Локация",
+  "chat_attachment_label": "Вложение",
+  "chat_media_pick_failed": "Сәтсіз сізбрать медиа: {error}",
+  "@chat_media_pick_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_file_pick_failed": "Сәтсіз сізбрать файл: {error}",
+  "@chat_file_pick_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_call_ongoing_video": "Идёт видеоқоңырау",
+  "chat_call_ongoing_audio": "Идёт аудиоқоңырау",
+  "chat_call_incoming_video": "Вжүрісящий видеоқоңырау",
+  "chat_call_incoming_audio": "Вжүрісящий аудиоқоңырау",
+  "message_menu_action_reply": "Ответить",
+  "message_menu_action_thread": "Обсудить",
+  "message_menu_action_copy": "Көшіру",
+  "message_menu_action_edit": "Өзгерту",
+  "message_menu_action_pin": "Бекіту",
+  "message_menu_action_star_add": "Қосу в таңдаулылар",
+  "message_menu_action_star_remove": "Убрать из избранного",
+  "message_menu_action_forward": "Переслать",
+  "message_menu_action_select": "Сізбрать",
+  "message_menu_action_delete": "Жою",
+  "message_menu_initiator_deleted": "Хабарлама удалено",
+  "message_menu_header_sent": "ОТПРАВЛЕНО:",
+  "message_menu_header_read": "Оқылды:",
+  "message_menu_header_expire_at": "ИСЧЕЗНЕТ:",
+  "chat_header_search_hint": "Іздеу хабарламалар…",
+  "chat_header_tooltip_threads": "Обсуждения",
+  "chat_header_tooltip_search": "Іздеу",
+  "chat_header_tooltip_video_call": "Видеоқоңырау",
+  "chat_header_tooltip_audio_call": "Аудиоқоңырау",
+  "conversation_games_title": "Ойындар",
+  "conversation_games_durak": "Дурак",
+  "conversation_games_durak_subtitle": "Құру лобби",
+  "conversation_game_lobby_title": "Лобби",
+  "conversation_game_lobby_not_found": "Ойын не найдена",
+  "conversation_game_lobby_error": "Қате: {error}",
+  "@conversation_game_lobby_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_create_failed": "Сәтсіз создать игру: {error}",
+  "@conversation_game_lobby_create_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_game_id": "ID: {id}",
+  "@conversation_game_lobby_game_id": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "conversation_game_lobby_status": "Мәртебе: {status}",
+  "@conversation_game_lobby_status": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "conversation_game_lobby_players": "Ойыншылар: {count}/{max}",
+  "@conversation_game_lobby_players": {
+    "placeholders": {
+      "count": {},
+      "max": {}
+    }
+  },
+  "conversation_game_lobby_join": "Кіру",
+  "conversation_game_lobby_start": "Начать",
+  "conversation_game_lobby_join_failed": "Сәтсіз войти: {error}",
+  "@conversation_game_lobby_join_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_start_failed": "Сәтсіз начать игру: {error}",
+  "@conversation_game_lobby_start_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_send_test_move": "Тестосізй жүріс",
+  "conversation_game_move_failed": "Жүріс не принят: {error}",
+  "@conversation_game_move_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_durak_table_title": "Стол",
+  "conversation_durak_hand_title": "Рука",
+  "conversation_durak_role_attacker": "Атакуете",
+  "conversation_durak_role_defender": "Защищаетесь",
+  "conversation_durak_role_thrower": "Подкидываете",
+  "conversation_durak_action_attack": "Атаковать",
+  "conversation_durak_action_defend": "Отшабу",
+  "conversation_durak_action_take": "Взять",
+  "conversation_durak_action_beat": "Бито",
+  "conversation_durak_action_transfer": "Аудару",
+  "conversation_durak_action_pass": "Пас",
+  "conversation_durak_badge_taking": "Беру",
+  "conversation_durak_game_finished_title": "Ойын завершена",
+  "conversation_durak_game_finished_no_loser": "В осы раз без проойынвшего.",
+  "conversation_durak_game_finished_loser": "Проойынл: {uid}",
+  "@conversation_durak_game_finished_loser": {
+    "placeholders": {
+      "uid": {}
+    }
+  },
+  "conversation_durak_game_finished_winners": "Победнемесе: {uids}",
+  "@conversation_durak_game_finished_winners": {
+    "placeholders": {
+      "uids": {}
+    }
+  },
+  "conversation_durak_winner": "Жеңімпаз!",
+  "conversation_durak_play_again": "Сыграть ещё раз",
+  "conversation_durak_back_to_chat": "Вернуться в чат",
+  "conversation_game_lobby_waiting_opponent": "Ожидание соперника…",
+  "conversation_durak_drop_zone": "Перетащжәне карту сюда, небы сыграть",
+  "durak_settings_mode": "Режим",
+  "durak_mode_podkidnoy": "Подкидной",
+  "durak_mode_perevodnoy": "Переводной",
+  "durak_settings_max_players": "Ойыншыов",
+  "durak_settings_deck": "Бума",
+  "durak_deck_36": "36 карт",
+  "durak_deck_52": "52 карталар",
+  "durak_settings_with_jokers": "Джокерлер",
+  "durak_settings_turn_timer": "Таймер жүріса",
+  "durak_turn_timer_off": "Өшірулі",
+  "durak_settings_throw_in_policy": "Кім мүмкін подкидывать",
+  "durak_throw_in_policy_all": "Барлығы (кроме защитника)",
+  "durak_throw_in_policy_neighbors": "Только соседжәне защитника",
+  "durak_settings_shuler": "Режим шулера",
+  "durak_settings_shuler_subtitle": "Разрешает нелегальные жүрісы, әзірге кім-сол не крикнет «Фолл!»",
+  "conversation_durak_action_foul": "Фолл!",
+  "conversation_durak_action_resolve": "Растау «Бито»",
+  "conversation_durak_foul_toast": "Фолл! Шулер наказан.",
+  "durak_phase_prefix": "Фаза",
+  "durak_phase_attack": "Атака",
+  "durak_phase_defense": "Защита",
+  "durak_phase_throw_in": "Подкид",
+  "durak_phase_resolution": "Розыгрыш",
+  "durak_phase_finished": "Завершено",
+  "durak_phase_pending_foul": "Ожидание фолла после «Бито»",
+  "durak_phase_pending_foul_hint_attacker": "Ждём фолл. Еслжәне ешкім не нажмёт — подтверджәне «Бито».",
+  "durak_phase_pending_foul_hint_other": "Ждём фолл. Нажмжәне «Фолл!», еслжәне заметил шулерство.",
+  "durak_phase_hint_can_throw_in": "Можбірақ подкидывать",
+  "durak_phase_hint_wait": "Ждите свой жүріс",
+  "durak_now_throwing_in": "Қазір подкидывает: {name}",
+  "@durak_now_throwing_in": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_selection_selected_count": "{count} selected",
+  "@chat_selection_selected_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chat_selection_tooltip_forward": "Переслать",
+  "chat_selection_tooltip_delete": "Жою",
+  "chat_composer_hint_message": "Енгізіңіз хабарлама…",
+  "chat_composer_tooltip_stickers": "Стикеры",
+  "chat_composer_tooltip_attachments": "Вложения",
+  "chat_list_unread_separator": "Непрочитанные хабарламалар",
+  "chat_e2ee_decrypt_failed_open_devices": "Сәтсіз шифрды ашу. Откройте Параметрлер → Құрылғылар",
+  "chat_e2ee_encrypted_message_placeholder": "Зашифрованное хабарлама",
+  "chat_forwarded_from": "Переслабірақ {name}",
+  "@chat_forwarded_from": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_outbox_retry": "Повторить",
+  "chat_outbox_remove": "Убрать",
+  "chat_outbox_cancel": "Болдырмау",
+  "chat_message_edited_badge_short": "изм.",
+  "register_error_enter_name": "Енгізіңіз аты.",
+  "register_error_enter_username": "Енгізіңіз логин.",
+  "register_error_enter_phone": "Енгізіңіз телефон нөмірі.",
+  "register_error_invalid_phone": "Енгізіңіз корректный телефон нөмірі.",
+  "register_error_enter_email": "Енгізіңіз email.",
+  "register_error_enter_password": "Енгізіңіз құпиясөз.",
+  "register_error_repeat_password": "Повторите құпиясөз.",
+  "register_error_dob_format": "Укажите дату рождения в формате дд.мм.гггг",
+  "register_error_accept_privacy_policy": "Подтвердите согласие политикой конфиденциальности",
+  "register_privacy_required": "Қажет согласие политикой конфиденциальности",
+  "register_label_name": "Аты",
+  "register_hint_name": "Енгізіңіз аты",
+  "register_label_username": "Логин",
+  "register_hint_username": "Енгізіңіз логин",
+  "register_label_phone": "Телефон",
+  "register_hint_choose_country": "Сізберите страну",
+  "register_label_email": "Email",
+  "register_hint_email": "Енгізіңіз email",
+  "register_label_password": "Құпиясөз",
+  "register_hint_password": "Енгізіңіз құпиясөз",
+  "register_label_confirm_password": "Повтор пароля",
+  "register_hint_confirm_password": "Повторите құпиясөз",
+  "register_label_dob": "Жәнеәсол рождения",
+  "register_hint_dob": "дд.мм.гггг",
+  "register_label_bio": "О себе",
+  "register_hint_bio": "Расскажите о себе...",
+  "register_privacy_prefix": "Мен принимаю ",
+  "register_privacy_link_text": "Согласия на обработку персональных деректер",
+  "register_privacy_and": " және ",
+  "register_terms_link_text": "Пользовательское соглашение политикжәне конфиденциальности",
+  "register_button_create_account": "Аккаунт құру",
+  "register_country_search_hint": "Іздеу страны немесе кода",
+  "register_date_picker_help": "Жәнеәсол рождения",
+  "register_date_picker_cancel": "Болдырмау",
+  "register_date_picker_confirm": "Сізбрать",
+  "register_pick_avatar_title": "Сізбрать аватар",
+  "edit_group_title": "Өңдеу топты",
+  "edit_group_save": "Сақтау",
+  "edit_group_cancel": "Болдырмау",
+  "edit_group_name_label": "Название топтар",
+  "edit_group_name_hint": "Название",
+  "edit_group_description_label": "Сипаттама",
+  "edit_group_description_hint": "Міндетті емес",
+  "edit_group_pick_photo_tooltip": "Нажмите, небы сізбрать фото топтар. Удерживайте, небы убрать.",
+  "edit_group_error_name_required": "Өтінеміз, енгізіңіз название топтар.",
+  "edit_group_error_save_failed": "Қате пржәне сохраненижәне топтар",
+  "edit_group_error_not_found": "Топ не найдена",
+  "edit_group_error_permission_denied": "У вас жоқ прав для редактирования этой топтар",
+  "edit_group_success": "Топ обновлена",
+  "edit_group_privacy_section": "КОНФИДЕНЦИАЛЬНОСТЬ",
+  "edit_group_privacy_forwarding": "Пересылка хабарламалар",
+  "edit_group_privacy_forwarding_desc": "Рұқсат беру усағаттникам пересылать хабарламалар из этой топтар.",
+  "edit_group_privacy_screenshots": "Скриншоты",
+  "edit_group_privacy_screenshots_desc": "Рұқсат беру скриншоты внутржәне топтар (ограничение зависит платформы).",
+  "edit_group_privacy_copy": "Копирование текста",
+  "edit_group_privacy_copy_desc": "Рұқсат беру копирование текста хабарламалар.",
+  "edit_group_privacy_save_media": "Сохранение медиа",
+  "edit_group_privacy_save_media_desc": "Рұқсат беру сохранять фото және видео на құрылғы.",
+  "edit_group_privacy_share_media": "Бөлісу медиа",
+  "edit_group_privacy_share_media_desc": "Рұқсат беру делиться медиафайламжәне вне приложения.",
+  "schedule_message_sheet_title": "Запланировать хабарлама",
+  "schedule_message_long_press_hint": "Запланировать отправку",
+  "schedule_message_preset_today_at": "Бүгін в {time}",
+  "@schedule_message_preset_today_at": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_preset_tomorrow_at": "Ертең в {time}",
+  "@schedule_message_preset_tomorrow_at": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_will_send_at": "Болады отправлено: {datetime}",
+  "@schedule_message_will_send_at": {
+    "placeholders": {
+      "datetime": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_must_be_in_future": "Время должбірақ быть в будущем (ең аз через минут).",
+  "schedule_message_e2ee_warning": "Бұл E2EE-чат. Отложенное хабарлама болады сохранебірақ в открытом виде на сервере және опубликовабірақ без шифрования.",
+  "schedule_message_cancel": "Болдырмау",
+  "schedule_message_confirm": "Запланировать",
+  "schedule_message_save": "Сақтау",
+  "schedule_message_text_required": "Сначала енгізіңіз текст",
+  "schedule_message_attachments_unsupported_mobile": "Планирование вложений әзірге поддерживается только в веб-клиенте",
+  "schedule_message_scheduled_toast": "Запланировано: {datetime}",
+  "@schedule_message_scheduled_toast": {
+    "placeholders": {
+      "datetime": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_failed_toast": "Сәтсіз запланировать: {error}",
+  "@schedule_message_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_screen_title": "Запланированные хабарламалар",
+  "scheduled_messages_empty_title": "Жоқ запланированных хабарламалар",
+  "scheduled_messages_empty_hint": "Удерживайте кнопку «Жіберу», небы запланировать.",
+  "scheduled_messages_load_failed": "Сәтсіз загрузить: {error}",
+  "@scheduled_messages_load_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_e2ee_notice": "В E2EE-чатта запланированные хабарламалар хранятся және публикуются в открытом виде.",
+  "scheduled_messages_cancel_dialog_title": "Болдырмау отправку?",
+  "scheduled_messages_cancel_dialog_body": "Запланированное хабарлама болады удалено.",
+  "scheduled_messages_cancel_dialog_keep": "Не отменять",
+  "scheduled_messages_cancel_dialog_confirm": "Болдырмау",
+  "scheduled_messages_canceled_toast": "Отменено",
+  "scheduled_messages_time_changed_toast": "Время изменено: {datetime}",
+  "@scheduled_messages_time_changed_toast": {
+    "placeholders": {
+      "datetime": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_action_failed_toast": "Қате: {error}",
+  "@scheduled_messages_action_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_tile_edit_tooltip": "Өзгерту время",
+  "scheduled_messages_tile_cancel_tooltip": "Болдырмау",
+  "scheduled_messages_preview_poll": "Опрос: {question}",
+  "@scheduled_messages_preview_poll": {
+    "placeholders": {
+      "question": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_preview_location": "Локация",
+  "scheduled_messages_preview_attachment": "Вложение",
+  "scheduled_messages_preview_attachment_count": "Вложение (×{count})",
+  "@scheduled_messages_preview_attachment_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduled_messages_preview_message": "Хабарлама",
+  "chat_header_tooltip_scheduled": "Запланированные хабарламалар",
+  "schedule_date_label": "Жәнеәсол",
+  "schedule_time_label": "Время",
+  "common_done": "Дайын",
+  "common_send": "Жіберу",
+  "common_open": "Ашу",
+  "common_add": "Қосу",
+  "common_search": "Іздеу",
+  "common_edit": "Өңдеу",
+  "common_next": "Әрі қарай",
+  "common_ok": "ОК",
+  "common_confirm": "Растау",
+  "common_ready": "Жәнеәйын",
+  "common_error": "Қате",
+  "common_yes": "Иә",
+  "common_no": "Жоқ",
+  "common_back": "Артқа",
+  "common_continue": "Жалғастыру",
+  "common_loading": "Жүктелуде…",
+  "common_copy": "Көшіру",
+  "common_share": "Бөлісу",
+  "common_settings": "Параметрлер",
+  "common_today": "Бүгін",
+  "common_yesterday": "Кеше",
+  "e2ee_qr_title": "QR-pairing ключа",
+  "e2ee_qr_uid_error": "Сәтсіз получить uid пользователя.",
+  "e2ee_qr_session_ended_error": "Сессия завершилась до ответа второго құрылғылар.",
+  "e2ee_qr_no_data_error": "Жоқ деректер для применения ключа.",
+  "e2ee_qr_key_transferred_toast": "Ключ перенесён. Перезайдите в чаттар, небы жаңарту сессии.",
+  "e2ee_qr_wrong_account_error": "QR сгенерирован под басқа аккаунт.",
+  "e2ee_qr_explainer_title": "Не бұл",
+  "e2ee_qr_explainer_text": "Передача приватного ключа одного сіздіңего құрылғылар на басқа по ECDH + QR. Обе стороны видят 6-значный код для ручной сверки.",
+  "e2ee_qr_show_qr_label": "Мен на новом құрылғыда — показать QR",
+  "e2ee_qr_scan_qr_label": "У меня уже бар ключ — сканировать QR",
+  "e2ee_qr_scan_hint": "Отсканируйте QR на старом құрылғыда, қайда уже бар ключ.",
+  "e2ee_qr_verify_code_label": "Сверьте 6-значный код со старым устройством:",
+  "e2ee_qr_transfer_from_device_label": "Перенос құрылғылар: {label}",
+  "@e2ee_qr_transfer_from_device_label": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_qr_code_match_apply_label": "Код совпал — применить",
+  "e2ee_qr_key_success_label": "Ключ успешбірақ перенесён на бұл құрылғы. Перезайдите в чаттар.",
+  "e2ee_qr_unknown_error": "Неизвестная қате",
+  "e2ee_qr_back_to_pick_label": "К сізбору",
+  "e2ee_qr_donor_scan_hint": "Наведите камеру на QR, показанный на новом құрылғыда.",
+  "e2ee_qr_donor_verify_code_label": "Сверьте код носізм устройством:",
+  "e2ee_qr_donor_verify_hint": "Еслжәне код совпадает — подтвердите на новом құрылғыда. Еслжәне жоқ, немедленбірақ нажмите «Болдырмау».",
+  "e2ee_encrypt_title": "Шифрлау",
+  "e2ee_encrypt_enable_dialog_title": "Қосу шифрлау?",
+  "e2ee_encrypt_enable_dialog_body": "Носізе хабарламалар будут қолжетімділікны только на сіздіңих устройствах және у собеседника. Ескі хабарламалар останутся қалай бар.",
+  "e2ee_encrypt_enable_label": "Қосу",
+  "e2ee_encrypt_disable_dialog_title": "Отключить шифрлау?",
+  "e2ee_encrypt_disable_dialog_body": "Носізе хабарламалар пойдут без сквозного шифрования. Ранее отправленные зашифрованные хабарламалар останутся в ленте.",
+  "e2ee_encrypt_disable_label": "Отключить",
+  "e2ee_encrypt_status_on": "Сквозное шифрлау включебірақ для этого чаттың.",
+  "e2ee_encrypt_status_off": "Сквозное шифрлау сізключено.",
+  "e2ee_encrypt_description": "Қашан шифрлау включено, содержимое носізх хабарламалар қолжетімділікбірақ только усағаттникам чаттың на их устройствах. Отключение влияет только на носізе хабарламалар.",
+  "e2ee_encrypt_switch_title": "Қосу шифрлау",
+  "e2ee_encrypt_switch_on": "Қосулы (эпоха ключа: {epoch})",
+  "@e2ee_encrypt_switch_on": {
+    "placeholders": {
+      "epoch": {
+        "type": "int"
+      }
+    }
+  },
+  "e2ee_encrypt_switch_off": "Өшірулі",
+  "e2ee_encrypt_already_on_toast": "Шифрлау уже включебірақ немесе сәтсіз создать ключи. Проверьте сеть және наличие ключей у собеседника.",
+  "e2ee_encrypt_no_device_toast": "Сәтсіз включить: у собеседника жоқ активного құрылғылар ключом.",
+  "e2ee_encrypt_enable_failed_toast": "Сәтсіз включить шифрлау: {error}",
+  "@e2ee_encrypt_enable_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_encrypt_disable_failed_toast": "Сәтсіз отключить: {error}",
+  "@e2ee_encrypt_disable_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_encrypt_data_types_title": "Типы деректер",
+  "e2ee_encrypt_data_types_description": "Баптау не меняет протокол. Она управляет тем, қалайие типы деректер отправлять в зашифрованном виде.",
+  "e2ee_encrypt_override_title": "Параметрлер шифрования для этого чаттың",
+  "e2ee_encrypt_override_on": "Используются чатосізе настройки.",
+  "e2ee_encrypt_override_off": "Наследуются глобальные настройки.",
+  "e2ee_encrypt_text_title": "Текст хабарламалар",
+  "e2ee_encrypt_media_title": "Вложения (медиа/файлдар)",
+  "e2ee_encrypt_override_hint": "Небы изменить для этого чаттың — включите «Переопределить».",
+  "sticker_default_pack_name": "Мой пак",
+  "sticker_new_pack_dialog_title": "Носізй стикерпак",
+  "sticker_pack_name_hint": "Название",
+  "sticker_save_to_pack": "Сақтау в стикерпак",
+  "sticker_no_packs_hint": "Жоқ паков. Создайте пак на вкладке «Стикеры».",
+  "sticker_new_pack_option": "Носізй пак…",
+  "sticker_pick_image_or_gif": "Сізберите сурет немесе GIF",
+  "sticker_send_failed": "Сәтсіз отправить: {error}",
+  "@sticker_send_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sticker_saved_to_pack": "Сақталды в стикерпак",
+  "sticker_save_gif_failed": "Сәтсіз скачать немесе сохранить GIF",
+  "sticker_delete_pack_title": "Жою пак?",
+  "sticker_delete_pack_body": "«{name}» және барлығы стикеры в нём будут удалены.",
+  "@sticker_delete_pack_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sticker_pack_deleted": "Пак удалён",
+  "sticker_pack_delete_failed": "Сәтсіз удалить пак",
+  "sticker_tab_emoji": "ЭМОДЗИ",
+  "sticker_tab_stickers": "СТИКЕРЫ",
+  "sticker_tab_gif": "GIF",
+  "sticker_scope_my": "Мои",
+  "sticker_scope_public": "Общие",
+  "sticker_new_pack_tooltip": "Носізй пак",
+  "sticker_pack_created": "Стикерпак создан",
+  "sticker_no_packs_create": "Жоқ стикерпаков. Создайте носізй.",
+  "sticker_public_packs_empty": "Общие пакжәне не настроены",
+  "sticker_section_recent": "НЕДАВНИЕ",
+  "sticker_pack_empty_hint": "Пак пуст. Добавьте құрылғылар (вкладка GIF — «В мой пак»).",
+  "sticker_delete_sticker_title": "Жою стикер?",
+  "sticker_deleted": "Жойылды",
+  "sticker_gallery": "Галерея",
+  "sticker_gallery_subtitle": "Фото, PNG, GIF құрылғылар — сразу в чат",
+  "gif_search_hint": "Іздеу GIF…",
+  "gif_translated_hint": "Искали: {query}",
+  "@gif_translated_hint": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_search_unavailable": "Іздеу GIF временбірақ неқолжетімділікен.",
+  "gif_filter_all": "Барлығы",
+  "sticker_section_animated": "АНИМИРОВАННЫЕ",
+  "sticker_emoji_unavailable": "Эмодзжәне в текст неқолжетімділікны для этого окна.",
+  "sticker_create_pack_hint": "Создайте пак кнопкой +",
+  "sticker_public_packs_unavailable": "Общие пакжәне әзірге неқолжетімділікны",
+  "composer_link_title": "Сілтеме",
+  "composer_link_apply": "Применить",
+  "composer_attach_title": "Прикрепить",
+  "composer_attach_photo_video": "Фото/Видео",
+  "composer_attach_files": "Файлдар",
+  "composer_attach_video_circle": "Кружок",
+  "composer_attach_location": "Локация",
+  "composer_attach_poll": "Опрос",
+  "composer_attach_stickers": "Стикеры",
+  "composer_attach_clipboard": "Буфер",
+  "composer_attach_text": "Текст",
+  "meeting_create_poll": "Құру опрос",
+  "meeting_min_two_options": "Ең аз 2 варианта ответа",
+  "meeting_error_with_details": "Қате: {details}",
+  "@meeting_error_with_details": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_polls_load_error": "Сәтсіз загрузить опросы: {details}",
+  "@meeting_polls_load_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_no_polls_yet": "Әзірге жоқ опросов",
+  "meeting_question_label": "Вопрос",
+  "meeting_options_label": "Варианты",
+  "meeting_option_hint": "Вариант {index}",
+  "@meeting_option_hint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_add_option": "Қосу вариант",
+  "meeting_anonymous": "Анонимно",
+  "meeting_anonymous_subtitle": "Кім увидит сізбор других",
+  "meeting_save_as_draft": "В черновики",
+  "meeting_publish": "Жариялау",
+  "meeting_action_start": "Запустить",
+  "meeting_action_change_vote": "Өзгерту голос",
+  "meeting_action_restart": "Перезапустить",
+  "meeting_action_stop": "Остановить",
+  "meeting_vote_failed": "Голос не засчитан: {details}",
+  "@meeting_vote_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_status_ended": "Завершено",
+  "meeting_status_draft": "Черновик",
+  "meeting_status_active": "Активно",
+  "meeting_status_public": "Публичное",
+  "meeting_votes_count": "{count} голосов",
+  "@meeting_votes_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_goal_count": "Цель: {count}",
+  "@meeting_goal_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_hide": "Скрыть",
+  "meeting_who_voted": "Кім голосовал",
+  "meeting_participants_tab": "Усағаттникжәне ({count})",
+  "@meeting_participants_tab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_polls_tab_active": "Опросы ({count})",
+  "@meeting_polls_tab_active": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_polls_tab": "Опросы",
+  "meeting_chat_tab_unread": "Чат ({count})",
+  "@meeting_chat_tab_unread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_chat_tab": "Чат",
+  "meeting_requests_tab": "Заявкжәне ({count})",
+  "@meeting_requests_tab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_you_suffix": "{name} (Сіз)",
+  "@meeting_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_host_label": "Хост",
+  "meeting_force_mute_mic": "Өшіру микрофон",
+  "meeting_force_mute_camera": "Өшіру камеру",
+  "meeting_kick_from_room": "Жою из комнаты",
+  "meeting_chat_load_error": "Сәтсіз загрузить чат: {error}",
+  "@meeting_chat_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_no_requests": "Жоқ носізх заявок",
+  "meeting_no_messages_yet": "Әзірге жоқ хабарламалар",
+  "meeting_file_too_large": "Файл слишком большой: {name}",
+  "@meeting_file_too_large": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_send_failed": "Сәтсіз отправить: {details}",
+  "@meeting_send_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_edit_message_title": "Өзгерту хабарлама",
+  "meeting_save_failed": "Сәтсіз сохранить: {details}",
+  "@meeting_save_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_delete_message_title": "Хабарламаны жою?",
+  "meeting_delete_message_body": "Усағаттникжәне увидят «Хабарлама удалено».",
+  "meeting_delete_failed": "Сәтсіз удалить: {details}",
+  "@meeting_delete_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_message_hint": "Хабарлама…",
+  "meeting_message_deleted": "Хабарлама удалено",
+  "meeting_message_edited": "• изм.",
+  "meeting_copy_action": "Көшіру",
+  "meeting_edit_action": "Өзгерту",
+  "meeting_join_title": "Қосылу",
+  "meeting_loading_error": "Қате загрузкжәне митинга: {details}",
+  "@meeting_loading_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_not_found": "Митинг не найден немесе закрыт",
+  "meeting_private_description": "Приватная кездесу: после заявкжәне хост решит, пустить лжәне вас.",
+  "meeting_public_description": "Открытая кездесу: присоединяйтесь по сілтемеде без ожидания.",
+  "meeting_your_name_label": "Сіздіңе аты",
+  "meeting_enter_name_error": "Укажите аты",
+  "meeting_guest_name": "Гость",
+  "meeting_enter_room": "Кіру в комнату",
+  "meeting_request_join": "Попросить қосылу",
+  "meeting_approved_title": "Одобрено",
+  "meeting_approved_subtitle": "Перенаправляем в комнату…",
+  "meeting_denied_title": "Отклонено",
+  "meeting_denied_subtitle": "Хост отклонил сіздіңу заявку.",
+  "meeting_pending_title": "Ожидаем подтверждения",
+  "meeting_pending_subtitle": "Хост увидит сіздіңу заявку және решит, қашан впустить.",
+  "meeting_load_error": "Сәтсіз загрузить митинг: {details}",
+  "@meeting_load_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_init_error": "Қате инициализации: {error}",
+  "@meeting_init_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_participants_error": "Усағаттники: {error}",
+  "@meeting_participants_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_bg_unavailable": "Фон неқолжетімділікен: {error}",
+  "@meeting_bg_unavailable": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_leave": "Шығу",
+  "meeting_screen_share_ios": "Экранды бөлісу на iOS требует Broadcast Extension (болады в следующем релизе)",
+  "meeting_screen_share_failed": "Сәтсіз запустить демонстрацию: {details}",
+  "@meeting_screen_share_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_tooltip_speaker_mode": "Режим спикера",
+  "meeting_tooltip_grid_mode": "Режим сетки",
+  "meeting_tooltip_copy_link": "Сілтемені көшіру (браузерден кіру)",
+  "meeting_mic_on": "Дыбысын қосу",
+  "meeting_mic_off": "Өшіру",
+  "meeting_camera_on": "Камера вкл",
+  "meeting_camera_off": "Камера сізкл",
+  "meeting_switch_camera": "Ауыстыру",
+  "meeting_hand_lower": "Опустить",
+  "meeting_hand_raise": "Рука",
+  "meeting_reaction": "Реакция",
+  "meeting_screen_stop": "Стоп",
+  "meeting_screen_label": "Экран",
+  "meeting_bg_off": "Фон",
+  "meeting_bg_blur": "Размытие",
+  "meeting_bg_image": "Картинка",
+  "meeting_participants_button": "Усағаттники",
+  "contacts_title": "Контактілер",
+  "contacts_add_phone_prompt": "Добавьте телефон в профиле, небы искать контактілер по нөміру.",
+  "contacts_fallback_profile": "Профиль",
+  "contacts_fallback_user": "Пользователь",
+  "contacts_status_online": "онлайн",
+  "contacts_status_recently": "Болды (а) жақында",
+  "contacts_status_today_at": "Болды (а) в {time}",
+  "@contacts_status_today_at": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_status_yesterday": "Болды (а) кеше",
+  "contacts_status_year_ago": "Болды (а) жыл назад",
+  "contacts_status_years_ago": "Болды (а) {years} назад",
+  "@contacts_status_years_ago": {
+    "placeholders": {
+      "years": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_status_date": "Болды (а) {date}",
+  "@contacts_status_date": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_empty_state": "Контактілер не найдены.\nНажмите кнопку справа, небы синхронизировать телефонную книгу.",
+  "add_contact_title": "Носізй контакт",
+  "add_contact_sync_off": "Синхронизация сізключена в приложении.",
+  "add_contact_enable_system_access": "Қосулыючите қолжетімділік контактам для LighChat в настройках систақырыптар.",
+  "add_contact_sync_on": "Синхронизация включена",
+  "add_contact_sync_failed": "Сәтсіз включить синхронизацию контактілер",
+  "add_contact_invalid_phone": "Енгізіңіз корректный телефон нөмірі",
+  "add_contact_not_found_by_phone": "Контакт по этому нөміру не найден",
+  "add_contact_found": "Контакт найден",
+  "add_contact_search_error": "Сәтсіз сізполнить поиск: {error}",
+  "@add_contact_search_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_qr_no_profile": "QR-код не содержит профиль LighChat",
+  "add_contact_qr_own_profile": "Бұл сіздің собственный профиль",
+  "add_contact_qr_profile_not_found": "Профиль из QR-кода не найден",
+  "add_contact_qr_found": "Контакт найден по QR-коду",
+  "add_contact_qr_read_error": "Сәтсіз оқу QR-код: {error}",
+  "@add_contact_qr_read_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_cannot_add_user": "Болмайды добавить этого пользователя",
+  "add_contact_add_error": "Сәтсіз добавить контакт: {error}",
+  "@add_contact_add_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_country_search_hint": "Іздеу страны немесе кода",
+  "add_contact_sync_with_phone": "Синхронизировать телефоном",
+  "add_contact_add_by_qr": "Қосу по QR-коду",
+  "add_contact_results_unavailable": "Результаты әзірге неқолжетімділікны",
+  "add_contact_profile_load_error": "Қате загрузкжәне контакта: {error}",
+  "@add_contact_profile_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_profile_not_found": "Профиль не найден",
+  "add_contact_badge_already_added": "Уже в контактах",
+  "add_contact_badge_new": "Носізй контакт",
+  "add_contact_badge_unavailable": "Неқолжетімділікно",
+  "add_contact_open_contact": "Ашу контакт",
+  "add_contact_add_to_contacts": "Қосу в контактілер",
+  "add_contact_add_unavailable": "Добавление неқолжетімділікно",
+  "add_contact_searching": "Ищем контакт...",
+  "add_contact_scan_qr_title": "Сканировать QR-код",
+  "add_contact_flash_tooltip": "Вспышка",
+  "add_contact_scan_qr_hint": "Наведите камеру на QR-код профиля LighChat",
+  "contacts_edit_enter_name": "Енгізіңіз аты контакта.",
+  "contacts_edit_save_error": "Сәтсіз сохранить контакт: {error}",
+  "@contacts_edit_save_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_edit_first_name_hint": "Аты",
+  "contacts_edit_last_name_hint": "Тегі",
+  "contacts_edit_name_disclaimer": "Бұл аты видбірақ только вам: в чаттыңх, поиске және тізімде контактілер.",
+  "contacts_edit_error": "Қате: {error}",
+  "@contacts_edit_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_settings_color_default": "По умолчанию",
+  "chat_settings_color_lilac": "Лилосізй",
+  "chat_settings_color_pink": "Розосізй",
+  "chat_settings_color_green": "Зелёный",
+  "chat_settings_color_coral": "Кораллосізй",
+  "chat_settings_color_mint": "Мята",
+  "chat_settings_color_sky": "Небесный",
+  "chat_settings_color_purple": "Фиожылосізй",
+  "chat_settings_color_crimson": "Малиносізй",
+  "chat_settings_color_tiffany": "Тифани",
+  "chat_settings_color_yellow": "Жёлтый",
+  "chat_settings_color_powder": "Пудра",
+  "chat_settings_color_turquoise": "Бирюза",
+  "chat_settings_color_blue": "Голубой",
+  "chat_settings_color_sunset": "Закат",
+  "chat_settings_color_tender": "Нежный",
+  "chat_settings_color_lime": "Лайм",
+  "chat_settings_color_graphite": "Графит",
+  "chat_settings_color_no_bg": "Без фона",
+  "chat_settings_icon_color": "Цвет иконки",
+  "chat_settings_icon_size": "Өлшем иконки",
+  "chat_settings_stroke_width": "Толщина линии",
+  "chat_settings_tile_background": "Фон плиткжәне под иконкой",
+  "chat_settings_bottom_nav_icons": "Иконкжәне нижнего меню",
+  "chat_settings_bottom_nav_description": "Сізбор иконок және визуального стиля қалай на вебе.",
+  "chat_settings_bottom_nav_global_description": "Общий слой: цвет, өлшем, толщина және фон плитки.",
+  "chat_settings_colorful": "Цветные",
+  "chat_settings_minimalism": "Минимализм",
+  "chat_settings_for_all_icons": "Для барлығых иконок",
+  "chat_settings_customize": "Баптау",
+  "chat_settings_hide": "Скрыть",
+  "chat_settings_reset": "Сброс",
+  "chat_settings_reset_item": "Сбросить",
+  "chat_settings_style": "Стиль",
+  "chat_settings_select": "Сізбрать",
+  "chat_settings_reset_size": "Сбросить өлшем",
+  "chat_settings_reset_stroke": "Сбросить толщину",
+  "chat_settings_default_gradient": "Градиент по умолчанию",
+  "chat_settings_inherit_global": "Наследовать глобальных",
+  "chat_settings_no_bg_on": "Без фона (вкл.)",
+  "chat_settings_no_bg": "Без фона",
+  "chat_settings_outgoing_messages": "Исжүрісящие хабарламалар",
+  "chat_settings_incoming_messages": "Вжүрісящие хабарламалар",
+  "chat_settings_font_size": "Өлшем шрифта",
+  "chat_settings_font_small": "Мелкий",
+  "chat_settings_font_medium": "Средний",
+  "chat_settings_font_large": "Крупный",
+  "chat_settings_bubble_shape": "Форма пузырьков",
+  "chat_settings_bubble_rounded": "Округлённые",
+  "chat_settings_bubble_square": "Квадратные",
+  "chat_settings_chat_background": "Фон чаттың",
+  "chat_settings_background_hint": "Сізберите фото из галережәне немесе настройте",
+  "chat_settings_emoji_effects": "Эффекты эмодзи",
+  "chat_settings_emoji_description": "Профиль анимацижәне fullscreen-эмодзжәне пржәне тапе по одиночному эмодзжәне в чатта.",
+  "chat_settings_emoji_lite": "Lite: ең аз нагрузкжәне және максимальбірақ плавбірақ на слабых устройствах.",
+  "chat_settings_emoji_cinematic": "Cinematic: ең көп сағаттиц және глубины для вау-эффекта.",
+  "chat_settings_emoji_balanced": "Balanced: автоматический компромисс между производительностью және сізразительностью.",
+  "chat_settings_additional": "Дополнительно",
+  "chat_settings_show_time": "Показывать время",
+  "chat_settings_show_time_hint": "Время отправкжәне под хабарламаларми",
+  "chat_settings_reset_all": "Сбросить настройки",
+  "chat_settings_preview_incoming": "Сәлем! Қалай дела?",
+  "chat_settings_preview_outgoing": "Тамаша, рахмет!",
+  "chat_settings_preview_hello": "Сәлем",
+  "chat_settings_icon_picker_title": "Иконка: «{label}»",
+  "@chat_settings_icon_picker_title": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_settings_search_hint": "Іздеу по названию (англ.)...",
+  "meeting_tab_participants": "Усағаттникжәне ({count})",
+  "@meeting_tab_participants": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_polls": "Опросы",
+  "meeting_tab_polls_count": "Опросы ({count})",
+  "@meeting_tab_polls_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_chat": "Чат",
+  "meeting_tab_chat_count": "Чат ({count})",
+  "@meeting_tab_chat_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_requests": "Заявкжәне ({count})",
+  "@meeting_tab_requests": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_kick": "Жою из комнаты",
+  "meeting_file_too_big": "Файл слишком большой: {name}",
+  "@meeting_file_too_big": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_send_error": "Сәтсіз отправить: {error}",
+  "@meeting_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_save_error": "Сәтсіз сохранить: {error}",
+  "@meeting_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_delete_error": "Сәтсіз удалить: {error}",
+  "@meeting_delete_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_no_messages": "Әзірге жоқ хабарламалар",
+  "meeting_join_enter_name": "Укажите аты",
+  "meeting_join_guest": "Гость",
+  "meeting_join_button": "Қосылу",
+  "meeting_join_load_error": "Қате загрузкжәне митинга: {error}",
+  "@meeting_join_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_private_hint": "Приватная кездесу: после заявкжәне хост решит, пустить лжәне вас.",
+  "meeting_public_hint": "Открытая кездесу: присоединяйтесь по сілтемеде без ожидания.",
+  "meeting_name_label": "Сіздіңе аты",
+  "meeting_waiting_title": "Ожидаем подтверждения",
+  "meeting_waiting_subtitle": "Хост увидит сіздіңу заявку және решит, қашан впустить.",
+  "meeting_screen_share_ios_hint": "Экранды бөлісу на iOS требует Broadcast Extension (в разработке).",
+  "meeting_screen_share_error": "Сәтсіз запустить демонстрацию: {error}",
+  "@meeting_screen_share_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_speaker_mode": "Режим спикера",
+  "meeting_grid_mode": "Режим сетки",
+  "meeting_copy_link_tooltip": "Сілтемені көшіру (вжүріс браузера)",
+  "pinned_count": "Бекітілді: {count}",
+  "@pinned_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pinned_single": "Бекітілді",
+  "pinned_unpin_tooltip": "Босату",
+  "pinned_type_image": "Сурет",
+  "pinned_type_video": "Видео",
+  "pinned_type_video_circle": "Видеокружок",
+  "pinned_type_voice": "Голосовое хабарлама",
+  "pinned_type_poll": "Опрос",
+  "pinned_type_link": "Сілтеме",
+  "pinned_type_location": "Локация",
+  "pinned_type_sticker": "Стикер",
+  "pinned_type_file": "Файл",
+  "call_entry_login_required_title": "Необжүрісим вжүріс",
+  "call_entry_login_required_subtitle": "Откройте приложение және войдите в аккаунт.",
+  "call_entry_not_found_title": "Қоңырау не найден",
+  "call_entry_not_found_subtitle": "Сіззов уже завершён немесе удалён. Возвращаемся звонкам…",
+  "call_entry_to_calls": "К звонкам",
+  "call_entry_ended_title": "Қоңырау завершён",
+  "call_entry_ended_subtitle": "Осы сіззов уже неқолжетімділікен. Возвращаемся звонкам…",
+  "call_entry_caller_fallback": "Собеседник",
+  "call_entry_opening_title": "Открываем қоңырау…",
+  "call_entry_connecting_video": "Қосылуда видеозвонку",
+  "call_entry_connecting_audio": "Қосылуда аудиозвонку",
+  "call_entry_loading_subtitle": "Жүктелуде деректер сіззова",
+  "call_entry_error_title": "Қате открытия звонка",
+  "chat_theme_save_error": "Сәтсіз сохранить фон: {error}",
+  "@chat_theme_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_load_error": "Қате загрузкжәне фона: {error}",
+  "@chat_theme_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_delete_title": "Жою фон из галереи?",
+  "chat_theme_delete_body": "Сурет пропадёт из тізімнің своих фонов. Для этого чаттың можбірақ сізбрать басқа.",
+  "chat_theme_delete_error": "Қате удаления: {error}",
+  "@chat_theme_delete_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_title": "Солқырып чаттың",
+  "chat_theme_description": "Фон этой перепискжәне только для вас. Общие настройкжәне чатов в разделе «Параметрлер чатов» не меняются.",
+  "chat_theme_current_bg": "Текущий фон",
+  "chat_theme_default_bg": "По умолчанию (общие настройки)",
+  "chat_theme_presets": "Пресеты",
+  "chat_theme_global_label": "Общие",
+  "chat_theme_hint": "Сізберите пресет немесе фото из галереи",
+  "date_today": "Бүгін",
+  "date_yesterday": "Кеше",
+  "date_month_1": "января",
+  "date_month_2": "февраля",
+  "date_month_3": "марта",
+  "date_month_4": "апреля",
+  "date_month_5": "мая",
+  "date_month_6": "июня",
+  "date_month_7": "июля",
+  "date_month_8": "августа",
+  "date_month_9": "сентября",
+  "date_month_10": "октября",
+  "date_month_11": "ноября",
+  "date_month_12": "декабря",
+  "video_circle_camera_unavailable": "Камера неқолжетімділікна",
+  "video_circle_camera_error": "Сәтсіз открыть камеру: {error}",
+  "@video_circle_camera_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_record_error": "Қате записи: {error}",
+  "@video_circle_record_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_file_not_found": "Файл записжәне не найден",
+  "video_circle_play_error": "Сәтсіз воспроизвестжәне запись",
+  "video_circle_send_error": "Сәтсіз отправить: {error}",
+  "@video_circle_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_switch_error": "Сәтсіз переключить камеру: {error}",
+  "@video_circle_switch_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_pause_error_detail": "Пауза записжәне неқолжетімділікна: {description} ({code})",
+  "@video_circle_pause_error_detail": {
+    "placeholders": {
+      "description": {},
+      "code": {}
+    }
+  },
+  "video_circle_pause_error": "Пауза записи: {error}",
+  "@video_circle_pause_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_camera_fallback_error": "Қате камеры",
+  "video_circle_retry": "Повторить",
+  "video_circle_sending": "Жіберу...",
+  "video_circle_recorded": "Кружок записан",
+  "video_circle_swipe_cancel": "Влево - отмена",
+  "media_screen_error": "Қате загрузкжәне медиа: {error}",
+  "@media_screen_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_screen_title": "Медиа, ссылкжәне және файлдар",
+  "media_tab_media": "Медиа",
+  "media_tab_circles": "Кружки",
+  "media_tab_files": "Файлдар",
+  "media_tab_links": "Сілтемелер",
+  "media_empty_files": "Жоқ файлов",
+  "media_empty_media": "Жоқ медиа",
+  "media_attachment_fallback": "Вложение",
+  "media_empty_circles": "Жоқ кружков",
+  "media_empty_links": "Жоқ ссылок",
+  "media_sender_you": "Сіз",
+  "media_sender_fallback": "Усағаттник",
+  "call_detail_login_required": "Необжүрісим вжүріс.",
+  "call_detail_not_found": "Қоңырау не найден немесе жоқ қолжетімділіка.",
+  "call_detail_unknown": "Неизвестный",
+  "call_detail_title": "Сведения о звонке",
+  "call_detail_video": "Видеоқоңырау",
+  "call_detail_audio": "Аудиоқоңырау",
+  "call_detail_outgoing": "Исжүрісящий",
+  "call_detail_incoming": "Вжүрісящий",
+  "call_detail_date_label": "Жәнеәсол:",
+  "call_detail_duration_label": "Длительность:",
+  "call_detail_call_button": "Қоңырау шалу",
+  "call_detail_video_button": "Видео",
+  "call_detail_error": "Қате: {error}",
+  "@call_detail_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "durak_your_turn": "Твой жүріс",
+  "durak_took": "Взял",
+  "durak_beaten": "Бито",
+  "durak_end_game_tooltip": "Завершить игру",
+  "durak_close_tooltip": "Жабу",
+  "durak_role_beats": "БЬЕТ",
+  "durak_role_move": "ХОД",
+  "durak_role_throw": "ПОДК",
+  "durak_cheater_label": "Шулер! Не заметнемесе:",
+  "durak_waiting_foll_confirm": "Ожидание фолла… Нажмжәне «Растау Бито», еслжәне барлығы согласны.",
+  "durak_waiting_foll_call": "Ожидание фолла… Енді можбірақ нажать «Фолл!», еслжәне заметил шулерство.",
+  "durak_winner": "Жеңімпаз",
+  "durak_play_again": "Сыграть ещё раз",
+  "durak_games_progress": "Сыграбірақ {finished} из {total}",
+  "@durak_games_progress": {
+    "placeholders": {
+      "finished": {},
+      "total": {}
+    }
+  },
+  "durak_tournament_finished": "Турнир завершён",
+  "durak_next_round": "Следующая партия турнира",
+  "audio_call_error": "Қате звонка: {error}",
+  "@audio_call_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "audio_call_ended": "Қоңырау завершён",
+  "audio_call_missed": "Пропущенный қоңырау",
+  "audio_call_cancelled": "Звон��к отменен",
+  "audio_call_offer_not_ready": "Оффер ещё не готов, попробуйте снова",
+  "audio_call_invalid_data": "Некорректные деректер звонка",
+  "audio_call_accept_error": "Сәтсіз принять қоңырау: {error}",
+  "@audio_call_accept_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "audio_call_incoming": "Вжүрісящий аудиоқоңырау",
+  "audio_call_calling": "Аудиоқоңырау…",
+  "privacy_save_error": "Сәтсіз сохранить настройки: {error}",
+  "@privacy_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_load_error": "Қате загрузкжәне приватности: {error}",
+  "@privacy_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_visibility": "Видимость",
+  "privacy_online_status": "Мәртебе онлайн",
+  "privacy_last_visit": "Соңғы визит",
+  "privacy_read_receipts": "Индикатор прочтения",
+  "privacy_profile_info": "Ақпарат профиля",
+  "privacy_phone_number": "Телефон нөмірі",
+  "privacy_birthday": "Жәнеәсол рождения",
+  "privacy_about": "О себе",
+  "starred_load_error": "Қате загрузкжәне избранного: {error}",
+  "@starred_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "starred_title": "Таңдаулылар",
+  "starred_empty": "В этом чатта жоқ избранных хабарламалар",
+  "starred_message_fallback": "Хабарлама",
+  "starred_sender_you": "Сіз",
+  "starred_sender_fallback": "Усағаттник",
+  "starred_type_poll": "Опрос",
+  "starred_type_location": "Локация",
+  "starred_type_attachment": "Вложение",
+  "starred_today_prefix": "Бүгін, {time}",
+  "@starred_today_prefix": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "contact_edit_name_required": "Енгізіңіз аты контакта.",
+  "contact_edit_save_error": "Сәтсіз сохранить контакт: {error}",
+  "@contact_edit_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "contact_edit_user_fallback": "Пользователь",
+  "contact_edit_first_name_hint": "Аты",
+  "contact_edit_last_name_hint": "Тегі",
+  "contact_edit_description": "Бұл аты видбірақ только вам: в чаттыңх, поиске және тізімде контактілер.",
+  "contact_edit_error": "Қате: {error}",
+  "@contact_edit_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "voice_no_mic_access": "Не�� қолжетімділіка микрофону",
+  "voice_start_error": "Сәтсіз начать запись",
+  "voice_file_not_received": "Файл записжәне не получен",
+  "voice_stop_error": "Сәтсіз завершить запись",
+  "voice_title": "Голосовое хабарлама",
+  "voice_recording": "Идёт запись",
+  "voice_ready": "Запись готова",
+  "voice_stop_button": "Остановить",
+  "voice_record_again": "Записать снова",
+  "attach_photo_video": "Фото/Видео",
+  "attach_files": "Файлдар",
+  "attach_circle": "Кружок",
+  "attach_location": "Локация",
+  "attach_poll": "Опрос",
+  "attach_stickers": "Стикеры",
+  "attach_clipboard": "Буфер",
+  "attach_text": "Текст",
+  "attach_title": "Прикрепить",
+  "notif_save_error": "Сәтсіз сохранить: {error}",
+  "@notif_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notif_title": "Хабарландырулар в этом чатта",
+  "notif_description": "Параметрлер ниже действуют только для этой беседы және не меняют общие хабарландырулар приложения.",
+  "notif_this_chat": "Осы чат",
+  "notif_mute_title": "Без дыбыс және скрытые оповещения",
+  "notif_mute_subtitle": "Не беспокоить по этому чатқа на этом құрылғыда.",
+  "notif_preview_title": "Показывать превью текста",
+  "notif_preview_subtitle": "Еслжәне сізключебірақ — заголовок без фрагмента хабарламалар (қайда бұл поддерживается).",
+  "poll_create_enter_question": "Енгізіңіз вопрос",
+  "poll_create_min_options": "Нужбірақ ең аз 2 варианта",
+  "poll_create_select_correct": "Сізберите правильный вариант",
+  "poll_create_future_time": "Время закрытия должбірақ быть в будущем",
+  "poll_create_title": "Опрос в чатта",
+  "poll_create_question_label": "Вопрос",
+  "poll_create_question_hint": "Например: Во сколько кездесуемся?",
+  "poll_create_explanation_label": "Пояснение (міндетті емес)",
+  "poll_create_options_title": "Варианты",
+  "poll_create_option_hint": "Вариант {index}",
+  "@poll_create_option_hint": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "poll_create_add_option": "Қосу вариант",
+  "poll_create_anonymous_title": "Анонимное голосование",
+  "poll_create_anonymous_subtitle": "Не показывать, кім за не голосовал",
+  "poll_create_multi_title": "Несколько ответов",
+  "poll_create_multi_subtitle": "Можбірақ сізбрать несколько вариантов",
+  "poll_create_user_options_title": "Добавление вариантов",
+  "poll_create_user_options_subtitle": "Усағаттникжәне могут предложить свой вариант",
+  "poll_create_revote_title": "Можбірақ изменить голос",
+  "poll_create_revote_subtitle": "Переголосование до закрытия",
+  "poll_create_shuffle_title": "Перемешать варианты",
+  "poll_create_shuffle_subtitle": "Свой порядок у каждого усағаттника",
+  "poll_create_quiz_title": "Режим викімрины",
+  "poll_create_quiz_subtitle": "Один правильный ответ",
+  "poll_create_correct_option_label": "Правильный вариант",
+  "poll_create_close_by_time": "Жабу по времени",
+  "poll_create_not_set": "Не задано",
+  "poll_create_reset_deadline": "Сбросить срок",
+  "poll_create_publish": "Жариялау",
+  "poll_unavailable": "Опрос неқолжетімділікен",
+  "poll_loading": "Жүктелуде опроса…",
+  "poll_not_found": "Опрос не найден",
+  "poll_vote_error": "Қате пржәне голосовании",
+  "poll_error": "Қате",
+  "poll_add_option_error": "Сәтсіз добавить вариант",
+  "poll_status_cancelled": "Отменён",
+  "poll_status_finished": "Завершён",
+  "poll_status_draft": "Черновик",
+  "poll_status_active": "Активен",
+  "poll_badge_public": "Публично",
+  "poll_badge_multi": "Несколько ответов",
+  "poll_badge_quiz": "Викімрина",
+  "poll_restart": "Перезапустить",
+  "poll_finish": "Завершить",
+  "poll_submit_vote": "Жіберу голос",
+  "poll_suggest_hint": "Предложить вариант",
+  "poll_revote": "Переголосовать",
+  "poll_voters_toggle_hide": "Скрыть",
+  "poll_voters_toggle_show": "Кім голосовал",
+  "e2ee_disable_title": "Отключить шифрлау?",
+  "e2ee_disable_body": "Носізе хабарламалар пойдут без сквозного шифрования. Ранее отправленные зашифрованные хабарламалар останутся в ленте.",
+  "e2ee_disable_button": "Отключить",
+  "e2ee_disable_error": "Сәтсіз отключить: {error}",
+  "@e2ee_disable_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_screen_title": "Шифрлау",
+  "e2ee_enabled_description": "Сквозное шифрлау включебірақ для этого чаттың.",
+  "e2ee_disabled_description": "Сквозное шифрлау сізключено.",
+  "e2ee_info_text": "Қашан шифрлау включено, содержимое носізх хабарламалар қолжетімділікбірақ только усағаттникам чаттың на их устройствах. Отключение влияет только на носізе хабарламалар.",
+  "e2ee_enable_title": "Қосу шифрлау",
+  "e2ee_status_enabled": "Қосулы (эпоха ключа: {epoch})",
+  "@e2ee_status_enabled": {
+    "placeholders": {
+      "epoch": {}
+    }
+  },
+  "e2ee_status_disabled": "Өшірулі",
+  "e2ee_data_types_title": "Типы деректер",
+  "e2ee_data_types_info": "Баптау не меняет протокол. Она управляет тем, қалайие типы деректер отправлять в зашифрованном виде.",
+  "e2ee_chat_settings_title": "Параметрлер шифрования для этого чаттың",
+  "e2ee_chat_settings_override": "Используются чатосізе настройки.",
+  "e2ee_chat_settings_global": "Наследуются глобальные настройки.",
+  "e2ee_text_messages": "Текст хабарламалар",
+  "e2ee_attachments": "Вложения (медиа/файлдар)",
+  "e2ee_override_hint": "Небы изменить для этого чаттың — включите «Переопределить».",
+  "group_member_fallback": "Усағаттник",
+  "group_role_creator": "Создатель топтар",
+  "group_role_admin": "Әкімші",
+  "group_total_count": "Барлығыго: {count}",
+  "@group_total_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "group_copy_invite_tooltip": "Сілтемені көшіру-шақыру",
+  "group_add_member_tooltip": "Қосу усағаттника",
+  "group_invite_copied": "Сілтеме-шақыру скопирована",
+  "group_copy_invite_error": "Сәтсіз скопировать сілтемені: {error}",
+  "@group_copy_invite_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_members_added": "Усағаттникжәне добавлены",
+  "group_demote_confirm": "Снять права әкімшіні?",
+  "group_promote_confirm": "Назначить администратором?",
+  "group_demote_body": "У {name} будут сняты права әкімшіні. Усағаттник останется в группе қалай обычный член.",
+  "@group_demote_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "group_demote_button": "Снять права",
+  "group_promote_button": "Назначить",
+  "group_kick_confirm": "Исключить усағаттника?",
+  "group_kick_button": "Исключить",
+  "group_member_kicked": "Усағаттник исключён",
+  "group_badge_creator": "СО��ДАТЕЛЬ",
+  "group_demote_action": "Снять админа",
+  "group_promote_action": "Сделать админом",
+  "group_kick_action": "Исключить из топтар",
+  "group_contacts_load_error": "Сәтсіз загрузить контактілер: {error}",
+  "@group_contacts_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_add_members_title": "Қосу усағаттников",
+  "group_search_contacts_hint": "Іздеу среджәне конта��тов",
+  "group_all_contacts_in_group": "Барлығы сіздіңжәне контактілер уже в группе.",
+  "group_nobody_found": "Никого не найдено.",
+  "group_user_fallback": "Пользователь",
+  "group_select_members": "Сізберите усағаттников",
+  "group_add_count": "Қосу ({count})",
+  "@group_add_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "group_auth_error": "Қате авторизации: {error}",
+  "@group_auth_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_add_error": "Сәтсіз добавить усағаттников: {error}",
+  "@group_add_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_own_profile": "Бұл сіздің собственный профиль",
+  "add_contact_qr_not_found": "��рофиль из QR-кода не найден",
+  "add_contact_qr_error": "Сәтсіз оқу QR-код: {error}",
+  "@add_contact_qr_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_not_allowed": "Болмайды добавить этого пользователя",
+  "add_contact_save_error": "Сәтсіз добавить контакт: {error}",
+  "@add_contact_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_country_search": "Іздеу страны немесе кода",
+  "add_contact_sync_phone": "С��нхронизировать телефоном",
+  "add_contact_qr_button": "Д��бавить по QR-коду",
+  "add_contact_load_error": "Қате загрузкжәне контакта: {error}",
+  "@add_contact_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_user_fallback": "Пользователь",
+  "add_contact_already_in_contacts": "Уже в контактах",
+  "add_contact_new": "Носізй контакт",
+  "add_contact_unavailable": "Неқолжетімділікно",
+  "add_contact_scan_qr": "Сканировать QR-код",
+  "add_contact_scan_hint": "Наведите камеру на QR-код профиля LighChat",
+  "auth_validate_name_min_length": "Аты должбірақ быть не менее 2 символов",
+  "auth_validate_username_min_length": "Аты пользователя должбірақ быть не менее 3 символов",
+  "auth_validate_username_max_length": "Аты пользователя не должбірақ пресізшать 30 символов",
+  "auth_validate_username_format": "Аты пользователя содержит недопустимые символы",
+  "auth_validate_phone_11_digits": "Телефон нөмірі должен содержать 11 цифр",
+  "auth_validate_email_format": "Енгізіңіз корректный email",
+  "auth_validate_dob_invalid": "Некорректная дата рождения",
+  "auth_validate_bio_max_length": "Сипаттама не должбірақ пресізшать 200 символов",
+  "auth_validate_password_min_length": "Құпиясөз должен быть не менее 6 символов",
+  "auth_validate_passwords_mismatch": "Паролжәне не совпадают",
+  "sticker_new_pack": "Носізй пак…",
+  "sticker_select_image_or_gif": "Сізберите сурет немесе GIF",
+  "sticker_send_error": "Сәтсіз отправить: {error}",
+  "sticker_saved": "Сақталды в стикерпак",
+  "sticker_save_failed": "Сәтсіз скачать немесе сохранить GIF",
+  "sticker_tab_my": "Мои",
+  "sticker_tab_shared": "Общие",
+  "sticker_no_packs": "Жоқ стикерпаков. Создайте носізй.",
+  "sticker_shared_not_configured": "Общие пакжәне не настроены",
+  "sticker_recent": "НЕДАВНИЕ",
+  "sticker_gallery_description": "Фото, PNG, GIF құрылғылар — сразу в чат",
+  "sticker_shared_unavailable": "Общие пакжәне әзірге неқолжетімділікны",
+  "sticker_gif_search_hint": "Іздеу GIF…",
+  "sticker_gif_searched": "Искали: {query}",
+  "sticker_gif_search_unavailable": "Іздеу GIF временбірақ неқолжетімділікен.",
+  "sticker_gif_nothing_found": "Ничего не найдено",
+  "sticker_gif_all": "Барлығы",
+  "sticker_gif_animated": "АНИМИРОВАННЫЕ",
+  "sticker_emoji_text_unavailable": "Эмодзжәне в текст неқолжетімділікны для этого окна.",
+  "wallpaper_sender": "Собеседник",
+  "wallpaper_incoming": "Бұл вжүрісящее хабарлама.",
+  "wallpaper_outgoing": "Бұл исжүрісящее хабарлама.",
+  "wallpaper_incoming_time": "11:40",
+  "wallpaper_outgoing_time": "11:41",
+  "wallpaper_system": "Сіз сменнемесе обожәне чаттың",
+  "wallpaper_you": "Сіз",
+  "wallpaper_today": "Бүгін",
+  "system_event_e2ee_enabled": "Сквозное шифрлау включебірақ (эпоха ключа: {epoch})",
+  "system_event_e2ee_disabled": "Сквозное шифрлау ажыратылды",
+  "system_event_unknown": "Системное событие",
+  "system_event_group_created": "Топ создана",
+  "system_event_member_added": "{name} добавлен(а)",
+  "system_event_member_removed": "{name} удалён(а)",
+  "system_event_member_left": "{name} покинул(а) топты",
+  "system_event_name_changed": "Название изменебірақ на «{name}»",
+  "image_editor_title": "Редакімр",
+  "image_editor_undo": "Болдырмау",
+  "image_editor_clear": "Очистить",
+  "image_editor_pen": "Кисть",
+  "image_editor_text": "Текст",
+  "image_editor_crop": "Кадрирование",
+  "image_editor_rotate": "Поворот",
+  "location_title": "Жіберу местоположение",
+  "location_loading": "Жүктелуде карталар…",
+  "location_send_button": "Жіберу",
+  "location_live_label": "Трансляция",
+  "location_error": "Сәтсіз загрузить карту",
+  "location_no_permission": "Жоқ қолжетімділіка местоположению",
+  "group_member_admin": "Әкімші",
+  "group_member_creator": "Создатель",
+  "group_member_member": "Усағаттник",
+  "group_member_open_chat": "Написать",
+  "group_member_open_profile": "Профиль",
+  "group_member_remove": "Исключить",
+  "durak_lobby_title": "Дурак",
+  "durak_lobby_new_game": "Жаңа ойын",
+  "durak_lobby_waiting": "Ожидание соперника…",
+  "durak_lobby_decline": "Қабылдамау",
+  "durak_lobby_accept": "Қабылдау",
+  "durak_lobby_invite_sent": "Шақыру отправлено",
+  "voice_preview_cancel": "Болдырмау",
+  "voice_preview_send": "Жіберу",
+  "voice_preview_recorded": "Записано",
+  "voice_preview_playing": "Воспроизведение…",
+  "voice_preview_paused": "Пауза",
+  "group_avatar_change": "Ауыстыру аватар",
+  "group_avatar_remove": "Убрать аватар",
+  "group_avatar_camera": "Камера",
+  "group_avatar_gallery": "Галерея",
+  "group_avatar_upload_error": "Қате загрузки",
+  "avatar_picker_title": "Аватар",
+  "avatar_picker_camera": "Камера",
+  "avatar_picker_gallery": "Галерея",
+  "avatar_picker_crop": "Обрезка",
+  "avatar_picker_save": "Сақтау",
+  "avatar_picker_remove": "Жою аватар",
+  "avatar_picker_error": "Сәтсіз загрузить аватар",
+  "avatar_picker_crop_error": "Қате обрезки",
+  "webview_telegram_title": "Вжүріс через Telegram",
+  "webview_telegram_loading": "Жүктелуде…",
+  "webview_telegram_error": "Сәтсіз загрузить страницу",
+  "webview_telegram_back": "Артқа",
+  "webview_telegram_retry": "Повторить",
+  "webview_telegram_close": "Жабу",
+  "webview_telegram_no_url": "Не указан URL для авторизации",
+  "webview_yandex_title": "Вжүріс через Менндекс",
+  "webview_yandex_loading": "Жүктелуде…",
+  "webview_yandex_error": "Сәтсіз загрузить страницу",
+  "webview_yandex_back": "Артқа",
+  "webview_yandex_retry": "Повторить",
+  "webview_yandex_close": "Жабу",
+  "webview_yandex_no_url": "Не указан URL для авторизации",
+  "google_profile_title": "Заполните профиль",
+  "google_profile_name": "Аты",
+  "google_profile_username": "Аты пользователя",
+  "google_profile_phone": "Телефон",
+  "google_profile_email": "Email",
+  "google_profile_dob": "Жәнеәсол рождения",
+  "google_profile_bio": "О себе",
+  "google_profile_save": "Сақтау",
+  "google_profile_error": "Сәтсіз сохранить профиль",
+  "system_event_e2ee_epoch_rotated": "Ключ шифрования обновлён",
+  "system_event_e2ee_device_added": "{actor} добавил құрылғы «{device}»",
+  "@system_event_e2ee_device_added": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_device_revoked": "{actor} отозвал құрылғы «{device}»",
+  "@system_event_e2ee_device_revoked": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_fingerprint_changed": "Отпечаток безопасностжәне у {actor} изменился",
+  "@system_event_e2ee_fingerprint_changed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_game_lobby_created": "Создабірақ лоббжәне ойындар",
+  "system_event_game_started": "Ойын началась",
+  "system_event_default_actor": "Пользователь",
+  "system_event_default_device": "құрылғы",
+  "image_editor_add_caption": "Қосу подпись...",
+  "image_editor_crop_failed": "Сәтсіз обрезать сурет",
+  "image_editor_draw_hint": "Режим рисования: проведите пальцем по изображению",
+  "image_editor_crop_title": "Обрезка",
+  "location_preview_title": "Местоположение",
+  "location_preview_accuracy_unknown": "Точность: —",
+  "location_preview_accuracy_meters": "Точность: ~{meters} м",
+  "@location_preview_accuracy_meters": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "location_preview_accuracy_km": "Точность: ~{km} км",
+  "@location_preview_accuracy_km": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_profile_default_name": "Усағаттник",
+  "group_member_profile_dm": "Написать лично",
+  "group_member_profile_dm_hint": "Ашу личный чат усағаттником",
+  "group_member_profile_dm_failed": "Сәтсіз открыть личный чат: {error}",
+  "@group_member_profile_dm_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "conversation_game_lobby_unavailable": "Ойын неқолжетімділікна немесе болды удалена",
+  "conversation_game_lobby_back": "Артқа",
+  "conversation_game_lobby_waiting": "Ждём, әзірге подключится соперник…",
+  "conversation_game_lobby_start_game": "Начать игру",
+  "conversation_game_lobby_waiting_short": "Ждём…",
+  "conversation_game_lobby_ready": "Готов",
+  "voice_preview_trim_confirm_title": "Оставить только сізбранный фрагмент?",
+  "voice_preview_trim_confirm_body": "Всё, кроме сізделенного фрагмента, болады удалено. Запись хабарламалар продолжится сразу после нажатия кнопки.",
+  "voice_preview_continue": "Жалғастыру",
+  "voice_preview_continue_recording": "Жалғастыру запись",
+  "group_avatar_change_short": "Ауыстыру",
+  "avatar_picker_cancel": "Болдырмау",
+  "avatar_picker_choose": "Сізбрать аватар",
+  "avatar_picker_delete_photo": "Жою фото",
+  "avatar_picker_loading": "Жүктелуде…",
+  "avatar_picker_choose_avatar": "Сізбрать аватар",
+  "avatar_picker_change_avatar": "Ауыстыру аватар",
+  "avatar_picker_remove_tooltip": "Убрать",
+  "telegram_sign_in_title": "Вжүріс через Telegram",
+  "telegram_sign_in_open_in_browser": "Ашу в браузере",
+  "telegram_sign_in_open_telegram_failed": "Сәтсіз открыть Telegram. Установите приложение Telegram.",
+  "telegram_sign_in_page_load_error": "Қате загрузкжәне страницы",
+  "telegram_sign_in_login_error": "Қате вжүріса через Telegram.",
+  "telegram_sign_in_firebase_not_ready": "Firebase не готов.",
+  "telegram_sign_in_browser_failed": "Сәтсіз открыть браузер.",
+  "telegram_sign_in_login_failed": "Сәтсіз войти: {error}",
+  "@telegram_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "yandex_sign_in_title": "Вжүріс через Менндекс",
+  "yandex_sign_in_open_in_browser": "Ашу в браузере",
+  "yandex_sign_in_page_load_error": "Қате загрузкжәне страницы",
+  "yandex_sign_in_login_error": "Қате вжүріса через Менндекс.",
+  "yandex_sign_in_firebase_not_ready": "Firebase не готов.",
+  "yandex_sign_in_browser_failed": "Сәтсіз открыть браузер.",
+  "yandex_sign_in_login_failed": "Сәтсіз войти: {error}",
+  "@yandex_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "google_complete_title": "Завершите регистрацию",
+  "google_complete_subtitle": "После вжүріса через Google нужбірақ заполнить профиль, қалай в веб-нұсқа.",
+  "google_complete_name_label": "Аты",
+  "google_complete_username_label": "Логин (@username)",
+  "google_complete_phone_label": "Телефон (11 цифр)",
+  "google_complete_email_label": "Email",
+  "google_complete_email_hint": "you@example.com",
+  "google_complete_dob_label": "Жәнеәсол рождения (YYYY-MM-DD, опционально)",
+  "google_complete_bio_label": "О себе (до 200 символов, опционально)",
+  "google_complete_save": "Сақтау және продолжить",
+  "google_complete_back": "Вернуться авторизации",
+  "game_error_defense_not_beat": "Осы карта не бьет атакующую",
+  "game_error_attacker_first": "Персізм жүрісит атакующий ойыншы",
+  "game_error_defender_no_attack": "Отбивающийся қазір не подкидывает",
+  "game_error_not_allowed_throwin": "Сіз не можете тастау в этом раунде",
+  "game_error_throwin_not_turn": "Қазір подкидывает басқа ойыншы",
+  "game_error_rank_not_allowed": "Тастау можбірақ только карту того же ранга",
+  "game_error_cannot_throw_in": "Көбірек карт тастау болмайды",
+  "game_error_card_not_in_hand": "Этой карталар уже жоқ в руке",
+  "game_error_already_defended": "Осы карта уже отбита",
+  "game_error_bad_attack_index": "Сізберите атакующую карту для защиты",
+  "game_error_only_defender": "Қазір отбивается басқа ойыншы",
+  "game_error_defender_taking": "Отбивающийся уже берет карталар",
+  "game_error_game_not_active": "Партия уже не активна",
+  "game_error_not_in_lobby": "Лоббжәне уже стартовало",
+  "game_error_game_already_active": "Партия уже началась",
+  "game_error_active_exists": "В этом чатта уже бар активная партия",
+  "game_error_round_pending": "Сначала завершите спорный жүріс",
+  "game_error_rematch_failed": "Сәтсіз подготовить реванш. Попробуйте ��ще раз",
+  "game_error_unauthenticated": "Нужбірақ войтжәне в аккаунт",
+  "game_error_permission_denied": "Бұл әрекет вам неқолжетімділікно",
+  "game_error_invalid_argument": "Некорректный жүріс",
+  "game_error_precondition": "Жүріс қазір неқолжетімділікен",
+  "game_error_server": "Сәтсіз сізполнить жүріс. Попробуйте еще раз",
+  "reply_sticker": "Стикер",
+  "reply_gif": "GIF",
+  "reply_video_circle": "Кружок",
+  "reply_voice_message": "Голосовое хабарлама",
+  "reply_video": "Видео",
+  "reply_photo": "Фотография",
+  "reply_file": "Файл",
+  "reply_location": "Локация",
+  "reply_poll": "Опрос",
+  "reply_link": "Сілтеме",
+  "reply_message": "Хабарлама",
+  "reply_sender_you": "Сіз",
+  "reply_sender_member": "Усағаттник",
+  "call_format_today": "Бүгін",
+  "call_format_yesterday": "Кеше",
+  "call_format_second_short": "с",
+  "call_format_minute_short": "м",
+  "call_format_hour_short": "ч",
+  "call_format_day_short": "д",
+  "call_month_january": "января",
+  "call_month_february": "февраля",
+  "call_month_march": "марта",
+  "call_month_april": "апреля",
+  "call_month_may": "мая",
+  "call_month_june": "июня",
+  "call_month_july": "июля",
+  "call_month_august": "августа",
+  "call_month_september": "сентября",
+  "call_month_october": "октября",
+  "call_month_november": "ноября",
+  "call_month_december": "декабря",
+  "push_incoming_call": "Вжүрісящий қоңырау",
+  "push_incoming_video_call": "Вжүрісящий видеоқоңырау",
+  "push_new_message": "Жаңа хабарлама",
+  "push_channel_calls": "Қоңыраулар",
+  "push_channel_messages": "Хабарламалар",
+  "contacts_years_one": "{count} жыл",
+  "@contacts_years_one": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_few": "{count} жыл",
+  "@contacts_years_few": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_many": "{count} жыл",
+  "@contacts_years_many": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_other": "{count} years",
+  "@contacts_years_other": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "durak_entry_single_game": "Одиночная партия",
+  "durak_entry_finish_game_tooltip": "Завершить игру",
+  "durak_entry_tournament_games_dialog_title": "Сколько игр в турнире?",
+  "durak_entry_cancel": "Болдырмау",
+  "durak_entry_create": "Құру",
+  "video_editor_load_failed": "Сәтсіз загрузить видео: {error}",
+  "@video_editor_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_process_failed": "Сәтсіз обработать видео: {error}",
+  "@video_editor_process_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_duration": "Длительность: {duration}",
+  "@video_editor_duration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "video_editor_brush": "Кисть",
+  "video_editor_caption_hint": "Қосу подпись...",
+  "share_location_title": "Бөлісу геолокацией",
+  "share_location_how": "Қалай делиться",
+  "share_location_cancel": "Болдырмау",
+  "share_location_send": "Жіберу",
+  "photo_source_gallery": "Галерея",
+  "photo_source_take_photo": "Сделать фото",
+  "photo_source_record_video": "Записать видео",
+  "video_attachment_media_kind": "видео",
+  "video_attachment_title": "Видео",
+  "video_attachment_playback_error": "Сәтсіз воспроизвестжәне видео. Проверьте сілтемені және сеть.",
+  "location_card_broadcast_ended_mine": "Трансляция геолокацижәне завершена. Собеседник көбірек не видит сіздіңе актуальное местоположение.",
+  "location_card_broadcast_ended_other": "Трансляция геолокацижәне у этого контакта завершена. Актуальная позиция неқолжетімділікна.",
+  "location_card_title": "Местоположение",
+  "location_card_accuracy": "±{meters} м",
+  "@location_card_accuracy": {
+    "placeholders": {
+      "meters": {}
+    }
+  },
+  "link_webview_copy_tooltip": "Сілтемені көшіру",
+  "link_webview_copied_snackbar": "Сілтеме скопирована",
+  "link_webview_open_browser_tooltip": "Ашу в браузере",
+  "hold_record_pause": "Пауза",
+  "hold_record_release_cancel": "Отпустите — отмена",
+  "hold_record_slide_hints": "Влево — отмена · Вверх — пауза",
+  "e2ee_badge_loading": "Загружаем отпечаток…",
+  "e2ee_badge_error": "Сәтсіз получить отпечаток: {error}",
+  "@e2ee_badge_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_badge_label": "Отпечаток E2EE",
+  "e2ee_badge_label_with_user": "Отпечаток E2EE • {user}",
+  "@e2ee_badge_label_with_user": {
+    "placeholders": {
+      "user": {}
+    }
+  },
+  "e2ee_badge_devices": "{count} устр.",
+  "@e2ee_badge_devices": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "composer_link_cancel": "Болдырмау",
+  "message_search_results_count": "РЕЗУЛЬТАТЫ ПОИСКА: {count}",
+  "@message_search_results_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "message_search_not_found": "НИЧЕГО НЕ НАЙДЕНО",
+  "message_search_participant_fallback": "Усағаттник",
+  "wallpaper_purple": "Фиожылосізй",
+  "wallpaper_pink": "Розосізй",
+  "wallpaper_blue": "Голубой",
+  "wallpaper_green": "Зелёный",
+  "wallpaper_sunset": "Закат",
+  "wallpaper_tender": "Нежный",
+  "wallpaper_lime": "Лайм",
+  "wallpaper_graphite": "Графит",
+  "avatar_crop_title": "Баптау аватара",
+  "avatar_crop_hint": "Перетащите және масштабируйте — так круг болады в списках және хабарламаларх; полный кадр остаётся для профиля.",
+  "avatar_crop_cancel": "Болдырмау",
+  "avatar_crop_reset": "Сбросить",
+  "avatar_crop_save": "Сақтау",
+  "meeting_entry_connecting": "Подключаемся митингу…",
+  "meeting_entry_auth_failed": "Сәтсіз войти: {error}",
+  "@meeting_entry_auth_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_entry_participant_fallback": "Усағаттник",
+  "meeting_entry_back": "Артқа",
+  "meeting_chat_copy": "Көшіру",
+  "meeting_chat_edit": "Өзгерту",
+  "meeting_chat_delete": "Жою",
+  "meeting_chat_deleted": "Хабарлама удалено",
+  "meeting_chat_edited_mark": "• изм.",
+  "e2ee_decrypt_image_failed": "Сәтсіз шифрды ашу сурет",
+  "e2ee_decrypt_video_failed": "Сәтсіз шифрды ашу видео",
+  "e2ee_decrypt_audio_failed": "Сәтсіз шифрды ашу аудио",
+  "e2ee_decrypt_attachment_failed": "Сәтсіз шифрды ашу вложение",
+  "search_preview_attachment": "Вложение",
+  "search_preview_location": "Геолокация",
+  "search_preview_message": "Хабарлама",
+  "outbox_attachment_singular": "Вложение",
+  "outbox_attachments_count": "Вложения ({count})",
+  "@outbox_attachments_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outbox_chat_unavailable": "Сервис чаттың неқолжетімділікен",
+  "outbox_encryption_error": "Шифрлау: {code}",
+  "@outbox_encryption_error": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "nav_chats": "Чаттар",
+  "nav_contacts": "Контактілер",
+  "nav_meetings": "Конференции",
+  "nav_calls": "Қоңыраулар",
+  "e2ee_media_decrypt_failed_image": "Сәтсіз шифрды ашу сурет",
+  "e2ee_media_decrypt_failed_video": "Сәтсіз шифрды ашу видео",
+  "e2ee_media_decrypt_failed_audio": "Сәтсіз шифрды ашу аудио",
+  "e2ee_media_decrypt_failed_attachment": "Сәтсіз шифрды ашу вложение",
+  "chat_search_snippet_attachment": "Вложение",
+  "chat_search_snippet_location": "Геолокация",
+  "chat_search_snippet_message": "Хабарлама",
+  "bottom_nav_chats": "Чаттар",
+  "bottom_nav_contacts": "Контактілер",
+  "bottom_nav_meetings": "Конференции",
+  "bottom_nav_calls": "Қоңыраулар",
+  "chat_list_swipe_folders": "ПАПКИ",
+  "chat_list_swipe_clear": "ОЧИСТИТЬ",
+  "chat_list_swipe_delete": "УДАЛИТЬ",
+  "composer_editing_title": "РЕДАКТИРОВАНИЕ СООБЩЕНИМен",
+  "composer_editing_cancel_tooltip": "Болдырмау редактирование",
+  "composer_formatting_title": "ФОРМАТИРОВАНИЕ",
+  "composer_link_preview_loading": "Жүктелуде превью…",
+  "composer_link_preview_hide_tooltip": "Скрыть превью",
+  "chat_invite_button": "Шақыру",
+  "forward_preview_unknown_sender": "Неизвестный",
+  "forward_preview_attachment": "Вложение",
+  "forward_preview_message": "Хабарлама",
+  "chat_mention_no_matches": "Жоқ совпадений",
+  "live_location_sharing": "Сіз делитесь геолокацией",
+  "live_location_stop": "Остановить",
+  "chat_message_deleted": "Хабарлама удалено",
+  "profile_qr_share": "Бөлісу",
+  "shared_location_open_browser_tooltip": "Ашу в браузере",
+  "reply_preview_message_fallback": "Хабарлама",
+  "video_circle_media_kind": "видео",
+  "reactions_rated_count": "Оценнемесе: {count}",
+  "@reactions_rated_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reactions_today_time": "Бүгін, {time}",
+  "@reactions_today_time": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "durak_create_timer_subtitle": "По умолчанию 15 секунд",
+  "dm_game_banner_active": "Партия \"Дурак\" идёт",
+  "dm_game_banner_created": "Ойын \"Дурак\" создана",
+  "chat_folder_favorites": "Таңдаулылар",
+  "chat_folder_new": "Жаңа",
+  "contact_profile_user_fallback": "Пользователь",
+  "contact_profile_error": "Қате: {error}",
+  "@contact_profile_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conversation_threads_loading_title": "Обсуждения",
+  "theme_label_light": "Светлая",
+  "theme_label_dark": "Тёмная",
+  "theme_label_auto": "Авто",
+  "chat_draft_reply_fallback": "Ответ",
+  "mention_default_label": "Усағаттник",
+  "contacts_fallback_name": "Контакт",
+  "sticker_pack_default_name": "Мой пак",
+  "profile_error_phone_taken": "Осы телефон нөмірі уже зарегистрирован. Укажите басқа нөмір.",
+  "profile_error_email_taken": "Осы email уже занят. Укажите басқа адрес.",
+  "profile_error_username_taken": "Осы логин уже занят. Сізберите басқа.",
+  "e2ee_banner_default_context": "Хабарлама",
+  "e2ee_banner_encrypted_chat_web_only": "{prefix} в зашифрованный чат әзірге можбірақ отправить только веб‑клиента.",
+  "@e2ee_banner_encrypted_chat_web_only": {
+    "placeholders": {
+      "prefix": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_attachment_decrypt_error": "Сәтсіз шифрды ашу вложение",
+  "group_avatar_process_error": "Сәтсіз обработать фото: {error}",
+  "@group_avatar_process_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_open_dm_error": "Сәтсіз открыть личный чат: {error}",
+  "@group_member_open_dm_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mention_fallback_label": "усағаттник",
+  "mention_fallback_label_capitalized": "Усағаттник",
+  "meeting_speaking_label": "Говорит",
+  "meeting_local_you_suffix": "{name} (Сіз)",
+  "@meeting_local_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "video_crop_title": "Обрезка",
+  "video_crop_load_error": "Сәтсіз загрузить видео: {error}",
+  "@video_crop_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_section_recent": "НЕДАВНИЕ",
+  "gif_section_trending": "TRENDING",
+  "auth_create_account_title": "Аккаунт құру",
+  "yandex_sign_in_yandex_error": "Менндекс: {error}",
+  "@yandex_sign_in_yandex_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "call_status_missed": "Пропущен",
+  "call_status_cancelled": "Отменен",
+  "call_status_ended": "Завершен",
+  "presence_offline": "Не в сети",
+  "presence_online": "В сети",
+  "dm_title_fallback": "Чат",
+  "dm_title_partner_fallback": "Собеседник",
+  "group_title_fallback": "Групповой чат",
+  "block_call_viewer_blocked": "Сіз заблокировалжәне этого пользователя. Қоңырау неқолжетімділікен — разблокируйте в Профиль → Бұғатталғанные.",
+  "block_call_partner_blocked": "Пользователь ограничил вамжәне общение. Қоңырау неқолжетімділікен.",
+  "block_call_unavailable": "Қоңырау неқолжетімділікен.",
+  "block_composer_viewer_blocked": "Сіз заблокировалжәне этого пользователя. Жіберу неқолжетімділікна — разблокируйте в Профиль → Бұғатталғанные.",
+  "block_composer_partner_blocked": "Пользователь ограничил вамжәне общение. Жіберу неқолжетімділікна.",
+  "forward_group_fallback": "Топ",
+  "forward_unknown_user": "Неизвестный",
+  "live_location_once": "Одноразово (только бұл хабарлама)",
+  "live_location_5min": "5 минут",
+  "live_location_15min": "15 минут",
+  "live_location_30min": "30 минут",
+  "live_location_1hour": "1 сағат",
+  "live_location_2hours": "2 сағат",
+  "live_location_6hours": "6 сағат",
+  "live_location_1day": "1 күн",
+  "live_location_forever": "Наәрқашан (әзірге не отключу)",
+  "e2ee_send_too_many_files": "Слишком көп вложений для зашифрованной отправки: ең көп 5 файлов за хабарлама.",
+  "e2ee_send_too_large": "Слишком большой общий өлшем вложений: ең көп 96 МБ для одного зашифрованного хабарламалар.",
+  "presence_last_seen_prefix": "Болды(а) ",
+  "presence_less_than_minute_ago": "менее минут назад",
+  "presence_yesterday": "кеше",
+  "dm_fallback_title": "Чат",
+  "dm_fallback_partner": "Собеседник",
+  "group_fallback_title": "Групповой чат",
+  "block_send_viewer_blocked": "Сіз заблокировалжәне этого пользователя. Жіберу неқолжетімділікна — разблокируйте в Профиль → Бұғатталғанные.",
+  "block_send_partner_blocked": "Пользователь ограничил вамжәне общение. Жіберу неқолжетімділікна.",
+  "mention_fallback_name": "Усағаттник",
+  "profile_conflict_phone": "Осы телефон нөмірі уже зарегистрирован. Укажите басқа нөмір.",
+  "profile_conflict_email": "Осы email уже занят. Укажите басқа адрес.",
+  "profile_conflict_username": "Осы логин уже занят. Сізберите басқа.",
+  "mention_fallback_participant": "Усағаттник",
+  "sticker_gif_recent": "НЕДАВНИЕ",
+  "meeting_screen_sharing": "Экран",
+  "meeting_speaking": "Говорит",
+  "auth_sign_in_failed": "Сәтсіз войти: {error}",
+  "@auth_sign_in_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yandex_error_prefix": "Менндекс: {error}",
+  "@yandex_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "auth_error_prefix": "Қате авторизации: {error}",
+  "@auth_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "presence_minutes_ago": "{count,plural, =1{минуту назад} one{{count} минут назад} few{{count} минут назад} many{{count} минут назад} other{{count} минут назад}}",
+  "@presence_minutes_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_hours_ago": "{count,plural, =1{час назад} one{{count} сағат назад} few{{count} сағат назад} many{{count} сағат назад} other{{count} сағат назад}}",
+  "@presence_hours_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_days_ago": "{count,plural, one{{count} күн назад} few{{count} күн назад} many{{count} күн назад} other{{count} күн назад}}",
+  "@presence_days_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_months_ago": "{count,plural, =1{1 месяц назад} one{{count} ай назад} few{{count} ай назад} many{{count} ай назад} other{{count} ай назад}}",
+  "@presence_months_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_months_ago": "{years,plural, =1{1 год} one{{years} жыл} few{{years} жыл} many{{years} жыл} other{{years} жыл}} {months,plural, =1{1 месяц назад} one{{months} ай назад} few{{months} ай назад} many{{months} ай назад} other{{months} ай назад}}",
+  "@presence_years_months_ago": {
+    "placeholders": {
+      "years": {
+        "type": "int"
+      },
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_ago": "{count,plural, =1{1 год назад} one{{count} жыл назад} few{{count} жыл назад} many{{count} жыл назад} other{{count} жыл назад}}",
+  "@presence_years_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wallpaper_gradient_purple": "Фиожылосізй",
+  "wallpaper_gradient_pink": "Розосізй",
+  "wallpaper_gradient_blue": "Голубой",
+  "wallpaper_gradient_green": "Зелёный",
+  "wallpaper_gradient_sunset": "Закат",
+  "wallpaper_gradient_gentle": "Нежный",
+  "wallpaper_gradient_lime": "Лайм",
+  "wallpaper_gradient_graphite": "Графит",
+  "sticker_tab_recent": "НЕДАВНИЕ",
+  "block_call_you_blocked": "Сіз заблокировалжәне этого пользователя. Қоңырау неқолжетімділікен — разблокируйте в Профиль → Бұғатталғанные.",
+  "block_call_they_blocked": "Пользователь ограничил вамжәне общение. Қоңырау неқолжетімділікен.",
+  "block_call_generic": "Қоңырау неқолжетімділікен.",
+  "block_send_you_blocked": "Сіз заблокировалжәне этого пользователя. Жіберу неқолжетімділікна — разблокируйте в Профиль → Бұғатталғанные.",
+  "block_send_they_blocked": "Пользователь ограничил вамжәне общение. Жіберу неқолжетімділікна.",
+  "forward_unknown_fallback": "Неизвестный",
+  "dm_title_chat": "Чат",
+  "dm_title_partner": "Собеседник",
+  "dm_title_group": "Групповой чат",
+  "e2ee_too_many_attachments": "Слишком көп вложений для зашифрованной отправки: ең көп 5 файлов за хабарлама.",
+  "e2ee_total_size_exceeded": "Слишком большой общий өлшем вложений: ең көп 96 МБ для одного зашифрованного хабарламалар.",
+  "yandex_sign_in_error_prefix": "Менндекс: {error}",
+  "@yandex_sign_in_error_prefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_participant_screen": "Экран",
+  "meeting_participant_speaking": "Говорит",
+  "nav_error_title": "Қате навигации",
+  "nav_error_invalid_secret_compose": "Некорректная навигация құпия чаттың",
+  "sign_in_title": "Вжүріс",
+  "sign_in_firebase_ready": "Firebase инициализирован. Можбірақ войти.",
+  "sign_in_firebase_not_ready": "Firebase не готов. Проверьте логжәне және firebase_options.dart.",
+  "sign_in_continue": "Жалғастыру",
+  "sign_in_anonymously": "Кіру анонимно",
+  "sign_in_auth_error": "Қате авторизации: {error}",
+  "@sign_in_auth_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_not_found": "Топ не найдена.",
+  "group_not_member": "Сіз не являетесь усағаттником этой топтар.",
+  "generic_error": "Қате: {error}",
+  "@generic_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "storage_label_video": "Видео",
+  "storage_label_photo": "Фото",
+  "storage_label_files": "Файлдар",
+  "storage_label_other": "Басқа",
+  "storage_label_draft": "Черновик · {key}",
+  "@storage_label_draft": {
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "storage_label_offline_snapshot": "Офлайн-снимок тізімнің чатов",
+  "storage_label_profile_cache": "Кэш профиля · {name}",
+  "@storage_label_profile_cache": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "call_mini_end": "Завершить қоңырау",
+  "animation_quality_lite": "Лёгкий",
+  "animation_quality_balanced": "Сбалансированный",
+  "animation_quality_cinematic": "Кинематографический",
+  "crop_aspect_original": "Оригинал",
+  "crop_aspect_square": "Квадрат",
+  "push_notification_title": "Рұқсат беру хабарландырулар",
+  "push_notification_rationale": "Для вжүрісящих звонков приложению нужны хабарландырулар.",
+  "push_notification_required": "Қосулыючите хабарландырулар для отображения вжүрісящих звонков.",
+  "push_notification_grant": "Рұқсат беру",
+  "push_call_accept": "Қабылдау",
+  "push_call_decline": "Қабылдамау",
+  "push_channel_incoming_calls": "Вжүрісящие қоңыраулар",
+  "push_channel_missed_calls": "Пропущенные қоңыраулар",
+  "push_channel_messages_desc": "Носізе хабарламалар в чаттыңх",
+  "push_channel_silent": "Хабарламалар без дыбыс",
+  "push_channel_silent_desc": "Push без дыбыс",
+  "push_caller_unknown": "Кім-сол",
+  "outbox_attachment_single": "Вложение",
+  "outbox_attachment_count": "Вложения ({count})",
+  "@outbox_attachment_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bottom_nav_label_chats": "Чаттар",
+  "bottom_nav_label_contacts": "Контактілер",
+  "bottom_nav_label_conferences": "Конференции",
+  "bottom_nav_label_calls": "Қоңыраулар",
+  "chat_theme_banner": "Фон этой перепискжәне только для вас. Общие настройкжәне чатов в разделе «Параметрлер чатов» не меняются.",
+  "chat_theme_default_global": "По умолчанию (общие настройки)",
+  "chat_theme_error_delete": "Қате удаления: {error}",
+  "chat_theme_error_save": "Сәтсіз сохранить фон: {error}",
+  "chat_theme_error_upload": "Қате загрузкжәне фона: {error}",
+  "chat_theme_global_tile": "Общие",
+  "chat_theme_pick_hint": "Сізберите пресет немесе фото из галереи",
+  "durak_dm_game_active": "Партия \"Дурак\" идёт",
+  "durak_dm_game_created": "Ойын \"Дурак\" создана",
+  "durak_error_active_game_exists": "В этом чатта уже бар активная партия",
+  "durak_error_already_defended": "Осы карта уже отбита",
+  "durak_error_bad_attack_index": "Сізберите атакующую карту для защиты",
+  "durak_error_cannot_throw_in": "Көбірек карт тастау болмайды",
+  "durak_error_card_not_in_hand": "Этой карталар уже жоқ в руке",
+  "durak_error_defender_already_taking": "Отбивающийся уже берет карталар",
+  "durak_error_defender_cannot_attack": "Отбивающийся қазір не подкидывает",
+  "durak_error_defense_does_not_beat": "Осы карта не бьет атакующую",
+  "durak_error_failed_precondition": "Жүріс қазір неқолжетімділікен",
+  "durak_error_game_already_active": "Партия уже началась",
+  "durak_error_game_not_active": "Партия уже не активна",
+  "durak_error_invalid_argument": "Некорректный жүріс",
+  "durak_error_not_allowed_throwin": "Сіз не можете тастау в этом раунде",
+  "durak_error_not_in_lobby": "Лоббжәне уже стартовало",
+  "durak_error_only_attacker_first": "Персізм жүрісит атакующий ойыншы",
+  "durak_error_only_defender": "Қазір отбивается басқа ойыншы",
+  "durak_error_permission_denied": "Бұл әрекет вам неқолжетімділікно",
+  "durak_error_rank_not_allowed": "Тастау можбірақ только карту того же ранга",
+  "durak_error_rematch_failed": "Сәтсіз подготовить реванш. Попробуйте еще раз",
+  "durak_error_resolution_pending": "Сначала завершите спорный жүріс",
+  "durak_error_server": "Сәтсіз сізполнить жүріс. Попробуйте еще раз",
+  "durak_error_throwin_not_your_turn": "Қазір подкидывает басқа ойыншы",
+  "durak_error_unauthenticated": "Нужбірақ войтжәне в аккаунт",
+  "durak_finish_game_tooltip": "Завершить игру",
+  "durak_foul_banner_title": "Шулер! Не заметнемесе:",
+  "durak_fx_beat": "Бито",
+  "durak_fx_took": "Взял",
+  "durak_lobby_back_tooltip": "Артқа",
+  "durak_lobby_empty_slot": "Ждём…",
+  "durak_lobby_game_unavailable": "Ойын неқолжетімділікна немесе болды удалена",
+  "durak_lobby_ready": "Готов",
+  "durak_lobby_start": "Начать игру",
+  "durak_lobby_waiting_short": "Ждём…",
+  "durak_opponent_role_attack": "ХОД",
+  "durak_opponent_role_defend": "БЬЕТ",
+  "durak_opponent_role_throwin": "ПОДК",
+  "durak_pending_resolution_attacker": "Ожидание фолла… Нажмжәне «Растау Бито», еслжәне барлығы согласны.",
+  "durak_pending_resolution_other": "Ожидание фолла… Енді можбірақ нажать «Фолл!», еслжәне заметил шулерство.",
+  "durak_rematch": "Сыграть ещё раз",
+  "durak_settings_timer_subtitle": "По умолчанию 15 секунд",
+  "durak_single_game": "Одиночная партия",
+  "durak_surrender_tooltip": "Завершить игру",
+  "durak_tournament_next": "Следующая партия турнира",
+  "durak_tournament_played": "Сыграбірақ {finished} из {total}",
+  "durak_tournament_total_games_title": "Сколько игр в турнире?",
+  "durak_winner_label": "Жеңімпаз",
+  "game_durak_subtitle": "Одиночная партия немесе турнир",
+  "group_avatar_add_photo": "Қосу фото",
+  "group_avatar_photo_title": "Фото топтар",
+  "group_member_open_dm_hint": "Ашу личный чат усағаттником",
+  "group_member_profile_not_loaded": "Профиль усағаттника ещё не загружен.",
+  "group_member_write_dm": "Написать лично",
+  "group_members_add_count": "Қосу ({count})",
+  "group_members_add_failed": "Сәтсіз добавить усағаттников: {error}",
+  "group_members_add_member_tooltip": "Қосу усағаттника",
+  "group_members_add_title": "Қосу усағаттников",
+  "group_members_all_in_group": "Барлығы сіздіңжәне контактілер уже в группе.",
+  "group_members_auth_error": "Қате авторизации: {error}",
+  "group_members_contacts_load_error": "Сәтсіз загрузить контактілер: {error}",
+  "group_members_copy_invite_tooltip": "Сілтемені көшіру-шақыру",
+  "group_members_copy_link_error": "Сәтсіз скопировать сілтемені: {error}",
+  "group_members_creator_badge": "СОЗДАТЕЛЬ",
+  "group_members_grant_admin_action": "Назначить",
+  "group_members_grant_admin_body": "{name} получит права әкімшіні: сможет редактировать топты, исключать усағаттников және управлять хабарламаларми.",
+  "group_members_grant_admin_title": "Назначить администратором?",
+  "group_members_invite_copied": "Сілтеме-шақыру скопирована",
+  "group_members_menu_grant_admin": "Сделать админом",
+  "group_members_menu_remove": "Исключить из топтар",
+  "group_members_menu_revoke_admin": "Снять админа",
+  "group_members_nobody_found": "Никого не найдено.",
+  "group_members_remove_action": "Исключить",
+  "group_members_remove_body": "{name} болады удалён из топтар. Бұл әрекет можбірақ отменить, добавив усағаттника заново.",
+  "group_members_remove_title": "Исключить усағаттника?",
+  "group_members_removed": "Усағаттник исключён",
+  "group_members_revoke_admin_action": "Снять права",
+  "group_members_revoke_admin_body": "У {name} будут сняты права әкімшіні. Усағаттник останется в группе қалай обычный член.",
+  "group_members_revoke_admin_title": "Снять права әкімшіні?",
+  "group_members_search_contacts": "Іздеу среджәне контактілер",
+  "group_members_select_members": "Сізберите усағаттников",
+  "group_members_subtitle_admin": "Әкімші",
+  "group_members_subtitle_creator": "Создатель топтар",
+  "group_members_subtitle_member": "Усағаттник",
+  "group_members_total_count": "Барлығыго: {count}",
+  "group_members_user_fallback": "Пользователь",
+  "group_mention_no_matches": "Жоқ совпадений",
+  "poll_add_option": "Қосу вариант",
+  "poll_close_by_time": "Жабу по времени",
+  "poll_close_not_set": "Не задано",
+  "poll_close_reset": "Сбросить срок",
+  "poll_correct_option_label": "Правильный вариант",
+  "poll_description_label": "Пояснение (міндетті емес)",
+  "poll_error_empty_question": "Енгізіңіз вопрос",
+  "poll_error_future_time": "Время закрытия должбірақ быть в будущем",
+  "poll_error_generic": "Қате",
+  "poll_error_min_options": "Нужбірақ ең аз 2 варианта",
+  "poll_error_select_correct": "Сізберите правильный вариант",
+  "poll_hide_voters": "Скрыть",
+  "poll_menu_delete": "Жою",
+  "poll_menu_end": "Завершить",
+  "poll_menu_restart": "Перезапустить",
+  "poll_option_hint": "Вариант {index}",
+  "poll_options_title": "Варианты",
+  "poll_publish": "Жариялау",
+  "poll_question_hint": "Например: Во сколько кездесуемся?",
+  "poll_question_label": "Вопрос",
+  "poll_quiz_explanation_label": "Пояснение (міндетті емес)",
+  "poll_show_voters": "Кім голосовал",
+  "poll_status_ended": "Завершён",
+  "poll_suggest_option_hint": "Предложить вариант",
+  "poll_switch_add_options": "Добавление вариантов",
+  "poll_switch_add_options_sub": "Усағаттникжәне могут предложить свой вариант",
+  "poll_switch_anonymous": "Анонимное голосование",
+  "poll_switch_anonymous_sub": "Не показывать, кім за не голосовал",
+  "poll_switch_multi": "Несколько ответов",
+  "poll_switch_multi_sub": "Можбірақ сізбрать несколько вариантов",
+  "poll_switch_quiz": "Режим викімрины",
+  "poll_switch_quiz_sub": "Один правильный ответ",
+  "poll_switch_revote": "Можбірақ изменить голос",
+  "poll_switch_revote_sub": "Переголосование до закрытия",
+  "poll_switch_shuffle": "Перемешать варианты",
+  "poll_switch_shuffle_sub": "Свой порядок у каждого усағаттника",
+  "poll_votes_count": "{count} голосов",
+  "settings_chats_bottom_nav_icons_subtitle": "Сізбор иконок және визуального стиля қалай на вебе.",
+  "settings_chats_bottom_nav_icons_title": "Иконкжәне нижнего меню",
+  "settings_chats_collapse": "Скрыть",
+  "settings_chats_customize": "Баптау",
+  "settings_chats_default": "По умолчанию",
+  "settings_chats_emoji_balanced_desc": "Balanced: автоматический компромисс между производительностью және сізразительностью.",
+  "settings_chats_emoji_cinematic_desc": "Cinematic: ең көп сағаттиц және глубины для вау-эффекта.",
+  "settings_chats_emoji_effects": "Эффекты эмодзи",
+  "settings_chats_emoji_effects_subtitle": "Профиль анимацижәне fullscreen-эмодзжәне пржәне тапе по одиночному эмодзжәне в чатта.",
+  "settings_chats_emoji_lite_desc": "Lite: ең аз нагрузкжәне және максимальбірақ плавбірақ на слабых устройствах.",
+  "settings_chats_icon_search_hint_en": "Іздеу по названию (англ.)...",
+  "settings_chats_icon_size": "Өлшем иконки",
+  "settings_chats_nav_colorful": "Цветные",
+  "settings_chats_nav_global_subtitle": "Общий слой: цвет, өлшем, толщина және фон плитки.",
+  "settings_chats_nav_global_title": "Для барлығых иконок",
+  "settings_chats_nav_minimal": "Минимализм",
+  "settings_chats_preview_hello": "Сәлем",
+  "settings_chats_preview_incoming_msg": "Сәлем! Қалай дела?",
+  "settings_chats_preview_outgoing_msg": "Тамаша, рахмет!",
+  "settings_chats_reset_item_tooltip": "Сбросить",
+  "settings_chats_reset_tooltip": "Сброс",
+  "settings_chats_stroke_width": "Толщина линии",
+  "settings_chats_style_tooltip": "Стиль",
+  "@chat_theme_error_delete": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chat_theme_error_save": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chat_theme_error_upload": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@durak_tournament_played": {
+    "placeholders": {
+      "finished": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@group_members_add_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@group_members_add_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_auth_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_contacts_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_copy_link_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_grant_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_remove_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_revoke_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_total_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@poll_option_hint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "@poll_votes_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeBubbleTitle": "Добро пожаловать в LighChat",
+  "welcomeBubbleSubtitle": "Маяк зажёгся",
+  "welcomeSkip": "Өткізіп жіберу",
+  "welcomeReplayDebugTile": "Replay welcome animation (debug)",
+  "sticker_scope_library": "Библиотека",
+  "sticker_library_search_hint": "Стикерлерді іздеу…",
+  "account_menu_energy_saving": "Қуатты үнемдеу",
+  "energy_saving_title": "Энергосбережение",
+  "energy_saving_section_mode": "Режим энергосбережения",
+  "energy_saving_section_resource_heavy": "Ресурсоёмкие процессы",
+  "energy_saving_threshold_off": "Өшірулі",
+  "energy_saving_threshold_always": "Қосулы",
+  "energy_saving_threshold_off_full": "Ешқашан",
+  "energy_saving_threshold_always_full": "Әрқашан",
+  "energy_saving_threshold_at": "Пржәне заряде менее {percent}%",
+  "@energy_saving_threshold_at": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "energy_saving_hint_off": "Ресурсоёмкие эффекты ешқашан не отключаются автоматически.",
+  "energy_saving_hint_always": "Ресурсоёмкие эффекты әрқашан отключены, независимо уровня заряда.",
+  "energy_saving_hint_threshold": "Автоматическжәне отключать барлығы ресурсоёмкие процессы пржәне заряде менее {percent}%.",
+  "@energy_saving_hint_threshold": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "energy_saving_current_battery": "Текущий заряд: {percent}%",
+  "@energy_saving_current_battery": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "energy_saving_active_now": "режим активен",
+  "energy_saving_active_threshold": "Заряд достиг порога — барлығы эффекты ниже временбірақ отключены.",
+  "energy_saving_active_system": "Қосулыючён системный режим энергосбережения — барлығы эффекты ниже временбірақ отключены.",
+  "energy_saving_autoplay_video_title": "Автозапуск видео",
+  "energy_saving_autoplay_video_subtitle": "Автозапуск және повторение видеохабарламалар және видео в чаттыңх.",
+  "energy_saving_autoplay_gif_title": "Автозапуск GIF",
+  "energy_saving_autoplay_gif_subtitle": "Автозапуск және повторение GIF в чаттыңх және на клавиатуре.",
+  "energy_saving_animated_stickers_title": "Анимированные стикеры",
+  "energy_saving_animated_stickers_subtitle": "Повторяющаяся анимация стикеров және полноэкранные эффекты Premium-стикеров.",
+  "energy_saving_animated_emoji_title": "Анимированные эмодзи",
+  "energy_saving_animated_emoji_subtitle": "Повторяющаяся анимация эмодзжәне в хабарламаларх, реакциях және статусах.",
+  "energy_saving_interface_animations_title": "Анимацижәне интерфейса",
+  "energy_saving_interface_animations_subtitle": "Эффекты және анимации, которые делают LighChat плавнее және сізразительнее.",
+  "energy_saving_media_preload_title": "Предзагрузка медиа",
+  "energy_saving_media_preload_subtitle": "Запуск загрузкжәне медиафайлов пржәне вжүрісе в тізім чатов.",
+  "energy_saving_background_update_title": "Жаңарту в фоне",
+  "energy_saving_background_update_subtitle": "Быстрое жаңарту чатов пржәне переключенижәне между приложениями."
+}

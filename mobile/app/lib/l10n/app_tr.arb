@@ -1,0 +1,3972 @@
+{
+  "secret_chat_title": "Gizli sohbet",
+  "secret_chats_title": "Gizli Sohbetler",
+  "secret_chat_locked_title": "Gizli sohbet kilitli",
+  "secret_chat_locked_subtitle": "Mesajları görüntülemek için PIN kodunuzu girin.",
+  "secret_chat_unlock_title": "Gizli sohbetin kilidini aç",
+  "secret_chat_unlock_subtitle": "Bu sohbeti açmak için PIN gereklidir.",
+  "secret_chat_unlock_action": "Kilidi aç",
+  "secret_chat_set_pin_and_unlock": "PIN belirle ve kilidi aç",
+  "secret_chat_pin_label": "PIN (4 haneli)",
+  "secret_chat_pin_invalid": "4 haneli bir PIN girin",
+  "secret_chat_already_exists": "Bu kullanıcıyla zaten bir gizli sohbet mevcut.",
+  "secret_chat_exists_badge": "Oluşturuldu",
+  "secret_chat_unlock_failed": "Kilit açılamadı. Lütfen tekrar deneyin.",
+  "secret_chat_action_not_allowed": "Bu işlem gizli sohbette yapılamaz",
+  "secret_chat_remember_pin": "Bu cihazda PIN'i hatırla",
+  "secret_chat_unlock_biometric": "Biyometrik ile kilidi aç",
+  "secret_chat_biometric_reason": "Gizli sohbetin kilidini aç",
+  "secret_chat_biometric_no_saved_pin": "Biyometrik kilidi etkinleştirmek için PIN'i bir kez girin",
+  "secret_chat_ttl_title": "Gizli sohbet ömrü",
+  "secret_chat_settings_title": "Gizli sohbet ayarları",
+  "secret_chat_settings_subtitle": "Ömür, erişim ve kısıtlamalar",
+  "secret_chat_settings_not_secret": "Bu sohbet gizli bir sohbet değil",
+  "secret_chat_settings_ttl": "Ömür",
+  "secret_chat_settings_time_left": "Kalan süre: {value}",
+  "@secret_chat_settings_time_left": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "secret_chat_settings_expires_at": "Sona erme: {iso}",
+  "@secret_chat_settings_expires_at": {
+    "placeholders": {
+      "iso": {}
+    }
+  },
+  "secret_chat_settings_unlock_grant_ttl": "Kilit açma süresi",
+  "secret_chat_settings_unlock_grant_ttl_subtitle": "Kilit açıldıktan sonra erişimin ne kadar süre aktif kalacağı",
+  "secret_chat_settings_no_copy": "Kopyalamayı devre dışı bırak",
+  "secret_chat_settings_no_forward": "İletmeyi devre dışı bırak",
+  "secret_chat_settings_no_save": "Medya kaydetmeyi devre dışı bırak",
+  "secret_chat_settings_screenshot_protection": "Ekran görüntüsü koruması (Android)",
+  "secret_chat_settings_media_views": "Medya görüntüleme sınırları",
+  "secret_chat_settings_media_views_subtitle": "Alıcı görüntülemeleri için en iyi sınırlar",
+  "secret_chat_media_type_image": "Resimler",
+  "secret_chat_media_type_video": "Videolar",
+  "secret_chat_media_type_voice": "Sesli mesajlar",
+  "secret_chat_media_type_location": "Konum",
+  "secret_chat_media_type_file": "Dosyalar",
+  "secret_chat_media_views_unlimited": "Sınırsız",
+  "secret_chat_compose_create": "Gizli sohbet oluştur",
+  "secret_chat_compose_vault_pin_subtitle": "İsteğe bağlı: gizli gelen kutusu kilidi için kullanılacak 4 haneli kasa PIN'i belirleyin (biyometrik etkinleştirildiğinde bu cihazda saklanır).",
+  "secret_chat_compose_require_unlock_pin": "Bu sohbeti açmak için PIN iste",
+  "secret_chat_settings_read_only_hint": "Bu ayarlar oluşturma sırasında sabitlendiler ve değiştirilemez.",
+  "secret_chat_settings_delete": "Gizli sohbeti sil",
+  "secret_chat_settings_delete_confirm_title": "Bu gizli sohbet silinsin mi?",
+  "secret_chat_settings_delete_confirm_body": "Mesajlar ve medya her iki katılımcı için de kaldırılacak.",
+  "privacy_secret_vault_title": "Gizli kasa",
+  "privacy_secret_vault_subtitle": "Gizli sohbetlere girmek için genel PIN ve biyometrik kontroller.",
+  "privacy_secret_vault_change_pin": "Kasa PIN'i belirle veya değiştir",
+  "privacy_secret_vault_change_pin_subtitle": "PIN zaten varsa, eski PIN veya biyometrik ile onaylayın.",
+  "privacy_secret_vault_bio_subtitle": "Biyometrik kontrolü çalıştır ve kaydedilmiş yerel PIN'i doğrula.",
+  "privacy_secret_vault_bio_reason": "Gizli sohbetlere erişimi onayla",
+  "privacy_secret_vault_current_pin": "Mevcut PIN",
+  "privacy_secret_vault_new_pin": "Yeni PIN",
+  "privacy_secret_vault_repeat_pin": "Yeni PIN'i tekrarla",
+  "privacy_secret_vault_pin_mismatch": "PIN'ler eşleşmiyor",
+  "privacy_secret_vault_pin_updated": "Kasa PIN'i güncellendi",
+  "privacy_secret_vault_bio_unavailable": "Bu cihazda biyometrik kimlik doğrulama kullanılamıyor",
+  "privacy_secret_vault_bio_verified": "Biyometrik kontrol başarılı",
+  "privacy_secret_vault_setup_required": "Önce Gizlilik bölümünde PIN veya biyometrik erişim ayarlayın.",
+  "privacy_secret_vault_network_timeout": "Ağ zaman aşımı. Lütfen tekrar deneyin.",
+  "privacy_secret_vault_error": "Gizli kasa hatası: {error}",
+  "@privacy_secret_vault_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "tournament_title": "Turnuva",
+  "tournament_subtitle": "Sıralama ve oyun serisi",
+  "tournament_new_game": "Yeni oyun",
+  "tournament_standings": "Sıralama",
+  "tournament_standings_empty": "Henüz sonuç yok",
+  "tournament_games": "Oyunlar",
+  "tournament_games_empty": "Henüz oyun yok",
+  "tournament_points": "{pts} puan",
+  "@tournament_points": {
+    "placeholders": {
+      "pts": {}
+    }
+  },
+  "tournament_games_played": "{n} oyun",
+  "@tournament_games_played": {
+    "placeholders": {
+      "n": {}
+    }
+  },
+  "tournament_create_failed": "Turnuva oluşturulamadı: {err}",
+  "@tournament_create_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_create_game_failed": "Oyun oluşturulamadı: {err}",
+  "@tournament_create_game_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "tournament_game_players": "Oyuncular: {names}",
+  "@tournament_game_players": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "tournament_game_result_draw": "Sonuç: berabere",
+  "tournament_game_result_loser": "Sonuç: durak — {name}",
+  "@tournament_game_result_loser": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "tournament_game_place": "{place}. sıra",
+  "@tournament_game_place": {
+    "placeholders": {
+      "place": {}
+    }
+  },
+  "durak_dm_lobby_banner": "Partneriniz bir Durak lobisi oluşturdu — katılın",
+  "durak_dm_lobby_open": "Lobiyi aç",
+  "conversation_game_lobby_cancel": "Beklemeyi bitir",
+  "conversation_game_lobby_cancel_failed": "Bekleme sonlandırılamadı: {err}",
+  "@conversation_game_lobby_cancel_failed": {
+    "placeholders": {
+      "err": {}
+    }
+  },
+  "secret_chat_media_views_count": "{count} görüntüleme",
+  "@secret_chat_media_views_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "secret_chat_settings_load_failed": "Yüklenemedi: {error}",
+  "@secret_chat_settings_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "secret_chat_settings_save_failed": "Kaydedilemedi: {error}",
+  "@secret_chat_settings_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "secret_chat_settings_reset_strict": "Katı varsayılanlara sıfırla",
+  "secret_chat_settings_reset_strict_subtitle": "Tüm kısıtlamaları etkinleştirir ve medya görüntüleme sınırlarını 1'e ayarlar",
+  "@@locale": "tr",
+  "settings_language_title": "Dil",
+  "settings_language_system": "Sistem",
+  "settings_language_ru": "Rusça",
+  "settings_language_en": "İngilizce",
+  "settings_language_hint_system": "“Sistem” seçildiğinde uygulama cihazınızın dil ayarlarını takip eder.",
+  "account_menu_profile": "Profil",
+  "account_menu_features": "Özellikler",
+  "account_menu_chat_settings": "Sohbet ayarları",
+  "account_menu_notifications": "Bildirimler",
+  "account_menu_privacy": "Gizlilik",
+  "account_menu_devices": "Cihazlar",
+  "account_menu_blacklist": "Engellenenler",
+  "account_menu_language": "Dil",
+  "account_menu_storage": "Depolama",
+  "account_menu_theme": "Tema",
+  "account_menu_sign_out": "Çıkış yap",
+  "storage_settings_title": "Depolama",
+  "storage_settings_subtitle": "Bu cihazda hangi verilerin önbelleğe alınacağını kontrol edin ve sohbetlere veya dosyalara göre temizleyin.",
+  "storage_settings_total_label": "Bu cihazda kullanılan",
+  "storage_settings_budget_label": "Önbellek sınırı: {gb} GB",
+  "@storage_settings_budget_label": {
+    "placeholders": {
+      "gb": {}
+    }
+  },
+  "storage_unit_gb": "GB",
+  "storage_settings_clear_all_button": "Tüm önbelleği temizle",
+  "storage_settings_trim_button": "Bütçeye göre kırp",
+  "storage_settings_policy_title": "Yerel olarak ne saklanacak",
+  "storage_settings_budget_slider_title": "Önbellek bütçesi",
+  "storage_settings_breakdown_title": "Veri türüne göre",
+  "storage_settings_breakdown_empty": "Henüz yerel önbellek verisi yok.",
+  "storage_settings_chats_title": "Sohbetlere göre",
+  "storage_settings_chats_empty": "Henüz sohbete özel önbellek yok.",
+  "storage_settings_chat_subtitle": "{count} öğe · {size}",
+  "@storage_settings_chat_subtitle": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "storage_settings_general_title": "Atanmamış önbellek",
+  "storage_settings_general_hint": "Belirli bir sohbete bağlı olmayan girişler (eski/genel önbellek).",
+  "storage_settings_general_empty": "Paylaşılan önbellek girişi yok.",
+  "storage_settings_chat_files_empty": "Bu sohbet önbelleğinde yerel dosya yok.",
+  "storage_settings_clear_chat_action": "Sohbet önbelleğini temizle",
+  "storage_settings_clear_all_title": "Yerel önbellek temizlensin mi?",
+  "storage_settings_clear_all_body": "Bu, önbelleğe alınmış dosyaları, önizlemeleri, taslakları ve çevrimdışı anlık görüntüleri bu cihazdan kaldıracak.",
+  "storage_settings_clear_chat_title": "“{chat}” için önbellek temizlensin mi?",
+  "@storage_settings_clear_chat_title": {
+    "placeholders": {
+      "chat": {}
+    }
+  },
+  "storage_settings_clear_chat_body": "Yalnızca bu sohbetin önbelleği silinecek. Buluttaki mesajlar bozulmadan kalacak.",
+  "storage_settings_snackbar_cleared": "Yerel önbellek temizlendi",
+  "storage_settings_snackbar_budget_already_ok": "Önbellek zaten hedef bütçeye uygun",
+  "storage_settings_snackbar_budget_trimmed": "Boşaltıldı: {size}",
+  "@storage_settings_snackbar_budget_trimmed": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_settings_error_empty": "Depolama istatistikleri oluşturulamıyor",
+  "storage_category_e2ee_media": "E2EE medya önbelleği",
+  "storage_category_e2ee_media_subtitle": "Daha hızlı yeniden açma için sohbet başına şifresi çözülmüş gizli medya dosyaları.",
+  "storage_category_e2ee_text": "E2EE metin önbelleği",
+  "storage_category_e2ee_text_subtitle": "Anında oluşturma için sohbet başına şifresi çözülmüş metin parçacıkları.",
+  "storage_category_drafts": "Mesaj taslakları",
+  "storage_category_drafts_subtitle": "Sohbetlere göre gönderilmemiş taslak metinler.",
+  "storage_category_chat_list_snapshot": "Çevrimdışı sohbet listesi",
+  "storage_category_chat_list_snapshot_subtitle": "Hızlı çevrimdışı başlatma için son sohbet listesi anlık görüntüsü.",
+  "storage_category_profile_cards": "Profil mini önbelleği",
+  "storage_category_profile_cards_subtitle": "Daha hızlı arayüz için kaydedilmiş isimler ve avatarlar.",
+  "storage_category_video_downloads": "İndirilen video önbelleği",
+  "storage_category_video_downloads_subtitle": "Galeri görünümlerinden yerel olarak indirilen videolar.",
+  "storage_category_video_thumbs": "Video önizleme kareleri",
+  "storage_category_video_thumbs_subtitle": "Videolar için oluşturulmuş ilk kare küçük resimleri.",
+  "storage_category_chat_images": "Sohbet fotoğrafları",
+  "storage_category_chat_images_subtitle": "Açık sohbetlerden önbelleğe alınmış fotoğraflar ve çıkartmalar.",
+  "storage_media_type_video": "Video",
+  "storage_media_type_photo": "Fotoğraflar",
+  "storage_media_type_files": "Dosyalar",
+  "storage_media_type_other": "Diğer",
+  "storage_settings_device_usage": "Önbellek bütçesinin %{pct}'sini kullanıyor",
+  "@storage_settings_device_usage": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_settings_clear_all_hint": "Tüm medya bulutta kalacak. İstediğiniz zaman yeniden indirebilirsiniz.",
+  "storage_auto_delete_title": "Önbelleğe alınmış medyayı otomatik sil",
+  "storage_auto_delete_personal": "Kişisel sohbetler",
+  "storage_auto_delete_groups": "Gruplar",
+  "storage_auto_delete_never": "Asla",
+  "storage_auto_delete_3_days": "3 gün",
+  "storage_auto_delete_1_week": "1 hafta",
+  "storage_auto_delete_1_month": "1 ay",
+  "storage_auto_delete_3_months": "3 ay",
+  "storage_auto_delete_hint": "Bu süre içinde açmadığınız fotoğraflar, videolar ve dosyalar alan kazanmak için cihazdan kaldırılacak.",
+  "storage_chat_detail_share": "Bu sohbet önbelleğinizin %{pct}'sını kullanıyor",
+  "@storage_chat_detail_share": {
+    "placeholders": {
+      "pct": {}
+    }
+  },
+  "storage_chat_detail_media_tab": "Medya",
+  "storage_chat_detail_select_all": "Tümünü seç",
+  "storage_chat_detail_deselect_all": "Seçimi kaldır",
+  "storage_chat_detail_clear_button": "Önbelleği temizle {size}",
+  "@storage_chat_detail_clear_button": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storage_chat_detail_clear_button_empty": "Silinecek dosyaları seçin",
+  "storage_chat_detail_tab_empty": "Bu sekmede hiçbir şey yok.",
+  "storage_chat_detail_delete_title": "Seçili dosyalar silinsin mi?",
+  "storage_chat_detail_delete_body": "{count} dosya ({size}) cihazdan kaldırılacak. Bulut kopyaları bozulmadan kalacak.",
+  "@storage_chat_detail_delete_body": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "profile_delete_account": "Hesabı sil",
+  "profile_delete_account_confirm_title": "Hesabınız kalıcı olarak silinsin mi?",
+  "profile_delete_account_confirm_body": "Hesabınız Firebase Auth'tan kaldırılacak ve tüm Firestore belgeleriniz kalıcı olarak silinecek. Sohbetleriniz başkaları için salt okunur modda görünür kalacak.",
+  "profile_delete_account_confirm_action": "Hesabı sil",
+  "profile_delete_account_error": "Hesap silinemedi: {error}",
+  "@profile_delete_account_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_readonly_deleted_user": "Hesap silindi. Bu sohbet salt okunur.",
+  "blacklist_empty": "Engellenen kullanıcı yok",
+  "blacklist_action_unblock": "Engeli kaldır",
+  "blacklist_unblock_confirm_title": "Engel kaldırılsın mı?",
+  "blacklist_unblock_confirm_body": "Bu kullanıcı size tekrar mesaj gönderebilecek (iletişim politikası izin veriyorsa) ve aramada profilinizi görebilecek.",
+  "blacklist_unblock_success": "Kullanıcının engeli kaldırıldı",
+  "blacklist_unblock_error": "Engel kaldırılamadı: {error}",
+  "@blacklist_unblock_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "partner_profile_block_confirm_title": "Bu kullanıcı engellensin mi?",
+  "partner_profile_block_confirm_body": "Sizinle sohbeti göremeyecek, sizi aramada bulamayacak veya kişilere ekleyemeyecek. Kişilerinden kaybolacaksınız. Sohbet geçmişini saklayacaksınız ama engelliyken mesaj gönderemezsiniz.",
+  "partner_profile_block_action": "Engelle",
+  "partner_profile_block_success": "Kullanıcı engellendi",
+  "partner_profile_block_error": "Engellenemedi: {error}",
+  "@partner_profile_block_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "common_soon": "Yakında",
+  "common_theme_prefix": "Tema: {label}",
+  "@common_theme_prefix": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "common_error_cannot_save_theme": "Tema kaydedilemedi: {error}",
+  "@common_error_cannot_save_theme": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "common_error_cannot_sign_out": "Çıkış yapılamadı: {error}",
+  "@common_error_cannot_sign_out": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "account_error_profile": "Profil hatası: {error}",
+  "@account_error_profile": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_title": "Bildirimler",
+  "notifications_section_main": "Ana",
+  "notifications_mute_all_title": "Tümünü kapat",
+  "notifications_mute_all_subtitle": "Tüm bildirimleri devre dışı bırak.",
+  "notifications_sound_title": "Ses",
+  "notifications_sound_subtitle": "Yeni mesajlar için ses çal.",
+  "notifications_preview_title": "Önizleme",
+  "notifications_preview_subtitle": "Bildirimlerde mesaj metnini göster.",
+  "notifications_section_quiet_hours": "Sessiz saatler",
+  "notifications_quiet_hours_subtitle": "Bu zaman aralığında bildirimler sizi rahatsız etmeyecek.",
+  "notifications_quiet_hours_enable_title": "Sessiz saatleri etkinleştir",
+  "notifications_reset_button": "Ayarları sıfırla",
+  "notifications_error_cannot_save": "Ayarlar kaydedilemedi: {error}",
+  "@notifications_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notifications_error_load": "Bildirimler yüklenemedi: {error}",
+  "@notifications_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_title": "Sohbet gizliliği",
+  "privacy_error_cannot_save": "Ayarlar kaydedilemedi: {error}",
+  "@privacy_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_error_load": "Gizlilik ayarları yüklenemedi: {error}",
+  "@privacy_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_e2ee_section": "Uçtan uca şifreleme",
+  "privacy_e2ee_enable_for_all_chats": "Tüm sohbetler için E2EE'yi etkinleştir",
+  "privacy_e2ee_what_encrypt": "E2EE sohbetlerinde neler şifrelenir",
+  "privacy_e2ee_text": "Mesaj metni",
+  "privacy_e2ee_media": "Ekler (medya/dosyalar)",
+  "privacy_my_devices_title": "Cihazlarım",
+  "privacy_my_devices_subtitle": "Yayınlanmış anahtarlara sahip cihazlar. Yeniden adlandır veya erişimi iptal et.",
+  "privacy_key_backup_title": "Yedekleme ve anahtar aktarımı",
+  "privacy_key_backup_subtitle": "Parola yedeği oluştur veya anahtarı QR ile aktar.",
+  "privacy_visibility_section": "Görünürlük",
+  "privacy_online_title": "Çevrimiçi durumu",
+  "privacy_online_subtitle": "Başkalarının çevrimiçi olduğunuzu görmesine izin verin.",
+  "privacy_last_seen_title": "Son görülme",
+  "privacy_last_seen_subtitle": "Son aktif olma zamanınızı gösterin.",
+  "privacy_read_receipts_title": "Okundu bilgisi",
+  "privacy_read_receipts_subtitle": "Göndericilerin mesajı okuduğunuzu bilmesine izin verin.",
+  "privacy_group_invites_section": "Grup davetleri",
+  "privacy_group_invites_subtitle": "Sizi grup sohbetlerine kim ekleyebilir.",
+  "privacy_group_invites_everyone": "Herkes",
+  "privacy_group_invites_contacts": "Yalnızca kişiler",
+  "privacy_group_invites_nobody": "Hiç kimse",
+  "privacy_global_search_section": "Keşfedilebilirlik",
+  "privacy_global_search_subtitle": "Tüm kullanıcılar arasında sizi adınızla kim bulabilir.",
+  "privacy_global_search_title": "Genel arama",
+  "privacy_global_search_hint": "Kapatılırsa, biri yeni sohbet başlattığında “Tüm kullanıcılar”'da görünmezsiniz. Sizi kişi olarak ekleyen kişilere hâlâ görünür olursunuz.",
+  "privacy_profile_for_others_section": "Başkaları için profil",
+  "privacy_profile_for_others_subtitle": "Başkalarının profilinizde görebilecekleri.",
+  "privacy_email_subtitle": "Profilinizdeki e-posta adresiniz.",
+  "privacy_phone_title": "Telefon numarası",
+  "privacy_phone_subtitle": "Profilinizde ve kişilerinizde gösterilir.",
+  "privacy_birthdate_title": "Doğum tarihi",
+  "privacy_birthdate_subtitle": "Profildeki doğum günü alanınız.",
+  "privacy_about_title": "Hakkında",
+  "privacy_about_subtitle": "Profildeki biyografi metniniz.",
+  "privacy_reset_button": "Ayarları sıfırla",
+  "common_cancel": "İptal",
+  "common_create": "Oluştur",
+  "common_delete": "Sil",
+  "common_choose": "Seç",
+  "common_save": "Kaydet",
+  "common_close": "Kapat",
+  "common_nothing_found": "Hiçbir şey bulunamadı",
+  "common_retry": "Tekrar dene",
+  "auth_login_email_label": "E-posta",
+  "auth_login_password_label": "Şifre",
+  "auth_login_password_hint": "Şifre",
+  "auth_login_sign_in": "Giriş yap",
+  "auth_login_forgot_password": "Şifrenizi mi unuttunuz?",
+  "auth_login_error_enter_email_for_reset": "Şifrenizi sıfırlamak için e-postanızı girin",
+  "profile_title": "Profil",
+  "profile_edit_tooltip": "Düzenle",
+  "profile_full_name_label": "Ad soyad",
+  "profile_full_name_hint": "Ad",
+  "profile_username_label": "Kullanıcı adı",
+  "profile_email_label": "E-posta",
+  "profile_phone_label": "Telefon",
+  "profile_birthdate_label": "Doğum tarihi",
+  "profile_about_label": "Hakkında",
+  "profile_about_hint": "Kısa bir biyografi",
+  "profile_password_toggle_show": "Şifre değiştir",
+  "profile_password_toggle_hide": "Şifre değiştirmeyi gizle",
+  "profile_password_new_label": "Yeni şifre",
+  "profile_password_confirm_label": "Şifreyi onayla",
+  "profile_password_tooltip_show": "Şifreyi göster",
+  "profile_password_tooltip_hide": "Gizle",
+  "profile_placeholder_username": "kullanıcı adı",
+  "profile_placeholder_email": "ad@ornek.com",
+  "profile_placeholder_phone": "+90 500 000 00 00",
+  "profile_placeholder_birthdate": "GG.AA.YYYY",
+  "profile_placeholder_password_dots": "••••••••",
+  "profile_password_error_fill_both": "Yeni şifreyi ve onayı doldurun.",
+  "settings_chats_title": "Sohbet ayarları",
+  "settings_chats_preview": "Önizleme",
+  "settings_chats_outgoing": "Giden mesajlar",
+  "settings_chats_incoming": "Gelen mesajlar",
+  "settings_chats_font_size": "Metin boyutu",
+  "settings_chats_font_small": "Küçük",
+  "settings_chats_font_medium": "Orta",
+  "settings_chats_font_large": "Büyük",
+  "settings_chats_bubble_shape": "Balon şekli",
+  "settings_chats_bubble_rounded": "Yuvarlak",
+  "settings_chats_bubble_square": "Kare",
+  "settings_chats_chat_background": "Sohbet arka planı",
+  "settings_chats_chat_background_pick_hint": "Bir fotoğraf seçin veya arka planı ayarlayın",
+  "settings_chats_advanced": "Gelişmiş",
+  "settings_chats_show_time": "Saati göster",
+  "settings_chats_show_time_subtitle": "Balonların altında mesaj saatini göster",
+  "settings_chats_reset": "Ayarları sıfırla",
+  "settings_chats_error_cannot_save": "Kaydedilemedi: {error}",
+  "@settings_chats_error_cannot_save": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_load": "Arka plan yüklenemedi: {error}",
+  "@settings_chats_error_wallpaper_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_error_wallpaper_delete": "Arka plan silinemedi: {error}",
+  "@settings_chats_error_wallpaper_delete": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_chats_wallpaper_delete_confirm_title": "Arka plan silinsin mi?",
+  "settings_chats_wallpaper_delete_confirm_body": "Bu arka plan listenizden kaldırılacak.",
+  "settings_chats_icon_picker_title": "Simge: “{label}”",
+  "@settings_chats_icon_picker_title": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "settings_chats_icon_picker_search_hint": "Ada göre ara…",
+  "settings_chats_icon_color": "Simge rengi",
+  "settings_chats_reset_icon_size": "Boyutu sıfırla",
+  "settings_chats_reset_icon_stroke": "Kalınlığı sıfırla",
+  "settings_chats_tile_background": "Döşeme arka planı",
+  "settings_chats_default_gradient": "Varsayılan gradyan",
+  "settings_chats_inherit_global": "Genel ayarları kullan",
+  "settings_chats_no_background": "Arka plan yok",
+  "settings_chats_no_background_on": "Arka plan yok (açık)",
+  "chat_list_title": "Sohbetler",
+  "chat_list_search_hint": "Ara…",
+  "chat_list_loading_connecting": "Bağlanıyor…",
+  "chat_list_loading_conversations": "Sohbetler yükleniyor…",
+  "chat_list_loading_list": "Sohbet listesi yükleniyor…",
+  "chat_list_loading_sign_out": "Çıkış yapılıyor…",
+  "chat_list_empty_search_title": "Sohbet bulunamadı",
+  "chat_list_empty_search_body": "Farklı bir sorgu deneyin. Arama ad ve kullanıcı adına göre çalışır.",
+  "chat_list_empty_folder_title": "Bu klasör boş",
+  "chat_list_empty_folder_body": "Klasörleri değiştirin veya yukarıdaki düğmeyi kullanarak yeni bir sohbet başlatın.",
+  "chat_list_empty_all_title": "Henüz sohbet yok",
+  "chat_list_empty_all_body": "Mesajlaşmaya başlamak için yeni bir sohbet başlatın.",
+  "chat_list_action_new_folder": "Yeni klasör",
+  "chat_list_action_new_chat": "Yeni sohbet",
+  "chat_list_action_create": "Oluştur",
+  "chat_list_action_close": "Kapat",
+  "chat_list_folders_title": "Klasörler",
+  "chat_list_folders_subtitle": "Bu sohbet için klasör seçin.",
+  "chat_list_folders_empty": "Henüz özel klasör yok.",
+  "chat_list_create_folder_title": "Yeni klasör",
+  "chat_list_create_folder_subtitle": "Sohbetlerinizi hızla filtrelemek için bir klasör oluşturun.",
+  "chat_list_create_folder_name_label": "KLASÖR ADI",
+  "chat_list_create_folder_chats_label": "SOHBETLER ({count})",
+  "@chat_list_create_folder_chats_label": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_list_create_folder_select_all": "TÜMÜNÜ SEÇ",
+  "chat_list_create_folder_reset": "SIFIRLA",
+  "chat_list_create_folder_search_hint": "Ada göre ara…",
+  "chat_list_create_folder_no_matches": "Eşleşen sohbet yok",
+  "chat_list_folder_default_starred": "Yıldızlı",
+  "chat_list_folder_default_all": "Tümü",
+  "chat_list_folder_default_new": "Yeni",
+  "chat_list_folder_default_direct": "Direkt",
+  "chat_list_folder_default_groups": "Gruplar",
+  "chat_list_yesterday": "Dün",
+  "chat_list_folder_delete_action": "Sil",
+  "chat_list_folder_delete_title": "Klasör silinsin mi?",
+  "chat_list_folder_delete_body": "\"{name}\" klasörü silinecek. Sohbetler bozulmadan kalacak.",
+  "@chat_list_folder_delete_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_open_starred": "Yıldızlılar açılamadı: {error}",
+  "@chat_list_error_open_starred": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_delete_folder": "Klasör silinemedi: {error}",
+  "@chat_list_error_delete_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_pin_not_available": "Bu klasörde sabitleme kullanılamaz.",
+  "chat_list_pin_pinned_in_folder": "\"{name}\" klasöründe sohbet sabitlendi",
+  "@chat_list_pin_pinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_pin_unpinned_in_folder": "\"{name}\" klasöründen sohbet kaldırıldı",
+  "@chat_list_pin_unpinned_in_folder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_list_error_toggle_pin": "Sabitleme değiştirilemedi: {error}",
+  "@chat_list_error_toggle_pin": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_update_folder": "Klasör güncellenemedi: {error}",
+  "@chat_list_error_update_folder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_clear_history_title": "Geçmiş temizlensin mi?",
+  "chat_list_clear_history_body": "Mesajlar yalnızca sizin sohbet görünümünüzden kaybolacak. Diğer katılımcı geçmişi saklayacak.",
+  "chat_list_clear_history_confirm": "Temizle",
+  "chat_list_error_clear_history": "Geçmiş temizlenemedi: {error}",
+  "@chat_list_error_clear_history": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_error_mark_read": "Sohbet okundu olarak işaretlenemedi: {error}",
+  "@chat_list_error_mark_read": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_delete_chat_title": "Sohbet silinsin mi?",
+  "chat_list_delete_chat_body": "Konuşma tüm katılımcılar için kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+  "chat_list_delete_chat_confirm": "Sil",
+  "chat_list_error_delete_chat": "Sohbet silinemedi: {error}",
+  "@chat_list_error_delete_chat": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_context_folders": "Klasörler",
+  "chat_list_context_unpin": "Sohbet sabitlemesini kaldır",
+  "chat_list_context_pin": "Sohbeti sabitle",
+  "chat_list_context_mark_all_read": "Tümünü okundu olarak işaretle",
+  "chat_list_context_clear_history": "Geçmişi temizle",
+  "chat_list_context_delete_chat": "Sohbeti sil",
+  "chat_list_snackbar_history_cleared": "Geçmiş temizlendi.",
+  "chat_list_snackbar_marked_read": "Okundu olarak işaretlendi.",
+  "chat_list_error_generic": "Hata: {error}",
+  "@chat_list_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_calls_title": "Aramalar",
+  "chat_calls_search_hint": "Ada göre ara…",
+  "chat_calls_empty": "Arama geçmişiniz boş.",
+  "chat_calls_nothing_found": "Hiçbir şey bulunamadı.",
+  "chat_calls_error_load": "Aramalar yüklenemedi:\n{error}",
+  "@chat_calls_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_reply_cancel_tooltip": "Yanıtı iptal et",
+  "voice_preview_tooltip_cancel": "İptal",
+  "voice_preview_tooltip_send": "Gönder",
+  "profile_qr_title": "QR kodum",
+  "profile_qr_tooltip_close": "Kapat",
+  "profile_qr_share_title": "LighChat profilim",
+  "profile_qr_share_subject": "LighChat profili",
+  "chat_media_norm_pending_title": "{mediaKind} işleniyor…",
+  "@chat_media_norm_pending_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_failed_title": "{mediaKind} işlenemedi",
+  "@chat_media_norm_failed_title": {
+    "placeholders": {
+      "mediaKind": {}
+    }
+  },
+  "chat_media_norm_pending_subtitle": "Dosya sunucu işlemesinden sonra kullanılabilir olacak.",
+  "chat_media_norm_failed_subtitle": "İşlemi tekrar başlatmayı deneyin.",
+  "conversation_threads_title": "Konular",
+  "conversation_threads_empty": "Henüz konu yok",
+  "conversation_threads_root_attachment": "Ek",
+  "conversation_threads_root_message": "Mesaj",
+  "conversation_threads_snippet_you": "Siz: {text}",
+  "@conversation_threads_snippet_you": {
+    "placeholders": {
+      "text": {}
+    }
+  },
+  "conversation_threads_day_today": "Bugün",
+  "conversation_threads_day_yesterday": "Dün",
+  "conversation_threads_replies_badge": "{count, plural, one{{count} yanıt} other{{count} yanıt}}",
+  "@conversation_threads_replies_badge": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_meetings_title": "Toplantılar",
+  "chat_meetings_subtitle": "Konferanslar oluşturun ve katılımcı erişimini yönetin",
+  "chat_meetings_section_new": "Yeni toplantı",
+  "chat_meetings_field_title_label": "Toplantı başlığı",
+  "chat_meetings_field_title_hint": "Örn., Lojistik toplantısı",
+  "chat_meetings_field_duration_label": "Süre",
+  "chat_meetings_duration_unlimited": "Sınır yok",
+  "chat_meetings_duration_15m": "15 dakika",
+  "chat_meetings_duration_30m": "30 dakika",
+  "chat_meetings_duration_1h": "1 saat",
+  "chat_meetings_duration_90m": "1,5 saat",
+  "chat_meetings_field_access_label": "Erişim",
+  "chat_meetings_access_private": "Özel",
+  "chat_meetings_access_public": "Herkese açık",
+  "chat_meetings_waiting_room_title": "Bekleme odası",
+  "chat_meetings_waiting_room_desc": "Bekleme odası modunda kimin katılacağını siz kontrol edersiniz. “Kabul Et”'e basana kadar misafirler bekleme ekranında kalır.",
+  "chat_meetings_backgrounds_title": "Sanal arka planlar",
+  "chat_meetings_backgrounds_desc": "İsterseniz arka planları yükleyin ve arka planınızı bulanıklaştırın. Galeriden bir resim seçin veya kendi arka planlarınızı yükleyin.",
+  "chat_meetings_waiting_room_toggle": "Bekleme odası ekle",
+  "chat_meetings_waiting_room_toggle_subtitle": "Yalnızca ev sahibi katılımcıları kabul edebilir ve erişimi engelleyebilir.",
+  "chat_meetings_create_button": "Toplantı oluştur",
+  "chat_meetings_snackbar_enter_title": "Toplantı başlığı girin",
+  "chat_meetings_snackbar_auth_required": "Toplantı oluşturmak için giriş yapmanız gerekiyor",
+  "chat_meetings_error_create_failed": "Toplantı oluşturulamadı: {error}",
+  "@chat_meetings_error_create_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_history_title": "Geçmişiniz",
+  "chat_meetings_history_empty": "Toplantı geçmişi boş",
+  "chat_meetings_history_error": "Toplantı geçmişi yüklenemedi: {error}",
+  "@chat_meetings_history_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_meetings_status_live": "canlı",
+  "chat_meetings_status_finished": "tamamlandı",
+  "chat_meetings_badge_private": "özel",
+  "chat_contacts_search_hint": "Kişilerde ara…",
+  "chat_contacts_permission_denied": "Kişiler izni verilmedi.",
+  "chat_contacts_sync_error": "Kişiler senkronize edilemedi: {error}",
+  "@chat_contacts_sync_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_invite_prepare_failed": "Davet hazırlanamadı: {error}",
+  "@chat_contacts_invite_prepare_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_contacts_matches_not_found": "Eşleşme bulunamadı.",
+  "chat_contacts_added_count": "Eklenen kişiler: {count}.",
+  "@chat_contacts_added_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_contacts_invite_text": "LighChat’ı yükle: https://lighchat.online\nSeni LighChat’a davet ediyorum — işte yükleme bağlantısı.",
+  "chat_contacts_invite_subject": "LighChat'e davet",
+  "chat_contacts_error_load": "Kişiler yüklenemedi: {error}",
+  "@chat_contacts_error_load": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_list_item_draft_line": "Taslak · {line}",
+  "@chat_list_item_draft_line": {
+    "placeholders": {
+      "line": {}
+    }
+  },
+  "chat_list_item_chat_created": "Sohbet oluşturuldu",
+  "chat_list_item_no_messages_yet": "Henüz mesaj yok",
+  "chat_list_item_history_cleared": "Geçmiş temizlendi",
+  "chat_list_firebase_not_configured": "Firebase henüz yapılandırılmadı.",
+  "new_chat_title": "Yeni sohbet",
+  "new_chat_subtitle": "Bir sohbet başlatmak için birini seçin veya bir grup oluşturun.",
+  "new_chat_search_hint": "Ad, kullanıcı adı veya @tanıtıcı…",
+  "new_chat_create_group": "Grup oluştur",
+  "new_chat_section_phone_contacts": "TELEFON KİŞİLERİ",
+  "new_chat_section_contacts": "KİŞİLER",
+  "new_chat_section_all_users": "TÜM KULLANICILAR",
+  "new_chat_empty_no_users": "Henüz sohbet başlatacak kimse yok.",
+  "new_chat_empty_not_found": "Eşleşme bulunamadı.",
+  "new_chat_error_contacts": "Kişiler: {error}",
+  "@new_chat_error_contacts": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "new_chat_fallback_user_display_name": "Kullanıcı",
+  "new_group_role_badge_admin": "YÖNETİCİ",
+  "new_group_role_badge_worker": "ÜYE",
+  "new_group_error_auth_session": "Giriş doğrulanamadı: {error}",
+  "@new_group_error_auth_session": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invite_subject": "LighChat'te bana katıl",
+  "invite_text": "LighChat’ı yükle: https://lighchat.online\\nSeni LighChat’a davet ediyorum — işte yükleme bağlantısı.",
+  "new_group_title": "Grup oluştur",
+  "new_group_search_hint": "Kullanıcı ara…",
+  "new_group_pick_photo_tooltip": "Grup fotoğrafı seçmek için dokunun. Kaldırmak için uzun basın.",
+  "new_group_name_label": "Grup adı",
+  "new_group_name_hint": "Ad",
+  "new_group_description_label": "Açıklama",
+  "new_group_description_hint": "İsteğe bağlı",
+  "new_group_members_count": "Üyeler ({count})",
+  "@new_group_members_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "new_group_add_members_section": "ÜYE EKLE",
+  "new_group_empty_no_users": "Henüz eklenecek kimse yok.",
+  "new_group_empty_not_found": "Eşleşme bulunamadı.",
+  "new_group_error_name_required": "Lütfen bir grup adı girin.",
+  "new_group_error_members_required": "En az bir üye ekleyin.",
+  "new_group_action_create": "Oluştur",
+  "group_members_title": "Üyeler",
+  "group_members_invite_link": "Bağlantıyla davet et",
+  "group_members_admin_badge": "YÖNETİCİ",
+  "group_members_invite_text": "LighChat'te {groupName} grubuna katıl: {inviteLink}",
+  "@group_members_invite_text": {
+    "placeholders": {
+      "groupName": {},
+      "inviteLink": {}
+    }
+  },
+  "group_members_error_min_admin": "Grupta en az bir yönetici kalmalıdır.",
+  "group_members_error_cannot_remove_creator": "Grup oluşturucusunun yönetici haklarını kaldıramazsınız.",
+  "group_members_remove_admin": "Yönetici hakları kaldırıldı",
+  "group_members_make_admin": "Kullanıcı yönetici yapıldı",
+  "auth_brand_tagline": "Daha güvenli bir mesajlaşma uygulaması",
+  "auth_firebase_not_ready": "Firebase hazır değil. `firebase_options.dart` ve GoogleService-Info.plist dosyasını kontrol edin.",
+  "auth_redirecting_to_chats": "Sohbetlere yönlendiriliyorsunuz…",
+  "auth_or": "veya",
+  "auth_create_account": "Hesap oluştur",
+  "auth_entry_sign_in": "Giriş yap",
+  "auth_entry_sign_up": "Hesap oluştur",
+  "auth_qr_title": "QR ile giriş yap",
+  "auth_qr_hint": "Zaten giriş yaptığınız bir cihazda LighChat'i açın → Ayarlar → Cihazlar → Yeni cihaz bağla, ardından bu kodu tarayın.",
+  "auth_qr_refresh_in": "{seconds} saniyede yenilenir",
+  "@auth_qr_refresh_in": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "auth_qr_other_method": "Başka bir yolla giriş yap",
+  "auth_qr_approving": "Giriş yapılıyor…",
+  "auth_qr_rejected": "İstek reddedildi",
+  "auth_qr_retry": "Tekrar dene",
+  "auth_qr_unknown_error": "QR kodu oluşturulamadı.",
+  "auth_qr_use_qr_login": "QR ile giriş yap",
+  "auth_privacy_policy": "Gizlilik politikası",
+  "auth_error_open_privacy_policy": "Gizlilik politikası açılamadı",
+  "voice_transcript_show": "Metni göster",
+  "voice_transcript_hide": "Metni gizle",
+  "voice_transcript_copy": "Kopyala",
+  "voice_transcript_loading": "Yazıya dökülüyor…",
+  "voice_transcript_failed": "Metin alınamadı.",
+  "voice_attachment_media_kind_audio": "ses",
+  "voice_attachment_load_failed": "Yüklenemedi",
+  "voice_attachment_title_voice_message": "Sesli mesaj",
+  "voice_transcript_error": "Yazıya dönüştürülemedi: {error}",
+  "@voice_transcript_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_messages_title": "Mesajlar",
+  "chat_call_decline": "Reddet",
+  "chat_call_open": "Aç",
+  "chat_call_accept": "Kabul et",
+  "video_call_error_init": "Görüntülü arama hatası: {error}",
+  "@video_call_error_init": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_ended": "Arama sona erdi",
+  "video_call_status_missed": "Cevapsız arama",
+  "video_call_status_cancelled": "Arama iptal edildi",
+  "video_call_error_offer_not_ready": "Teklif henüz hazır değil. Tekrar deneyin.",
+  "video_call_error_invalid_call_data": "Geçersiz arama verisi",
+  "video_call_error_accept_failed": "Arama kabul edilemedi: {error}",
+  "@video_call_error_accept_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_call_incoming": "Gelen görüntülü arama",
+  "video_call_connecting": "Görüntülü arama…",
+  "video_call_pip_tooltip": "Pencere içinde pencere",
+  "video_call_mini_window_tooltip": "Mini pencere",
+  "chat_delete_message_title_single": "Mesaj silinsin mi?",
+  "chat_delete_message_title_multi": "Mesajlar silinsin mi?",
+  "chat_delete_message_body_single": "Bu mesaj herkes için gizlenecek.",
+  "chat_delete_message_body_multi": "Silinecek mesaj sayısı: {count}",
+  "@chat_delete_message_body_multi": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "chat_delete_file_title": "Dosya silinsin mi?",
+  "chat_delete_file_body": "Yalnızca bu dosya mesajdan kaldırılacak.",
+  "forward_title": "İlet",
+  "forward_empty_no_messages": "İletilecek mesaj yok",
+  "forward_error_not_authorized": "Giriş yapılmadı",
+  "forward_empty_no_recipients": "İletilecek kişi veya sohbet yok",
+  "forward_search_hint": "Kişilerde ara…",
+  "forward_empty_no_available_recipients": "Kullanılabilir alıcı yok.\nYalnızca kişilerinize ve aktif sohbetlerinize iletebilirsiniz.",
+  "forward_empty_not_found": "Hiçbir şey bulunamadı",
+  "forward_action_pick_recipients": "Alıcıları seçin",
+  "forward_action_send": "Gönder",
+  "forward_error_generic": "Hata: {error}",
+  "@forward_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "forward_sender_fallback": "Katılımcı",
+  "forward_error_profiles_load": "Sohbeti açmak için profiller yüklenemedi",
+  "forward_error_send_no_permissions": "İletilemedi: seçilen sohbetlerden birine erişiminiz yok veya sohbet artık mevcut değil.",
+  "forward_error_send_forbidden_chat": "İletilemedi: sohbetlerden birine erişim reddedildi.",
+  "devices_title": "Cihazlarım",
+  "devices_subtitle": "Şifreleme açık anahtarınızın yayınlandığı cihazlar. İptal etme, tüm şifreli sohbetler için yeni bir anahtar dönemi oluşturur — iptal edilen cihaz yeni mesajları okuyamaz.",
+  "devices_empty": "Henüz cihaz yok.",
+  "devices_connect_new_device": "Yeni cihaz bağla",
+  "devices_approve_title": "Bu cihazın giriş yapmasına izin verilsin mi?",
+  "devices_approve_body_hint": "Bu cihazın QR kodu gösteren kendi cihazınız olduğundan emin olun.",
+  "devices_approve_allow": "İzin ver",
+  "devices_approve_deny": "Reddet",
+  "devices_handover_progress_title": "Şifreli sohbetler senkronize ediliyor…",
+  "devices_handover_progress_body": "{done}/{total} güncellendi",
+  "@devices_handover_progress_body": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "devices_handover_progress_starting": "Başlatılıyor…",
+  "devices_handover_success_title": "Yeni cihaz bağlandı",
+  "devices_handover_success_body": "{label} cihazı artık şifreli sohbetlerinize erişebilir.",
+  "@devices_handover_success_body": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "devices_progress_rekeying": "Sohbetler güncelleniyor: {done} / {total}",
+  "@devices_progress_rekeying": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
+  "devices_chip_current": "Bu cihaz",
+  "devices_chip_revoked": "İptal edildi",
+  "devices_meta_created_activity": "Oluşturulma: {createdAt}  •  Aktivite: {lastSeenAt}",
+  "@devices_meta_created_activity": {
+    "placeholders": {
+      "createdAt": {},
+      "lastSeenAt": {}
+    }
+  },
+  "devices_meta_revoked_at": "İptal edilme: {revokedAt}",
+  "@devices_meta_revoked_at": {
+    "placeholders": {
+      "revokedAt": {}
+    }
+  },
+  "devices_action_rename": "Yeniden adlandır",
+  "devices_action_revoke": "İptal et",
+  "devices_dialog_rename_title": "Cihazı yeniden adlandır",
+  "devices_dialog_rename_hint": "örn. iPhone 15 — Safari",
+  "devices_error_rename_failed": "Yeniden adlandırılamadı: {error}",
+  "@devices_error_rename_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "devices_dialog_revoke_title": "Cihaz iptal edilsin mi?",
+  "devices_dialog_revoke_body_current": "BU cihazı iptal etmek üzeresiniz. Bundan sonra bu istemciden uçtan uca şifreli sohbetlerdeki yeni mesajları okuyamayacaksınız.",
+  "devices_dialog_revoke_body_other": "Bu cihaz uçtan uca şifreli sohbetlerdeki yeni mesajları okuyamayacak. Eski mesajlar cihazda erişilebilir kalacak.",
+  "devices_snackbar_revoked": "Cihaz iptal edildi. Güncellenen sohbetler: {rekeyed}{suffix}",
+  "@devices_snackbar_revoked": {
+    "placeholders": {
+      "rekeyed": {},
+      "suffix": {}
+    }
+  },
+  "devices_snackbar_failed_suffix": ", hatalar: {count}",
+  "@devices_snackbar_failed_suffix": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "devices_error_revoke_failed": "İptal hatası: {error}",
+  "@devices_error_revoke_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_recovery_title": "E2EE — yedekleme",
+  "e2ee_password_label": "Şifre",
+  "e2ee_password_confirm_label": "Şifreyi onayla",
+  "e2ee_password_min_length": "En az {count} karakter",
+  "@e2ee_password_min_length": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "e2ee_password_mismatch": "Parolalar eşleşmiyor",
+  "e2ee_backup_create_title": "Anahtar yedeği oluştur",
+  "e2ee_backup_restore_title": "Şifreyle geri yükle",
+  "e2ee_backup_restore_action": "Geri yükle",
+  "e2ee_backup_create_error": "Yedek oluşturulamadı: {error}",
+  "@e2ee_backup_create_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_restore_error": "Geri yüklenemedi: {error}",
+  "@e2ee_backup_restore_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_wrong_password": "Yanlış şifre",
+  "e2ee_backup_not_found": "Yedek bulunamadı",
+  "e2ee_recovery_error_generic": "Hata: {error}",
+  "@e2ee_recovery_error_generic": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_backup_password_card_title": "Şifre yedeği",
+  "e2ee_backup_password_card_description": "Özel anahtarınızın şifreli bir yedeğini oluşturun. Tüm cihazlarınızı kaybederseniz, yalnızca parola ile yeni bir cihazda geri yükleyebilirsiniz. Parola kurtarılamaz — güvenli bir yerde saklayın.",
+  "e2ee_backup_overwrite": "Yedeğin üzerine yaz",
+  "e2ee_backup_create": "Yedek oluştur",
+  "e2ee_backup_restore": "Yedekten geri yükle",
+  "e2ee_backup_already_have": "Zaten bir yedeğim var",
+  "e2ee_qr_transfer_title": "Anahtarı QR ile aktar",
+  "e2ee_qr_transfer_description": "Yeni cihazda QR gösterirsiniz, eskisinde taratırsınız. 6 haneli kodu doğrulayın — özel anahtar güvenli bir şekilde aktarılır.",
+  "e2ee_qr_transfer_open": "QR eşleştirmesini aç",
+  "media_viewer_action_reply": "Yanıtla",
+  "media_viewer_action_forward": "İlet",
+  "media_viewer_action_send": "Gönder",
+  "media_viewer_action_save": "Kaydet",
+  "media_viewer_action_show_in_chat": "Sohbette göster",
+  "media_viewer_action_delete": "Sil",
+  "media_viewer_error_no_gallery_access": "Galeriye kaydetme izni yok",
+  "media_viewer_error_share_unavailable_web": "Web'de paylaşım kullanılamıyor",
+  "media_viewer_error_file_not_found": "Dosya bulunamadı",
+  "media_viewer_error_bad_media_url": "Geçersiz medya URL'si",
+  "media_viewer_error_bad_url": "Geçersiz URL",
+  "media_viewer_error_unsupported_media_scheme": "Desteklenmeyen medya türü",
+  "media_viewer_error_http_status": "Sunucu hatası (HTTP {status})",
+  "@media_viewer_error_http_status": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "media_viewer_error_save_failed": "Kaydedilemedi: {error}",
+  "@media_viewer_error_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_error_send_failed": "Gönderilemedi: {error}",
+  "@media_viewer_error_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_viewer_video_playback_speed": "Oynatma hızı",
+  "media_viewer_video_quality": "Kalite",
+  "media_viewer_video_quality_auto": "Otomatik",
+  "media_viewer_error_quality_switch_failed": "Kalite değiştirilemedi",
+  "media_viewer_error_pip_open_failed": "PiP açılamadı",
+  "media_viewer_pip_not_supported": "Bu cihazda pencere içinde pencere desteklenmiyor.",
+  "media_viewer_video_processing": "Bu video sunucuda işleniyor ve yakında kullanılabilir olacak.",
+  "media_viewer_video_playback_failed": "Video oynatılamadı.",
+  "common_none": "Yok",
+  "group_member_role_admin": "Yönetici",
+  "group_member_role_worker": "Üye",
+  "profile_no_photo_to_view": "Görüntülenecek profil fotoğrafı yok.",
+  "profile_chat_id_copied_toast": "Sohbet kimliği kopyalandı",
+  "auth_register_error_open_link": "Bağlantı açılamadı.",
+  "new_chat_error_self_profile_not_found": "Profiliniz dizinde bulunamadı. Çıkış yapıp tekrar giriş yapmayı deneyin.",
+  "disappearing_messages_title": "Kaybolan mesajlar",
+  "disappearing_messages_intro": "Yeni mesajlar, seçilen süre sonunda (gönderildiği andan itibaren) sunucudan otomatik olarak silinir. Daha önce gönderilen mesajlar değiştirilmez.",
+  "disappearing_messages_admin_only": "Bunu yalnızca grup yöneticileri değiştirebilir. Mevcut: {summary}.",
+  "@disappearing_messages_admin_only": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "disappearing_messages_snackbar_off": "Kaybolan mesajlar kapatıldı.",
+  "disappearing_messages_snackbar_updated": "Zamanlayıcı güncellendi.",
+  "disappearing_preset_off": "Kapalı",
+  "disappearing_preset_1h": "1 sa",
+  "disappearing_preset_24h": "24 sa",
+  "disappearing_preset_7d": "7 gün",
+  "disappearing_preset_30d": "30 gün",
+  "disappearing_ttl_summary_off": "Kapalı",
+  "disappearing_ttl_minutes": "{count} dk",
+  "@disappearing_ttl_minutes": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_hours": "{count} sa",
+  "@disappearing_ttl_hours": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_days": "{count} gün",
+  "@disappearing_ttl_days": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "disappearing_ttl_weeks": "{count} hft",
+  "@disappearing_ttl_weeks": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "conversation_profile_e2ee_on": "Açık",
+  "conversation_profile_e2ee_off": "Kapalı",
+  "conversation_profile_e2ee_subtitle_on": "Uçtan uca şifreleme açık. Ayrıntılar için dokunun.",
+  "conversation_profile_e2ee_subtitle_off": "Uçtan uca şifreleme kapalı. Etkinleştirmek için dokunun.",
+  "partner_profile_title_fallback_group": "Grup sohbeti",
+  "partner_profile_title_fallback_saved": "Kayıtlı mesajlar",
+  "partner_profile_title_fallback_chat": "Sohbet",
+  "partner_profile_subtitle_group_member_count": "{count} üye",
+  "@partner_profile_subtitle_group_member_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "partner_profile_subtitle_saved_messages": "Yalnızca sizin için mesajlar ve notlar",
+  "partner_profile_error_cannot_contact_user": "Mevcut iletişim ayarlarıyla bu kullanıcıya ulaşamazsınız.",
+  "partner_profile_error_open_chat": "Sohbet açılamadı: {error}",
+  "@partner_profile_error_open_chat": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "partner_profile_call_peer_fallback": "Eş",
+  "partner_profile_chat_not_created": "Sohbet henüz oluşturulmadı",
+  "partner_profile_notifications_muted": "Bildirimler sessize alındı",
+  "partner_profile_notifications_unmuted": "Bildirimlerin sesi açıldı",
+  "partner_profile_notifications_change_failed": "Bildirimler güncellenemedi",
+  "partner_profile_removed_from_contacts": "Kişilerden kaldırıldı",
+  "partner_profile_remove_contact_failed": "Kişilerden kaldırılamadı",
+  "partner_profile_contact_sent": "Kişi gönderildi",
+  "partner_profile_share_failed_copied": "Paylaşım başarısız. Kişi metni kopyalandı.",
+  "partner_profile_share_contact_header": "LighChat'te kişi",
+  "partner_profile_share_avatar_line": "Avatar: {url}",
+  "@partner_profile_share_avatar_line": {
+    "placeholders": {
+      "url": {}
+    }
+  },
+  "partner_profile_share_profile_line": "Profil: {url}",
+  "@partner_profile_share_profile_line": {
+    "placeholders": {
+      "url": {}
+    }
+  },
+  "partner_profile_share_contact_subject": "LighChat kişi: {name}",
+  "@partner_profile_share_contact_subject": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "partner_profile_tooltip_back": "Geri",
+  "partner_profile_tooltip_close": "Kapat",
+  "partner_profile_edit_contact_short": "Düzenle",
+  "partner_profile_tooltip_copy_chat_id": "Sohbet kimliğini kopyala",
+  "partner_profile_action_chats": "Sohbetler",
+  "partner_profile_action_voice_call": "Ara",
+  "partner_profile_action_video": "Görüntülü",
+  "partner_profile_action_share": "Paylaş",
+  "partner_profile_action_notifications": "Uyarılar",
+  "partner_profile_menu_members": "Üyeler",
+  "partner_profile_menu_edit_group": "Grubu düzenle",
+  "partner_profile_menu_media_links_files": "Medya, bağlantılar ve dosyalar",
+  "partner_profile_menu_starred": "Yıldızlı",
+  "partner_profile_menu_threads": "Konular",
+  "partner_profile_menu_games": "Oyunlar",
+  "partner_profile_menu_block": "Engelle",
+  "partner_profile_menu_unblock": "Engeli kaldır",
+  "partner_profile_menu_notifications": "Bildirimler",
+  "partner_profile_menu_chat_theme": "Sohbet teması",
+  "partner_profile_menu_advanced_privacy": "Gelişmiş sohbet gizliliği",
+  "partner_profile_privacy_trailing_default": "Varsayılan",
+  "partner_profile_menu_encryption": "Şifreleme",
+  "partner_profile_no_common_groups": "ORTAK GRUP YOK",
+  "partner_profile_create_group_with": "{name} ile grup oluştur",
+  "@partner_profile_create_group_with": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "partner_profile_leave_group": "Gruptan ayrıl",
+  "partner_profile_contacts_and_data": "Kişi bilgileri",
+  "partner_profile_field_system_role": "Sistem rolü",
+  "partner_profile_field_email": "E-posta",
+  "partner_profile_field_phone": "Telefon",
+  "partner_profile_field_birthday": "Doğum günü",
+  "partner_profile_field_bio": "Hakkında",
+  "partner_profile_add_to_contacts": "Kişilere ekle",
+  "partner_profile_remove_from_contacts": "Kişilerden kaldır",
+  "thread_search_hint": "Konuda ara…",
+  "thread_search_tooltip_clear": "Temizle",
+  "thread_search_tooltip_search": "Ara",
+  "thread_reply_count": "{count, plural, =0{{count} yanıt} one{{count} yanıt} other{{count} yanıt}}",
+  "@thread_reply_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thread_message_not_found": "Mesaj bulunamadı",
+  "thread_screen_title_fallback": "Konu",
+  "thread_load_replies_error": "Konu hatası: {error}",
+  "@thread_load_replies_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_message_empty_placeholder": "Mesaj",
+  "chat_sender_you": "Siz",
+  "chat_clipboard_nothing_to_paste": "Panodan yapıştırılacak bir şey yok",
+  "chat_clipboard_paste_failed": "Panodan yapıştırılamadı: {error}",
+  "@chat_clipboard_paste_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_send_failed": "Gönderilemedi: {error}",
+  "@chat_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_send_video_circle_failed": "Video notu gönderilemedi: {error}",
+  "@chat_send_video_circle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_service_unavailable": "Hizmet kullanılamıyor",
+  "chat_repository_unavailable": "Sohbet hizmeti kullanılamıyor",
+  "chat_still_loading": "Sohbet hâlâ yükleniyor",
+  "chat_no_participants": "Sohbet katılımcısı yok",
+  "chat_location_ios_geolocator_missing": "Bu iOS derlemesinde konum bağlı değil. mobile/app/ios dizininde pod install çalıştırın ve yeniden derleyin.",
+  "chat_location_services_disabled": "Konum hizmetlerini açın",
+  "chat_location_permission_denied": "Konum kullanma izni yok",
+  "chat_location_send_failed": "Konum gönderilemedi: {error}",
+  "@chat_location_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_poll_send_timeout": "Anket gönderilemedi: zaman aşımı",
+  "chat_poll_send_firebase": "Anket gönderilemedi (Firestore): {details}",
+  "@chat_poll_send_firebase": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "chat_poll_send_known_error": "Anket gönderilemedi: {details}",
+  "@chat_poll_send_known_error": {
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "chat_poll_send_failed": "Anket gönderilemedi: {error}",
+  "@chat_poll_send_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_delete_action_failed": "Silinemedi: {error}",
+  "@chat_delete_action_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_media_transcode_retry_started": "Dönüştürme tekrar denemesi başlatıldı",
+  "chat_media_transcode_retry_failed": "Dönüştürme yeniden denemesi başlatılamadı: {error}",
+  "@chat_media_transcode_retry_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_parent_load_error": "Hata: {error}",
+  "@chat_parent_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_message_not_found_in_loaded_history": "Mesaj yüklenen geçmişte bulunamadı",
+  "chat_finish_editing_first": "Önce düzenlemeyi bitirin",
+  "chat_send_voice_failed": "Sesli mesaj gönderilemedi: {error}",
+  "@chat_send_voice_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_starred_removed": "Yıldızlılardan kaldırıldı",
+  "chat_starred_added": "Yıldızlılara eklendi",
+  "chat_starred_toggle_failed": "Yıldızlılar güncellenemedi: {error}",
+  "@chat_starred_toggle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_reaction_toggle_failed": "Tepki eklenemedi: {error}",
+  "@chat_reaction_toggle_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_emoji_burst_sync_failed": "Emoji efekti senkronize edilemedi: {error}",
+  "@chat_emoji_burst_sync_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_pin_already_pinned": "Mesaj zaten sabitlenmiş",
+  "chat_pin_limit_reached": "Sabitlenmiş mesaj sınırı ({count})",
+  "@chat_pin_limit_reached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chat_pin_failed": "Sabitlenemedi: {error}",
+  "@chat_pin_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_unpin_failed": "Sabitleme kaldırılamadı: {error}",
+  "@chat_unpin_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_text_copied": "Metin kopyalandı",
+  "chat_edit_attachments_not_allowed": "Düzenleme sırasında ekler kullanılamaz",
+  "chat_edit_text_empty": "Metin boş olamaz",
+  "chat_e2ee_unavailable": "Şifreleme kullanılamıyor: {code}",
+  "@chat_e2ee_unavailable": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "chat_save_failed": "Kaydedilemedi: {error}",
+  "@chat_save_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_load_messages_error": "Mesajlar yüklenemedi: {error}",
+  "@chat_load_messages_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_conversation_error": "Sohbet hatası: {error}",
+  "@chat_conversation_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_auth_error": "Kimlik doğrulama hatası: {error}",
+  "@chat_auth_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_poll_label": "Anket",
+  "chat_location_label": "Konum",
+  "chat_attachment_label": "Ek",
+  "chat_media_pick_failed": "Medya seçilemedi: {error}",
+  "@chat_media_pick_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_file_pick_failed": "Dosya seçilemedi: {error}",
+  "@chat_file_pick_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_call_ongoing_video": "Görüntülü arama devam ediyor",
+  "chat_call_ongoing_audio": "Sesli arama devam ediyor",
+  "chat_call_incoming_video": "Gelen görüntülü arama",
+  "chat_call_incoming_audio": "Gelen sesli arama",
+  "message_menu_action_reply": "Yanıtla",
+  "message_menu_action_thread": "Konu",
+  "message_menu_action_copy": "Kopyala",
+  "message_menu_action_edit": "Düzenle",
+  "message_menu_action_pin": "Sabitle",
+  "message_menu_action_star_add": "Yıldızlılara ekle",
+  "message_menu_action_star_remove": "Yıldızlılardan kaldır",
+  "message_menu_action_forward": "İlet",
+  "message_menu_action_select": "Seç",
+  "message_menu_action_delete": "Sil",
+  "message_menu_initiator_deleted": "Mesaj silindi",
+  "message_menu_header_sent": "GÖNDERİLDİ:",
+  "message_menu_header_read": "OKUNDU:",
+  "message_menu_header_expire_at": "KAYBOLMA:",
+  "chat_header_search_hint": "Mesajlarda ara…",
+  "chat_header_tooltip_threads": "Konular",
+  "chat_header_tooltip_search": "Ara",
+  "chat_header_tooltip_video_call": "Görüntülü arama",
+  "chat_header_tooltip_audio_call": "Sesli arama",
+  "conversation_games_title": "Oyunlar",
+  "conversation_games_durak": "Durak",
+  "conversation_games_durak_subtitle": "Lobi oluştur",
+  "conversation_game_lobby_title": "Lobi",
+  "conversation_game_lobby_not_found": "Oyun bulunamadı",
+  "conversation_game_lobby_error": "Hata: {error}",
+  "@conversation_game_lobby_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_create_failed": "Oyun oluşturulamadı: {error}",
+  "@conversation_game_lobby_create_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_game_id": "Kimlik: {id}",
+  "@conversation_game_lobby_game_id": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "conversation_game_lobby_status": "Durum: {status}",
+  "@conversation_game_lobby_status": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "conversation_game_lobby_players": "Oyuncular: {count}/{max}",
+  "@conversation_game_lobby_players": {
+    "placeholders": {
+      "count": {},
+      "max": {}
+    }
+  },
+  "conversation_game_lobby_join": "Katıl",
+  "conversation_game_lobby_start": "Başlat",
+  "conversation_game_lobby_join_failed": "Katılınamadı: {error}",
+  "@conversation_game_lobby_join_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_lobby_start_failed": "Oyun başlatılamadı: {error}",
+  "@conversation_game_lobby_start_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_game_send_test_move": "Test hamlesi",
+  "conversation_game_move_failed": "Hamle reddedildi: {error}",
+  "@conversation_game_move_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "conversation_durak_table_title": "Masa",
+  "conversation_durak_hand_title": "El",
+  "conversation_durak_role_attacker": "Saldırıyor",
+  "conversation_durak_role_defender": "Savunuyor",
+  "conversation_durak_role_thrower": "Atıyor",
+  "conversation_durak_action_attack": "Saldır",
+  "conversation_durak_action_defend": "Savun",
+  "conversation_durak_action_take": "Al",
+  "conversation_durak_action_beat": "Yendi",
+  "conversation_durak_action_transfer": "Aktar",
+  "conversation_durak_action_pass": "Pas",
+  "conversation_durak_badge_taking": "Alıyorum",
+  "conversation_durak_game_finished_title": "Oyun bitti",
+  "conversation_durak_game_finished_no_loser": "Bu sefer kaybeden yok.",
+  "conversation_durak_game_finished_loser": "Kaybeden: {uid}",
+  "@conversation_durak_game_finished_loser": {
+    "placeholders": {
+      "uid": {}
+    }
+  },
+  "conversation_durak_game_finished_winners": "Kazananlar: {uids}",
+  "@conversation_durak_game_finished_winners": {
+    "placeholders": {
+      "uids": {}
+    }
+  },
+  "conversation_durak_winner": "Kazanan!",
+  "conversation_durak_play_again": "Tekrar oyna",
+  "conversation_durak_back_to_chat": "Sohbete dön",
+  "conversation_game_lobby_waiting_opponent": "Rakip bekleniyor…",
+  "conversation_durak_drop_zone": "Oynamak için kartı buraya bırakın",
+  "durak_settings_mode": "Mod",
+  "durak_mode_podkidnoy": "Podkidnoy",
+  "durak_mode_perevodnoy": "Perevodnoy",
+  "durak_settings_max_players": "Oyuncular",
+  "durak_settings_deck": "Deste",
+  "durak_deck_36": "36 kart",
+  "durak_deck_52": "52 kart",
+  "durak_settings_with_jokers": "Jokerler",
+  "durak_settings_turn_timer": "Tur zamanlayıcısı",
+  "durak_turn_timer_off": "Kapalı",
+  "durak_settings_throw_in_policy": "Kim atabilir",
+  "durak_throw_in_policy_all": "Tüm oyuncular (savunan hariç)",
+  "durak_throw_in_policy_neighbors": "Yalnızca savunanın komşuları",
+  "durak_settings_shuler": "Şuler modu",
+  "durak_settings_shuler_subtitle": "Biri ihlal çağrısı yapana kadar kurallara aykırı hamlelere izin verir.",
+  "conversation_durak_action_foul": "İhlal!",
+  "conversation_durak_action_resolve": "Yengiyi Onayla",
+  "conversation_durak_foul_toast": "İhlal! Hileci cezalandırıldı.",
+  "durak_phase_prefix": "Aşama",
+  "durak_phase_attack": "Saldır",
+  "durak_phase_defense": "Savunma",
+  "durak_phase_throw_in": "Atma",
+  "durak_phase_resolution": "Sonuçlandırma",
+  "durak_phase_finished": "Tamamlandı",
+  "durak_phase_pending_foul": "Yengi sonrası ihlal bekleniyor",
+  "durak_phase_pending_foul_hint_attacker": "İhlal çağrısı bekleyin. Kimse çağrı yapmazsa Yengiyi Onaylayın.",
+  "durak_phase_pending_foul_hint_other": "İhlal çağrısı bekleyin. Hile fark ettiyseniz İhlal! deyin.",
+  "durak_phase_hint_can_throw_in": "Atabilirsiniz",
+  "durak_phase_hint_wait": "Sıranızı bekleyin",
+  "durak_now_throwing_in": "Şimdi atan: {name}",
+  "@durak_now_throwing_in": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_selection_selected_count": "{count} seçili",
+  "@chat_selection_selected_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chat_selection_tooltip_forward": "İlet",
+  "chat_selection_tooltip_delete": "Sil",
+  "chat_composer_hint_message": "Bir mesaj yazın…",
+  "chat_composer_tooltip_stickers": "Çıkartmalar",
+  "chat_composer_tooltip_attachments": "Ekler",
+  "chat_list_unread_separator": "Okunmamış mesajlar",
+  "chat_e2ee_decrypt_failed_open_devices": "Şifre çözülemedi. Ayarlar → Cihazlar bölümünü açın",
+  "chat_e2ee_encrypted_message_placeholder": "Şifreli mesaj",
+  "chat_forwarded_from": "{name} adlı kişiden iletildi",
+  "@chat_forwarded_from": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "chat_outbox_retry": "Tekrar dene",
+  "chat_outbox_remove": "Kaldır",
+  "chat_outbox_cancel": "İptal",
+  "chat_message_edited_badge_short": "DÜZENLENDİ",
+  "register_error_enter_name": "Adınızı girin.",
+  "register_error_enter_username": "Bir kullanıcı adı girin.",
+  "register_error_enter_phone": "Bir telefon numarası girin.",
+  "register_error_invalid_phone": "Geçerli bir telefon numarası girin.",
+  "register_error_enter_email": "Bir e-posta girin.",
+  "register_error_enter_password": "Bir şifre girin.",
+  "register_error_repeat_password": "Şifreyi tekrarlayın.",
+  "register_error_dob_format": "Doğum tarihini gg.aa.yyyy biçiminde girin",
+  "register_error_accept_privacy_policy": "Lütfen gizlilik politikasını kabul ettiğinizi onaylayın",
+  "register_privacy_required": "Gizlilik politikasının kabul edilmesi gereklidir",
+  "register_label_name": "Ad",
+  "register_hint_name": "Adınızı girin",
+  "register_label_username": "Kullanıcı adı",
+  "register_hint_username": "Bir kullanıcı adı girin",
+  "register_label_phone": "Telefon",
+  "register_hint_choose_country": "Bir ülke seçin",
+  "register_label_email": "E-posta",
+  "register_hint_email": "E-postanızı girin",
+  "register_label_password": "Şifre",
+  "register_hint_password": "Şifrenizi girin",
+  "register_label_confirm_password": "Şifreyi onayla",
+  "register_hint_confirm_password": "Şifrenizi tekrarlayın",
+  "register_label_dob": "Doğum tarihi",
+  "register_hint_dob": "gg.aa.yyyy",
+  "register_label_bio": "Hakkında",
+  "register_hint_bio": "Kendinizden bahsedin…",
+  "register_privacy_prefix": "Kabul ediyorum ",
+  "register_privacy_link_text": "Kişisel verilerin işlenmesine onay",
+  "register_privacy_and": " ve ",
+  "register_terms_link_text": "Gizlilik politikası kullanıcı sözleşmesi",
+  "register_button_create_account": "Hesap oluştur",
+  "register_country_search_hint": "Ülke veya koda göre arayın",
+  "register_date_picker_help": "Doğum tarihi",
+  "register_date_picker_cancel": "İptal",
+  "register_date_picker_confirm": "Seç",
+  "register_pick_avatar_title": "Avatar seç",
+  "edit_group_title": "Grubu düzenle",
+  "edit_group_save": "Kaydet",
+  "edit_group_cancel": "İptal",
+  "edit_group_name_label": "Grup adı",
+  "edit_group_name_hint": "Ad",
+  "edit_group_description_label": "Açıklama",
+  "edit_group_description_hint": "İsteğe bağlı",
+  "edit_group_pick_photo_tooltip": "Grup fotoğrafı seçmek için dokunun. Kaldırmak için uzun basın.",
+  "edit_group_error_name_required": "Lütfen bir grup adı girin.",
+  "edit_group_error_save_failed": "Grup kaydedilemedi.",
+  "edit_group_error_not_found": "Grup bulunamadı.",
+  "edit_group_error_permission_denied": "Bu grubu düzenleme izniniz yok.",
+  "edit_group_success": "Grup güncellendi.",
+  "edit_group_privacy_section": "GİZLİLİK",
+  "edit_group_privacy_forwarding": "Mesaj iletme",
+  "edit_group_privacy_forwarding_desc": "Üyelerin bu gruptan mesaj iletmesine izin ver.",
+  "edit_group_privacy_screenshots": "Ekran görüntüleri",
+  "edit_group_privacy_screenshots_desc": "Bu grupta ekran görüntülerine izin ver (platforma bağlı).",
+  "edit_group_privacy_copy": "Metin kopyalama",
+  "edit_group_privacy_copy_desc": "Mesaj metnini kopyalamaya izin ver.",
+  "edit_group_privacy_save_media": "Medyayı kaydet",
+  "edit_group_privacy_save_media_desc": "Fotoğrafları ve videoları cihaza kaydetmeye izin ver.",
+  "edit_group_privacy_share_media": "Medyayı paylaş",
+  "edit_group_privacy_share_media_desc": "Medya dosyalarını uygulama dışında paylaşmaya izin ver.",
+  "schedule_message_sheet_title": "Mesajı planla",
+  "schedule_message_long_press_hint": "Planlanmış gönderim",
+  "schedule_message_preset_today_at": "Bugün {time}",
+  "@schedule_message_preset_today_at": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_preset_tomorrow_at": "Yarın {time}",
+  "@schedule_message_preset_tomorrow_at": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_will_send_at": "Gönderilecek: {datetime}",
+  "@schedule_message_will_send_at": {
+    "placeholders": {
+      "datetime": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_must_be_in_future": "Zaman gelecekte olmalıdır (en az bir dakika sonra).",
+  "schedule_message_e2ee_warning": "Bu bir E2EE sohbetidir. Planlanmış mesaj sunucuda düz metin olarak saklanacak ve şifrelenmeden yayınlanacak.",
+  "schedule_message_cancel": "İptal",
+  "schedule_message_confirm": "Planla",
+  "schedule_message_save": "Kaydet",
+  "schedule_message_text_required": "Önce bir mesaj yazın",
+  "schedule_message_attachments_unsupported_mobile": "Ek planlaması şu anda yalnızca web'de destekleniyor",
+  "schedule_message_scheduled_toast": "Planlandı: {datetime}",
+  "@schedule_message_scheduled_toast": {
+    "placeholders": {
+      "datetime": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule_message_failed_toast": "Planlama başarısız: {error}",
+  "@schedule_message_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_screen_title": "Planlanmış mesajlar",
+  "scheduled_messages_empty_title": "Planlanmış mesaj yok",
+  "scheduled_messages_empty_hint": "Mesaj planlamak için Gönder düğmesini basılı tutun.",
+  "scheduled_messages_load_failed": "Yüklenemedi: {error}",
+  "@scheduled_messages_load_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_e2ee_notice": "E2EE sohbetinde, planlanmış mesajlar düz metin olarak saklanır ve yayınlanır.",
+  "scheduled_messages_cancel_dialog_title": "Planlanmış gönderim iptal edilsin mi?",
+  "scheduled_messages_cancel_dialog_body": "Planlanmış mesaj silinecek.",
+  "scheduled_messages_cancel_dialog_keep": "Sakla",
+  "scheduled_messages_cancel_dialog_confirm": "İptal",
+  "scheduled_messages_canceled_toast": "İptal edildi",
+  "scheduled_messages_time_changed_toast": "Zaman değiştirildi: {datetime}",
+  "@scheduled_messages_time_changed_toast": {
+    "placeholders": {
+      "datetime": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_action_failed_toast": "Hata: {error}",
+  "@scheduled_messages_action_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_tile_edit_tooltip": "Zamanı değiştir",
+  "scheduled_messages_tile_cancel_tooltip": "İptal",
+  "scheduled_messages_preview_poll": "Anket: {question}",
+  "@scheduled_messages_preview_poll": {
+    "placeholders": {
+      "question": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduled_messages_preview_location": "Konum",
+  "scheduled_messages_preview_attachment": "Ek",
+  "scheduled_messages_preview_attachment_count": "Ek (×{count})",
+  "@scheduled_messages_preview_attachment_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduled_messages_preview_message": "Mesaj",
+  "chat_header_tooltip_scheduled": "Planlanmış mesajlar",
+  "schedule_date_label": "Tarih",
+  "schedule_time_label": "Saat",
+  "common_done": "Bitti",
+  "common_send": "Gönder",
+  "common_open": "Aç",
+  "common_add": "Ekle",
+  "common_search": "Ara",
+  "common_edit": "Düzenle",
+  "common_next": "Sonraki",
+  "common_ok": "Tamam",
+  "common_confirm": "Onayla",
+  "common_ready": "Hazır",
+  "common_error": "Hata",
+  "common_yes": "Evet",
+  "common_no": "Hayır",
+  "common_back": "Geri",
+  "common_continue": "Devam et",
+  "common_loading": "Yükleniyor…",
+  "common_copy": "Kopyala",
+  "common_share": "Paylaş",
+  "common_settings": "Ayarlar",
+  "common_today": "Bugün",
+  "common_yesterday": "Dün",
+  "e2ee_qr_title": "QR anahtar eşleştirmesi",
+  "e2ee_qr_uid_error": "Kullanıcı uid alınamadı.",
+  "e2ee_qr_session_ended_error": "İkinci cihaz yanıt vermeden oturum sona erdi.",
+  "e2ee_qr_no_data_error": "Anahtarı uygulamak için veri yok.",
+  "e2ee_qr_key_transferred_toast": "Anahtar aktarıldı. Oturumları yenilemek için sohbetlere tekrar girin.",
+  "e2ee_qr_wrong_account_error": "QR farklı bir hesap için oluşturuldu.",
+  "e2ee_qr_explainer_title": "Bu nedir",
+  "e2ee_qr_explainer_text": "Özel anahtarı ECDH + QR ile bir cihazınızdan diğerine aktarın. Her iki taraf da manuel doğrulama için 6 haneli bir kod görür.",
+  "e2ee_qr_show_qr_label": "Yeni cihazdayım — QR göster",
+  "e2ee_qr_scan_qr_label": "Zaten anahtarım var — QR tara",
+  "e2ee_qr_scan_hint": "Anahtarı zaten olan eski cihazdaki QR'ı tarayın.",
+  "e2ee_qr_verify_code_label": "6 haneli kodu eski cihazla doğrulayın:",
+  "e2ee_qr_transfer_from_device_label": "Cihazdan aktar: {label}",
+  "@e2ee_qr_transfer_from_device_label": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_qr_code_match_apply_label": "Kod eşleşiyor — uygula",
+  "e2ee_qr_key_success_label": "Anahtar bu cihaza başarıyla aktarıldı. Sohbetlere tekrar girin.",
+  "e2ee_qr_unknown_error": "Bilinmeyen hata",
+  "e2ee_qr_back_to_pick_label": "Seçime geri dön",
+  "e2ee_qr_donor_scan_hint": "Kamerayı yeni cihazda gösterilen QR'a doğrultun.",
+  "e2ee_qr_donor_verify_code_label": "Kodu yeni cihazla doğrulayın:",
+  "e2ee_qr_donor_verify_hint": "Kod eşleşiyorsa — yeni cihazda onaylayın. Eşleşmiyorsa hemen İptal'e basın.",
+  "e2ee_encrypt_title": "Şifreleme",
+  "e2ee_encrypt_enable_dialog_title": "Şifreleme etkinleştirilsin mi?",
+  "e2ee_encrypt_enable_dialog_body": "Yeni mesajlar yalnızca sizin ve kişinizin cihazlarında kullanılabilir olacak. Eski mesajlar oldukları gibi kalacak.",
+  "e2ee_encrypt_enable_label": "Etkinleştir",
+  "e2ee_encrypt_disable_dialog_title": "Şifreleme devre dışı bırakılsın mı?",
+  "e2ee_encrypt_disable_dialog_body": "Yeni mesajlar uçtan uca şifreleme olmadan gönderilecek. Daha önce gönderilen şifreli mesajlar akışta kalacak.",
+  "e2ee_encrypt_disable_label": "Devre dışı bırak",
+  "e2ee_encrypt_status_on": "Bu sohbet için uçtan uca şifreleme etkinleştirildi.",
+  "e2ee_encrypt_status_off": "Uçtan uca şifreleme devre dışı.",
+  "e2ee_encrypt_description": "Şifreleme etkinleştirildiğinde, yeni mesaj içeriği yalnızca sohbet katılımcılarının cihazlarında kullanılabilir. Devre dışı bırakmak yalnızca yeni mesajları etkiler.",
+  "e2ee_encrypt_switch_title": "Şifrelemeyi etkinleştir",
+  "e2ee_encrypt_switch_on": "Etkin (anahtar dönemi: {epoch})",
+  "@e2ee_encrypt_switch_on": {
+    "placeholders": {
+      "epoch": {
+        "type": "int"
+      }
+    }
+  },
+  "e2ee_encrypt_switch_off": "Devre dışı",
+  "e2ee_encrypt_already_on_toast": "Şifreleme zaten etkin veya anahtar oluşturma başarısız oldu. Ağı ve kişinizin anahtarlarını kontrol edin.",
+  "e2ee_encrypt_no_device_toast": "Etkinleştirilemedi: kişinin anahtarlı aktif bir cihazı yok.",
+  "e2ee_encrypt_enable_failed_toast": "Şifreleme etkinleştirilemedi: {error}",
+  "@e2ee_encrypt_enable_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_encrypt_disable_failed_toast": "Devre dışı bırakılamadı: {error}",
+  "@e2ee_encrypt_disable_failed_toast": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "e2ee_encrypt_data_types_title": "Veri türleri",
+  "e2ee_encrypt_data_types_description": "Bu ayar protokolü değiştirmez. Hangi veri türlerinin şifreli gönderileceğini kontrol eder.",
+  "e2ee_encrypt_override_title": "Bu sohbet için şifreleme ayarları",
+  "e2ee_encrypt_override_on": "Sohbet düzeyinde ayarlar kullanılıyor.",
+  "e2ee_encrypt_override_off": "Genel ayarlar devralınıyor.",
+  "e2ee_encrypt_text_title": "Mesaj metni",
+  "e2ee_encrypt_media_title": "Ekler (medya/dosyalar)",
+  "e2ee_encrypt_override_hint": "Bu sohbet için değiştirmek istiyorsanız — geçersiz kılmayı etkinleştirin.",
+  "sticker_default_pack_name": "Paketim",
+  "sticker_new_pack_dialog_title": "Yeni çıkartma paketi",
+  "sticker_pack_name_hint": "Ad",
+  "sticker_save_to_pack": "Çıkartma paketine kaydet",
+  "sticker_no_packs_hint": "Paket yok. Çıkartmalar sekmesinde bir tane oluşturun.",
+  "sticker_new_pack_option": "Yeni paket…",
+  "sticker_pick_image_or_gif": "Bir resim veya GIF seçin",
+  "sticker_send_failed": "Gönderme başarısız: {error}",
+  "@sticker_send_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sticker_saved_to_pack": "Çıkartma paketine kaydedildi",
+  "sticker_save_gif_failed": "GIF indirilemedi veya kaydedilemedi",
+  "sticker_delete_pack_title": "Paket silinsin mi?",
+  "sticker_delete_pack_body": "\"{name}\" ve içindeki tüm çıkartmalar silinecek.",
+  "@sticker_delete_pack_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sticker_pack_deleted": "Paket silindi",
+  "sticker_pack_delete_failed": "Paket silinemedi",
+  "sticker_tab_emoji": "EMOJİ",
+  "sticker_tab_stickers": "ÇIKARTMALAR",
+  "sticker_tab_gif": "GIF",
+  "sticker_scope_my": "Benim",
+  "sticker_scope_public": "Herkese açık",
+  "sticker_new_pack_tooltip": "Yeni paket",
+  "sticker_pack_created": "Çıkartma paketi oluşturuldu",
+  "sticker_no_packs_create": "Çıkartma paketi yok. Bir tane oluşturun.",
+  "sticker_public_packs_empty": "Herkese açık paket yapılandırılmadı",
+  "sticker_section_recent": "SON KULLANILANLAR",
+  "sticker_pack_empty_hint": "Paket boş. Cihazdan ekleyin (GIF sekmesi — \"Paketime\").",
+  "sticker_delete_sticker_title": "Çıkartma silinsin mi?",
+  "sticker_deleted": "Silindi",
+  "sticker_gallery": "Galeri",
+  "sticker_gallery_subtitle": "Cihazdan fotoğraflar, PNG, GIF — doğrudan sohbete",
+  "gif_search_hint": "GIF ara…",
+  "gif_translated_hint": "Aranan: {query}",
+  "@gif_translated_hint": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_search_unavailable": "GIF araması geçici olarak kullanılamıyor.",
+  "gif_filter_all": "Tümü",
+  "sticker_section_animated": "HAREKETLİ",
+  "sticker_emoji_unavailable": "Bu pencere için emoji-metin dönüşümü kullanılamıyor.",
+  "sticker_create_pack_hint": "+ düğmesiyle bir paket oluşturun",
+  "sticker_public_packs_unavailable": "Herkese açık paketler henüz mevcut değil",
+  "composer_link_title": "Bağlantı",
+  "composer_link_apply": "Uygula",
+  "composer_attach_title": "Ekle",
+  "composer_attach_photo_video": "Fotoğraf/Video",
+  "composer_attach_files": "Dosyalar",
+  "composer_attach_video_circle": "Video daire",
+  "composer_attach_location": "Konum",
+  "composer_attach_poll": "Anket",
+  "composer_attach_stickers": "Çıkartmalar",
+  "composer_attach_clipboard": "Pano",
+  "composer_attach_text": "Metin",
+  "meeting_create_poll": "Anket oluştur",
+  "meeting_min_two_options": "En az 2 cevap seçeneği gereklidir",
+  "meeting_error_with_details": "Hata: {details}",
+  "@meeting_error_with_details": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_polls_load_error": "Anketler yüklenemedi: {details}",
+  "@meeting_polls_load_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_no_polls_yet": "Henüz anket yok",
+  "meeting_question_label": "Soru",
+  "meeting_options_label": "Seçenekler",
+  "meeting_option_hint": "Seçenek {index}",
+  "@meeting_option_hint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_add_option": "Seçenek ekle",
+  "meeting_anonymous": "Anonim",
+  "meeting_anonymous_subtitle": "Başkalarının tercihlerini kim görebilir",
+  "meeting_save_as_draft": "Taslak olarak kaydet",
+  "meeting_publish": "Yayınla",
+  "meeting_action_start": "Başlat",
+  "meeting_action_change_vote": "Oyu değiştir",
+  "meeting_action_restart": "Yeniden başlat",
+  "meeting_action_stop": "Durdur",
+  "meeting_vote_failed": "Oy sayılmadı: {details}",
+  "@meeting_vote_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_status_ended": "Sona erdi",
+  "meeting_status_draft": "Taslak",
+  "meeting_status_active": "Aktif",
+  "meeting_status_public": "Herkese açık",
+  "meeting_votes_count": "{count} oy",
+  "@meeting_votes_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_goal_count": "Hedef: {count}",
+  "@meeting_goal_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_hide": "Gizle",
+  "meeting_who_voted": "Kim oy verdi",
+  "meeting_participants_tab": "Üyeler ({count})",
+  "@meeting_participants_tab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_polls_tab_active": "Anketler ({count})",
+  "@meeting_polls_tab_active": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_polls_tab": "Anketler",
+  "meeting_chat_tab_unread": "Sohbet ({count})",
+  "@meeting_chat_tab_unread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_chat_tab": "Sohbet",
+  "meeting_requests_tab": "İstekler ({count})",
+  "@meeting_requests_tab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meeting_you_suffix": "{name} (Siz)",
+  "@meeting_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_host_label": "Ev sahibi",
+  "meeting_force_mute_mic": "Mikrofonu sessize al",
+  "meeting_force_mute_camera": "Kamerayı kapat",
+  "meeting_kick_from_room": "Odadan kaldır",
+  "meeting_chat_load_error": "Sohbet yüklenemedi: {error}",
+  "@meeting_chat_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_no_requests": "Yeni istek yok",
+  "meeting_no_messages_yet": "Henüz mesaj yok",
+  "meeting_file_too_large": "Dosya çok büyük: {name}",
+  "@meeting_file_too_large": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_send_failed": "Gönderilemedi: {details}",
+  "@meeting_send_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_edit_message_title": "Mesajı düzenle",
+  "meeting_save_failed": "Kaydedilemedi: {details}",
+  "@meeting_save_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_delete_message_title": "Mesaj silinsin mi?",
+  "meeting_delete_message_body": "Üyeler \"Mesaj silindi\" görecek.",
+  "meeting_delete_failed": "Silinemedi: {details}",
+  "@meeting_delete_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_message_hint": "Mesaj…",
+  "meeting_message_deleted": "Mesaj silindi",
+  "meeting_message_edited": "• düzenlendi",
+  "meeting_copy_action": "Kopyala",
+  "meeting_edit_action": "Düzenle",
+  "meeting_join_title": "Katıl",
+  "meeting_loading_error": "Toplantı yüklenirken hata: {details}",
+  "@meeting_loading_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_not_found": "Toplantı bulunamadı veya kapatıldı",
+  "meeting_private_description": "Özel toplantı: ev sahibi isteğinizden sonra sizi kabul edip etmeyeceğine karar verecek.",
+  "meeting_public_description": "Açık toplantı: bekleme olmadan bağlantıyla katılın.",
+  "meeting_your_name_label": "Adınız",
+  "meeting_enter_name_error": "Adınızı girin",
+  "meeting_guest_name": "Misafir",
+  "meeting_enter_room": "Odaya gir",
+  "meeting_request_join": "Katılma isteği",
+  "meeting_approved_title": "Onaylandı",
+  "meeting_approved_subtitle": "Odaya yönlendiriliyor…",
+  "meeting_denied_title": "Reddedildi",
+  "meeting_denied_subtitle": "Ev sahibi isteğinizi reddetti.",
+  "meeting_pending_title": "Onay bekleniyor",
+  "meeting_pending_subtitle": "Ev sahibi isteğinizi görecek ve sizi ne zaman kabul edeceğine karar verecek.",
+  "meeting_load_error": "Toplantı yüklenemedi: {details}",
+  "@meeting_load_error": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_init_error": "Başlatma hatası: {error}",
+  "@meeting_init_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_participants_error": "Üyeler: {error}",
+  "@meeting_participants_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_bg_unavailable": "Arka plan kullanılamıyor: {error}",
+  "@meeting_bg_unavailable": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_leave": "Ayrıl",
+  "meeting_screen_share_ios": "iOS'ta ekran paylaşımı Broadcast Extension gerektirir (bir sonraki sürümde gelecek)",
+  "meeting_screen_share_failed": "Ekran paylaşımı başlatılamadı: {details}",
+  "@meeting_screen_share_failed": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_tooltip_speaker_mode": "Konuşmacı modu",
+  "meeting_tooltip_grid_mode": "Izgara modu",
+  "meeting_tooltip_copy_link": "Bağlantıyı kopyala (tarayıcıyla katılım)",
+  "meeting_mic_on": "Sesi aç",
+  "meeting_mic_off": "Sessize al",
+  "meeting_camera_on": "Kamera açık",
+  "meeting_camera_off": "Kamera kapalı",
+  "meeting_switch_camera": "Değiştir",
+  "meeting_hand_lower": "İndir",
+  "meeting_hand_raise": "El",
+  "meeting_reaction": "Tepki",
+  "meeting_screen_stop": "Durdur",
+  "meeting_screen_label": "Ekran",
+  "meeting_bg_off": "AP",
+  "meeting_bg_blur": "Bulanıklaştır",
+  "meeting_bg_image": "Resim",
+  "meeting_participants_button": "Üyeler",
+  "contacts_title": "Kişiler",
+  "contacts_add_phone_prompt": "Numaraya göre kişi aramak için profilinize bir telefon numarası ekleyin.",
+  "contacts_fallback_profile": "Profil",
+  "contacts_fallback_user": "Kullanıcı",
+  "contacts_status_online": "çevrimiçi",
+  "contacts_status_recently": "Son zamanlarda görüldü",
+  "contacts_status_today_at": "Son görülme {time}",
+  "@contacts_status_today_at": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_status_yesterday": "Dün görüldü",
+  "contacts_status_year_ago": "Bir yıl önce görüldü",
+  "contacts_status_years_ago": "{years} önce görüldü",
+  "@contacts_status_years_ago": {
+    "placeholders": {
+      "years": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_status_date": "Son görülme {date}",
+  "@contacts_status_date": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_empty_state": "Kişi bulunamadı.\nTelefon rehberinizi senkronize etmek için sağdaki düğmeye dokunun.",
+  "add_contact_title": "Yeni kişi",
+  "add_contact_sync_off": "Uygulamada senkronizasyon kapalı.",
+  "add_contact_enable_system_access": "Sistem ayarlarında LighChat için kişi erişimini etkinleştirin.",
+  "add_contact_sync_on": "Senkronizasyon açık",
+  "add_contact_sync_failed": "Kişi senkronizasyonu etkinleştirilemedi",
+  "add_contact_invalid_phone": "Geçerli bir telefon numarası girin",
+  "add_contact_not_found_by_phone": "Bu numara için kişi bulunamadı",
+  "add_contact_found": "Kişi bulundu",
+  "add_contact_search_error": "Arama başarısız: {error}",
+  "@add_contact_search_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_qr_no_profile": "QR kodu LighChat profili içermiyor",
+  "add_contact_qr_own_profile": "Bu sizin kendi profiliniz",
+  "add_contact_qr_profile_not_found": "QR kodundaki profil bulunamadı",
+  "add_contact_qr_found": "QR kodu ile kişi bulundu",
+  "add_contact_qr_read_error": "QR kodu okunamadı: {error}",
+  "@add_contact_qr_read_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_cannot_add_user": "Bu kullanıcı eklenemiyor",
+  "add_contact_add_error": "Kişi eklenemedi: {error}",
+  "@add_contact_add_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_country_search_hint": "Ülke veya kod ara",
+  "add_contact_sync_with_phone": "Telefonla senkronize et",
+  "add_contact_add_by_qr": "QR kodu ile ekle",
+  "add_contact_results_unavailable": "Sonuçlar henüz mevcut değil",
+  "add_contact_profile_load_error": "Kişi yüklenemedi: {error}",
+  "@add_contact_profile_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "add_contact_profile_not_found": "Profil bulunamadı",
+  "add_contact_badge_already_added": "Zaten eklendi",
+  "add_contact_badge_new": "Yeni kişi",
+  "add_contact_badge_unavailable": "Kullanılamıyor",
+  "add_contact_open_contact": "Kişiyi aç",
+  "add_contact_add_to_contacts": "Kişilere ekle",
+  "add_contact_add_unavailable": "Ekleme kullanılamıyor",
+  "add_contact_searching": "Kişi aranıyor...",
+  "add_contact_scan_qr_title": "QR kodu tara",
+  "add_contact_flash_tooltip": "Flaş",
+  "add_contact_scan_qr_hint": "Kameranızı bir LighChat profil QR koduna doğrultun",
+  "contacts_edit_enter_name": "Kişi adını girin.",
+  "contacts_edit_save_error": "Kişi kaydedilemedi: {error}",
+  "@contacts_edit_save_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "contacts_edit_first_name_hint": "Ad",
+  "contacts_edit_last_name_hint": "Soyad",
+  "contacts_edit_name_disclaimer": "Bu ad yalnızca sizin görebildiğiniz bir addır: sohbetlerde, aramada ve kişi listesinde.",
+  "contacts_edit_error": "Hata: {error}",
+  "@contacts_edit_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_settings_color_default": "Varsayılan",
+  "chat_settings_color_lilac": "Leylak",
+  "chat_settings_color_pink": "Pembe",
+  "chat_settings_color_green": "Yeşil",
+  "chat_settings_color_coral": "Mercan",
+  "chat_settings_color_mint": "Nane",
+  "chat_settings_color_sky": "Gökyüzü",
+  "chat_settings_color_purple": "Mor",
+  "chat_settings_color_crimson": "Koyu kırmızı",
+  "chat_settings_color_tiffany": "Tiffany",
+  "chat_settings_color_yellow": "Sarı",
+  "chat_settings_color_powder": "Pudra",
+  "chat_settings_color_turquoise": "Turkuaz",
+  "chat_settings_color_blue": "Mavi",
+  "chat_settings_color_sunset": "Gün batımı",
+  "chat_settings_color_tender": "Zarif",
+  "chat_settings_color_lime": "Yeşil limon",
+  "chat_settings_color_graphite": "Grafit",
+  "chat_settings_color_no_bg": "Arka plan yok",
+  "chat_settings_icon_color": "Simge rengi",
+  "chat_settings_icon_size": "Simge boyutu",
+  "chat_settings_stroke_width": "Kalınlık",
+  "chat_settings_tile_background": "Döşeme arka planı",
+  "chat_settings_bottom_nav_icons": "Alt gezinme simgeleri",
+  "chat_settings_bottom_nav_description": "Web'deki gibi simgeler ve görsel stil seçin.",
+  "chat_settings_bottom_nav_global_description": "Paylaşılan katman: renk, boyut, kalınlık ve döşeme arka planı.",
+  "chat_settings_colorful": "Renkli",
+  "chat_settings_minimalism": "Minimal",
+  "chat_settings_for_all_icons": "Tüm simgeler için",
+  "chat_settings_customize": "Özelleştir",
+  "chat_settings_hide": "Gizle",
+  "chat_settings_reset": "Sıfırla",
+  "chat_settings_reset_item": "Sıfırla",
+  "chat_settings_style": "Stil",
+  "chat_settings_select": "Seç",
+  "chat_settings_reset_size": "Boyutu sıfırla",
+  "chat_settings_reset_stroke": "Kalınlığı sıfırla",
+  "chat_settings_default_gradient": "Varsayılan gradyan",
+  "chat_settings_inherit_global": "Genelden devral",
+  "chat_settings_no_bg_on": "Arka plan yok (açık)",
+  "chat_settings_no_bg": "Arka plan yok",
+  "chat_settings_outgoing_messages": "Giden mesajlar",
+  "chat_settings_incoming_messages": "Gelen mesajlar",
+  "chat_settings_font_size": "Yazı tipi boyutu",
+  "chat_settings_font_small": "Küçük",
+  "chat_settings_font_medium": "Orta",
+  "chat_settings_font_large": "Büyük",
+  "chat_settings_bubble_shape": "Balon şekli",
+  "chat_settings_bubble_rounded": "Yuvarlak",
+  "chat_settings_bubble_square": "Kare",
+  "chat_settings_chat_background": "Sohbet arka planı",
+  "chat_settings_background_hint": "Galeriden bir fotoğraf seçin veya özelleştirin",
+  "chat_settings_emoji_effects": "Emoji efektleri",
+  "chat_settings_emoji_description": "Sohbette dokunmayla tam ekran emoji patlaması için animasyon profili.",
+  "chat_settings_emoji_lite": "Hafif: minimum yük, düşük performanslı cihazlarda en akıcı.",
+  "chat_settings_emoji_cinematic": "Sinematik: etkileyici bir efekt için maksimum parçacık ve derinlik.",
+  "chat_settings_emoji_balanced": "Dengeli: performans ve ifade gücü arasında otomatik uzlaşma.",
+  "chat_settings_additional": "Ek",
+  "chat_settings_show_time": "Saati göster",
+  "chat_settings_show_time_hint": "Mesajların altında gönderim zamanı",
+  "chat_settings_reset_all": "Ayarları sıfırla",
+  "chat_settings_preview_incoming": "Merhaba! Nasılsınız?",
+  "chat_settings_preview_outgoing": "Harika, teşekkürler!",
+  "chat_settings_preview_hello": "Merhaba",
+  "chat_settings_icon_picker_title": "Simge: “{label}”",
+  "@chat_settings_icon_picker_title": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_settings_search_hint": "Ada göre ara (İng.)...",
+  "meeting_tab_participants": "Üyeler ({count})",
+  "@meeting_tab_participants": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_polls": "Anketler",
+  "meeting_tab_polls_count": "Anketler ({count})",
+  "@meeting_tab_polls_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_chat": "Sohbet",
+  "meeting_tab_chat_count": "Sohbet ({count})",
+  "@meeting_tab_chat_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_tab_requests": "İstekler ({count})",
+  "@meeting_tab_requests": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "meeting_kick": "Odadan kaldır",
+  "meeting_file_too_big": "Dosya çok büyük: {name}",
+  "@meeting_file_too_big": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_send_error": "Gönderilemedi: {error}",
+  "@meeting_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_save_error": "Kaydedilemedi: {error}",
+  "@meeting_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_delete_error": "Silinemedi: {error}",
+  "@meeting_delete_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_no_messages": "Henüz mesaj yok",
+  "meeting_join_enter_name": "Adınızı girin",
+  "meeting_join_guest": "Misafir",
+  "meeting_join_button": "Katıl",
+  "meeting_join_load_error": "Toplantı yükleme hatası: {error}",
+  "@meeting_join_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_private_hint": "Özel toplantı: ev sahibi isteğinizden sonra sizi kabul edip etmeyeceğine karar verecek.",
+  "meeting_public_hint": "Açık toplantı: bekleme olmadan bağlantıyla katılın.",
+  "meeting_name_label": "Adınız",
+  "meeting_waiting_title": "Onay bekleniyor",
+  "meeting_waiting_subtitle": "Ev sahibi isteğinizi görecek ve sizi ne zaman kabul edeceğine karar verecek.",
+  "meeting_screen_share_ios_hint": "iOS'ta ekran paylaşımı bir Broadcast Extension gerektirir (geliştirme aşamasında).",
+  "meeting_screen_share_error": "Ekran paylaşımı başlatılamadı: {error}",
+  "@meeting_screen_share_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_speaker_mode": "Konuşmacı modu",
+  "meeting_grid_mode": "Izgara modu",
+  "meeting_copy_link_tooltip": "Bağlantıyı kopyala (tarayıcı girişi)",
+  "pinned_count": "Sabitlenen: {count}",
+  "@pinned_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pinned_single": "Sabitlenmiş",
+  "pinned_unpin_tooltip": "Sabitlemeyi kaldır",
+  "pinned_type_image": "Resim",
+  "pinned_type_video": "Video",
+  "pinned_type_video_circle": "Video daire",
+  "pinned_type_voice": "Sesli mesaj",
+  "pinned_type_poll": "Anket",
+  "pinned_type_link": "Bağlantı",
+  "pinned_type_location": "Konum",
+  "pinned_type_sticker": "Çıkartma",
+  "pinned_type_file": "Dosya",
+  "call_entry_login_required_title": "Giriş gerekli",
+  "call_entry_login_required_subtitle": "Uygulamayı açın ve hesabınıza giriş yapın.",
+  "call_entry_not_found_title": "Arama bulunamadı",
+  "call_entry_not_found_subtitle": "Arama zaten sona erdi veya silindi. Aramalara dönülüyor…",
+  "call_entry_to_calls": "Aramalara",
+  "call_entry_ended_title": "Arama sona erdi",
+  "call_entry_ended_subtitle": "Bu arama artık mevcut değil. Aramalara dönülüyor…",
+  "call_entry_caller_fallback": "Arayan",
+  "call_entry_opening_title": "Arama açılıyor…",
+  "call_entry_connecting_video": "Görüntülü aramaya bağlanılıyor",
+  "call_entry_connecting_audio": "Sesli aramaya bağlanılıyor",
+  "call_entry_loading_subtitle": "Arama verileri yükleniyor",
+  "call_entry_error_title": "Arama açılırken hata",
+  "chat_theme_save_error": "Arka plan kaydedilemedi: {error}",
+  "@chat_theme_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_load_error": "Arka plan yükleme hatası: {error}",
+  "@chat_theme_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_delete_title": "Arka plan galeriden silinsin mi?",
+  "chat_theme_delete_body": "Görsel arka planlar listenizden kaldırılacak. Bu sohbet için başka bir tane seçebilirsiniz.",
+  "chat_theme_delete_error": "Silme hatası: {error}",
+  "@chat_theme_delete_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "chat_theme_title": "Sohbet teması",
+  "chat_theme_description": "Bu sohbetin arka planı yalnızca sizin tarafınızdan görülebilir. Sohbet Ayarları bölümündeki genel sohbet ayarları etkilenmez.",
+  "chat_theme_current_bg": "Mevcut arka plan",
+  "chat_theme_default_bg": "Varsayılan (genel ayarlar)",
+  "chat_theme_presets": "Ön ayarlar",
+  "chat_theme_global_label": "Genel",
+  "chat_theme_hint": "Bir ön ayar veya galeriden fotoğraf seçin",
+  "date_today": "Bugün",
+  "date_yesterday": "Dün",
+  "date_month_1": "Ocak",
+  "date_month_2": "Şubat",
+  "date_month_3": "Mart",
+  "date_month_4": "Nisan",
+  "date_month_5": "Mayıs",
+  "date_month_6": "Haziran",
+  "date_month_7": "Temmuz",
+  "date_month_8": "Ağustos",
+  "date_month_9": "Eylül",
+  "date_month_10": "Ekim",
+  "date_month_11": "Kasım",
+  "date_month_12": "Aralık",
+  "video_circle_camera_unavailable": "Kamera kullanılamıyor",
+  "video_circle_camera_error": "Kamera açılamadı: {error}",
+  "@video_circle_camera_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_record_error": "Kayıt hatası: {error}",
+  "@video_circle_record_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_file_not_found": "Kayıt dosyası bulunamadı",
+  "video_circle_play_error": "Kayıt oynatılamadı",
+  "video_circle_send_error": "Gönderme başarısız: {error}",
+  "@video_circle_send_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_switch_error": "Kamera değiştirilemedi: {error}",
+  "@video_circle_switch_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_pause_error_detail": "Duraklatma kullanılamıyor: {description} ({code})",
+  "@video_circle_pause_error_detail": {
+    "placeholders": {
+      "description": {},
+      "code": {}
+    }
+  },
+  "video_circle_pause_error": "Kayıt duraklatma: {error}",
+  "@video_circle_pause_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_circle_camera_fallback_error": "Kamera hatası",
+  "video_circle_retry": "Tekrar dene",
+  "video_circle_sending": "Gönderiliyor...",
+  "video_circle_recorded": "Daire kaydedildi",
+  "video_circle_swipe_cancel": "İptal etmek için sola kaydırın",
+  "media_screen_error": "Medya yüklenirken hata: {error}",
+  "@media_screen_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "media_screen_title": "Medya, bağlantılar ve dosyalar",
+  "media_tab_media": "Medya",
+  "media_tab_circles": "Daireler",
+  "media_tab_files": "Dosyalar",
+  "media_tab_links": "Bağlantılar",
+  "media_empty_files": "Dosya yok",
+  "media_empty_media": "Medya yok",
+  "media_attachment_fallback": "Ek",
+  "media_empty_circles": "Daire yok",
+  "media_empty_links": "Bağlantı yok",
+  "media_sender_you": "Siz",
+  "media_sender_fallback": "Katılımcı",
+  "call_detail_login_required": "Giriş gerekli.",
+  "call_detail_not_found": "Arama bulunamadı veya erişim yok.",
+  "call_detail_unknown": "Bilinmeyen",
+  "call_detail_title": "Arama ayrıntıları",
+  "call_detail_video": "Görüntülü arama",
+  "call_detail_audio": "Sesli arama",
+  "call_detail_outgoing": "Giden",
+  "call_detail_incoming": "Gelen",
+  "call_detail_date_label": "Tarih:",
+  "call_detail_duration_label": "Süre:",
+  "call_detail_call_button": "Ara",
+  "call_detail_video_button": "Görüntülü",
+  "call_detail_error": "Hata: {error}",
+  "@call_detail_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "durak_your_turn": "Sıranız",
+  "durak_took": "Aldı",
+  "durak_beaten": "Yenildi",
+  "durak_end_game_tooltip": "Oyunu bitir",
+  "durak_close_tooltip": "Kapat",
+  "durak_role_beats": "SAV",
+  "durak_role_move": "HAM",
+  "durak_role_throw": "AT",
+  "durak_cheater_label": "Hileci! Kaçırılan:",
+  "durak_waiting_foll_confirm": "İhlal çağrısı bekleniyor… Herkes hemfikirse \"Yengiyi Onayla\"ya basın.",
+  "durak_waiting_foll_call": "İhlal çağrısı bekleniyor… Hile fark ettiyseniz \"İhlal!\" düğmesine basabilirsiniz.",
+  "durak_winner": "Kazanan",
+  "durak_play_again": "Tekrar oyna",
+  "durak_games_progress": "{finished}/{total} oynandı",
+  "@durak_games_progress": {
+    "placeholders": {
+      "finished": {},
+      "total": {}
+    }
+  },
+  "durak_tournament_finished": "Turnuva tamamlandı",
+  "durak_next_round": "Sonraki turnuva turu",
+  "audio_call_error": "Arama hatası: {error}",
+  "@audio_call_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "audio_call_ended": "Arama sona erdi",
+  "audio_call_missed": "Cevapsız arama",
+  "audio_call_cancelled": "Arama iptal edildi",
+  "audio_call_offer_not_ready": "Teklif henüz hazır değil, tekrar deneyin",
+  "audio_call_invalid_data": "Geçersiz arama verisi",
+  "audio_call_accept_error": "Arama kabul edilemedi: {error}",
+  "@audio_call_accept_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "audio_call_incoming": "Gelen sesli arama",
+  "audio_call_calling": "Sesli arama…",
+  "privacy_save_error": "Ayarlar kaydedilemedi: {error}",
+  "@privacy_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_load_error": "Gizlilik yüklenirken hata: {error}",
+  "@privacy_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "privacy_visibility": "Görünürlük",
+  "privacy_online_status": "Çevrimiçi durumu",
+  "privacy_last_visit": "Son görülme",
+  "privacy_read_receipts": "Okundu bilgisi",
+  "privacy_profile_info": "Profil bilgileri",
+  "privacy_phone_number": "Telefon numarası",
+  "privacy_birthday": "Doğum günü",
+  "privacy_about": "Hakkında",
+  "starred_load_error": "Yıldızlılar yüklenirken hata: {error}",
+  "@starred_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "starred_title": "Yıldızlı",
+  "starred_empty": "Bu sohbette yıldızlı mesaj yok",
+  "starred_message_fallback": "Mesaj",
+  "starred_sender_you": "Siz",
+  "starred_sender_fallback": "Katılımcı",
+  "starred_type_poll": "Anket",
+  "starred_type_location": "Konum",
+  "starred_type_attachment": "Ek",
+  "starred_today_prefix": "Bugün, {time}",
+  "@starred_today_prefix": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "contact_edit_name_required": "Kişi adını girin.",
+  "contact_edit_save_error": "Kişi kaydedilemedi: {error}",
+  "@contact_edit_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "contact_edit_user_fallback": "Kullanıcı",
+  "contact_edit_first_name_hint": "Ad",
+  "contact_edit_last_name_hint": "Soyad",
+  "contact_edit_description": "Bu ad yalnızca sizin görebildiğiniz bir addır: sohbetlerde, aramada ve kişi listesinde.",
+  "contact_edit_error": "Hata: {error}",
+  "@contact_edit_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "voice_no_mic_access": "Mikrofon erişimi yok",
+  "voice_start_error": "Kayıt başlatılamadı",
+  "voice_file_not_received": "Kayıt dosyası alınamadı",
+  "voice_stop_error": "Kayıt durdurulamadı",
+  "voice_title": "Sesli mesaj",
+  "voice_recording": "Kayıt",
+  "voice_ready": "Kayıt hazır",
+  "voice_stop_button": "Durdur",
+  "voice_record_again": "Tekrar kaydet",
+  "attach_photo_video": "Fotoğraf/Video",
+  "attach_files": "Dosyalar",
+  "attach_circle": "Daire",
+  "attach_location": "Konum",
+  "attach_poll": "Anket",
+  "attach_stickers": "Çıkartmalar",
+  "attach_clipboard": "Pano",
+  "attach_text": "Metin",
+  "attach_title": "Ekle",
+  "notif_save_error": "Kaydedilemedi: {error}",
+  "@notif_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notif_title": "Bu sohbetteki bildirimler",
+  "notif_description": "Aşağıdaki ayarlar yalnızca bu sohbet için geçerlidir ve genel uygulama bildirimlerini değiştirmez.",
+  "notif_this_chat": "Bu sohbet",
+  "notif_mute_title": "Bildirimleri sessize al ve gizle",
+  "notif_mute_subtitle": "Bu cihazda bu sohbet için rahatsız etme.",
+  "notif_preview_title": "Metin önizlemesi göster",
+  "notif_preview_subtitle": "Kapalıyken — mesaj parçacığı olmadan bildirim başlığı (desteklenen yerlerde).",
+  "poll_create_enter_question": "Bir soru girin",
+  "poll_create_min_options": "En az 2 seçenek gereklidir",
+  "poll_create_select_correct": "Doğru seçeneği seçin",
+  "poll_create_future_time": "Kapanış zamanı gelecekte olmalıdır",
+  "poll_create_title": "Sohbet anketi",
+  "poll_create_question_label": "Soru",
+  "poll_create_question_hint": "Örneğin: Saat kaçta buluşuyoruz?",
+  "poll_create_explanation_label": "Açıklama (isteğe bağlı)",
+  "poll_create_options_title": "Seçenekler",
+  "poll_create_option_hint": "Seçenek {index}",
+  "@poll_create_option_hint": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "poll_create_add_option": "Seçenek ekle",
+  "poll_create_anonymous_title": "Anonim oylama",
+  "poll_create_anonymous_subtitle": "Kimin neye oy verdiğini gösterme",
+  "poll_create_multi_title": "Birden fazla cevap",
+  "poll_create_multi_subtitle": "Birden fazla seçenek seçilebilir",
+  "poll_create_user_options_title": "Kullanıcı tarafından gönderilen seçenekler",
+  "poll_create_user_options_subtitle": "Katılımcılar kendi seçeneklerini önerebilir",
+  "poll_create_revote_title": "Yeniden oylamaya izin ver",
+  "poll_create_revote_subtitle": "Anket kapanana kadar oy değiştirilebilir",
+  "poll_create_shuffle_title": "Seçenekleri karıştır",
+  "poll_create_shuffle_subtitle": "Her katılımcı farklı bir sıra görür",
+  "poll_create_quiz_title": "Bilgi yarışması modu",
+  "poll_create_quiz_subtitle": "Bir doğru cevap",
+  "poll_create_correct_option_label": "Doğru seçenek",
+  "poll_create_close_by_time": "Zamana göre kapat",
+  "poll_create_not_set": "Ayarlanmadı",
+  "poll_create_reset_deadline": "Son tarihi sıfırla",
+  "poll_create_publish": "Yayınla",
+  "poll_unavailable": "Anket kullanılamıyor",
+  "poll_loading": "Anket yükleniyor…",
+  "poll_not_found": "Anket bulunamadı",
+  "poll_vote_error": "Oylama sırasında hata",
+  "poll_error": "Hata",
+  "poll_add_option_error": "Seçenek eklenemedi",
+  "poll_status_cancelled": "İptal edildi",
+  "poll_status_finished": "Tamamlandı",
+  "poll_status_draft": "Taslak",
+  "poll_status_active": "Aktif",
+  "poll_badge_public": "Herkese açık",
+  "poll_badge_multi": "Birden fazla cevap",
+  "poll_badge_quiz": "Bilgi Yarışması",
+  "poll_restart": "Yeniden başlat",
+  "poll_finish": "Bitir",
+  "poll_submit_vote": "Oyu gönder",
+  "poll_suggest_hint": "Bir seçenek öner",
+  "poll_revote": "Oyu değiştir",
+  "poll_voters_toggle_hide": "Gizle",
+  "poll_voters_toggle_show": "Kim oy verdi",
+  "e2ee_disable_title": "Şifreleme devre dışı bırakılsın mı?",
+  "e2ee_disable_body": "Yeni mesajlar uçtan uca şifreleme olmadan gönderilecek. Daha önce gönderilen şifreli mesajlar akışta kalacak.",
+  "e2ee_disable_button": "Devre dışı bırak",
+  "e2ee_disable_error": "Devre dışı bırakılamadı: {error}",
+  "@e2ee_disable_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_screen_title": "Şifreleme",
+  "e2ee_enabled_description": "Bu sohbet için uçtan uca şifreleme etkinleştirildi.",
+  "e2ee_disabled_description": "Uçtan uca şifreleme devre dışı.",
+  "e2ee_info_text": "Şifreleme etkinleştirildiğinde, yeni mesajların içeriği yalnızca sohbet katılımcılarının cihazlarında kullanılabilir. Devre dışı bırakmak yalnızca yeni mesajları etkiler.",
+  "e2ee_enable_title": "Şifrelemeyi etkinleştir",
+  "e2ee_status_enabled": "Etkin (anahtar dönemi: {epoch})",
+  "@e2ee_status_enabled": {
+    "placeholders": {
+      "epoch": {}
+    }
+  },
+  "e2ee_status_disabled": "Devre dışı",
+  "e2ee_data_types_title": "Veri türleri",
+  "e2ee_data_types_info": "Bu ayar protokolü değiştirmez. Hangi veri türlerinin şifreli gönderileceğini kontrol eder.",
+  "e2ee_chat_settings_title": "Bu sohbet için şifreleme ayarları",
+  "e2ee_chat_settings_override": "Sohbete özel ayarlar kullanılıyor.",
+  "e2ee_chat_settings_global": "Genel ayarlar devralınıyor.",
+  "e2ee_text_messages": "Metin mesajları",
+  "e2ee_attachments": "Ekler (medya/dosyalar)",
+  "e2ee_override_hint": "Bu sohbet için değiştirmek istiyorsanız — \"Geçersiz Kılma\"yı etkinleştirin.",
+  "group_member_fallback": "Katılımcı",
+  "group_role_creator": "Grup oluşturucu",
+  "group_role_admin": "Yönetici",
+  "group_total_count": "Toplam: {count}",
+  "@group_total_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "group_copy_invite_tooltip": "Davet bağlantısını kopyala",
+  "group_add_member_tooltip": "Üye ekle",
+  "group_invite_copied": "Davet bağlantısı kopyalandı",
+  "group_copy_invite_error": "Bağlantı kopyalanamadı: {error}",
+  "@group_copy_invite_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_members_added": "Üyeler eklendi",
+  "group_demote_confirm": "Yönetici hakları kaldırılsın mı?",
+  "group_promote_confirm": "Yönetici yapılsın mı?",
+  "group_demote_body": "{name} kişisinin yönetici hakları kaldırılacak. Üye grupta normal üye olarak kalacak.",
+  "@group_demote_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "group_demote_button": "Hakları kaldır",
+  "group_promote_button": "Yükselt",
+  "group_kick_confirm": "Üye kaldırılsın mı?",
+  "group_kick_button": "Kaldır",
+  "group_member_kicked": "Üye kaldırıldı",
+  "group_badge_creator": "OLUŞTURUCU",
+  "group_demote_action": "Yöneticiyi kaldır",
+  "group_promote_action": "Yönetici yap",
+  "group_kick_action": "Gruptan kaldır",
+  "group_contacts_load_error": "Kişiler yüklenemedi: {error}",
+  "@group_contacts_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_add_members_title": "Üye ekle",
+  "group_search_contacts_hint": "Kişilerde ara",
+  "group_all_contacts_in_group": "Tüm kişileriniz zaten grupta.",
+  "group_nobody_found": "Kimse bulunamadı.",
+  "group_user_fallback": "Kullanıcı",
+  "group_select_members": "Üyeleri seçin",
+  "group_add_count": "Ekle ({count})",
+  "@group_add_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "group_auth_error": "Yetkilendirme hatası: {error}",
+  "@group_auth_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "group_add_error": "Üyeler eklenemedi: {error}",
+  "@group_add_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_own_profile": "Bu sizin kendi profiliniz",
+  "add_contact_qr_not_found": "QR kodundaki profil bulunamadı",
+  "add_contact_qr_error": "QR kodu okunamadı: {error}",
+  "@add_contact_qr_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_not_allowed": "Bu kullanıcı eklenemiyor",
+  "add_contact_save_error": "Kişi eklenemedi: {error}",
+  "@add_contact_save_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_country_search": "Ülke veya kod ara",
+  "add_contact_sync_phone": "Telefonla senkronize et",
+  "add_contact_qr_button": "QR kodu ile ekle",
+  "add_contact_load_error": "Kişi yükleme hatası: {error}",
+  "@add_contact_load_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "add_contact_user_fallback": "Kullanıcı",
+  "add_contact_already_in_contacts": "Zaten kişilerde",
+  "add_contact_new": "Yeni kişi",
+  "add_contact_unavailable": "Kullanılamıyor",
+  "add_contact_scan_qr": "QR kodu tara",
+  "add_contact_scan_hint": "Kamerayı LighChat profil QR koduna doğrultun",
+  "auth_validate_name_min_length": "Ad en az 2 karakter olmalıdır",
+  "auth_validate_username_min_length": "Kullanıcı adı en az 3 karakter olmalıdır",
+  "auth_validate_username_max_length": "Kullanıcı adı 30 karakteri aşmamalıdır",
+  "auth_validate_username_format": "Kullanıcı adı geçersiz karakterler içeriyor",
+  "auth_validate_phone_11_digits": "Telefon numarası 11 haneli olmalıdır",
+  "auth_validate_email_format": "Geçerli bir e-posta girin",
+  "auth_validate_dob_invalid": "Geçersiz doğum tarihi",
+  "auth_validate_bio_max_length": "Biyografi 200 karakteri aşmamalıdır",
+  "auth_validate_password_min_length": "Şifre en az 6 karakter olmalıdır",
+  "auth_validate_passwords_mismatch": "Şifreler eşleşmiyor",
+  "sticker_new_pack": "Yeni paket…",
+  "sticker_select_image_or_gif": "Bir resim veya GIF seçin",
+  "sticker_send_error": "Gönderme başarısız: {error}",
+  "sticker_saved": "Çıkartma paketine kaydedildi",
+  "sticker_save_failed": "GIF indirilemedi veya kaydedilemedi",
+  "sticker_tab_my": "Benim",
+  "sticker_tab_shared": "Paylaşılan",
+  "sticker_no_packs": "Çıkartma paketi yok. Yeni bir tane oluşturun.",
+  "sticker_shared_not_configured": "Paylaşılan paketler yapılandırılmadı",
+  "sticker_recent": "SON KULLANILANLAR",
+  "sticker_gallery_description": "Cihazdan fotoğraflar, PNG, GIF — doğrudan sohbete",
+  "sticker_shared_unavailable": "Paylaşılan paketler henüz mevcut değil",
+  "sticker_gif_search_hint": "GIF ara…",
+  "sticker_gif_searched": "Aranan: {query}",
+  "sticker_gif_search_unavailable": "GIF araması geçici olarak kullanılamıyor.",
+  "sticker_gif_nothing_found": "Hiçbir şey bulunamadı",
+  "sticker_gif_all": "Tümü",
+  "sticker_gif_animated": "HAREKETLİ",
+  "sticker_emoji_text_unavailable": "Bu pencere için metin emojisi kullanılamıyor.",
+  "wallpaper_sender": "Kişi",
+  "wallpaper_incoming": "Bu gelen bir mesajdır.",
+  "wallpaper_outgoing": "Bu giden bir mesajdır.",
+  "wallpaper_incoming_time": "11:40",
+  "wallpaper_outgoing_time": "11:41",
+  "wallpaper_system": "Sohbet duvar kağıdını değiştirdiniz",
+  "wallpaper_you": "Siz",
+  "wallpaper_today": "Bugün",
+  "system_event_e2ee_enabled": "Uçtan uca şifreleme etkinleştirildi (anahtar dönemi: {epoch})",
+  "system_event_e2ee_disabled": "Uçtan uca şifreleme devre dışı bırakıldı",
+  "system_event_unknown": "Sistem olayı",
+  "system_event_group_created": "Grup oluşturuldu",
+  "system_event_member_added": "{name} eklendi",
+  "system_event_member_removed": "{name} kaldırıldı",
+  "system_event_member_left": "{name} gruptan ayrıldı",
+  "system_event_name_changed": "Ad \"{name}\" olarak değiştirildi",
+  "image_editor_title": "Düzenleyici",
+  "image_editor_undo": "Geri al",
+  "image_editor_clear": "Temizle",
+  "image_editor_pen": "Fırça",
+  "image_editor_text": "Metin",
+  "image_editor_crop": "Kırp",
+  "image_editor_rotate": "Döndür",
+  "location_title": "Konum gönder",
+  "location_loading": "Harita yükleniyor…",
+  "location_send_button": "Gönder",
+  "location_live_label": "Canlı",
+  "location_error": "Harita yüklenemedi",
+  "location_no_permission": "Konum erişimi yok",
+  "group_member_admin": "Yönetici",
+  "group_member_creator": "Oluşturucu",
+  "group_member_member": "Üye",
+  "group_member_open_chat": "Mesaj",
+  "group_member_open_profile": "Profil",
+  "group_member_remove": "Kaldır",
+  "durak_lobby_title": "Durak",
+  "durak_lobby_new_game": "Yeni oyun",
+  "durak_lobby_waiting": "Rakip bekleniyor…",
+  "durak_lobby_decline": "Reddet",
+  "durak_lobby_accept": "Kabul et",
+  "durak_lobby_invite_sent": "Davet gönderildi",
+  "voice_preview_cancel": "İptal",
+  "voice_preview_send": "Gönder",
+  "voice_preview_recorded": "Kaydedildi",
+  "voice_preview_playing": "Oynatılıyor…",
+  "voice_preview_paused": "Duraklatıldı",
+  "group_avatar_change": "Avatarı değiştir",
+  "group_avatar_remove": "Avatarı kaldır",
+  "group_avatar_camera": "Kamera",
+  "group_avatar_gallery": "Galeri",
+  "group_avatar_upload_error": "Yükleme hatası",
+  "avatar_picker_title": "Avatar",
+  "avatar_picker_camera": "Kamera",
+  "avatar_picker_gallery": "Galeri",
+  "avatar_picker_crop": "Kırp",
+  "avatar_picker_save": "Kaydet",
+  "avatar_picker_remove": "Avatarı kaldır",
+  "avatar_picker_error": "Avatar yüklenemedi",
+  "avatar_picker_crop_error": "Kırpma hatası",
+  "webview_telegram_title": "Telegram ile giriş yap",
+  "webview_telegram_loading": "Yükleniyor…",
+  "webview_telegram_error": "Sayfa yüklenemedi",
+  "webview_telegram_back": "Geri",
+  "webview_telegram_retry": "Tekrar dene",
+  "webview_telegram_close": "Kapat",
+  "webview_telegram_no_url": "Yetkilendirme URL'si sağlanmadı",
+  "webview_yandex_title": "Yandex ile giriş yap",
+  "webview_yandex_loading": "Yükleniyor…",
+  "webview_yandex_error": "Sayfa yüklenemedi",
+  "webview_yandex_back": "Geri",
+  "webview_yandex_retry": "Tekrar dene",
+  "webview_yandex_close": "Kapat",
+  "webview_yandex_no_url": "Yetkilendirme URL'si sağlanmadı",
+  "google_profile_title": "Profilinizi tamamlayın",
+  "google_profile_name": "Ad",
+  "google_profile_username": "Kullanıcı adı",
+  "google_profile_phone": "Telefon",
+  "google_profile_email": "E-posta",
+  "google_profile_dob": "Doğum tarihi",
+  "google_profile_bio": "Hakkında",
+  "google_profile_save": "Kaydet",
+  "google_profile_error": "Profil kaydedilemedi",
+  "system_event_e2ee_epoch_rotated": "Şifreleme anahtarı döndürüldü",
+  "system_event_e2ee_device_added": "{actor} \"{device}\" cihazını ekledi",
+  "@system_event_e2ee_device_added": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_device_revoked": "{actor} \"{device}\" cihazını iptal etti",
+  "@system_event_e2ee_device_revoked": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_e2ee_fingerprint_changed": "{actor} için güvenlik parmak izi değişti",
+  "@system_event_e2ee_fingerprint_changed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "system_event_game_lobby_created": "Oyun lobisi oluşturuldu",
+  "system_event_game_started": "Oyun başladı",
+  "system_event_default_actor": "Kullanıcı",
+  "system_event_default_device": "cihaz",
+  "image_editor_add_caption": "Açıklama ekle...",
+  "image_editor_crop_failed": "Resim kırpılamadı",
+  "image_editor_draw_hint": "Çizim modu: resim üzerinde kaydırın",
+  "image_editor_crop_title": "Kırp",
+  "location_preview_title": "Konum",
+  "location_preview_accuracy_unknown": "Doğruluk: —",
+  "location_preview_accuracy_meters": "Doğruluk: ~{meters} m",
+  "@location_preview_accuracy_meters": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "location_preview_accuracy_km": "Doğruluk: ~{km} km",
+  "@location_preview_accuracy_km": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_profile_default_name": "Üye",
+  "group_member_profile_dm": "Direkt mesaj gönder",
+  "group_member_profile_dm_hint": "Bu üyeyle direkt sohbet aç",
+  "group_member_profile_dm_failed": "Direkt sohbet açılamadı: {error}",
+  "@group_member_profile_dm_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "conversation_game_lobby_unavailable": "Oyun kullanılamıyor veya silindi",
+  "conversation_game_lobby_back": "Geri",
+  "conversation_game_lobby_waiting": "Rakibin katılması bekleniyor…",
+  "conversation_game_lobby_start_game": "Oyunu başlat",
+  "conversation_game_lobby_waiting_short": "Bekleniyor…",
+  "conversation_game_lobby_ready": "Hazır",
+  "voice_preview_trim_confirm_title": "Yalnızca seçilen parça korunsun mu?",
+  "voice_preview_trim_confirm_body": "Seçilen parça dışındaki her şey silinecek. Düğmeye bastıktan sonra kayıt hemen devam edecek.",
+  "voice_preview_continue": "Devam et",
+  "voice_preview_continue_recording": "Kaydı sürdür",
+  "group_avatar_change_short": "Değiştir",
+  "avatar_picker_cancel": "İptal",
+  "avatar_picker_choose": "Avatar seç",
+  "avatar_picker_delete_photo": "Fotoğrafı sil",
+  "avatar_picker_loading": "Yükleniyor…",
+  "avatar_picker_choose_avatar": "Avatar seç",
+  "avatar_picker_change_avatar": "Avatarı değiştir",
+  "avatar_picker_remove_tooltip": "Kaldır",
+  "telegram_sign_in_title": "Telegram ile giriş yap",
+  "telegram_sign_in_open_in_browser": "Tarayıcıda aç",
+  "telegram_sign_in_open_telegram_failed": "Telegram açılamadı. Lütfen Telegram uygulamasını yükleyin.",
+  "telegram_sign_in_page_load_error": "Sayfa yükleme hatası",
+  "telegram_sign_in_login_error": "Telegram giriş hatası.",
+  "telegram_sign_in_firebase_not_ready": "Firebase hazır değil.",
+  "telegram_sign_in_browser_failed": "Tarayıcı açılamadı.",
+  "telegram_sign_in_login_failed": "Giriş başarısız: {error}",
+  "@telegram_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "yandex_sign_in_title": "Yandex ile giriş yap",
+  "yandex_sign_in_open_in_browser": "Tarayıcıda aç",
+  "yandex_sign_in_page_load_error": "Sayfa yükleme hatası",
+  "yandex_sign_in_login_error": "Yandex giriş hatası.",
+  "yandex_sign_in_firebase_not_ready": "Firebase hazır değil.",
+  "yandex_sign_in_browser_failed": "Tarayıcı açılamadı.",
+  "yandex_sign_in_login_failed": "Giriş başarısız: {error}",
+  "@yandex_sign_in_login_failed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "google_complete_title": "Kaydı tamamla",
+  "google_complete_subtitle": "Google ile giriş yaptıktan sonra, lütfen profilinizi web sürümünde olduğu gibi doldurun.",
+  "google_complete_name_label": "Ad",
+  "google_complete_username_label": "Kullanıcı adı (@kullanıcı_adı)",
+  "google_complete_phone_label": "Telefon (11 haneli)",
+  "google_complete_email_label": "E-posta",
+  "google_complete_email_hint": "siz@ornek.com",
+  "google_complete_dob_label": "Doğum tarihi (YYYY-AA-GG, isteğe bağlı)",
+  "google_complete_bio_label": "Hakkında (en fazla 200 karakter, isteğe bağlı)",
+  "google_complete_save": "Kaydet ve devam et",
+  "google_complete_back": "Girişe geri dön",
+  "game_error_defense_not_beat": "Bu kart saldıran kartı yenmiyor",
+  "game_error_attacker_first": "Saldıran önce hamle yapar",
+  "game_error_defender_no_attack": "Savunan şu anda saldıramaz",
+  "game_error_not_allowed_throwin": "Bu turda atamazsınız",
+  "game_error_throwin_not_turn": "Başka bir oyuncu şu anda atıyor",
+  "game_error_rank_not_allowed": "Yalnızca aynı değerdeki kartı atabilirsiniz",
+  "game_error_cannot_throw_in": "Daha fazla kart atılamaz",
+  "game_error_card_not_in_hand": "Bu kart artık elinizde değil",
+  "game_error_already_defended": "Bu kart zaten savunuldu",
+  "game_error_bad_attack_index": "Savunulacak bir saldırı kartı seçin",
+  "game_error_only_defender": "Başka bir oyuncu şu anda savunuyor",
+  "game_error_defender_taking": "Savunan zaten kartları alıyor",
+  "game_error_game_not_active": "Oyun artık aktif değil",
+  "game_error_not_in_lobby": "Lobi zaten başladı",
+  "game_error_game_already_active": "Oyun zaten başladı",
+  "game_error_active_exists": "Bu sohbette zaten aktif bir oyun var",
+  "game_error_round_pending": "Önce tartışmalı hamleyi tamamlayın",
+  "game_error_rematch_failed": "Rövanş hazırlanamadı. Tekrar deneyin",
+  "game_error_unauthenticated": "Giriş yapmanız gerekiyor",
+  "game_error_permission_denied": "Bu işlem sizin için kullanılamıyor",
+  "game_error_invalid_argument": "Geçersiz hamle",
+  "game_error_precondition": "Hamle şu anda kullanılamıyor",
+  "game_error_server": "Hamle yapılamadı. Tekrar deneyin",
+  "reply_sticker": "Çıkartma",
+  "reply_gif": "GIF",
+  "reply_video_circle": "Video daire",
+  "reply_voice_message": "Sesli mesaj",
+  "reply_video": "Video",
+  "reply_photo": "Fotoğraf",
+  "reply_file": "Dosya",
+  "reply_location": "Konum",
+  "reply_poll": "Anket",
+  "reply_link": "Bağlantı",
+  "reply_message": "Mesaj",
+  "reply_sender_you": "Siz",
+  "reply_sender_member": "Üye",
+  "call_format_today": "Bugün",
+  "call_format_yesterday": "Dün",
+  "call_format_second_short": "sn",
+  "call_format_minute_short": "dk",
+  "call_format_hour_short": "sa",
+  "call_format_day_short": "g",
+  "call_month_january": "Ocak",
+  "call_month_february": "Şubat",
+  "call_month_march": "Mart",
+  "call_month_april": "Nisan",
+  "call_month_may": "Mayıs",
+  "call_month_june": "Haziran",
+  "call_month_july": "Temmuz",
+  "call_month_august": "Ağustos",
+  "call_month_september": "Eylül",
+  "call_month_october": "Ekim",
+  "call_month_november": "Kasım",
+  "call_month_december": "Aralık",
+  "push_incoming_call": "Gelen arama",
+  "push_incoming_video_call": "Gelen görüntülü arama",
+  "push_new_message": "Yeni mesaj",
+  "push_channel_calls": "Aramalar",
+  "push_channel_messages": "Mesajlar",
+  "contacts_years_one": "{count} yıl",
+  "@contacts_years_one": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_few": "{count} yıl",
+  "@contacts_years_few": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_many": "{count} yıl",
+  "@contacts_years_many": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "contacts_years_other": "{count} yıl",
+  "@contacts_years_other": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "durak_entry_single_game": "Tek oyun",
+  "durak_entry_finish_game_tooltip": "Oyunu bitir",
+  "durak_entry_tournament_games_dialog_title": "Turnuvada kaç oyun?",
+  "durak_entry_cancel": "İptal",
+  "durak_entry_create": "Oluştur",
+  "video_editor_load_failed": "Video yüklenemedi: {error}",
+  "@video_editor_load_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_process_failed": "Video işlenemedi: {error}",
+  "@video_editor_process_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "video_editor_duration": "Süre: {duration}",
+  "@video_editor_duration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "video_editor_brush": "Fırça",
+  "video_editor_caption_hint": "Açıklama ekle...",
+  "share_location_title": "Konum paylaş",
+  "share_location_how": "Paylaşım yöntemi",
+  "share_location_cancel": "İptal",
+  "share_location_send": "Gönder",
+  "photo_source_gallery": "Galeri",
+  "photo_source_take_photo": "Fotoğraf çek",
+  "photo_source_record_video": "Video kaydet",
+  "video_attachment_media_kind": "video",
+  "video_attachment_title": "Video",
+  "video_attachment_playback_error": "Video oynatılamıyor. Bağlantıyı ve ağ bağlantısını kontrol edin.",
+  "location_card_broadcast_ended_mine": "Konum yayını sona erdi. Diğer kişi artık mevcut konumunuzu göremiyor.",
+  "location_card_broadcast_ended_other": "Bu kişinin konum yayını sona erdi. Mevcut konum kullanılamıyor.",
+  "location_card_title": "Konum",
+  "location_card_accuracy": "±{meters} m",
+  "@location_card_accuracy": {
+    "placeholders": {
+      "meters": {}
+    }
+  },
+  "link_webview_copy_tooltip": "Bağlantıyı kopyala",
+  "link_webview_copied_snackbar": "Bağlantı kopyalandı",
+  "link_webview_open_browser_tooltip": "Tarayıcıda aç",
+  "hold_record_pause": "Duraklatıldı",
+  "hold_record_release_cancel": "İptal etmek için bırakın",
+  "hold_record_slide_hints": "Sola kaydır — iptal · Yukarı — duraklatma",
+  "e2ee_badge_loading": "Parmak izi yükleniyor…",
+  "e2ee_badge_error": "Parmak izi alınamadı: {error}",
+  "@e2ee_badge_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "e2ee_badge_label": "E2EE Parmak İzi",
+  "e2ee_badge_label_with_user": "E2EE Parmak İzi • {user}",
+  "@e2ee_badge_label_with_user": {
+    "placeholders": {
+      "user": {}
+    }
+  },
+  "e2ee_badge_devices": "{count} cihaz",
+  "@e2ee_badge_devices": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "composer_link_cancel": "İptal",
+  "message_search_results_count": "ARAMA SONUÇLARI: {count}",
+  "@message_search_results_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "message_search_not_found": "HİÇBİR ŞEY BULUNAMADI",
+  "message_search_participant_fallback": "Katılımcı",
+  "wallpaper_purple": "Mor",
+  "wallpaper_pink": "Pembe",
+  "wallpaper_blue": "Mavi",
+  "wallpaper_green": "Yeşil",
+  "wallpaper_sunset": "Gün batımı",
+  "wallpaper_tender": "Zarif",
+  "wallpaper_lime": "Yeşil limon",
+  "wallpaper_graphite": "Grafit",
+  "avatar_crop_title": "Avatarı ayarla",
+  "avatar_crop_hint": "Sürükleyin ve yakınlaştırın — daire listelerde ve mesajlarda görünecek; tam çerçeve profil için kalacak.",
+  "avatar_crop_cancel": "İptal",
+  "avatar_crop_reset": "Sıfırla",
+  "avatar_crop_save": "Kaydet",
+  "meeting_entry_connecting": "Toplantıya bağlanılıyor…",
+  "meeting_entry_auth_failed": "Giriş yapılamadı: {error}",
+  "@meeting_entry_auth_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "meeting_entry_participant_fallback": "Katılımcı",
+  "meeting_entry_back": "Geri",
+  "meeting_chat_copy": "Kopyala",
+  "meeting_chat_edit": "Düzenle",
+  "meeting_chat_delete": "Sil",
+  "meeting_chat_deleted": "Mesaj silindi",
+  "meeting_chat_edited_mark": "• düzenlendi",
+  "e2ee_decrypt_image_failed": "Resmin şifresi çözülemedi",
+  "e2ee_decrypt_video_failed": "Videonun şifresi çözülemedi",
+  "e2ee_decrypt_audio_failed": "Sesin şifresi çözülemedi",
+  "e2ee_decrypt_attachment_failed": "Ekin şifresi çözülemedi",
+  "search_preview_attachment": "Ek",
+  "search_preview_location": "Konum",
+  "search_preview_message": "Mesaj",
+  "outbox_attachment_singular": "Ek",
+  "outbox_attachments_count": "Ekler ({count})",
+  "@outbox_attachments_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outbox_chat_unavailable": "Sohbet hizmeti kullanılamıyor",
+  "outbox_encryption_error": "Şifreleme: {code}",
+  "@outbox_encryption_error": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "nav_chats": "Sohbetler",
+  "nav_contacts": "Kişiler",
+  "nav_meetings": "Toplantılar",
+  "nav_calls": "Aramalar",
+  "e2ee_media_decrypt_failed_image": "Resmin şifresi çözülemedi",
+  "e2ee_media_decrypt_failed_video": "Videonun şifresi çözülemedi",
+  "e2ee_media_decrypt_failed_audio": "Sesin şifresi çözülemedi",
+  "e2ee_media_decrypt_failed_attachment": "Ekin şifresi çözülemedi",
+  "chat_search_snippet_attachment": "Ek",
+  "chat_search_snippet_location": "Konum",
+  "chat_search_snippet_message": "Mesaj",
+  "bottom_nav_chats": "Sohbetler",
+  "bottom_nav_contacts": "Kişiler",
+  "bottom_nav_meetings": "Toplantılar",
+  "bottom_nav_calls": "Aramalar",
+  "chat_list_swipe_folders": "KLASÖRLER",
+  "chat_list_swipe_clear": "TEMİZLE",
+  "chat_list_swipe_delete": "SİL",
+  "composer_editing_title": "MESAJ DÜZENLENİYOR",
+  "composer_editing_cancel_tooltip": "Düzenlemeyi iptal et",
+  "composer_formatting_title": "BİÇİMLENDİRME",
+  "composer_link_preview_loading": "Önizleme yükleniyor…",
+  "composer_link_preview_hide_tooltip": "Önizlemeyi gizle",
+  "chat_invite_button": "Davet et",
+  "forward_preview_unknown_sender": "Bilinmeyen",
+  "forward_preview_attachment": "Ek",
+  "forward_preview_message": "Mesaj",
+  "chat_mention_no_matches": "Eşleşme yok",
+  "live_location_sharing": "Konumunuzu paylaşıyorsunuz",
+  "live_location_stop": "Durdur",
+  "chat_message_deleted": "Mesaj silindi",
+  "profile_qr_share": "Paylaş",
+  "shared_location_open_browser_tooltip": "Tarayıcıda aç",
+  "reply_preview_message_fallback": "Mesaj",
+  "video_circle_media_kind": "video",
+  "reactions_rated_count": "Tepki veren: {count}",
+  "@reactions_rated_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reactions_today_time": "Bugün, {time}",
+  "@reactions_today_time": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "durak_create_timer_subtitle": "Varsayılan 15 saniye",
+  "dm_game_banner_active": "Durak oyunu devam ediyor",
+  "dm_game_banner_created": "Durak oyunu oluşturuldu",
+  "chat_folder_favorites": "Favoriler",
+  "chat_folder_new": "Yeni",
+  "contact_profile_user_fallback": "Kullanıcı",
+  "contact_profile_error": "Hata: {error}",
+  "@contact_profile_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conversation_threads_loading_title": "Konular",
+  "theme_label_light": "Açık",
+  "theme_label_dark": "Koyu",
+  "theme_label_auto": "Otomatik",
+  "chat_draft_reply_fallback": "Yanıtla",
+  "mention_default_label": "Üye",
+  "contacts_fallback_name": "Kişi",
+  "sticker_pack_default_name": "Paketim",
+  "profile_error_phone_taken": "Bu telefon numarası zaten kayıtlı. Lütfen farklı bir numara kullanın.",
+  "profile_error_email_taken": "Bu e-posta zaten kullanılıyor. Lütfen farklı bir adres kullanın.",
+  "profile_error_username_taken": "Bu kullanıcı adı zaten alınmış. Lütfen başka bir tane seçin.",
+  "e2ee_banner_default_context": "Mesaj",
+  "e2ee_banner_encrypted_chat_web_only": "{prefix} şifreli bir sohbete şu anda yalnızca web istemcisinden gönderilebilir.",
+  "@e2ee_banner_encrypted_chat_web_only": {
+    "placeholders": {
+      "prefix": {
+        "type": "String"
+      }
+    }
+  },
+  "chat_attachment_decrypt_error": "Ekin şifresi çözülemedi",
+  "group_avatar_process_error": "Fotoğraf işlenemedi: {error}",
+  "@group_avatar_process_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_member_open_dm_error": "Direkt sohbet açılamadı: {error}",
+  "@group_member_open_dm_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mention_fallback_label": "üye",
+  "mention_fallback_label_capitalized": "Üye",
+  "meeting_speaking_label": "Konuşuyor",
+  "meeting_local_you_suffix": "{name} (Siz)",
+  "@meeting_local_you_suffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "video_crop_title": "Kırp",
+  "video_crop_load_error": "Video yüklenemedi: {error}",
+  "@video_crop_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gif_section_recent": "SON KULLANILANLAR",
+  "gif_section_trending": "TREND",
+  "auth_create_account_title": "Hesap Oluştur",
+  "yandex_sign_in_yandex_error": "Yandex: {error}",
+  "@yandex_sign_in_yandex_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "call_status_missed": "Cevapsız",
+  "call_status_cancelled": "İptal edildi",
+  "call_status_ended": "Sona erdi",
+  "presence_offline": "Çevrimdışı",
+  "presence_online": "Çevrimiçi",
+  "dm_title_fallback": "Sohbet",
+  "dm_title_partner_fallback": "Kişi",
+  "group_title_fallback": "Grup sohbeti",
+  "block_call_viewer_blocked": "Bu kullanıcıyı engellediniz. Arama kullanılamıyor — Profil → Engellenenler'den engeli kaldırın.",
+  "block_call_partner_blocked": "Bu kullanıcı sizinle iletişimi kısıtladı. Arama kullanılamıyor.",
+  "block_call_unavailable": "Arama kullanılamıyor.",
+  "block_composer_viewer_blocked": "Bu kullanıcıyı engellediniz. Gönderim kullanılamıyor — Profil → Engellenenler'den engeli kaldırın.",
+  "block_composer_partner_blocked": "Bu kullanıcı sizinle iletişimi kısıtladı. Gönderim kullanılamıyor.",
+  "forward_group_fallback": "Grup",
+  "forward_unknown_user": "Bilinmeyen",
+  "live_location_once": "Tek seferlik (yalnızca bu mesaj)",
+  "live_location_5min": "5 dakika",
+  "live_location_15min": "15 dakika",
+  "live_location_30min": "30 dakika",
+  "live_location_1hour": "1 saat",
+  "live_location_2hours": "2 saat",
+  "live_location_6hours": "6 saat",
+  "live_location_1day": "1 gün",
+  "live_location_forever": "Sonsuza kadar (ben kapatana kadar)",
+  "e2ee_send_too_many_files": "Şifreli gönderim için çok fazla ek: mesaj başına en fazla 5 dosya.",
+  "e2ee_send_too_large": "Toplam ek boyutu çok büyük: bir şifreli mesaj için en fazla 96 MB.",
+  "presence_last_seen_prefix": "Son görülme ",
+  "presence_less_than_minute_ago": "bir dakikadan kısa süre önce",
+  "presence_yesterday": "dün",
+  "dm_fallback_title": "Sohbet",
+  "dm_fallback_partner": "Kişi",
+  "group_fallback_title": "Grup sohbeti",
+  "block_send_viewer_blocked": "Bu kullanıcıyı engellediniz. Gönderim kullanılamıyor — Profil → Engellenenler'den engeli kaldırın.",
+  "block_send_partner_blocked": "Bu kullanıcı sizinle iletişimi kısıtladı. Gönderim kullanılamıyor.",
+  "mention_fallback_name": "Üye",
+  "profile_conflict_phone": "Bu telefon numarası zaten kayıtlı. Lütfen farklı bir numara kullanın.",
+  "profile_conflict_email": "Bu e-posta zaten kullanılıyor. Lütfen farklı bir adres kullanın.",
+  "profile_conflict_username": "Bu kullanıcı adı zaten alınmış. Lütfen farklı bir tane seçin.",
+  "mention_fallback_participant": "Katılımcı",
+  "sticker_gif_recent": "SON KULLANILANLAR",
+  "meeting_screen_sharing": "Ekran",
+  "meeting_speaking": "Konuşuyor",
+  "auth_sign_in_failed": "Giriş başarısız: {error}",
+  "@auth_sign_in_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yandex_error_prefix": "Yandex: {error}",
+  "@yandex_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "auth_error_prefix": "Kimlik doğrulama hatası: {error}",
+  "@auth_error_prefix": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "presence_minutes_ago": "{count,plural, =1{bir dakika önce} other{{count} dakika önce}}",
+  "@presence_minutes_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_hours_ago": "{count,plural, =1{bir saat önce} other{{count} saat önce}}",
+  "@presence_hours_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_days_ago": "{count,plural, =1{bir gün önce} other{{count} gün önce}}",
+  "@presence_days_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_months_ago": "{count,plural, =1{bir ay önce} other{{count} ay önce}}",
+  "@presence_months_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_months_ago": "{years,plural, =1{1 yıl} other{{years} yıl}} {months,plural, =1{1 ay önce} other{{months} ay önce}}",
+  "@presence_years_months_ago": {
+    "placeholders": {
+      "years": {
+        "type": "int"
+      },
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "presence_years_ago": "{count,plural, =1{bir yıl önce} other{{count} yıl önce}}",
+  "@presence_years_ago": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wallpaper_gradient_purple": "Mor",
+  "wallpaper_gradient_pink": "Pembe",
+  "wallpaper_gradient_blue": "Mavi",
+  "wallpaper_gradient_green": "Yeşil",
+  "wallpaper_gradient_sunset": "Gün batımı",
+  "wallpaper_gradient_gentle": "Zarif",
+  "wallpaper_gradient_lime": "Yeşil limon",
+  "wallpaper_gradient_graphite": "Grafit",
+  "sticker_tab_recent": "SON KULLANILANLAR",
+  "block_call_you_blocked": "Bu kullanıcıyı engellediniz. Arama kullanılamıyor — Profil → Engellenenler'den engeli kaldırın.",
+  "block_call_they_blocked": "Bu kullanıcı sizinle iletişimi kısıtladı. Arama kullanılamıyor.",
+  "block_call_generic": "Arama kullanılamıyor.",
+  "block_send_you_blocked": "Bu kullanıcıyı engellediniz. Gönderim kullanılamıyor — Profil → Engellenenler'den engeli kaldırın.",
+  "block_send_they_blocked": "Bu kullanıcı sizinle iletişimi kısıtladı. Gönderim kullanılamıyor.",
+  "forward_unknown_fallback": "Bilinmeyen",
+  "dm_title_chat": "Sohbet",
+  "dm_title_partner": "Partner",
+  "dm_title_group": "Grup sohbeti",
+  "e2ee_too_many_attachments": "Şifreli gönderim için çok fazla ek: mesaj başına en fazla 5 dosya.",
+  "e2ee_total_size_exceeded": "Toplam ek boyutu çok büyük: şifreli mesaj başına en fazla 96 MB.",
+  "yandex_sign_in_error_prefix": "Yandex: {error}",
+  "@yandex_sign_in_error_prefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "meeting_participant_screen": "Ekran",
+  "meeting_participant_speaking": "Konuşuyor",
+  "nav_error_title": "Gezinme hatası",
+  "nav_error_invalid_secret_compose": "Geçersiz gizli oluşturma gezinmesi",
+  "sign_in_title": "Giriş yap",
+  "sign_in_firebase_ready": "Firebase başlatıldı. Giriş yapabilirsiniz.",
+  "sign_in_firebase_not_ready": "Firebase hazır değil. Günlükleri ve firebase_options.dart dosyasını kontrol edin.",
+  "sign_in_continue": "Devam et",
+  "sign_in_anonymously": "Anonim olarak giriş yap",
+  "sign_in_auth_error": "Kimlik doğrulama hatası: {error}",
+  "@sign_in_auth_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "group_not_found": "Grup bulunamadı.",
+  "group_not_member": "Bu grubun üyesi değilsiniz.",
+  "generic_error": "Hata: {error}",
+  "@generic_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "storage_label_video": "Video",
+  "storage_label_photo": "Fotoğraf",
+  "storage_label_files": "Dosyalar",
+  "storage_label_other": "Diğer",
+  "storage_label_draft": "Taslak · {key}",
+  "@storage_label_draft": {
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "storage_label_offline_snapshot": "Çevrimdışı sohbet listesi anlık görüntüsü",
+  "storage_label_profile_cache": "Profil önbelleği · {name}",
+  "@storage_label_profile_cache": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "call_mini_end": "Aramayı sonlandır",
+  "animation_quality_lite": "Hafif",
+  "animation_quality_balanced": "Dengeli",
+  "animation_quality_cinematic": "Sinematik",
+  "crop_aspect_original": "Orijinal",
+  "crop_aspect_square": "Kare",
+  "push_notification_title": "Bildirimlere izin ver",
+  "push_notification_rationale": "Uygulamanın gelen aramalar için bildirimlere ihtiyacı var.",
+  "push_notification_required": "Gelen aramaları görüntülemek için bildirimleri etkinleştirin.",
+  "push_notification_grant": "İzin ver",
+  "push_call_accept": "Kabul et",
+  "push_call_decline": "Reddet",
+  "push_channel_incoming_calls": "Gelen aramalar",
+  "push_channel_missed_calls": "Cevapsız aramalar",
+  "push_channel_messages_desc": "Sohbetlerdeki yeni mesajlar",
+  "push_channel_silent": "Sessiz mesajlar",
+  "push_channel_silent_desc": "Sessiz bildirim",
+  "push_caller_unknown": "Biri",
+  "outbox_attachment_single": "Ek",
+  "outbox_attachment_count": "Ekler ({count})",
+  "@outbox_attachment_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bottom_nav_label_chats": "Sohbetler",
+  "bottom_nav_label_contacts": "Kişiler",
+  "bottom_nav_label_conferences": "Konferanslar",
+  "bottom_nav_label_calls": "Aramalar",
+  "chat_theme_banner": "Bu sohbetin arka planı yalnızca sizin içindir. \"Sohbet Ayarları\"ndaki genel sohbet ayarları değişmez.",
+  "chat_theme_default_global": "Varsayılan (genel ayarlar)",
+  "chat_theme_error_delete": "Silme hatası: {error}",
+  "chat_theme_error_save": "Arka plan kaydedilemedi: {error}",
+  "chat_theme_error_upload": "Arka plan yükleme hatası: {error}",
+  "chat_theme_global_tile": "Genel",
+  "chat_theme_pick_hint": "Bir ön ayar veya galeriden fotoğraf seçin",
+  "durak_dm_game_active": "Durak oyunu devam ediyor",
+  "durak_dm_game_created": "Durak oyunu oluşturuldu",
+  "durak_error_active_game_exists": "Bu sohbette zaten aktif bir oyun var",
+  "durak_error_already_defended": "Bu kart zaten savunuldu",
+  "durak_error_bad_attack_index": "Savunulacak bir saldırı kartı seçin",
+  "durak_error_cannot_throw_in": "Daha fazla kart atılamaz",
+  "durak_error_card_not_in_hand": "Bu kart artık elinizde değil",
+  "durak_error_defender_already_taking": "Savunan zaten kartları alıyor",
+  "durak_error_defender_cannot_attack": "Savunan şu anda atamaz",
+  "durak_error_defense_does_not_beat": "Bu kart saldıran kartı yenmiyor",
+  "durak_error_failed_precondition": "Hamle şu anda kullanılamıyor",
+  "durak_error_game_already_active": "Oyun zaten başladı",
+  "durak_error_game_not_active": "Oyun artık aktif değil",
+  "durak_error_invalid_argument": "Geçersiz hamle",
+  "durak_error_not_allowed_throwin": "Bu turda atamazsınız",
+  "durak_error_not_in_lobby": "Lobi zaten başladı",
+  "durak_error_only_attacker_first": "Saldıran önce hamle yapar",
+  "durak_error_only_defender": "Başka bir oyuncu şu anda savunuyor",
+  "durak_error_permission_denied": "Bu işlem sizin için kullanılamıyor",
+  "durak_error_rank_not_allowed": "Yalnızca aynı değerdeki kartları atabilirsiniz",
+  "durak_error_rematch_failed": "Rövanş hazırlanamadı. Lütfen tekrar deneyin",
+  "durak_error_resolution_pending": "Önce tartışmalı hamleyi tamamlayın",
+  "durak_error_server": "Hamle yürütülemedi. Lütfen tekrar deneyin",
+  "durak_error_throwin_not_your_turn": "Başka bir oyuncu şu anda atıyor",
+  "durak_error_unauthenticated": "Giriş yapmanız gerekiyor",
+  "durak_finish_game_tooltip": "Oyunu bitir",
+  "durak_foul_banner_title": "Hileci! Kaçırılan:",
+  "durak_fx_beat": "Yenildi",
+  "durak_fx_took": "Aldı",
+  "durak_lobby_back_tooltip": "Geri",
+  "durak_lobby_empty_slot": "Bekleniyor…",
+  "durak_lobby_game_unavailable": "Oyun kullanılamıyor veya silinmiş",
+  "durak_lobby_ready": "Hazır",
+  "durak_lobby_start": "Oyunu başlat",
+  "durak_lobby_waiting_short": "Bekleniyor…",
+  "durak_opponent_role_attack": "SLD",
+  "durak_opponent_role_defend": "SAV",
+  "durak_opponent_role_throwin": "AT",
+  "durak_pending_resolution_attacker": "İhlal kontrolü bekleniyor… Herkes hemfikirse \"Yengiyi Onayla\"ya basın.",
+  "durak_pending_resolution_other": "İhlal kontrolü bekleniyor… Hile fark ettiyseniz \"İhlal!\" düğmesine basabilirsiniz.",
+  "durak_rematch": "Tekrar oyna",
+  "durak_settings_timer_subtitle": "Varsayılan 15 saniye",
+  "durak_single_game": "Tek oyun",
+  "durak_surrender_tooltip": "Oyunu bitir",
+  "durak_tournament_next": "Sonraki turnuva oyunu",
+  "durak_tournament_played": "{finished}/{total} oynandı",
+  "durak_tournament_total_games_title": "Turnuvada kaç oyun?",
+  "durak_winner_label": "Kazanan",
+  "game_durak_subtitle": "Tek oyun veya turnuva",
+  "group_avatar_add_photo": "Fotoğraf ekle",
+  "group_avatar_photo_title": "Grup fotoğrafı",
+  "group_member_open_dm_hint": "Üyeyle direkt sohbet aç",
+  "group_member_profile_not_loaded": "Üye profili henüz yüklenmedi.",
+  "group_member_write_dm": "Direkt mesaj gönder",
+  "group_members_add_count": "Ekle ({count})",
+  "group_members_add_failed": "Üyeler eklenemedi: {error}",
+  "group_members_add_member_tooltip": "Üye ekle",
+  "group_members_add_title": "Üye ekle",
+  "group_members_all_in_group": "Tüm kişileriniz zaten grupta.",
+  "group_members_auth_error": "Yetkilendirme hatası: {error}",
+  "group_members_contacts_load_error": "Kişiler yüklenemedi: {error}",
+  "group_members_copy_invite_tooltip": "Davet bağlantısını kopyala",
+  "group_members_copy_link_error": "Bağlantı kopyalanamadı: {error}",
+  "group_members_creator_badge": "OLUŞTURUCU",
+  "group_members_grant_admin_action": "Ver",
+  "group_members_grant_admin_body": "{name} yönetici yetkilerini alacak: grubu düzenleyebilir, üyeleri kaldırabilir ve mesajları yönetebilir.",
+  "group_members_grant_admin_title": "Yönetici yetkileri verilsin mi?",
+  "group_members_invite_copied": "Davet bağlantısı kopyalandı",
+  "group_members_menu_grant_admin": "Yönetici yap",
+  "group_members_menu_remove": "Gruptan kaldır",
+  "group_members_menu_revoke_admin": "Yöneticiyi kaldır",
+  "group_members_nobody_found": "Kimse bulunamadı.",
+  "group_members_remove_action": "Kaldır",
+  "group_members_remove_body": "{name} gruptan kaldırılacak. Üyeyi tekrar ekleyerek bunu geri alabilirsiniz.",
+  "group_members_remove_title": "Üye kaldırılsın mı?",
+  "group_members_removed": "Üye kaldırıldı",
+  "group_members_revoke_admin_action": "İptal et",
+  "group_members_revoke_admin_body": "{name} yönetici yetkilerini kaybedecek. Grupta normal üye olarak kalacak.",
+  "group_members_revoke_admin_title": "Yönetici yetkileri iptal edilsin mi?",
+  "group_members_search_contacts": "Kişilerde ara",
+  "group_members_select_members": "Üyeleri seçin",
+  "group_members_subtitle_admin": "Yönetici",
+  "group_members_subtitle_creator": "Grup oluşturucu",
+  "group_members_subtitle_member": "Üye",
+  "group_members_total_count": "Toplam: {count}",
+  "group_members_user_fallback": "Kullanıcı",
+  "group_mention_no_matches": "Eşleşme yok",
+  "poll_add_option": "Seçenek ekle",
+  "poll_close_by_time": "Zamana göre kapat",
+  "poll_close_not_set": "Ayarlanmadı",
+  "poll_close_reset": "Son tarihi sıfırla",
+  "poll_correct_option_label": "Doğru seçenek",
+  "poll_description_label": "Açıklama (isteğe bağlı)",
+  "poll_error_empty_question": "Bir soru girin",
+  "poll_error_future_time": "Kapanış zamanı gelecekte olmalıdır",
+  "poll_error_generic": "Hata",
+  "poll_error_min_options": "En az 2 seçenek gereklidir",
+  "poll_error_select_correct": "Doğru seçeneği seçin",
+  "poll_hide_voters": "Gizle",
+  "poll_menu_delete": "Sil",
+  "poll_menu_end": "Bitir",
+  "poll_menu_restart": "Yeniden başlat",
+  "poll_option_hint": "Seçenek {index}",
+  "poll_options_title": "Seçenekler",
+  "poll_publish": "Yayınla",
+  "poll_question_hint": "Örn.: Saat kaçta buluşalım?",
+  "poll_question_label": "Soru",
+  "poll_quiz_explanation_label": "Açıklama (isteğe bağlı)",
+  "poll_show_voters": "Kim oy verdi",
+  "poll_status_ended": "Sona erdi",
+  "poll_suggest_option_hint": "Bir seçenek öner",
+  "poll_switch_add_options": "Seçenek ekle",
+  "poll_switch_add_options_sub": "Katılımcılar kendi seçeneklerini önerebilir",
+  "poll_switch_anonymous": "Anonim oylama",
+  "poll_switch_anonymous_sub": "Kimin neye oy verdiğini gösterme",
+  "poll_switch_multi": "Birden fazla cevap",
+  "poll_switch_multi_sub": "Birden fazla seçenek seçilebilir",
+  "poll_switch_quiz": "Bilgi yarışması modu",
+  "poll_switch_quiz_sub": "Bir doğru cevap",
+  "poll_switch_revote": "Oy değiştirilebilir",
+  "poll_switch_revote_sub": "Anket kapanana kadar yeniden oylamaya izin var",
+  "poll_switch_shuffle": "Seçenekleri karıştır",
+  "poll_switch_shuffle_sub": "Her katılımcı için farklı bir sıra",
+  "poll_votes_count": "{count} oy",
+  "settings_chats_bottom_nav_icons_subtitle": "Web'deki gibi simgeler ve görsel stil seçin.",
+  "settings_chats_bottom_nav_icons_title": "Alt gezinme simgeleri",
+  "settings_chats_collapse": "Daralt",
+  "settings_chats_customize": "Özelleştir",
+  "settings_chats_default": "Varsayılan",
+  "settings_chats_emoji_balanced_desc": "Dengeli: performans ve ifade gücü arasında otomatik uzlaşma.",
+  "settings_chats_emoji_cinematic_desc": "Sinematik: etkileyici efekt için maksimum parçacık ve derinlik.",
+  "settings_chats_emoji_effects": "Emoji efektleri",
+  "settings_chats_emoji_effects_subtitle": "Sohbette tek bir emojiye dokunulduğunda tam ekran emoji için animasyon profili.",
+  "settings_chats_emoji_lite_desc": "Hafif: düşük performanslı cihazlarda minimum yük ve maksimum akıcılık.",
+  "settings_chats_icon_search_hint_en": "Ada göre ara...",
+  "settings_chats_icon_size": "Simge boyutu",
+  "settings_chats_nav_colorful": "Renkli",
+  "settings_chats_nav_global_subtitle": "Genel katman: renk, boyut, kalınlık ve döşeme arka planı.",
+  "settings_chats_nav_global_title": "Tüm simgeler için",
+  "settings_chats_nav_minimal": "Minimal",
+  "settings_chats_preview_hello": "Merhaba",
+  "settings_chats_preview_incoming_msg": "Selam! Nasılsın?",
+  "settings_chats_preview_outgoing_msg": "Harika, teşekkürler!",
+  "settings_chats_reset_item_tooltip": "Sıfırla",
+  "settings_chats_reset_tooltip": "Sıfırla",
+  "settings_chats_stroke_width": "Kalınlık",
+  "settings_chats_style_tooltip": "Stil",
+  "@chat_theme_error_delete": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chat_theme_error_save": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chat_theme_error_upload": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@durak_tournament_played": {
+    "placeholders": {
+      "finished": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@group_members_add_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@group_members_add_failed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_auth_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_contacts_load_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_copy_link_error": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_grant_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_remove_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_revoke_admin_body": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@group_members_total_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@poll_option_hint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "@poll_votes_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeBubbleTitle": "LighChat'e Hoş Geldiniz",
+  "welcomeBubbleSubtitle": "Deniz feneri yanıyor",
+  "welcomeSkip": "Atla",
+  "welcomeReplayDebugTile": "Karşılama animasyonunu tekrar oynat (hata ayıklama)",
+  "sticker_scope_library": "Kütüphane",
+  "sticker_library_search_hint": "Çıkartma ara...",
+  "account_menu_energy_saving": "Güç tasarrufu",
+  "energy_saving_title": "Güç tasarrufu",
+  "energy_saving_section_mode": "Güç tasarrufu modu",
+  "energy_saving_section_resource_heavy": "Kaynak yoğun işlemler",
+  "energy_saving_threshold_off": "Kapalı",
+  "energy_saving_threshold_always": "Açık",
+  "energy_saving_threshold_off_full": "Asla",
+  "energy_saving_threshold_always_full": "Her zaman",
+  "energy_saving_threshold_at": "Pil %{percent}'in altındayken",
+  "@energy_saving_threshold_at": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "energy_saving_hint_off": "Kaynak yoğun efektler asla otomatik olarak devre dışı bırakılmaz.",
+  "energy_saving_hint_always": "Kaynak yoğun efektler pil seviyesinden bağımsız olarak her zaman devre dışıdır.",
+  "energy_saving_hint_threshold": "Pil %{percent}'in altına düştüğünde tüm kaynak yoğun işlemleri otomatik olarak devre dışı bırak.",
+  "@energy_saving_hint_threshold": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "energy_saving_current_battery": "Mevcut pil: %{percent}",
+  "@energy_saving_current_battery": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "energy_saving_active_now": "mod aktif",
+  "energy_saving_active_threshold": "Pil eşik değerine ulaştı — aşağıdaki her efekt geçici olarak devre dışı.",
+  "energy_saving_active_system": "Sistem güç tasarrufu açık — aşağıdaki her efekt geçici olarak devre dışı.",
+  "energy_saving_autoplay_video_title": "Videoları otomatik oynat",
+  "energy_saving_autoplay_video_subtitle": "Sohbetlerdeki video mesajlarını ve videoları otomatik oynat ve döngüye al.",
+  "energy_saving_autoplay_gif_title": "GIF'leri otomatik oynat",
+  "energy_saving_autoplay_gif_subtitle": "Sohbetlerde ve klavyede GIF'leri otomatik oynat ve döngüye al.",
+  "energy_saving_animated_stickers_title": "Hareketli çıkartmalar",
+  "energy_saving_animated_stickers_subtitle": "Döngülü çıkartma animasyonları ve tam ekran Premium çıkartma efektleri.",
+  "energy_saving_animated_emoji_title": "Hareketli emoji",
+  "energy_saving_animated_emoji_subtitle": "Mesajlarda, tepkilerde ve durumlarda döngülü emoji animasyonu.",
+  "energy_saving_interface_animations_title": "Arayüz animasyonları",
+  "energy_saving_interface_animations_subtitle": "LighChat'i daha akıcı ve daha etkileyici yapan efektler ve animasyonlar.",
+  "energy_saving_media_preload_title": "Medya ön yükleme",
+  "energy_saving_media_preload_subtitle": "Sohbet listesi açılırken medya dosyalarını indirmeye başla.",
+  "energy_saving_background_update_title": "Arka plan güncelleme",
+  "energy_saving_background_update_subtitle": "Uygulamalar arasında geçiş yaparken hızlı sohbet güncellemeleri."
+}
