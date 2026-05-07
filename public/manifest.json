@@ -1,8 +1,10 @@
 
 {
-  "name": "LighChat",
+  "name": "LighChat — безопасный мессенджер с QR-входом",
   "short_name": "LighChat",
-  "description": "Мессенджер и видеоконференции",
+  "description": "Безопасный мессенджер: чаты, аудио и видеозвонки, видеоконференции, игры в чате, секретные чаты, E2E-шифрование, мульти-девайс через QR.",
+  "lang": "ru-RU",
+  "categories": ["social", "communication", "productivity"],
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#0a0e17",

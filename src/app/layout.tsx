@@ -33,9 +33,98 @@ const fontMontserrat = Montserrat({
   preload: false,
 });
 
+const SITE_URL = 'https://lighchat.online';
+const SITE_TITLE = 'LighChat — безопасный мессенджер с шифрованием и QR-входом';
+const SITE_DESCRIPTION =
+  'LighChat — приватный мессенджер с E2E-шифрованием, мульти-девайс через QR-код, аудио и видеозвонками, видеоконференциями, играми в чате и секретными чатами. Альтернатива WhatsApp и Telegram. Бесплатно для iOS, Android, Web и Desktop.';
+const SITE_DESCRIPTION_SHORT =
+  'Приватный мессенджер с E2E-шифрованием. Мульти-девайс через QR. Звонки, видеоконференции, игры, секретные чаты. Бесплатно.';
+
 export const metadata: Metadata = {
-  title: 'LighChat',
-  description: 'Messenger & Video Conferencing',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: '%s | LighChat',
+  },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    'мессенджер',
+    'безопасный мессенджер',
+    'приватный мессенджер',
+    'мессенджер с шифрованием',
+    'альтернатива whatsapp',
+    'альтернатива telegram',
+    'видеозвонки',
+    'аудиозвонки',
+    'видеоконференции',
+    'видеовстречи онлайн',
+    'видеоконференция бесплатно',
+    'e2e шифрование',
+    'секретные чаты',
+    'игры в чате',
+    'мессенджер с играми',
+    'мессенджер на нескольких устройствах',
+    'qr вход',
+    'мульти-девайс мессенджер',
+    'кастомные темы чатов',
+    'дурак онлайн',
+    'messenger',
+    'private messenger',
+    'secure messaging',
+    'encrypted chat',
+    'secret chats',
+    'in-chat games',
+    'video conferencing',
+    'video meetings',
+    'free video conference',
+    'whatsapp alternative',
+    'telegram alternative',
+    'multi device messenger',
+  ],
+  authors: [{ name: 'LighChat Team', url: SITE_URL }],
+  creator: 'LighChat',
+  publisher: 'LighChat',
+  applicationName: 'LighChat',
+  category: 'communication',
+  classification: 'Communication, Social Networking, Productivity',
+  manifest: '/manifest.json',
+  alternates: {
+    canonical: SITE_URL,
+    languages: {
+      'ru-RU': SITE_URL,
+      'en-US': SITE_URL,
+      'x-default': SITE_URL,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    alternateLocale: ['en_US'],
+    url: SITE_URL,
+    siteName: 'LighChat',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION_SHORT,
+    /** Картинка предоставляется через `src/app/opengraph-image.tsx` (динамическая генерация). */
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@lighchat',
+    creator: '@lighchat',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION_SHORT,
+    /** Картинка предоставляется через `src/app/twitter-image.tsx` (если нужна отдельная) — пока используется OG-картинка. */
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   /** Вкладка: прозрачный фавикон (`favicon-*.png`). Рабочий стол / PWA: `manifest` и apple-touch — знак с белым полем ~18% (`scripts/shrink-pwa-icon.mjs`). Сборка: `npm run brand:mark` / `npm run icons:pwa`. */
   icons: {
     icon: [
@@ -44,8 +133,6 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
-  applicationName: 'LighChat',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -82,6 +169,42 @@ export default function RootLayout({
       className={cn(fontInter.variable, fontSpaceGrotesk.variable, fontMontserrat.variable)}
     >
       <head>
+        {/** JSON-LD: SoftwareApplication schema для rich-snippets в Google. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'LighChat',
+              applicationCategory: 'CommunicationApplication',
+              operatingSystem: 'iOS, Android, Windows, macOS, Linux, Web',
+              description:
+                'Приватный мессенджер с E2E-шифрованием, мульти-девайс через QR, аудио и видеозвонками, видеоконференциями, играми в чате и секретными чатами. Альтернатива WhatsApp и Telegram.',
+              url: SITE_URL,
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'RUB',
+              },
+              publisher: {
+                '@type': 'Organization',
+                name: 'LighChat',
+                url: SITE_URL,
+              },
+              featureList: [
+                'End-to-end encryption',
+                'QR multi-device login',
+                'Audio and video calls',
+                'Video conferencing (meetings)',
+                'Secret chats',
+                'In-chat games',
+                'Custom chat themes',
+                'Cross-platform (iOS, Android, Web, Desktop)',
+              ],
+            }),
+          }}
+        />
         {/* Automatic recovery from ChunkLoadError. Externalised to a self-
             hosted file so we don't need 'unsafe-inline' just for this snippet. */}
         <script src="/chunk-recovery.js" nonce={nonce} async />

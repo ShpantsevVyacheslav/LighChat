@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /auth/
+
+User-agent: Yandex
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /auth/
+
+Sitemap: https://lighchat.online/sitemap.xml
+Host: lighchat.online

@@ -1,7 +1,39 @@
+<h1 align="center">LighChat</h1>
 
-# LighChat
+<p align="center">
+  <strong>Безопасный мессенджер с E2E-шифрованием, QR мульти-девайс и HD-видеозвонками</strong>
+</p>
 
-Мессенджер и платформа видеоконференций с поддержкой веб, десктоп (Electron) и PWA.
+<p align="center">
+  Альтернатива WhatsApp и Telegram для iOS, Android, Web (PWA), Windows, macOS и Linux.
+</p>
+
+<p align="center">
+  <a href="https://github.com/ShpantsevVyacheslav/LighChat/stargazers">
+    <img src="https://img.shields.io/github/stars/ShpantsevVyacheslav/LighChat?style=social" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/ShpantsevVyacheslav/LighChat/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/ShpantsevVyacheslav/LighChat" alt="License">
+  </a>
+  <a href="https://lighchat.online">
+    <img src="https://img.shields.io/badge/website-lighchat.online-blue" alt="Website">
+  </a>
+  <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20Web%20%7C%20Desktop-brightgreen" alt="Platforms">
+</p>
+
+<p align="center">
+  <a href="#возможности">Возможности</a> •
+  <a href="#локальный-запуск">Запуск</a> •
+  <a href="#mobile-flutter">Mobile</a> •
+  <a href="docs/marketing/README.md">Маркетинг</a> •
+  <a href="README.en.md">English</a>
+</p>
+
+---
+
+**LighChat** — это open-source мессенджер с end-to-end шифрованием, мульти-девайс синхронизацией через QR-код, HD-видеозвонками и кастомными темами чатов. Безопасная альтернатива WhatsApp и Telegram для iOS, Android, Windows, macOS, Linux и веба.
+
+⭐ Если проект полезен — поставьте звезду на GitHub, это помогает другим узнать о нём.
 
 ## Возможности
 

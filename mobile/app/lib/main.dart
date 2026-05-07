@@ -138,7 +138,17 @@ class _MyAppState extends ConsumerState<MyApp> {
       themeMode: _themeMode,
       locale: languagePref.toLocaleOrNull(),
       localeResolutionCallback: (locale, supportedLocales) {
-        final code = (locale?.languageCode ?? '').toLowerCase();
+        if (locale == null) return const Locale('ru');
+        final code = locale.languageCode.toLowerCase();
+        final country = (locale.countryCode ?? '').toUpperCase();
+        // Точное совпадение (язык + страна).
+        for (final s in supportedLocales) {
+          if (s.languageCode.toLowerCase() == code &&
+              (s.countryCode ?? '').toUpperCase() == country) {
+            return s;
+          }
+        }
+        // Совпадение только по языку.
         for (final s in supportedLocales) {
           if (s.languageCode.toLowerCase() == code) return s;
         }

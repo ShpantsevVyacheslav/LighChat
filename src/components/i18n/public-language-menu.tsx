@@ -2,6 +2,7 @@
 
 import { useI18n } from '@/hooks/use-i18n';
 import type { AppLanguagePreference } from '@/lib/i18n/preference';
+import { SUPPORTED_LOCALES, LANGUAGE_NATIVE_NAMES } from '@/lib/i18n/preference';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -28,8 +29,11 @@ export function PublicLanguageMenu({ className }: { className?: string }) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="system">{t('settings.language.system')}</SelectItem>
-          <SelectItem value="ru">{t('settings.language.ru')}</SelectItem>
-          <SelectItem value="en">{t('settings.language.en')}</SelectItem>
+          {SUPPORTED_LOCALES.map((loc) => (
+            <SelectItem key={loc} value={loc}>
+              {LANGUAGE_NATIVE_NAMES[loc]}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
