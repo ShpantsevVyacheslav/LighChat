@@ -6,7 +6,12 @@ import { useCollection, useDoc, useFirestore, useMemoFirebase, useStorage } from
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { collection, query, doc, updateDoc, orderBy, setDoc, limit, onSnapshot, increment, getDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp, deleteField, where } from 'firebase/firestore';
-import { E2EE_LAST_MESSAGE_PREVIEW, autoEnableE2eeForNewDirectChat, isEncryptableMimeV2 } from '@/lib/e2ee';
+import {
+  E2EE_LAST_MESSAGE_PREVIEW,
+  autoEnableE2eeForNewDirectChat,
+  isEncryptableMimeV2,
+  putCachedConversationPreview,
+} from '@/lib/e2ee';
 import { inferKindHintFromFileName } from '@/lib/e2ee/infer-kind-hint';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
 import { useE2eeMediaAttachments } from '@/hooks/use-e2ee-media-attachments';
@@ -711,12 +716,44 @@ export function ChatWindow({
           }
           return changed ? merged : prev;
         });
+        // Обновляем preview-кеш для сайдбара: ищем сообщение, чей createdAt
+        // совпадает с conversation.lastMessageTimestamp — это и есть «последнее»
+        // сообщение, которое сейчас отображается в списке как «Зашифрованное
+        // сообщение». Пишем туда расшифрованный plaintext (без HTML), чтобы
+        // ConversationItem подхватил.
+        const lastTs = conversation.lastMessageTimestamp;
+        if (lastTs) {
+          const latestEncrypted = allMessages.find(
+            (m) => m.e2ee?.ciphertext && m.createdAt === lastTs && !m.isDeleted
+          );
+          if (latestEncrypted) {
+            const html = updates[latestEncrypted.id] ?? '';
+            const previewText = html
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 240);
+            if (previewText) {
+              void putCachedConversationPreview(conversation.id, {
+                text: previewText,
+                ts: lastTs,
+                messageId: latestEncrypted.id,
+              });
+            }
+          }
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [allMessages, e2eeConv.decryptMessagePayload]);
+  }, [
+    allMessages,
+    e2eeConv.decryptMessagePayload,
+    conversation.id,
+    conversation.lastMessageTimestamp,
+  ]);
 
   const messagesForListRaw = useMemo(() => {
     const clearedAt = conversation.clearedAt?.[currentUser.id];
@@ -1469,16 +1506,30 @@ export function ChatWindow({
         else lastPreview = 'Сообщение';
       }
       
-      await updateDoc(conversationRef, { 
-          lastMessageText: lastPreview, 
-          lastMessageTimestamp: now, 
-          lastMessageSenderId: currentUser.id, 
+      await updateDoc(conversationRef, {
+          lastMessageText: lastPreview,
+          lastMessageTimestamp: now,
+          lastMessageSenderId: currentUser.id,
           lastMessageIsThread: false,
           ...unreadUpdates,
           ...(mentionedUserIds.length > 0
             ? { usersWithPendingGroupMention: arrayUnion(...mentionedUserIds) }
             : {}),
       });
+      // Сразу после записи в Firestore (где для E2EE-текста уезжает плейсхолдер)
+      // кладём настоящий plaintext в локальный preview-кеш, чтобы наш сайдбар
+      // показал реальный последний текст без ожидания «полного декрипт-цикла»
+      // на следующем рендере. plainBody уже без HTML — см. строку выше.
+      if (useE2eeForText) {
+        const previewText = plainBody.slice(0, 240);
+        if (previewText) {
+          void putCachedConversationPreview(conversation.id, {
+            text: previewText,
+            ts: now,
+            messageId,
+          });
+        }
+      }
     } catch (error) {
       console.error('Chat send failed:', error);
       setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
@@ -1733,6 +1784,22 @@ export function ChatWindow({
             await updateDoc(doc(firestore, 'conversations', conversation.id), {
               lastMessageText: E2EE_LAST_MESSAGE_PREVIEW,
             });
+            // Тот же приём, что и при отправке: подмешиваем настоящий plaintext
+            // в локальный preview-кеш, чтобы сайдбар отразил отредактированный
+            // текст без задержки на новый цикл декрипта.
+            const previewText = text
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 240);
+            if (previewText && existing?.createdAt) {
+              void putCachedConversationPreview(conversation.id, {
+                text: previewText,
+                ts: existing.createdAt,
+                messageId: id,
+              });
+            }
           }
         } else {
         await updateDoc(msgRef, { text, attachments: attachments || [], updatedAt: now });
@@ -2395,6 +2462,7 @@ export function ChatWindow({
                   allUsers={allUsers}
                   onSelectResult={navigateToMessage}
                   blurInsetLeftPx={messageSearchBlurInsetLeftPx}
+                  e2eeDecryptedByMessageId={e2eePlaintextByMessageId}
                 />
                 <div className={cn('relative h-full w-full min-h-0 min-w-0 overflow-hidden transition-opacity duration-500', isFullyReady ? 'opacity-100' : 'opacity-0')}>
                     <VideoCircleTailProvider setTailReservePx={setVideoCircleTailReservePx}>

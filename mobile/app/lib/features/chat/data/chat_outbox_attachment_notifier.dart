@@ -14,6 +14,7 @@ import '../../../l10n/app_localizations.dart';
 import 'chat_attachment_upload.dart';
 import 'composer_html_editing.dart';
 import 'e2ee_attachment_send_helper.dart';
+import 'e2ee_plaintext_cache.dart';
 import 'e2ee_runtime.dart';
 import '../ui/message_html_text.dart';
 
@@ -386,6 +387,10 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
         );
       }
 
+      // Заранее фиксируем `nowIso` и передаём в repo: тот же таймштамп
+      // должен попасть в Firestore (`createdAt` + `lastMessageTimestamp`)
+      // и в локальный preview-кэш, чтобы ChatListScreen матчил их по `ts`.
+      final nowIso = DateTime.now().toUtc().toIso8601String();
       final threadParent = job.threadParentMessageId;
       if (threadParent != null && threadParent.isNotEmpty) {
         await repo.sendThreadTextMessage(
@@ -407,7 +412,30 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
           attachments: uploaded,
           e2eeEnvelope: outgoingEnvelope,
           messageIdOverride: job.effectiveMessageId,
+          nowIsoOverride: nowIso,
         );
+      }
+
+      // Sender-side preview-cache: только для главного чата (в треде свой
+      // `lastThreadMessageText` и собственный сценарий) и только когда
+      // мы реально отправляли E2EE-текст. Для media-only без подписи кеш
+      // не пишем — в сайдбаре останется плейсхолдер «Зашифрованное
+      // сообщение», что корректно (текста как такового не было).
+      if (outgoingEnvelope != null &&
+          (threadParent == null || threadParent.isEmpty) &&
+          textSave.isNotEmpty) {
+        var preview = messageHtmlToPlainText(textSave).trim();
+        if (preview.length > 240) preview = preview.substring(0, 240);
+        if (preview.isNotEmpty) {
+          unawaited(
+            E2eePlaintextCache.instance.putPreview(
+              conversationId: job.conversationId,
+              text: preview,
+              ts: nowIso,
+              messageId: job.effectiveMessageId,
+            ),
+          );
+        }
       }
 
       final done = _byId(jobId);

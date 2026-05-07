@@ -21,6 +21,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/composer_clipboard_paste.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_data_type_policy.dart';
+import '../data/e2ee_plaintext_cache.dart';
 import '../data/e2ee_runtime.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/composer_html_editing.dart';
@@ -156,6 +157,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Режим правки: id сообщения + превью для полосы над вводом (plain).
   String? _editingMessageId;
   String? _editingPreviewPlain;
+  /// `createdAt` редактируемого сообщения. Нужен только для одного места:
+  /// после сохранения отредактированного E2EE-текста положить новый plaintext
+  /// в локальный preview-кэш с тем же `ts`, что у сообщения, чтобы сайдбар
+  /// подхватил обновление вместо плейсхолдера «Зашифрованное сообщение».
+  String? _editingCreatedAt;
   final Set<String> _selectedMessageIds = <String>{};
   bool _actionBusy = false;
   final List<XFile> _pendingAttachments = <XFile>[];
@@ -1645,6 +1651,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   secretChat:
                                                       conv?.data.secretChat,
                                                   messages: msgs,
+                                                  lastMessageTimestamp: conv
+                                                      ?.data
+                                                      .lastMessageTimestamp,
                                                   builder:
                                                       (
                                                         context,
@@ -2052,11 +2061,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                     if (t.length < 2) {
                                                       return const SizedBox.shrink();
                                                     }
+                                                    // Подмешиваем расшифрованный
+                                                    // plaintext из persistent
+                                                    // E2EE-кэша (warm-up или
+                                                    // putText из orchestrator):
+                                                    // у E2EE-сообщений `m.text`
+                                                    // пуст, и без этого фильтр
+                                                    // всегда возвращал бы 0
+                                                    // совпадений.
+                                                    final decryptedMap = <
+                                                      String,
+                                                      String
+                                                    >{};
+                                                    for (final m in msgs) {
+                                                      if (m.e2eePayload ==
+                                                          null) {
+                                                        continue;
+                                                      }
+                                                      final cached = E2eePlaintextCache
+                                                          .instance
+                                                          .getTextSync(
+                                                            conversationId:
+                                                                widget.conversationId,
+                                                            messageId: m.id,
+                                                          );
+                                                      if (cached != null &&
+                                                          cached.isNotEmpty) {
+                                                        decryptedMap[m.id] =
+                                                            cached;
+                                                      }
+                                                    }
                                                     final results =
                                                         filterMessagesForInChatSearch(
                                                           msgs,
                                                           _chatSearchController
                                                               .text,
+                                                          decryptedTextByMessageId:
+                                                              decryptedMap,
                                                         );
                                                     return Positioned.fill(
                                                       child: ChatMessageSearchOverlay(
@@ -2069,6 +2110,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               String,
                                                               UserProfile
                                                             >{},
+                                                        decryptedTextByMessageId:
+                                                            decryptedMap,
                                                         onSelectMessageId: (id) {
                                                           _exitChatSearch();
                                                           _scrollToMessageId(
@@ -3235,6 +3278,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     setState(() {
       _editingMessageId = m.id;
       _editingPreviewPlain = preview;
+      // Запоминаем createdAt как ISO-строку: репозиторий и preview-кэш
+      // оперируют строками, чтобы потом сравнить с `lastMessageTimestamp`
+      // в Firestore (там тоже строка, в формате `toUtc().toIso8601String()`).
+      _editingCreatedAt = m.createdAt.toUtc().toIso8601String();
       _replyingTo = null;
       _composerFormattingOpen = false;
       _controller.text = forEdit;
@@ -3792,10 +3839,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           text: prepared,
           e2eeEnvelope: editEnvelope,
         );
+        // E2EE-edit: репозиторий перезаписал `lastMessageText` плейсхолдером.
+        // Кладём настоящий plaintext в локальный preview-кэш с тем же `ts`,
+        // что у редактируемого сообщения (createdAt не меняется при правке),
+        // чтобы ChatListScreen отобразил обновление вместо плейсхолдера.
+        if (editEnvelope != null && _editingCreatedAt != null && plainOut.isNotEmpty) {
+          var preview = plainOut;
+          if (preview.length > 240) preview = preview.substring(0, 240);
+          unawaited(
+            E2eePlaintextCache.instance.putPreview(
+              conversationId: widget.conversationId,
+              text: preview,
+              ts: _editingCreatedAt!,
+              messageId: editingId,
+            ),
+          );
+        }
         if (!mounted) return;
         setState(() {
           _editingMessageId = null;
           _editingPreviewPlain = null;
+          _editingCreatedAt = null;
           _composerFormattingOpen = false;
         });
         _controller.clear();

@@ -17,6 +17,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
     required this.profileMap,
     required this.onSelectMessageId,
     required this.onTapScrim,
+    this.decryptedTextByMessageId,
   });
 
   final List<ChatMessage> results;
@@ -24,6 +25,12 @@ class ChatMessageSearchOverlay extends StatelessWidget {
   final Map<String, UserProfile> profileMap;
   final void Function(String messageId) onSelectMessageId;
   final VoidCallback onTapScrim;
+
+  /// Расшифрованный plaintext для E2EE-сообщений (`messageId → text`).
+  /// Без этого мапа сниппет результата у E2EE-сообщений всегда деградировал
+  /// бы до фолбэка `chat_search_snippet_message`. Опционально — для
+  /// не-E2EE чатов передавать не обязательно.
+  final Map<String, String>? decryptedTextByMessageId;
 
   String _senderName(String senderId, AppLocalizations l10n) {
     final p = profileMap[senderId];
@@ -240,7 +247,10 @@ class ChatMessageSearchOverlay extends StatelessWidget {
                                                       const SizedBox(height: 4),
                                                       Text(
                                                         chatSearchResultSnippet(
-                                                          m, l10n,
+                                                          m,
+                                                          l10n,
+                                                          decryptedTextByMessageId:
+                                                              decryptedTextByMessageId,
                                                         ),
                                                         maxLines: 2,
                                                         overflow: TextOverflow

@@ -467,6 +467,39 @@ New device:
 - Серверный поиск (Firestore `where text`) по E2EE‑сообщениям невозможен — ciphertext.
 - Клиентский поиск: индексируем plaintext локально после decrypt (в памяти / в защищённом кэше). Не выкладываем в Firestore.
 - UI в search‑сцене: предупреждаем пользователя, что поиск по E2EE‑чатам работает только по загруженной истории.
+- Реализация на web: `ChatSearchOverlay` принимает `e2eeDecryptedByMessageId` (мап `messageId → plaintext`), который `ChatWindow` собирает в `e2eePlaintextByMessageId` после decrypt-цикла. Без этого мапа фильтр работал бы только по `m.text`, у E2EE-сообщений всегда пустому, и возвращал бы 0 результатов.
+- Реализация на mobile: [`filterMessagesForInChatSearch`](../mobile/app/lib/features/chat/data/chat_message_search.dart) и [`chatSearchResultSnippet`](../mobile/app/lib/features/chat/data/chat_message_search.dart) принимают опциональный `decryptedTextByMessageId`. Call-sites в [`chat_screen.dart`](../mobile/app/lib/features/chat/ui/chat_screen.dart) и [`thread_screen.dart`](../mobile/app/lib/features/chat/ui/thread_screen.dart) собирают его из `E2eePlaintextCache.getTextSync(...)` (тот же persistent cache, что используется для warm-up + render path) — глобальный singleton, поэтому не требуется передавать данные через `E2eeMessagesResolver`.
+
+## 10.1 Локальный preview‑кеш для списка чатов (web + mobile)
+
+`conversations/{id}.lastMessageText` для E2EE-сообщений хранит плейсхолдер `E2EE_LAST_MESSAGE_PREVIEW = «Зашифрованное сообщение»` — серверу plaintext не доверяем (пункт 1 угроз). Чтобы в сайдбаре/списке чатов отображался настоящий текст, на каждой платформе держим локальный preview-кеш с одинаковой моделью (`{ text, ts, messageId }` per `conversationId`).
+
+### Web
+
+IndexedDB store `preview` в `lighchat-e2ee-cache` ([`src/lib/e2ee/plaintext-cache.ts`](../src/lib/e2ee/plaintext-cache.ts)):
+
+- Ключ — `conversationId`. Значение — `{ text, ts, messageId }`, где `ts` копирует `conversation.lastMessageTimestamp` сообщения, чей текст лежит в `text`.
+- Запись:
+  - `ChatWindow` decrypt-цикл: при каждом расшифрованном сообщении, чей `createdAt === conversation.lastMessageTimestamp`, кладёт в кеш strip-нутый plaintext.
+  - `handleSendMessage`: после `updateDoc(conversationRef, { lastMessageText: E2EE_LAST_MESSAGE_PREVIEW, lastMessageTimestamp: now })` сразу пишет реальный `plainBody` в кеш.
+  - `handleUpdateMessage` (E2EE-edit): тот же приём при редактировании последнего сообщения.
+- Чтение: [`useCachedConversationPreview`](../src/hooks/use-cached-conversation-preview.ts) подписывается на CustomEvent `lighchat:e2ee-preview-changed`, который диспатчится из `putCachedConversationPreview`. `ConversationItem` показывает `cachedPreview.text` только если `conv.lastMessageText === E2EE_LAST_MESSAGE_PREVIEW` И `cachedPreview.ts === conv.lastMessageTimestamp` — иначе fallback на серверное значение (защищает от показа stale-текста, если поверх пришло более новое сообщение, не успевшее декодироваться).
+- Cleanup: store входит в `clearAllE2eeCache` (logout) и `clearConversationE2eeCache` (удаление чата). DB версия поднята до `2`, добавлен `createObjectStore('preview')` в `onupgradeneeded`.
+
+### Mobile (Flutter)
+
+Файл `applicationSupport/e2ee_cache/preview.json` (один на всё приложение, JSON: `conversationId → { text, ts, messageId }`), управляется тем же singleton'ом [`E2eePlaintextCache`](../mobile/app/lib/features/chat/data/e2ee_plaintext_cache.dart) что хранит per-message текст и медиа.
+
+- Запись:
+  - [`E2eeMessagesResolver._maybeUpdatePreviewCache`](../mobile/app/lib/features/chat/data/e2ee_decryption_orchestrator.dart) — после успешного `_decryptOne` (и в `_warmUpPersistentTextCache` при разогреве с диска) кладёт в кеш plaintext, если `m.createdAt ≈ widget.lastMessageTimestamp` (сравниваем как `DateTime.isAtSameMomentAs` — ISO-roundtrip может отличаться по микросекундам / `Z` vs `+00:00`). Родитель (`chat_screen.dart`) пробрасывает `lastMessageTimestamp` через новый параметр.
+  - [`chat_outbox_attachment_notifier`](../mobile/app/lib/features/chat/data/chat_outbox_attachment_notifier.dart) — после `repo.sendTextMessage(...)` с E2EE-envelope: каллер заранее вычисляет `nowIso` (новый параметр `nowIsoOverride` у `sendTextMessage`, чтобы Firestore-write и cache-write использовали один и тот же таймштамп) и пишет plaintext в preview-кеш.
+  - [`chat_screen.dart`](../mobile/app/lib/features/chat/ui/chat_screen.dart) E2EE-edit branch: после `repo.updateMessageText(...)` пишет новый plaintext с `ts = m.createdAt.toUtc().toIso8601String()` (запомнен в state как `_editingCreatedAt`).
+- Чтение: [`ChatListScreen`](../mobile/app/lib/features/chat/ui/chat_list_screen.dart) на init вызывает `warmUpPreviews()` и подписывается на `E2eePlaintextCache.previewRevision` (`ValueListenable<int>` — тикает при каждом `putPreview`). В build-методе через `getPreviewSync(c.id)` получает запись и подменяет `c.data.lastMessageText` только если он ровно равен l10n-плейсхолдеру и `cached.ts ≈ c.data.lastMessageTimestamp`.
+- Cleanup: `clearConversation` удаляет запись, `clearAll` чистит вместе с другими кэшами (logout).
+
+### Trade-off (общий)
+
+На новом устройстве / после очистки локального хранилища список чатов будет показывать `E2EE_LAST_MESSAGE_PREVIEW` до тех пор, пока чат не откроется и decrypt-цикл не заполнит preview. Это осознанная цена за E2EE — серверу plaintext не доверяем. Media-only E2EE-сообщения (без текста) в кеш не пишутся, и в списке чатов они продолжают показывать плейсхолдер.
 
 ## 11. Errors / error codes (v2)
 

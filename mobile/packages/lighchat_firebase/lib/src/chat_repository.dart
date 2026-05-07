@@ -856,11 +856,19 @@ class ChatRepository {
     List<ChatAttachment> attachments = const [],
     Map<String, Object?>? e2eeEnvelope,
     String? messageIdOverride,
+    /// Опциональный ISO-таймштамп для `createdAt` / `lastMessageTimestamp`.
+    /// Нужен звонящему стороннему коду (см. `chat_outbox_attachment_notifier`),
+    /// чтобы записать тот же `ts` в локальный preview-кэш и сразу показать
+    /// настоящий plaintext в списке чатов вместо плейсхолдера E2EE — кеш
+    /// сравнивает свой `ts` с серверным `lastMessageTimestamp`, и без
+    /// синхронизации значения превью не подхватится. Если не передан —
+    /// используем текущее время как раньше.
+    String? nowIsoOverride,
   }) async {
     final trimmed = text.trim();
     final hasE2ee = e2eeEnvelope != null;
     if (trimmed.isEmpty && attachments.isEmpty && !hasE2ee) return;
-    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final nowIso = nowIsoOverride ?? DateTime.now().toUtc().toIso8601String();
 
     // Phase 4: при E2EE записываем `e2ee.*` и placeholder-preview вместо
     // plaintext. `text` НЕ пишем (собеседник всё равно декодирует из envelope).

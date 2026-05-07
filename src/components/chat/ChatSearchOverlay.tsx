@@ -19,6 +19,13 @@ interface ChatSearchOverlayProps {
   onSelectResult: (messageId: string) => void;
   /** Левый край затемнения/blur (px): только колонка чата, без сайдбара списка диалогов. */
   blurInsetLeftPx?: number;
+  /**
+   * Расшифрованный текст E2EE-сообщений (HTML), мап `messageId → plaintext`.
+   * Передаётся `ChatWindow`'ом из `e2eePlaintextByMessageId`. Без этого мапа
+   * поиск по зашифрованным чатам всегда возвращал 0 результатов: `m.text`
+   * у E2EE-сообщений пуст, в Firestore лежит только ciphertext.
+   */
+  e2eeDecryptedByMessageId?: Record<string, string>;
 }
 
 /** Отступ сверху под плавающую шапку чата (~h-14 + safe area). */
@@ -50,6 +57,7 @@ export function ChatSearchOverlay({
   allUsers,
   onSelectResult,
   blurInsetLeftPx = 0,
+  e2eeDecryptedByMessageId,
 }: ChatSearchOverlayProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -57,17 +65,26 @@ export function ChatSearchOverlay({
     setMounted(true);
   }, []);
 
+  /** Источник текста для матчинга и превью: для E2EE берём расшифрованный
+   *  HTML из мапы, для обычных — `m.text`. В обоих случаях стрипаем теги. */
+  const getMessagePlainText = (m: ChatMessage): string => {
+    const raw = m.text || e2eeDecryptedByMessageId?.[m.id] || '';
+    if (!raw) return '';
+    return raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  };
+
   const searchResults = useMemo(() => {
     if (!query.trim() || query.length < 2) return [];
     return messages
       .filter((m) => {
         if (m.isDeleted) return false;
-        const plain = m.text?.replace(/<[^>]*>/g, '') ?? '';
-        const textMatch = ruEnSubstringMatch(plain, query);
-        return textMatch;
+        const plain = getMessagePlainText(m);
+        if (!plain) return false;
+        return ruEnSubstringMatch(plain, query);
       })
       .reverse();
-  }, [messages, query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, query, e2eeDecryptedByMessageId]);
 
   if (!query || query.length < 2) return null;
 
@@ -140,7 +157,7 @@ export function ChatSearchOverlay({
                           </span>
                         </div>
                         <p className="truncate text-sm leading-snug text-foreground/88">
-                          {msg.text?.replace(/<[^>]*>/g, '') || 'Вложение'}
+                          {getMessagePlainText(msg) || 'Вложение'}
                         </p>
                       </div>
                     </div>

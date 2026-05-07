@@ -34,6 +34,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../ui/message_html_text.dart';
 import 'e2ee_plaintext_cache.dart';
 import 'e2ee_runtime.dart';
 import 'local_storage_preferences.dart';
@@ -60,6 +61,7 @@ class E2eeMessagesResolver extends ConsumerStatefulWidget {
     this.secretChat,
     required this.messages,
     required this.builder,
+    this.lastMessageTimestamp,
   });
 
   final String conversationId;
@@ -71,6 +73,14 @@ class E2eeMessagesResolver extends ConsumerStatefulWidget {
   final List<ChatMessage> messages;
 
   final E2eeMessagesBuilder builder;
+
+  /// `conversation.lastMessageTimestamp` родителя. Если задан — orchestrator
+  /// после успешного `_decryptOne` сравнивает с `m.createdAt` и при совпадении
+  /// кладёт plaintext в `E2eePlaintextCache.preview`, чтобы список чатов
+  /// показал настоящий текст вместо плейсхолдера «Зашифрованное сообщение».
+  /// Опционально, чтобы прежние call-sites (где список conversations не
+  /// проброшен) продолжали работать без изменений.
+  final String? lastMessageTimestamp;
 
   @override
   ConsumerState<E2eeMessagesResolver> createState() =>
@@ -137,6 +147,10 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
       if (cached != null) {
         _decrypted[m.id] = cached;
         updated = true;
+        // На warm-up тоже обновляем preview-кэш для «последнего» сообщения,
+        // на случай когда диск-кеш plaintext заполнился прошлой сессией,
+        // а preview-кеш ещё пустой / устаревший.
+        _maybeUpdatePreviewCache(messageId: m.id, plaintext: cached);
       }
     }
     if (!mounted) return;
@@ -434,6 +448,7 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
             plaintext: res.plaintext!,
           ),
         );
+        _maybeUpdatePreviewCache(messageId: messageId, plaintext: res.plaintext!);
       }
     } catch (_) {
       if (_disposed) return;
@@ -442,6 +457,44 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
         _failed.add(messageId);
       });
     }
+  }
+
+  /// Пишет в preview-кэш только если расшифрованное сообщение совпадает с
+  /// «последним сообщением чата» (`createdAt ≈ lastMessageTimestamp`).
+  /// Это покрывает receiver-сторону и догоняет sender-сторону, когда
+  /// собственное E2EE-сообщение возвращается через Firestore listener.
+  /// Если родитель не знает `lastMessageTimestamp` — тихо ничего не делаем.
+  void _maybeUpdatePreviewCache({
+    required String messageId,
+    required String plaintext,
+  }) {
+    final lastTs = widget.lastMessageTimestamp;
+    if (lastTs == null || lastTs.isEmpty) return;
+    if (plaintext.isEmpty) return;
+    ChatMessage? target;
+    for (final m in widget.messages) {
+      if (m.id == messageId) {
+        target = m;
+        break;
+      }
+    }
+    if (target == null || target.isDeleted) return;
+    // Сравниваем как момент во времени (ISO-roundtrip может отличаться по
+    // микросекундам / Z vs +00:00 — строгое строковое равенство ненадёжно).
+    final lastDt = DateTime.tryParse(lastTs);
+    if (lastDt == null) return;
+    if (!target.createdAt.toUtc().isAtSameMomentAs(lastDt.toUtc())) return;
+    var preview = messageHtmlToPlainText(plaintext).trim();
+    if (preview.length > 240) preview = preview.substring(0, 240);
+    if (preview.isEmpty) return;
+    unawaited(
+      E2eePlaintextCache.instance.putPreview(
+        conversationId: widget.conversationId,
+        text: preview,
+        ts: lastTs,
+        messageId: messageId,
+      ),
+    );
   }
 
   /// Phase 9: один envelope → файл в темпе → [ChatAttachment] с `file://` URL.

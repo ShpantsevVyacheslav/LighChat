@@ -22,6 +22,7 @@ import '../data/chat_media_gallery.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/e2ee_data_type_policy.dart';
+import '../data/e2ee_plaintext_cache.dart';
 import '../data/e2ee_runtime.dart';
 import '../data/secret_chat_media_open_service.dart';
 
@@ -1715,10 +1716,29 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                           contactsAsync.value?.contactProfiles ??
                           const <String, ContactLocalProfile>{};
 
+                      // Расшифрованный текст E2EE-сообщений из persistent
+                      // кэша. Без него `m.text` пуст и поиск всегда возвращал
+                      // 0 результатов в зашифрованном треде.
+                      final threadSearchDecryptedMap = <String, String>{};
+                      if (_inThreadSearch) {
+                        for (final m in sortedAsc) {
+                          if (m.e2eePayload == null) continue;
+                          final cached = E2eePlaintextCache.instance
+                              .getTextSync(
+                                conversationId: widget.conversationId,
+                                messageId: m.id,
+                              );
+                          if (cached != null && cached.isNotEmpty) {
+                            threadSearchDecryptedMap[m.id] = cached;
+                          }
+                        }
+                      }
                       final searchResults = _inThreadSearch
                           ? filterMessagesForInChatSearch(
                               sortedAsc,
                               _searchController.text,
+                              decryptedTextByMessageId:
+                                  threadSearchDecryptedMap,
                             )
                           : const <ChatMessage>[];
 
@@ -2033,6 +2053,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                         results: searchResults,
                                         conversation: conv,
                                         profileMap: profileMap,
+                                        decryptedTextByMessageId:
+                                            threadSearchDecryptedMap,
                                         onSelectMessageId: (id) {
                                           _exitThreadSearch();
                                           _scrollToMessageId(id);

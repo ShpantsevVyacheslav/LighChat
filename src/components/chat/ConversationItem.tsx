@@ -14,7 +14,9 @@ import { useConversationTypingOthers } from '@/hooks/use-conversation-typing-oth
 import { useElementInViewport } from '@/hooks/use-element-in-viewport';
 import { usePageVisibility } from '@/hooks/use-page-visibility';
 import { useChatMainDraftPreview } from '@/hooks/use-chat-main-draft-preview';
+import { useCachedConversationPreview } from '@/hooks/use-cached-conversation-preview';
 import { canShowOnlineStatus } from '@/lib/presence-visibility';
+import { E2EE_LAST_MESSAGE_PREVIEW } from '@/lib/e2ee';
 
 interface ConversationItemProps {
     conv: Conversation;
@@ -50,6 +52,20 @@ export function ConversationItem({
         typingEnabled
     );
     const mainDraft = useChatMainDraftPreview(currentUser.id, conv.id);
+    /** Локально расшифрованный текст последнего E2EE-сообщения (если уже декодировали
+     *  в ChatWindow или сами отправляли с этого устройства). Сервер хранит
+     *  плейсхолдер «Зашифрованное сообщение», поэтому без локального кеша
+     *  превью в сайдбаре всегда показывалось бы плейсхолдером. */
+    const cachedPreview = useCachedConversationPreview(conv.id);
+    /** Применяем кеш только если он относится к текущему «последнему сообщению»
+     *  (ts совпадает) и Firestore сейчас показывает E2EE-плейсхолдер. */
+    const lastMessageDisplay = useMemo(() => {
+        const fallback = conv.lastMessageText || 'Нет сообщений';
+        if (conv.lastMessageText !== E2EE_LAST_MESSAGE_PREVIEW) return fallback;
+        if (!cachedPreview || !conv.lastMessageTimestamp) return fallback;
+        if (cachedPreview.ts !== conv.lastMessageTimestamp) return fallback;
+        return cachedPreview.text || fallback;
+    }, [conv.lastMessageText, conv.lastMessageTimestamp, cachedPreview]);
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const touchStart = useRef<number | null>(null);
@@ -325,7 +341,7 @@ export function ConversationItem({
                                         {conv.lastMessageSenderId === currentUser.id && (
                                             <span className="font-medium">Вы: </span>
                                         )}
-                                        {conv.lastMessageText || 'Нет сообщений'}
+                                        {lastMessageDisplay}
                                     </span>
                                 </>
                             )}

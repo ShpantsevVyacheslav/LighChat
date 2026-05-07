@@ -131,6 +131,11 @@ export {
   putCachedPlaintext,
   getCachedMedia,
   putCachedMedia,
+  getCachedConversationPreview,
+  putCachedConversationPreview,
+  subscribeConversationPreviewChanges,
   clearAllE2eeCache,
   clearConversationE2eeCache,
+  type ConversationPreviewRecord,
+  type ConversationPreviewListener,
 } from '@/lib/e2ee/plaintext-cache';

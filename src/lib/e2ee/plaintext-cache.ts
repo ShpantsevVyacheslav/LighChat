@@ -21,13 +21,39 @@
  */
 
 const DB_NAME = 'lighchat-e2ee-cache';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const TEXT_STORE = 'text';
 const MEDIA_STORE = 'media';
+/**
+ * Preview store: ключ `${conversationId}` → последний расшифрованный
+ * текст-превью для списка чатов. Нужен потому, что в Firestore
+ * `conversations/{id}.lastMessageText` для E2EE-сообщений хранит
+ * плейсхолдер «Зашифрованное сообщение» — серверу плейнтекст не доверяем.
+ * Кеш позволяет показать настоящий текст в сайдбаре на тех устройствах,
+ * где сообщение уже было расшифровано (открывали чат / сами отправляли).
+ *
+ * `ts` — копия `conversation.lastMessageTimestamp` на момент кеширования.
+ * При несовпадении с текущим Firestore-значением ConversationItem не
+ * показывает кешированный текст (значит, поверх пришло более новое).
+ */
+const PREVIEW_STORE = 'preview';
+
+/** Same-tab уведомление о смене preview (cross-tab — через storage-eviction
+ *  на следующем рендере, BroadcastChannel пока не нужен). */
+const PREVIEW_EVENT = 'lighchat:e2ee-preview-changed';
 
 type MediaCacheRecord = {
   bytes: Uint8Array;
   mime: string;
+};
+
+export type ConversationPreviewRecord = {
+  /** Plaintext-превью (HTML уже strip-нут до отображаемого текста). */
+  text: string;
+  /** ISO-строка `conversation.lastMessageTimestamp` для сообщения, чей текст в `text`. */
+  ts: string;
+  /** id сообщения, к которому относится preview (для отладки и будущей валидации). */
+  messageId: string;
 };
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -52,6 +78,9 @@ function openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(MEDIA_STORE)) {
         db.createObjectStore(MEDIA_STORE);
+      }
+      if (!db.objectStoreNames.contains(PREVIEW_STORE)) {
+        db.createObjectStore(PREVIEW_STORE);
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -149,15 +178,64 @@ export async function putCachedMedia(
   );
 }
 
+export async function getCachedConversationPreview(
+  conversationId: string
+): Promise<ConversationPreviewRecord | undefined> {
+  return runGet<ConversationPreviewRecord>(PREVIEW_STORE, conversationId);
+}
+
+export async function putCachedConversationPreview(
+  conversationId: string,
+  record: ConversationPreviewRecord
+): Promise<void> {
+  await runPut(PREVIEW_STORE, conversationId, record);
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(
+        new CustomEvent(PREVIEW_EVENT, {
+          detail: { conversationId, record },
+        })
+      );
+    } catch {
+      // best-effort
+    }
+  }
+}
+
+export type ConversationPreviewListener = (
+  conversationId: string,
+  record: ConversationPreviewRecord
+) => void;
+
+/** Подписка на изменения preview в той же вкладке. Возвращает unsubscribe. */
+export function subscribeConversationPreviewChanges(
+  listener: ConversationPreviewListener
+): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  const handler = (e: Event) => {
+    const detail = (e as CustomEvent).detail as
+      | { conversationId?: string; record?: ConversationPreviewRecord }
+      | undefined;
+    if (!detail?.conversationId || !detail.record) return;
+    listener(detail.conversationId, detail.record);
+  };
+  window.addEventListener(PREVIEW_EVENT, handler);
+  return () => window.removeEventListener(PREVIEW_EVENT, handler);
+}
+
 /** Полная очистка (на logout). */
 export async function clearAllE2eeCache(): Promise<void> {
   if (!hasIndexedDB()) return;
   try {
     const db = await openDb();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction([TEXT_STORE, MEDIA_STORE], 'readwrite');
+      const tx = db.transaction(
+        [TEXT_STORE, MEDIA_STORE, PREVIEW_STORE],
+        'readwrite'
+      );
       tx.objectStore(TEXT_STORE).clear();
       tx.objectStore(MEDIA_STORE).clear();
+      tx.objectStore(PREVIEW_STORE).clear();
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -174,8 +252,11 @@ export async function clearConversationE2eeCache(
   try {
     const db = await openDb();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction([TEXT_STORE, MEDIA_STORE], 'readwrite');
-      let remaining = 2;
+      const tx = db.transaction(
+        [TEXT_STORE, MEDIA_STORE, PREVIEW_STORE],
+        'readwrite'
+      );
+      let remaining = 3;
       const prefix = `${conversationId}:`;
       const done = () => {
         remaining -= 1;
@@ -198,6 +279,10 @@ export async function clearConversationE2eeCache(
       };
       cursorHandler(tx.objectStore(TEXT_STORE));
       cursorHandler(tx.objectStore(MEDIA_STORE));
+      // Preview store — ключ ровно conversationId, без префикса.
+      const previewReq = tx.objectStore(PREVIEW_STORE).delete(conversationId);
+      previewReq.onsuccess = () => done();
+      previewReq.onerror = () => reject(previewReq.error);
     });
   } catch {
     // best-effort

@@ -14,6 +14,7 @@ import '../data/dm_display_title.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/chat_message_draft_storage.dart';
 import '../data/bottom_nav_icon_settings.dart';
+import '../data/e2ee_plaintext_cache.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../../../l10n/app_localizations.dart';
 
@@ -292,6 +293,11 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   String? _lastOfflinePersistFingerprint;
 
   late final VoidCallback _draftRevListener = _onChatDraftRevision;
+  late final VoidCallback _previewRevListener = _onE2eePreviewRevision;
+
+  void _onE2eePreviewRevision() {
+    if (mounted) setState(() {});
+  }
 
   void _persistOfflineSnapshot() {
     final idx = widget.userChatIndex;
@@ -334,6 +340,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     super.initState();
     _listScrollController.addListener(_onListScroll);
     chatDraftListRevision.addListener(_draftRevListener);
+    // E2EE preview-кэш: прогреваем с диска, чтобы первая отрисовка списка
+    // могла подставить настоящий текст вместо плейсхолдера «Зашифрованное
+    // сообщение». Подписываемся на ревизию — каждое обновление preview
+    // (после decrypt / send / edit) триггерит rebuild списка.
+    E2eePlaintextCache.instance.previewRevision.addListener(
+      _previewRevListener,
+    );
+    unawaited(E2eePlaintextCache.instance.warmUpPreviews());
     unawaited(_reloadChatDrafts());
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _persistOfflineSnapshot(),
@@ -359,6 +373,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     _listScrollController.removeListener(_onListScroll);
     _listScrollController.dispose();
     chatDraftListRevision.removeListener(_draftRevListener);
+    E2eePlaintextCache.instance.previewRevision.removeListener(
+      _previewRevListener,
+    );
     _search.dispose();
     super.dispose();
   }
@@ -1745,8 +1762,42 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   l10n: AppLocalizations.of(context)!,
                                 );
                               }
-                              final rawLast = (c.data.lastMessageText ?? '')
-                                  .trim();
+                              final rawLastFromFirestore =
+                                  (c.data.lastMessageText ?? '').trim();
+                              // E2EE override: если в Firestore лежит
+                              // плейсхолдер «Зашифрованное сообщение», ищем
+                              // настоящий plaintext в локальном preview-кэше.
+                              // Применяем только при совпадении момента
+                              // (`cached.ts ≈ lastMessageTimestamp`), иначе
+                              // мог бы вылезти stale-текст от предыдущего
+                              // сообщения, ещё не успевшего декодироваться.
+                              String rawLast;
+                              if (rawLastFromFirestore ==
+                                      l10nList
+                                          .chat_e2ee_encrypted_message_placeholder &&
+                                  c.data.lastMessageTimestamp != null) {
+                                final cached = E2eePlaintextCache.instance
+                                    .getPreviewSync(c.id);
+                                final cachedDt = cached == null
+                                    ? null
+                                    : DateTime.tryParse(cached.ts);
+                                final lastDt = DateTime.tryParse(
+                                  c.data.lastMessageTimestamp!,
+                                );
+                                if (cached != null &&
+                                    cachedDt != null &&
+                                    lastDt != null &&
+                                    cachedDt.toUtc().isAtSameMomentAs(
+                                          lastDt.toUtc(),
+                                        ) &&
+                                    cached.text.isNotEmpty) {
+                                  rawLast = cached.text;
+                                } else {
+                                  rawLast = rawLastFromFirestore;
+                                }
+                              } else {
+                                rawLast = rawLastFromFirestore;
+                              }
                               final clearedAtIso =
                                   c.data.clearedAt?[widget.currentUserId];
                               final clearedAt = _parseIsoAsLocal(clearedAtIso);
