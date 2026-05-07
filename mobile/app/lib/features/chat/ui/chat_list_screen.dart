@@ -1858,11 +1858,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     senderName = l10nList.chat_list_item_sender_you;
                                   } else {
                                     final info = c.data.participantInfo?[senderId];
-                                    senderName = info?.displayName;
+                                    senderName = info?.name;
                                     if (senderName == null || senderName.isEmpty) {
                                       final profile = profiles?[senderId];
-                                      senderName = profile?['displayName'] as String? ??
-                                          profile?['username'] as String?;
+                                      senderName = profile?.name.isNotEmpty == true
+                                          ? profile?.name
+                                          : profile?.username;
                                     }
                                   }
                                   if (senderName != null && senderName.isNotEmpty) {

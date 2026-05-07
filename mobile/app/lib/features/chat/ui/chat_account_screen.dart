@@ -441,6 +441,13 @@ String languageLabelForTrailing({
       return l10n.settings_language_ru;
     case AppLanguagePreference.en:
       return l10n.settings_language_en;
+    case AppLanguagePreference.kk:
+    case AppLanguagePreference.uz:
+    case AppLanguagePreference.tr:
+    case AppLanguagePreference.id:
+    case AppLanguagePreference.ptBR:
+    case AppLanguagePreference.esMX:
+      return pref.nativeName;
   }
 }
 
