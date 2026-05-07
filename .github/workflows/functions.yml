@@ -1,0 +1,50 @@
+# [audit L-001] Гейты для Cloud Functions: lint + build + unit-tests.
+# То же, что предзапускает `firebase deploy --only functions` через
+# `predeploy` хук в `firebase.json`, плюс vitest для чистого ядра.
+
+name: Functions CI
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "functions/**"
+      - ".github/workflows/functions.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "functions/**"
+      - ".github/workflows/functions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # Чистые unit-тесты без эмулятора Firestore. Тесты помеченные
+      # `*.emulator.spec.ts` исключены конфигом vitest и идут отдельным
+      # job'ом (см. `test:emulator` в package.json) — это требует Java.
+      - name: Tests
+        run: npm test
