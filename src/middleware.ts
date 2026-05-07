@@ -85,7 +85,7 @@ function buildCsp(nonce: string): string {
   const sMedia = ["'self'", 'blob:', 'data:', 'https://firebasestorage.googleapis.com', 'https://*.googleusercontent.com'].join(' ');
   const sWorker = ["'self'", 'blob:'].join(' ');
   // Object/embed: deny — used only by malware-loader patterns.
-  return [
+  const directives = [
     `default-src 'self'`,
     `script-src ${sScript}`,
     `script-src-elem ${sScript}`,
@@ -101,8 +101,12 @@ function buildCsp(nonce: string): string {
     `base-uri 'none'`,
     `form-action 'self'`,
     `frame-ancestors ${FRAME_ANCESTORS}`,
-    `upgrade-insecure-requests`,
-  ].join('; ');
+  ];
+  // `upgrade-insecure-requests` действительный директив только в enforcing-mode.
+  // В Report-Only браузер ругается «directive is ignored ...» и шумит в console.
+  // Включим обратно когда CSP_REPORT_ONLY станет false.
+  if (!CSP_REPORT_ONLY) directives.push(`upgrade-insecure-requests`);
+  return directives.join('; ');
 }
 
 function generateNonce(): string {

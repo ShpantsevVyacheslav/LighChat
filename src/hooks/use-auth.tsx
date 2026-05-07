@@ -902,20 +902,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Device session registry: keeps per-device activity to mitigate multi-device auth desync.
   useEffect(() => {
     if (!firebaseUser || !firestore) return;
+    /**
+     * Та же логика, что и в presence-блоке выше: гость и пользователи без
+     * устоявшегося `appUser` не должны писать `users/{uid}/devices/{...}` —
+     * после QR-handover или signInWithCustomToken Firestore-SDK секунду
+     * держит старый ID-token в своих gRPC-каналах, и первый write идёт под
+     * чужим uid → permission-denied. См. `use-auth.tsx:926`.
+     */
+    if (firebaseUser.isAnonymous) return;
+    if (!appUser?.id || appUser.id !== firebaseUser.uid) return;
     const uid = firebaseUser.uid;
 
     let disposed = false;
     const safeWrite = async (active: boolean, markLogin = false) => {
       if (disposed) return;
       try {
-        // После signInWithCustomToken (QR-login) auth-state на JS-объекте
-        // обновляется быстрее, чем Firestore-SDK прокидывает свежий
-        // ID-token в свои gRPC-каналы. Если первая запись в
-        // `users/{uid}/devices/{deviceId}` идёт до пропагации — Firestore
-        // отвечает PERMISSION_DENIED. `getIdToken()` гарантирует, что
-        // токен действительно есть, а заодно триггерит обновление
-        // всех Firestore-streams.
-        await firebaseUser.getIdToken().catch(() => {});
+        // forceRefresh:true гарантирует, что Firestore-SDK получит свежий
+        // ID-token прежде чем мы вызовем setDoc. Без force-refresh старый
+        // токен из кэша мог проигнорировать промежуточный signInWithCustomToken.
+        await firebaseUser.getIdToken(true).catch(() => {});
         await writeDeviceSession({
           firestore,
           uid,
@@ -923,6 +928,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           markLogin,
         });
       } catch (e) {
+        // Permission-denied на этом пути не критичен — прод-фикс из
+        // 380f3e9 уже не роняет UI «Критической ошибкой» благодаря фильтру
+        // в `non-blocking-updates.tsx`. Здесь setDoc вызывается напрямую,
+        // поэтому глушим явно.
         console.warn('Device session write failed', e);
       }
     };
@@ -953,7 +962,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       void safeWrite(false, false);
       disposed = true;
     };
-  }, [firebaseUser, firestore]);
+  }, [firebaseUser, firestore, appUser?.id]);
 
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
