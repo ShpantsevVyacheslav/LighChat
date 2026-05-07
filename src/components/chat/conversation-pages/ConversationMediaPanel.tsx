@@ -69,6 +69,8 @@ export function ConversationMediaPanel({
   conversationId,
   currentUser,
   allUsers = [],
+  allowSave = true,
+  allowForward = true,
   /** Компенсировать родительский `p-4`, чтобы вкладки и сетка доходили до краёв шторки. */
   edgeToEdge = false,
 }: {
@@ -76,6 +78,8 @@ export function ConversationMediaPanel({
   currentUser: User;
   /** Для заголовка просмотрщика медиа (как в основном чате); пустой — подпись «Участник». */
   allUsers?: User[];
+  allowSave?: boolean;
+  allowForward?: boolean;
   edgeToEdge?: boolean;
 }) {
   const firestore = useFirestore();
@@ -240,7 +244,14 @@ export function ConversationMediaPanel({
                       </p>
                     </div>
                     <Button variant="ghost" size="icon" className="shrink-0 rounded-full text-zinc-300" asChild>
-                      <a href={file.url} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={allowSave ? file.url : undefined}
+                        target={allowSave ? '_blank' : undefined}
+                        rel={allowSave ? 'noopener noreferrer' : undefined}
+                        onClick={(e) => {
+                          if (!allowSave) e.preventDefault();
+                        }}
+                      >
                         <span className="sr-only">Открыть</span>
                         <FileIcon className="h-4 w-4" />
                       </a>
@@ -315,6 +326,8 @@ export function ConversationMediaPanel({
         startIndex={mediaViewerState.startIndex}
         currentUserId={currentUser.id}
         allUsers={allUsers}
+        allowSave={allowSave}
+        allowForward={allowForward}
       />
     </>
   );

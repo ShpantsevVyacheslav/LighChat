@@ -377,6 +377,8 @@ service cloud.firestore {
        * Чтение чужого профиля запрещено, если владелец добавил читателя в blockedUserIds.
        */
       allow read: if isSignedIn() && (
+        resource == null
+        ||
         request.auth.uid == userId
         || !resource.data.keys().hasAny(['blockedUserIds'])
         || !(resource.data.blockedUserIds is list)

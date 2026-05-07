@@ -22,10 +22,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PenSquare, Users, Loader2 } from 'lucide-react';
+import { PenSquare, Users, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { useI18n } from '@/hooks/use-i18n';
+import { SecretChatComposeDialog } from '@/components/chat/SecretChatComposeDialog';
 
 export function NewChatDialog({
   users,
@@ -51,6 +52,8 @@ export function NewChatDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [secretMode, setSecretMode] = useState(false);
+  const [secretPeer, setSecretPeer] = useState<User | null>(null);
   const firestore = useFirestore();
   const { privacySettings } = useSettings();
 
@@ -70,6 +73,10 @@ export function NewChatDialog({
 
   const handleSelectUser = async (user: User) => {
     if (!firestore || isCreating) return;
+    if (secretMode) {
+      setSecretPeer(user);
+      return;
+    }
     setIsCreating(true);
 
     try {
@@ -96,7 +103,17 @@ export function NewChatDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(next) => {
+        setIsOpen(next);
+        if (!next) {
+          setSearchTerm('');
+          setSecretMode(false);
+          setSecretPeer(null);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -137,6 +154,21 @@ export function NewChatDialog({
           <Button variant="outline" className="w-full rounded-full border-none bg-muted/50 hover:bg-muted" onClick={() => { setIsOpen(false); onGroupCreateClick(); }} disabled={isCreating}>
             <Users className="mr-2 h-4 w-4" />
             {t('chat.newChat.createGroup')}
+          </Button>
+          <Button
+            type="button"
+            variant={secretMode ? 'default' : 'outline'}
+            className={cn(
+              'w-full rounded-full',
+              secretMode
+                ? ''
+                : 'border-none bg-muted/50 hover:bg-muted'
+            )}
+            onClick={() => setSecretMode((v) => !v)}
+            disabled={isCreating}
+          >
+            <Lock className="mr-2 h-4 w-4" />
+            {secretMode ? 'Режим: секретный чат' : 'Создать секретный чат'}
           </Button>
           <ScrollArea className="h-64">
             <div className="space-y-1 pr-2">
@@ -230,6 +262,21 @@ export function NewChatDialog({
           </ScrollArea>
         </div>
       </DialogContent>
+      {secretPeer ? (
+        <SecretChatComposeDialog
+          open={!!secretPeer}
+          onOpenChange={(next) => {
+            if (!next) setSecretPeer(null);
+          }}
+          currentUser={currentUser}
+          peerUser={secretPeer}
+          onCreated={(conversationId) => {
+            onSelectConversation(conversationId);
+            setSecretPeer(null);
+            setIsOpen(false);
+          }}
+        />
+      ) : null}
     </Dialog>
   );
 }

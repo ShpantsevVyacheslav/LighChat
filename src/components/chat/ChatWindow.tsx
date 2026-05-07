@@ -110,6 +110,7 @@ import {
   isFirestorePermissionDeniedError,
   logFirestorePermissionDenied,
 } from '@/lib/firestore-permission-debug';
+import { useSecretChatAccessActive } from '@/hooks/use-secret-chat-access-active';
 import {
   incrementChatPerfCounter,
   markChatPerf,
@@ -124,6 +125,8 @@ import {
   pickPinnedBarIndexForViewport,
   sortPinnedMessagesByTime,
 } from '@/lib/chat-pinned-messages';
+import { SecretChatUnlockDialog } from '@/components/chat/SecretChatUnlockDialog';
+import { SecretChatSettingsDialog } from '@/components/chat/SecretChatSettingsDialog';
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -289,6 +292,22 @@ export function ChatWindow({
     [firestore, currentUser.id]
   );
   const { data: userContactsIndex } = useDoc<UserContactsIndex>(userContactsRef);
+  const [secretUnlockOpen, setSecretUnlockOpen] = useState(false);
+  const [secretSettingsOpen, setSecretSettingsOpen] = useState(false);
+
+  const secretChatConfig = conversation.secretChat?.enabled === true ? conversation.secretChat : null;
+  const isSecretChat = secretChatConfig != null;
+  const secretLockRequired = secretChatConfig?.lockPolicy?.required === true;
+  const { isActive: secretAccessActive } = useSecretChatAccessActive({
+    conversationId: conversation.id,
+    userId: currentUser.id,
+    enabled: isSecretChat && secretLockRequired,
+  });
+  const secretUnlocked = !isSecretChat || !secretLockRequired || secretAccessActive;
+  const showSecretLockOverlay = isSecretChat && secretLockRequired && !secretUnlocked;
+  const allowSecretCopy = !(secretChatConfig?.restrictions?.noCopy === true);
+  const allowSecretForward = !(secretChatConfig?.restrictions?.noForward === true);
+  const allowSecretSave = !(secretChatConfig?.restrictions?.noSave === true);
   // E2E enable UI removed from main chat header (kept via auto-enable paths).
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -504,6 +523,14 @@ export function ChatWindow({
         prevConvIdRef.current = conversation.id;
     }
 
+    if (!secretUnlocked) {
+      setMessages([]);
+      setOptimisticMessages([]);
+      setIsLoadingOlder(false);
+      setIsFullyReady(true);
+      return;
+    }
+
     const msgCollection = collection(firestore, `conversations/${conversation.id}/messages`);
     const q = query(msgCollection, orderBy('createdAt', 'desc'), limit(displayLimit));
     
@@ -530,7 +557,7 @@ export function ChatWindow({
         }
       )
     );
-  }, [firestore, conversation.id, displayLimit]);
+  }, [firestore, conversation.id, displayLimit, secretUnlocked]);
 
   const handleLoadMore = useCallback((source: 'startReached' | 'scroll-fallback' | 'manual' = 'manual') => {
     incrementChatPerfCounter(`chat-load-more-trigger:${source}`);
@@ -2262,7 +2289,7 @@ export function ChatWindow({
         >
             <div className="flex min-w-0 flex-1 items-center gap-2">
             {selection.active ? (
-                <SelectionHeader count={selection.ids.size} onCancel={() => setSelection({ active: false, ids: new Set() })} onDelete={handleBulkDelete} onForward={() => { const selectedMessages = allMessages.filter(m => selection.ids.has(m.id)); sessionStorage.setItem('forwardMessages', JSON.stringify(selectedMessages)); router.push('/dashboard/chat/forward'); }} isProcessing={isBulkProcessing} showDelete={canDeleteBulk} />
+                <SelectionHeader count={selection.ids.size} onCancel={() => setSelection({ active: false, ids: new Set() })} onDelete={handleBulkDelete} onForward={() => { if (!allowSecretForward) return; const selectedMessages = allMessages.filter(m => selection.ids.has(m.id)); sessionStorage.setItem('forwardMessages', JSON.stringify(selectedMessages)); router.push('/dashboard/chat/forward'); }} isProcessing={isBulkProcessing} showDelete={canDeleteBulk} />
             ) : isSearchActive ? (
                 <div className="flex w-full animate-in slide-in-from-right-4 items-center gap-2">
                     <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }}><ArrowLeft className="h-5 w-5" /></Button>
@@ -2430,6 +2457,24 @@ export function ChatWindow({
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+            {showSecretLockOverlay ? (
+              <div className="absolute inset-0 z-[80] flex items-center justify-center bg-background/85 p-6 backdrop-blur-md">
+                <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card/90 p-5 text-center shadow-xl">
+                  <h3 className="text-lg font-bold">Секретный чат заблокирован</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Для чтения сообщений нужен PIN секретного хранилища.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                    <Button type="button" onClick={() => setSecretUnlockOpen(true)}>
+                      Разблокировать
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setSecretSettingsOpen(true)}>
+                      Настройки секретного чата
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {sortedPins.length > 0 ? (
               <PinnedMessageBar
                 pinnedMessage={sortedPins[Math.min(barPinIndex, sortedPins.length - 1)]}
@@ -2534,7 +2579,7 @@ export function ChatWindow({
                                 suppressReadReceipts={suppressReadReceipts}
                               >
                                 <div className="py-1 px-4">
-                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { if (!allowSecretCopy) return; const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} allowForward={allowSecretForward} allowCopy={allowSecretCopy} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
                                 </div>
                               </MessageReadOnViewport>
                             );
@@ -2554,7 +2599,7 @@ export function ChatWindow({
             </div>
         </div>
 
-        {!selection.active && (
+        {!selection.active && !showSecretLockOverlay && (
           <div className="relative shrink-0 bg-transparent">
             <ChatMessageInput
               ref={messageInputRef}
@@ -2587,7 +2632,7 @@ export function ChatWindow({
           e2eeEnabled={e2eeConv.e2eeEnabled}
         />
         </div>
-        {selectedThreadMessage && (
+        {selectedThreadMessage && !showSecretLockOverlay && (
           <>
             <div
               className="hidden w-1.5 shrink-0 cursor-col-resize items-center justify-center bg-transparent lg:flex"
@@ -2616,6 +2661,7 @@ export function ChatWindow({
               onDeleteMessage={(id) => handleDeleteMessage(id, selectedThreadMessage.id)}
               onReplyTo={setReplyingTo}
               onForwardMessage={(m) => {
+                if (!allowSecretForward) return;
                 sessionStorage.setItem('forwardMessages', JSON.stringify([m]));
                 router.push('/dashboard/chat/forward');
               }}
@@ -2623,6 +2669,9 @@ export function ChatWindow({
               isPartnerDeleted={isPartnerDeleted}
               composerLocked={composerLocked}
               composerLockedHint={composerLockedHint}
+              allowCopy={allowSecretCopy}
+              allowForward={allowSecretForward}
+              allowSave={allowSecretSave}
               highlightThreadMessageId={threadReactionScrollToId}
               onHighlightThreadMessageConsumed={clearThreadReactionScrollTarget}
               onMentionProfileOpen={handleMentionProfileOpen}
@@ -2676,7 +2725,28 @@ export function ChatWindow({
           onConfirmPack={handleStickerSaveConfirmPack}
           createPack={handleStickerPackCreate}
         />
-        <MediaViewer isOpen={mediaViewerState.isOpen} onOpenChange={(open) => setMediaViewerState(prev => ({ ...prev, isOpen: open }))} media={allMediaItems} startIndex={mediaViewerState.startIndex} currentUserId={currentUser.id} allUsers={allUsers} onReply={(m) => { const replyContext = getReplyPreview(m, allUsers); setReplyingTo(replyContext); }} onForward={(m) => { sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onDelete={(id) => handleDeleteMessage(id)} navigateToMessage={navigateToMessage} />
+        <MediaViewer isOpen={mediaViewerState.isOpen} onOpenChange={(open) => setMediaViewerState(prev => ({ ...prev, isOpen: open }))} media={allMediaItems} startIndex={mediaViewerState.startIndex} currentUserId={currentUser.id} allUsers={allUsers} onReply={(m) => { const replyContext = getReplyPreview(m, allUsers); setReplyingTo(replyContext); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onDelete={(id) => handleDeleteMessage(id)} navigateToMessage={navigateToMessage} allowForward={allowSecretForward} allowSave={allowSecretSave} />
+        {isSecretChat ? (
+          <>
+            <SecretChatUnlockDialog
+              open={secretUnlockOpen}
+              onOpenChange={setSecretUnlockOpen}
+              conversationId={conversation.id}
+              onUnlocked={() => {
+                setSecretUnlockOpen(false);
+              }}
+            />
+            <SecretChatSettingsDialog
+              open={secretSettingsOpen}
+              onOpenChange={setSecretSettingsOpen}
+              conversation={conversation}
+              onDeleted={() => {
+                setSecretSettingsOpen(false);
+                router.replace('/dashboard/chat');
+              }}
+            />
+          </>
+        ) : null}
     </div>
   );
 }

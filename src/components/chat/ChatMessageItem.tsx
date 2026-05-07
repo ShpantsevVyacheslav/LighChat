@@ -101,9 +101,11 @@ interface ChatMessageItemProps {
     onUpdateMessage: (id: string, text: string, attachments?: ChatAttachment[]) => void;
     onDelete: (id: string) => void;
     onCopy: (text: string) => void;
+    allowCopy?: boolean;
     onPin: (msg: ChatMessage) => void;
     onReply: (context: ReplyContext) => void;
     onForward: (msg: ChatMessage) => void;
+    allowForward?: boolean;
     onNavigateToMessage: (messageId: string) => void;
     onOpenImageViewer: (image: ChatAttachment) => void;
     onOpenVideoViewer: (video: ChatAttachment) => void;
@@ -136,6 +138,8 @@ const ChatMessageItemComponent = ({
     message, currentUser, allUsers, conversation, isSelected, isSelectionActive,
     onToggleSelection, onEdit, onDelete,
     onCopy, onPin, onReply, onForward, onReact,
+    allowCopy = true,
+    allowForward = true,
     onOpenImageViewer, onOpenVideoViewer,
     onNavigateToMessage,
     onOpenThread,
@@ -456,10 +460,10 @@ const ChatMessageItemComponent = ({
     const onMenuAction = (action: string, payload?: string) => {
         switch(action) {
             case 'reply': onReply(getReplyPreview(message, allUsers, e2eeDecryptedByMessageId)); break;
-            case 'copy': onCopy(displayTextHtml || ''); break;
+            case 'copy': if (allowCopy) onCopy(displayTextHtml || ''); break;
             case 'edit': onEdit({ id: message.id, text: displayTextHtml || '', attachments: message.attachments }); break;
             case 'pin': onPin(message); break;
-            case 'forward': onForward(message); break;
+            case 'forward': if (allowForward) onForward(message); break;
             case 'delete': onDelete(message.id); break;
             case 'react': if (payload) onReact(message.id, payload); break;
             case 'select': onToggleSelection(message.id); break;
@@ -1006,10 +1010,11 @@ const ChatMessageItemComponent = ({
                 position={menuPosition}
                 message={message}
                 isCurrentUser={isCurrentUser}
-                hasText={!!displayTextHtml}
+                hasText={allowCopy && !!displayTextHtml}
                 canEdit={isCurrentUser && !!displayTextHtml && !isOnlyEmojis(displayTextHtml)}
                 canSaveSticker={!!onSaveStickerGif && !!stickerGifForSave}
                 canCreateSticker={!!onSaveStickerGif && !!gridImageForStickerCreate}
+                allowForward={allowForward}
                 showStarAction={!isDeleted && !!onToggleStar && !isThreadMessage}
                 isStarred={isStarred}
                 showThreadAction={!isDeleted && !isThreadMessage && !!onOpenThread}

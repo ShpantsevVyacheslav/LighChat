@@ -4,7 +4,7 @@ import type { User, Conversation, ChatMessage, UserRole, UserContactsIndex } fro
 import { ROLES } from '@/lib/constants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
-import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone, Ban, Unlock, Swords } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone, Ban, Unlock, Swords, LockKeyhole } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { GroupChatFormPanel } from '@/components/chat/GroupChatFormPanel';
 import { GroupChatParticipantsManageView } from '@/components/chat/GroupChatParticipantsManageView';
@@ -55,6 +55,9 @@ import { ConversationDisappearingMessagesPanel } from '@/components/chat/convers
 import { formatDisappearingTtlSummary } from '@/lib/disappearing-messages-presets';
 import { LeaveGroupPanel } from '@/components/chat/conversation-pages/LeaveGroupPanel';
 import { normalizeBlockedUserIds } from '@/lib/user-block-utils';
+import { SecretChatComposeDialog } from '@/components/chat/SecretChatComposeDialog';
+import { SecretChatSettingsDialog } from '@/components/chat/SecretChatSettingsDialog';
+import { buildSecretDirectConversationId } from '@/lib/secret-chat/secret-chat-create';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -132,6 +135,8 @@ export function ChatParticipantProfile({
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [unblockDialogOpen, setUnblockDialogOpen] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
+  const [secretComposePeer, setSecretComposePeer] = useState<User | null>(null);
+  const [secretSettingsOpen, setSecretSettingsOpen] = useState(false);
   const router = useRouter();
   const firestore = useFirestore();
   const { starredCount } = useStarredInConversation(currentUser.id, conversation.id);
@@ -690,6 +695,7 @@ export function ChatParticipantProfile({
     !isSelfSavedChat &&
     conversation.secretChat?.enabled !== true &&
     (!isGroup || (isGroup && !showMemberFocus));
+  const isSecretConversation = conversation.secretChat?.enabled === true;
   const e2eeSummaryOn = !!(conversation.e2eeEnabled && (conversation.e2eeKeyEpoch ?? 0) > 0);
   const encryptionSummaryLabel = e2eeSummaryOn ? 'Вкл' : 'Выкл';
   const encryptionRowDescription = e2eeSummaryOn
@@ -785,6 +791,8 @@ export function ChatParticipantProfile({
                     conversationId={conversation.id}
                     currentUser={currentUser}
                     allUsers={allUsers}
+                    allowForward={conversation.secretChat?.restrictions?.noForward !== true}
+                    allowSave={conversation.secretChat?.restrictions?.noSave !== true}
                   />
                 ) : null}
                 {profileSubMenu === 'starred' ? (
@@ -1006,6 +1014,32 @@ export function ChatParticipantProfile({
                           onClick={() => void handleQuickShare()}
                           disabled={quickActionBusy !== null}
                         />
+                        {!isSecretConversation ? (
+                          <WaQuickActionButton
+                            icon={<LockKeyhole />}
+                            label="Секретный"
+                            onClick={async () => {
+                              if (!contactTargetUser || quickActionBusy) return;
+                              setQuickActionBusy('secret');
+                              try {
+                                const sid = buildSecretDirectConversationId(currentUser.id, contactTargetUser.id);
+                                const snap = await getDoc(doc(firestore, 'conversations', sid));
+                                const existsSecret =
+                                  snap.exists() &&
+                                  ((snap.data() as Conversation | undefined)?.secretChat?.enabled === true);
+                                if (existsSecret) {
+                                  onSelectConversation(sid);
+                                  handleSheetOpenChange(false);
+                                  return;
+                                }
+                                setSecretComposePeer(contactTargetUser);
+                              } finally {
+                                setQuickActionBusy(null);
+                              }
+                            }}
+                            disabled={quickActionBusy !== null}
+                          />
+                        ) : null}
                         <WaQuickActionButton
                           icon={<Bell />}
                           label={muteInCurrentDirect ? 'Звук выкл' : 'Звук'}
@@ -1238,6 +1272,14 @@ export function ChatParticipantProfile({
                 />
               </WaMenuSection>
               <WaMenuSection className="mt-0.5">
+                {isSecretConversation ? (
+                  <WaMenuRow
+                    icon={<LockKeyhole />}
+                    title="Настройки секретного чата"
+                    description="Срок жизни, ограничения и удаление"
+                    onClick={() => setSecretSettingsOpen(true)}
+                  />
+                ) : null}
                 {showDisappearingMessagesRow ? (
                   <WaMenuRow
                     icon={<History />}
@@ -1356,6 +1398,34 @@ export function ChatParticipantProfile({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {secretComposePeer ? (
+        <SecretChatComposeDialog
+          open={!!secretComposePeer}
+          onOpenChange={(next) => {
+            if (!next) setSecretComposePeer(null);
+          }}
+          currentUser={currentUser}
+          peerUser={secretComposePeer}
+          onCreated={(conversationId) => {
+            setSecretComposePeer(null);
+            onSelectConversation(conversationId);
+            handleSheetOpenChange(false);
+          }}
+        />
+      ) : null}
+
+      {isSecretConversation ? (
+        <SecretChatSettingsDialog
+          open={secretSettingsOpen}
+          onOpenChange={setSecretSettingsOpen}
+          conversation={conversation}
+          onDeleted={() => {
+            handleSheetOpenChange(false);
+            router.replace('/dashboard/chat');
+          }}
+        />
+      ) : null}
     </Sheet>
   );
 }

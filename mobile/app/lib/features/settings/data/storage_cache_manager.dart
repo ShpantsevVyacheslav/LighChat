@@ -747,8 +747,11 @@ class StorageCacheManager {
     AppLocalizations l10n,
   ) {
     void addBucket(String key, String label) {
-      final raw = prefs.getString(key);
-      final list = prefs.getStringList(key);
+      final stored = prefs.get(key);
+      final raw = stored is String ? stored : null;
+      final list = stored is List
+          ? stored.whereType<String>().toList(growable: false)
+          : (stored is String ? null : prefs.getStringList(key));
       int bytes = 0;
       if (raw != null && raw.isNotEmpty) {
         bytes = utf8.encode(raw).length;

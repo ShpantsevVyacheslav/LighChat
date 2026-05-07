@@ -7,10 +7,10 @@ import {
   useDoc,
   useFirestore,
   useMemoFirebase,
-  useCollection,
   useUser as useFirebaseAuthUser,
+  useUsersByDocumentIds,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import type { User, Conversation } from '@/lib/types';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { Loader2 } from 'lucide-react';
@@ -92,19 +92,20 @@ export function DashboardOpenChatView({
 
   const firestore = useFirestore();
 
-  const { data: usersData } = useCollection<User>(
-    useMemoFirebase(
-      () => (firestore && firebaseAuthUser ? collection(firestore, 'users') : null),
-      [firestore, firebaseAuthUser]
-    )
-  );
-  const allUsers = React.useMemo(() => usersData || [], [usersData]);
-
   const conversationRef = useMemoFirebase(
     () => (firestore && conversationId ? doc(firestore, 'conversations', conversationId) : null),
     [firestore, conversationId]
   );
   const { data: conversation, isLoading, error } = useDoc<Conversation>(conversationRef);
+
+  const userIds = React.useMemo(() => {
+    const ids = new Set<string>(conversation?.participantIds ?? []);
+    if (authUid) ids.add(authUid);
+    if (profileUserId) ids.add(profileUserId);
+    return [...ids];
+  }, [conversation?.participantIds, authUid, profileUserId]);
+  const { usersById } = useUsersByDocumentIds(firestore, userIds);
+  const allUsers = React.useMemo(() => [...usersById.values()] as User[], [usersById]);
 
   if (!currentUserForFirestore || !authUid) {
     return (

@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
-import { collection, doc, updateDoc, arrayRemove } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { ArrowLeft, Loader2, UserX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUsersByDocumentIds } from '@/firebase';
 import type { User } from '@/lib/types';
 import { normalizeBlockedUserIds } from '@/lib/user-block-utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,24 +28,19 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
   );
   const { data: selfDoc, isLoading: selfLoading } = useDoc<User>(selfRef);
 
-  const usersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'users') : null),
-    [firestore]
-  );
-  const { data: allUsers, isLoading: usersLoading } = useCollection<User>(usersQuery);
-
   const blockedIds = useMemo(
     () => normalizeBlockedUserIds(selfDoc?.blockedUserIds),
     [selfDoc?.blockedUserIds]
   );
 
+  const { usersById, isLoading: usersLoading } = useUsersByDocumentIds(firestore, blockedIds);
+
   const rows = useMemo(() => {
-    const list = allUsers ?? [];
     return blockedIds.map((id) => {
-      const u = list.find((x) => x.id === id);
+      const u = usersById.get(id) as User | undefined;
       return { id, user: u ?? null };
     });
-  }, [blockedIds, allUsers]);
+  }, [blockedIds, usersById]);
 
   const handleUnblock = useCallback(
     async (targetId: string) => {

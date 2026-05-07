@@ -16,7 +16,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../data/composer_clipboard_paste.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
@@ -70,6 +69,7 @@ import 'chat_poll_create_sheet.dart';
 import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
+import 'link_webview_screen.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/user_block_providers.dart';
 import '../data/user_block_utils.dart';
@@ -157,6 +157,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Режим правки: id сообщения + превью для полосы над вводом (plain).
   String? _editingMessageId;
   String? _editingPreviewPlain;
+
   /// `createdAt` редактируемого сообщения. Нужен только для одного места:
   /// после сохранения отредактированного E2EE-текста положить новый plaintext
   /// в локальный preview-кэш с тем же `ts`, что у сообщения, чтобы сайдбар
@@ -167,6 +168,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final List<XFile> _pendingAttachments = <XFile>[];
 
   bool _sendBusy = false;
+  bool _voiceSendBusy = false;
+  bool _videoCircleSendBusy = false;
 
   /// Панель «Форматирование» над композером (паритет `FormattingToolbar.tsx`).
   bool _composerFormattingOpen = false;
@@ -2069,22 +2072,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                     // пуст, и без этого фильтр
                                                     // всегда возвращал бы 0
                                                     // совпадений.
-                                                    final decryptedMap = <
-                                                      String,
-                                                      String
-                                                    >{};
+                                                    final decryptedMap =
+                                                        <String, String>{};
                                                     for (final m in msgs) {
                                                       if (m.e2eePayload ==
                                                           null) {
                                                         continue;
                                                       }
-                                                      final cached = E2eePlaintextCache
-                                                          .instance
-                                                          .getTextSync(
-                                                            conversationId:
-                                                                widget.conversationId,
-                                                            messageId: m.id,
-                                                          );
+                                                      final cached =
+                                                          E2eePlaintextCache
+                                                              .instance
+                                                              .getTextSync(
+                                                                conversationId:
+                                                                    widget
+                                                                        .conversationId,
+                                                                messageId: m.id,
+                                                              );
                                                       if (cached != null &&
                                                           cached.isNotEmpty) {
                                                         decryptedMap[m.id] =
@@ -3144,6 +3147,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }) async {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     var target = att;
     final isSecret = conv?.secretChat?.enabled == true;
     if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(att)) {
@@ -3157,23 +3162,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           lockedAttachment: att,
         );
       } catch (_) {
-        if (mounted) _toast(l10n.secret_chat_unlock_failed);
+        if (!mounted) return;
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
+        );
         return;
       }
     }
     final uri = Uri.tryParse(target.url.trim());
     if (uri == null) {
-      if (mounted) _toast(l10n.secret_chat_unlock_failed);
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
+      );
       return;
     }
-    try {
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened && mounted) {
-        _toast(l10n.secret_chat_unlock_failed);
-      }
-    } catch (_) {
-      if (mounted) _toast(l10n.secret_chat_unlock_failed);
+    if (!uri.isScheme('http') && !uri.isScheme('https')) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
+      );
+      return;
     }
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => LinkWebViewScreen(url: uri.toString()),
+      ),
+    );
   }
 
   void _exitSelection() {
@@ -3843,7 +3856,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         // Кладём настоящий plaintext в локальный preview-кэш с тем же `ts`,
         // что у редактируемого сообщения (createdAt не меняется при правке),
         // чтобы ChatListScreen отобразил обновление вместо плейсхолдера.
-        if (editEnvelope != null && _editingCreatedAt != null && plainOut.isNotEmpty) {
+        if (editEnvelope != null &&
+            _editingCreatedAt != null &&
+            plainOut.isNotEmpty) {
           var preview = plainOut;
           if (preview.length > 240) preview = preview.substring(0, 240);
           unawaited(
@@ -4113,6 +4128,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _openVideoCircleCapture() async {
+    if (_videoCircleSendBusy) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     final repo = ref.read(chatRepositoryProvider);
@@ -4198,6 +4214,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ChatRepository repo,
     XFile raw,
   ) async {
+    if (_videoCircleSendBusy) return;
+    _videoCircleSendBusy = true;
     final lower = raw.path.toLowerCase();
     final ext = lower.endsWith('.mov') || lower.endsWith('.qt') ? 'mov' : 'mp4';
     final mime = ext == 'mov' ? 'video/quicktime' : 'video/mp4';
@@ -4205,7 +4223,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final file = XFile(raw.path, mimeType: mime);
     final policy = _resolveEffectiveE2eePolicyForChat(uid);
     final replySnap = _stripReplyPreviewByPolicy(_replyingTo, policy);
-    setState(() => _sendBusy = true);
     try {
       // E2EE v2 Phase 9: кружок шифруется, если чат E2EE-active.
       final e2ee = _resolveMediaOnlyE2eeContext(uid);
@@ -4263,13 +4280,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _scheduleAutoScrollToBottomIfNeeded();
       }
     } finally {
-      if (mounted) setState(() => _sendBusy = false);
+      _videoCircleSendBusy = false;
     }
   }
 
   Future<void> _sendVoiceMessage(String uid) async {
     final repo = ref.read(chatRepositoryProvider);
-    if (repo == null || _sendBusy) return;
+    if (repo == null || _voiceSendBusy) return;
     final rec = await showVoiceMessageRecordSheet(context);
     if (!mounted || rec == null) return;
     await _sendVoiceMessageFromRecord(uid, rec);
@@ -4280,8 +4297,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     VoiceMessageRecordResult rec,
   ) async {
     final repo = ref.read(chatRepositoryProvider);
-    if (repo == null || _sendBusy) return;
-    setState(() => _sendBusy = true);
+    if (repo == null || _voiceSendBusy) return;
+    _voiceSendBusy = true;
     try {
       final audioName = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
       final file = XFile(rec.filePath, mimeType: 'audio/m4a');
@@ -4345,8 +4362,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _toast(AppLocalizations.of(context)!.chat_send_voice_failed(e));
       }
     } finally {
+      _voiceSendBusy = false;
       unawaited(_deleteFileSilently(rec.filePath));
-      if (mounted) setState(() => _sendBusy = false);
     }
   }
 

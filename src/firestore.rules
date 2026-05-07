@@ -267,6 +267,34 @@ service cloud.firestore {
       return !request.resource.data.keys().hasAny(['expireAt']);
     }
 
+    /**
+     * SECURITY: server-enforced size caps on user-supplied message content.
+     * Without these, a single client can create arbitrarily large message
+     * documents (Firestore allows up to ~1 MiB per doc), which gives a cheap
+     * way to (a) DoS the storage quota, (b) make the chat list crawl when a
+     * recipient hydrates 200+ huge messages, (c) crash mobile clients that
+     * mmap text into UI lists.
+     *
+     * Limits chosen to be roomy for normal product use:
+     *  - text: 16 384 chars (Telegram allows 4 096; we leave headroom for
+     *    formatting markdown / quotes inside the same field).
+     *  - attachments: 20 entries.
+     *  - replyTo / linkPreview / pendingPoll: each is a single object —
+     *    we only enforce that they're map/list of expected shape, the doc-
+     *    level 1 MiB cap is enough.
+     *  - systemEvent.type: 64 chars (a routing string, not a message body).
+     */
+    function chatMessageSizeOk() {
+      let d = request.resource.data;
+      return (!('text' in d) || d.text == null || (d.text is string && d.text.size() <= 16384))
+        && (!('attachments' in d) || d.attachments == null
+            || (d.attachments is list && d.attachments.size() <= 20))
+        && (!('systemEvent' in d) || d.systemEvent == null
+            || (d.systemEvent is map
+                && (!('type' in d.systemEvent)
+                    || (d.systemEvent.type is string && d.systemEvent.type.size() <= 64))));
+    }
+
     /** Клиент не добавляет/не меняет/не удаляет `expireAt` на сообщениях. */
     function chatMessageExpireAtUnchanged() {
       let had = resource.data.keys().hasAny(['expireAt']);
@@ -283,6 +311,26 @@ service cloud.firestore {
     }
 
     /**
+     * Эфемерные QR-login сессии (Telegram-style привязка нового устройства).
+     *
+     *  - Создаётся Cloud Function `requestQrLogin` (Admin SDK), запись клиента
+     *    запрещена.
+     *  - Чтение: разрешено публично без auth, чтобы новое устройство (ещё не
+     *    залогиненное) могло слушать `state == 'approved'` и получить
+     *    `customToken`. SessionId/nonce — секреты с 192 бит энтропии, без них
+     *    sessionId не угадывается. Документ удаляется новым устройством после
+     *    использования customToken; scheduled cleanup чистит мусор.
+     *  - Update: запись только через `confirmQrLogin` (Admin SDK).
+     *  - Delete: разрешено любому signed-in (новому устройству после успеха;
+     *    отказ от записи допустим, scheduled cleanup доделает).
+     */
+    match /qrLoginSessions/{sessionId} {
+      allow read: if true;
+      allow create, update: if false;
+      allow delete: if isSignedIn();
+    }
+
+    /**
      * Индекс уникальности телефона / email / логина для регистрации до входа.
      * Заполняется только Cloud Functions (Admin SDK); клиент только get.
      */
@@ -290,8 +338,13 @@ service cloud.firestore {
       /**
        * До входа (регистрация) — чтение без auth. После входа: если владелец
        * индекса заблокировал читателя, не раскрываем привязку phone/email/login → uid.
+       *
+       * `resource == null` — несуществующий документ должен читаться: иначе
+       * клиент не сможет проверить «свободен ли новый телефон/email/логин» при
+       * редактировании профиля (см. profile_update_service.checkKeyAvailable).
        */
       allow read: if request.auth == null
+        || resource == null
         || (
           isSignedIn()
           && resource.data.keys().hasAll(['uid'])
@@ -324,17 +377,42 @@ service cloud.firestore {
        * Чтение чужого профиля запрещено, если владелец добавил читателя в blockedUserIds.
        */
       allow read: if isSignedIn() && (
+        resource == null
+        ||
         request.auth.uid == userId
         || !resource.data.keys().hasAny(['blockedUserIds'])
         || !(resource.data.blockedUserIds is list)
         || !(request.auth.uid in resource.data.blockedUserIds)
       );
+      // SECURITY: previously this allowed `request.auth.uid == userId` to write
+      // ANY fields on create — including `role: 'admin'`. The async
+      // `onUserCreated` trigger sees `snap.exists` and skips its tx.set, so the
+      // client-supplied admin role would persist, granting full admin access.
+      //
+      // Self-create is now restricted: privileged fields may be present in the
+      // payload (the registration UI writes role:'worker' and deletedAt:null
+      // alongside profile fields), but ONLY with safe values. An attacker
+      // cannot ship role:'admin', a non-null deletedAt, an inflated quota, or
+      // any non-null accountBlock. Admin-initiated creates remain unrestricted
+      // (server-side via Admin SDK bypass).
       // SECURITY: гость (Anonymous Auth) НЕ должен «дозаполнить профиль» через
       // /dashboard/profile (фронт уже редиректит на `/`, но клиент мог бы
       // попытаться записать напрямую — режем здесь). `users/{uid}` для гостя
       // создаёт `onUserCreated` через Admin SDK.
-      allow create: if isSignedIn() && !isAnonymousGuest()
-        && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && !isAnonymousGuest() && (
+        isAdmin() ||
+        (
+          request.auth.uid == userId
+          && (!('role' in request.resource.data)
+              || request.resource.data.role == 'worker'
+              || request.resource.data.role == null)
+          && (!('deletedAt' in request.resource.data)
+              || request.resource.data.deletedAt == null)
+          && (!('accountBlock' in request.resource.data)
+              || request.resource.data.accountBlock == null)
+          && !('storageQuotaBytes' in request.resource.data)
+        )
+      );
       allow update: if isSignedIn() && !isAnonymousGuest() && (
         isAdmin() ||
         (request.auth.uid == userId && !userSensitiveKeysChanged(userId))
@@ -395,7 +473,9 @@ service cloud.firestore {
 
       /** Реестр устройств пользователя: текущие клиентские сессии, active/lastSeen/fcm. */
       match /devices/{deviceId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow write: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if isAdmin();
       }
 
       /** Избранные сообщения в чатах (только владелец). */
@@ -482,9 +562,15 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isMeetingMember(meetingId);
+        // SECURITY: same size cap as conversation messages — block megabyte-
+        // sized text payloads from a single participant.
         allow create: if isMeetingMember(meetingId)
-          && request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if isMeetingMember(meetingId) && (
+          && request.resource.data.senderId == request.auth.uid
+          && chatMessageSizeOk();
+        allow update: if isMeetingMember(meetingId)
+          && (resource.data.senderId == request.auth.uid || isMeetingAdmin(meetingId))
+          && chatMessageSizeOk();
+        allow delete: if isMeetingMember(meetingId) && (
           resource.data.senderId == request.auth.uid
           || isMeetingAdmin(meetingId)
         );
@@ -639,7 +725,16 @@ service cloud.firestore {
           && conversationSecretChatUnchanged()
         )
       );
-      allow delete: if isSignedIn() && uidIsConversationParticipantFromData(resource.data);
+      // SECURITY: previously ANY group member could delete the conversation
+      // doc — and the cascade trigger then wiped userChats for everyone,
+      // making the chat disappear for all 2..N members with no recovery.
+      // Restrict group deletion to creator/admins; DM (1:1, isGroup != true)
+      // can still be removed by either participant.
+      allow delete: if isSignedIn() && (
+        isAdmin()
+        || (resource.data.isGroup != true && uidIsConversationParticipantFromData(resource.data))
+        || (resource.data.isGroup == true && isGroupAdminOrCreatorFromConvData(resource.data))
+      );
 
       /** Индекс участников для правил подколлекций; запись только с сервера (Admin SDK). */
       match /members/{memberId} {
@@ -690,6 +785,7 @@ service cloud.firestore {
         allow create: if isConversationMember(conversationId)
           && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
           && chatMessageCreateWithoutExpireAt()
+          && chatMessageSizeOk()
           && (
           (
             canReadSecretChat(conversationId, conversationData(conversationId))
@@ -731,12 +827,14 @@ service cloud.firestore {
             && canReadSecretChat(conversationId, conversationData(conversationId))
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
             && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
-            && chatMessageCreateWithoutExpireAt();
+            && chatMessageCreateWithoutExpireAt()
+            && chatMessageSizeOk();
           allow update: if isConversationMember(conversationId)
             && canReadSecretChat(conversationId, conversationData(conversationId))
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
             && !dmPairMessagingDeniedFromConvData(conversationData(conversationId))
-            && chatMessageExpireAtUnchanged();
+            && chatMessageExpireAtUnchanged()
+            && chatMessageSizeOk();
           allow delete: if isConversationMember(conversationId)
             && canReadSecretChat(conversationId, conversationData(conversationId))
             && !isDmHiddenForViewerFromConvData(conversationData(conversationId))
@@ -881,9 +979,43 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /supportTickets/{ticketId} {
+    match /adminAuditLog/{logId} {
       allow read: if isAdmin();
-      allow create, update, delete: if false;
+      allow write: if false;
+    }
+
+    match /supportTickets/{ticketId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid);
+        // SECURITY: cap support-ticket message body to prevent flooding the
+        // ticket with megabyte-sized text payloads.
+        allow create: if (isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userId == request.auth.uid))
+          && (!('text' in request.resource.data)
+              || (request.resource.data.text is string && request.resource.data.text.size() <= 8000));
+        allow update, delete: if false;
+      }
+    }
+
+    match /messageReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /platformStats/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
   }
 }

@@ -2,10 +2,16 @@
 
 import { useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { collection } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import { useCollection, useFirestore, useMemoFirebase, useUser as useFirebaseAuthUser } from '@/firebase';
-import type { User } from '@/lib/types';
+import {
+  useDoc,
+  useFirestore,
+  useMemoFirebase,
+  useUser as useFirebaseAuthUser,
+  useUsersByDocumentIds,
+} from '@/firebase';
+import type { Conversation, User } from '@/lib/types';
 import { ConversationThreadsPageClient } from '@/components/chat/conversation-pages/ConversationThreadsPageClient';
 import * as React from 'react';
 
@@ -24,12 +30,22 @@ export default function ConversationThreadsPage() {
     return { ...currentUser, id: authUid };
   }, [currentUser, authUid]);
 
-  const usersQuery = useMemoFirebase(
-    () => (firestore && firebaseAuthUser ? collection(firestore, 'users') : null),
-    [firestore, firebaseAuthUser]
+  const conversationRef = useMemoFirebase(
+    () =>
+      firestore && firebaseAuthUser && conversationId
+        ? doc(firestore, 'conversations', conversationId)
+        : null,
+    [firestore, firebaseAuthUser, conversationId]
   );
-  const { data: usersData } = useCollection<User>(usersQuery);
-  const allUsers = React.useMemo(() => usersData || [], [usersData]);
+  const { data: conversation } = useDoc<Conversation>(conversationRef);
+
+  const userIds = React.useMemo(() => {
+    const ids = new Set<string>(conversation?.participantIds ?? []);
+    if (authUid) ids.add(authUid);
+    return [...ids];
+  }, [conversation?.participantIds, authUid]);
+  const { usersById } = useUsersByDocumentIds(firestore, userIds);
+  const allUsers = React.useMemo(() => [...usersById.values()] as User[], [usersById]);
 
   if (isLoading || !userForUi) {
     return (

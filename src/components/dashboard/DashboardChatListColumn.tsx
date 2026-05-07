@@ -10,19 +10,19 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   useDoc,
   useFirestore,
-  useCollection,
   useMemoFirebase,
   useConversationsByDocumentIds,
   useUser as useFirebaseAuthUser,
+  useUsersByDocumentIds,
 } from '@/firebase';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { ensureSavedMessagesChat, isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { mergeSidebarFolderOrder } from '@/lib/chat-folder-order';
 import type { User, Conversation, UserChatIndex, ChatFolder, UserContactsIndex } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, ArrowUp, ArrowDown, Pencil, Trash2 } from 'lucide-react';
+import { Search, ArrowUp, ArrowDown, Pencil, Trash2, Lock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NewChatDialog } from '@/components/chat/NewChatDialog';
 import { GroupChatFormDialog } from '@/components/chat/GroupChatFormDialog';
@@ -39,6 +39,7 @@ import { DashboardBottomNav } from '@/components/dashboard/DashboardBottomNav';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CHAT_SIDEBAR_SHELL } from '@/lib/chat-glass-styles';
 import { useI18n } from '@/hooks/use-i18n';
+import { SecretChatsInboxDialog } from '@/components/chat/SecretChatsInboxDialog';
 
 export type DashboardChatListColumnProps = {
   openConversationId: string | null;
@@ -75,6 +76,7 @@ export function DashboardChatListColumn({
   const [isFolderManagerOpen, setIsFolderManagerOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<ChatFolder | null>(null);
   const [chatToManageFolders, setChatToManageFolders] = useState<Conversation | null>(null);
+  const [isSecretInboxOpen, setIsSecretInboxOpen] = useState(false);
 
   const [listWidth, setListWidth] = useState(340);
   const isResizing = useRef(false);
@@ -85,20 +87,18 @@ export function DashboardChatListColumn({
     folder: ChatFolder;
   } | null>(null);
 
-  const { data: usersData, isLoading: isLoadingUsers } = useCollection<User>(
-    useMemoFirebase(
-      () => (firestore && firebaseAuthUser ? collection(firestore, 'users') : null),
-      [firestore, firebaseAuthUser]
-    )
-  );
-  const allUsers = useMemo(() => usersData || [], [usersData]);
-
   const userChatIndexRef = useMemoFirebase(() => {
     if (!firestore || !authUid) return null;
     return doc(firestore, 'userChats', authUid);
   }, [firestore, authUid]);
   const { data: userChatIndex, isLoading: isLoadingIndex } = useDoc<UserChatIndex>(userChatIndexRef);
   const conversationIds = useMemo(() => userChatIndex?.conversationIds || [], [userChatIndex]);
+  const userSecretChatsRef = useMemoFirebase(() => {
+    if (!firestore || !authUid) return null;
+    return doc(firestore, 'userSecretChats', authUid);
+  }, [firestore, authUid]);
+  const { data: userSecretChatsIndex } = useDoc<{ conversationIds?: string[] }>(userSecretChatsRef);
+  const secretChatsCount = userSecretChatsIndex?.conversationIds?.length ?? 0;
 
   const userContactsRef = useMemoFirebase(() => {
     if (!firestore || !authUid) return null;
@@ -109,6 +109,29 @@ export function DashboardChatListColumn({
     () => userContactsIndex?.contactIds ?? [],
     [userContactsIndex?.contactIds]
   );
+
+  const { data: rawConversations, isLoading: isLoadingConversations } = useConversationsByDocumentIds(
+    firestore,
+    conversationIds
+  );
+
+  /**
+   * Адресная подписка на профили: только self + контакты + участники известных чатов.
+   * Заменяет прежний `collection('users')` listener, который читал всю базу
+   * пользователей при каждом входе на дашборд (см. аудит CR-003).
+   */
+  const relevantUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (authUid) ids.add(authUid);
+    for (const id of contactIdsForSearch) ids.add(id);
+    for (const conv of rawConversations ?? []) {
+      for (const pid of conv.participantIds ?? []) ids.add(pid);
+    }
+    return [...ids];
+  }, [authUid, contactIdsForSearch, rawConversations]);
+  const { usersById, isLoading: isLoadingUsers } = useUsersByDocumentIds(firestore, relevantUserIds);
+  const allUsers = useMemo(() => [...usersById.values()] as User[], [usersById]);
+
   const contactDisplayNames = useMemo(() => {
     const profiles = userContactsIndex?.contactProfiles ?? {};
     const out: Record<string, string> = {};
@@ -119,11 +142,6 @@ export function DashboardChatListColumn({
     }
     return out;
   }, [userContactsIndex?.contactProfiles, allUsers]);
-
-  const { data: rawConversations, isLoading: isLoadingConversations } = useConversationsByDocumentIds(
-    firestore,
-    conversationIds
-  );
 
   const conversations = useMemo(() => {
     if (!rawConversations) return [];
@@ -520,14 +538,31 @@ export function DashboardChatListColumn({
                       />
                     </div>
                     {currentUser && authUid && (
-                      <NewChatDialog
-                        users={allUsers.filter((u) => u.id !== authUid && !u.deletedAt)}
-                        contactIds={contactIdsForSearch}
-                        contactDisplayNames={contactDisplayNames}
-                        currentUser={currentUserForFirestore!}
-                        onSelectConversation={handleSelectConversation}
-                        onGroupCreateClick={() => setIsCreatingGroup(true)}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="relative h-9 w-9 shrink-0 rounded-xl border border-black/10 bg-background/45 text-foreground shadow-none backdrop-blur-md hover:bg-background/55 dark:border-white/12 dark:bg-white/[0.08] dark:hover:bg-white/[0.13]"
+                          aria-label="Secret Chats"
+                          onClick={() => setIsSecretInboxOpen(true)}
+                        >
+                          <Lock className="h-[18px] w-[18px]" strokeWidth={2.1} />
+                          {secretChatsCount > 0 ? (
+                            <span className="absolute -right-1 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                              {secretChatsCount > 9 ? '9+' : secretChatsCount}
+                            </span>
+                          ) : null}
+                        </Button>
+                        <NewChatDialog
+                          users={allUsers.filter((u) => u.id !== authUid && !u.deletedAt)}
+                          contactIds={contactIdsForSearch}
+                          contactDisplayNames={contactDisplayNames}
+                          currentUser={currentUserForFirestore!}
+                          onSelectConversation={handleSelectConversation}
+                          onGroupCreateClick={() => setIsCreatingGroup(true)}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -721,6 +756,16 @@ export function DashboardChatListColumn({
             userChatIndex={userChatIndex}
             allUsers={allUsers}
             onOpenFolderManager={() => setIsFolderManagerOpen(true)}
+          />
+          <SecretChatsInboxDialog
+            open={isSecretInboxOpen}
+            onOpenChange={setIsSecretInboxOpen}
+            currentUser={currentUserForFirestore}
+            allUsers={allUsers}
+            onOpenConversation={(conversationId) => {
+              handleSelectConversation(conversationId);
+              setIsSecretInboxOpen(false);
+            }}
           />
         </>
       )}

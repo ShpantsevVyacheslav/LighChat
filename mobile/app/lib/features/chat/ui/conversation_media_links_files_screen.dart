@@ -16,6 +16,7 @@ import '../data/e2ee_runtime.dart';
 import '../data/secret_chat_media_open_service.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
+import 'link_webview_screen.dart';
 import 'chat_media_viewer_screen.dart';
 import 'profile_subpage_header.dart';
 import 'video_cached_thumb_image.dart';
@@ -96,7 +97,9 @@ class _ConversationMediaLinksFilesScreenState
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
                     child: Text(
-                      AppLocalizations.of(context)!.media_screen_error(e.toString()),
+                      AppLocalizations.of(
+                        context,
+                      )!.media_screen_error(e.toString()),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: scheme.onSurface.withValues(alpha: 0.86),
@@ -226,7 +229,10 @@ class _ConversationMediaLinksFilesScreenState
     return switch (_tab) {
       _MediaTab.media => _mediaGrid(mediaItems),
       _MediaTab.circles => _circlesGrid(circles),
-      _MediaTab.files => _attachmentsList(files, emptyText: AppLocalizations.of(context)!.media_empty_files),
+      _MediaTab.files => _attachmentsList(
+        files,
+        emptyText: AppLocalizations.of(context)!.media_empty_files,
+      ),
       _MediaTab.links => _linksList(links),
     };
   }
@@ -399,12 +405,14 @@ class _ConversationMediaLinksFilesScreenState
         final e = items[i];
         final a = e.attachment;
         final date = _formatTime(e.message.createdAt.toLocal());
-        final title = (a.name.trim().isEmpty ? AppLocalizations.of(context)!.media_attachment_fallback : a.name.trim());
+        final title = (a.name.trim().isEmpty
+            ? AppLocalizations.of(context)!.media_attachment_fallback
+            : a.name.trim());
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () => _openExternalUrl(a.url),
+            onTap: () => _openAttachmentUrl(a.url),
             child: _glass(
               radius: 16,
               child: ListTile(
@@ -437,7 +445,9 @@ class _ConversationMediaLinksFilesScreenState
   }
 
   Widget _circlesGrid(List<_AttachmentEntry> items) {
-    if (items.isEmpty) return _emptyBody(AppLocalizations.of(context)!.media_empty_circles);
+    if (items.isEmpty) {
+      return _emptyBody(AppLocalizations.of(context)!.media_empty_circles);
+    }
     final mapped = items
         .map((e) => (message: e.message, attachment: e.attachment))
         .toList(growable: false);
@@ -450,7 +460,9 @@ class _ConversationMediaLinksFilesScreenState
 
   Widget _linksList(List<_LinkEntry> links) {
     final scheme = Theme.of(context).colorScheme;
-    if (links.isEmpty) return _emptyBody(AppLocalizations.of(context)!.media_empty_links);
+    if (links.isEmpty) {
+      return _emptyBody(AppLocalizations.of(context)!.media_empty_links);
+    }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       itemCount: links.length,
@@ -572,6 +584,15 @@ class _ConversationMediaLinksFilesScreenState
     await launchUrl(u, mode: LaunchMode.externalApplication);
   }
 
+  void _openAttachmentUrl(String raw) {
+    final u = Uri.tryParse(raw.trim());
+    if (u == null) return;
+    if (!u.isScheme('http') && !u.isScheme('https')) {
+      return;
+    }
+    LinkWebViewScreen.open(context, u.toString());
+  }
+
   IconData _iconForAttachment(ChatAttachment a) {
     final t = (a.type ?? '').toLowerCase();
     final n = a.name.toLowerCase();
@@ -585,7 +606,9 @@ class _ConversationMediaLinksFilesScreenState
   }
 
   String _senderLabel(String senderId) {
-    if (senderId == widget.currentUserId) return AppLocalizations.of(context)!.media_sender_you;
+    if (senderId == widget.currentUserId) {
+      return AppLocalizations.of(context)!.media_sender_you;
+    }
     final info = widget.conversation.participantInfo?[senderId];
     if ((info?.name ?? '').trim().isNotEmpty) return info!.name.trim();
     return AppLocalizations.of(context)!.media_sender_fallback;

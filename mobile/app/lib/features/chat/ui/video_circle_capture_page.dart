@@ -3,10 +3,13 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
+import 'package:ffmpeg_kit_min_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../../l10n/app_localizations.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import '../../../l10n/app_localizations.dart';
 
 import '../data/video_circle_postprocess.dart';
 import 'video_circle_camera_preview.dart';
@@ -75,6 +78,11 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
 
   Duration _recordElapsed = Duration.zero;
   Timer? _recordTicker;
+  Timer? _previewTicker;
+
+  Duration _previewDuration = Duration.zero;
+  double _trimStart = 0;
+  double _trimEnd = 1;
 
   double _dragDx = 0;
   bool _isClosing = false;
@@ -84,6 +92,28 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
   bool get _isBusy =>
       _state == _CircleCaptureState.preparing ||
       _state == _CircleCaptureState.sending;
+
+  bool get _hasTrim =>
+      _trimStart > 0.005 || _trimEnd < 0.995 || (_trimEnd - _trimStart) < 0.99;
+
+  Duration get _trimStartDuration => Duration(
+    milliseconds: (_previewDuration.inMilliseconds * _trimStart).round(),
+  );
+
+  Duration get _trimEndDuration => Duration(
+    milliseconds: (_previewDuration.inMilliseconds * _trimEnd).round(),
+  );
+
+  Duration get _trimmedDuration {
+    final d = _trimEndDuration - _trimStartDuration;
+    return d > Duration.zero ? d : _previewDuration;
+  }
+
+  double get _minTrimFraction {
+    final ms = _previewDuration.inMilliseconds;
+    if (ms <= 0) return 0.04;
+    return (500 / ms).clamp(0.04, 0.25);
+  }
 
   bool get _isFrontCamera {
     if (_cameras.isEmpty ||
@@ -109,6 +139,7 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
   @override
   void dispose() {
     _recordTicker?.cancel();
+    _previewTicker?.cancel();
     unawaited(_cam?.dispose());
     _previewC?.dispose();
     super.dispose();
@@ -264,6 +295,8 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
   }
 
   Future<void> _disposePreview() async {
+    _previewTicker?.cancel();
+    _previewTicker = null;
     final old = _previewC;
     _previewC = null;
     if (old != null) {
@@ -363,7 +396,14 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     try {
       await c.initialize();
       await c.setLooping(true);
+      _previewDuration =
+          c.value.duration > Duration.zero
+              ? c.value.duration
+              : _recordElapsed;
+      _trimStart = 0;
+      _trimEnd = 1;
       await c.play();
+      _startPreviewTicker();
       if (mounted) setState(() {});
     } catch (_) {
       await c.dispose();
@@ -375,6 +415,103 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
         });
       }
     }
+  }
+
+  void _startPreviewTicker() {
+    _previewTicker?.cancel();
+    _previewTicker = Timer.periodic(const Duration(milliseconds: 130), (_) {
+      if (!mounted) return;
+      if (_state != _CircleCaptureState.preview &&
+          _state != _CircleCaptureState.sending) {
+        return;
+      }
+      final c = _previewC;
+      if (c == null || !c.value.isInitialized) return;
+      if (!_hasTrim) return;
+      final pos = c.value.position;
+      final start = _trimStartDuration;
+      final end = _trimEndDuration;
+      if (pos < start || pos > end) {
+        unawaited(c.seekTo(start));
+      }
+    });
+  }
+
+  String _q(String path) => '"${path.replaceAll('"', '\\"')}"';
+
+  String _sec(double value) => value.toStringAsFixed(3);
+
+  Future<XFile> _buildSelectedResult() async {
+    final rec = _recorded;
+    if (rec == null || !_hasTrim || _previewDuration <= Duration.zero) {
+      return rec!;
+    }
+    final inPath = rec.path.trim();
+    if (inPath.isEmpty || !await File(inPath).exists()) {
+      return rec;
+    }
+
+    final dir = await getTemporaryDirectory();
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final outPath = '${dir.path}/video_circle_trim_$stamp.mp4';
+    final outPathNoAudio = '${dir.path}/video_circle_trim_${stamp}_na.mp4';
+    final startSec = _trimStartDuration.inMilliseconds / 1000.0;
+    final lenSec = _trimmedDuration.inMilliseconds / 1000.0;
+
+    Future<XFile?> runTrim({
+      required String out,
+      required bool withAudio,
+    }) async {
+      final audioArgs = withAudio
+          ? <String>['-c:a', 'aac', '-b:a', '128k']
+          : <String>['-an'];
+      final cmd = <String>[
+        '-y',
+        '-ss',
+        _sec(startSec),
+        '-t',
+        _sec(lenSec),
+        '-i',
+        _q(inPath),
+        '-c:v',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-crf',
+        '23',
+        '-pix_fmt',
+        'yuv420p',
+        ...audioArgs,
+        '-movflags',
+        '+faststart',
+        _q(out),
+      ].join(' ');
+
+      final session = await FFmpegKit.execute(cmd);
+      final code = await session.getReturnCode();
+      if (!ReturnCode.isSuccess(code)) {
+        return null;
+      }
+      final f = File(out);
+      if (!await f.exists() || await f.length() < 32) return null;
+      return XFile(out, mimeType: 'video/mp4');
+    }
+
+    final withAudio = await runTrim(out: outPath, withAudio: true);
+    if (withAudio != null) return withAudio;
+
+    final noAudio = await runTrim(out: outPathNoAudio, withAudio: false);
+    return noAudio ?? rec;
+  }
+
+  void _setTrimStart(double value) {
+    final max = _trimEnd - _minTrimFraction;
+    _trimStart = value.clamp(0.0, max.clamp(0.0, 1.0));
+  }
+
+  void _setTrimEnd(double value) {
+    final min = _trimStart + _minTrimFraction;
+    _trimEnd = value.clamp(min.clamp(0.0, 1.0), 1.0);
   }
 
   Future<void> _discardPreviewAndRestart() async {
@@ -394,15 +531,29 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
     if (rec == null || _state == _CircleCaptureState.sending) return;
 
     setState(() => _state = _CircleCaptureState.sending);
+    XFile? selected;
     try {
-      await widget.onSend(rec);
+      selected = await _buildSelectedResult();
+      await widget.onSend(selected);
+      if (selected.path != rec.path) {
+        unawaited(_deleteFileSilently(rec.path));
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
+      if (selected != null && selected.path != rec.path) {
+        unawaited(_deleteFileSilently(selected.path));
+      }
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.video_circle_send_error(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.video_circle_send_error(
+                e.toString(),
+              ),
+            ),
+          ),
+        );
         setState(() => _state = _CircleCaptureState.preview);
       }
     }
@@ -722,66 +873,101 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
 
     if (_state == _CircleCaptureState.preview ||
         _state == _CircleCaptureState.sending) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      return Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: _actionBtn,
-            height: _actionBtn,
-            child: IconButton(
-              onPressed: _state == _CircleCaptureState.sending
-                  ? null
-                  : _discardPreviewAndRestart,
-              icon: const Icon(
-                Icons.delete_outline_rounded,
-                color: Colors.redAccent,
-              ),
-              iconSize: 32,
+          Container(
+            height: 66,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.black.withValues(alpha: 0.36),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: _VideoTrimTimeline(
+              trimStart: _trimStart,
+              trimEnd: _trimEnd,
+              enabled: _state != _CircleCaptureState.sending,
+              seed: _recorded?.path ?? 'video-circle',
+              onStartChanged: (v) {
+                setState(() => _setTrimStart(v));
+                final c = _previewC;
+                if (c != null && c.value.isInitialized) {
+                  unawaited(c.seekTo(_trimStartDuration));
+                }
+              },
+              onEndChanged: (v) {
+                setState(() => _setTrimEnd(v));
+              },
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: Colors.black.withValues(alpha: 0.32),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              SizedBox(
+                width: _actionBtn,
+                height: _actionBtn,
+                child: IconButton(
+                  onPressed: _state == _CircleCaptureState.sending
+                      ? null
+                      : _discardPreviewAndRestart,
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.redAccent,
+                  ),
+                  iconSize: 32,
+                ),
               ),
-              child: Center(
-                child: Text(
-                  _state == _CircleCaptureState.sending
-                      ? AppLocalizations.of(context)!.video_circle_sending
-                      : AppLocalizations.of(context)!.video_circle_recorded,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w600,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  height: 52,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.black.withValues(alpha: 0.32),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _state == _CircleCaptureState.sending
+                          ? AppLocalizations.of(context)!.video_circle_sending
+                          : '${AppLocalizations.of(context)!.video_circle_recorded} • ${_timeLabel(_hasTrim ? _trimmedDuration : _previewDuration)}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: _captureBtn,
-            height: _captureBtn,
-            child: _state == _CircleCaptureState.sending
-                ? const Center(
-                    child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white70,
+              const SizedBox(width: 10),
+              SizedBox(
+                width: _captureBtn,
+                height: _captureBtn,
+                child: _state == _CircleCaptureState.sending
+                    ? const Center(
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      )
+                    : _CaptureButton(
+                        color: scheme.primary,
+                        icon: Icons.send_rounded,
+                        onTap: _send,
                       ),
-                    ),
-                  )
-                : _CaptureButton(
-                    color: scheme.primary,
-                    icon: Icons.send_rounded,
-                    onTap: _send,
-                  ),
+              ),
+            ],
           ),
         ],
       );
@@ -876,6 +1062,161 @@ class _VideoCircleCapturePageState extends State<_VideoCircleCapturePage> {
           ),
         ),
       ],
+    );
+  }
+
+  String _timeLabel(Duration d) {
+    final sec = d.inSeconds.clamp(0, 99 * 3600);
+    final mm = (sec ~/ 60).toString();
+    final ss = (sec % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
+}
+
+class _VideoTrimTimeline extends StatelessWidget {
+  const _VideoTrimTimeline({
+    required this.trimStart,
+    required this.trimEnd,
+    required this.enabled,
+    required this.seed,
+    required this.onStartChanged,
+    required this.onEndChanged,
+  });
+
+  final double trimStart;
+  final double trimEnd;
+  final bool enabled;
+  final String seed;
+  final ValueChanged<double> onStartChanged;
+  final ValueChanged<double> onEndChanged;
+
+  List<double> _bars() {
+    var h = seed.hashCode & 0x7fffffff;
+    int next() {
+      h = (h * 1103515245 + 12345) & 0x7fffffff;
+      return h;
+    }
+
+    return List<double>.generate(58, (_) {
+      final r = next() % 1000;
+      return 0.28 + (r / 1000) * 0.72;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bars = _bars();
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            Positioned(
+              left: w * trimStart,
+              width: (w * (trimEnd - trimStart)).clamp(1.0, w),
+              top: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A79FF).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < bars.length; i++) ...[
+                    Expanded(
+                      child: FractionallySizedBox(
+                        heightFactor: bars[i],
+                        alignment: Alignment.bottomCenter,
+                        child: Builder(
+                          builder: (_) {
+                            final f = i / (bars.length - 1);
+                            final selected = f >= trimStart && f <= trimEnd;
+                            return Container(
+                              width: 2,
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? Colors.white.withValues(alpha: 0.92)
+                                    : Colors.white.withValues(alpha: 0.32),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    if (i < bars.length - 1) const SizedBox(width: 1.4),
+                  ],
+                ],
+              ),
+            ),
+            _TrimHandle(
+              x: w * trimStart,
+              enabled: enabled,
+              onDrag: (dx) => onStartChanged((trimStart + dx / w)),
+            ),
+            _TrimHandle(
+              x: w * trimEnd,
+              enabled: enabled,
+              onDrag: (dx) => onEndChanged((trimEnd + dx / w)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TrimHandle extends StatelessWidget {
+  const _TrimHandle({
+    required this.x,
+    required this.enabled,
+    required this.onDrag,
+  });
+
+  final double x;
+  final bool enabled;
+  final ValueChanged<double> onDrag;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: x - 11,
+      top: 0,
+      bottom: 0,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: enabled ? (d) => onDrag(d.delta.dx) : null,
+        child: Center(
+          child: Container(
+            width: 22,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: enabled
+                  ? const Color(0xFF2A79FF).withValues(alpha: 0.95)
+                  : Colors.white.withValues(alpha: 0.18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
+            ),
+            child: const Center(
+              child: Icon(Icons.drag_indicator_rounded, color: Colors.white, size: 15),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

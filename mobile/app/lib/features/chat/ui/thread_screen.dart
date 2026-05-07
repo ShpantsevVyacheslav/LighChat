@@ -13,7 +13,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
@@ -59,6 +58,7 @@ import 'chat_poll_create_sheet.dart';
 import 'chat_wallpaper_background.dart';
 import 'effective_chat_wallpaper.dart';
 import 'chat_composer.dart';
+import 'link_webview_screen.dart';
 import 'location_send_preview_sheet.dart';
 import 'share_location_sheet.dart';
 import 'thread_header.dart';
@@ -586,9 +586,27 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     ChatRepository repo,
     ChatAttachment att,
   ) async {
-    final replySnap = _replyingTo;
+    final policy = _resolveEffectiveE2eePolicyForThread(uid);
+    final replySnap = _stripReplyPreviewByPolicy(_replyingTo, policy);
     setState(() => _sendBusy = true);
     try {
+      final e2ee = _resolveMediaOnlyE2eeContextForThread(uid);
+      Map<String, Object?>? outgoingEnvelope;
+      String? msgIdOverride;
+      if (e2ee != null) {
+        final textEnvelope = await e2ee.runtime.encryptOutgoing(
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          plaintext: '',
+        );
+        outgoingEnvelope = mergeE2eeEnvelopeWithMedia(
+          textEnvelope: textEnvelope,
+          mediaEnvelopes: const <Map<String, Object?>>[],
+          epoch: e2ee.epoch,
+        );
+        msgIdOverride = e2ee.messageId;
+      }
       await repo.sendThreadTextMessage(
         conversationId: widget.conversationId,
         parentMessageId: widget.parentMessageId,
@@ -596,6 +614,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         text: '',
         replyTo: replySnap,
         attachments: [att],
+        e2eeEnvelope: outgoingEnvelope,
+        messageIdOverride: msgIdOverride,
       );
       if (mounted) {
         setState(() => _replyingTo = null);
@@ -1286,6 +1306,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   }) async {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     var target = att;
     final isSecret = conv?.secretChat?.enabled == true;
     if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(att)) {
@@ -1300,33 +1322,29 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         );
       } catch (_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
+        _toast(l10n.secret_chat_unlock_failed);
         return;
       }
     }
+    if (!mounted) return;
     final uri = Uri.tryParse(target.url.trim());
     if (uri == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
+      );
       return;
     }
-    try {
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
-      }
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
+    if (!uri.isScheme('http') && !uri.isScheme('https')) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
+      );
+      return;
     }
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => LinkWebViewScreen(url: uri.toString()),
+      ),
+    );
   }
 
   Future<void> _submitWithAttachments(String uid, [Conversation? conv]) async {

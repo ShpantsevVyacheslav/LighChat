@@ -10,7 +10,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from '@/components/ui/carousel';
-import { ChatAttachment, User } from '@/lib/types';
+import { ChatAttachment, ChatMessage, User } from '@/lib/types';
 import {
   Download,
   Trash2,
@@ -57,20 +57,42 @@ interface MediaViewerProps {
   startIndex: number;
   currentUserId: string;
   allUsers: User[];
+  allowSave?: boolean;
+  allowForward?: boolean;
   onDelete?: (messageId: string) => void;
-  onReply?: (message: any) => void;
-  onForward?: (message: any) => void;
+  onReply?: (message: ChatMessage) => void;
+  onForward?: (message: ChatMessage) => void;
   navigateToMessage?: (messageId: string) => void;
 }
 
-export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUserId, allUsers, onDelete, onReply, onForward, navigateToMessage }: MediaViewerProps) {
+type TransformRefHandle = {
+  instance?: {
+    transformState: { scale: number };
+  };
+  centerView: (scale?: number, animationTime?: number) => void;
+  zoomIn: (step?: number, animationTime?: number) => void;
+};
+
+export function MediaViewer({
+  isOpen,
+  onOpenChange,
+  media,
+  startIndex,
+  currentUserId,
+  allUsers,
+  allowSave = true,
+  allowForward = true,
+  onDelete,
+  onReply,
+  onForward,
+}: MediaViewerProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [isMediaLoading, setIsMediaLoading] = useState<Record<number, boolean>>({});
   const [isZoomed, setIsZoomed] = useState(false);
   const [translateY, setTranslateY] = useState(0);
   
-  const transformRefs = useRef<Record<number, any>>({});
+  const transformRefs = useRef<Record<number, TransformRefHandle | null>>({});
   /** Синхронно для `watchDrag` карусели: не вызывать `reInit` при зуме (ломает pinch на мобильных). */
   const isZoomedRef = useRef(false);
   const pinchActiveRef = useRef(false);
@@ -152,6 +174,16 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
   const sender = useMemo(() => allUsers.find(u => u.id === currentMedia?.senderId), [currentMedia, allUsers]);
   const canDelete = currentMedia && currentMedia.senderId === currentUserId;
 
+  const toChatMessage = React.useCallback((item: MediaViewerItem): ChatMessage => {
+    return {
+      id: item.messageId,
+      senderId: item.senderId,
+      createdAt: item.createdAt,
+      readAt: null,
+      attachments: [item],
+    };
+  }, []);
+
   const handleDownload = async () => {
     if (!currentMedia) return;
     try {
@@ -167,7 +199,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       }, 100);
-    } catch (e) {
+    } catch {
       window.open(currentMedia.url, '_blank');
     }
   };
@@ -181,12 +213,7 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
 
   const handleReply = () => {
     if (onReply && currentMedia) {
-        onReply({
-            id: currentMedia.messageId,
-            senderId: currentMedia.senderId,
-            createdAt: currentMedia.createdAt,
-            attachments: [currentMedia]
-        });
+        onReply(toChatMessage(currentMedia));
         onOpenChange(false);
     }
   };
@@ -320,8 +347,16 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
               <DropdownMenuPortal>
                 <DropdownMenuContent collisionPadding={16} align="end" className="w-56 rounded-2xl bg-popover/90 backdrop-blur-xl border-none shadow-2xl z-[170]">
                   <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => handleReply()}><Reply className="mr-3 h-4 w-4" /> Ответить</DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => onForward?.(currentMedia)}><Forward className="mr-3 h-4 w-4" /> Переслать</DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => { handleDownload(); }}><Download className="mr-3 h-4 w-4" /> Сохранить</DropdownMenuItem>
+                  {allowForward ? (
+                    <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => onForward?.(toChatMessage(currentMedia))}>
+                      <Forward className="mr-3 h-4 w-4" /> Переслать
+                    </DropdownMenuItem>
+                  ) : null}
+                  {allowSave ? (
+                    <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => { handleDownload(); }}>
+                      <Download className="mr-3 h-4 w-4" /> Сохранить
+                    </DropdownMenuItem>
+                  ) : null}
                   {canDelete && (
                     <>
                       <DropdownMenuSeparator className="bg-border/50" />
@@ -352,7 +387,9 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
               >
                 {Math.abs(index - currentIndex) <= 1 ? (
                   <TransformWrapper
-                    ref={(ref: any) => { transformRefs.current[index] = ref; }}
+                    ref={(ref: unknown) => {
+                      transformRefs.current[index] = ref as TransformRefHandle | null;
+                    }}
                     initialScale={1}
                     minScale={1}
                     maxScale={10}
@@ -453,18 +490,20 @@ export function MediaViewer({ isOpen, onOpenChange, media, startIndex, currentUs
             >
               <CornerUpLeft className="h-5 w-5" strokeWidth={1.85} />
             </button>
-            <button
-              type="button"
-              className={mediaViewerFloatingActionClass}
-              aria-label="Переслать"
-              title="Переслать"
-              onClick={(e) => {
-                e.stopPropagation();
-                onForward?.(currentMedia);
-              }}
-            >
-              <Forward className="h-5 w-5" strokeWidth={1.85} />
-            </button>
+            {allowForward ? (
+              <button
+                type="button"
+                className={mediaViewerFloatingActionClass}
+                aria-label="Переслать"
+                title="Переслать"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onForward?.(toChatMessage(currentMedia));
+                }}
+              >
+                <Forward className="h-5 w-5" strokeWidth={1.85} />
+              </button>
+            ) : null}
             {canDelete ? (
               <button
                 type="button"
@@ -540,8 +579,8 @@ function VideoPlayer({ url, onLoadStart, onCanPlay }: { url: string, onLoadStart
       if (videoRef.current.paused) videoRef.current.play().catch(() => {});
       if (videoRef.current.requestFullscreen) {
         videoRef.current.requestFullscreen();
-      } else if ((videoRef.current as any).webkitEnterFullscreen) {
-        (videoRef.current as any).webkitEnterFullscreen();
+      } else if ('webkitEnterFullscreen' in videoRef.current) {
+        (videoRef.current as HTMLVideoElement & { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen?.();
       }
     }
   };

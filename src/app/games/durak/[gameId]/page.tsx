@@ -1,12 +1,19 @@
 'use client';
 
-import { collection } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { useMemo } from 'react';
 
 import { DurakWebGameDialog } from '@/components/chat/games/durak/DurakWebGameDialog';
 import { useAuth } from '@/hooks/use-auth';
-import { useCollection, useFirestore, useMemoFirebase, useUser as useFirebaseAuthUser } from '@/firebase';
+import {
+  useDoc,
+  useFirestore,
+  useMemoFirebase,
+  useUser as useFirebaseAuthUser,
+  useUsersByDocumentIds,
+} from '@/firebase';
 import type { User } from '@/lib/types';
 
 export default function StandaloneDurakPage() {
@@ -15,13 +22,23 @@ export default function StandaloneDurakPage() {
   const { user } = useAuth();
   const { user: firebaseUser } = useFirebaseAuthUser();
   const firestore = useFirestore();
-  const { data: usersData } = useCollection<User>(
-    useMemoFirebase(
-      () => (firestore && firebaseUser ? collection(firestore, 'users') : null),
-      [firestore, firebaseUser]
-    )
+
+  const gameRef = useMemoFirebase(
+    () => (firestore && firebaseUser && gameId ? doc(firestore, 'games', gameId) : null),
+    [firestore, firebaseUser, gameId]
   );
-  const currentUser = user && firebaseUser && user.id !== firebaseUser.uid ? { ...user, id: firebaseUser.uid } : user;
+  const { data: game } = useDoc<{ playerIds?: string[] }>(gameRef);
+
+  const userIds = useMemo(() => {
+    const ids = new Set<string>(game?.playerIds ?? []);
+    if (firebaseUser?.uid) ids.add(firebaseUser.uid);
+    return [...ids];
+  }, [game?.playerIds, firebaseUser?.uid]);
+  const { usersById } = useUsersByDocumentIds(firestore, userIds);
+  const allUsers = useMemo(() => [...usersById.values()] as User[], [usersById]);
+
+  const currentUser =
+    user && firebaseUser && user.id !== firebaseUser.uid ? { ...user, id: firebaseUser.uid } : user;
   if (!currentUser) {
     return (
       <main className="flex h-[100dvh] w-[100dvw] items-center justify-center bg-[#263d4d] text-white">
@@ -38,7 +55,7 @@ export default function StandaloneDurakPage() {
       }}
       gameId={gameId}
       currentUser={currentUser}
-      allUsers={usersData ?? []}
+      allUsers={allUsers}
     />
   );
 }

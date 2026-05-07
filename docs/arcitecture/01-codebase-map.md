@@ -13,10 +13,14 @@
 - `src/components` - UI-компоненты по доменам.
   - `features/*` - модуль раздела «Возможности»: манифест тем (`features-data.ts`), билингвальный контент (`features-content.ts`), мини-мокапы интерфейса (`mocks/*`, `illustrations/*`, всего 12 тем + hero-композит), оглавление, страница темы, welcome-оверлей. Мокапы собраны из тех же дизайн-токенов и компонентов, что боевой UI (Card, Switch, glass-классы из `auth-glass-classes.ts`).
   - `chat/*` - окно чата, ввод, контекстные действия, медиа, 1:1 call overlay.
+  - `chat/SecretChatComposeDialog.tsx`, `chat/SecretChatsInboxDialog.tsx`, `chat/SecretChatUnlockDialog.tsx`, `chat/SecretChatSettingsDialog.tsx` - web UI-поток секретных чатов (создание с TTL/ограничениями, отдельный список, PIN-unlock, readonly-настройки и удаление).
+  - `chat/ChatWindow.tsx`, `chat/ThreadWindow.tsx`, `chat/ChatMessageItem.tsx`, `chat/media-viewer.tsx`, `chat/conversation-pages/ConversationMediaPanel.tsx` - enforcement ограничений `secretChat.restrictions` (noCopy/noForward/noSave) и lock-overlay в web.
   - `chat/conversation-pages/ConversationGamesPanel.tsx`, `chat/games/durak/*` - web-вход в игры из профиля беседы и responsive-стол “Дурака”.
   - `meetings/*` - комната, сайдбар, controls, чат и опросы встречи.
   - `dashboard/*`, `admin/*`, `auth/*`, `contacts/*`, `settings/*`, `ui/*`.
 - `src/hooks` - клиентские хуки приложения (`use-auth`, `use-settings`, `use-meeting-webrtc`, `use-chat-main-draft-preview` для метки черновика в списке чатов, и т.д.).
+- `src/hooks/use-secret-chat-access-active.ts` - подписка на `conversations/{cid}/secretAccess/{uid}` и расчёт `isActive` по `expiresAtTs`/`expiresAt` для скрытия/разблокировки web-ленты секретного чата.
+- `src/lib/secret-chat/secret-chat-callables.ts`, `src/lib/secret-chat/secret-chat-create.ts` - callable-клиент secret-vault/secret-unlock/delete и создание/открытие детерминированного `sdm_*` DM с секретной конфигурацией.
 - `src/contexts` - локальные React contexts для feature-state.
 
 ## Firebase integration layer

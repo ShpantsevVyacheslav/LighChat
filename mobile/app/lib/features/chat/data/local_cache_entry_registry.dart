@@ -28,13 +28,23 @@ class LocalCacheEntryContext {
   }
 
   factory LocalCacheEntryContext.fromJson(Map<String, Object?> raw) {
-    final cid = (raw['conversationId'] as String? ?? '').trim();
+    final cid = _readStringCompat(raw['conversationId']);
     return LocalCacheEntryContext(
       conversationId: cid,
-      messageId: (raw['messageId'] as String?)?.trim(),
-      attachmentName: (raw['attachmentName'] as String?)?.trim(),
-      updatedAtIso: raw['updatedAtIso'] as String?,
+      messageId: _readStringCompat(raw['messageId']),
+      attachmentName: _readStringCompat(raw['attachmentName']),
+      updatedAtIso: _readStringCompat(raw['updatedAtIso']),
     );
+  }
+
+  static String _readStringCompat(Object? raw) {
+    if (raw is String) return raw.trim();
+    if (raw is List) {
+      for (final item in raw) {
+        if (item is String && item.trim().isNotEmpty) return item.trim();
+      }
+    }
+    return '';
   }
 }
 
@@ -156,7 +166,8 @@ class LocalCacheEntryRegistry {
     required SharedPreferences prefs,
     required String key,
   }) {
-    final raw = prefs.getString(key);
+    final rawValue = prefs.get(key);
+    final raw = rawValue is String ? rawValue : null;
     if (raw == null || raw.trim().isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);

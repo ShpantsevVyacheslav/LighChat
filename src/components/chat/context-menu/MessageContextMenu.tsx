@@ -39,6 +39,7 @@ interface MessageContextMenuProps {
   isCurrentUser: boolean;
   hasText: boolean;
   canEdit: boolean;
+  allowForward?: boolean;
   /** Показать «Сохранить в мои стикеры» (сообщение со стикером/GIF из чата). */
   canSaveSticker?: boolean;
   /** Картинка из сетки — «Создать стикер» (квадрат под размер пака). */
@@ -127,7 +128,7 @@ function MessageFocusBackdropMasked({
  * Рендерится через Portal поверх всего интерфейса.
  */
 export function MessageContextMenu({ 
-  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, canSaveSticker = false, canCreateSticker = false, showStarAction = false, isStarred = false, showThreadAction = true, onAction 
+  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, allowForward = true, canSaveSticker = false, canCreateSticker = false, showStarAction = false, isStarred = false, showThreadAction = true, onAction 
 }: MessageContextMenuProps) {
   if (!isOpen || !position) return null;
 
@@ -236,7 +237,9 @@ export function MessageContextMenu({
                 onClick={() => { onAction('create_sticker'); onClose(); }}
               />
             )}
-            <MenuButton icon={Forward} label="Переслать" onClick={() => { onAction('forward'); onClose(); }} />
+            {allowForward ? (
+              <MenuButton icon={Forward} label="Переслать" onClick={() => { onAction('forward'); onClose(); }} />
+            ) : null}
             <MenuButton icon={CheckSquare} label="Выбрать" onClick={() => { onAction('select'); onClose(); }} />
             
             {isCurrentUser && (
@@ -258,7 +261,17 @@ export function MessageContextMenu({
   );
 }
 
-function MenuButton({ icon: Icon, label, onClick, className }: { icon: any, label: string, onClick: () => void, className?: string }) {
+function MenuButton({
+  icon: Icon,
+  label,
+  onClick,
+  className,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) {
   return (
     <button 
       onClick={onClick}

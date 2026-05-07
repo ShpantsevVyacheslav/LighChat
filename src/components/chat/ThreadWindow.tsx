@@ -84,6 +84,9 @@ interface ThreadWindowProps {
     onReplyTo: (context: ReplyContext) => void;
     onForwardMessage: (msg: ChatMessage) => void;
     onForwardToThread?: (messages: ChatMessage[]) => void;
+    allowCopy?: boolean;
+    allowForward?: boolean;
+    allowSave?: boolean;
     onReactTo: (messageId: string, emoji: string, threadParentId?: string) => void;
     isPartnerDeleted?: boolean;
     composerLocked?: boolean;
@@ -129,6 +132,9 @@ export function ThreadWindow({
     parentMessage, conversation, currentUser, allUsers, onClose,
     onNavigateToMessage,
     onUpdateMessage, onDeleteMessage, onReplyTo, onForwardMessage, onReactTo,
+    allowCopy = true,
+    allowForward = true,
+    allowSave = true,
     isPartnerDeleted = false,
     composerLocked = false,
     composerLockedHint,
@@ -1213,6 +1219,7 @@ export function ThreadWindow({
                             count={selection.ids.size}
                             onCancel={() => setSelection({ active: false, ids: new Set() })}
                             onForward={() => {
+                                if (!allowForward) return;
                                 const selectedMessages = allMessages.filter((m) => selection.ids.has(m.id));
                                 sessionStorage.setItem('forwardMessages', JSON.stringify(selectedMessages));
                                 router.push('/dashboard/chat/forward');
@@ -1324,6 +1331,7 @@ export function ThreadWindow({
                                         onUpdateMessage={async () => {}}
                                         onDelete={async () => {}}
                                         onCopy={(txt) => {
+                                            if (!allowCopy) return;
                                             const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
                                             navigator.clipboard.writeText(cleanText);
                                             toast({ title: 'Текст скопирован' });
@@ -1331,6 +1339,8 @@ export function ThreadWindow({
                                         onPin={() => {}}
                                         onReply={(context) => onReplyTo(context)}
                                         onForward={() => {}}
+                                        allowForward={allowForward}
+                                        allowCopy={allowCopy}
                                         onReact={handleInternalReact}
                                         onOpenImageViewer={handleOpenMediaViewer}
                                         onOpenVideoViewer={handleOpenMediaViewer}
@@ -1405,13 +1415,19 @@ export function ThreadWindow({
                                         onUpdateMessage={handleThreadUpdateMessage}
                                         onDelete={onDeleteMessage}
                                         onCopy={(txt) => {
+                                            if (!allowCopy) return;
                                             const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
                                             navigator.clipboard.writeText(cleanText);
                                             toast({ title: 'Текст скопирован' });
                                         }}
                                         onPin={() => {}}
                                         onReply={(context) => onReplyTo(context)}
-                                        onForward={(m) => onForwardMessage(m)}
+                                        onForward={(m) => {
+                                            if (!allowForward) return;
+                                            onForwardMessage(m);
+                                        }}
+                                        allowForward={allowForward}
+                                        allowCopy={allowCopy}
                                         onReact={handleInternalReact}
                                         onOpenImageViewer={handleOpenMediaViewer}
                                         onOpenVideoViewer={handleOpenMediaViewer}
@@ -1482,9 +1498,14 @@ export function ThreadWindow({
                     const replyContext = getReplyPreview(m, allUsers);
                     onReplyTo(replyContext);
                 }} 
-                onForward={onForwardMessage} 
+                onForward={(m) => {
+                    if (!allowForward) return;
+                    onForwardMessage(m);
+                }} 
                 onDelete={onDeleteMessage} 
                 navigateToMessage={onNavigateToMessage}
+                allowForward={allowForward}
+                allowSave={allowSave}
             />
         </div>
     );

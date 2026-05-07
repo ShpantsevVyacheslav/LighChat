@@ -14,10 +14,13 @@
 - `src/app` - страницы Next.js App Router, layout-уровень, API route.
   - `src/app/u/[username]` - публичная SSR-страница контакта для внешних мессенджеров (Telegram/WhatsApp) с `og:*`-превью.
 - `src/components` - UI и feature-компоненты (chat, meetings, admin, settings, contacts).
+  - `src/components/chat/Secret*Dialog.tsx` + `src/components/dashboard/DashboardChatListColumn.tsx` - web-поток секретных чатов: создание, отдельный inbox, PIN-unlock, readonly-настройки и удаление.
 - `src/hooks` - клиентские хуки состояния/поведения (auth, settings, notifications, webrtc).
+  - `src/hooks/use-secret-chat-access-active.ts` - подписка на `conversations/{cid}/secretAccess/{uid}` для server-enforced unlock статуса в web.
 - `src/firebase` - инициализация Firebase, провайдеры, Firestore-хуки, транспорт.
 - `src/actions` - server actions (админ-операции, уведомления, статистика).
 - `src/lib` - доменные типы, утилиты, policy/check helpers.
+  - `src/lib/secret-chat/*` - web callable-клиент секретных чатов и создание `sdm_*` диалогов с серверно-совместимой конфигурацией.
 - `functions/src` - Cloud Functions (auth/http/firestore/scheduler триггеры).
 - `firestore.rules`, `src/firestore.rules` - правила Firestore (держать синхронно).
 - `storage.rules` - правила Firebase Storage.

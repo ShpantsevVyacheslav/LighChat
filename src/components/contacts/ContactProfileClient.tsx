@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -45,30 +45,60 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
       }
       setResolvingTarget(true);
       setFailed(null);
+      let resolved = '';
       try {
         const directSnap = await getDoc(doc(firestore, 'users', token));
         if (!active) return;
         if (directSnap.exists()) {
-          setResolvedUserId(token);
-          setResolvingTarget(false);
-          return;
+          resolved = token;
         }
-        const regKey = registrationUsernameKey(token);
-        if (!regKey) {
-          setResolvedUserId(token);
-          setResolvingTarget(false);
-          return;
-        }
-        const regSnap = await getDoc(doc(firestore, 'registrationIndex', regKey));
-        if (!active) return;
-        const uid = typeof regSnap.data()?.uid === 'string' ? regSnap.data()?.uid.trim() : '';
-        setResolvedUserId(uid || token);
-        setResolvingTarget(false);
       } catch {
-        if (!active) return;
-        setResolvedUserId(token);
-        setResolvingTarget(false);
+        // `users/{username}` может вернуть permission-denied для несуществующего
+        // документа при строгих правилах чтения. Это не финальная ошибка:
+        // ниже пробуем lookup через registrationIndex.
       }
+
+      if (!resolved) {
+        const regKey = registrationUsernameKey(token);
+        if (regKey) {
+          try {
+            const regSnap = await getDoc(doc(firestore, 'registrationIndex', regKey));
+            if (!active) return;
+            const uid = typeof regSnap.data()?.uid === 'string' ? regSnap.data()?.uid.trim() : '';
+            if (uid) resolved = uid;
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      if (!resolved) {
+        const normalized = token.replace(/^@/, '').trim().toLowerCase();
+        if (normalized) {
+          try {
+            const q = query(
+              collection(firestore, 'users'),
+              where('username', '==', normalized),
+              limit(1)
+            );
+            const snap = await getDocs(q);
+            if (!active) return;
+            const hit = snap.docs[0];
+            if (hit?.id) resolved = hit.id;
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      if (!resolved && token && !registrationUsernameKey(token)) {
+        // Для старых deep-link'ов с uid сохраняем fallback поведение.
+        resolved = token;
+      }
+
+      if (!active) return;
+      setResolvedUserId(resolved);
+      setResolvingTarget(false);
     })();
     return () => {
       active = false;
