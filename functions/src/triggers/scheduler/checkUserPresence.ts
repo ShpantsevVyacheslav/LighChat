@@ -32,11 +32,18 @@ export const checkUserPresence = onSchedule({
   const meetingThreshold = new Date(now.getTime() - 90 * 1000).toISOString();
 
   try {
+    // [audit H-007] Каждый шаг ограничен `.limit(BATCH)` — иначе на 100k+
+    // online users одна минутная итерация может вычитать всю коллекцию
+    // (X reads × 1440 мин/день). Если за один проход не успели — следующая
+    // итерация через минуту добьёт остаток. Firestore batch hard-limit = 500.
+    const BATCH = 500;
+
     // 1. GLOBAL PRESENCE CLEANUP
     logger.log("[checkUserPresence] Step 1: Cleaning up global user presence...");
     const onlineUsersSnapshot = await db.collection("users")
       .where("online", "==", true)
       .where("lastSeen", "<", userPresenceThreshold)
+      .limit(BATCH)
       .get();
 
     if (!onlineUsersSnapshot.empty) {
@@ -55,6 +62,7 @@ export const checkUserPresence = onSchedule({
       .where('lastSeen', '<', meetingThreshold)
       .orderBy('lastSeen', 'asc')
       .orderBy('id', 'asc')
+      .limit(BATCH)
       .get();
 
     if (!staleParticipantsSnapshot.empty) {
@@ -79,6 +87,7 @@ export const checkUserPresence = onSchedule({
     const staleRequestsSnapshot = await db.collectionGroup('requests')
       .where('status', '==', 'pending')
       .where('lastSeen', '<', meetingThreshold)
+      .limit(BATCH)
       .get();
 
     if (!staleRequestsSnapshot.empty) {
@@ -101,6 +110,7 @@ export const checkUserPresence = onSchedule({
     const staleCallingSnapshot = await db.collection("calls")
       .where("status", "==", "calling")
       .where("createdAt", "<", callThreshold)
+      .limit(BATCH)
       .get();
 
     if (!staleCallingSnapshot.empty) {
