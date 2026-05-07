@@ -29,6 +29,7 @@ import '../data/chat_emoji_only.dart';
 import '../data/chat_location_share_factory.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/chat_poll_stub_text.dart';
+import '../data/pinned_messages_helper.dart';
 import '../data/reply_preview_builder.dart';
 import '../data/chat_attachment_upload.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
@@ -42,6 +43,7 @@ import '../data/user_profile.dart';
 import 'chat_message_list.dart';
 import 'chat_scroll_anchor_button.dart';
 import 'chat_message_search_overlay.dart';
+import 'chat_selection_app_bar.dart';
 import 'composer_attachment_menu.dart';
 import 'composer_sticker_gif_sheet.dart';
 import 'composer_sticker_suggestion_row.dart';
@@ -155,10 +157,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   Timer? _hideUnreadSeparatorTimer;
   static const Duration _kUnreadSeparatorLinger = Duration(seconds: 5);
   bool _sendBusy = false;
+  bool _selectionBusy = false;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
   bool _composerFormattingOpen = false;
   final List<XFile> _pendingAttachments = <XFile>[];
+  final Set<String> _selectedMessageIds = <String>{};
   ReplyContext? _replyingTo;
   String? _flashHighlightMessageId;
   Timer? _flashHighlightTimer;
@@ -233,6 +237,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       _flashHighlightMessageId = null;
       _threadAtBottom = true;
       _anchorUnreadStep = 0;
+      _selectedMessageIds.clear();
+      _selectionBusy = false;
       _sessionUnreadSeparatorAnchorMessageId = null;
       _hideUnreadSeparatorTimer?.cancel();
       _hideUnreadSeparatorTimer = null;
@@ -528,6 +534,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   }
 
   void _closeThread(BuildContext context) {
+    if (_selectedMessageIds.isNotEmpty) {
+      setState(() => _selectedMessageIds.clear());
+      return;
+    }
     if (context.canPop()) {
       context.pop();
     } else {
@@ -1205,6 +1215,387 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     }
   }
 
+  String _starredDocId(String conversationId, String messageId) {
+    return 's_${conversationId}_$messageId';
+  }
+
+  String _starredPreviewText(ChatMessage m) {
+    final raw = (m.text ?? '').trim();
+    var plain = raw;
+    if (raw.contains('<')) {
+      plain = messageHtmlToPlainText(raw);
+    }
+    plain = plain.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (plain.isEmpty) {
+      if ((m.chatPollId ?? '').trim().isNotEmpty) {
+        plain = AppLocalizations.of(context)!.chat_poll_label;
+      } else if (m.locationShare != null) {
+        plain = AppLocalizations.of(context)!.chat_location_label;
+      } else if (m.attachments.isNotEmpty) {
+        plain = AppLocalizations.of(context)!.chat_attachment_label;
+      } else {
+        plain = AppLocalizations.of(context)!.chat_message_empty_placeholder;
+      }
+    }
+    if (plain.length > 240) {
+      plain = '${plain.substring(0, 240)}…';
+    }
+    return plain;
+  }
+
+  Future<void> _toggleThreadMessageStar({
+    required ChatMessage message,
+    required String currentUserId,
+    required bool isStarredNow,
+  }) async {
+    if (message.id.trim().isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final starRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .collection('starredChatMessages')
+        .doc(_starredDocId(widget.conversationId, message.id));
+    try {
+      if (isStarredNow) {
+        await starRef.delete();
+        if (mounted) _toast(l10n.chat_starred_removed);
+        return;
+      }
+      final now = DateTime.now().toUtc().toIso8601String();
+      await starRef.set(<String, Object?>{
+        'conversationId': widget.conversationId,
+        'messageId': message.id,
+        'createdAt': now,
+        'previewText': _starredPreviewText(message),
+      }, SetOptions(merge: true));
+      if (mounted) _toast(l10n.chat_starred_added);
+    } catch (e) {
+      if (mounted) _toast(l10n.chat_starred_toggle_failed(e));
+    }
+  }
+
+  Future<void> _pinThreadMessage({
+    required ChatMessage message,
+    required User user,
+    required Conversation conversation,
+    required Map<String, UserProfile> profileMap,
+  }) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final existing = conversationPinnedList(conversation);
+    if (existing.any((p) => p.messageId == message.id)) {
+      _toast(l10n.chat_pin_already_pinned);
+      return;
+    }
+    if (existing.length >= maxPinnedMessages) {
+      _toast(l10n.chat_pin_limit_reached(maxPinnedMessages));
+      return;
+    }
+    String? otherUserId;
+    String? otherUserName;
+    if (!conversation.isGroup) {
+      final others = conversation.participantIds
+          .where((id) => id != user.uid)
+          .toList(growable: false);
+      if (others.isNotEmpty) {
+        otherUserId = others.first;
+        otherUserName = profileMap[otherUserId]?.name;
+      }
+    }
+    final entry = buildPinnedMessageFromChatMessage(
+      l10n: l10n,
+      message: message,
+      currentUserId: user.uid,
+      isGroup: conversation.isGroup,
+      otherUserId: otherUserId,
+      otherUserName: otherUserName,
+    );
+    final next = [...existing, entry];
+    try {
+      await repo.setPinnedMessages(
+        conversationId: widget.conversationId,
+        pins: next,
+      );
+    } catch (e) {
+      if (mounted) _toast(l10n.chat_pin_failed(e));
+    }
+  }
+
+  bool _isThreadMessageStalePending(ChatMessage m) {
+    if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return false;
+    if ((m.deliveryStatus ?? '') != 'sending') return false;
+    final origin = _pendingRetryAt[m.id] ?? m.createdAt;
+    return DateTime.now().difference(origin) >= const Duration(seconds: 30);
+  }
+
+  Future<void> _cancelStalePendingThreadMessage(ChatMessage m) async {
+    _pendingRetryAt.remove(m.id);
+    try {
+      await FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(widget.conversationId)
+          .collection('messages')
+          .doc(widget.parentMessageId)
+          .collection('thread')
+          .doc(m.id)
+          .delete();
+    } catch (_) {}
+  }
+
+  List<ChatMessage> _selectedThreadMessages(List<ChatMessage> sortedAsc) {
+    final byId = {for (final m in sortedAsc) m.id: m};
+    return _selectedMessageIds
+        .map((id) => byId[id])
+        .whereType<ChatMessage>()
+        .toList(growable: false);
+  }
+
+  bool _canDeleteSelectedThreadMessages(
+    List<ChatMessage> sortedAsc,
+    String uid,
+  ) {
+    if (_selectedMessageIds.isEmpty) return false;
+    final byId = {for (final m in sortedAsc) m.id: m};
+    for (final id in _selectedMessageIds) {
+      final m = byId[id];
+      if (m == null || m.senderId != uid || m.isDeleted) return false;
+    }
+    return true;
+  }
+
+  Future<void> _forwardSelectedThreadMessages() async {
+    final selected = _selectedThreadMessages(
+      _sortedAscCache,
+    ).where((m) => !m.isDeleted).toList(growable: false);
+    if (selected.isEmpty || !mounted) return;
+    await context.push('/chats/forward', extra: selected);
+    if (!mounted) return;
+    setState(() => _selectedMessageIds.clear());
+  }
+
+  Future<void> _deleteSelectedThreadMessages({
+    required String currentUserId,
+  }) async {
+    final targets = _selectedThreadMessages(
+      _sortedAscCache,
+    ).where((m) => m.senderId == currentUserId && !m.isDeleted).toList();
+    if (targets.isEmpty) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          targets.length > 1
+              ? l10n.chat_delete_message_title_multi
+              : l10n.chat_delete_message_title_single,
+        ),
+        content: Text(
+          targets.length > 1
+              ? l10n.chat_delete_message_body_multi(targets.length)
+              : l10n.chat_delete_message_body_single,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.common_cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.common_delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _selectionBusy = true);
+    try {
+      for (final m in targets) {
+        await repo.softDeleteMessage(
+          conversationId: widget.conversationId,
+          messageId: m.id,
+          threadParentMessageId: widget.parentMessageId,
+        );
+      }
+      if (mounted) setState(() => _selectedMessageIds.clear());
+    } catch (e) {
+      if (mounted) _toast(l10n.chat_delete_action_failed(e));
+    } finally {
+      if (mounted) setState(() => _selectionBusy = false);
+    }
+  }
+
+  Future<void> _onThreadMessageLongPress({
+    required ChatMessage message,
+    required User user,
+    required Conversation? conversation,
+    required Map<String, UserProfile> profileMap,
+    required Set<String> starredMessageIds,
+    required String fontSize,
+    required Color? outgoingBubbleColor,
+    required Color? incomingBubbleColor,
+  }) async {
+    final isOutboxFailed =
+        message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
+        (message.deliveryStatus ?? '') == 'failed';
+    final isStale = _isThreadMessageStalePending(message);
+    if (isOutboxFailed || isStale) {
+      final result = await showOutboxFailedContextMenu(
+        context,
+        message: message,
+        chatFontSize: fontSize,
+        outgoingBubbleColor: outgoingBubbleColor,
+      );
+      if (!mounted ||
+          result == null ||
+          result.type == MessageMenuActionType.dismissed) {
+        return;
+      }
+      switch (result.type) {
+        case MessageMenuActionType.outboxRetry:
+          if (isOutboxFailed) {
+            handleOutboxRetry(ref, message.id);
+          } else {
+            setState(() => _pendingRetryAt[message.id] = DateTime.now());
+          }
+        case MessageMenuActionType.outboxCancel:
+          if (isOutboxFailed) {
+            unawaited(handleOutboxDismiss(ref, message.id));
+          } else {
+            unawaited(_cancelStalePendingThreadMessage(message));
+          }
+        default:
+          break;
+      }
+      return;
+    }
+
+    final isMine = message.senderId == user.uid;
+    final canDelete = isMine && !message.isDeleted;
+    final plain = (message.text ?? '').trim();
+    final hasMenuText =
+        plain.isNotEmpty &&
+        (plain.contains('<')
+            ? messageHtmlToPlainText(plain).trim().isNotEmpty
+            : true);
+    final secretRestrictions = conversation?.secretChat?.restrictions;
+    final allowCopy = !(secretRestrictions?.noCopy == true);
+    final allowForward = !(secretRestrictions?.noForward == true);
+
+    final result = await showMessageContextMenu(
+      context,
+      message: message,
+      isCurrentUser: isMine,
+      hasText: hasMenuText,
+      canEdit: false,
+      canDelete: canDelete,
+      allowCopy: allowCopy,
+      allowForward: allowForward,
+      showStarAction: !message.isDeleted,
+      isStarred: starredMessageIds.contains(message.id),
+      chatFontSize: fontSize,
+      outgoingBubbleColor: outgoingBubbleColor,
+      incomingBubbleColor: incomingBubbleColor,
+    );
+    if (!mounted ||
+        result == null ||
+        result.type == MessageMenuActionType.dismissed) {
+      return;
+    }
+
+    String? dmOtherId;
+    if (conversation != null && !conversation.isGroup) {
+      final others = conversation.participantIds
+          .where((id) => id != user.uid)
+          .toList(growable: false);
+      dmOtherId = others.isEmpty ? null : others.first;
+    }
+    final dmOtherProfile = dmOtherId == null ? null : profileMap[dmOtherId];
+
+    switch (result.type) {
+      case MessageMenuActionType.dismissed:
+        return;
+      case MessageMenuActionType.reply:
+        setState(() {
+          _replyingTo = buildReplyPreview(
+            l10n: AppLocalizations.of(context)!,
+            message: message,
+            currentUserId: user.uid,
+            isGroup: conversation?.isGroup ?? false,
+            otherUserId: dmOtherId,
+            otherUserName: dmOtherProfile?.name,
+          );
+        });
+        _composerFocus.requestFocus();
+      case MessageMenuActionType.thread:
+        context.push(
+          '/chats/${widget.conversationId}/thread/${message.id}',
+          extra: message,
+        );
+      case MessageMenuActionType.copy:
+        if (!allowCopy) {
+          _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+          return;
+        }
+        await copyMessageTextToClipboard(message);
+        if (mounted) _toast(AppLocalizations.of(context)!.chat_text_copied);
+      case MessageMenuActionType.edit:
+        _toast(AppLocalizations.of(context)!.common_soon);
+      case MessageMenuActionType.pin:
+        if (conversation != null) {
+          await _pinThreadMessage(
+            message: message,
+            user: user,
+            conversation: conversation,
+            profileMap: profileMap,
+          );
+        }
+      case MessageMenuActionType.star:
+        await _toggleThreadMessageStar(
+          message: message,
+          currentUserId: user.uid,
+          isStarredNow: starredMessageIds.contains(message.id),
+        );
+      case MessageMenuActionType.forward:
+        if (!allowForward) {
+          _toast(AppLocalizations.of(context)!.secret_chat_action_not_allowed);
+          return;
+        }
+        if (!message.isDeleted) {
+          context.push('/chats/forward', extra: <ChatMessage>[message]);
+        }
+      case MessageMenuActionType.select:
+        setState(() => _selectedMessageIds.add(message.id));
+      case MessageMenuActionType.delete:
+        await _confirmDeleteMessageInThread(message);
+      case MessageMenuActionType.react:
+        final emoji = result.emoji;
+        if (emoji == null || emoji.trim().isEmpty || message.isDeleted) return;
+        final repo = ref.read(chatRepositoryProvider);
+        if (repo == null) return;
+        try {
+          await repo.toggleThreadMessageReaction(
+            conversationId: widget.conversationId,
+            parentMessageId: widget.parentMessageId,
+            messageId: message.id,
+            userId: user.uid,
+            emoji: emoji.trim(),
+          );
+        } catch (e) {
+          if (mounted) {
+            _toast(
+              AppLocalizations.of(context)!.chat_reaction_toggle_failed(e),
+            );
+          }
+        }
+      case MessageMenuActionType.outboxRetry:
+      case MessageMenuActionType.outboxCancel:
+        break;
+    }
+  }
+
   void _openThreadMediaGallery(
     ChatAttachment att,
     ChatMessage msg, {
@@ -1499,6 +1890,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         ? convAsync.asData!.value.first.data
         : null;
     final contactsAsync = ref.watch(userContactsIndexProvider(user.uid));
+    final starredIdsAsync = ref.watch(
+      starredMessageIdsInConversationProvider((
+        userId: user.uid,
+        conversationId: widget.conversationId,
+      )),
+    );
 
     final userDocAsync = ref.watch(userChatSettingsDocProvider(user.uid));
     final userDoc = userDocAsync.asData?.value ?? const <String, dynamic>{};
@@ -1583,6 +1980,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
             : l10n.thread_screen_title_fallback;
         final headerSubtitle =
             '${l10n.thread_reply_count(replyCount).toUpperCase()} · ${_timeHm(parent.createdAt)}';
+        final selectionMode = _selectedMessageIds.isNotEmpty;
+        final canDeleteSelected = _canDeleteSelectedThreadMessages(
+          _sortedAscCache,
+          user.uid,
+        );
 
         return Scaffold(
           extendBodyBehindAppBar: true,
@@ -1597,16 +1999,31 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                   preferredSize: const Size.fromHeight(56),
                   child: SafeArea(
                     bottom: false,
-                    child: ThreadHeader(
-                      title: headerTitle,
-                      subtitle: headerSubtitle,
-                      onClose: () => _closeThread(context),
-                      searchActive: _inThreadSearch,
-                      onSearchTap: _openThreadSearch,
-                      searchController: _searchController,
-                      searchFocusNode: _searchFocus,
-                      onSearchClose: _exitThreadSearch,
-                    ),
+                    child: selectionMode
+                        ? ChatSelectionAppBar(
+                            count: _selectedMessageIds.length,
+                            onClose: () =>
+                                setState(() => _selectedMessageIds.clear()),
+                            onForward: () =>
+                                unawaited(_forwardSelectedThreadMessages()),
+                            onDelete: () => unawaited(
+                              _deleteSelectedThreadMessages(
+                                currentUserId: user.uid,
+                              ),
+                            ),
+                            canDelete: canDeleteSelected,
+                            isBusy: _selectionBusy,
+                          )
+                        : ThreadHeader(
+                            title: headerTitle,
+                            subtitle: headerSubtitle,
+                            onClose: () => _closeThread(context),
+                            searchActive: _inThreadSearch,
+                            onSearchTap: _openThreadSearch,
+                            searchController: _searchController,
+                            searchFocusNode: _searchFocus,
+                            onSearchClose: _exitThreadSearch,
+                          ),
                   ),
                 ),
                 Expanded(
@@ -1759,6 +2176,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                   threadSearchDecryptedMap,
                             )
                           : const <ChatMessage>[];
+                      final starredMessageIds =
+                          starredIdsAsync.asData?.value ?? const <String>{};
+                      final selectionMode = _selectedMessageIds.isNotEmpty;
 
                       return GestureDetector(
                         behavior: HitTestBehavior.translucent,
@@ -1877,6 +2297,24 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                   _jumpScrollBoostMessageId,
                                               onJumpToMessageId:
                                                   _scrollToMessageId,
+                                              selectionMode: selectionMode,
+                                              selectedMessageIds:
+                                                  _selectedMessageIds,
+                                              onMessageTap: (msg) {
+                                                if (!selectionMode) return;
+                                                setState(() {
+                                                  if (_selectedMessageIds
+                                                      .contains(msg.id)) {
+                                                    _selectedMessageIds.remove(
+                                                      msg.id,
+                                                    );
+                                                  } else {
+                                                    _selectedMessageIds.add(
+                                                      msg.id,
+                                                    );
+                                                  }
+                                                });
+                                              },
                                               showTimestamps: true,
                                               fontSize: 'medium',
                                               bubbleRadius: 'rounded',
@@ -1916,6 +2354,43 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                     message,
                                                     parentMessageId: parent.id,
                                                   ),
+                                              onToggleReaction: (m, emoji) async {
+                                                final repo = ref.read(
+                                                  chatRepositoryProvider,
+                                                );
+                                                if (repo == null ||
+                                                    emoji.trim().isEmpty ||
+                                                    m.isDeleted) {
+                                                  return;
+                                                }
+                                                try {
+                                                  await repo
+                                                      .toggleThreadMessageReaction(
+                                                        conversationId: widget
+                                                            .conversationId,
+                                                        parentMessageId: widget
+                                                            .parentMessageId,
+                                                        messageId: m.id,
+                                                        userId: user.uid,
+                                                        emoji: emoji.trim(),
+                                                      );
+                                                } catch (e) {
+                                                  if (!context.mounted) return;
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        AppLocalizations.of(
+                                                          context,
+                                                        )!.chat_reaction_toggle_failed(
+                                                          e,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
                                               profileMap: profileMap,
                                               contactProfiles: contactProfiles,
                                               flashHighlightMessageId:
@@ -1961,96 +2436,26 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                 }
                                               },
                                               onMessageLongPress: (m) async {
-                                                final isOutboxFailed =
-                                                    m.id.startsWith(
-                                                      kLocalOutboxMessageIdPrefix,
-                                                    ) &&
-                                                    (m.deliveryStatus ?? '') ==
-                                                        'failed';
-                                                final isStale =
-                                                    !m.id.startsWith(
-                                                      kLocalOutboxMessageIdPrefix,
-                                                    ) &&
-                                                    (m.deliveryStatus ?? '') ==
-                                                        'sending' &&
-                                                    DateTime.now().difference(
-                                                          _pendingRetryAt[m
-                                                                  .id] ??
-                                                              m.createdAt,
-                                                        ) >=
-                                                        const Duration(
-                                                          seconds: 30,
-                                                        );
-                                                if (!isOutboxFailed &&
-                                                    !isStale) {
-                                                  return;
-                                                }
-                                                final result =
-                                                    await showOutboxFailedContextMenu(
-                                                      context,
-                                                      message: m,
-                                                    );
-                                                if (!mounted ||
-                                                    result == null ||
-                                                    result.type ==
-                                                        MessageMenuActionType
-                                                            .dismissed) {
-                                                  return;
-                                                }
-                                                switch (result.type) {
-                                                  case MessageMenuActionType
-                                                      .outboxRetry:
-                                                    if (isOutboxFailed) {
-                                                      handleOutboxRetry(
-                                                        ref,
-                                                        m.id,
-                                                      );
-                                                    } else {
-                                                      setState(() {
-                                                        _pendingRetryAt[m.id] =
-                                                            DateTime.now();
-                                                      });
-                                                    }
-                                                  case MessageMenuActionType
-                                                      .outboxCancel:
-                                                    if (isOutboxFailed) {
-                                                      unawaited(
-                                                        handleOutboxDismiss(
-                                                          ref,
-                                                          m.id,
-                                                        ),
-                                                      );
-                                                    } else {
-                                                      _pendingRetryAt.remove(
-                                                        m.id,
-                                                      );
-                                                      unawaited(
-                                                        FirebaseFirestore
-                                                            .instance
-                                                            .collection(
-                                                              'conversations',
-                                                            )
-                                                            .doc(
-                                                              widget
-                                                                  .conversationId,
-                                                            )
-                                                            .collection(
-                                                              'messages',
-                                                            )
-                                                            .doc(
-                                                              widget
-                                                                  .parentMessageId,
-                                                            )
-                                                            .collection(
-                                                              'thread',
-                                                            )
-                                                            .doc(m.id)
-                                                            .delete(),
-                                                      );
-                                                    }
-                                                  default:
-                                                    break;
-                                                }
+                                                await _onThreadMessageLongPress(
+                                                  message: m,
+                                                  user: user,
+                                                  conversation: conv,
+                                                  profileMap: profileMap,
+                                                  starredMessageIds:
+                                                      starredMessageIds,
+                                                  fontSize: 'medium',
+                                                  outgoingBubbleColor:
+                                                      scheme.primary,
+                                                  incomingBubbleColor: Colors
+                                                      .white
+                                                      .withValues(
+                                                        alpha:
+                                                            scheme.brightness ==
+                                                                Brightness.dark
+                                                            ? 0.08
+                                                            : 0.22,
+                                                      ),
+                                                );
                                               },
                                               onOutboxRetry: (mid) {
                                                 handleOutboxRetry(ref, mid);
@@ -2103,84 +2508,87 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                 ],
                               ),
                             ),
-                            ChatComposer(
-                              controller: _composerController,
-                              focusNode: _composerFocus,
-                              e2eeDisabledBanner: dmComposerBlockBanner(
-                                context: context,
-                                ref: ref,
-                                currentUserId: user.uid,
-                                conv: conv,
-                              ),
-                              // Phase 4: текст в E2EE-threads уходит
-                              // зашифрованным; attachments по-прежнему
-                              // блокируются Phase 0 guard'ом репозитория
-                              // (Phase 7 уберёт этот барьер).
-                              onSend: () =>
-                                  _submitWithAttachments(user.uid, conv),
-                              groupMentionCandidates:
-                                  conv != null && conv.isGroup
-                                  ? buildGroupMentionCandidates(
-                                      conversation: conv,
-                                      currentUserId: user.uid,
-                                      profileMap: profileMap,
-                                      contactProfiles: contactProfiles,
-                                      l10n: AppLocalizations.of(context),
-                                    )
-                                  : null,
-                              onAttachmentSelected: (a) =>
-                                  _handleComposerAttachment(a, user.uid),
-                              pendingAttachments: _pendingAttachments,
-                              onRemovePending: (i) {
-                                setState(() => _pendingAttachments.removeAt(i));
-                              },
-                              onEditPending: (_) async {},
-                              attachmentsEnabled: !_sendBusy,
-                              sendBusy: _sendBusy,
-                              onMicTap: () => unawaited(
-                                _sendVoiceMessage(user.uid, conv: conv),
-                              ),
-                              onVoiceHoldRecorded: (rec) async {
-                                await _sendVoiceMessageFromRecord(
-                                  user.uid,
-                                  rec,
+                            if (_selectedMessageIds.isEmpty)
+                              ChatComposer(
+                                controller: _composerController,
+                                focusNode: _composerFocus,
+                                e2eeDisabledBanner: dmComposerBlockBanner(
+                                  context: context,
+                                  ref: ref,
+                                  currentUserId: user.uid,
                                   conv: conv,
-                                );
-                              },
-                              onStickersTap: () =>
-                                  unawaited(_openStickersGifPanel(user.uid)),
-                              stickerSuggestionBuilder: () {
-                                final repo = ref.read(
-                                  userStickerPacksRepositoryProvider,
-                                );
-                                final chatRepo = ref.read(
-                                  chatRepositoryProvider,
-                                );
-                                if (repo == null || chatRepo == null) {
-                                  return const SizedBox.shrink();
-                                }
-                                return ComposerStickerSuggestionRow(
-                                  userId: user.uid,
-                                  repo: repo,
-                                  onPickAttachment: (att) => unawaited(
-                                    _sendThreadStickerOrGifAttachment(
-                                      user.uid,
-                                      chatRepo,
-                                      att,
+                                ),
+                                // Phase 4: текст в E2EE-threads уходит
+                                // зашифрованным; attachments по-прежнему
+                                // блокируются Phase 0 guard'ом репозитория
+                                // (Phase 7 уберёт этот барьер).
+                                onSend: () =>
+                                    _submitWithAttachments(user.uid, conv),
+                                groupMentionCandidates:
+                                    conv != null && conv.isGroup
+                                    ? buildGroupMentionCandidates(
+                                        conversation: conv,
+                                        currentUserId: user.uid,
+                                        profileMap: profileMap,
+                                        contactProfiles: contactProfiles,
+                                        l10n: AppLocalizations.of(context),
+                                      )
+                                    : null,
+                                onAttachmentSelected: (a) =>
+                                    _handleComposerAttachment(a, user.uid),
+                                pendingAttachments: _pendingAttachments,
+                                onRemovePending: (i) {
+                                  setState(
+                                    () => _pendingAttachments.removeAt(i),
+                                  );
+                                },
+                                onEditPending: (_) async {},
+                                attachmentsEnabled: !_sendBusy,
+                                sendBusy: _sendBusy,
+                                onMicTap: () => unawaited(
+                                  _sendVoiceMessage(user.uid, conv: conv),
+                                ),
+                                onVoiceHoldRecorded: (rec) async {
+                                  await _sendVoiceMessageFromRecord(
+                                    user.uid,
+                                    rec,
+                                    conv: conv,
+                                  );
+                                },
+                                onStickersTap: () =>
+                                    unawaited(_openStickersGifPanel(user.uid)),
+                                stickerSuggestionBuilder: () {
+                                  final repo = ref.read(
+                                    userStickerPacksRepositoryProvider,
+                                  );
+                                  final chatRepo = ref.read(
+                                    chatRepositoryProvider,
+                                  );
+                                  if (repo == null || chatRepo == null) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return ComposerStickerSuggestionRow(
+                                    userId: user.uid,
+                                    repo: repo,
+                                    onPickAttachment: (att) => unawaited(
+                                      _sendThreadStickerOrGifAttachment(
+                                        user.uid,
+                                        chatRepo,
+                                        att,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                              onClipboardToolbarPaste:
-                                  _pasteContentFromClipboard,
-                              showFormattingToolbar: _composerFormattingOpen,
-                              onCloseFormattingToolbar: () => setState(
-                                () => _composerFormattingOpen = false,
+                                  );
+                                },
+                                onClipboardToolbarPaste:
+                                    _pasteContentFromClipboard,
+                                showFormattingToolbar: _composerFormattingOpen,
+                                onCloseFormattingToolbar: () => setState(
+                                  () => _composerFormattingOpen = false,
+                                ),
+                                replyingTo: _replyingTo,
+                                onCancelReply: () =>
+                                    setState(() => _replyingTo = null),
                               ),
-                              replyingTo: _replyingTo,
-                              onCancelReply: () =>
-                                  setState(() => _replyingTo = null),
-                            ),
                           ],
                         ),
                       );

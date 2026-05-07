@@ -955,30 +955,42 @@ class _MessageSelectionCheckbox extends StatelessWidget {
   const _MessageSelectionCheckbox({
     required this.selected,
     required this.activeColor,
+    this.onTap,
   });
 
   final bool selected;
   final Color activeColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final border = selected
         ? activeColor.withValues(alpha: 0.94)
         : Colors.white.withValues(alpha: 0.6);
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: selected
-            ? activeColor.withValues(alpha: 0.96)
-            : Colors.transparent,
-        border: Border.all(color: border, width: selected ? 1.5 : 1.3),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: 30,
+        height: 30,
+        child: Center(
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: selected
+                  ? activeColor.withValues(alpha: 0.96)
+                  : Colors.transparent,
+              border: Border.all(color: border, width: selected ? 1.5 : 1.3),
+            ),
+            alignment: Alignment.center,
+            child: selected
+                ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                : null,
+          ),
+        ),
       ),
-      alignment: Alignment.center,
-      child: selected
-          ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
-          : null,
     );
   }
 }
@@ -1808,6 +1820,10 @@ class _ChatMessageBubble extends StatelessWidget {
                   _MessageSelectionCheckbox(
                     selected: selected,
                     activeColor: scheme.primary,
+                    onTap:
+                        !message.isDeleted && onMessageTap != null
+                        ? () => onMessageTap!(message)
+                        : null,
                   ),
                   const SizedBox(width: 8),
                 ],

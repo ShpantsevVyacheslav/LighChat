@@ -85,3 +85,6 @@ tools/flutter.zip
 
 # Cursor IDE — локальные настройки окна/машины (skills/rules в репо можно держать отдельно)
 .cursor/settings.json
+
+# Claude local worktree metadata
+/.claude/worktrees/

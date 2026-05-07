@@ -203,7 +203,11 @@ class ChatRepository {
               if (!snap.exists || data == null) return null;
               return UserChatIndex.fromJson(data);
             } catch (e, st) {
-              _logger.w('UserSecretChatIndex parse failed', error: e, stackTrace: st);
+              _logger.w(
+                'UserSecretChatIndex parse failed',
+                error: e,
+                stackTrace: st,
+              );
               return null;
             }
           },
@@ -358,53 +362,58 @@ class ChatRepository {
 
     Future<void> start() async {
       await sub?.cancel().catchError((_) {});
-      sub = q.snapshots(includeMetadataChanges: true).listen(
-        emitFrom,
-        onError: (Object err, StackTrace st) async {
-          final code = err is FirebaseException
-              ? err.code.toLowerCase().trim()
-              : '';
-          final shouldRetry =
-              !retried && (code == 'permission-denied' || code == 'unauthenticated');
-          if (!shouldRetry) {
-            if (code == 'permission-denied' || code == 'unauthenticated') {
+      sub = q
+          .snapshots(includeMetadataChanges: true)
+          .listen(
+            emitFrom,
+            onError: (Object err, StackTrace st) async {
+              final code = err is FirebaseException
+                  ? err.code.toLowerCase().trim()
+                  : '';
+              final shouldRetry =
+                  !retried &&
+                  (code == 'permission-denied' || code == 'unauthenticated');
+              if (!shouldRetry) {
+                if (code == 'permission-denied' || code == 'unauthenticated') {
+                  try {
+                    await logChatOpenDiagnostics(
+                      stage: 'watchMessages.onError.final',
+                      conversationId: conversationId,
+                      error: err,
+                      stackTrace: st,
+                      logger: _logger,
+                    );
+                  } catch (_) {}
+                }
+                controller.addError(err, st);
+                return;
+              }
+              retried = true;
               try {
                 await logChatOpenDiagnostics(
-                  stage: 'watchMessages.onError.final',
+                  stage: 'watchMessages.onError.before_refresh',
                   conversationId: conversationId,
                   error: err,
                   stackTrace: st,
                   logger: _logger,
                 );
               } catch (_) {}
-            }
-            controller.addError(err, st);
-            return;
-          }
-          retried = true;
-          try {
-            await logChatOpenDiagnostics(
-              stage: 'watchMessages.onError.before_refresh',
-              conversationId: conversationId,
-              error: err,
-              stackTrace: st,
-              logger: _logger,
-            );
-          } catch (_) {}
-          try {
-            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
-          } catch (e, st2) {
-            // Important: on older iOS builds/VPN/mitm cases token refresh fails
-            // with TLS errors (-1200 / -9816) and Firestore will keep denying reads.
-            _logger.w(
-              'watchMessages token refresh failed',
-              error: e,
-              stackTrace: st2,
-            );
-          }
-          await start();
-        },
-      );
+              try {
+                await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(
+                  true,
+                );
+              } catch (e, st2) {
+                // Important: on older iOS builds/VPN/mitm cases token refresh fails
+                // with TLS errors (-1200 / -9816) and Firestore will keep denying reads.
+                _logger.w(
+                  'watchMessages token refresh failed',
+                  error: e,
+                  stackTrace: st2,
+                );
+              }
+              await start();
+            },
+          );
     }
 
     unawaited(start());
@@ -483,51 +492,56 @@ class ChatRepository {
 
     Future<void> start() async {
       await sub?.cancel().catchError((_) {});
-      sub = q.snapshots(includeMetadataChanges: true).listen(
-        emitFrom,
-        onError: (Object err, StackTrace st) async {
-          final code = err is FirebaseException
-              ? err.code.toLowerCase().trim()
-              : '';
-          final shouldRetry =
-              !retried && (code == 'permission-denied' || code == 'unauthenticated');
-          if (!shouldRetry) {
-            if (code == 'permission-denied' || code == 'unauthenticated') {
+      sub = q
+          .snapshots(includeMetadataChanges: true)
+          .listen(
+            emitFrom,
+            onError: (Object err, StackTrace st) async {
+              final code = err is FirebaseException
+                  ? err.code.toLowerCase().trim()
+                  : '';
+              final shouldRetry =
+                  !retried &&
+                  (code == 'permission-denied' || code == 'unauthenticated');
+              if (!shouldRetry) {
+                if (code == 'permission-denied' || code == 'unauthenticated') {
+                  try {
+                    await logChatOpenDiagnostics(
+                      stage: 'watchThreadMessages.onError.final',
+                      conversationId: conversationId,
+                      error: err,
+                      stackTrace: st,
+                      logger: _logger,
+                    );
+                  } catch (_) {}
+                }
+                controller.addError(err, st);
+                return;
+              }
+              retried = true;
               try {
                 await logChatOpenDiagnostics(
-                  stage: 'watchThreadMessages.onError.final',
+                  stage: 'watchThreadMessages.onError.before_refresh',
                   conversationId: conversationId,
                   error: err,
                   stackTrace: st,
                   logger: _logger,
                 );
               } catch (_) {}
-            }
-            controller.addError(err, st);
-            return;
-          }
-          retried = true;
-          try {
-            await logChatOpenDiagnostics(
-              stage: 'watchThreadMessages.onError.before_refresh',
-              conversationId: conversationId,
-              error: err,
-              stackTrace: st,
-              logger: _logger,
-            );
-          } catch (_) {}
-          try {
-            await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(true);
-          } catch (e, st2) {
-            _logger.w(
-              'watchThreadMessages token refresh failed',
-              error: e,
-              stackTrace: st2,
-            );
-          }
-          await start();
-        },
-      );
+              try {
+                await fb_auth.FirebaseAuth.instance.currentUser?.getIdToken(
+                  true,
+                );
+              } catch (e, st2) {
+                _logger.w(
+                  'watchThreadMessages token refresh failed',
+                  error: e,
+                  stackTrace: st2,
+                );
+              }
+              await start();
+            },
+          );
     }
 
     unawaited(start());
@@ -856,6 +870,7 @@ class ChatRepository {
     List<ChatAttachment> attachments = const [],
     Map<String, Object?>? e2eeEnvelope,
     String? messageIdOverride,
+
     /// Опциональный ISO-таймштамп для `createdAt` / `lastMessageTimestamp`.
     /// Нужен звонящему стороннему коду (см. `chat_outbox_attachment_notifier`),
     /// чтобы записать тот же `ts` в локальный preview-кэш и сразу показать
@@ -2021,6 +2036,84 @@ class ChatRepository {
       } catch (e, st) {
         _logger.w('conv lastReaction update failed', error: e, stackTrace: st);
       }
+    }
+  }
+
+  /// Реакция на сообщение в треде (`messages/{parent}/thread/{message}`).
+  Future<void> toggleThreadMessageReaction({
+    required String conversationId,
+    required String parentMessageId,
+    required String messageId,
+    required String userId,
+    required String emoji,
+  }) async {
+    if (emoji.isEmpty) return;
+    final msgRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(parentMessageId)
+        .collection('thread')
+        .doc(messageId);
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+
+    final snap = await msgRef.get();
+    if (!snap.exists) return;
+    final data = snap.data();
+    if (data == null) return;
+
+    final parsed =
+        parseReactions(data['reactions']) ?? <String, List<ReactionEntry>>{};
+    final reactions = <String, List<ReactionEntry>>{
+      for (final e in parsed.entries) e.key: List<ReactionEntry>.from(e.value),
+    };
+    final list = List<ReactionEntry>.from(reactions[emoji] ?? []);
+    final existingIdx = list.indexWhere((r) => r.userId == userId);
+    final now = DateTime.now().toUtc().toIso8601String();
+    var added = false;
+    if (existingIdx >= 0) {
+      list.removeAt(existingIdx);
+      if (list.isEmpty) {
+        reactions.remove(emoji);
+      } else {
+        reactions[emoji] = list;
+      }
+    } else {
+      reactions[emoji] = [
+        ...list,
+        ReactionEntry(userId: userId, timestamp: now),
+      ];
+      added = true;
+    }
+
+    final firestoreMap = <String, dynamic>{};
+    for (final e in reactions.entries) {
+      firestoreMap[e.key] = e.value
+          .map(
+            (r) => <String, dynamic>{
+              'userId': r.userId,
+              if (r.timestamp != null && r.timestamp!.isNotEmpty)
+                'timestamp': r.timestamp,
+            },
+          )
+          .toList();
+    }
+
+    await msgRef.update(<String, Object?>{
+      'reactions': firestoreMap,
+      'lastReactionTimestamp': now,
+    });
+
+    if (added) {
+      try {
+        await convRef.update(<String, Object?>{
+          'lastReactionEmoji': emoji,
+          'lastReactionTimestamp': now,
+          'lastReactionSenderId': userId,
+          'lastReactionMessageId': messageId,
+          'lastReactionParentId': parentMessageId,
+        });
+      } catch (_) {}
     }
   }
 
