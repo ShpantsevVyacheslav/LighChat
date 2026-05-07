@@ -42,8 +42,8 @@ Always assume Firestore data is protected by user-level security rules. Never tr
 ## 3. Chat & Media Architecture
 
 ### Message Pagination
-Hybrid **100 + 50** strategy (see `docs/chat_rendering_spec.md` and `src/components/chat/chat-message-limits.ts`):
-1. **Initial window**: `onSnapshot` with `limit(INITIAL_MESSAGE_LIMIT)` (100).
+Hybrid **30 + 50** strategy (see `src/components/chat/chat-message-limits.ts`):
+1. **Initial window**: `onSnapshot` with `limit(INITIAL_MESSAGE_LIMIT)` (30; снижено с 100 в audit M-002).
 2. **Older history**: increase `limit` by `HISTORY_PAGE_SIZE` (50) on `startReached`; show header loader while `isLoadingOlder` until the next snapshot arrives.
 
 ### First paint (§5.1)
