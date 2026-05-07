@@ -787,6 +787,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Presence logic: Strict handling of online/offline status with inactivity timeout
   useEffect(() => {
     if (!firebaseUser || !firestore) return;
+    /**
+     * Гость (Anonymous Auth) и пользователи без полного профиля в Firestore
+     * не должны писать presence: правила `firestore.rules:416` режут
+     * `!isAnonymousGuest()`, а на не-существующем `users/{uid}` функция
+     * `userSensitiveKeysChanged` падает на `resource.data` → permission-denied
+     * → FirebaseErrorListener роняет весь UI в `Критическую ошибку`.
+     */
+    if (firebaseUser.isAnonymous) return;
+    if (!appUser?.id || appUser.id !== firebaseUser.uid) return;
 
     const userDocRef = doc(firestore, `users/${firebaseUser.uid}`);
     
@@ -888,7 +897,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener('scroll', handleActivity);
       window.removeEventListener('touchstart', handleActivity);
     };
-  }, [firebaseUser, firestore]);
+  }, [firebaseUser, firestore, appUser?.id]);
 
   // Device session registry: keeps per-device activity to mitigate multi-device auth desync.
   useEffect(() => {

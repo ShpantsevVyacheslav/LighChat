@@ -61,9 +61,35 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
  */
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
   return updateDoc(docRef, data)
-    .catch(error => {
+    .catch((error: unknown) => {
+      const code =
+        error && typeof error === 'object' && 'code' in error
+          ? String((error as { code: string }).code)
+          : '';
+      const path = docRef.path;
+      const isPresenceWrite =
+        path.startsWith('users/')
+        && data
+        && typeof data === 'object'
+        && Object.keys(data).every((k) => k === 'online' || k === 'lastSeen');
+      const isTypingWrite = path.includes('/typing/');
+      /**
+       * Не роняем UI на permission-denied для нон-критичных fire-and-forget путей:
+       * - presence (online/lastSeen на users/{uid}) — может фейлиться, если профиль ещё
+       *   не создан onUserCreated после QR-handover, или если правила режут гостя
+       *   (`!isAnonymousGuest()` в firestore.rules:416);
+       * - typing — то же, см. deleteDocumentNonBlocking.
+       * Иначе FirebaseErrorListener бросает FirestorePermissionError, который ловит
+       * Next.js global-error.tsx → весь app падает в «Критическую ошибку».
+       */
+      if (code === 'permission-denied' && (isPresenceWrite || isTypingWrite)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[non-blocking-update] permission-denied skipped', { path });
+        }
+        return;
+      }
       const permissionError = new FirestorePermissionError({
-        path: docRef.path,
+        path,
         operation: 'update',
         requestResourceData: data,
       });
