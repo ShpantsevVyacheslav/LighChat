@@ -34,6 +34,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # next lint по дефолту: warnings не валят, errors валят. Нужные нам
+      # стилистические правила (no-explicit-any, no-unused-vars, prefer-const,
+      # ban-ts-comment, no-empty-object-type) понижены до warn в .eslintrc.json
+      # — постепенно чистим в рамках audit M-006/M-008.
       - name: Lint
         run: npm run lint
 
