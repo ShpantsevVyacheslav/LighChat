@@ -51,6 +51,7 @@
     "asarUnpack": [
       ".next-desktop/standalone/**"
     ],
+    "afterPack": "./electron/afterpack-fuses.js",
     "files": [
       "electron/**/*",
       ".next-desktop/standalone/**/*",
@@ -129,6 +130,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@electron/fuses": "^1.8.0",
     "@firebase/rules-unit-testing": "^3.0.0",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^20",

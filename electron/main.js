@@ -1,9 +1,19 @@
-const { app, BrowserWindow, session, ipcMain, protocol, net } = require('electron');
+const { app, BrowserWindow, session, ipcMain, protocol, net, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { pathToFileURL } = require('url');
 const { shell } = require('electron');
+
+// SECURITY: on Linux Electron's default OS-Crypt backend is "basic" — cookies
+// and Chromium-managed secrets (which include Firebase Auth refresh tokens
+// in IndexedDB) end up effectively plaintext on disk. Force the GNOME
+// libsecret / KDE kwallet backend so they get OS-keystore encryption. macOS
+// uses Keychain by default and Windows uses DPAPI; this flag is a no-op
+// there. Must be set before app.ready, hence here at top-level.
+if (process.platform === 'linux' && !app.isReady()) {
+  app.commandLine.appendSwitch('password-store', 'gnome-libsecret');
+}
 
 const { MEDIA_PROTOCOL_SCHEME } = require('./media-cache');
 
@@ -328,6 +338,40 @@ ipcMain.on('set-badge', (event, count) => {
   if (!app.setBadgeCount) return;
   const n = Math.max(0, Math.min(9999, Number.parseInt(count, 10) || 0));
   app.setBadgeCount(n);
+});
+
+// SECURITY: expose safeStorage to the renderer for opt-in encryption of
+// sensitive payloads (e.g. cached refresh tokens, future device-bound
+// secrets). The renderer hands us a UTF-8 string; we encrypt with the
+// OS keystore (Keychain / DPAPI / libsecret) and return a base64 blob
+// the renderer can store in IndexedDB / localStorage without leaking
+// plaintext on disk. Decryption is the symmetric inverse.
+//
+// Both handlers reject non-main-window frames so an injected popup or
+// webview can't decrypt blobs it didn't author.
+ipcMain.handle('safe-storage:encrypt', (event, plaintext) => {
+  if (!isMainWindowFrame(event)) return null;
+  if (typeof plaintext !== 'string' || plaintext.length === 0) return null;
+  if (plaintext.length > 64 * 1024) return null;
+  if (!safeStorage.isEncryptionAvailable()) return null;
+  try {
+    return safeStorage.encryptString(plaintext).toString('base64');
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('safe-storage:decrypt', (event, blobB64) => {
+  if (!isMainWindowFrame(event)) return null;
+  if (typeof blobB64 !== 'string' || blobB64.length === 0) return null;
+  if (blobB64.length > 128 * 1024) return null;
+  if (!safeStorage.isEncryptionAvailable()) return null;
+  try {
+    const buf = Buffer.from(blobB64, 'base64');
+    return safeStorage.decryptString(buf);
+  } catch {
+    return null;
+  }
 });
 
 function escapeHtml(s) {
