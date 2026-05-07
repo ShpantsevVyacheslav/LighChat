@@ -803,6 +803,27 @@ export default function AuthPage() {
           </div>
 
           <div className="relative z-10 shrink-0 border-t border-white/40 bg-white/30 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.06]">
+            <p className="mb-2 text-center text-[11px] leading-snug text-muted-foreground">
+              {t("legal.consentText")}{" "}
+              <a
+                href="/legal/terms-of-service"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {t("legal.consentTermsLink")}
+              </a>{" "}
+              {t("legal.consentAnd")}{" "}
+              <a
+                href="/legal/privacy-policy"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {t("legal.consentPrivacyLink")}
+              </a>
+              .
+            </p>
             <Button form="register-form" type="submit" variant="default" disabled={isSubmitting} className="h-11 w-full rounded-[14px] font-semibold shadow-md shadow-primary/25 transition-all active:scale-[0.99]">
               {isSubmitting ? (
                 <>

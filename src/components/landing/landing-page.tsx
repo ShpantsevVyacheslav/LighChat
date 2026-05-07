@@ -30,6 +30,8 @@ import { MockHero } from '@/components/features/illustrations/hero';
 import { getFeaturesContent } from '@/components/features/features-content';
 import { StoreBadge } from './store-badges';
 import { getLandingContent } from './landing-content';
+import { CookieBanner } from './cookie-banner';
+import { LegalFooterLinks } from './legal-footer-links';
 
 const BRAND_LOGO_SRC = '/brand/lighchat-mark.png';
 const BRAND_LOGO_SIZE = 575;
@@ -43,7 +45,7 @@ export function LandingPage() {
   const others = FEATURE_TOPICS.filter((t) => !t.highlight);
 
   return (
-    <div className="relative min-h-dvh w-full overflow-x-hidden bg-background text-foreground">
+    <div className="relative h-dvh w-full overflow-x-hidden overflow-y-auto bg-background text-foreground select-text">
       {/* Декоративный фон — мягкие радиальные пятна и сетка. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-slate-50 dark:bg-[#070b14]" />
       <div
@@ -379,10 +381,14 @@ export function LandingPage() {
       </main>
 
       <footer className="border-t border-black/5 bg-background/60 px-4 py-6 text-center dark:border-white/10">
-        <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} LighChat · {landing.copyrightSuffix}
-        </p>
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3">
+          <LegalFooterLinks />
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} LighChat · {landing.copyrightSuffix}
+          </p>
+        </div>
       </footer>
+      <CookieBanner />
     </div>
   );
 }

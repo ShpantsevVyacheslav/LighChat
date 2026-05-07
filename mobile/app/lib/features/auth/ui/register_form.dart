@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -64,9 +65,9 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
   void initState() {
     super.initState();
     _privacyPolicyTap = TapGestureRecognizer()
-      ..onTap = () => _openLegalUrl('https://lighchat.app/privacy');
+      ..onTap = () => _openLegalSlug('privacy-policy');
     _termsTap = TapGestureRecognizer()
-      ..onTap = () => _openLegalUrl('https://lighchat.app/terms');
+      ..onTap = () => _openLegalSlug('terms-of-service');
     _bindFocusAutoScroll(_nameFocus, _nameKey);
     _bindFocusAutoScroll(_usernameFocus, _usernameKey);
     _bindFocusAutoScroll(_phoneFocus, _phoneKey);
@@ -228,6 +229,12 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
     }
   }
 
+  void _openLegalSlug(String slug) {
+    if (!mounted) return;
+    GoRouter.of(context).push('/legal/$slug');
+  }
+
+  // ignore: unused_element
   Future<void> _openLegalUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {

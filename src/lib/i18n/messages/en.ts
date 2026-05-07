@@ -806,6 +806,34 @@ export const messagesEn = {
     overviewStorageHint:
       'Media retention policies, total Storage quota and per-user/chat limits are configured under the “Storage” tab. Actual file deletion and FIFO cleanup on quota overflow are performed by Cloud Functions (must be wired separately).',
   },
+  legal: {
+    indexTitle: 'Legal documents',
+    indexSubtitle:
+      'Privacy policy, terms of service and other legal documents that govern the use of LighChat.',
+    backToIndex: '← All legal documents',
+    backToApp: '← Back',
+    lastUpdated: 'Last updated',
+    notFound: 'Document not found',
+    consentText: 'By signing up you agree to the',
+    consentTermsLink: 'Terms of Service',
+    consentAnd: 'and',
+    consentPrivacyLink: 'Privacy Policy',
+    cookieBannerText:
+      'We use cookies that are required for the service to work and, with your consent, to gather aggregated analytics.',
+    cookieBannerAccept: 'Accept',
+    cookieBannerDecline: 'Only required',
+    cookieBannerLearnMore: 'Cookie policy',
+    titles: {
+      'privacy-policy': 'Privacy Policy',
+      'terms-of-service': 'Terms of Service',
+      'cookie-policy': 'Cookie Policy',
+      'eula': 'End-User License Agreement',
+      'data-processing-agreement': 'Data Processing Agreement',
+      'children-policy': 'Children Policy',
+      'content-moderation-policy': 'Content Moderation Policy',
+      'acceptable-use-policy': 'Acceptable Use Policy',
+    },
+  },
 };
 
 export type AppMessages = typeof messagesEn;

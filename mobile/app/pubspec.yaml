@@ -124,6 +124,8 @@ flutter:
     - assets/lighchat_mark.png
     - assets/lighchat_wordmark.png
     - assets/google_icon.png
+    - assets/legal/ru/
+    - assets/legal/en/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

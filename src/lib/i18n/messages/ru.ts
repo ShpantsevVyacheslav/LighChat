@@ -817,4 +817,32 @@ export const messagesRu = {
     overviewStorageHint:
       'Политики хранения медиа, общая квота Storage и лимиты по пользователям/чатам настраиваются во вкладке «Хранилище». Реальное удаление файлов и FIFO при переполнении квоты выполняется Cloud Functions (подключите отдельно).',
   },
+  legal: {
+    indexTitle: 'Юридические документы',
+    indexSubtitle:
+      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.',
+    backToIndex: '← Все юридические документы',
+    backToApp: '← Назад',
+    lastUpdated: 'Дата последнего обновления',
+    notFound: 'Документ не найден',
+    consentText: 'Регистрируясь, вы соглашаетесь с',
+    consentTermsLink: 'Пользовательским соглашением',
+    consentAnd: 'и',
+    consentPrivacyLink: 'Политикой конфиденциальности',
+    cookieBannerText:
+      'Мы используем cookies, необходимые для работы сервиса, а также — с вашего согласия — для сбора агрегированной аналитики.',
+    cookieBannerAccept: 'Принять',
+    cookieBannerDecline: 'Только необходимые',
+    cookieBannerLearnMore: 'Политика cookies',
+    titles: {
+      'privacy-policy': 'Политика конфиденциальности',
+      'terms-of-service': 'Пользовательское соглашение',
+      'cookie-policy': 'Политика использования cookies',
+      'eula': 'Лицензионное соглашение (EULA)',
+      'data-processing-agreement': 'Соглашение об обработке данных (DPA)',
+      'children-policy': 'Политика в отношении несовершеннолетних',
+      'content-moderation-policy': 'Политика модерации контента',
+      'acceptable-use-policy': 'Правила допустимого использования',
+    },
+  },
 } satisfies AppMessages;
