@@ -16,6 +16,7 @@ class DonutSegment {
 
 const kStorageVideoColor = Color(0xFFFF9800);
 const kStoragePhotoColor = Color(0xFF42A5F5);
+const kStorageAudioColor = Color(0xFFAB47BC);
 const kStorageFileColor = Color(0xFF66BB6A);
 const kStorageOtherColor = Color(0xFF78909C);
 

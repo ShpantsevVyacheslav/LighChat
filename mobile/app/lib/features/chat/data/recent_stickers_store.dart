@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _kKey = 'recent_stickers_v1';
+/// SharedPreferences-ключ списка последних отправленных стикеров.
+/// Экспортирован для интеграции с экраном «Хранилище» (учёт размера + очистка).
+const String kRecentStickersPrefsKey = 'recent_stickers_v1';
+const _kKey = kRecentStickersPrefsKey;
 const _kMaxItems = 24;
 
 class RecentStickersStore {

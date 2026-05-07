@@ -147,6 +147,10 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
         return l10n.storage_category_video_thumbs_subtitle;
       case LocalStorageCategory.chatImages:
         return l10n.storage_category_chat_images_subtitle;
+      case LocalStorageCategory.stickersGifsEmoji:
+        return l10n.storage_category_stickers_gifs_emoji_subtitle;
+      case LocalStorageCategory.networkImageCache:
+        return l10n.storage_category_network_images_subtitle;
     }
   }
 
@@ -168,6 +172,10 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
         return l10n.storage_category_video_thumbs;
       case LocalStorageCategory.chatImages:
         return l10n.storage_category_chat_images;
+      case LocalStorageCategory.stickersGifsEmoji:
+        return l10n.storage_category_stickers_gifs_emoji;
+      case LocalStorageCategory.networkImageCache:
+        return l10n.storage_category_network_images;
     }
   }
 
@@ -187,6 +195,12 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           value: bd.photoBytes.toDouble(),
           color: kStoragePhotoColor,
           label: l10n.storage_label_photo));
+    }
+    if (bd.audioBytes > 0) {
+      segments.add(DonutSegment(
+          value: bd.audioBytes.toDouble(),
+          color: kStorageAudioColor,
+          label: l10n.storage_label_audio));
     }
     if (bd.fileBytes > 0) {
       segments.add(DonutSegment(
@@ -216,6 +230,8 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           category == LocalStorageCategory.videoDownloads ? enabled : null,
       chatImagesEnabled:
           category == LocalStorageCategory.chatImages ? enabled : null,
+      networkImageCacheEnabled:
+          category == LocalStorageCategory.networkImageCache ? enabled : null,
     );
     await _withBusy(() async {
       await LocalStoragePreferencesStore.save(updated);
@@ -290,6 +306,41 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.storage_settings_snackbar_cleared)),
       );
+    });
+  }
+
+  Future<void> _confirmAndClearCategory({
+    required String uid,
+    required List<ConversationWithId> conversations,
+    required LocalStorageCategory category,
+    required int sizeBytes,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.storage_settings_clear_category_title(
+          _categoryTitle(category, l10n),
+        )),
+        content: Text(l10n.storage_settings_clear_category_body(
+          _formatBytes(sizeBytes),
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.common_cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.common_delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _withBusy(() async {
+      await _manager.clearCategory(userId: uid, category: category);
+      await _reload(uid: uid, conversations: conversations);
     });
   }
 
@@ -375,9 +426,16 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
 
   Widget _buildForUser(BuildContext context, User user, AppLocalizations l10n) {
     final indexAsync = ref.watch(userChatIndexProvider(user.uid));
+    final secretIndexAsync = ref.watch(userSecretChatIndexProvider(user.uid));
+    final secretFallbackAsync =
+        ref.watch(userSecretChatFallbackIdsProvider(user.uid));
     return indexAsync.when(
       data: (idx) {
-        final ids = (idx?.conversationIds ?? const <String>[])
+        final mainIds = idx?.conversationIds ?? const <String>[];
+        final secretIds =
+            secretIndexAsync.asData?.value?.conversationIds ?? const <String>[];
+        final fallbackIds = secretFallbackAsync.asData?.value ?? const <String>[];
+        final ids = <String>{...mainIds, ...secretIds, ...fallbackIds}
             .where((id) => id.trim().isNotEmpty)
             .toList(growable: false);
         final convAsync = ref.watch(
@@ -529,6 +587,13 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                                 label: l10n.storage_media_type_photo,
                                 sizeText: _formatBytes(bd.photoBytes),
                                 percent: _pct(bd.photoBytes, bd.totalBytes),
+                              ),
+                            if (bd.audioBytes > 0)
+                              StorageCategoryRow(
+                                color: kStorageAudioColor,
+                                label: l10n.storage_media_type_audio,
+                                sizeText: _formatBytes(bd.audioBytes),
+                                percent: _pct(bd.audioBytes, bd.totalBytes),
                               ),
                             if (bd.fileBytes > 0)
                               StorageCategoryRow(
@@ -728,6 +793,38 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                               label:
                                   Text(l10n.storage_settings_trim_button),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // ── By categories (all categories with non-zero size,
+                        //    с кнопкой очистки на каждую) ──
+                        _SettingsCard(
+                          title: l10n.storage_settings_categories_title,
+                          leadingIcon: Icons.category_outlined,
+                          children: [
+                            for (final category
+                                in LocalStorageCategory.values)
+                              if ((snapshot.categoryBytes[category] ?? 0) > 0)
+                                _ActionRow(
+                                  title: _categoryTitle(category, l10n),
+                                  subtitle: _formatBytes(
+                                      snapshot.categoryBytes[category] ?? 0),
+                                  trailing: const Icon(
+                                    Icons.delete_outline,
+                                    size: 22,
+                                  ),
+                                  onTap: _busy
+                                      ? null
+                                      : () => _confirmAndClearCategory(
+                                            uid: user.uid,
+                                            conversations: conversations,
+                                            category: category,
+                                            sizeBytes: snapshot
+                                                    .categoryBytes[category] ??
+                                                0,
+                                          ),
+                                ),
                           ],
                         ),
                         const SizedBox(height: 14),

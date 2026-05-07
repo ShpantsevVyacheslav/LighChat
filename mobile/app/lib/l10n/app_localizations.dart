@@ -968,6 +968,30 @@ abstract class AppLocalizations {
   /// **'Кэшированные фотографии и стикеры из открытых чатов.'**
   String get storage_category_chat_images_subtitle;
 
+  /// No description provided for @storage_category_stickers_gifs_emoji.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стикеры, GIF, эмодзи'**
+  String get storage_category_stickers_gifs_emoji;
+
+  /// No description provided for @storage_category_stickers_gifs_emoji_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.'**
+  String get storage_category_stickers_gifs_emoji_subtitle;
+
+  /// No description provided for @storage_category_network_images.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кэш сетевых картинок'**
+  String get storage_category_network_images;
+
+  /// No description provided for @storage_category_network_images_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).'**
+  String get storage_category_network_images_subtitle;
+
   /// No description provided for @storage_media_type_video.
   ///
   /// In ru, this message translates to:
@@ -979,6 +1003,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Фотографии'**
   String get storage_media_type_photo;
+
+  /// No description provided for @storage_media_type_audio.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аудио'**
+  String get storage_media_type_audio;
 
   /// No description provided for @storage_media_type_files.
   ///
@@ -1003,6 +1033,24 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Все медиа останутся в облаке. При необходимости вы сможете загрузить их снова.'**
   String get storage_settings_clear_all_hint;
+
+  /// No description provided for @storage_settings_categories_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'По категориям'**
+  String get storage_settings_categories_title;
+
+  /// No description provided for @storage_settings_clear_category_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить «{category}»?'**
+  String storage_settings_clear_category_title(String category);
+
+  /// No description provided for @storage_settings_clear_category_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Будет освобождено около {size}. Действие нельзя отменить.'**
+  String storage_settings_clear_category_body(String size);
 
   /// No description provided for @storage_auto_delete_title.
   ///
@@ -13298,6 +13346,12 @@ abstract class AppLocalizations {
   /// **'Фото'**
   String get storage_label_photo;
 
+  /// No description provided for @storage_label_audio.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аудио'**
+  String get storage_label_audio;
+
   /// No description provided for @storage_label_files.
   ///
   /// In ru, this message translates to:
@@ -13309,6 +13363,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Другое'**
   String get storage_label_other;
+
+  /// No description provided for @storage_label_recent_stickers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Недавние стикеры'**
+  String get storage_label_recent_stickers;
+
+  /// No description provided for @storage_label_giphy_search.
+  ///
+  /// In ru, this message translates to:
+  /// **'GIPHY · поисковый кэш'**
+  String get storage_label_giphy_search;
+
+  /// No description provided for @storage_label_giphy_recent.
+  ///
+  /// In ru, this message translates to:
+  /// **'GIPHY · недавние GIF'**
+  String get storage_label_giphy_recent;
+
+  /// No description provided for @storage_chat_unattributed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без привязки к чату'**
+  String get storage_chat_unattributed;
 
   /// No description provided for @storage_label_draft.
   ///
@@ -13689,42 +13767,81 @@ abstract class AppLocalizations {
   String get energy_saving_background_update_subtitle;
 
   /// No description provided for @legal_index_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Юридические документы'**
   String get legal_index_title;
 
   /// No description provided for @legal_index_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.'**
   String get legal_index_subtitle;
 
   /// No description provided for @legal_settings_section_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Правовая информация'**
   String get legal_settings_section_title;
 
   /// No description provided for @legal_settings_section_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.'**
   String get legal_settings_section_subtitle;
 
   /// No description provided for @legal_not_found.
+  ///
+  /// In ru, this message translates to:
+  /// **'Документ не найден'**
   String get legal_not_found;
 
   /// No description provided for @legal_title_privacy_policy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Политика конфиденциальности'**
   String get legal_title_privacy_policy;
 
   /// No description provided for @legal_title_terms_of_service.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользовательское соглашение'**
   String get legal_title_terms_of_service;
 
   /// No description provided for @legal_title_cookie_policy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Политика использования cookies'**
   String get legal_title_cookie_policy;
 
   /// No description provided for @legal_title_eula.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лицензионное соглашение (EULA)'**
   String get legal_title_eula;
 
   /// No description provided for @legal_title_dpa.
+  ///
+  /// In ru, this message translates to:
+  /// **'Соглашение об обработке данных (DPA)'**
   String get legal_title_dpa;
 
   /// No description provided for @legal_title_children.
+  ///
+  /// In ru, this message translates to:
+  /// **'Политика в отношении несовершеннолетних'**
   String get legal_title_children;
 
   /// No description provided for @legal_title_moderation.
+  ///
+  /// In ru, this message translates to:
+  /// **'Политика модерации контента'**
   String get legal_title_moderation;
 
   /// No description provided for @legal_title_aup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Правила допустимого использования'**
   String get legal_title_aup;
 }
 

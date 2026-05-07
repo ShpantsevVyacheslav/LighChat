@@ -236,8 +236,13 @@
   "storage_category_video_thumbs_subtitle": "Сгенерированные первые кадры для видео.",
   "storage_category_chat_images": "Фото в чатах",
   "storage_category_chat_images_subtitle": "Кэшированные фотографии и стикеры из открытых чатов.",
+  "storage_category_stickers_gifs_emoji": "Стикеры, GIF, эмодзи",
+  "storage_category_stickers_gifs_emoji_subtitle": "Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.",
+  "storage_category_network_images": "Кэш сетевых картинок",
+  "storage_category_network_images_subtitle": "Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).",
   "storage_media_type_video": "Видео",
   "storage_media_type_photo": "Фотографии",
+  "storage_media_type_audio": "Аудио",
   "storage_media_type_files": "Файлы",
   "storage_media_type_other": "Другое",
   "storage_settings_device_usage": "Занимает {pct}% от лимита кэша",
@@ -247,6 +252,19 @@
     }
   },
   "storage_settings_clear_all_hint": "Все медиа останутся в облаке. При необходимости вы сможете загрузить их снова.",
+  "storage_settings_categories_title": "По категориям",
+  "storage_settings_clear_category_title": "Очистить «{category}»?",
+  "@storage_settings_clear_category_title": {
+    "placeholders": {
+      "category": {"type": "String"}
+    }
+  },
+  "storage_settings_clear_category_body": "Будет освобождено около {size}. Действие нельзя отменить.",
+  "@storage_settings_clear_category_body": {
+    "placeholders": {
+      "size": {"type": "String"}
+    }
+  },
   "storage_auto_delete_title": "Автоудаление кэшированных медиа",
   "storage_auto_delete_personal": "Личные чаты",
   "storage_auto_delete_groups": "Группы",
@@ -3891,8 +3909,13 @@
   },
   "storage_label_video": "Видео",
   "storage_label_photo": "Фото",
+  "storage_label_audio": "Аудио",
   "storage_label_files": "Файлы",
   "storage_label_other": "Другое",
+  "storage_label_recent_stickers": "Недавние стикеры",
+  "storage_label_giphy_search": "GIPHY · поисковый кэш",
+  "storage_label_giphy_recent": "GIPHY · недавние GIF",
+  "storage_chat_unattributed": "Без привязки к чату",
   "storage_label_draft": "Черновик · {key}",
   "@storage_label_draft": {
     "placeholders": {

@@ -523,10 +523,27 @@ class AppLocalizationsRu extends AppLocalizations {
       'Кэшированные фотографии и стикеры из открытых чатов.';
 
   @override
+  String get storage_category_stickers_gifs_emoji => 'Стикеры, GIF, эмодзи';
+
+  @override
+  String get storage_category_stickers_gifs_emoji_subtitle =>
+      'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.';
+
+  @override
+  String get storage_category_network_images => 'Кэш сетевых картинок';
+
+  @override
+  String get storage_category_network_images_subtitle =>
+      'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).';
+
+  @override
   String get storage_media_type_video => 'Видео';
 
   @override
   String get storage_media_type_photo => 'Фотографии';
+
+  @override
+  String get storage_media_type_audio => 'Аудио';
 
   @override
   String get storage_media_type_files => 'Файлы';
@@ -542,6 +559,19 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get storage_settings_clear_all_hint =>
       'Все медиа останутся в облаке. При необходимости вы сможете загрузить их снова.';
+
+  @override
+  String get storage_settings_categories_title => 'По категориям';
+
+  @override
+  String storage_settings_clear_category_title(String category) {
+    return 'Очистить «$category»?';
+  }
+
+  @override
+  String storage_settings_clear_category_body(String size) {
+    return 'Будет освобождено около $size. Действие нельзя отменить.';
+  }
 
   @override
   String get storage_auto_delete_title => 'Автоудаление кэшированных медиа';
@@ -7584,10 +7614,25 @@ class AppLocalizationsRu extends AppLocalizations {
   String get storage_label_photo => 'Фото';
 
   @override
+  String get storage_label_audio => 'Аудио';
+
+  @override
   String get storage_label_files => 'Файлы';
 
   @override
   String get storage_label_other => 'Другое';
+
+  @override
+  String get storage_label_recent_stickers => 'Недавние стикеры';
+
+  @override
+  String get storage_label_giphy_search => 'GIPHY · поисковый кэш';
+
+  @override
+  String get storage_label_giphy_recent => 'GIPHY · недавние GIF';
+
+  @override
+  String get storage_chat_unattributed => 'Без привязки к чату';
 
   @override
   String storage_label_draft(String key) {
@@ -7836,8 +7881,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
 
   @override
-  String get legal_title_children =>
-      'Политика в отношении несовершеннолетних';
+  String get legal_title_children => 'Политика в отношении несовершеннолетних';
 
   @override
   String get legal_title_moderation => 'Политика модерации контента';

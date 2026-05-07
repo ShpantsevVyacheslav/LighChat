@@ -8,10 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../chat/data/chat_list_offline_cache.dart';
 import '../../chat/data/chat_message_draft_storage.dart';
-import '../../chat/data/giphy_cache_store.dart' show kGiphyQueryCachePrefsKey, kGiphyRecentGifsPrefsKey;
+import '../../chat/data/giphy_cache_store.dart'
+    show kGiphyQueryCachePrefsKey, kGiphyRecentGifsPrefsKey;
 import '../../chat/data/local_cache_entry_registry.dart';
 import '../../chat/data/local_storage_preferences.dart';
-import '../../chat/data/recent_stickers_store.dart';
+import '../../chat/data/recent_stickers_store.dart'
+    show RecentStickersStore, kRecentStickersPrefsKey;
 import '../../chat/data/saved_messages_chat.dart';
 import '../../chat/data/user_profiles_disk_cache.dart';
 
@@ -74,6 +76,7 @@ class StorageMediaTypeBreakdown {
   const StorageMediaTypeBreakdown({
     required this.videoBytes,
     required this.photoBytes,
+    required this.audioBytes,
     required this.fileBytes,
     required this.otherBytes,
     required this.totalBytes,
@@ -81,18 +84,21 @@ class StorageMediaTypeBreakdown {
 
   final int videoBytes;
   final int photoBytes;
+  final int audioBytes;
   final int fileBytes;
   final int otherBytes;
   final int totalBytes;
 
   factory StorageMediaTypeBreakdown.fromEntries(List<LocalStorageEntry> entries) {
-    int video = 0, photo = 0, file = 0, other = 0;
+    int video = 0, photo = 0, audio = 0, file = 0, other = 0;
     for (final e in entries) {
       switch (classifyEntryMediaType(e)) {
         case StorageMediaType.video:
           video += e.bytes;
         case StorageMediaType.photo:
           photo += e.bytes;
+        case StorageMediaType.audio:
+          audio += e.bytes;
         case StorageMediaType.file:
           file += e.bytes;
         case StorageMediaType.other:
@@ -102,9 +108,10 @@ class StorageMediaTypeBreakdown {
     return StorageMediaTypeBreakdown(
       videoBytes: video,
       photoBytes: photo,
+      audioBytes: audio,
       fileBytes: file,
       otherBytes: other,
-      totalBytes: video + photo + file + other,
+      totalBytes: video + photo + audio + file + other,
     );
   }
 }
@@ -206,6 +213,8 @@ class StorageCacheManager {
     _collectDraftEntries(entries, prefs, userId, l10n);
     _collectChatListSnapshot(entries, prefs, userId, l10n);
     _collectProfileEntries(entries, prefs, conversations, l10n);
+    _collectStickersGifsEmoji(entries, prefs, l10n);
+    await _collectNetworkImageCache(entries, tempDir);
 
     final categoryBytes = <LocalStorageCategory, int>{
       for (final c in LocalStorageCategory.values) c: 0,
@@ -221,9 +230,21 @@ class StorageCacheManager {
     );
     final conversationEntries = <String, List<LocalStorageEntry>>{};
     final generalEntries = <LocalStorageEntry>[];
+    final orphanMediaEntries = <LocalStorageEntry>[];
+    const orphanCandidateCategories = <LocalStorageCategory>{
+      LocalStorageCategory.e2eeMedia,
+      LocalStorageCategory.videoDownloads,
+      LocalStorageCategory.videoThumbs,
+      LocalStorageCategory.chatImages,
+      LocalStorageCategory.networkImageCache,
+    };
     for (final entry in entries) {
       final cid = entry.conversationId?.trim();
       if (cid == null || cid.isEmpty) {
+        if (orphanCandidateCategories.contains(entry.category)) {
+          orphanMediaEntries.add(entry);
+          continue;
+        }
         if (kAlwaysOnCategories.contains(entry.category)) continue;
         generalEntries.add(entry);
       } else {
@@ -256,7 +277,7 @@ class StorageCacheManager {
               );
             })
             .where((u) => u.totalBytes > 0)
-            .toList(growable: false)
+            .toList()
           ..sort((a, b) {
             if (a.totalBytes != b.totalBytes) {
               return b.totalBytes.compareTo(a.totalBytes);
@@ -265,6 +286,25 @@ class StorageCacheManager {
               b.conversationTitle.toLowerCase(),
             );
           });
+
+    if (orphanMediaEntries.isNotEmpty) {
+      final orphanBytes =
+          orphanMediaEntries.fold<int>(0, (sum, e) => sum + e.bytes);
+      if (orphanBytes > 0) {
+        final orphanSorted = [...orphanMediaEntries]
+          ..sort((a, b) => b.bytes.compareTo(a.bytes));
+        conversationUsages.add(
+          LocalStorageConversationUsage(
+            conversationId: kStorageOrphanConversationId,
+            conversationTitle: l10n.storage_chat_unattributed,
+            totalBytes: orphanBytes,
+            entries: orphanSorted,
+            mediaTypeBreakdown:
+                StorageMediaTypeBreakdown.fromEntries(orphanSorted),
+          ),
+        );
+      }
+    }
 
     generalEntries.sort((a, b) => b.bytes.compareTo(a.bytes));
     final totalBytes = entries.fold<int>(0, (sum, x) => sum + x.bytes);
@@ -355,6 +395,30 @@ class StorageCacheManager {
           Directory('${tempDir.path}/chat_image_cache'),
         );
         break;
+      case LocalStorageCategory.stickersGifsEmoji:
+        await prefs.remove(kRecentStickersPrefsKey);
+        await prefs.remove(kGiphyQueryCachePrefsKey);
+        await prefs.remove(kGiphyRecentGifsPrefsKey);
+        RecentStickersStore.instance.invalidateCache();
+        break;
+      case LocalStorageCategory.networkImageCache:
+        final tempDir = await getTemporaryDirectory();
+        final root = Directory('${tempDir.path}/libCachedImageData');
+        if (await root.exists()) {
+          // Удаляем всё кроме `chat_image_cache/` (он принадлежит другой
+          // категории и очищается отдельно).
+          final children = await root.list(followLinks: false).toList();
+          for (final e in children) {
+            final name = _basename(e.path);
+            if (name == 'chat_image_cache') continue;
+            if (e is File) {
+              await _safeDeleteFile(e);
+            } else if (e is Directory) {
+              await _safeDeleteDir(e);
+            }
+          }
+        }
+        break;
     }
   }
 
@@ -391,6 +455,15 @@ class StorageCacheManager {
         if (key == null) return;
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(key);
+        break;
+      case LocalStorageEntrySource.sharedPrefsBucket:
+        final key = entry.sharedPrefsKey;
+        if (key == null) return;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+        if (key == kRecentStickersPrefsKey) {
+          RecentStickersStore.instance.invalidateCache();
+        }
         break;
     }
   }
@@ -663,6 +736,70 @@ class StorageCacheManager {
           bytes: utf8.encode(raw).length,
           label: l10n.storage_label_profile_cache(displayName),
           sharedPrefsKey: key,
+        ),
+      );
+    }
+  }
+
+  void _collectStickersGifsEmoji(
+    List<LocalStorageEntry> out,
+    SharedPreferences prefs,
+    AppLocalizations l10n,
+  ) {
+    void addBucket(String key, String label) {
+      final raw = prefs.getString(key);
+      final list = prefs.getStringList(key);
+      int bytes = 0;
+      if (raw != null && raw.isNotEmpty) {
+        bytes = utf8.encode(raw).length;
+      } else if (list != null && list.isNotEmpty) {
+        for (final s in list) {
+          bytes += utf8.encode(s).length;
+        }
+      }
+      if (bytes <= 0) return;
+      out.add(
+        LocalStorageEntry(
+          id: 'sgep:$key',
+          category: LocalStorageCategory.stickersGifsEmoji,
+          source: LocalStorageEntrySource.sharedPrefsBucket,
+          bytes: bytes,
+          label: label,
+          sharedPrefsKey: key,
+        ),
+      );
+    }
+
+    addBucket(kRecentStickersPrefsKey, l10n.storage_label_recent_stickers);
+    addBucket(kGiphyQueryCachePrefsKey, l10n.storage_label_giphy_search);
+    addBucket(kGiphyRecentGifsPrefsKey, l10n.storage_label_giphy_recent);
+  }
+
+  Future<void> _collectNetworkImageCache(
+    List<LocalStorageEntry> out,
+    Directory tempDir,
+  ) async {
+    final root = Directory('${tempDir.path}/libCachedImageData');
+    if (!await root.exists()) return;
+    // ChatImageCacheManager (`cacheKey: chat_image_cache`) хранится отдельной
+    // подпапкой и уже считается через [LocalStorageCategory.chatImages].
+    final chatImagesSubdir = '${root.path}/chat_image_cache';
+    final files = await root.list(recursive: true, followLinks: false).toList();
+    for (final entity in files) {
+      if (entity is! File) continue;
+      if (entity.path.startsWith(chatImagesSubdir)) continue;
+      final stat = await _safeStat(entity);
+      final bytes = stat?.size ?? 0;
+      if (bytes <= 0) continue;
+      out.add(
+        LocalStorageEntry(
+          id: 'file:${entity.path}',
+          category: LocalStorageCategory.networkImageCache,
+          source: LocalStorageEntrySource.file,
+          bytes: bytes,
+          label: _basename(entity.path),
+          filePath: entity.path,
+          modifiedAt: stat?.modified,
         ),
       );
     }

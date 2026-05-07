@@ -519,10 +519,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cached photos and stickers from open chats.';
 
   @override
+  String get storage_category_stickers_gifs_emoji => 'Stickers, GIFs, emoji';
+
+  @override
+  String get storage_category_stickers_gifs_emoji_subtitle =>
+      'Recent stickers and GIPHY (gifs/stickers/animated emoji) cache.';
+
+  @override
+  String get storage_category_network_images => 'Network image cache';
+
+  @override
+  String get storage_category_network_images_subtitle =>
+      'Avatars, previews and other network-fetched images (libCachedImageData).';
+
+  @override
   String get storage_media_type_video => 'Video';
 
   @override
   String get storage_media_type_photo => 'Photos';
+
+  @override
+  String get storage_media_type_audio => 'Audio';
 
   @override
   String get storage_media_type_files => 'Files';
@@ -538,6 +555,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storage_settings_clear_all_hint =>
       'All media will stay in cloud. You can re-download any time.';
+
+  @override
+  String get storage_settings_categories_title => 'By category';
+
+  @override
+  String storage_settings_clear_category_title(String category) {
+    return 'Clear \"$category\"?';
+  }
+
+  @override
+  String storage_settings_clear_category_body(String size) {
+    return 'About $size will be freed. This cannot be undone.';
+  }
 
   @override
   String get storage_auto_delete_title => 'Auto-delete cached media';
@@ -7547,10 +7577,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storage_label_photo => 'Photo';
 
   @override
+  String get storage_label_audio => 'Audio';
+
+  @override
   String get storage_label_files => 'Files';
 
   @override
   String get storage_label_other => 'Other';
+
+  @override
+  String get storage_label_recent_stickers => 'Recent stickers';
+
+  @override
+  String get storage_label_giphy_search => 'GIPHY · search cache';
+
+  @override
+  String get storage_label_giphy_recent => 'GIPHY · recent GIFs';
+
+  @override
+  String get storage_chat_unattributed => 'Not attributed to a chat';
 
   @override
   String storage_label_draft(String key) {

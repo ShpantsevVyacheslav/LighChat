@@ -10,7 +10,7 @@ import 'storage_donut_chart.dart';
 
 const double _kMutedTextSize = 13;
 
-enum _MediaTab { photos, videos, files }
+enum _MediaTab { photos, videos, audios, files }
 
 class StorageChatDetailScreen extends StatefulWidget {
   const StorageChatDetailScreen({
@@ -37,6 +37,7 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
   late List<LocalStorageEntry> _allEntries;
   late List<LocalStorageEntry> _photoEntries;
   late List<LocalStorageEntry> _videoEntries;
+  late List<LocalStorageEntry> _audioEntries;
   late List<LocalStorageEntry> _fileEntries;
 
   /// Selected entry IDs across all tabs.
@@ -46,7 +47,7 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _allEntries = [...widget.usage.entries];
     _rebuildBuckets();
     _selectedIds = _allTrackedIds().toSet();
@@ -55,12 +56,14 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
   Iterable<String> _allTrackedIds() => [
     ..._photoEntries.map((e) => e.id),
     ..._videoEntries.map((e) => e.id),
+    ..._audioEntries.map((e) => e.id),
     ..._fileEntries.map((e) => e.id),
   ];
 
   void _rebuildBuckets() {
     _photoEntries = [];
     _videoEntries = [];
+    _audioEntries = [];
     _fileEntries = [];
     for (final e in _allEntries) {
       if (e.source != LocalStorageEntrySource.file) continue;
@@ -70,6 +73,8 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
           _photoEntries.add(e);
         case StorageMediaType.video:
           _videoEntries.add(e);
+        case StorageMediaType.audio:
+          _audioEntries.add(e);
         case StorageMediaType.file:
           _fileEntries.add(e);
         case StorageMediaType.other:
@@ -88,6 +93,7 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
   List<LocalStorageEntry> _activeBucket(_MediaTab tab) => switch (tab) {
     _MediaTab.photos => _photoEntries,
     _MediaTab.videos => _videoEntries,
+    _MediaTab.audios => _audioEntries,
     _MediaTab.files => _fileEntries,
   };
 
@@ -98,7 +104,11 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
         .fold<int>(0, (sum, e) => sum + e.bytes);
   }
 
-  int get _trackedTotal => _photoEntries.length + _videoEntries.length + _fileEntries.length;
+  int get _trackedTotal =>
+      _photoEntries.length +
+      _videoEntries.length +
+      _audioEntries.length +
+      _fileEntries.length;
 
   List<DonutSegment> _buildSegments(AppLocalizations l10n) {
     final bd = widget.usage.mediaTypeBreakdown;
@@ -115,6 +125,13 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
         value: bd.photoBytes.toDouble(),
         color: kStoragePhotoColor,
         label: l10n.storage_label_photo,
+      ));
+    }
+    if (bd.audioBytes > 0) {
+      segments.add(DonutSegment(
+        value: bd.audioBytes.toDouble(),
+        color: kStorageAudioColor,
+        label: l10n.storage_label_audio,
       ));
     }
     if (bd.fileBytes > 0) {
@@ -294,6 +311,13 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
                                 sizeText: widget.formatBytes(bd.photoBytes),
                                 percent: _pct(bd.photoBytes, bd.totalBytes),
                               ),
+                            if (bd.audioBytes > 0)
+                              StorageCategoryRow(
+                                color: kStorageAudioColor,
+                                label: l10n.storage_media_type_audio,
+                                sizeText: widget.formatBytes(bd.audioBytes),
+                                percent: _pct(bd.audioBytes, bd.totalBytes),
+                              ),
                             if (bd.fileBytes > 0)
                               StorageCategoryRow(
                                 color: kStorageFileColor,
@@ -318,6 +342,7 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
                         controller: _tabController,
                         photos: _photoEntries.length,
                         videos: _videoEntries.length,
+                        audios: _audioEntries.length,
                         files: _fileEntries.length,
                       ),
                       const SizedBox(height: 4),
@@ -356,7 +381,8 @@ class _StorageChatDetailScreenState extends State<StorageChatDetailScreen>
                               ),
                             );
                           }
-                          if (tab == _MediaTab.files) {
+                          if (tab == _MediaTab.files ||
+                              tab == _MediaTab.audios) {
                             return _FilesList(
                               entries: bucket,
                               selectedIds: _selectedIds,
@@ -415,12 +441,14 @@ class _MediaTabBar extends StatelessWidget {
     required this.controller,
     required this.photos,
     required this.videos,
+    required this.audios,
     required this.files,
   });
 
   final TabController controller;
   final int photos;
   final int videos;
+  final int audios;
   final int files;
 
   @override
@@ -430,6 +458,7 @@ class _MediaTabBar extends StatelessWidget {
     final dark = scheme.brightness == Brightness.dark;
     return TabBar(
       controller: controller,
+      isScrollable: true,
       indicatorColor: const Color(0xFF2F86FF),
       indicatorWeight: 3,
       labelColor: dark ? Colors.white : scheme.onSurface,
@@ -442,6 +471,7 @@ class _MediaTabBar extends StatelessWidget {
       tabs: [
         Tab(text: '${l10n.storage_media_type_photo} · $photos'),
         Tab(text: '${l10n.storage_media_type_video} · $videos'),
+        Tab(text: '${l10n.storage_media_type_audio} · $audios'),
         Tab(text: '${l10n.storage_media_type_files} · $files'),
       ],
     );

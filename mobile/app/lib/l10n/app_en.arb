@@ -236,8 +236,13 @@
   "storage_category_video_thumbs_subtitle": "Generated first-frame thumbnails for videos.",
   "storage_category_chat_images": "Chat photos",
   "storage_category_chat_images_subtitle": "Cached photos and stickers from open chats.",
+  "storage_category_stickers_gifs_emoji": "Stickers, GIFs, emoji",
+  "storage_category_stickers_gifs_emoji_subtitle": "Recent stickers and GIPHY (gifs/stickers/animated emoji) cache.",
+  "storage_category_network_images": "Network image cache",
+  "storage_category_network_images_subtitle": "Avatars, previews and other network-fetched images (libCachedImageData).",
   "storage_media_type_video": "Video",
   "storage_media_type_photo": "Photos",
+  "storage_media_type_audio": "Audio",
   "storage_media_type_files": "Files",
   "storage_media_type_other": "Other",
   "storage_settings_device_usage": "Uses {pct}% of cache budget",
@@ -247,6 +252,19 @@
     }
   },
   "storage_settings_clear_all_hint": "All media will stay in cloud. You can re-download any time.",
+  "storage_settings_categories_title": "By category",
+  "storage_settings_clear_category_title": "Clear \"{category}\"?",
+  "@storage_settings_clear_category_title": {
+    "placeholders": {
+      "category": {"type": "String"}
+    }
+  },
+  "storage_settings_clear_category_body": "About {size} will be freed. This cannot be undone.",
+  "@storage_settings_clear_category_body": {
+    "placeholders": {
+      "size": {"type": "String"}
+    }
+  },
   "storage_auto_delete_title": "Auto-delete cached media",
   "storage_auto_delete_personal": "Personal chats",
   "storage_auto_delete_groups": "Groups",
@@ -3594,8 +3612,13 @@
   },
   "storage_label_video": "Video",
   "storage_label_photo": "Photo",
+  "storage_label_audio": "Audio",
   "storage_label_files": "Files",
   "storage_label_other": "Other",
+  "storage_label_recent_stickers": "Recent stickers",
+  "storage_label_giphy_search": "GIPHY · search cache",
+  "storage_label_giphy_recent": "GIPHY · recent GIFs",
+  "storage_chat_unattributed": "Not attributed to a chat",
   "storage_label_draft": "Draft · {key}",
   "@storage_label_draft": {
     "placeholders": {

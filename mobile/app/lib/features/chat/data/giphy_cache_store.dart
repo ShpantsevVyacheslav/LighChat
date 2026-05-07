@@ -4,6 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'giphy_gif_search.dart';
 
+/// SharedPreferences-ключ агрегированного кеша GIPHY-выдач (gifs / stickers /
+/// emoji). Экспортирован для интеграции с экраном «Хранилище» — чтобы можно
+/// было оценить размер и при необходимости очистить.
+const String kGiphyQueryCachePrefsKey = 'giphy_query_cache_v2';
+
+/// SharedPreferences-ключ списка последних отправленных GIF.
+const String kGiphyRecentGifsPrefsKey = 'giphy_recent_gifs_v1';
+
 /// Локальный кеш GIPHY-выдач:
 /// - **query-cache**: результаты поиска по любой паре `(type, query)` с TTL 24h
 ///   (trending = пустой query). LRU-лимит на 20 ключей чтобы кеш не разросся.
@@ -14,8 +22,8 @@ class GiphyCacheStore {
   GiphyCacheStore._();
   static final instance = GiphyCacheStore._();
 
-  static const _kQueryCacheKey = 'giphy_query_cache_v2';
-  static const _kRecentGifsKey = 'giphy_recent_gifs_v1';
+  static const _kQueryCacheKey = kGiphyQueryCachePrefsKey;
+  static const _kRecentGifsKey = kGiphyRecentGifsPrefsKey;
   static const Duration _kTtl = Duration(hours: 24);
   static const int _kMaxKeys = 20;
   static const int _kRecentMax = 30;
