@@ -4,7 +4,36 @@
 Они требуют доступа к Google Cloud Console, Apple/Google Play, GitHub Settings,
 keystore-материалу или ручной валидации в эмуляторах.
 
-Закрытые в коммите `539e32e` Critical-находки описаны в commit message.
+## Сделано в коде (требует только деплоя)
+
+См. историю коммитов с пометкой `security:` / `security/*:`. Бoльшая часть
+Critical/High/Medium из аудита закрыта: privilege escalation в users-create,
+SSRF guard, rate-limit pre-auth callable, security headers + CSP с nonce,
+mobile WebView host allowlist, Telegram TTL+replay, customToken ECDH-encrypt,
+e2eeDevices PII split, Custom Claims для admin, Zod-валидация, R8/allowBackup,
+@electron/fuses, drafts AES в SharedPreferences и др.
+
+**Manual checklist для деплоя одной командой:**
+
+```bash
+# 1. Деплой backend (rules + functions). Без этого ничего не активно.
+firebase deploy --only firestore:rules,storage:rules,functions
+
+# 2. Включить TTL policy в Firebase Console для коллекций:
+#    - rateLimits.expireAt
+#    - telegramAuthReplay.expireAt
+#    (Firestore → TTL → Add policy)
+
+# 3. После первого деплоя — однократно вызвать из админки:
+#    - migrateDeviceLocationToPrivate (cursor=null до done=true)
+#    - syncAdminClaims              (cursor=null до done=true)
+
+# 4. ENV для App Hosting:
+#    LIGHCHAT_PUBLIC_ORIGIN=https://lighchat.online
+
+# 5. После недели мониторинга CSP в Report-Only — переключить на enforce:
+#    в src/middleware.ts: const CSP_REPORT_ONLY = false;
+```
 
 ## Critical (требуют ручных шагов)
 
