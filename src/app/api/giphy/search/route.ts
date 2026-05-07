@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { translateSearchQueryToEn } from '@/lib/translate-search-query';
+import { callerIpFromRequest, requireUserFromRequest } from '@/lib/server/route-auth';
+import { consumeRouteRateLimit } from '@/lib/server/route-rate-limit';
+
+export const runtime = 'nodejs';
 
 type GifSearchItem = {
   id: string;
@@ -23,6 +27,26 @@ const PAGE_SIZE = 24;
 const MAX_OFFSET = 4975; // GIPHY hard cap
 
 export async function GET(req: NextRequest) {
+  // SECURITY: previously this was an anonymous proxy — any visitor on any
+  // domain could call it, which (1) burned the project's GIPHY quota, and
+  // (2) leaked GIPHY's IP-based rate limits to an attacker who could trace
+  // billing back to us. Now we require a Firebase ID token plus a per-uid
+  // burst limit (60 req / minute is roomy for the typical user typing into
+  // the GIF picker, while making automated abuse expensive).
+  const auth = await requireUserFromRequest(req);
+  if (!auth.ok) return auth.response;
+  const rl = await consumeRouteRateLimit({
+    key: `giphy:uid:${auth.uid}`,
+    limit: 60,
+    windowSec: 60,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited', items: [] },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    );
+  }
+
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
   const typeRaw = req.nextUrl.searchParams.get('type');
   const type: 'gifs' | 'stickers' | 'emoji' =

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 /// Источник ICE-конфига для мобильных peer-connections.
@@ -43,8 +44,25 @@ class MeetingIceServers {
 
   Future<List<Map<String, dynamic>>> _fetchServers() async {
     final uri = Uri.parse('$_apiOrigin/api/webrtc/ice');
+    // SECURITY: /api/webrtc/ice now requires a Firebase ID token. Anonymous
+    // callers receive 401, after which we fall through to public STUN below
+    // (which is safe — no paid TURN credentials are leaked).
+    final headers = <String, String>{};
     try {
-      final resp = await _client.get(uri).timeout(_timeout);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final token = await user.getIdToken();
+        if (token != null && token.isNotEmpty) {
+          headers['Authorization'] = 'Bearer $token';
+        }
+      }
+    } catch (_) {
+      // best-effort
+    }
+    try {
+      final resp = await _client
+          .get(uri, headers: headers.isEmpty ? null : headers)
+          .timeout(_timeout);
       if (resp.statusCode != 200) return _fallback;
       final decoded = jsonDecode(resp.body);
       if (decoded is! Map) return _fallback;

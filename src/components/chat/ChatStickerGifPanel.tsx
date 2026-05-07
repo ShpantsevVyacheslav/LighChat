@@ -66,8 +66,24 @@ async function fetchGifs(
   if (type === 'emoji') params.set('type', 'emoji');
   if (offset > 0) params.set('offset', String(offset));
   const qs = params.toString();
+  // SECURITY: /api/giphy/search now requires a Firebase ID token. Without
+  // one we'd render an empty grid (the route returns 401), so attach it
+  // before the fetch.
+  let authHeader: Record<string, string> = {};
   try {
-    const res = await fetch(`/api/giphy/search${qs ? `?${qs}` : ''}`);
+    const { getAuth } = await import('firebase/auth');
+    const u = getAuth().currentUser;
+    if (u) {
+      const token = await u.getIdToken();
+      authHeader = { Authorization: `Bearer ${token}` };
+    }
+  } catch {
+    // best-effort — without a token the request 401s and we render empty.
+  }
+  try {
+    const res = await fetch(`/api/giphy/search${qs ? `?${qs}` : ''}`, {
+      headers: authHeader,
+    });
     return (await res.json()) as GiphyResponse;
   } catch {
     return { ok: false, items: [] };

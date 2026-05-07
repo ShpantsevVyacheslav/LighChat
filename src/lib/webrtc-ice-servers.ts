@@ -96,11 +96,22 @@ async function fetchIceConfigFromApi(): Promise<{ config: RTCConfiguration; sour
   const timer = setTimeout(() => ctrl.abort(), ICE_CONFIG_FETCH_TIMEOUT_MS);
 
   try {
+    // SECURITY: /api/webrtc/ice now requires a Firebase ID token (paid TURN
+    // creds were a free relay otherwise). Attach it; on anonymous flows
+    // (no current user) the route 401s and we fall back to public STUN.
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const u = getAuth().currentUser;
+      if (u) headers.Authorization = `Bearer ${await u.getIdToken()}`;
+    } catch {
+      // best-effort
+    }
     const res = await fetch('/api/webrtc/ice', {
       method: 'GET',
       cache: 'no-store',
       signal: ctrl.signal,
-      headers: { Accept: 'application/json' },
+      headers,
     });
     if (!res.ok) {
       console.warn(`[WebRTC] ICE API /api/webrtc/ice returned ${res.status}`);

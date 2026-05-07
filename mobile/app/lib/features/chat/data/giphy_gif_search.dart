@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -99,8 +100,26 @@ Future<GiphySearchOutcome> searchGifs(
     queryParameters: params.isEmpty ? null : params,
   );
 
+  // SECURITY: /api/giphy/search now requires a Firebase ID token. Without
+  // it the route returns 401 and the picker stays empty. We attach the
+  // current user's token; for anonymous flows (rare in mobile) we send no
+  // header and accept the 401.
+  final headers = <String, String>{};
   try {
-    final res = await http.get(uri).timeout(const Duration(seconds: 20));
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final token = await user.getIdToken();
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
+  } catch (_) {
+    // best-effort: token fetch may fail on cold start, fall through.
+  }
+  try {
+    final res = await http
+        .get(uri, headers: headers.isEmpty ? null : headers)
+        .timeout(const Duration(seconds: 20));
     final body = jsonDecode(res.body);
     if (body is! Map<String, dynamic>) {
       return const GiphySearchOutcome(items: []);
