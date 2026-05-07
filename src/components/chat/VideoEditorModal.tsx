@@ -384,7 +384,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
       if (!delta) return;
       const { dx, dy } = delta;
 
-      let newRect = { ...startPos.current.rect };
+      const newRect = { ...startPos.current.rect };
       if (isDraggingCrop) { 
           newRect.x += dx; 
           newRect.y += dy; 

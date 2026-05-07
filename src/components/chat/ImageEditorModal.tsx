@@ -335,7 +335,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
       const dx = clientX - startCropPos.current.x;
       const dy = clientY - startCropPos.current.y;
       
-      let newRect = { ...startCropPos.current.rect };
+      const newRect = { ...startCropPos.current.rect };
       const h = activeHandle.current;
 
       if (h?.includes('n')) { newRect.y += dy; newRect.height -= dy; }
