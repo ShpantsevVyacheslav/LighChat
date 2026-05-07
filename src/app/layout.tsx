@@ -1,4 +1,5 @@
 import type {Metadata, Viewport} from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { Providers } from '@/components/providers';
@@ -67,6 +68,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // SECURITY: per-request nonce set by src/middleware.ts. Both inline script
+  // helpers and next-themes' bootstrap script must carry this nonce so they
+  // remain executable under our `script-src 'self' 'nonce-XXX' 'strict-dynamic'`.
+  // If middleware didn't run (e.g. a path excluded by its matcher), we fall
+  // back to undefined — the script tags below render without the attribute,
+  // and only `script-src 'self'` applies.
+  const nonce = headers().get('x-nonce') ?? undefined;
   return (
     <html
       lang="ru"
@@ -74,18 +82,9 @@ export default function RootLayout({
       className={cn(fontInter.variable, fontSpaceGrotesk.variable, fontMontserrat.variable)}
     >
       <head>
-        {/* Automatic recovery from ChunkLoadError */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.addEventListener('error', function(event) {
-                if (event.message && (event.message.indexOf('ChunkLoadError') !== -1 || event.message.indexOf('Loading chunk') !== -1)) {
-                  window.location.reload();
-                }
-              });
-            `,
-          }}
-        />
+        {/* Automatic recovery from ChunkLoadError. Externalised to a self-
+            hosted file so we don't need 'unsafe-inline' just for this snippet. */}
+        <script src="/chunk-recovery.js" nonce={nonce} async />
       </head>
       <body className={cn("font-body antialiased", "min-h-screen bg-background")}>
         <ThemeProvider
@@ -94,6 +93,7 @@ export default function RootLayout({
           enableSystem={false}
           themes={['light', 'dark', 'chat']}
           disableTransitionOnChange
+          nonce={nonce}
         >
           <FirebaseClientProvider>
             <Providers>
