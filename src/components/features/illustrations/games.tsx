@@ -1,16 +1,19 @@
 'use client';
 
 import * as React from 'react';
+import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { getFeaturesContent } from '../features-content';
 
 /**
  * Игральная карта в стиле реального `DurakCardWidget`:
- *  - face-up: off-white фон `#F6F7FB`, ранг+масть слева сверху и справа снизу
- *    (повёрнуто), большая масть в центре;
- *  - козырь — жёлтая обводка `#FBBF24`;
- *  - face-down: тёмно-синий градиент `#2C3E66 → #1A2540` с белым кругом.
+ *  - face-up: off-white фон `#F6F7FB`, ОДИН большой символ масти по центру,
+ *    ранг+масть в левом-верхнем углу одной строкой («7♠»), и тот же блок
+ *    повёрнутый на 180° в правом-нижнем;
+ *  - козырь — жёлтая обводка `#FBBF24` + жёлтое свечение тени;
+ *  - face-down: тёмно-синий градиент `#2C3E66 → #1A2540` с белым кругом
+ *    в центре (как в реальном `_Back`).
  */
 function PlayingCard({
   rank,
@@ -51,218 +54,212 @@ function PlayingCard({
   return (
     <div
       className={cn(
-        'relative rounded-[12px] border bg-[#F6F7FB] shadow-[0_6px_14px_-4px_rgba(0,0,0,0.4)]',
-        trump ? 'border-[#FBBF24]/55' : 'border-black/15',
+        'relative rounded-[10px] border bg-[#F6F7FB] shadow-[0_6px_14px_-4px_rgba(0,0,0,0.45)]',
+        trump ? 'border-[#FBBF24]/65 shadow-[0_0_10px_rgba(251,191,36,0.30)]' : 'border-black/15',
         className,
       )}
       style={style}
     >
-      <div className="absolute left-1.5 top-1 text-left leading-none" style={{ color: fg, fontWeight: 900 }}>
-        <div className="text-[10px]">{rank}</div>
-        <div className="text-[12px]">{suit}</div>
-      </div>
-      <div
-        className="absolute inset-0 flex items-center justify-center text-[28px]"
-        style={{ color: fg, fontWeight: 900 }}
+      <span
+        className="absolute left-1 top-0.5 leading-none"
+        style={{ color: fg, fontWeight: 900, fontSize: 10 }}
+      >
+        {rank}
+        {suit}
+      </span>
+      <span
+        className="absolute inset-0 flex items-center justify-center leading-none"
+        style={{ color: fg, fontWeight: 900, fontSize: 22 }}
       >
         {suit}
-      </div>
-      <div
-        className="absolute bottom-1 right-1.5 rotate-180 text-left leading-none"
-        style={{ color: fg, fontWeight: 900 }}
-      >
-        <div className="text-[10px]">{rank}</div>
-        <div className="text-[12px]">{suit}</div>
-      </div>
-    </div>
-  );
-}
-
-/** Аватар игрока в реальном стиле: круглый, имя сверху, счёт карт справа. */
-function PlayerStrip({
-  name,
-  initial,
-  cards,
-  active,
-  align,
-}: {
-  name: string;
-  initial: string;
-  cards: number;
-  active?: boolean;
-  align: 'left' | 'right';
-}) {
-  return (
-    <div
-      className={cn(
-        'flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold backdrop-blur-md',
-        active
-          ? 'border-amber-300/70 bg-amber-400/15 text-amber-100 ring-2 ring-amber-300/40'
-          : 'border-white/15 bg-black/40 text-white/85',
-        align === 'right' && 'flex-row-reverse',
-      )}
-    >
-      <span
-        className={cn(
-          'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold',
-          active ? 'bg-amber-300 text-amber-950' : 'bg-white/20 text-white',
-        )}
-      >
-        {initial}
       </span>
-      <span className="truncate">{name}</span>
-      <span className="rounded-full bg-white/15 px-1.5 py-px text-[9px] font-bold">{cards}</span>
+      <span
+        className="absolute bottom-0.5 right-1 rotate-180 leading-none"
+        style={{ color: fg, fontWeight: 900, fontSize: 10 }}
+      >
+        {rank}
+        {suit}
+      </span>
     </div>
   );
 }
 
+/**
+ * Анимированный мокап «Дурака» в стиле реального экрана LighChat:
+ *  – дно стола: радиальный градиент сине-серый (`DurakFeltBackground`);
+ *  – сверху аватар-индикатор оппонента с ringом «ход»;
+ *  – колода-стопка слева + козырь под наклоном НАД ней (как в реале);
+ *  – по центру 3 слота на пары: атака → защита, повторяется три раза,
+ *    затем «не отбился» — все карты улетают к проигравшему оппоненту;
+ *  – внизу — рука игрока (8 карт ровным рядом, козыри жёлтым).
+ */
 export function MockGames({ className, compact }: { className?: string; compact?: boolean }) {
   const { locale } = useI18n();
   const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
 
-  // Пары на столе: атака внизу, защита поверх со смещением.
-  const pairs: { atk: { rank: string; suit: string; red?: boolean }; def?: { rank: string; suit: string; red?: boolean } }[] = [
+  // Пары на столе: 3 атаки + 3 защиты, появляются по очереди.
+  const pairs: {
+    atk: { rank: string; suit: string; red?: boolean };
+    def: { rank: string; suit: string; red?: boolean };
+  }[] = [
     { atk: { rank: '7', suit: '♣' }, def: { rank: '9', suit: '♣' } },
     { atk: { rank: '10', suit: '♦', red: true }, def: { rank: 'Q', suit: '♦', red: true } },
-    { atk: { rank: 'J', suit: '♠' } },
+    { atk: { rank: 'J', suit: '♠' }, def: { rank: 'K', suit: '♠' } },
   ];
 
-  // Рука игрока: 6 карт веером, козыри подсвечены.
+  // Рука игрока — 8 карт, плотно прижатых рядом, козыри подсвечены.
   const hand: { rank: string; suit: string; red?: boolean; trump?: boolean }[] = [
     { rank: '6', suit: '♠' },
     { rank: '8', suit: '♥', red: true },
     { rank: '9', suit: '♥', red: true, trump: true },
     { rank: 'J', suit: '♥', red: true, trump: true },
     { rank: 'Q', suit: '♣' },
+    { rank: 'K', suit: '♠' },
+    { rank: '10', suit: '♦', red: true },
     { rank: 'A', suit: '♦', red: true },
   ];
 
   return (
     <div className={cn('relative h-full w-full overflow-hidden', className)}>
-      {/* Зелёное игровое сукно (как в реальном экране) */}
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 40%,#1F5F47 0%,#0F2D24 65%,#081C16 100%)' }} />
-      <div className="absolute inset-3 rounded-[24px] border border-emerald-300/15 bg-emerald-900/20 shadow-[inset_0_0_40px_rgba(0,0,0,0.4)]" />
+      {/* Реальный фон стола: радиальный сине-серый + виньетка */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at 20% 10%, #5F86A1 0%, #253F52 55%, #0B121B 100%)',
+        }}
+      />
+      {/* Лёгкий шум-сетка */}
+      <div
+        className="absolute inset-0 opacity-[0.08] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.6) 1px, transparent 0)',
+          backgroundSize: '6px 6px',
+        }}
+      />
 
-      <div className="relative flex h-full w-full flex-col p-3">
-        {/* Верх: оппонент + бейдж «ваш ход» */}
-        <div className="flex items-start justify-between">
-          <PlayerStrip name={t.gamesOpponent} initial="A" cards={5} align="left" />
-          {!compact ? (
-            <div className="rounded-full bg-amber-300/95 px-2.5 py-1 text-[10px] font-bold text-amber-950 shadow animate-feat-bubble-in">
-              {t.gamesYourTurn}
+      <div className="relative flex h-full w-full flex-col p-2.5">
+        {/* Top: аватар оппонента (с ring «ход») + бейдж счётчика карт */}
+        <div className="flex items-start justify-center">
+          <div className="relative">
+            <div
+              className={cn(
+                'flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-rose-700 text-xs font-extrabold text-white',
+                'ring-2 ring-emerald-400/85 ring-offset-2 ring-offset-transparent animate-feat-durak-loser-glow',
+              )}
+            >
+              {t.peerAlice.charAt(0)}
             </div>
-          ) : null}
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-black/60 px-1 text-[9px] font-bold text-white shadow">
+              5
+            </span>
+            <p className="mt-1 text-center text-[9px] font-bold leading-tight text-white/95">
+              {t.peerAlice}
+            </p>
+            <p className="text-center text-[8px] font-semibold text-emerald-300">
+              {t.gamesYourTurn}
+            </p>
+          </div>
         </div>
 
-        {/* Карты оппонента сверху (рубашкой) */}
-        <div className="mt-1 flex justify-center">
-          {Array.from({ length: 5 }).map((_, i) => (
+        {/* Middle: deck + trump слева, слоты пар по центру */}
+        <div className="relative mt-1 flex-1">
+          {/* Колода + козырь над колодой (как в реальном UI) */}
+          <div className="absolute left-0 top-2 flex items-start gap-1">
+            {/* Стопка-колода (3 рубашки внахлёст) */}
+            <div className="relative h-12 w-9">
+              <PlayingCard faceDown className="absolute inset-0" />
+              <PlayingCard
+                faceDown
+                className="absolute inset-0 -translate-x-0.5 -translate-y-0.5"
+              />
+              <PlayingCard
+                faceDown
+                className="absolute inset-0 -translate-x-1 -translate-y-1"
+              />
+              {/* Бейдж счётчика поверх стопки */}
+              <span className="absolute -left-1.5 -top-2 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+                12
+              </span>
+            </div>
+            {/* Козырь — лежит горизонтально НАД стопкой (выше по экрану),
+                торчит из-под её правого края, лицом вверх */}
+            <PlayingCard
+              rank="7"
+              suit="♥"
+              red
+              trump
+              className="-ml-3 -mt-1 h-8 w-12 rotate-90 origin-top-left"
+            />
+          </div>
+
+          {/* Слоты пар (3) — центр стола */}
+          <div className="absolute inset-0 flex items-center justify-center gap-2">
+            {pairs.map((p, i) => {
+              // Каждая пара появляется со своим delay — атака первой, защита через ~0.8s.
+              const atkDelay = i * 1.6;
+              const defDelay = i * 1.6 + 0.8;
+              return (
+                <div key={i} className="relative h-14 w-10">
+                  {/* Пунктирный слот-плейсхолдер «+» — виден на финальной фазе (сброс) */}
+                  <div className="absolute inset-0 flex items-center justify-center rounded-[10px] border border-dashed border-white/20 animate-feat-durak-slot-empty">
+                    <Plus className="h-3 w-3 text-white/30" aria-hidden />
+                  </div>
+                  {/* Атакующая карта */}
+                  <PlayingCard
+                    rank={p.atk.rank}
+                    suit={p.atk.suit}
+                    red={p.atk.red}
+                    className="absolute inset-0 animate-feat-durak-attack"
+                    style={{ animationDelay: `${atkDelay}s` }}
+                  />
+                  {/* Защитная карта (поверх со смещением) */}
+                  <PlayingCard
+                    rank={p.def.rank}
+                    suit={p.def.suit}
+                    red={p.def.red}
+                    className="absolute inset-0 animate-feat-durak-defend"
+                    style={{ animationDelay: `${defDelay}s` }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bottom: рука игрока — 8 карт ровным рядом */}
+        <div className="mt-1 flex items-end justify-center">
+          {hand.map((c, i) => (
             <PlayingCard
               key={i}
-              faceDown
-              className="-ml-3 first:ml-0 h-10 w-7 animate-feat-card-deal"
+              rank={c.rank}
+              suit={c.suit}
+              red={c.red}
+              trump={c.trump}
+              className={cn(
+                'h-12 w-8 -ml-2 first:ml-0',
+                // Маленький приподнятый «ход» у одной из козырных
+                i === 2 && 'animate-feat-bubble-in',
+              )}
               style={{
-                transform: `rotate(${(i - 2) * 6}deg)`,
-                animationDelay: `${i * 80}ms`,
+                animationDelay: i === 2 ? '300ms' : undefined,
               }}
             />
           ))}
         </div>
 
-        {/* Стол (пары) и колода+козырь сбоку */}
-        <div className="relative mt-2 flex-1">
-          {/* Колода + козырь слева (как у боевого экрана) */}
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
-            <div className="relative h-12 w-9">
-              {/* Стопка-колода */}
-              <PlayingCard faceDown className="absolute inset-0" />
-              <PlayingCard faceDown className="absolute inset-0 -translate-x-0.5 -translate-y-0.5" />
-              {/* Лежащий «козырь» снизу под наклоном */}
-              <PlayingCard
-                rank="J"
-                suit="♥"
-                red
-                trump
-                className="absolute -bottom-2 left-2 h-9 w-7 rotate-90"
-              />
-            </div>
-            <div className="rounded-full bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-md">
-              {t.gamesDeck} · 12
-            </div>
-          </div>
-
-          {/* Пары на столе по центру */}
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 gap-3">
-            {pairs.map((p, i) => (
-              <div
-                key={i}
-                className="relative h-16 w-11 animate-feat-card-deal"
-                style={{ animationDelay: `${400 + i * 200}ms` }}
-              >
-                <PlayingCard
-                  rank={p.atk.rank}
-                  suit={p.atk.suit}
-                  red={p.atk.red}
-                  className="absolute inset-0"
-                />
-                {p.def ? (
-                  <PlayingCard
-                    rank={p.def.rank}
-                    suit={p.def.suit}
-                    red={p.def.red}
-                    className="absolute left-2.5 top-2.5 h-16 w-11 rotate-[8deg]"
-                    style={{ animationDelay: `${600 + i * 200}ms` }}
-                  />
-                ) : (
-                  <span className="absolute left-2.5 top-2.5 flex h-16 w-11 items-center justify-center rounded-[12px] border border-dashed border-white/40 text-white/55">
-                    +
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Действия + рука */}
+        {/* Действия Beat/Take — лента под рукой (только на полной версии) */}
         {!compact ? (
-          <div className="mb-1 flex items-center gap-1.5">
-            <button
-              type="button"
-              className="flex-1 rounded-xl bg-emerald-500 py-1.5 text-[11px] font-bold text-white shadow"
-            >
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+            <div className="flex h-6 items-center justify-center rounded-md bg-emerald-500/85 text-[10px] font-bold text-white shadow-sm">
               {t.gamesActionBeat}
-            </button>
-            <button
-              type="button"
-              className="flex-1 rounded-xl border border-white/20 bg-white/10 py-1.5 text-[11px] font-bold text-white"
-            >
+            </div>
+            <div className="flex h-6 items-center justify-center rounded-md border border-white/15 bg-black/30 text-[10px] font-bold text-white/85">
               {t.gamesActionTake}
-            </button>
+            </div>
           </div>
         ) : null}
-
-        <div className="relative h-16">
-          {hand.map((c, i) => {
-            // Веер: equally spaced rotation; центр в i=2.5
-            const offset = i - (hand.length - 1) / 2;
-            const rotate = offset * 8;
-            return (
-              <PlayingCard
-                key={i}
-                rank={c.rank}
-                suit={c.suit}
-                red={c.red}
-                trump={c.trump}
-                className="absolute bottom-0 h-16 w-11 origin-bottom animate-feat-card-deal"
-                style={{
-                  left: `calc(50% + ${offset * 26}px - 22px)`,
-                  transform: `translateY(${Math.abs(offset) * 1.5}px) rotate(${rotate}deg)`,
-                  animationDelay: `${800 + i * 100}ms`,
-                }}
-              />
-            );
-          })}
-        </div>
       </div>
     </div>
   );

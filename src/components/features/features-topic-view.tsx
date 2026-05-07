@@ -55,7 +55,12 @@ export function FeaturesTopicView({ topic }: { topic: FeatureTopic }) {
 
       {/* Mock */}
       <section className="animate-in fade-in slide-in-from-bottom-3 duration-700" style={{ animationDelay: '80ms' }}>
-        <FeatureMockFrame ratio="aspect-[16/10] sm:aspect-[16/8]" className="mx-auto max-w-4xl">
+        {/* Топик-мокап: даём гарантированную минимальную высоту, чтобы
+            тяжёлые композиции (multi-device, E2EE) не обрезались на mobile. */}
+        <FeatureMockFrame
+          ratio="aspect-[5/4] sm:aspect-[16/9]"
+          className="mx-auto min-h-[320px] max-w-4xl sm:min-h-[420px]"
+        >
           <topic.Mock />
         </FeatureMockFrame>
       </section>

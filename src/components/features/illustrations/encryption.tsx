@@ -48,9 +48,9 @@ export function MockEncryption({ className }: { className?: string; compact?: bo
         {t.e2eeBadge}
       </div>
 
-      <div className="relative mt-3 flex flex-1 items-center gap-2">
+      <div className="relative mt-3 flex min-h-0 flex-1 items-center gap-1 sm:gap-2">
         {/* Алиса */}
-        <div className="z-10 flex w-[28%] flex-col items-center gap-1">
+        <div className="z-10 flex w-[26%] shrink-0 flex-col items-center gap-1">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-rose-600 text-sm font-bold text-white shadow">
             {t.peerAlice.charAt(0)}
           </div>
@@ -84,7 +84,7 @@ export function MockEncryption({ className }: { className?: string; compact?: bo
         </div>
 
         {/* Боб */}
-        <div className="z-10 flex w-[28%] flex-col items-center gap-1">
+        <div className="z-10 flex w-[26%] shrink-0 flex-col items-center gap-1">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-sm font-bold text-primary-foreground shadow">
             {t.peerBob.charAt(0)}
           </div>

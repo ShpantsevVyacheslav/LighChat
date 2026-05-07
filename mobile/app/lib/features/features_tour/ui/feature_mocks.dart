@@ -1077,6 +1077,12 @@ class MockScheduled extends StatelessWidget {
 // --- 5. Games: реальный стол «Дурака» ---
 
 /// Игральная карта в стиле реального `DurakCardWidget`.
+/// Игральная карта в стиле реального `DurakCardWidget`:
+///  – face-up: off-white фон `#F6F7FB`, ОДИН большой символ масти по центру;
+///    в углу — `rank+suit` одной строкой («7♠»), и тот же блок повёрнут на 180°
+///    в нижнем-правом углу.
+///  – козырь: жёлтая обводка `#FBBF24` + лёгкая жёлтая тень.
+///  – face-down: тёмно-синий градиент `#2C3E66 → #1A2540` с белым кружком.
 class _DurakCard extends StatelessWidget {
   const _DurakCard({
     this.rank,
@@ -1101,7 +1107,7 @@ class _DurakCard extends StatelessWidget {
       return Container(
         width: width,
         height: height,
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
@@ -1123,8 +1129,8 @@ class _DurakCard extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: Container(
-            width: 14,
-            height: 14,
+            width: width * 0.30,
+            height: width * 0.30,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withValues(alpha: 0.16),
@@ -1135,12 +1141,19 @@ class _DurakCard extends StatelessWidget {
       );
     }
     final fg = red ? const Color(0xFFDC2626) : const Color(0xFF111827);
+    final cornerLabel = '${rank ?? ''}${suit ?? ''}';
+    final cornerStyle = TextStyle(
+      color: fg,
+      fontWeight: FontWeight.w900,
+      fontSize: (width * 0.22).clamp(9.0, 13.0),
+      height: 1,
+    );
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
         color: const Color(0xFFF6F7FB),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: trump
               ? const Color(0xFFFBBF24).withValues(alpha: 0.85)
@@ -1158,379 +1171,511 @@ class _DurakCard extends StatelessWidget {
         ],
       ),
       child: Stack(children: [
-        Positioned(
-          left: 4,
-          top: 3,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(rank ?? '',
-                  style: TextStyle(
-                      color: fg, fontWeight: FontWeight.w900, fontSize: 11, height: 1)),
-              Text(suit ?? '',
-                  style: TextStyle(
-                      color: fg, fontWeight: FontWeight.w900, fontSize: 12, height: 1)),
-            ],
-          ),
-        ),
+        Positioned(left: 3, top: 2, child: Text(cornerLabel, style: cornerStyle)),
         Center(
-          child: Text(suit ?? '',
-              style: TextStyle(
-                  color: fg.withValues(alpha: 0.92),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22)),
-        ),
-        Positioned(
-          right: 4,
-          bottom: 3,
-          child: RotatedBox(
-            quarterTurns: 2,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(rank ?? '',
-                    style: TextStyle(
-                        color: fg, fontWeight: FontWeight.w900, fontSize: 11, height: 1)),
-                Text(suit ?? '',
-                    style: TextStyle(
-                        color: fg, fontWeight: FontWeight.w900, fontSize: 12, height: 1)),
-              ],
+          child: Text(
+            suit ?? '',
+            style: TextStyle(
+              color: fg.withValues(alpha: 0.92),
+              fontWeight: FontWeight.w900,
+              fontSize: (width * 0.55).clamp(16.0, 28.0),
+              height: 1,
             ),
           ),
         ),
+        Positioned(
+          right: 3,
+          bottom: 2,
+          child: RotatedBox(
+            quarterTurns: 2,
+            child: Text(cornerLabel, style: cornerStyle),
+          ),
+        ),
       ]),
     );
   }
 }
 
-/// Полоска игрока с аватаром, именем и количеством карт в руке.
-class _PlayerStrip extends StatelessWidget {
-  const _PlayerStrip({
-    required this.name,
-    required this.initial,
-    required this.cards,
-  });
-  final String name;
-  final String initial;
-  final int cards;
+/// Анимированный мокап «Дурака» в стиле реального экрана LighChat:
+///  – фон стола: радиальный сине-серый градиент `#5F86A1 → #253F52 → black`
+///    (палитра `DurakFeltBackground`);
+///  – сверху аватар оппонента с зелёным ringом «ход» и счётчиком карт;
+///  – слева колода-стопка + козырь (горизонтально, лицом вверх) НАД ней;
+///  – справа сброс (стопка рубашек);
+///  – по центру 3 пары атак-защит, появляются по очереди и в финале улетают
+///    к проигравшему оппоненту (он «забирает»);
+///  – внизу — рука игрока (8 карт ровным рядом, с лёгким overlap, козыри
+///    подсвечены жёлтым).
+class MockGames extends StatefulWidget {
+  const MockGames({super.key});
+  @override
+  State<MockGames> createState() => _MockGamesState();
+}
+
+class _MockGamesState extends State<MockGames> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.40),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.20),
-          ),
-          alignment: Alignment.center,
-          child: Text(initial,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white)),
-        ),
-        const SizedBox(width: 5),
-        Text(name,
-            style: const TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
-        const SizedBox(width: 5),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text('$cards',
-              style: const TextStyle(
-                  fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white)),
-        ),
-      ]),
-    );
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 10))
+      ..repeat();
   }
-}
 
-class MockGames extends StatelessWidget {
-  const MockGames({super.key});
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = _mockText(context);
 
-    // Пары на столе.
-    final pairs = <(String aR, String aS, bool aRed, String? dR, String? dS, bool dRed)>[
-      ('7', '♣', false, '9', '♣', false),
-      ('10', '♦', true, 'Q', '♦', true),
-      ('J', '♠', false, null, null, false),
+    // Пары на столе. Каждая пара появляется по timeline с отдельным delay.
+    // На фазе collect (>0.80) все улетают к аватару проигравшего сверху.
+    final pairs = <_DurakPair>[
+      _DurakPair(
+        atk: _CardData('7', '♣'),
+        def: _CardData('9', '♣'),
+        atkAt: 0.04,
+        defAt: 0.14,
+      ),
+      _DurakPair(
+        atk: _CardData('10', '♦', red: true),
+        def: _CardData('Q', '♦', red: true),
+        atkAt: 0.26,
+        defAt: 0.36,
+      ),
+      _DurakPair(
+        atk: _CardData('J', '♠'),
+        def: _CardData('K', '♠'),
+        atkAt: 0.48,
+        defAt: 0.58,
+      ),
     ];
-    // Рука игрока.
-    final hand = <(String r, String s, bool red, bool trump)>[
-      ('6', '♠', false, false),
-      ('8', '♥', true, false),
-      ('9', '♥', true, true),
-      ('J', '♥', true, true),
-      ('Q', '♣', false, false),
-      ('A', '♦', true, false),
+
+    final hand = <_CardData>[
+      _CardData('6', '♠'),
+      _CardData('8', '♥', red: true),
+      _CardData('9', '♥', red: true, trump: true),
+      _CardData('J', '♥', red: true, trump: true),
+      _CardData('Q', '♣'),
+      _CardData('K', '♠'),
+      _CardData('10', '♦', red: true),
+      _CardData('A', '♦', red: true),
     ];
 
     return Stack(fit: StackFit.expand, children: [
-      // Зелёное сукно
+      // Реальный сине-серый стол (как DurakFeltBackground)
       Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
-            center: Alignment(0, -0.2),
-            radius: 1.3,
-            colors: [Color(0xFF1F5F47), Color(0xFF0F2D24), Color(0xFF081C16)],
+            center: Alignment(-0.2, -0.3),
+            radius: 1.2,
+            colors: [Color(0xFF5F86A1), Color(0xFF253F52), Color(0xFF0B121B)],
+            stops: [0.0, 0.55, 1.0],
           ),
         ),
       ),
-      Positioned.fill(
-        child: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF6EE7B7).withValues(alpha: 0.10)),
-            color: const Color(0xFF0F2D24).withValues(alpha: 0.30),
+      // Лёгкая виньетка
+      Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.15,
+            colors: [Colors.transparent, Color(0x59000000)],
+            stops: [0.55, 1.0],
           ),
         ),
       ),
 
-      Padding(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-        child: Column(children: [
-          // Топ: соперник + бейдж «ваш ход»
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _PlayerStrip(name: t.gamesOpponent, initial: 'A', cards: 5),
-            const Spacer(),
-            _FadeInUp(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFBBF24),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(t.gamesYourTurn,
-                    style: const TextStyle(
-                        color: Color(0xFF3F2D00),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800)),
+      AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final p = _c.value;
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+            child: Column(children: [
+              // Top: аватар оппонента + бейдж счётчика + имя/«ход»
+              _OpponentHeader(
+                name: t.peerAlice,
+                cards: 5,
+                yourTurnLabel: t.gamesYourTurn,
+                pulse: _opponentPulse(p),
               ),
-            ),
-          ]),
-          // Карты соперника (рубашкой), веер
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: SizedBox(
-              height: 36,
-              child: Stack(alignment: Alignment.topCenter, children: [
-                for (var i = 0; i < 5; i++)
-                  Transform.translate(
-                    offset: Offset((i - 2) * 14.0, 0),
-                    child: Transform.rotate(
-                      angle: (i - 2) * 0.10,
-                      child: _FadeInUp(
-                        delay: Duration(milliseconds: i * 80),
-                        child: const _DurakCard(faceDown: true, width: 22, height: 32),
-                      ),
-                    ),
-                  ),
-              ]),
-            ),
-          ),
-          // Стол + колода+козырь
-          Expanded(
-            child: Stack(children: [
-              // Колода + козырь слева
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    SizedBox(
-                      width: 46,
-                      height: 44,
-                      child: Stack(clipBehavior: Clip.none, children: [
-                        const Positioned(
-                          top: 0,
-                          left: 4,
-                          child: _DurakCard(faceDown: true, width: 28, height: 40),
-                        ),
-                        const Positioned(
-                          top: 2,
-                          left: 6,
-                          child: _DurakCard(faceDown: true, width: 28, height: 40),
-                        ),
-                        // Козырь — лежит горизонтально внизу
-                        Positioned(
-                          bottom: -4,
-                          left: 14,
-                          child: Transform.rotate(
-                            angle: 1.5708,
-                            child: const _DurakCard(
-                                rank: 'J',
+              const SizedBox(height: 4),
+
+              // Middle: deck/trump слева, пары по центру, сброс справа
+              Expanded(
+                child: Stack(children: [
+                  // Колода + козырь слева
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: Stack(clipBehavior: Clip.none, children: [
+                          // Стопка-колода (3 рубашки, лёгкий offset)
+                          const Positioned(
+                            left: 4,
+                            top: 8,
+                            child: _DurakCard(faceDown: true, width: 26, height: 38),
+                          ),
+                          const Positioned(
+                            left: 2,
+                            top: 6,
+                            child: _DurakCard(faceDown: true, width: 26, height: 38),
+                          ),
+                          const Positioned(
+                            left: 0,
+                            top: 4,
+                            child: _DurakCard(faceDown: true, width: 26, height: 38),
+                          ),
+                          // Козырь — лежит горизонтально НАД стопкой
+                          // (визуально выше по экрану), лицом вверх.
+                          Positioned(
+                            top: -6,
+                            left: 14,
+                            child: Transform.rotate(
+                              angle: 1.5708,
+                              child: const _DurakCard(
+                                rank: '7',
                                 suit: '♥',
                                 red: true,
                                 trump: true,
-                                width: 28,
-                                height: 40),
-                          ),
-                        ),
-                      ]),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text('${t.gamesDeck} · 12',
-                          style: const TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white)),
-                    ),
-                  ]),
-                ),
-              ),
-              // Пары на столе
-              Center(
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-                  for (var i = 0; i < pairs.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: SizedBox(
-                        width: 50,
-                        height: 60,
-                        child: _FadeInUp(
-                          delay: Duration(milliseconds: 200 + i * 180),
-                          child: Stack(children: [
-                            _DurakCard(
-                                rank: pairs[i].$1,
-                                suit: pairs[i].$2,
-                                red: pairs[i].$3,
-                                width: 36,
-                                height: 52),
-                            if (pairs[i].$4 != null)
-                              Positioned(
-                                left: 10,
-                                top: 8,
-                                child: Transform.rotate(
-                                  angle: 0.12,
-                                  child: _DurakCard(
-                                      rank: pairs[i].$4,
-                                      suit: pairs[i].$5,
-                                      red: pairs[i].$6,
-                                      width: 36,
-                                      height: 52),
-                                ),
-                              )
-                            else
-                              Positioned(
-                                left: 10,
-                                top: 8,
-                                child: Container(
-                                  width: 36,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.45),
-                                        style: BorderStyle.solid),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Icon(Icons.add_rounded,
-                                      size: 16, color: Colors.white54),
-                                ),
+                                width: 26,
+                                height: 38,
                               ),
-                          ]),
-                        ),
+                            ),
+                          ),
+                          // Бейдж счётчика
+                          Positioned(
+                            left: -4,
+                            bottom: -4,
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text('${t.gamesDeck} · 12',
+                                  style: const TextStyle(
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white)),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+
+                  // Сброс справа (стопка рубашек)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: SizedBox(
+                        width: 36,
+                        height: 50,
+                        child: Stack(clipBehavior: Clip.none, children: [
+                          for (var i = 0; i < 3; i++)
+                            Positioned(
+                              top: i * 1.5,
+                              left: i * 1.5,
+                              child: const _DurakCard(
+                                  faceDown: true, width: 26, height: 38),
+                            ),
+                        ]),
+                      ),
+                    ),
+                  ),
+
+                  // Пары на столе по центру (анимированы через `p`)
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < pairs.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: SizedBox(
+                              width: 42,
+                              height: 60,
+                              child: Stack(clipBehavior: Clip.none, children: [
+                                // Слот-плейсхолдер «+» — виден на финальной фазе.
+                                Positioned.fill(
+                                  child: Opacity(
+                                    opacity: _slotEmptyOpacity(p),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                            color: Colors.white.withValues(alpha: 0.30),
+                                            style: BorderStyle.solid),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Icon(Icons.add_rounded,
+                                          size: 14,
+                                          color: Colors.white.withValues(alpha: 0.55)),
+                                    ),
+                                  ),
+                                ),
+                                // Атакующая карта
+                                _AnimatedTableCard(
+                                  card: pairs[i].atk,
+                                  appearAt: pairs[i].atkAt,
+                                  collectStart: 0.80,
+                                  collectDx: 0,
+                                  collectDy: -90,
+                                ),
+                                // Защитная карта со смещением
+                                Positioned(
+                                  left: 6,
+                                  top: 6,
+                                  child: _AnimatedTableCard(
+                                    card: pairs[i].def,
+                                    appearAt: pairs[i].defAt,
+                                    collectStart: 0.80,
+                                    collectDx: 0,
+                                    collectDy: -96,
+                                    rotateRad: 0.15,
+                                  ),
+                                ),
+                              ]),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+
+              // Bottom: рука игрока — 8 карт ровно
+              SizedBox(
+                height: 50,
+                child: Stack(alignment: Alignment.center, children: [
+                  for (var i = 0; i < hand.length; i++)
+                    Transform.translate(
+                      offset: Offset((i - (hand.length - 1) / 2) * 22, 0),
+                      child: _DurakCard(
+                        rank: hand[i].rank,
+                        suit: hand[i].suit,
+                        red: hand[i].red,
+                        trump: hand[i].trump,
+                        width: 28,
+                        height: 42,
                       ),
                     ),
                 ]),
               ),
             ]),
-          ),
-          // Действия
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  decoration: BoxDecoration(
-                    color: featureAccentEmerald,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(t.gamesActionBeat,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800)),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.10),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(t.gamesActionTake,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800)),
-                ),
-              ),
-            ]),
-          ),
-          // Рука игрока — веер
-          SizedBox(
-            height: 56,
-            child: Stack(alignment: Alignment.bottomCenter, children: [
-              for (var i = 0; i < hand.length; i++)
-                Builder(builder: (context) {
-                  final offset = i - (hand.length - 1) / 2;
-                  return Positioned(
-                    bottom: -2 + (offset.abs() * 1.2),
-                    left: null,
-                    child: Transform.translate(
-                      offset: Offset(offset * 22, 0),
-                      child: Transform.rotate(
-                        angle: offset * 0.14,
-                        child: _FadeInUp(
-                          delay: Duration(milliseconds: 600 + i * 80),
-                          child: _DurakCard(
-                              rank: hand[i].$1,
-                              suit: hand[i].$2,
-                              red: hand[i].$3,
-                              trump: hand[i].$4,
-                              width: 36,
-                              height: 52),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-            ]),
-          ),
-        ]),
+          );
+        },
       ),
+    ]);
+  }
+
+  /// Подсветка аватара проигравшего на финальной фазе (>0.85).
+  double _opponentPulse(double p) {
+    if (p < 0.82) return 0.0;
+    if (p < 0.92) return (p - 0.82) / 0.10;
+    return ((1.0 - p) / 0.08).clamp(0.0, 1.0);
+  }
+
+  /// Прозрачность слота-плейсхолдера: видим только во время «забора» (>0.85).
+  double _slotEmptyOpacity(double p) {
+    if (p < 0.84) return 0.0;
+    return ((p - 0.84) / 0.10).clamp(0.0, 1.0);
+  }
+}
+
+class _CardData {
+  const _CardData(this.rank, this.suit, {this.red = false, this.trump = false});
+  final String rank;
+  final String suit;
+  final bool red;
+  final bool trump;
+}
+
+class _DurakPair {
+  const _DurakPair({
+    required this.atk,
+    required this.def,
+    required this.atkAt,
+    required this.defAt,
+  });
+  final _CardData atk;
+  final _CardData def;
+  final double atkAt;
+  final double defAt;
+}
+
+/// Карта на столе с анимацией: появляется в `appearAt`, висит, на
+/// `collectStart` улетает к аватару проигравшего (collectDx/Dy — конечный
+/// сдвиг). Использует `AnimationController` родителя через `AnimatedBuilder`.
+class _AnimatedTableCard extends StatelessWidget {
+  const _AnimatedTableCard({
+    required this.card,
+    required this.appearAt,
+    required this.collectStart,
+    required this.collectDx,
+    required this.collectDy,
+    this.rotateRad = 0,
+  });
+  final _CardData card;
+  final double appearAt;
+  final double collectStart;
+  final double collectDx;
+  final double collectDy;
+  final double rotateRad;
+
+  @override
+  Widget build(BuildContext context) {
+    // p берётся из родительского AnimatedBuilder через ScopedTransitions —
+    // но у нас есть удобный путь: смотрим на _MockGamesState через
+    // `context.findAncestorStateOfType`. Чтобы не лазать, используем
+    // `MediaQuery`-подобный паттерн: родитель уже rebuild'ит этот виджет
+    // на каждом тике, потому что весь поддерев пересобирается внутри
+    // AnimatedBuilder.
+    final state = context.findAncestorStateOfType<_MockGamesState>()!;
+    final p = state._c.value;
+
+    double opacity;
+    double dx = 0;
+    double dy = 0;
+    double scale = 1.0;
+    double rot = rotateRad;
+
+    if (p < appearAt) {
+      // До появления — невидима, у руки внизу.
+      opacity = 0;
+      dy = 30;
+      scale = 0.85;
+    } else if (p < appearAt + 0.06) {
+      // Появление: летит снизу к слоту.
+      final k = (p - appearAt) / 0.06;
+      opacity = k;
+      dy = (1 - k) * 30;
+      scale = 0.85 + 0.15 * k;
+    } else if (p < collectStart) {
+      // Лежит на столе.
+      opacity = 1;
+      dy = 0;
+      scale = 1.0;
+    } else if (p < collectStart + 0.10) {
+      // Сборка: улетает к проигравшему.
+      final k = (p - collectStart) / 0.10;
+      final ease = Curves.easeIn.transform(k);
+      opacity = 1 - ease;
+      dx = collectDx * ease;
+      dy = collectDy * ease;
+      rot = rotateRad + ease * 0.4;
+      scale = 1.0 - ease * 0.4;
+    } else {
+      opacity = 0;
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: Transform.translate(
+        offset: Offset(dx, dy),
+        child: Transform.rotate(
+          angle: rot,
+          child: Transform.scale(
+            scale: scale,
+            child: _DurakCard(
+              rank: card.rank,
+              suit: card.suit,
+              red: card.red,
+              trump: card.trump,
+              width: 30,
+              height: 44,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Аватар оппонента сверху + бейдж счётчика + ринг на финальной фазе.
+class _OpponentHeader extends StatelessWidget {
+  const _OpponentHeader({
+    required this.name,
+    required this.cards,
+    required this.yourTurnLabel,
+    required this.pulse,
+  });
+  final String name;
+  final int cards;
+  final String yourTurnLabel;
+  final double pulse;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Stack(clipBehavior: Clip.none, children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFF87171), Color(0xFFB91C5C)],
+            ),
+            border: Border.all(
+                color: const Color(0xFF6EE7B7).withValues(alpha: 0.85), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFF87171)
+                    .withValues(alpha: (pulse * 0.55).clamp(0.0, 0.55)),
+                blurRadius: 14 * pulse,
+                spreadRadius: 4 * pulse,
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: Text(name.characters.first.toUpperCase(),
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+        ),
+        Positioned(
+          right: -4,
+          top: -2,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.20))),
+            child: Text('$cards',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800)),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 2),
+      Text(name,
+          style: const TextStyle(
+              fontSize: 9.5, fontWeight: FontWeight.w800, color: Colors.white)),
+      Text(yourTurnLabel,
+          style: TextStyle(
+              fontSize: 8.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF6EE7B7).withValues(alpha: 0.95))),
     ]);
   }
 }

@@ -225,6 +225,39 @@ export default {
           '0%, 100%': { opacity: '0.3' },
           '50%': { opacity: '1' },
         },
+        /**
+         * Атакующая карта в Дураке: 0% — невидима возле руки внизу,
+         * 6% — на своём слоте на столе, 80% — стоит, 88% — улетает к
+         * проигравшему (вверх-вправо к аватару оппонента), 100% — невидима.
+         * Цикл подбирается у каждой карты через animation-delay.
+         */
+        'feat-durak-attack': {
+          '0%': { transform: 'translate(0, 60px) rotate(-6deg)', opacity: '0' },
+          '6%': { transform: 'translate(0, 0) rotate(0deg)', opacity: '1' },
+          '80%': { transform: 'translate(0, 0) rotate(0deg)', opacity: '1' },
+          '92%': { transform: 'translate(60px, -90px) rotate(20deg) scale(0.55)', opacity: '0' },
+          '100%': { transform: 'translate(60px, -90px) rotate(20deg) scale(0.55)', opacity: '0' },
+        },
+        /** Защитная карта: появляется со смещением сверху, сдвинута относительно атакующей. */
+        'feat-durak-defend': {
+          '0%, 8%': { transform: 'translate(8px, -40px) rotate(8deg)', opacity: '0' },
+          '14%': { transform: 'translate(8px, 6px) rotate(8deg)', opacity: '1' },
+          '80%': { transform: 'translate(8px, 6px) rotate(8deg)', opacity: '1' },
+          '92%': { transform: 'translate(70px, -84px) rotate(28deg) scale(0.55)', opacity: '0' },
+          '100%': { transform: 'translate(70px, -84px) rotate(28deg) scale(0.55)', opacity: '0' },
+        },
+        /** Аватар «забирающего» подсвечивается на финальной фазе (90-100%). */
+        'feat-durak-loser-glow': {
+          '0%, 84%': { boxShadow: '0 0 0 0 rgba(248,113,113,0)' },
+          '92%': { boxShadow: '0 0 0 6px rgba(248,113,113,0.45)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(248,113,113,0)' },
+        },
+        /** Подсветка слота на столе (плейсхолдер «+»): пульсирует между 90-100%. */
+        'feat-durak-slot-empty': {
+          '0%, 84%': { opacity: '0' },
+          '92%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -254,6 +287,11 @@ export default {
         'feat-msg-fly-right': 'feat-msg-fly-right 4s ease-in-out infinite',
         'feat-msg-fly-in': 'feat-msg-fly-in 4s ease-in-out infinite',
         'feat-arrow-pulse': 'feat-arrow-pulse 1.4s ease-in-out infinite',
+        /** Цикл партии в «Дурака»: ~10s, согласован у атаки/защиты/glow. */
+        'feat-durak-attack': 'feat-durak-attack 10s ease-in-out infinite',
+        'feat-durak-defend': 'feat-durak-defend 10s ease-in-out infinite',
+        'feat-durak-loser-glow': 'feat-durak-loser-glow 10s ease-out infinite',
+        'feat-durak-slot-empty': 'feat-durak-slot-empty 10s linear infinite',
       },
     },
   },

@@ -62,17 +62,17 @@ export function MockMultiDevice({
     <div className={cn('relative flex h-full w-full items-center justify-center p-4', className)}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.15),transparent_70%)]" />
 
-      <div className="relative flex w-full max-w-md items-center justify-center gap-3 sm:gap-5">
-        {/* Phone */}
-        <div className="relative h-44 w-[88px] shrink-0 rounded-[20px] border-[3px] border-foreground/85 bg-background shadow-xl sm:h-48 sm:w-[96px]">
+      <div className="relative flex w-full max-w-md items-center justify-center gap-2 sm:gap-5">
+        {/* Phone — масштабируется под высоту контейнера, не выходит за рамку */}
+        <div className="relative h-32 w-[68px] shrink-0 rounded-[16px] border-[3px] border-foreground/85 bg-background shadow-xl sm:h-44 sm:w-[88px]">
           <div className="absolute left-1/2 top-1.5 h-1 w-7 -translate-x-1/2 rounded-full bg-foreground/40" />
-          <div className="absolute inset-1.5 mt-3 flex flex-col items-center justify-between rounded-2xl bg-gradient-to-br from-primary/25 via-primary/5 to-transparent p-2">
-            <div className="flex items-center gap-1 text-[8.5px] font-semibold text-foreground">
+          <div className="absolute inset-1 mt-2 flex flex-col items-center justify-between rounded-xl bg-gradient-to-br from-primary/25 via-primary/5 to-transparent p-1 sm:inset-1.5 sm:mt-3 sm:rounded-2xl sm:p-2">
+            <div className="hidden items-center gap-1 text-[8.5px] font-semibold text-foreground sm:flex">
               <Smartphone className="h-3 w-3 text-primary" aria-hidden />
               {t.multiDevicePhone}
             </div>
-            <QrSvg className="h-[68px] w-[68px]" />
-            <div className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-600 dark:text-emerald-300">
+            <QrSvg className="h-[44px] w-[44px] sm:h-[64px] sm:w-[64px]" />
+            <div className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[8px] font-bold text-emerald-600 dark:text-emerald-300 sm:text-[8.5px]">
               {t.multiDevicePairing}
             </div>
           </div>
@@ -96,7 +96,7 @@ export function MockMultiDevice({
 
         {/* Laptop */}
         <div className="relative shrink-0">
-          <div className="relative h-24 w-44 rounded-md border-[3px] border-foreground/85 bg-background shadow-xl sm:h-28 sm:w-48">
+          <div className="relative h-20 w-32 rounded-md border-[3px] border-foreground/85 bg-background shadow-xl sm:h-28 sm:w-48">
             <div className="absolute inset-1.5 rounded-sm bg-gradient-to-br from-violet-500/25 via-primary/15 to-transparent p-2">
               <div className="flex items-center gap-1 text-[9px] font-semibold text-foreground">
                 <Laptop className="h-3 w-3" aria-hidden />
@@ -117,7 +117,7 @@ export function MockMultiDevice({
             </div>
           </div>
           {/* Подставка ноутбука */}
-          <div className="mx-auto mt-0.5 h-1.5 w-20 rounded-b-md bg-foreground/85 sm:w-24" />
+          <div className="mx-auto mt-0.5 h-1.5 w-16 rounded-b-md bg-foreground/85 sm:w-24" />
         </div>
       </div>
 
