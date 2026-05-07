@@ -24,6 +24,7 @@ void main() {
               rankLabel: (c) => (c['r'] ?? '').toString(),
               suitLabel: (c) => (c['s'] ?? '').toString(),
               isRedSuit: (s) => s == 'H' || s == 'D',
+              isTrump: (_) => false,
               enabled: (_) => true,
               highlight: (_) => false,
               selectedId: null,
