@@ -55,31 +55,56 @@ export const cleanupGuestAccounts = onSchedule(
   },
   async () => {
     const cutoff = Date.now() - GUEST_TTL_MS;
+    const cutoffIso = new Date(cutoff).toISOString();
     const expiredGuestUids: string[] = [];
-    let pageToken: string | undefined;
-    let scanned = 0;
+    const indexDocsToDelete: string[] = [];
 
     try {
-      do {
-        const page = await admin
-          .auth()
-          .listUsers(LIST_USERS_PAGE_SIZE, pageToken);
-        for (const user of page.users) {
-          scanned++;
-          if (!isGuestUser(user)) continue;
-          const createdAt = Date.parse(user.metadata.creationTime);
-          if (!Number.isFinite(createdAt)) continue;
-          if (createdAt > cutoff) continue;
-          expiredGuestUids.push(user.uid);
-          if (expiredGuestUids.length >= MAX_DELETIONS_PER_RUN) break;
-        }
-        pageToken = page.pageToken;
-      } while (pageToken && expiredGuestUids.length < MAX_DELETIONS_PER_RUN);
+      // [audit H-008] PRIMARY: индекс `guestAccounts/{uid}` (см.
+      // `onUserCreated.ts`). Один точечный where-запрос вместо `listUsers`
+      // по миллиону пользователей — линейное сканирование Auth исключено.
+      const indexSnap = await db
+        .collection("guestAccounts")
+        .where("expireAt", "<", cutoffIso)
+        .limit(MAX_DELETIONS_PER_RUN)
+        .get();
+      for (const doc of indexSnap.docs) {
+        const uid = (doc.data().uid as string) || doc.id;
+        expiredGuestUids.push(uid);
+        indexDocsToDelete.push(doc.id);
+      }
+
+      // FALLBACK (transitional): для гостей, заведённых ДО включения индекса
+      // (legacy users без `guestAccounts/{uid}`), всё ещё запускаем
+      // listUsers-сканер. Когда все pre-index гости вычищены, fallback
+      // можно удалить — runtime упадёт до милисекунд.
+      if (expiredGuestUids.length < MAX_DELETIONS_PER_RUN) {
+        let pageToken: string | undefined;
+        let scanned = 0;
+        do {
+          const page = await admin
+            .auth()
+            .listUsers(LIST_USERS_PAGE_SIZE, pageToken);
+          for (const user of page.users) {
+            scanned++;
+            if (!isGuestUser(user)) continue;
+            const createdAt = Date.parse(user.metadata.creationTime);
+            if (!Number.isFinite(createdAt)) continue;
+            if (createdAt > cutoff) continue;
+            // Не дублируем тех, кого уже взяли из индекса.
+            if (expiredGuestUids.includes(user.uid)) continue;
+            expiredGuestUids.push(user.uid);
+            if (expiredGuestUids.length >= MAX_DELETIONS_PER_RUN) break;
+          }
+          pageToken = page.pageToken;
+        } while (pageToken && expiredGuestUids.length < MAX_DELETIONS_PER_RUN);
+        logger.log(
+          `[cleanupGuestAccounts] index=${indexDocsToDelete.length} legacyScanned=${scanned}`,
+        );
+      }
 
       if (expiredGuestUids.length === 0) {
-        logger.log(
-          `[cleanupGuestAccounts] Scanned ${scanned} users, no guests older than 24h.`
-        );
+        logger.log(`[cleanupGuestAccounts] No expired guests.`);
         return;
       }
 
@@ -114,10 +139,24 @@ export const cleanupGuestAccounts = onSchedule(
         }
       }
 
+      // [audit H-008] Чистим index-доки `guestAccounts/{uid}` после успеха —
+      // следующий тик scheduler'а не должен видеть их снова.
+      if (indexDocsToDelete.length > 0) {
+        const batch = db.batch();
+        for (const uid of indexDocsToDelete) {
+          batch.delete(db.doc(`guestAccounts/${uid}`));
+        }
+        try {
+          await batch.commit();
+        } catch (e) {
+          logger.warn("[cleanupGuestAccounts] guestAccounts batch delete failed", e);
+        }
+      }
+
       logger.log(
         `[cleanupGuestAccounts] Removed ${result.successCount} guest auth accounts ` +
           `(failures=${result.failureCount}, firestoreCleaned=${firestoreCleaned}, ` +
-          `firestoreFailed=${firestoreFailed}, scanned=${scanned}).`
+          `firestoreFailed=${firestoreFailed}, indexDocs=${indexDocsToDelete.length}).`
       );
     } catch (err) {
       logger.error("[cleanupGuestAccounts] Cleanup failed:", err);

@@ -89,6 +89,24 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
     } else {
       logger.log(`users/${user.uid} already had profile; onUserCreated skipped write.`);
     }
+
+    // [audit H-008] Индекс TTL гостей для cleanupGuestAccounts. Раньше тот
+    // сканировал ВСЕХ Auth-users каждый час (`listUsers(1000) × 24/day`)
+    // — на 1M юзеров грозит ~24k API calls/day и timeout'ом callable.
+    // Теперь scheduler читает только эту коллекцию по индексу expireAt.
+    if (isAnonymous) {
+      try {
+        const nowMs = Date.now();
+        const expireAtMs = nowMs + 24 * 60 * 60 * 1000;
+        await db.doc(`guestAccounts/${user.uid}`).set({
+          uid: user.uid,
+          createdAt: new Date(nowMs).toISOString(),
+          expireAt: new Date(expireAtMs).toISOString(),
+        });
+      } catch (e) {
+        logger.warn(`guestAccounts index write failed for ${user.uid}`, e);
+      }
+    }
   } catch (error) {
     logger.error(`Error creating user profile for ${user.uid}:`, error);
   }

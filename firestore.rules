@@ -380,6 +380,16 @@ service cloud.firestore {
       }
     }
 
+    /**
+     * [audit H-008] TTL-индекс анонимных гостей для `cleanupGuestAccounts`.
+     * Запись/удаление — только Admin SDK через `onUserCreated` /
+     * `cleanupGuestAccounts`. Чтение тоже закрыто — клиенту он не нужен,
+     * а для админ-аудита достаточно Cloud Logging.
+     */
+    match /guestAccounts/{uid} {
+      allow read, write: if false;
+    }
+
     match /users/{userId} {
       /**
        * [audit H-002] Чтение профиля закрыто для anonymous-гостя — иначе после
