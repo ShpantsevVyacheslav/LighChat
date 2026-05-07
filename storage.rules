@@ -45,6 +45,12 @@ service firebase.storage {
     function isAcceptableChatMediaSize() {
       return request.resource.size < 220 * 1024 * 1024;
     }
+    /**
+     * [audit H-009] image/svg+xml намеренно НЕ в allowlist — иначе stored-XSS
+     * через `<svg><script>...</script></svg>` загруженный пользователем и
+     * отрендеренный через `next/image` (где `dangerouslyAllowSVG: true` для
+     * dicebear-аватаров). Аналогично text/html, application/javascript и пр.
+     */
     function isAcceptableChatMediaType() {
       return request.resource.contentType is string
         && (request.resource.contentType.matches('image/(jpeg|png|gif|webp|heic|heif)')
