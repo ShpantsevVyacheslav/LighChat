@@ -336,18 +336,25 @@ service cloud.firestore {
      */
     match /registrationIndex/{docId} {
       /**
-       * До входа (регистрация) — чтение без auth. После входа: если владелец
-       * индекса заблокировал читателя, не раскрываем привязку phone/email/login → uid.
+       * [audit H-004] Чтение требует auth. Раньше unauthenticated клиент мог
+       * читать любой документ — это превращало коллекцию в публичную базу
+       * `tel:+7… → uid` / `email:foo@bar → uid`. Перебор по списку
+       * известных телефонов давал атакующему таблицу phone → LighChat uid,
+       * после чего профиль читался через `signInAnonymously` (см. H-002).
        *
-       * `resource == null` — несуществующий документ должен читаться: иначе
-       * клиент не сможет проверить «свободен ли новый телефон/email/логин» при
-       * редактировании профиля (см. profile_update_service.checkKeyAvailable).
+       * Pre-auth «свободен ли мой телефон/email/username?» — теперь только
+       * через серверный callable `checkRegistrationKeyAvailable`, который
+       * возвращает только boolean без uid и имеет rate-limit.
+       *
+       * `resource == null` — несуществующий документ всё ещё должен читаться
+       * authenticated-клиентом (профиль-редактор смотрит «свободен ли новый
+       * username»; рассинхрон между registrationIndex и users/{uid} обычно
+       * лечится через bootstrap).
        */
-      allow read: if request.auth == null
-        || resource == null
+      allow read: if isSignedIn() && (
+        resource == null
         || (
-          isSignedIn()
-          && resource.data.keys().hasAll(['uid'])
+          resource.data.keys().hasAll(['uid'])
           && resource.data.uid is string
           && (
             !exists(/databases/$(database)/documents/users/$(resource.data.uid))
@@ -355,7 +362,8 @@ service cloud.firestore {
             || !(get(/databases/$(database)/documents/users/$(resource.data.uid)).data.blockedUserIds is list)
             || !(request.auth.uid in get(/databases/$(database)/documents/users/$(resource.data.uid)).data.blockedUserIds)
           )
-        );
+        )
+      );
       allow write: if false;
     }
 

@@ -18,6 +18,7 @@ export { createNewUser } from './triggers/http/createNewUser';
 export { signInWithTelegram } from './triggers/http/signInWithTelegram';
 export { requestQrLogin } from './triggers/http/requestQrLogin';
 export { confirmQrLogin } from './triggers/http/confirmQrLogin';
+export { checkRegistrationKeyAvailable } from './triggers/http/checkRegistrationKeyAvailable';
 export { updateDeviceLastLocation } from './triggers/http/updateDeviceLastLocation';
 export { updateUserAdmin } from './triggers/http/updateUserAdmin';
 export { backfillConversationMembers } from './triggers/http/backfillConversationMembers';
