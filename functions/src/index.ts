@@ -24,6 +24,7 @@ export { backfillConversationMembers } from './triggers/http/backfillConversatio
 export { backfillOutgoingBlocks } from './triggers/http/backfillOutgoingBlocks';
 export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationIndex';
 export { migrateDeviceLocationToPrivate } from './triggers/http/migrateDeviceLocationToPrivate';
+export { syncAdminClaims } from './triggers/http/syncAdminClaims';
 export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
 export { retryChatMediaTranscode } from './triggers/http/retryChatMediaTranscode';

@@ -3,9 +3,39 @@
 import { adminAuth, adminDb } from '@/firebase/admin';
 import { logAdminAction } from '@/lib/server/audit-log';
 
+// SECURITY: prefer Firebase Custom Claims (stored in the signed JWT) over a
+// Firestore-side role document. Custom Claims:
+//   - cannot be tampered with by a future firestore.rules regression that
+//     accidentally allows users/{uid}.role writes from the client;
+//   - require no extra Firestore read on every admin call;
+//   - are bound to the token, so a stolen claim disappears the moment the
+//     refresh token is revoked.
+//
+// Migration path: existing admins still have role:'admin' in Firestore but
+// no claim. We accept BOTH for now; once `migrateAdminClaims` (or
+// `updateUserAdmin` writes) have backfilled every admin, we can drop the
+// Firestore fallback.
+const ADMIN_CLAIM_KEY = 'admin';
+
 export async function assertAdminByIdToken(idToken: string): Promise<{ uid: string; name: string }> {
   if (!idToken?.trim()) throw new Error('UNAUTHORIZED');
   const decoded = await adminAuth.verifyIdToken(idToken);
+
+  // Path A: trusted JWT claim. We still pull the profile name for audit log
+  // attribution, but failure of that read does not change auth verdict.
+  if (decoded[ADMIN_CLAIM_KEY] === true) {
+    let name = 'Admin';
+    try {
+      const snap = await adminDb.collection('users').doc(decoded.uid).get();
+      const n = snap.data()?.name;
+      if (typeof n === 'string' && n) name = n;
+    } catch {
+      /* ignore */
+    }
+    return { uid: decoded.uid, name };
+  }
+
+  // Path B: legacy Firestore role. Removed once all admins have the claim.
   const snap = await adminDb.collection('users').doc(decoded.uid).get();
   const data = snap.data();
   if (data?.role !== 'admin') throw new Error('FORBIDDEN');

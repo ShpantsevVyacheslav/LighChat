@@ -2,6 +2,7 @@ import { onCall, HttpsError, type CallableRequest } from "firebase-functions/v2/
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import { logAdminActionCF } from "../../lib/audit-log";
+import { assertCallerIsAdmin, ensureAdminClaim } from "../../lib/admin-claims";
 
 const db = admin.firestore();
 
@@ -15,14 +16,21 @@ export const updateUserAdmin = onCall({ region: "us-central1" }, async (request:
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
 
-  // 2. Check if the caller is an administrator
-  const callerUid = request.auth.uid;
-  const callerUserDoc = await db.collection("users").doc(callerUid).get();
-  const callerData = callerUserDoc.data();
-
-  if (callerData?.role !== "admin") {
-    throw new HttpsError("permission-denied", "Only administrators can update other users.");
+  // 2. SECURITY: prefer Custom Claim verification over Firestore role read.
+  // assertCallerIsAdmin checks decoded.admin === true first, then falls back
+  // to users/{uid}.role for backward compatibility while we migrate.
+  let caller;
+  try {
+    caller = await assertCallerIsAdmin(request.auth.token, db);
+  } catch (e) {
+    const code = e instanceof Error ? e.message : "FORBIDDEN";
+    throw new HttpsError(
+      code === "UNAUTHENTICATED" ? "unauthenticated" : "permission-denied",
+      "Only administrators can update other users.",
+    );
   }
+  const callerUid = caller.uid;
+  const callerData = { name: caller.name } as { name: string };
 
   // 3. Extract and validate input data
   const { uid, userData, password } = request.data;
@@ -45,6 +53,22 @@ export const updateUserAdmin = onCall({ region: "us-central1" }, async (request:
 
     await db.collection("users").doc(uid).update(updatePayload);
     logger.log(`Profile document updated successfully for user: ${uid}`);
+
+    // SECURITY: keep the Custom Claim in sync with users/{uid}.role. If this
+    // admin promotion / demotion goes through Firestore but we forget the
+    // claim, the new admin can't pass assertCallerIsAdmin's claim path —
+    // they fall through to the legacy Firestore check, which is exactly the
+    // surface we want to retire. Mirror immediately so future calls pick the
+    // claim path.
+    if (Object.prototype.hasOwnProperty.call(userData, "role")) {
+      const nextRole = (userData as Record<string, unknown>).role;
+      try {
+        const { changed } = await ensureAdminClaim(uid, nextRole === "admin");
+        if (changed) logger.info("Custom claim 'admin' synced", { uid, isAdmin: nextRole === "admin" });
+      } catch (e) {
+        logger.warn("Failed to sync admin custom claim", { uid, error: String(e) });
+      }
+    }
 
     await logAdminActionCF({
       db,
