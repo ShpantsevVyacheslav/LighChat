@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { hashNonceForStorage } from "./requestQrLogin";
+import { encryptCustomTokenForRecipient, QrTokenEncryptError } from "../../lib/qr-login-token-crypto";
 
 /**
  * Вызывается на залогиненном устройстве после сканирования QR.
@@ -137,12 +138,47 @@ export async function runConfirmQrLogin(
 
   const approvedAtIso = now.toISOString();
   const tokenExpiresAtIso = new Date(now.getTime() + APPROVED_TOKEN_TTL_SEC * 1000).toISOString();
+
+  // SECURITY: encrypt customToken under the requesting device's static ECDH
+  // public key (sent at requestQrLogin time as `ephemeralPubKeySpki` — that
+  // name is historical; it really is the device's identity public key).
+  // Without this, anyone reading qrLoginSessions/{sessionId} during the
+  // 60-second window — and the session is intentionally world-readable —
+  // could grab the plaintext customToken and impersonate the user via
+  // signInWithCustomToken. The encryption uses ECDH-P256 + HKDF-SHA256 +
+  // AES-256-GCM with sessionId as both HKDF salt and AES-GCM AAD, so a
+  // leaked ciphertext is bound to the specific session.
+  const recipientPub = typeof docData.ephemeralPubKeySpki === "string"
+    ? docData.ephemeralPubKeySpki
+    : "";
+  if (!recipientPub) {
+    // Older clients that didn't send a public key cannot receive an
+    // encrypted token. Refuse — better to fail closed than to write
+    // plaintext to a world-readable doc.
+    throw new HttpsError(
+      "failed-precondition",
+      "QR session is missing a device key; please update the app and try again.",
+    );
+  }
+  let customTokenCipher;
+  try {
+    customTokenCipher = encryptCustomTokenForRecipient(customToken, recipientPub, sessionId);
+  } catch (e) {
+    if (e instanceof QrTokenEncryptError) {
+      logger.warn("confirmQrLogin: encrypt failed", { code: e.code });
+      throw new HttpsError("failed-precondition", `BAD_DEVICE_KEY:${e.code}`);
+    }
+    throw e;
+  }
+
   try {
     await ref.set({
       state: "approved",
       scannerUid: uid,
       approvedAt: approvedAtIso,
-      customToken,
+      // Plaintext customToken is intentionally NOT written. The new device
+      // reads customTokenCipher and decrypts with its own private key.
+      customTokenCipher,
       tokenExpiresAt: tokenExpiresAtIso,
     }, { merge: true });
   } catch (e) {

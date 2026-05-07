@@ -57,3 +57,5 @@ export 'src/e2ee/system_events.dart';
 export 'src/e2ee/telemetry.dart';
 // Post-launch fix: self-heal session при рассинхроне device-set ↔ wraps.
 export 'src/e2ee/heal_session.dart';
+// QR-login customToken decrypt (mirrors web src/lib/qr-login/decrypt.ts).
+export 'src/qr_login/qr_login_token_decrypt.dart';

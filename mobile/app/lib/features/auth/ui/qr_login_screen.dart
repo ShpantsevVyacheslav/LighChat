@@ -263,11 +263,40 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
       final data = snap.data() ?? const <String, dynamic>{};
       final state = data['state']?.toString();
       if (state == 'approved') {
-        final customToken = data['customToken']?.toString() ?? '';
-        if (customToken.isEmpty) return;
+        // SECURITY: customToken is delivered as ECDH-encrypted ciphertext in
+        // `customTokenCipher`. The plaintext field has been removed on the
+        // server. We decrypt with this device's identity private key (in
+        // FlutterSecureStorage) — the matching public key was sent at
+        // requestQrLogin time. See:
+        //   functions/src/lib/qr-login-token-crypto.ts (server)
+        //   src/lib/qr-login/decrypt.ts (web peer)
+        final cipherRaw = data['customTokenCipher'];
+        if (cipherRaw is! Map) return;
+        final cipher = EncryptedQrCustomToken.fromJson(
+          cipherRaw.map((k, v) => MapEntry(k, v)),
+        );
+        if (cipher.alg.isEmpty) return;
         _consuming = true;
         if (!mounted) return;
         setState(() => _phase = _QrPhase.approving);
+        String customToken;
+        try {
+          final identity = await getOrCreateMobileDeviceIdentity();
+          customToken = await decryptQrCustomToken(
+            cipher: cipher,
+            recipientPrivateKey: identity.keyPair.privateKey,
+            sessionId: snap.id,
+          );
+        } catch (e, st) {
+          debugPrint('[qr-login] decryptQrCustomToken failed: $e\n$st');
+          if (!mounted) return;
+          setState(() {
+            _phase = _QrPhase.error;
+            _error = 'QR_TOKEN_DECRYPT_FAILED';
+            _consuming = false;
+          });
+          return;
+        }
         try {
           await FirebaseAuth.instance.signInWithCustomToken(customToken);
           // Удаляем сессию (best-effort) — customToken одноразовый.

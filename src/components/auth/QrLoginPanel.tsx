@@ -34,6 +34,7 @@ import {
   type RequestQrLoginResponse,
 } from '@/lib/qr-login/client';
 import { getOrCreateDeviceIdentityV2 } from '@/lib/e2ee/v2/device-identity-v2';
+import { decryptCustomToken, QrTokenDecryptError, type EncryptedCustomToken } from '@/lib/qr-login/decrypt';
 
 function detectPlatform(): 'web' | 'ios' | 'android' {
   if (typeof navigator === 'undefined') return 'web';
@@ -99,11 +100,21 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
   const handleApprovedSession = React.useCallback(
     async (data: QrLoginSessionDoc) => {
       if (consumingRef.current) return;
-      if (!data.customToken || !auth) return;
+      if (!auth) return;
+      // SECURITY: customToken is delivered as ECDH-encrypted ciphertext in
+      // `customTokenCipher` — see functions/src/lib/qr-login-token-crypto.ts.
+      // The plaintext field has been removed from the server side. We refuse
+      // to fall back to it on the client to avoid silently accepting a future
+      // regression that re-introduces the plaintext.
+      const cipher = (data as unknown as { customTokenCipher?: EncryptedCustomToken })
+        .customTokenCipher;
+      if (!cipher) return;
       consumingRef.current = true;
       setPhase({ kind: 'approving' });
       try {
-        await signInWithCustomToken(auth, data.customToken);
+        const identity = await getOrCreateDeviceIdentityV2();
+        const customToken = await decryptCustomToken(cipher, identity.privateKey, data.sessionId);
+        await signInWithCustomToken(auth, customToken);
         if (firestore) {
           await deleteQrLoginSession(firestore, data.sessionId);
         }
@@ -111,10 +122,12 @@ export function QrLoginPanel({ className, onOtherMethodClick, onSignedIn }: QrLo
         onSignedIn?.();
       } catch (e) {
         consumingRef.current = false;
-        setPhase({
-          kind: 'error',
-          message: e instanceof Error ? e.message : String(e),
-        });
+        // Use a generic message for crypto failures so we don't reveal
+        // which step failed (key/IV/tag). Network errors keep their messages.
+        const message = e instanceof QrTokenDecryptError
+          ? 'QR_TOKEN_DECRYPT_FAILED'
+          : (e instanceof Error ? e.message : String(e));
+        setPhase({ kind: 'error', message });
       }
     },
     [auth, firestore, cleanupListeners, onSignedIn]
