@@ -272,9 +272,18 @@ export default function MeetingPage() {
   }
 
   return isJoined && user ? (
-    <MeetingRoom 
-      meeting={meeting} currentUser={user} initialMicMuted={joinSettings.micMuted}
-      initialVideoOff={joinSettings.videoOff} initialName={joinSettings.name} initialStream={joinSettings.stream}
+    <MeetingRoom
+      meeting={meeting}
+      currentUser={{
+        ...user,
+        // Имя из лобби имеет приоритет над user.name из useAuth: гость
+        // вводит его сам, и на своей плитке/в чате должен видеть именно его.
+        name: joinSettings.name?.trim() ? joinSettings.name.trim() : user.name,
+      }}
+      initialMicMuted={joinSettings.micMuted}
+      initialVideoOff={joinSettings.videoOff}
+      initialName={joinSettings.name}
+      initialStream={joinSettings.stream}
     />
   ) : isJoined && !user ? (
     <div className="h-screen w-full flex items-center justify-center bg-[#0a0e17]">
