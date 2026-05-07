@@ -26,6 +26,13 @@ export const onmessagecreated = onDocumentCreated(
     const senderId = messageData.senderId;
     const conversationId = event.params.conversationId;
 
+    // [audit H-006] System-сообщения (game lobby события и пр.) не шлются
+    // push'ами и не должны тащить N+1 чтения recipient'ов. Ранний exit
+    // экономит per-message ~200 reads на групповых чатах.
+    if (senderId === "__system__" || messageData.systemEvent != null) {
+      return;
+    }
+
     const conversationRef = db.doc(`conversations/${conversationId}`);
     const conversationSnap = await conversationRef.get();
     if (!conversationSnap.exists) {
@@ -96,9 +103,30 @@ export const onmessagecreated = onDocumentCreated(
 
     const sendItems: Array<{ tokens: string[]; data: Record<string, string> }> = [];
 
-    for (const userId of recipientIds) {
+    // [audit H-006] Раньше per-recipient делалось 2 await get'а
+    // (`users/{uid}` + `chatConversationPrefs/{convId}`) последовательно —
+    // на 100-членной группе это 200 reads + 200 round-trip latency.
+    // Сейчас один `db.getAll(...)` достаёт всё параллельно: и для бюджета
+    // (Firestore не тарифицирует getAll отдельно от обычных reads, но
+    // single-RPC намного быстрее), и для p99-latency триггера.
+    const userRefs = recipientIds.map((uid) => db.doc(`users/${uid}`));
+    const prefRefs = recipientIds.map((uid) =>
+      db.doc(`users/${uid}/chatConversationPrefs/${conversationId}`)
+    );
+    let allSnaps: admin.firestore.DocumentSnapshot[];
+    try {
+      allSnaps = await db.getAll(...userRefs, ...prefRefs);
+    } catch (e) {
+      logger.error(`onMessageCreated: getAll recipients failed`, { conversationId, error: String(e) });
+      return;
+    }
+    const userSnaps = allSnaps.slice(0, recipientIds.length);
+    const prefSnaps = allSnaps.slice(recipientIds.length);
+
+    for (let i = 0; i < recipientIds.length; i++) {
+      const userId = recipientIds[i];
       try {
-        const userSnap = await db.doc(`users/${userId}`).get();
+        const userSnap = userSnaps[i];
         if (!userSnap.exists) continue;
         const userData = userSnap.data() as Record<string, unknown>;
         const tokens = (userData.fcmTokens as unknown[] | undefined)?.filter(
@@ -106,7 +134,7 @@ export const onmessagecreated = onDocumentCreated(
         )?.filter((t) => !senderFcmTokenSet.has(t));
         if (!tokens?.length) continue;
 
-        const prefSnap = await db.doc(`users/${userId}/chatConversationPrefs/${conversationId}`).get();
+        const prefSnap = prefSnaps[i];
         const chatPrefs = prefSnap.exists ? (prefSnap.data() as Record<string, unknown>) : undefined;
 
         const decision = evaluateChatMessagePush({
