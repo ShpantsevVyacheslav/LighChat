@@ -109,28 +109,51 @@ export async function handoverDeviceAccessV2(params: {
   // 1) Публикуем новое устройство в `e2eeDevices/{newDeviceId}` от имени старого
   //    (правила это позволяют — записывать может только владелец uid). Это
   //    гарантирует, что collectParticipantDevicesV2 ниже увидит новое устройство.
-  await setDoc(
-    doc(firestore, 'users', userId, 'e2eeDevices', newDevice.deviceId),
-    {
-      deviceId: newDevice.deviceId,
-      publicKeySpki: newDevice.publicKeySpki,
-      platform: newDevice.platform,
-      label: newDevice.label,
-      createdAt: new Date().toISOString(),
-      lastSeenAt: new Date().toISOString(),
-      keyBundleVersion: 1,
-    },
-    { merge: true }
-  );
+  // [diag] Помечаем этап в message, чтобы catch выше показал точку падения.
+  try {
+    await setDoc(
+      doc(firestore, 'users', userId, 'e2eeDevices', newDevice.deviceId),
+      {
+        deviceId: newDevice.deviceId,
+        publicKeySpki: newDevice.publicKeySpki,
+        platform: newDevice.platform,
+        label: newDevice.label,
+        createdAt: new Date().toISOString(),
+        lastSeenAt: new Date().toISOString(),
+        keyBundleVersion: 1,
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    throw new Error(
+      `handover.publishNewDevice [${err?.code ?? 'unknown'}]: ${err?.message ?? String(e)}`
+    );
+  }
   // Также убедимся, что наш собственный device-doc актуален (lastSeenAt бампится).
-  await publishE2eeDeviceV2(firestore, userId, donorIdentity);
+  try {
+    await publishE2eeDeviceV2(firestore, userId, donorIdentity);
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    throw new Error(
+      `handover.publishOwnDevice [${err?.code ?? 'unknown'}]: ${err?.message ?? String(e)}`
+    );
+  }
 
-  const convsSnap = await getDocs(
-    query(
-      collection(firestore, 'conversations'),
-      where('participantIds', 'array-contains', userId)
-    )
-  );
+  let convsSnap;
+  try {
+    convsSnap = await getDocs(
+      query(
+        collection(firestore, 'conversations'),
+        where('participantIds', 'array-contains', userId)
+      )
+    );
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    throw new Error(
+      `handover.listConversations [${err?.code ?? 'unknown'}]: ${err?.message ?? String(e)}`
+    );
+  }
   const targets: Conversation[] = [];
   for (const snap of convsSnap.docs) {
     const data = snap.data() as Omit<Conversation, 'id'>;

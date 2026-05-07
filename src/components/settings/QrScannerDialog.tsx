@@ -232,12 +232,31 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
           });
         }
       } catch (e) {
+        // [diag] Раскрываем FirebaseError полностью: code, name, message,
+        // customData, stack — пользователь видит «An internal error occurred»
+        // без code, нам нужен code чтобы понять, какой Firestore/Auth call падает.
+        const err = e as {
+          code?: string;
+          name?: string;
+          message?: string;
+          customData?: unknown;
+          stack?: string;
+        };
         // eslint-disable-next-line no-console
-        console.error('[qr-scan] FAIL handover', e);
+        console.error('[qr-scan] FAIL handover', {
+          code: err?.code,
+          name: err?.name,
+          message: err?.message,
+          customData: err?.customData,
+          stack: err?.stack,
+          raw: e,
+        });
+        const codeStr = err?.code ?? err?.name ?? 'unknown';
+        const msgStr = err?.message ?? String(e);
         setStage({
           kind: 'error',
           source: 'server',
-          message: `handover: ${e instanceof Error ? e.message : String(e)}`,
+          message: `handover [${codeStr}]: ${msgStr}`,
         });
         return;
       }
