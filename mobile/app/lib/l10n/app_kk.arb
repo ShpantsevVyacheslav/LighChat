@@ -3968,5 +3968,21 @@
   "energy_saving_media_preload_title": "Предзагрузка медиа",
   "energy_saving_media_preload_subtitle": "Запуск загрузкжәне медиафайлов пржәне вжүрісе в тізім чатов.",
   "energy_saving_background_update_title": "Жаңарту в фоне",
-  "energy_saving_background_update_subtitle": "Быстрое жаңарту чатов пржәне переключенижәне между приложениями."
+  "energy_saving_background_update_subtitle": "Быстрое жаңарту чатов пржәне переключенижәне между приложениями.",
+  "chat_list_item_sender_you": "Сіз",
+  "@chat_list_item_sender_you": {
+    "description": "Label for current user as sender in chat list preview"
+  },
+  "chat_preview_message": "Хабарлама",
+  "@chat_preview_message": {
+    "description": "Chat list preview: chat_preview_message"
+  },
+  "chat_preview_sticker": "Стикер",
+  "@chat_preview_sticker": {
+    "description": "Chat list preview: chat_preview_sticker"
+  },
+  "chat_preview_attachment": "Тіркеме",
+  "@chat_preview_attachment": {
+    "description": "Chat list preview: chat_preview_attachment"
+  }
 }

@@ -256,13 +256,17 @@
   "storage_settings_clear_category_title": "Clear \"{category}\"?",
   "@storage_settings_clear_category_title": {
     "placeholders": {
-      "category": {"type": "String"}
+      "category": {
+        "type": "String"
+      }
     }
   },
   "storage_settings_clear_category_body": "About {size} will be freed. This cannot be undone.",
   "@storage_settings_clear_category_body": {
     "placeholders": {
-      "size": {"type": "String"}
+      "size": {
+        "type": "String"
+      }
     }
   },
   "storage_auto_delete_title": "Auto-delete cached media",
@@ -834,7 +838,9 @@
   "auth_qr_refresh_in": "Refreshes in {seconds}s",
   "@auth_qr_refresh_in": {
     "placeholders": {
-      "seconds": { "type": "int" }
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "auth_qr_other_method": "Sign in another way",
@@ -926,8 +932,12 @@
   "devices_handover_progress_body": "Updated {done} of {total}",
   "@devices_handover_progress_body": {
     "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "devices_handover_progress_starting": "Starting…",
@@ -935,7 +945,9 @@
   "devices_handover_success_body": "Device {label} now has access to your encrypted chats.",
   "@devices_handover_success_body": {
     "placeholders": {
-      "label": { "type": "String" }
+      "label": {
+        "type": "String"
+      }
     }
   },
   "devices_progress_rekeying": "Updating chats: {done} / {total}",
@@ -3945,17 +3957,29 @@
   "energy_saving_threshold_always_full": "Always",
   "energy_saving_threshold_at": "When battery is below {percent}%",
   "@energy_saving_threshold_at": {
-    "placeholders": {"percent": {"type": "int"}}
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
   "energy_saving_hint_off": "Resource-heavy effects are never auto-disabled.",
   "energy_saving_hint_always": "Resource-heavy effects are always disabled regardless of battery level.",
   "energy_saving_hint_threshold": "Automatically disable all resource-heavy processes when battery drops below {percent}%.",
   "@energy_saving_hint_threshold": {
-    "placeholders": {"percent": {"type": "int"}}
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
   "energy_saving_current_battery": "Current battery: {percent}%",
   "@energy_saving_current_battery": {
-    "placeholders": {"percent": {"type": "int"}}
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
   "energy_saving_active_now": "mode is active",
   "energy_saving_active_threshold": "Battery has reached the threshold — every effect below is temporarily disabled.",
@@ -3974,7 +3998,6 @@
   "energy_saving_media_preload_subtitle": "Start downloading media files when opening the chat list.",
   "energy_saving_background_update_title": "Background update",
   "energy_saving_background_update_subtitle": "Quick chat updates when switching between apps.",
-
   "legal_index_title": "Legal documents",
   "legal_index_subtitle": "Privacy policy, terms of service and other legal documents that govern the use of LighChat.",
   "legal_settings_section_title": "Legal information",
@@ -3987,5 +4010,21 @@
   "legal_title_dpa": "Data Processing Agreement",
   "legal_title_children": "Children Policy",
   "legal_title_moderation": "Content Moderation Policy",
-  "legal_title_aup": "Acceptable Use Policy"
+  "legal_title_aup": "Acceptable Use Policy",
+  "chat_list_item_sender_you": "You",
+  "@chat_list_item_sender_you": {
+    "description": "Label for current user as sender in chat list preview"
+  },
+  "chat_preview_message": "Message",
+  "@chat_preview_message": {
+    "description": "Chat list preview: chat_preview_message"
+  },
+  "chat_preview_sticker": "Sticker",
+  "@chat_preview_sticker": {
+    "description": "Chat list preview: chat_preview_sticker"
+  },
+  "chat_preview_attachment": "Attachment",
+  "@chat_preview_attachment": {
+    "description": "Chat list preview: chat_preview_attachment"
+  }
 }

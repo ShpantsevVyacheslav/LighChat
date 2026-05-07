@@ -7888,4 +7888,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get legal_title_aup => 'Правила допустимого использования';
+
+  @override
+  String get chat_list_item_sender_you => 'Вы';
+
+  @override
+  String get chat_preview_message => 'Сообщение';
+
+  @override
+  String get chat_preview_sticker => 'Стикер';
+
+  @override
+  String get chat_preview_attachment => 'Вложение';
 }

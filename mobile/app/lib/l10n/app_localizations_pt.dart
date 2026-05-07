@@ -523,10 +523,27 @@ class AppLocalizationsPt extends AppLocalizations {
       'Fotos e figurinhas em cache dos chats abertos.';
 
   @override
+  String get storage_category_stickers_gifs_emoji => 'Стикеры, GIF, эмодзи';
+
+  @override
+  String get storage_category_stickers_gifs_emoji_subtitle =>
+      'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.';
+
+  @override
+  String get storage_category_network_images => 'Кэш сетевых картинок';
+
+  @override
+  String get storage_category_network_images_subtitle =>
+      'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).';
+
+  @override
   String get storage_media_type_video => 'Vídeo';
 
   @override
   String get storage_media_type_photo => 'Fotos';
+
+  @override
+  String get storage_media_type_audio => 'Аудио';
 
   @override
   String get storage_media_type_files => 'Arquivos';
@@ -542,6 +559,19 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get storage_settings_clear_all_hint =>
       'Toda a mídia continua na nuvem. Você pode baixar de novo quando quiser.';
+
+  @override
+  String get storage_settings_categories_title => 'По категориям';
+
+  @override
+  String storage_settings_clear_category_title(String category) {
+    return 'Очистить «$category»?';
+  }
+
+  @override
+  String storage_settings_clear_category_body(String size) {
+    return 'Будет освобождено около $size. Действие нельзя отменить.';
+  }
 
   @override
   String get storage_auto_delete_title =>
@@ -1450,13 +1480,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get chat_meetings_backgrounds_desc =>
       'Faça upload de planos de fundo e desfoque o seu se quiser. Escolha uma imagem da galeria ou envie os seus.';
-
-  @override
-  String get chat_meetings_waiting_room_toggle => 'Adicionar sala de espera';
-
-  @override
-  String get chat_meetings_waiting_room_toggle_subtitle =>
-      'Apenas o anfitrião pode admitir participantes e bloquear o acesso.';
 
   @override
   String get chat_meetings_create_button => 'Criar reunião';
@@ -4043,6 +4066,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get meeting_participants_button => 'Membros';
 
   @override
+  String get meeting_notifications_button => 'Активность';
+
+  @override
+  String get meeting_pip_button => 'Свернуть';
+
+  @override
   String get settings_chats_bottom_nav_icons_title => 'Bottom navigation icons';
 
   @override
@@ -4605,6 +4634,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get meeting_join_guest => 'Convidado';
+
+  @override
+  String get meeting_join_as_label => 'Вы войдёте как';
+
+  @override
+  String get meeting_lobby_camera_blocked =>
+      'Доступ к камере не выдан. Вы войдёте с выключенной камерой.';
 
   @override
   String get meeting_join_button => 'Entrar';
@@ -7602,10 +7638,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String get storage_label_photo => 'Foto';
 
   @override
+  String get storage_label_audio => 'Аудио';
+
+  @override
   String get storage_label_files => 'Arquivos';
 
   @override
   String get storage_label_other => 'Other';
+
+  @override
+  String get storage_label_recent_stickers => 'Недавние стикеры';
+
+  @override
+  String get storage_label_giphy_search => 'GIPHY · поисковый кэш';
+
+  @override
+  String get storage_label_giphy_recent => 'GIPHY · недавние GIF';
+
+  @override
+  String get storage_chat_unattributed => 'Без привязки к чату';
 
   @override
   String storage_label_draft(String key) {
@@ -7821,6 +7872,59 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get energy_saving_background_update_subtitle =>
       'Quick chat updates when switching between apps.';
+
+  @override
+  String get legal_index_title => 'Юридические документы';
+
+  @override
+  String get legal_index_subtitle =>
+      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.';
+
+  @override
+  String get legal_settings_section_title => 'Правовая информация';
+
+  @override
+  String get legal_settings_section_subtitle =>
+      'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.';
+
+  @override
+  String get legal_not_found => 'Документ не найден';
+
+  @override
+  String get legal_title_privacy_policy => 'Политика конфиденциальности';
+
+  @override
+  String get legal_title_terms_of_service => 'Пользовательское соглашение';
+
+  @override
+  String get legal_title_cookie_policy => 'Политика использования cookies';
+
+  @override
+  String get legal_title_eula => 'Лицензионное соглашение (EULA)';
+
+  @override
+  String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
+
+  @override
+  String get legal_title_children => 'Политика в отношении несовершеннолетних';
+
+  @override
+  String get legal_title_moderation => 'Политика модерации контента';
+
+  @override
+  String get legal_title_aup => 'Правила допустимого использования';
+
+  @override
+  String get chat_list_item_sender_you => 'Você';
+
+  @override
+  String get chat_preview_message => 'Mensagem';
+
+  @override
+  String get chat_preview_sticker => 'Figurinha';
+
+  @override
+  String get chat_preview_attachment => 'Anexo';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -9271,13 +9375,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Faça upload de planos de fundo e desfoque o seu se quiser. Escolha uma imagem da galeria ou envie os seus.';
 
   @override
-  String get chat_meetings_waiting_room_toggle => 'Adicionar sala de espera';
-
-  @override
-  String get chat_meetings_waiting_room_toggle_subtitle =>
-      'Apenas o anfitrião pode admitir participantes e bloquear o acesso.';
-
-  @override
   String get chat_meetings_create_button => 'Criar reunião';
 
   @override
@@ -15640,4 +15737,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get energy_saving_background_update_subtitle =>
       'Quick chat updates when switching between apps.';
+
+  @override
+  String get chat_list_item_sender_you => 'Você';
+
+  @override
+  String get chat_preview_message => 'Mensagem';
+
+  @override
+  String get chat_preview_sticker => 'Figurinha';
+
+  @override
+  String get chat_preview_attachment => 'Anexo';
 }

@@ -551,16 +551,23 @@ class ChatRepository {
     return controller.stream;
   }
 
+  /// Marker constants stored in Firestore `lastMessageText`.
+  /// Translated to the user's locale on the UI side.
+  static const kPreviewMessage = '{{message}}';
+  static const kPreviewSticker = '{{sticker}}';
+  static const kPreviewAttachment = '{{attachment}}';
+  static const kPreviewEncrypted = '{{encrypted}}';
+
   static String _threadLastPreviewText({
     required String trimmedPlainText,
     required List<ChatAttachment> attachments,
   }) {
     if (trimmedPlainText.isNotEmpty) return trimmedPlainText;
-    if (attachments.isEmpty) return 'Сообщение';
+    if (attachments.isEmpty) return kPreviewMessage;
     final n = attachments.first.name.toLowerCase();
-    if (n.startsWith('sticker_')) return 'Стикер';
+    if (n.startsWith('sticker_')) return kPreviewSticker;
     if (n.startsWith('gif_')) return 'GIF';
-    return 'Вложение';
+    return kPreviewAttachment;
   }
 
   /// Превью для `conversations.lastMessageText` из HTML основного чата.
@@ -571,6 +578,12 @@ class ChatRepository {
     var plain = trimmedHtml
         .replaceAll(RegExp(r'<[^>]*>'), '')
         .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&#x27;', "'")
         .trim();
     if (plain.length > 100) plain = plain.substring(0, 100);
     return _threadLastPreviewText(
@@ -617,7 +630,7 @@ class ChatRepository {
 
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final threadLastText = hasE2ee
-        ? 'Зашифрованное сообщение'
+        ? kPreviewEncrypted
         : _threadLastPreviewText(
             trimmedPlainText: trimmed,
             attachments: attachments,
@@ -962,7 +975,7 @@ class ChatRepository {
         }
 
         final preview = hasE2ee
-            ? 'Зашифрованное сообщение'
+            ? kPreviewEncrypted
             : _mainChatLastPreviewText(
                 trimmedHtml: trimmed,
                 attachments: attachments,

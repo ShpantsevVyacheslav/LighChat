@@ -22,6 +22,7 @@ class ChatListItem extends StatefulWidget {
     this.enableSwipeActions = false,
     this.allowDelete = true,
     this.isPinned = false,
+    this.unreadReactionEmoji,
   });
 
   final ConversationWithId conversation;
@@ -39,6 +40,7 @@ class ChatListItem extends StatefulWidget {
   final bool enableSwipeActions;
   final bool allowDelete;
   final bool isPinned;
+  final String? unreadReactionEmoji;
 
   @override
   State<ChatListItem> createState() => _ChatListItemState();
@@ -219,6 +221,13 @@ class _ChatListItemState extends State<ChatListItem> {
                               ),
                             ),
                             const SizedBox(height: 4),
+                            if (widget.unreadReactionEmoji != null) ...[
+                              Text(
+                                widget.unreadReactionEmoji!,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const SizedBox(height: 2),
+                            ],
                             if (widget.unreadCount > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(

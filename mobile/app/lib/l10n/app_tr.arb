@@ -3968,5 +3968,21 @@
   "energy_saving_media_preload_title": "Medya ön yükleme",
   "energy_saving_media_preload_subtitle": "Sohbet listesi açılırken medya dosyalarını indirmeye başla.",
   "energy_saving_background_update_title": "Arka plan güncelleme",
-  "energy_saving_background_update_subtitle": "Uygulamalar arasında geçiş yaparken hızlı sohbet güncellemeleri."
+  "energy_saving_background_update_subtitle": "Uygulamalar arasında geçiş yaparken hızlı sohbet güncellemeleri.",
+  "chat_list_item_sender_you": "Siz",
+  "@chat_list_item_sender_you": {
+    "description": "Label for current user as sender in chat list preview"
+  },
+  "chat_preview_message": "Mesaj",
+  "@chat_preview_message": {
+    "description": "Chat list preview: chat_preview_message"
+  },
+  "chat_preview_sticker": "Çıkartma",
+  "@chat_preview_sticker": {
+    "description": "Chat list preview: chat_preview_sticker"
+  },
+  "chat_preview_attachment": "Ek",
+  "@chat_preview_attachment": {
+    "description": "Chat list preview: chat_preview_attachment"
+  }
 }

@@ -3968,5 +3968,21 @@
   "energy_saving_media_preload_title": "Precarga de multimedia",
   "energy_saving_media_preload_subtitle": "Comenzar a descargar archivos multimedia al abrir la lista de chats.",
   "energy_saving_background_update_title": "Actualización en segundo plano",
-  "energy_saving_background_update_subtitle": "Actualizaciones rápidas del chat al cambiar entre apps."
+  "energy_saving_background_update_subtitle": "Actualizaciones rápidas del chat al cambiar entre apps.",
+  "chat_list_item_sender_you": "Tú",
+  "@chat_list_item_sender_you": {
+    "description": "Label for current user as sender in chat list preview"
+  },
+  "chat_preview_message": "Mensaje",
+  "@chat_preview_message": {
+    "description": "Chat list preview: chat_preview_message"
+  },
+  "chat_preview_sticker": "Sticker",
+  "@chat_preview_sticker": {
+    "description": "Chat list preview: chat_preview_sticker"
+  },
+  "chat_preview_attachment": "Adjunto",
+  "@chat_preview_attachment": {
+    "description": "Chat list preview: chat_preview_attachment"
+  }
 }

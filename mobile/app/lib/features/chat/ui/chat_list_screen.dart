@@ -1762,8 +1762,19 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   l10n: AppLocalizations.of(context)!,
                                 );
                               }
-                              final rawLastFromFirestore =
+                              final rawLastFromFirestoreRaw =
                                   (c.data.lastMessageText ?? '').trim();
+                              // Strip HTML tags that may leak from thread replies.
+                              final rawLastFromFirestore = rawLastFromFirestoreRaw
+                                  .replaceAll(RegExp(r'<[^>]*>'), '')
+                                  .replaceAll('&nbsp;', ' ')
+                                  .replaceAll('&amp;', '&')
+                                  .replaceAll('&lt;', '<')
+                                  .replaceAll('&gt;', '>')
+                                  .replaceAll('&quot;', '"')
+                                  .replaceAll("&#39;", "'")
+                                  .replaceAll("&#x27;", "'")
+                                  .trim();
                               // E2EE override: если в Firestore лежит
                               // плейсхолдер «Зашифрованное сообщение», ищем
                               // настоящий plaintext в локальном preview-кэше.
@@ -1816,6 +1827,54 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                   rawLast.isEmpty;
                               final isNewlyCreatedAfterClear =
                                   isEmptyConversation && clearedAt != null;
+                              // Translate preview markers stored in Firestore.
+                              if (rawLast == '{{message}}') {
+                                rawLast = l10nList.chat_preview_message;
+                              } else if (rawLast == '{{sticker}}') {
+                                rawLast = l10nList.chat_preview_sticker;
+                              } else if (rawLast == '{{attachment}}') {
+                                rawLast = l10nList.chat_preview_attachment;
+                              } else if (rawLast == '{{encrypted}}') {
+                                rawLast = l10nList.chat_e2ee_encrypted_message_placeholder;
+                              }
+                              // Also translate legacy hardcoded Russian markers.
+                              else if (rawLast == 'Стикер') {
+                                rawLast = l10nList.chat_preview_sticker;
+                              } else if (rawLast == 'Вложение') {
+                                rawLast = l10nList.chat_preview_attachment;
+                              } else if (rawLast == 'Сообщение') {
+                                rawLast = l10nList.chat_preview_message;
+                              } else if (rawLast == 'Зашифрованное сообщение') {
+                                rawLast = l10nList.chat_e2ee_encrypted_message_placeholder;
+                              }
+                              // Build rich subtitle with sender name + thread indicator.
+                              String enrichedRawLast = rawLast;
+                              if (rawLast.isNotEmpty) {
+                                // Prefix with sender name for group chats.
+                                if (c.data.isGroup && c.data.lastMessageSenderId != null) {
+                                  final senderId = c.data.lastMessageSenderId!;
+                                  String? senderName;
+                                  if (senderId == widget.currentUserId) {
+                                    senderName = l10nList.chat_list_item_sender_you;
+                                  } else {
+                                    final info = c.data.participantInfo?[senderId];
+                                    senderName = info?.displayName;
+                                    if (senderName == null || senderName.isEmpty) {
+                                      final profile = profiles?[senderId];
+                                      senderName = profile?['displayName'] as String? ??
+                                          profile?['username'] as String?;
+                                    }
+                                  }
+                                  if (senderName != null && senderName.isNotEmpty) {
+                                    final firstName = senderName.split(' ').first;
+                                    enrichedRawLast = '$firstName: $rawLast';
+                                  }
+                                }
+                                // Add thread indicator prefix.
+                                if (c.data.lastMessageIsThread) {
+                                  enrichedRawLast = '↩ $enrichedRawLast';
+                                }
+                              }
                               final subtitle =
                                   (draftLine != null && draftLine.isNotEmpty)
                                   ? l10nList.chat_list_item_draft_line(
@@ -1829,7 +1888,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                               : isClearedForCurrentUser
                                               ? l10nList
                                                     .chat_list_item_history_cleared
-                                              : rawLast));
+                                              : enrichedRawLast));
                               final unreadCount =
                                   (c.data.unreadCounts?[widget.currentUserId] ??
                                       0) +
@@ -1839,6 +1898,19 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                               final timeLabel = _formatTimeLabel(
                                 c.data.lastMessageTimestamp,
                               );
+                              // Determine unread reaction emoji badge.
+                              String? unreadReactionEmoji;
+                              if (c.data.lastReactionEmoji != null &&
+                                  c.data.lastReactionEmoji!.isNotEmpty &&
+                                  c.data.lastReactionSenderId != widget.currentUserId) {
+                                final seenAt = c.data.lastReactionSeenAt?[widget.currentUserId];
+                                final reactionTs = c.data.lastReactionTimestamp;
+                                final seenDt = seenAt != null ? DateTime.tryParse(seenAt) : null;
+                                final reactDt = reactionTs != null ? DateTime.tryParse(reactionTs) : null;
+                                if (reactDt != null && (seenDt == null || seenDt.isBefore(reactDt))) {
+                                  unreadReactionEmoji = c.data.lastReactionEmoji;
+                                }
+                              }
                               return ChatListItem(
                                 conversation: c,
                                 title: title,
@@ -1848,6 +1920,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                 isPinned: _isPinnedInActiveFolder(c.id),
                                 avatarUrl: avatarUrl,
                                 isOnline: isOnline,
+                                unreadReactionEmoji: unreadReactionEmoji,
                                 onTap: () => context.push('/chats/${c.id}'),
                                 onLongPress: () =>
                                     _openChatActionsMenu(context, c),

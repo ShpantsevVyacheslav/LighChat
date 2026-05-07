@@ -13857,6 +13857,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Правила допустимого использования'**
   String get legal_title_aup;
+
+  /// Label for current user as sender in chat list preview
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы'**
+  String get chat_list_item_sender_you;
+
+  /// Chat list preview: chat_preview_message
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get chat_preview_message;
+
+  /// Chat list preview: chat_preview_sticker
+  ///
+  /// In ru, this message translates to:
+  /// **'Стикер'**
+  String get chat_preview_sticker;
+
+  /// Chat list preview: chat_preview_attachment
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get chat_preview_attachment;
 }
 
 class _AppLocalizationsDelegate

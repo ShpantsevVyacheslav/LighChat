@@ -131,6 +131,8 @@ class Conversation {
     this.participantInfo,
     this.lastMessageText,
     this.lastMessageTimestamp,
+    this.lastMessageSenderId,
+    this.lastMessageIsThread = false,
     this.unreadCounts,
     this.unreadThreadCounts,
     this.lastReactionEmoji,
@@ -170,6 +172,12 @@ class Conversation {
 
   /// ISO string in your web model; in Firestore it is commonly stored as string.
   final String? lastMessageTimestamp;
+
+  /// UID отправителя последнего сообщения (для превью «Имя: текст» в списке чатов).
+  final String? lastMessageSenderId;
+
+  /// Последнее сообщение из треда (а не из основного чата).
+  final bool lastMessageIsThread;
   final Map<String, int>? unreadCounts;
   final Map<String, int>? unreadThreadCounts;
   final String? lastReactionEmoji;
@@ -311,6 +319,10 @@ class Conversation {
       lastMessageTimestamp: json['lastMessageTimestamp'] is String
           ? json['lastMessageTimestamp'] as String
           : null,
+      lastMessageSenderId: json['lastMessageSenderId'] is String
+          ? json['lastMessageSenderId'] as String
+          : null,
+      lastMessageIsThread: json['lastMessageIsThread'] == true,
       unreadCounts: parseCounts(json['unreadCounts']),
       unreadThreadCounts: parseCounts(json['unreadThreadCounts']),
       lastReactionEmoji: json['lastReactionEmoji'] is String

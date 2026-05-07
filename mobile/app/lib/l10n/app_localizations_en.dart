@@ -7851,4 +7851,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legal_title_aup => 'Acceptable Use Policy';
+
+  @override
+  String get chat_list_item_sender_you => 'You';
+
+  @override
+  String get chat_preview_message => 'Message';
+
+  @override
+  String get chat_preview_sticker => 'Sticker';
+
+  @override
+  String get chat_preview_attachment => 'Attachment';
 }
