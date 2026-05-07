@@ -1527,10 +1527,10 @@ export function ChatWindow({
         lastPreview = E2EE_LAST_MESSAGE_PREVIEW;
       } else if (!lastPreview) {
         if (prebuilt.some((a) => a.name.startsWith('gif_'))) lastPreview = 'GIF';
-        else if (prebuilt.some((a) => a.name.startsWith('sticker_'))) lastPreview = 'Стикер';
-        else if (files.length === 1 && files[0].name.startsWith('sticker_')) lastPreview = 'Стикер';
-        else if (files.length > 0 || prebuilt.length > 0) lastPreview = 'Вложение';
-        else lastPreview = 'Сообщение';
+        else if (prebuilt.some((a) => a.name.startsWith('sticker_'))) lastPreview = t('chatList.previewSticker');
+        else if (files.length === 1 && files[0].name.startsWith('sticker_')) lastPreview = t('chatList.previewSticker');
+        else if (files.length > 0 || prebuilt.length > 0) lastPreview = t('chatList.previewAttachment');
+        else lastPreview = t('chat.messageInput.placeholder');
       }
       
       await updateDoc(conversationRef, {
@@ -2231,7 +2231,7 @@ export function ChatWindow({
   const chatDisplayName = conversation.isGroup
     ? conversation.name || 'Группа'
     : isSelfSavedChat
-      ? conversation.name || 'Избранное'
+      ? conversation.name || t('chatList.previewSavedMessages')
       : resolveContactDisplayName(
           userContactsIndex?.contactProfiles,
           otherId,

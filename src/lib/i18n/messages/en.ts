@@ -224,6 +224,10 @@ export const messagesEn = {
     moveUp: 'Move up',
     moveDown: 'Move down',
     deleteFolder: 'Delete',
+    previewSticker: 'Sticker',
+    previewAttachment: 'Attachment',
+    previewSavedMessages: 'Saved Messages',
+    stickerTabTitle: 'Stickers',
   },
   calls: {
     unknownContact: 'Unknown',

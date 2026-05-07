@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useI18n } from '@/hooks/use-i18n';
 import { Theme } from 'emoji-picker-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,6 +98,7 @@ export function ChatStickerGifPanel({
   onPickEmoji,
   className,
 }: ChatStickerGifPanelProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [gifQuery, setGifQuery] = useState('');
   const [gifLoading, setGifLoading] = useState(false);
@@ -398,8 +400,8 @@ export function ChatStickerGifPanel({
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col gap-2', className)}>
       <div className="flex shrink-0 gap-1 rounded-xl bg-muted p-1">
-        {tabBtn('emoji', 'Эмодзи')}
-        {tabBtn('stickers', 'Стикеры')}
+        {tabBtn('emoji', 'Emoji')}
+        {tabBtn('stickers', t('chatList.stickerTabTitle'))}
         {tabBtn('gif', 'GIF')}
       </div>
 

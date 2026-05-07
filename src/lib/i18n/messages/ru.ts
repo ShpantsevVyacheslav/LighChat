@@ -230,6 +230,10 @@ export const messagesRu = {
     moveUp: 'Выше',
     moveDown: 'Ниже',
     deleteFolder: 'Удалить',
+    previewSticker: 'Стикер',
+    previewAttachment: 'Вложение',
+    previewSavedMessages: 'Избранное',
+    stickerTabTitle: 'Стикеры',
   },
   calls: {
     unknownContact: 'Неизвестно',

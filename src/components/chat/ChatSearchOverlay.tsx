@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '@/hooks/use-i18n';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Search, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -59,6 +60,7 @@ export function ChatSearchOverlay({
   blurInsetLeftPx = 0,
   e2eeDecryptedByMessageId,
 }: ChatSearchOverlayProps) {
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -157,7 +159,7 @@ export function ChatSearchOverlay({
                           </span>
                         </div>
                         <p className="truncate text-sm leading-snug text-foreground/88">
-                          {getMessagePlainText(msg) || 'Вложение'}
+                          {getMessagePlainText(msg) || t('chatList.previewAttachment')}
                         </p>
                       </div>
                     </div>

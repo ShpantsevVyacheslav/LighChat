@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/hooks/use-i18n';
 import {
   useFirestore,
   useMemoFirebase,
@@ -58,6 +59,7 @@ function ForwardingMessagePreview({
   messages: Partial<ChatMessage>[];
   allUsers: User[];
 }) {
+  const { t } = useI18n();
   const stripHtml = (html?: string) => {
     if (!html) return '';
     return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -79,14 +81,14 @@ function ForwardingMessagePreview({
               >
                 <div className="mb-1 flex items-center gap-2">
                   <Quote className="h-3 w-3 rotate-180 text-primary/40" />
-                  <p className="font-bold text-foreground">{sender?.name || 'Неизвестный'}</p>
+                  <p className="font-bold text-foreground">{sender?.name || t('calls.unknownContact')}</p>
                 </div>
                 <p className="break-words pl-5 italic text-muted-foreground">
                   {message.e2ee?.ciphertext
-                    ? 'Зашифрованное сообщение'
+                    ? t('chat.encryptedSyncingBanner')
                     : message.text
                       ? stripHtml(message.text)
-                      : 'Вложение'}
+                      : t('chatList.previewAttachment')}
                 </p>
               </div>
             );
@@ -118,6 +120,7 @@ type ForwardRecipientRow =
  * Список включает чаты из индекса и контакты без существующего личного чата; поддерживается «Выбрать всех» по отфильтрованному списку.
  */
 export function ChatForwardSheet() {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<Partial<ChatMessage>[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSending, setIsSending] = useState(false);

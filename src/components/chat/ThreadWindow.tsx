@@ -8,6 +8,7 @@ import { useFirestore, useStorage } from '@/firebase';
 import { collection, query, doc, updateDoc, increment, orderBy, setDoc, limit, onSnapshot, deleteDoc, serverTimestamp, deleteField, arrayUnion } from 'firebase/firestore';
 import { E2EE_LAST_MESSAGE_PREVIEW } from '@/lib/e2ee';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
+import { useI18n } from '@/hooks/use-i18n';
 import { useE2eeMediaAttachments } from '@/hooks/use-e2ee-media-attachments';
 import { useE2eeHydratedMessages } from '@/hooks/use-e2ee-hydrated-messages';
 import { isEncryptableMimeV2 } from '@/lib/e2ee';
@@ -157,6 +158,7 @@ export function ThreadWindow({
     const storage = useStorage();
     const { toast } = useToast();
     const router = useRouter();
+    const { t } = useI18n();
     const { chatSettings, privacySettings } = useSettings();
     const suppressReadReceipts = privacySettings.showReadReceipts === false;
     const globalE2eeTypes = parseE2eeEncryptedDataTypes(privacySettings.e2eeEncryptedDataTypes);
@@ -861,10 +863,10 @@ export function ThreadWindow({
                 threadLastText = E2EE_LAST_MESSAGE_PREVIEW;
             } else if (!threadLastText) {
                 if (prebuilt.some((a) => a.name.startsWith('gif_'))) threadLastText = 'GIF';
-                else if (prebuilt.some((a) => a.name.startsWith('sticker_'))) threadLastText = 'Стикер';
-                else if (files.length === 1 && files[0].name.startsWith('sticker_')) threadLastText = 'Стикер';
-                else if (files.length > 0 || prebuilt.length > 0) threadLastText = 'Вложение';
-                else threadLastText = 'Сообщение';
+                else if (prebuilt.some((a) => a.name.startsWith('sticker_'))) threadLastText = t('chatList.previewSticker');
+                else if (files.length === 1 && files[0].name.startsWith('sticker_')) threadLastText = t('chatList.previewSticker');
+                else if (files.length > 0 || prebuilt.length > 0) threadLastText = t('chatList.previewAttachment');
+                else threadLastText = t('chat.messageInput.placeholder');
             }
 
             updateDoc(parentMessageRef, {
@@ -1164,9 +1166,9 @@ export function ThreadWindow({
                 .replace(/\s+/g, ' ')
                 .trim();
         if (raw) return raw;
-        if ((parentMessage.chatPollId ?? '').trim()) return 'Опрос';
-        if (parentMessage.locationShare) return 'Локация';
-        if ((parentMessage.attachments?.length ?? 0) > 0) return 'Вложение';
+        if ((parentMessage.chatPollId ?? '').trim()) return t('chatList.previewAttachment');
+        if (parentMessage.locationShare) return t('chatList.previewAttachment');
+        if ((parentMessage.attachments?.length ?? 0) > 0) return t('chatList.previewAttachment');
         return 'Сообщение';
     }, [
         parentMessage.attachments,
