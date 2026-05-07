@@ -109,8 +109,17 @@ const en: LandingContent = {
   googlePlayLine2: 'Google Play',
 };
 
-const CONTENT: Record<ResolvedWebLocale, LandingContent> = { ru, en };
+const CONTENT: Record<ResolvedWebLocale, LandingContent> = {
+  ru,
+  en,
+  kk: ru,
+  uz: ru,
+  tr: en,
+  id: en,
+  'pt-BR': en,
+  'es-MX': en,
+};
 
 export function getLandingContent(locale: ResolvedWebLocale): LandingContent {
-  return locale === 'en' ? CONTENT.en : CONTENT.ru;
+  return CONTENT[locale] ?? ru;
 }
