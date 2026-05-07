@@ -62,26 +62,19 @@ class LanguageScreen extends ConsumerWidget {
                 },
                 child: Column(
                   children: [
+                    // «Системный» — первый, потом все конкретные локали.
                     row(
                       value: AppLanguagePreference.system,
                       title: l10n.settings_language_system,
                     ),
-                    Divider(
-                      height: 1,
-                      color: fg.withValues(alpha: dark ? 0.12 : 0.10),
-                    ),
-                    row(
-                      value: AppLanguagePreference.ru,
-                      title: l10n.settings_language_ru,
-                    ),
-                    Divider(
-                      height: 1,
-                      color: fg.withValues(alpha: dark ? 0.12 : 0.10),
-                    ),
-                    row(
-                      value: AppLanguagePreference.en,
-                      title: l10n.settings_language_en,
-                    ),
+                    for (final pref in AppLanguagePreference.values)
+                      if (pref != AppLanguagePreference.system) ...[
+                        Divider(
+                          height: 1,
+                          color: fg.withValues(alpha: dark ? 0.12 : 0.10),
+                        ),
+                        row(value: pref, title: pref.nativeName),
+                      ],
                   ],
                 ),
               ),
