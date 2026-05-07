@@ -57,9 +57,9 @@ export const verifySecretVaultPin = onCall(
       if (!ok) {
         const nextFailed = failedAttempts + 1;
         const shouldLock = nextFailed >= MAX_FAILED_ATTEMPTS;
-        const nextLockedUntil = shouldLock
-          ? new Date(now.getTime() + LOCK_MINUTES_AFTER_MAX * 60_000).toISOString()
-          : null;
+        const nextLockedUntil = shouldLock ?
+          new Date(now.getTime() + LOCK_MINUTES_AFTER_MAX * 60_000).toISOString() :
+          null;
         tx.set(
           lockRef,
           { failedAttempts: nextFailed, lockedUntil: nextLockedUntil, updatedAt: nowIso },

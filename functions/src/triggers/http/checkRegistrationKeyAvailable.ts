@@ -52,9 +52,9 @@ export async function runCheckRegistrationKeyAvailable(
   const type = String(data?.type ?? "").trim().toLowerCase();
   const value = String(data?.value ?? "");
   const exceptUid =
-    typeof data?.exceptUid === "string" && data.exceptUid.trim().length > 0
-      ? data.exceptUid.trim()
-      : null;
+    typeof data?.exceptUid === "string" && data.exceptUid.trim().length > 0 ?
+      data.exceptUid.trim() :
+      null;
 
   let key: string | null = null;
   if (type === "phone") {
@@ -105,13 +105,13 @@ export const checkRegistrationKeyAvailable = onCall(
      */
     const rawInput = (request.data ?? {}) as CheckRegistrationKeyInput;
     const exceptUid =
-      typeof rawInput.exceptUid === "string"
-        ? rawInput.exceptUid.trim()
-        : "";
+      typeof rawInput.exceptUid === "string" ?
+        rawInput.exceptUid.trim() :
+        "";
     const safeExceptUid =
-      exceptUid && request.auth?.uid && exceptUid === request.auth.uid
-        ? exceptUid
-        : undefined;
+      exceptUid && request.auth?.uid && exceptUid === request.auth.uid ?
+        exceptUid :
+        undefined;
 
     try {
       return await runCheckRegistrationKeyAvailable(admin.firestore(), {

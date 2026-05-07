@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { buildInitialState, buildLegalMovesForUid, buildPublicView, buildSurrenderResult, canFinishTurn, computeAndApplyGameResult, derivePhase, drawUpToSix, getTrumpCard, markTaking, rotateAfterTake, shouldResolveTakingRound, takeTable } from "./engine";
+import { buildInitialState, buildLegalMovesForUid, buildPublicView, buildSurrenderResult, canFinishTurn, computeAndApplyGameResult, derivePhase, drawUpToSix, getTrumpCard, markTaking, rotateAfterTake, shouldResolveTakingRound, takeTable, applyAttack, applyDefense, applyTransfer, allDefended, resetRoundTracking } from "./engine";
 import type { DurakGameSettings } from "../gameSettings";
 import { parseCard } from "./cards";
-import { applyAttack, applyDefense, applyTransfer, allDefended, resetRoundTracking } from "./engine";
 
 const settings: DurakGameSettings = {
   mode: "podkidnoy",

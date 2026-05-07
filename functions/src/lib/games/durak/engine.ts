@@ -8,8 +8,7 @@ import {
   shuffleInPlace,
   type Card,
 } from "./cards";
-import type { DurakLegalMoves, DurakPhase, DurakPublicView, DurakServerState, DurakTable, DurakTurnKind } from "./state";
-import type { DurakGameResult } from "./state";
+import type { DurakLegalMoves, DurakPhase, DurakPublicView, DurakServerState, DurakTable, DurakTurnKind, DurakGameResult } from "./state";
 
 function rankValue(c: Card): number {
   if (isJoker(c)) return 100;

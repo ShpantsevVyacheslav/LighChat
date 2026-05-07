@@ -148,9 +148,9 @@ export async function runConfirmQrLogin(
   // signInWithCustomToken. The encryption uses ECDH-P256 + HKDF-SHA256 +
   // AES-256-GCM with sessionId as both HKDF salt and AES-GCM AAD, so a
   // leaked ciphertext is bound to the specific session.
-  const recipientPub = typeof docData.ephemeralPubKeySpki === "string"
-    ? docData.ephemeralPubKeySpki
-    : "";
+  const recipientPub = typeof docData.ephemeralPubKeySpki === "string" ?
+    docData.ephemeralPubKeySpki :
+    "";
   if (!recipientPub) {
     // Older clients that didn't send a public key cannot receive an
     // encrypted token. Refuse — better to fail closed than to write

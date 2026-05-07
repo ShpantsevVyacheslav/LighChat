@@ -113,8 +113,8 @@ async function detachFromConversations(uid: string): Promise<{
           adminIds: admin.firestore.FieldValue.arrayRemove(uid),
         });
         // Best-effort cleanup of indexes/grants tied to this uid in the chat.
-        await db.doc(`conversations/${convId}/members/${uid}`).delete().catch(() => {});
-        await db.doc(`conversations/${convId}/secretAccess/${uid}`).delete().catch(() => {});
+        await db.doc(`conversations/${convId}/members/${uid}`).delete().catch((_e) => {/* best-effort*/});
+        await db.doc(`conversations/${convId}/secretAccess/${uid}`).delete().catch((_e) => {/* best-effort*/});
         detachedFromGroupsCount++;
       }
     } catch (e) {

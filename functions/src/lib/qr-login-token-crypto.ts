@@ -26,8 +26,8 @@ const ALG_LABEL = "ecdh-p256-hkdf-aesgcm-v1";
 export type EncryptedCustomToken = {
   alg: typeof ALG_LABEL;
   ephPub: string; // SPKI base64
-  iv: string;     // 12-byte AES-GCM nonce, base64
-  ct: string;     // ciphertext || GCM tag (16 bytes), base64
+  iv: string; // 12-byte AES-GCM nonce, base64
+  ct: string; // ciphertext || GCM tag (16 bytes), base64
 };
 
 export class QrTokenEncryptError extends Error {
