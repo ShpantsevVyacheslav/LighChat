@@ -1045,8 +1045,19 @@ const en: FeaturesContent = {
   },
 };
 
-const CONTENT: Record<'ru' | 'en', FeaturesContent> = { ru, en };
+import type { ResolvedWebLocale } from '@/lib/i18n/preference';
 
-export function getFeaturesContent(locale: string): FeaturesContent {
-  return locale === 'en' ? CONTENT.en : CONTENT.ru;
+const CONTENT: Record<ResolvedWebLocale, FeaturesContent> = {
+  ru,
+  en,
+  kk: ru,
+  uz: ru,
+  tr: en,
+  id: en,
+  'pt-BR': en,
+  'es-MX': en,
+};
+
+export function getFeaturesContent(locale: ResolvedWebLocale): FeaturesContent {
+  return CONTENT[locale] ?? ru;
 }
