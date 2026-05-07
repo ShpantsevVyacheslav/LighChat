@@ -110,7 +110,6 @@ Use a global `Map` cache to store/restore messages for instant chat navigation.
 ### Чеклист перед завершением задачи
 
 - [ ] Все пути в `[ссылках](...)` реально существуют
-- [ ] `firestore.rules` и `src/firestore.rules` синхронны (если затронуты)
 - [ ] Нет незадокументированных архитектурных изменений
 - [ ] Запустить `/sync-docs` для финальной проверки
 

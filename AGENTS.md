@@ -22,7 +22,7 @@
 - `src/lib` - доменные типы, утилиты, policy/check helpers.
   - `src/lib/secret-chat/*` - web callable-клиент секретных чатов и создание `sdm_*` диалогов с серверно-совместимой конфигурацией.
 - `functions/src` - Cloud Functions (auth/http/firestore/scheduler триггеры).
-- `firestore.rules`, `src/firestore.rules` - правила Firestore (держать синхронно).
+- `firestore.rules` - правила Firestore (deploy идёт отсюда, см. `firebase.json`).
 - `storage.rules` - правила Firebase Storage.
 - `electron` - desktop shell (main/preload).
 - `mobile/app/lib/features/welcome` - first-login welcome-анимация (per-uid флаг в SharedPreferences `first_login_animation_shown_<uid>`, redirect через `app_router.dart`).
@@ -61,4 +61,3 @@
 - Проверил, затронуты ли архитектурно значимые части.
 - При необходимости обновил docs синхронно с кодом.
 - Проверил, что ссылки на пути в документах валидны.
-- Убедился, что `firestore.rules` и `src/firestore.rules` остаются согласованными.
