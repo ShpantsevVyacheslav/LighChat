@@ -31,13 +31,10 @@
  */
 
 import {
-  collection,
   doc,
-  getDocs,
-  query,
+  getDoc,
   setDoc,
   updateDoc,
-  where,
   type Firestore,
 } from 'firebase/firestore';
 import type { Conversation, E2eeSessionDocV2 } from '@/lib/types';
@@ -140,25 +137,43 @@ export async function handoverDeviceAccessV2(params: {
     );
   }
 
-  let convsSnap;
+  // Получаем список чатов через `userChats/{uid}.conversationIds` (одна запись,
+  // простое правило). Раньше использовался `where('participantIds',
+  // 'array-contains', userId)` по коллекции `conversations`, но при больших
+  // списках Firestore возвращал code='internal' / 'An internal error occurred'
+  // из-за тяжёлых правил `conversations` (exists() per-doc + DM-hidden /
+  // saved-messages branch).
+  let conversationIds: string[] = [];
   try {
-    convsSnap = await getDocs(
-      query(
-        collection(firestore, 'conversations'),
-        where('participantIds', 'array-contains', userId)
-      )
-    );
+    const idxSnap = await getDoc(doc(firestore, 'userChats', userId));
+    const data = idxSnap.exists() ? (idxSnap.data() as { conversationIds?: unknown }) : null;
+    if (data && Array.isArray(data.conversationIds)) {
+      conversationIds = data.conversationIds.filter((x): x is string => typeof x === 'string');
+    }
   } catch (e) {
     const err = e as { code?: string; message?: string };
     throw new Error(
-      `handover.listConversations [${err?.code ?? 'unknown'}]: ${err?.message ?? String(e)}`
+      `handover.listUserChats [${err?.code ?? 'unknown'}]: ${err?.message ?? String(e)}`
     );
   }
+
+  // Читаем каждый conversation-doc отдельно. Если конкретный read падает
+  // (permission-denied / отсутствие поля) — пропускаем чат, чтобы не валить
+  // весь handover. Per-conv try/catch ниже всё равно логирует failed.
   const targets: Conversation[] = [];
-  for (const snap of convsSnap.docs) {
-    const data = snap.data() as Omit<Conversation, 'id'>;
-    if (!data.e2eeEnabled) continue;
-    targets.push({ ...data, id: snap.id });
+  for (const cid of conversationIds) {
+    try {
+      const snap = await getDoc(doc(firestore, 'conversations', cid));
+      if (!snap.exists()) continue;
+      const data = snap.data() as Omit<Conversation, 'id'>;
+      if (!data.e2eeEnabled) continue;
+      targets.push({ ...data, id: cid });
+    } catch (e) {
+      // best-effort: один чат недоступен (например, удалён, hidden DM, etc.)
+      // — пропускаем, не валим handover целиком.
+      // eslint-disable-next-line no-console
+      console.warn('[handover] skip conversation', cid, e);
+    }
   }
 
   const results: DeviceHandoverProgress[] = [];
