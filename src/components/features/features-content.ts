@@ -1045,17 +1045,925 @@ const en: FeaturesContent = {
   },
 };
 
+const ptBR: FeaturesContent = {
+  pageTitle: 'Recursos do LighChat',
+  pageSubtitle:
+    'Um tour rápido pelo que torna o LighChat mais rápido, seguro e útil do que um mensageiro comum. Cada recurso tem sua própria página com exemplo e passo a passo.',
+  pageHeroPrimary: 'Conheça o LighChat',
+  pageHeroSecondary:
+    'Criptografia ponta a ponta opcional, conversas secretas que se autodestroem, mensagens agendadas, videochamadas e até jogos — tudo em um app sem anúncios. Descubra tudo em alguns minutos.',
+  highlightTitle: 'Mais úteis',
+  highlightSubtitle: 'Cinco motivos para ficar no LighChat.',
+  moreTitle: 'Mais para explorar',
+  moreSubtitle: 'O que o app faz além de trocar mensagens — pastas, tópicos, localização ao vivo e mais.',
+  helpfulTitle: 'O que você ganha',
+  howToTitle: 'Como ativar',
+  relatedTitle: 'Veja também',
+  backToList: 'Voltar aos recursos',
+  fromWelcomeBadge: 'Tour',
+  welcomeOverlay: {
+    title: 'Descubra os recursos do LighChat',
+    subtitle:
+      'Dois minutos para ver o que torna o LighChat diferente: criptografia, conversas secretas, jogos e reuniões. Você pode voltar ao tour a qualquer momento pelo menu de configurações.',
+    primaryCta: 'Dar uma olhada',
+    secondaryCta: 'Depois',
+    bullets: [
+      'Criptografia ponta a ponta opcional para conversas e chamadas',
+      'Conversas secretas que se autodestroem',
+      'Jogos e videochamadas dentro do chat',
+    ],
+  },
+  topics: {
+    encryption: {
+      title: 'Criptografia ponta a ponta',
+      tagline: 'Ative — e só você e o destinatário poderão ler.',
+      summary:
+        'A criptografia ponta a ponta (E2EE) no LighChat é um modo opcional. Ative globalmente para todas as novas conversas ou apenas para uma conversa específica. Enquanto a E2EE estiver ativa, mensagens e mídia são criptografadas no seu dispositivo e descriptografadas apenas do outro lado — os servidores não conseguem ler o conteúdo, nem tecnicamente.',
+      ctaLabel: 'Abrir dispositivos',
+      sections: [
+        {
+          title: 'Ninguém mais lê',
+          body: 'As chaves de criptografia ficam apenas nos seus dispositivos e nunca saem em texto aberto. O servidor vê tráfego criptografado e metadados de entrega, mas não texto, voz, arquivos ou pré-visualizações de links. Mesmo que o banco de dados fosse comprometido, suas conversas continuariam privadas.',
+        },
+        {
+          title: 'Verifique seu contato',
+          body: 'Cada dispositivo tem uma impressão digital — um código curto. Compare-o com seu contato pessoalmente ou por outro canal: se os códigos coincidirem, não há ninguém no meio. Mesmo modelo de confiança que o Signal e o WhatsApp usam em seus chats seguros.',
+        },
+        {
+          title: 'Ative onde precisar',
+          body: 'Nas Configurações você pode ativar a E2EE para todas as novas conversas de uma vez, ou ativar para uma conversa específica pelo cabeçalho. Uma vez ativo, tudo naquela conversa viaja criptografado — não só texto:',
+          bullets: [
+            'Mensagens de texto e reações',
+            'Círculos de voz e vídeo',
+            'Fotos, vídeos e arquivos',
+            'Pré-visualizações de links e figurinhas',
+          ],
+        },
+        {
+          title: 'Recuperação sem sacrifícios',
+          body: 'Perdeu o celular? Você pode manter um backup criptografado das suas chaves protegido por senha. A recuperação só funciona com essa senha — ninguém, incluindo nós, consegue acessar as chaves sem ela.',
+        },
+      ],
+      howTo: [
+        'Em Configurações → Privacidade, ative a E2EE por padrão para novas conversas.',
+        'Para ativar em uma conversa existente, abra o cabeçalho da conversa e escolha "Criptografia".',
+        'Em Configurações → Dispositivos, compare as impressões digitais das chaves com seu contato e ative o backup.',
+      ],
+    },
+    'secret-chats': {
+      title: 'Conversas secretas',
+      tagline: 'Conversas que desaparecem e se recusam a encaminhar.',
+      summary:
+        'Uma conversa secreta é um modo mais restrito de conversa. As mensagens se apagam automaticamente por um temporizador, você pode bloquear completamente o encaminhamento e a cópia, fotos e vídeos abrem uma única vez, e a conversa pode ser trancada com uma senha separada ou biometria.',
+      ctaLabel: 'Iniciar conversa secreta',
+      sections: [
+        {
+          title: 'Temporizador de autodestruição',
+          body: 'Escolha por quanto tempo as mensagens vivem, de 5 minutos a um dia. O temporizador conta dos dois lados — quando uma mensagem some, não pode ser recuperada em nenhum dispositivo.',
+        },
+        {
+          title: 'Restrições rígidas',
+          body: 'Bloqueie encaminhamento, citação, cópia de texto e salvamento de mídia. A política do servidor garante cada regra, e tentativas de captura de tela notificam seu contato.',
+          bullets: [
+            'Sem encaminhamento ou citação',
+            'Sem copiar texto',
+            'Sem salvar mídia',
+            'Fotos e vídeos de visualização única',
+          ],
+        },
+        {
+          title: 'Uma trava além da criptografia',
+          body: 'Além da E2EE normal, você pode colocar uma senha separada ou Face ID/Touch ID na própria conversa. Mesmo um celular desbloqueado deixado na mesa não vai revelá-la — o segundo fator é necessário para aquela conversa específica.',
+        },
+        {
+          title: 'Controle total de acesso',
+          body: 'Você pode apagar a conversa dos dois lados a qualquer momento, ou trancar a conversa. Ideal para assuntos de trabalho, questões legais e qualquer situação onde menos é mais.',
+        },
+      ],
+      howTo: [
+        'Toque no cabeçalho da conversa e abra Privacidade.',
+        'Ative Conversa secreta e defina um temporizador.',
+        'Opcionalmente ative as restrições e a trava.',
+      ],
+    },
+    'disappearing-messages': {
+      title: 'Mensagens temporárias',
+      tagline: 'Pare de acumular conversas antigas.',
+      summary:
+        'Você não precisa guardar tudo para sempre. Defina um temporizador e as mensagens desaparecem silenciosamente para todos após 1 hora, um dia, uma semana ou um mês. Perfeito para conversas de trabalho, assuntos casuais e higiene básica de conversa.',
+      ctaLabel: 'Abrir conversas',
+      sections: [
+        {
+          title: 'Opções práticas',
+          body: 'Sem necessidade de contar segundos — escolha uma opção pronta. O relógio começa no envio e funciona igual em conversas 1:1 e em grupos.',
+          bullets: [
+            '1 hora para assuntos pontuais',
+            '24 horas para conversas do dia',
+            '7 dias para tarefas semanais',
+            '30 dias para um mês de margem',
+          ],
+        },
+        {
+          title: 'Limpo em todos os dispositivos',
+          body: 'As mensagens desaparecem sincronizadas — no celular, na web e no desktop. Sem limpar arquivo, sem preocupação com uma cópia esquecida em algum lugar.',
+        },
+        {
+          title: 'Sem restos na nuvem',
+          body: 'Mensagens excluídas somem do servidor também. Elas não vão aparecer de um backup — isso não é "oculto", é realmente apagado.',
+        },
+      ],
+      howTo: [
+        'Abra uma conversa e toque no cabeçalho.',
+        'Mensagens temporárias — escolha um temporizador.',
+        'Novas mensagens vão durar exatamente esse tempo.',
+      ],
+    },
+    'scheduled-messages': {
+      title: 'Mensagens agendadas',
+      tagline: 'Escreva agora, envie depois.',
+      summary:
+        'Preparando uma saudação matinal ou um lembrete de segunda para a equipe? Agende a mensagem e o servidor do LighChat vai entregá-la no momento certo. Você pode desligar o aparelho, fechar o app ou até ficar sem bateria — sua mensagem será enviada mesmo assim.',
+      ctaLabel: 'Abrir conversas',
+      sections: [
+        {
+          title: 'Sempre no horário',
+          body: 'O envio acontece no servidor, não no seu celular. Diferente de temporizadores locais de outros mensageiros, o envio não vai falhar porque o aparelho está no avião, num túnel ou simplesmente offline.',
+        },
+        {
+          title: 'Controle total da fila',
+          body: 'Um painel separado mostra cada mensagem agendada. Edite o horário ou o texto, envie antes ou cancele — até ser enviada, a mensagem está totalmente sob seu controle.',
+        },
+        {
+          title: 'Ótimo para equipes e para a vida',
+          body: 'Aniversários, lembretes, standups matinais e qualquer mensagem que "não posso esquecer de enviar". Fusos horários são tratados automaticamente.',
+        },
+      ],
+      howTo: [
+        'Digite sua mensagem normalmente.',
+        'Pressione e segure o botão de enviar → Agendar.',
+        'Escolha a data e o horário. Pronto.',
+      ],
+    },
+    games: {
+      title: 'Jogos no chat',
+      tagline: 'Convide amigos para um jogo de cartas dentro da conversa.',
+      summary:
+        'Sem app separado, sem cadastro à parte. Comece uma partida de Durak direto na conversa — em tempo real, cartas bonitas, jogadas instantâneas. Um motivo simples para reunir a turma à noite.',
+      ctaLabel: 'Abrir conversas',
+      sections: [
+        {
+          title: 'Tempo real e atmosfera',
+          body: 'Os jogadores veem as jogadas uns dos outros instantaneamente. A partida continua enquanto você está no chat e pausa quando alguém sai. Provoque e discuta na mesma conversa, sem trocar de janela.',
+        },
+        {
+          title: 'Regras conhecidas com dicas',
+          body: 'Clássico "Durak com passe" — as regras que você conhece desde a infância. Dicas ajudam iniciantes; veteranos reconhecem o jogo na hora.',
+        },
+        {
+          title: 'Integrado ao chat',
+          body: 'A mesa abre dentro da mensagem e o resultado fica no histórico da conversa. Faz parte da conversa entre amigos, não é um app hiper-casual separado.',
+        },
+      ],
+      howTo: [
+        'Abra qualquer conversa ou grupo.',
+        'Toque em "+" na entrada e escolha Jogo.',
+        'Convide adversários e distribua as cartas.',
+      ],
+    },
+    meetings: {
+      title: 'Videochamadas em grupo',
+      tagline: 'Até dezenas de pessoas em uma tela.',
+      summary:
+        'Videochamadas completas com grade de participantes, chat compartilhado, enquetes e solicitações de entrada. Convidados podem entrar por link sem conta — a página abre direto no navegador. Funciona tanto para reuniões de trabalho quanto para encontros em família.',
+      ctaLabel: 'Abrir reuniões',
+      sections: [
+        {
+          title: 'Grade prática e orador ativo',
+          body: 'O orador ativo é destacado automaticamente. Fixe o participante que precisa, silencie alguém com um toque ou saia por um momento sem perder seu lugar.',
+        },
+        {
+          title: 'Enquetes e solicitações de entrada',
+          body: 'Faça enquetes durante a chamada: única, múltipla escolha ou anônima. Salas fechadas aceitam convidados por solicitação — o moderador aprova cada um manualmente.',
+        },
+        {
+          title: 'Sem apps, sem contas',
+          body: 'Para convidados, a reunião abre direto no navegador por link. Sem cliente para instalar, sem cadastro, sem esperar atualizações.',
+        },
+      ],
+      howTo: [
+        'Abra a aba Reuniões.',
+        'Crie uma sala ou entre por link.',
+        'Compartilhe o link com os participantes.',
+      ],
+    },
+    calls: {
+      title: 'Chamadas e círculos de vídeo',
+      tagline: 'De uma chamada de voz a um recado em vídeo em um segundo.',
+      summary:
+        'Chamadas 1:1 WebRTC de alta qualidade e círculos de vídeo curtos direto no feed da conversa — para respostas rápidas quando digitar é lento demais e um áudio não basta. Rosto, emoção, voz — tudo em segundos. Em conversas com E2EE ativa, chamadas e círculos viajam criptografados também.',
+      ctaLabel: 'Histórico de chamadas',
+      sections: [
+        {
+          title: 'Estável em movimento',
+          body: 'A chamada alterna entre Wi-Fi e rede móvel suavemente, mantém o áudio em qualquer túnel e adapta a resolução do vídeo à largura de banda. Sem "tá me ouvindo?" a cada trinta segundos.',
+        },
+        {
+          title: 'Círculos de vídeo',
+          body: 'Grave um círculo de até 60 segundos: rosto, emoção, um comentário rápido. O destinatário assiste inline — o círculo toca automaticamente, sem tela cheia, sem toques extras.',
+        },
+        {
+          title: 'Criptografado ponta a ponta quando ativado',
+          body: 'Quando a E2EE está ativa na conversa, chamadas e círculos viajam de dispositivo a dispositivo — o servidor não recebe áudio nem imagem, apenas o fluxo de entrega. Ative a criptografia no cabeçalho da conversa e chamadas e círculos assumem a proteção automaticamente.',
+        },
+      ],
+      howTo: [
+        'Toque no ícone de telefone ou câmera no cabeçalho da conversa.',
+        'Para um círculo: pressione e segure o botão de gravação.',
+        'Solte para enviar instantaneamente.',
+      ],
+    },
+    'folders-threads': {
+      title: 'Pastas e tópicos',
+      tagline: 'Centenas de conversas sem bagunça.',
+      summary:
+        'Organize conversas em pastas — Trabalho, Família, Estudo, o que funcionar — e alterne entre elas com um toque. Dentro de conversas em grupo, abra tópicos sobre assuntos específicos para manter o chat principal limpo.',
+      ctaLabel: 'Abrir conversas',
+      sections: [
+        {
+          title: 'Quantas pastas precisar',
+          body: 'Crie suas próprias pastas e arraste qualquer conversa para elas — DMs, grupos, canais. As pastas sincronizam entre celular, web e desktop, a ordem é preservada.',
+        },
+        {
+          title: 'Tópicos em grupos',
+          body: 'Responda a uma mensagem dentro de um tópico — a discussão fica lá enquanto o chat principal permanece legível. Especialmente valioso em grandes equipes e comunidades ativas.',
+        },
+        {
+          title: 'Silencie conversas barulhentas',
+          body: 'Uma pasta de conversas "silenciosas" não toca com notificações: som e emblemas são configurados no nível da pasta, não por conversa.',
+        },
+      ],
+      howTo: [
+        'Abra a barra de pastas e toque em Criar.',
+        'Arraste conversas para uma pasta ou defina regras.',
+        'Em um grupo, toque em "Responder no tópico" em qualquer mensagem.',
+      ],
+    },
+    'live-location': {
+      title: 'Compartilhamento de localização ao vivo',
+      tagline: 'Mostre onde você está sem mexer no mapa.',
+      summary:
+        'Em vez de trocar capturas de tela, ative a localização ao vivo e seu contato vê você se movendo em tempo real. Ideal para encontros em um lugar novo, viagens de carro e para ficar de olho em quem você ama.',
+      ctaLabel: 'Abrir conversas',
+      sections: [
+        {
+          title: 'Compartilhamento com tempo',
+          body: 'Escolha por quanto tempo compartilhar: 15 minutos, uma hora ou 8 horas. Depois disso, a transmissão para sozinha — você não vai esquecer de desligar.',
+        },
+        {
+          title: 'Sem surpresas',
+          body: 'Enquanto compartilha, um banner vermelho bem visível fica na conversa. Um toque para a transmissão — exatamente os passos necessários.',
+        },
+        {
+          title: 'Econômico na bateria',
+          body: 'Usa as mesmas APIs do sistema que apps nativos de Mapas, então o compartilhamento em segundo plano quase não gasta bateria e não interfere nas notificações.',
+        },
+      ],
+      howTo: [
+        'Na conversa, toque em "+" → Localização.',
+        'Ative Ao vivo e escolha a duração.',
+        'Toque no banner vermelho no topo para parar.',
+      ],
+    },
+    'multi-device': {
+      title: 'Múltiplos dispositivos',
+      tagline: 'Uma conta, várias telas, nada se perde.',
+      summary:
+        'Conecte celular, tablet, web e desktop a uma única conta. As chaves de criptografia sincronizam via pareamento por QR e backup criptografado com senha — suas conversas ficam com você, mesmo se perder todos os dispositivos antigos.',
+      ctaLabel: 'Gerenciar dispositivos',
+      sections: [
+        {
+          title: 'Pareamento seguro por QR',
+          body: 'Pareie um novo dispositivo escaneando um código QR de um antigo. As chaves viajam diretamente entre dispositivos e nunca ficam em texto aberto no servidor. Leva segundos, sem senhas longas para digitar.',
+        },
+        {
+          title: 'Backup com senha',
+          body: 'Criptografe um backup das suas chaves com sua própria senha — e recupere conversas em qualquer dispositivo novo, mesmo que tenha perdido todos os antigos. O backup é inútil para qualquer pessoa sem essa senha, incluindo nós.',
+        },
+        {
+          title: 'Mesma experiência em todo lugar',
+          body: 'Web, desktop e celular são construídos na mesma plataforma. Histórico de conversas, pastas, temas e configurações sincronizam entre dispositivos sem atrasos.',
+        },
+      ],
+      howTo: [
+        'No novo dispositivo, escolha Entrar com QR.',
+        'No dispositivo antigo, abra Configurações → Dispositivos.',
+        'Mostre o código QR. Pronto — as chaves estão no novo dispositivo.',
+      ],
+    },
+    'stickers-media': {
+      title: 'Figurinhas e mídia',
+      tagline: 'Emoção, enquetes e edição rápida de fotos.',
+      summary:
+        'Pacotes de figurinhas variados, busca de GIFs direto na entrada, enquetes com um toque e editores de foto e vídeo integrados. Tudo para se comunicar de forma mais expressiva e rápida — sem trocar de app, sem perda de qualidade.',
+      ctaLabel: 'Abrir conversas',
+      sections: [
+        {
+          title: 'Figurinhas e GIFs',
+          body: 'Adicione seus próprios pacotes e use o catálogo público. Busque GIFs direto na entrada — seus favoritos vão para Recentes automaticamente.',
+        },
+        {
+          title: 'Enquetes e reações',
+          body: 'Crie uma enquete em dois toques: única ou múltipla escolha, anônima ou aberta. Reações em mensagens para feedback rápido, para que as conversas não se encham de respostas de uma palavra.',
+        },
+        {
+          title: 'Editores de foto e vídeo',
+          body: 'Corte, desenhe, apare vídeo e adicione legenda — ferramentas integradas funcionam instantaneamente sem perda de qualidade. Sem necessidade de app externo para ajustar a mídia antes de enviar.',
+        },
+      ],
+      howTo: [
+        'Toque no smiley na entrada — figurinhas e GIFs.',
+        'Para uma enquete: "+" → Enquete.',
+        'Para o editor: toque em uma foto ou vídeo na pré-visualização.',
+      ],
+    },
+    privacy: {
+      title: 'Privacidade detalhada',
+      tagline: 'Você decide o que os outros veem.',
+      summary:
+        'Cada detalhe tem seu próprio botão: status Online, Visto por último, Confirmação de leitura, quem pode te encontrar e quem pode te adicionar a um grupo. Configure em um minuto — funciona em todos os dispositivos.',
+      ctaLabel: 'Abrir privacidade',
+      sections: [
+        {
+          title: 'Visibilidade de atividade',
+          body: 'Esconda Online e Visto por último de olhos indesejados. Confirmações de leitura também podem ser desativadas — os contatos não verão a marca azul, e você não verá a deles.',
+        },
+        {
+          title: 'Quem te encontra',
+          body: 'A busca global pode ser desativada — então você só é encontrado por pessoas que já têm seu contato salvo. Útil se não quer mensagens aleatórias.',
+        },
+        {
+          title: 'Perfil para os outros',
+          body: 'Decida se mostra e-mail, telefone, data de nascimento e bio no cartão de perfil. Cada campo tem seu próprio botão, sem modo "tudo ou nada".',
+        },
+        {
+          title: 'Grupos pelas suas regras',
+          body: 'Escolha quem pode te adicionar a um grupo: todos, apenas contatos ou ninguém. Isso elimina 99% dos grupos de marketing sem listas de bloqueio ou luta contra convites automáticos.',
+        },
+      ],
+      howTo: [
+        'Abra Configurações → Privacidade.',
+        'Passe pelos botões e escolha seus padrões.',
+        'Resetar retorna aos padrões seguros.',
+      ],
+    },
+  },
+  mockText: {
+    e2eeBadge: 'Criptografia ponta a ponta',
+    peerAlice: 'Alice',
+    peerBob: 'Bob',
+    peerHello: 'Oi, tudo bem?',
+    fingerprintMatch: 'confere',
+    groupProject: 'Grupo · Projeto',
+    secretStatus: '6 membros',
+    secretMsg1: 'Enviando o arquivo de preços como visualização única.',
+    secretMsg2: 'Recebi. Bloqueio de cópia ativado.',
+    teamDesign: 'Equipe · Design',
+    disappearingStatus: 'online',
+    disappearingMsg1: 'Compartilhando o rascunho — vai sumir depois.',
+    disappearingMsg2: 'OK, vou revisar até a noite.',
+    disappearingMsg3: 'Um cabeçalho mais escuro ficaria melhor.',
+    disappearingMsg4: 'Concordo. Aplicando e enviando.',
+    peerMikhail: 'Miguel',
+    mikhailStatus: 'visto por último hoje às 21:40',
+    scheduledMsg1: 'Não esquece do lembrete do standup.',
+    scheduledMsg2: 'Já agendei para de manhã.',
+    scheduledMsg3: 'Bom dia! Standup começa em 15 minutos.',
+    scheduledQueueTitle: 'Agendadas',
+    scheduledQueueDate: 'amanhã, 08:45',
+    gamesBadge: 'Durak · sua vez',
+    gamesTrump: 'Trunfo',
+    gamesDeck: 'Baralho',
+    gamesYou: 'Você',
+    gamesOpponent: 'Alice',
+    gamesYourTurn: 'Sua vez',
+    gamesActionBeat: 'Bater',
+    gamesActionTake: 'Pegar',
+    meetingDuration: 'Reunião · 24:18',
+    meetingSpeaking: 'falando',
+    callsAudioTitle: 'Chamada de voz',
+    callsAudioMeta: '3:42 · qualidade HD',
+    callsCircleTitle: 'Círculo de vídeo',
+    callsCircleMeta: '0:42 / 1:00',
+    folderAll: 'Todas',
+    folderWork: 'Trabalho',
+    folderFamily: 'Família',
+    folderStudy: 'Estudo',
+    folderStarred: 'Favoritas',
+    folderWorkChats: 'Trabalho · conversas',
+    chat1Name: 'Equipe · Design',
+    chat1Last: 'Julia: enviou uma nova variante',
+    chat2Name: 'Marketing',
+    chat2Last: 'Konstantin: relatório está pronto',
+    chat3Name: 'Lançamentos CRM',
+    chat3Last: 'Alina: aguardando aprovação',
+    threadTitle: 'Tópico · "Preço do plano" · 6 respostas',
+    threadReply1: 'Acho que 4990 é o melhor',
+    threadReply2: 'Concordo',
+    liveLocationBanner: 'Compartilhando sua localização',
+    liveLocationStop: 'Parar',
+    multiDevicePhone: 'Celular',
+    multiDeviceDesktop: 'Desktop',
+    multiDevicePairing: 'Pareamento por QR',
+    multiDeviceBackup: 'Backup de chaves',
+    multiDeviceBackupSub: 'protegido por senha',
+    stickerSearchHint: 'buscar figurinhas e GIFs',
+    pollTitle: 'Onde vamos no sábado?',
+    pollOption1: 'Para a montanha',
+    pollOption2: 'Para o sítio',
+    editorLabel: 'Editor',
+    editorHint: 'cortar · legenda',
+    privacyTitle: 'Privacidade',
+    privacySubtitle: 'Você decide o que os outros veem.',
+    privacyOnline: 'Status online',
+    privacyOnlineHint: 'Outros veem que você está online agora',
+    privacyLastSeen: 'Visto por último',
+    privacyLastSeenHint: 'Horário exato da sua última visita',
+    privacyReceipts: 'Confirmação de leitura',
+    privacyReceiptsHint: 'Marca dupla para o remetente',
+    privacyGlobalSearch: 'Busca global',
+    privacyGlobalSearchHint: 'Qualquer pessoa pode te encontrar pelo nome',
+    privacyGroupAdd: 'Adição a grupos',
+    privacyGroupAddHint: 'Apenas contatos',
+  },
+};
+
+const esMX: FeaturesContent = {
+  pageTitle: 'Funciones de LighChat',
+  pageSubtitle:
+    'Un recorrido rápido por lo que hace a LighChat más rápido, seguro y útil que un mensajero común. Cada función tiene su propia página con un ejemplo y pasos.',
+  pageHeroPrimary: 'Conoce LighChat',
+  pageHeroSecondary:
+    'Cifrado de extremo a extremo opcional, chats secretos que se autodestruyen, mensajes programados, videollamadas y hasta juegos — todo en una app sin anuncios. Descúbrelo en un par de minutos.',
+  highlightTitle: 'Más útiles',
+  highlightSubtitle: 'Cinco razones para quedarse en LighChat.',
+  moreTitle: 'Más por explorar',
+  moreSubtitle: 'Lo que la app hace más allá de chatear — carpetas, hilos, ubicación en vivo y más.',
+  helpfulTitle: 'Lo que obtienes',
+  howToTitle: 'Cómo activarlo',
+  relatedTitle: 'Ver también',
+  backToList: 'Volver a las funciones',
+  fromWelcomeBadge: 'Tour',
+  welcomeOverlay: {
+    title: 'Descubre las funciones de LighChat',
+    subtitle:
+      'Dos minutos para ver qué hace diferente a LighChat: cifrado, chats secretos, juegos y reuniones. Pueden volver al tour en cualquier momento desde el menú de ajustes.',
+    primaryCta: 'Echar un vistazo',
+    secondaryCta: 'Después',
+    bullets: [
+      'Cifrado de extremo a extremo opcional para chats y llamadas',
+      'Chats secretos que se autodestruyen',
+      'Juegos y videollamadas dentro del chat',
+    ],
+  },
+  topics: {
+    encryption: {
+      title: 'Cifrado de extremo a extremo',
+      tagline: 'Actívenlo — y solo ustedes y el destinatario podrán leerlo.',
+      summary:
+        'El cifrado de extremo a extremo (E2EE) en LighChat es un modo opcional. Actívenlo de forma global para todos los chats nuevos o solo para una conversación específica. Mientras la E2EE esté activa, los mensajes y archivos multimedia se cifran en su dispositivo y se descifran únicamente del otro lado — los servidores no pueden leer el contenido ni técnicamente.',
+      ctaLabel: 'Abrir dispositivos',
+      sections: [
+        {
+          title: 'Nadie más lo lee',
+          body: 'Las llaves de cifrado viven solo en sus dispositivos y nunca salen en texto plano. El servidor ve tráfico cifrado y metadatos de entrega, pero no texto, voz, archivos ni vistas previas de enlaces. Incluso si la base de datos fuera comprometida, sus conversaciones seguirían siendo privadas.',
+        },
+        {
+          title: 'Verifiquen a su contacto',
+          body: 'Cada dispositivo tiene una huella digital — un código corto. Compárenlo con su contacto en persona o por un canal aparte: si los códigos coinciden, no hay nadie en el medio. El mismo modelo de confianza que usan Signal y WhatsApp en sus chats seguros.',
+        },
+        {
+          title: 'Actívenlo donde lo necesiten',
+          body: 'En Ajustes pueden activar la E2EE para todos los chats nuevos de una vez, o activarla para una conversación específica desde su encabezado. Una vez activo, todo en ese chat viaja cifrado — no solo texto:',
+          bullets: [
+            'Mensajes de texto y reacciones',
+            'Círculos de voz y video',
+            'Fotos, videos y archivos',
+            'Vistas previas de enlaces y stickers',
+          ],
+        },
+        {
+          title: 'Recuperación sin sacrificios',
+          body: '¿Perdieron su celular? Pueden mantener un respaldo cifrado de sus llaves protegido con contraseña. La recuperación solo funciona con esa contraseña — nadie, incluyéndonos, puede acceder a las llaves sin ella.',
+        },
+      ],
+      howTo: [
+        'En Ajustes → Privacidad, activen la E2EE por defecto para chats nuevos.',
+        'Para activarla en un chat existente, abran el encabezado del chat y elijan "Cifrado".',
+        'En Ajustes → Dispositivos, comparen las huellas de las llaves con su contacto y activen el respaldo.',
+      ],
+    },
+    'secret-chats': {
+      title: 'Chats secretos',
+      tagline: 'Chats que desaparecen y se niegan a reenviar.',
+      summary:
+        'Un chat secreto es un modo más estricto de conversación. Los mensajes se autoborran con un temporizador, pueden bloquear completamente el reenvío y la copia, las fotos y videos se abren una sola vez, y el chat puede bloquearse con una contraseña aparte o biometría.',
+      ctaLabel: 'Iniciar chat secreto',
+      sections: [
+        {
+          title: 'Temporizador de autodestrucción',
+          body: 'Elijan cuánto tiempo viven los mensajes, desde 5 minutos hasta un día. El temporizador cuenta en ambos lados — cuando un mensaje desaparece, no se puede recuperar en ningún dispositivo.',
+        },
+        {
+          title: 'Restricciones estrictas',
+          body: 'Bloqueen reenvío, citas, copia de texto y guardado de multimedia. La política del servidor hace cumplir cada regla, y los intentos de captura de pantalla notifican a su contacto.',
+          bullets: [
+            'Sin reenvío ni citas',
+            'Sin copiar texto',
+            'Sin guardar multimedia',
+            'Fotos y videos de vista única',
+          ],
+        },
+        {
+          title: 'Un candado además del cifrado',
+          body: 'Además de la E2EE normal, pueden poner una contraseña aparte o Face ID/Touch ID en el chat mismo. Incluso un celular desbloqueado dejado en la mesa no lo revelará — el segundo factor es necesario para ese chat específico.',
+        },
+        {
+          title: 'Control total de acceso',
+          body: 'Pueden borrar la conversación en ambos lados en cualquier momento, o bloquear el chat. Ideal para temas de trabajo, asuntos legales y cualquier situación donde menos es más.',
+        },
+      ],
+      howTo: [
+        'Toquen el encabezado del chat y abran Privacidad.',
+        'Activen Chat secreto y definan un temporizador.',
+        'Opcionalmente activen las restricciones y el candado.',
+      ],
+    },
+    'disappearing-messages': {
+      title: 'Mensajes temporales',
+      tagline: 'Dejen de acumular conversaciones viejas.',
+      summary:
+        'No tienen que guardar todo para siempre. Pongan un temporizador y los mensajes desaparecen silenciosamente para todos después de 1 hora, un día, una semana o un mes. Perfecto para hilos de trabajo, temas casuales e higiene básica de conversación.',
+      ctaLabel: 'Abrir chats',
+      sections: [
+        {
+          title: 'Opciones prácticas',
+          body: 'Sin necesidad de contar segundos — elijan una opción predefinida. El reloj empieza al enviar y funciona igual en chats 1:1 y en grupos.',
+          bullets: [
+            '1 hora para asuntos puntuales',
+            '24 horas para hilos diarios',
+            '7 días para tareas semanales',
+            '30 días para un mes de margen',
+          ],
+        },
+        {
+          title: 'Limpio en todos los dispositivos',
+          body: 'Los mensajes desaparecen sincronizados — en el celular, la web y la computadora. Sin limpiar archivos, sin preocuparse por una copia olvidada en algún lado.',
+        },
+        {
+          title: 'Sin restos en la nube',
+          body: 'Los mensajes eliminados también desaparecen del servidor. No van a aparecer de un respaldo — esto no es "oculto", realmente está eliminado.',
+        },
+      ],
+      howTo: [
+        'Abran un chat y toquen el encabezado.',
+        'Mensajes temporales — elijan un temporizador.',
+        'Los nuevos mensajes van a durar exactamente ese tiempo.',
+      ],
+    },
+    'scheduled-messages': {
+      title: 'Mensajes programados',
+      tagline: 'Escriban ahora, envíen después.',
+      summary:
+        '¿Preparando un saludo matutino o un recordatorio del lunes para el equipo? Programen el mensaje y el servidor de LighChat lo entregará en el momento justo. Pueden apagar el dispositivo, cerrar la app o quedarse sin batería — su mensaje se enviará de todas formas.',
+      ctaLabel: 'Abrir chats',
+      sections: [
+        {
+          title: 'Siempre a tiempo',
+          body: 'El envío sucede en el servidor, no en su celular. A diferencia de temporizadores locales de otros mensajeros, el envío no va a fallar porque el dispositivo está en el avión, en un túnel o simplemente sin conexión.',
+        },
+        {
+          title: 'Control total de la cola',
+          body: 'Un panel aparte muestra cada mensaje programado. Editen el horario o el texto, envíen antes o cancelen — hasta que se envíe, el mensaje está totalmente bajo su control.',
+        },
+        {
+          title: 'Genial para equipos y para la vida',
+          body: 'Cumpleaños, recordatorios, standups matutinos y cualquier mensaje que "no debo olvidar enviar". Las zonas horarias se manejan automáticamente.',
+        },
+      ],
+      howTo: [
+        'Escriban su mensaje como siempre.',
+        'Mantengan presionado el botón de enviar → Programar.',
+        'Elijan la fecha y la hora. Listo.',
+      ],
+    },
+    games: {
+      title: 'Juegos en el chat',
+      tagline: 'Inviten amigos a un juego de cartas dentro del chat.',
+      summary:
+        'Sin app aparte, sin registro adicional. Inicien una partida de Durak directo en el chat — en tiempo real, cartas bonitas, jugadas instantáneas. Una razón sencilla para reunirse por la noche.',
+      ctaLabel: 'Abrir chats',
+      sections: [
+        {
+          title: 'Tiempo real y ambiente',
+          body: 'Los jugadores ven las jugadas de los demás al instante. La partida continúa mientras estén en el chat y se pausa cuando alguien se sale. Bromeen y discutan en la misma conversación, sin cambiar de ventana.',
+        },
+        {
+          title: 'Reglas conocidas con ayudas',
+          body: 'Clásico "Durak con pase" — las reglas que conocen desde niños. Las ayudas orientan a los nuevos; los veteranos reconocen su juego de inmediato.',
+        },
+        {
+          title: 'Integrado al chat',
+          body: 'La mesa se abre dentro del mensaje y el resultado queda en el historial del chat. Es parte de la conversación entre amigos, no una app hiper-casual separada.',
+        },
+      ],
+      howTo: [
+        'Abran cualquier chat o grupo.',
+        'Toquen "+" en la entrada y elijan Juego.',
+        'Inviten oponentes y repartan.',
+      ],
+    },
+    meetings: {
+      title: 'Videollamadas en grupo',
+      tagline: 'Hasta decenas de personas en una pantalla.',
+      summary:
+        'Videollamadas completas con cuadrícula de participantes, chat compartido, encuestas y solicitudes de ingreso. Los invitados pueden unirse por enlace sin cuenta — la página se abre directo en su navegador. Funciona para juntas de trabajo y reuniones familiares.',
+      ctaLabel: 'Abrir reuniones',
+      sections: [
+        {
+          title: 'Cuadrícula práctica y orador activo',
+          body: 'El orador activo se resalta automáticamente. Fijen al participante que necesiten, silencien a alguien con un toque o salgan un momento sin perder su lugar.',
+        },
+        {
+          title: 'Encuestas y solicitudes de ingreso',
+          body: 'Hagan encuestas durante la llamada: de opción única, múltiple o anónima. Las salas cerradas aceptan invitados por solicitud — el moderador aprueba cada uno manualmente.',
+        },
+        {
+          title: 'Sin apps, sin cuentas',
+          body: 'Para los invitados, la reunión se abre directo en el navegador por enlace. Sin cliente que instalar, sin registro, sin esperar actualizaciones.',
+        },
+      ],
+      howTo: [
+        'Abran la pestaña de Reuniones.',
+        'Creen una sala o únanse por enlace.',
+        'Compartan el enlace con los participantes.',
+      ],
+    },
+    calls: {
+      title: 'Llamadas y círculos de video',
+      tagline: 'De una llamada de voz a un mensaje en video en un segundo.',
+      summary:
+        'Llamadas 1:1 WebRTC de alta calidad y círculos de video cortos directo en el feed del chat — para respuestas rápidas cuando escribir es muy lento y una nota de voz no alcanza. Rostro, emoción, voz — todo en segundos. En chats con E2EE activa, llamadas y círculos viajan cifrados también.',
+      ctaLabel: 'Historial de llamadas',
+      sections: [
+        {
+          title: 'Estable en movimiento',
+          body: 'La llamada alterna entre Wi-Fi y datos móviles suavemente, mantiene el audio en cualquier túnel y adapta la resolución del video al ancho de banda. Sin "¿me escuchan?" cada treinta segundos.',
+        },
+        {
+          title: 'Círculos de video',
+          body: 'Graben un círculo de hasta 60 segundos: rostro, emoción, un comentario rápido. El destinatario lo ve inline — el círculo se reproduce automáticamente, sin pantalla completa, sin toques extra.',
+        },
+        {
+          title: 'Cifrado de extremo a extremo cuando está activo',
+          body: 'Cuando la E2EE está activa en el chat, llamadas y círculos viajan de dispositivo a dispositivo — el servidor no recibe audio ni imagen, solo el flujo de entrega. Activen el cifrado en el encabezado del chat y las llamadas y círculos toman la protección automáticamente.',
+        },
+      ],
+      howTo: [
+        'Toquen el ícono de teléfono o cámara en el encabezado del chat.',
+        'Para un círculo: mantengan presionado el botón de grabación.',
+        'Suelten para enviar al instante.',
+      ],
+    },
+    'folders-threads': {
+      title: 'Carpetas e hilos',
+      tagline: 'Cientos de chats sin el caos.',
+      summary:
+        'Organicen chats en carpetas — Trabajo, Familia, Estudio, lo que les funcione — y cambien entre ellas con un toque. Dentro de conversaciones grupales, abran hilos sobre temas específicos para mantener el chat principal limpio.',
+      ctaLabel: 'Abrir chats',
+      sections: [
+        {
+          title: 'Todas las carpetas que necesiten',
+          body: 'Creen sus propias carpetas y arrastren cualquier chat a ellas — DMs, grupos, canales. Las carpetas se sincronizan entre celular, web y computadora, el orden se conserva.',
+        },
+        {
+          title: 'Hilos en grupos',
+          body: 'Respondan a un mensaje dentro de un hilo — la discusión se queda ahí mientras el chat principal sigue legible. Especialmente valioso en equipos grandes y comunidades activas.',
+        },
+        {
+          title: 'Silencien chats ruidosos',
+          body: 'Una carpeta de chats "silenciosos" no suena con notificaciones: el sonido y las insignias se configuran a nivel de carpeta, no por chat.',
+        },
+      ],
+      howTo: [
+        'Abran la barra de carpetas y toquen Crear.',
+        'Arrastren chats a una carpeta o definan reglas.',
+        'En un grupo, toquen "Responder en hilo" en cualquier mensaje.',
+      ],
+    },
+    'live-location': {
+      title: 'Ubicación en vivo',
+      tagline: 'Muestren dónde están sin batallar con el mapa.',
+      summary:
+        'En lugar de intercambiar capturas de pantalla, activen la ubicación en vivo y su contacto los ve moverse en tiempo real. Ideal para verse en un lugar nuevo, viajes en carro y para estar al pendiente de sus seres queridos.',
+      ctaLabel: 'Abrir chats',
+      sections: [
+        {
+          title: 'Compartir con tiempo',
+          body: 'Elijan por cuánto tiempo compartir: 15 minutos, una hora u 8 horas. Después de eso, la transmisión se detiene sola — no se les va a olvidar apagarla.',
+        },
+        {
+          title: 'Sin sorpresas',
+          body: 'Mientras comparten, un banner rojo bien visible permanece en el chat. Un toque detiene la transmisión — exactamente los pasos necesarios.',
+        },
+        {
+          title: 'Amigable con la batería',
+          body: 'Usa las mismas APIs del sistema que las apps nativas de Mapas, así que compartir en segundo plano casi no gasta batería y no interfiere con las notificaciones.',
+        },
+      ],
+      howTo: [
+        'En un chat, toquen "+" → Ubicación.',
+        'Activen En vivo y elijan la duración.',
+        'Toquen el banner rojo de arriba para detenerlo.',
+      ],
+    },
+    'multi-device': {
+      title: 'Múltiples dispositivos',
+      tagline: 'Una cuenta, muchas pantallas, nada se pierde.',
+      summary:
+        'Conecten celular, tableta, web y computadora a una sola cuenta. Las llaves de cifrado se sincronizan por emparejamiento QR y un respaldo cifrado con contraseña — sus conversaciones se quedan con ustedes, aunque pierdan todos los dispositivos viejos.',
+      ctaLabel: 'Administrar dispositivos',
+      sections: [
+        {
+          title: 'Emparejamiento seguro por QR',
+          body: 'Emparejen un dispositivo nuevo escaneando un código QR del anterior. Las llaves viajan directamente entre dispositivos y nunca quedan en texto plano en el servidor. Toma segundos, sin contraseñas largas que escribir.',
+        },
+        {
+          title: 'Respaldo con contraseña',
+          body: 'Cifren un respaldo de sus llaves con su propia contraseña — y recuperen chats en cualquier dispositivo nuevo, aunque hayan perdido todos los anteriores. El respaldo es inútil para cualquier persona sin esa contraseña, incluyéndonos.',
+        },
+        {
+          title: 'Misma experiencia en todos lados',
+          body: 'Web, computadora y celular están construidos sobre la misma plataforma. Historial de chats, carpetas, temas y ajustes se sincronizan entre dispositivos sin retrasos.',
+        },
+      ],
+      howTo: [
+        'En el dispositivo nuevo, elijan Iniciar sesión con QR.',
+        'En el dispositivo anterior, abran Ajustes → Dispositivos.',
+        'Muestren el código QR. Listo — las llaves están en el nuevo dispositivo.',
+      ],
+    },
+    'stickers-media': {
+      title: 'Stickers y multimedia',
+      tagline: 'Emoción, encuestas y edición rápida de fotos.',
+      summary:
+        'Paquetes de stickers variados, búsqueda de GIFs directo en la entrada, encuestas con un toque y editores de foto y video integrados. Todo para comunicarse de forma más expresiva y rápida — sin cambiar de app, sin pérdida de calidad.',
+      ctaLabel: 'Abrir chats',
+      sections: [
+        {
+          title: 'Stickers y GIFs',
+          body: 'Agreguen sus propios paquetes y usen el catálogo público. Busquen GIFs directo desde la entrada — sus favoritos van a Recientes automáticamente.',
+        },
+        {
+          title: 'Encuestas y reacciones',
+          body: 'Creen una encuesta en dos toques: de opción única o múltiple, anónima o abierta. Reacciones en mensajes para feedback rápido, para que los chats no se llenen de respuestas de una sola palabra.',
+        },
+        {
+          title: 'Editores de foto y video',
+          body: 'Recorten, dibujen, corten video y pongan leyenda — las herramientas integradas funcionan al instante sin pérdida de calidad. Sin necesidad de una app externa para arreglar multimedia antes de enviar.',
+        },
+      ],
+      howTo: [
+        'Toquen la carita en la entrada — stickers y GIFs.',
+        'Para una encuesta: "+" → Encuesta.',
+        'Para el editor: toquen una foto o video en la vista previa.',
+      ],
+    },
+    privacy: {
+      title: 'Privacidad detallada',
+      tagline: 'Ustedes deciden qué ven los demás.',
+      summary:
+        'Cada detalle tiene su propio interruptor: estado En línea, Última conexión, Confirmación de lectura, quién puede encontrarlos y quién puede agregarlos a un grupo. Configúrenlo en un minuto — funciona en todos los dispositivos.',
+      ctaLabel: 'Abrir privacidad',
+      sections: [
+        {
+          title: 'Visibilidad de actividad',
+          body: 'Oculten En línea y Última conexión de ojos indeseados. Las confirmaciones de lectura también se pueden desactivar — los contactos no verán la palomita azul, y ustedes no verán la de ellos.',
+        },
+        {
+          title: 'Quién los encuentra',
+          body: 'La búsqueda global se puede desactivar — entonces solo los pueden encontrar personas que ya tienen su contacto guardado. Útil si no quieren mensajes de desconocidos.',
+        },
+        {
+          title: 'Perfil para los demás',
+          body: 'Decidan si muestran correo, teléfono, fecha de nacimiento y bio en la tarjeta de perfil. Cada campo tiene su propio interruptor, sin modo de "todo o nada".',
+        },
+        {
+          title: 'Grupos bajo sus reglas',
+          body: 'Elijan quién puede agregarlos a un grupo: todos, solo contactos o nadie. Eso elimina el 99% de los grupos de marketing sin listas de bloqueo ni pelear con invitaciones automáticas.',
+        },
+      ],
+      howTo: [
+        'Abran Ajustes → Privacidad.',
+        'Revisen los interruptores y elijan sus valores por defecto.',
+        'Restablecer regresa a los valores seguros.',
+      ],
+    },
+  },
+  mockText: {
+    e2eeBadge: 'Cifrado de extremo a extremo',
+    peerAlice: 'Alice',
+    peerBob: 'Bob',
+    peerHello: '¡Hola! ¿Cómo están?',
+    fingerprintMatch: 'coincide',
+    groupProject: 'Grupo · Proyecto',
+    secretStatus: '6 miembros',
+    secretMsg1: 'Enviando el archivo de precios como vista única.',
+    secretMsg2: 'Listo. Bloqueo de copia activado.',
+    teamDesign: 'Equipo · Diseño',
+    disappearingStatus: 'en línea',
+    disappearingMsg1: 'Compartiendo el borrador — desaparecerá después.',
+    disappearingMsg2: 'OK, lo reviso en la noche.',
+    disappearingMsg3: 'Un encabezado más oscuro se vería mejor.',
+    disappearingMsg4: 'De acuerdo. Aplicando y subiendo.',
+    peerMikhail: 'Miguel',
+    mikhailStatus: 'últ. vez hoy a las 21:40',
+    scheduledMsg1: 'No olviden el recordatorio del standup.',
+    scheduledMsg2: 'Ya lo programé para la mañana.',
+    scheduledMsg3: '¡Buenos días! El standup empieza en 15 minutos.',
+    scheduledQueueTitle: 'Programados',
+    scheduledQueueDate: 'mañana, 08:45',
+    gamesBadge: 'Durak · tu turno',
+    gamesTrump: 'Triunfo',
+    gamesDeck: 'Baraja',
+    gamesYou: 'Tú',
+    gamesOpponent: 'Alice',
+    gamesYourTurn: 'Tu turno',
+    gamesActionBeat: 'Ganar',
+    gamesActionTake: 'Tomar',
+    meetingDuration: 'Reunión · 24:18',
+    meetingSpeaking: 'hablando',
+    callsAudioTitle: 'Llamada de voz',
+    callsAudioMeta: '3:42 · calidad HD',
+    callsCircleTitle: 'Círculo de video',
+    callsCircleMeta: '0:42 / 1:00',
+    folderAll: 'Todos',
+    folderWork: 'Trabajo',
+    folderFamily: 'Familia',
+    folderStudy: 'Estudio',
+    folderStarred: 'Destacados',
+    folderWorkChats: 'Trabajo · chats',
+    chat1Name: 'Equipo · Diseño',
+    chat1Last: 'Julia: subió una nueva variante',
+    chat2Name: 'Marketing',
+    chat2Last: 'Konstantin: el reporte está listo',
+    chat3Name: 'Lanzamientos CRM',
+    chat3Last: 'Alina: esperando aprobación',
+    threadTitle: 'Hilo · "Precio del plan" · 6 respuestas',
+    threadReply1: 'Yo creo que 4990 queda mejor',
+    threadReply2: 'De acuerdo',
+    liveLocationBanner: 'Compartiendo tu ubicación',
+    liveLocationStop: 'Detener',
+    multiDevicePhone: 'Celular',
+    multiDeviceDesktop: 'Computadora',
+    multiDevicePairing: 'Emparejamiento QR',
+    multiDeviceBackup: 'Respaldo de llaves',
+    multiDeviceBackupSub: 'protegido con contraseña',
+    stickerSearchHint: 'buscar stickers y GIFs',
+    pollTitle: '¿A dónde vamos el sábado?',
+    pollOption1: 'A la montaña',
+    pollOption2: 'Al campo',
+    editorLabel: 'Editor',
+    editorHint: 'recortar · leyenda',
+    privacyTitle: 'Privacidad',
+    privacySubtitle: 'Ustedes deciden qué ven los demás.',
+    privacyOnline: 'Estado en línea',
+    privacyOnlineHint: 'Los demás ven que están en línea',
+    privacyLastSeen: 'Última conexión',
+    privacyLastSeenHint: 'Hora exacta de su última visita',
+    privacyReceipts: 'Confirmación de lectura',
+    privacyReceiptsHint: 'Doble palomita para el remitente',
+    privacyGlobalSearch: 'Búsqueda global',
+    privacyGlobalSearchHint: 'Cualquier persona puede encontrarlos por nombre',
+    privacyGroupAdd: 'Agregar a grupos',
+    privacyGroupAddHint: 'Solo contactos',
+  },
+};
+
 import type { ResolvedWebLocale } from '@/lib/i18n/preference';
+import { kk } from './content/kk';
+import { tr } from './content/tr';
+import { uz } from './content/uz';
+import { id_ID } from './content/id';
 
 const CONTENT: Record<ResolvedWebLocale, FeaturesContent> = {
   ru,
   en,
-  kk: ru,
-  uz: ru,
-  tr: en,
-  id: en,
-  'pt-BR': en,
-  'es-MX': en,
+  kk,
+  uz,
+  tr,
+  id: id_ID,
+  'pt-BR': ptBR,
+  'es-MX': esMX,
 };
 
 export function getFeaturesContent(locale: ResolvedWebLocale): FeaturesContent {
