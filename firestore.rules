@@ -382,9 +382,15 @@ service cloud.firestore {
 
     match /users/{userId} {
       /**
-       * Чтение чужого профиля запрещено, если владелец добавил читателя в blockedUserIds.
+       * [audit H-002] Чтение профиля закрыто для anonymous-гостя — иначе после
+       * `signInAnonymously()` атакующий мог бы читать `users/{any-uid}`
+       * (телефон, email, аватар). Гостю нужен только митинг — собственный
+       * профиль он не имеет (нет `users/{uid}` для anon).
+       *
+       * Также чтение чужого профиля запрещено, если владелец добавил читателя
+       * в `blockedUserIds`.
        */
-      allow read: if isSignedIn() && (
+      allow read: if isSignedIn() && !isAnonymousGuest() && (
         resource == null
         ||
         request.auth.uid == userId
@@ -519,7 +525,18 @@ service cloud.firestore {
      *   - `requests/{uid}` — self-create/heartbeat, host-update (approve/deny через callable).
      */
     match /meetings/{meetingId} {
-      allow read: if isSignedIn();
+      /**
+       * [audit H-002] Гость (Anonymous Auth) приходит по deep-link
+       * `/meetings/{id}` с конкретным ID и должен успеть прочитать meeting,
+       * чтобы решить: открытый/закрытый/требует approve. Поэтому `get`
+       * остаётся открытым для signedIn-гостя. НО `list` (collection scan,
+       * перебор meetingId) — запрещён для anonymous: иначе атакующий после
+       * `signInAnonymously()` мог enumerate все митинги и читать `hostId`,
+       * `name`, `participantIds`. Полноценные пользователи могут листинг —
+       * нужен на дашборде «Мои митинги» (ChatMeetingsList и т.п.).
+       */
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && !isAnonymousGuest();
       allow create: if isSignedIn()
         && request.resource.data.hostId == request.auth.uid
         && request.resource.data.id == meetingId;
