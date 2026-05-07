@@ -60,7 +60,7 @@ import 'chat_poll_create_sheet.dart';
 import 'chat_wallpaper_background.dart';
 import 'effective_chat_wallpaper.dart';
 import 'chat_composer.dart';
-import 'link_webview_screen.dart';
+import 'chat_document_open.dart';
 import 'location_send_preview_sheet.dart';
 import 'share_location_sheet.dart';
 import 'thread_header.dart';
@@ -1698,7 +1698,6 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
     var target = att;
     final isSecret = conv?.secretChat?.enabled == true;
     if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(att)) {
@@ -1718,23 +1717,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       }
     }
     if (!mounted) return;
-    final uri = Uri.tryParse(target.url.trim());
-    if (uri == null) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
-      );
-      return;
-    }
-    if (!uri.isScheme('http') && !uri.isScheme('https')) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
-      );
-      return;
-    }
-    navigator.push(
-      MaterialPageRoute<void>(
-        builder: (_) => LinkWebViewScreen(url: uri.toString()),
-      ),
+    final opened = await openChatDocumentAttachment(context, target);
+    if (opened) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.secret_chat_unlock_failed)),
     );
   }
 

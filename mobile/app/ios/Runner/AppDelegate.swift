@@ -5,6 +5,7 @@ import Flutter
 import UIKit
 import FirebaseCore
 import PushKit
+import QuickLook
 import flutter_callkit_incoming
 
 /// Нативный PiP для iOS: отдельный AVPlayer по URL (Flutter `video_player` не отдаёт слой в PiP).
@@ -193,6 +194,8 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     LighChatIosPipBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+    LighChatIosDocumentPreviewBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
     LighChatVirtualBackgroundBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
   }
@@ -291,6 +294,100 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     plugin.showCallkitIncoming(data, fromPushKit: true) {
       completion()
     }
+  }
+}
+
+private final class LighChatPreviewItem: NSObject, QLPreviewItem {
+  let previewItemURL: URL?
+  let previewItemTitle: String?
+
+  init(url: URL, title: String?) {
+    self.previewItemURL = url
+    self.previewItemTitle = title
+    super.init()
+  }
+}
+
+private final class LighChatIosDocumentPreviewBridge: NSObject, QLPreviewControllerDataSource {
+  static let shared = LighChatIosDocumentPreviewBridge()
+
+  private var previewItem: LighChatPreviewItem?
+
+  private override init() {
+    super.init()
+  }
+
+  func register(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: "lighchat/document_preview", binaryMessenger: messenger)
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else {
+        result(false)
+        return
+      }
+      guard call.method == "openFile" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      guard let args = call.arguments as? [String: Any],
+        let rawPath = args["path"] as? String
+      else {
+        result(
+          FlutterError(
+            code: "invalid_arguments",
+            message: "openFile expects {path, title?}",
+            details: nil
+          )
+        )
+        return
+      }
+      let title = (args["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      DispatchQueue.main.async {
+        self.openFile(path: rawPath, title: title, result: result)
+      }
+    }
+  }
+
+  private static func topViewController() -> UIViewController? {
+    guard let root = UIApplication.shared.connectedScenes
+      .compactMap({ $0 as? UIWindowScene })
+      .flatMap({ $0.windows })
+      .first(where: { $0.isKeyWindow })?
+      .rootViewController
+    else {
+      return nil
+    }
+    var current = root
+    while let presented = current.presentedViewController {
+      current = presented
+    }
+    return current
+  }
+
+  private func openFile(path: String, title: String?, result: @escaping FlutterResult) {
+    let url = URL(fileURLWithPath: path)
+    guard FileManager.default.fileExists(atPath: url.path) else {
+      result(false)
+      return
+    }
+    guard let presenter = Self.topViewController() else {
+      result(false)
+      return
+    }
+
+    previewItem = LighChatPreviewItem(url: url, title: title)
+    let preview = QLPreviewController()
+    preview.dataSource = self
+    presenter.present(preview, animated: true) {
+      result(true)
+    }
+  }
+
+  func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+    return previewItem == nil ? 0 : 1
+  }
+
+  func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+    return previewItem ?? LighChatPreviewItem(url: URL(fileURLWithPath: "/"), title: nil)
   }
 }
 

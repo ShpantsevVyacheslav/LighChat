@@ -105,6 +105,7 @@ dependencies:
   local_auth: ^2.3.0
   flutter_secure_storage: ^9.2.4
   battery_plus: ^6.2.1
+  syncfusion_flutter_pdfviewer: ^31.1.21
 
 dev_dependencies:
   flutter_test:

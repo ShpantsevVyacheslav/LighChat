@@ -16,7 +16,7 @@ import '../data/e2ee_runtime.dart';
 import '../data/secret_chat_media_open_service.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
-import 'link_webview_screen.dart';
+import 'chat_document_open.dart';
 import 'chat_media_viewer_screen.dart';
 import 'profile_subpage_header.dart';
 import 'video_cached_thumb_image.dart';
@@ -412,7 +412,7 @@ class _ConversationMediaLinksFilesScreenState
           padding: const EdgeInsets.only(bottom: 8),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () => _openAttachmentUrl(a.url),
+            onTap: () => _openAttachmentUrl(a),
             child: _glass(
               radius: 16,
               child: ListTile(
@@ -584,13 +584,8 @@ class _ConversationMediaLinksFilesScreenState
     await launchUrl(u, mode: LaunchMode.externalApplication);
   }
 
-  void _openAttachmentUrl(String raw) {
-    final u = Uri.tryParse(raw.trim());
-    if (u == null) return;
-    if (!u.isScheme('http') && !u.isScheme('https')) {
-      return;
-    }
-    LinkWebViewScreen.open(context, u.toString());
+  Future<void> _openAttachmentUrl(ChatAttachment attachment) async {
+    await openChatDocumentAttachment(context, attachment);
   }
 
   IconData _iconForAttachment(ChatAttachment a) {
