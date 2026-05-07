@@ -10,7 +10,30 @@ type DeleteAccountResponse = {
   detachedFromGroupsCount: number;
   detachedFromMeetingsCount: number;
   removedIncomingBlocksCount: number;
+  /** [audit CR-004] сколько Storage-префиксов реально содержали файлы и были вычищены. */
+  cleanedStoragePrefixCount: number;
+  /** Сколько FCM-токенов было записано у юзера до удаления (для аудита). */
+  purgedFcmTokenCount: number;
 };
+
+/**
+ * [audit CR-004] best-effort удаление всех файлов в Storage по префиксу.
+ * `bucket.deleteFiles({ prefix, force: true })` идёт пагинацией; force:true
+ * подавляет ошибки на отдельные blob'ы (лучше удалить максимум, чем упасть
+ * на одной странице из тысяч). Возвращает true если префикс был не пуст.
+ */
+async function deleteStorageByPrefix(prefix: string): Promise<boolean> {
+  try {
+    const bucket = admin.storage().bucket();
+    const [head] = await bucket.getFiles({ prefix, maxResults: 1 });
+    if (head.length === 0) return false;
+    await bucket.deleteFiles({ prefix, force: true });
+    return true;
+  } catch (e) {
+    logger.warn("[deleteAccount] storage cleanup failed", { prefix, error: String(e) });
+    return false;
+  }
+}
 
 async function deleteRegistrationIndexForUid(uid: string): Promise<number> {
   const db = admin.firestore();
@@ -32,18 +55,21 @@ async function deleteRegistrationIndexForUid(uid: string): Promise<number> {
   return deleted;
 }
 
-async function deleteMeetingsHostedByUid(uid: string): Promise<number> {
+async function deleteMeetingsHostedByUid(uid: string): Promise<{
+  count: number;
+  meetingIds: string[];
+}> {
   const db = admin.firestore();
-  let deleted = 0;
+  const meetingIds: string[] = [];
   for (;;) {
     const snap = await db.collection("meetings").where("hostId", "==", uid).limit(25).get();
     if (snap.empty) break;
     for (const doc of snap.docs) {
+      meetingIds.push(doc.id);
       await db.recursiveDelete(doc.ref);
-      deleted++;
     }
   }
-  return deleted;
+  return { count: meetingIds.length, meetingIds };
 }
 
 /**
@@ -68,6 +94,8 @@ async function deleteMeetingsHostedByUid(uid: string): Promise<number> {
 async function detachFromConversations(uid: string): Promise<{
   deletedDmConversationsCount: number;
   detachedFromGroupsCount: number;
+  /** [audit CR-004] DM-id'шники для последующей чистки `chat-attachments/{id}/`. */
+  deletedDmConversationIds: string[];
 }> {
   const db = admin.firestore();
   const userChatsSnap = await db.doc(`userChats/${uid}`).get();
@@ -91,6 +119,7 @@ async function detachFromConversations(uid: string): Promise<{
 
   let deletedDmConversationsCount = 0;
   let detachedFromGroupsCount = 0;
+  const deletedDmConversationIds: string[] = [];
 
   for (const convId of conversationIds) {
     if (typeof convId !== "string" || convId.length === 0) continue;
@@ -106,6 +135,7 @@ async function detachFromConversations(uid: string): Promise<{
         // subcollections (messages, members, e2eeSessions, secretAccess, ...)
         await db.recursiveDelete(convRef);
         deletedDmConversationsCount++;
+        deletedDmConversationIds.push(convId);
       } else {
         // Group: surgically detach.
         await convRef.update({
@@ -127,7 +157,7 @@ async function detachFromConversations(uid: string): Promise<{
     }
   }
 
-  return { deletedDmConversationsCount, detachedFromGroupsCount };
+  return { deletedDmConversationsCount, detachedFromGroupsCount, deletedDmConversationIds };
 }
 
 /** Remove uid from every blockedUserIds list and drop the mirror docs. */
@@ -200,7 +230,11 @@ async function detachFromMeetings(uid: string): Promise<number> {
 }
 
 export const deleteAccount = onCall(
-  { region: "us-central1" },
+  // [audit CR-004] Storage cleanup для юзеров с большим объёмом медиа
+  // занимает заметное время. Ставим 540s (HTTP-callable hard-limit Cloud
+  // Functions v2). Если пользователь успел залить тысячи файлов и timeout
+  // всё равно ловится — следующий повторный вызов / админ-cleanup доберёт.
+  { region: "us-central1", timeoutSeconds: 540 },
   async (request: CallableRequest<Record<string, never>>): Promise<DeleteAccountResponse> => {
     const uid = request.auth?.uid;
     if (!uid) {
@@ -215,7 +249,7 @@ export const deleteAccount = onCall(
 
       // 2) GDPR: detach from all chats BEFORE we delete users/{uid}, so
       //    other members don't end up with stale references to a phantom uid.
-      const { deletedDmConversationsCount, detachedFromGroupsCount } =
+      const { deletedDmConversationsCount, detachedFromGroupsCount, deletedDmConversationIds } =
         await detachFromConversations(uid);
 
       // 3) Drop membership in meetings we joined (collectionGroup).
@@ -226,9 +260,26 @@ export const deleteAccount = onCall(
       const removedIncomingBlocksCount = await removeIncomingBlocksAgainst(uid);
 
       // 5) Recursively delete meetings owned by us.
-      const deletedMeetingsCount = await deleteMeetingsHostedByUid(uid);
+      const { count: deletedMeetingsCount, meetingIds: deletedMeetingIds } =
+        await deleteMeetingsHostedByUid(uid);
 
-      // 6) Recursively delete user-scoped documents.
+      // 6) [audit CR-004] FCM bookkeeping: считаем сколько token-записей было,
+      //    чтобы залогировать (для аудита GDPR-удаления). Сами токены
+      //    очистятся вместе с users/{uid} рекурсивным delete ниже. Серверной
+      //    инвалидации FCM-токена нет — только устройство может сделать
+      //    `deleteToken()`. Когда мы пошлём push на orphan-токен после
+      //    удаления, FCM сам ответит NotRegistered и наш отправитель
+      //    почистит его в своих списках.
+      let purgedFcmTokenCount = 0;
+      try {
+        const userSnap = await db.doc(`users/${uid}`).get();
+        const tokens = userSnap.data()?.fcmTokens;
+        if (Array.isArray(tokens)) purgedFcmTokenCount = tokens.length;
+      } catch (e) {
+        logger.warn("[deleteAccount] fcmTokens read failed", { uid, error: String(e) });
+      }
+
+      // 7) Recursively delete user-scoped documents.
       // users/{uid} contains many subcollections (devices, e2ee*, prefs,
       // notifications, stickers, secretChatLock, e2eeDevices, ...).
       await db.recursiveDelete(db.doc(`users/${uid}`));
@@ -238,7 +289,37 @@ export const deleteAccount = onCall(
       await db.recursiveDelete(db.doc(`userCalls/${uid}`));
       await db.recursiveDelete(db.doc(`userMeetings/${uid}`));
 
-      // 7) Finally delete Auth user (irreversible).
+      // 8) [audit CR-004] Cloud Storage cleanup. Без этого медиа-файлы юзера
+      //    остаются в bucket'е навсегда — нарушение GDPR + бесконечный счёт
+      //    за хранение. Префиксы:
+      //      - avatars/{uid}/                      — основной аватар, превью
+      //      - wallpapers/{uid}/                   — фоны чатов
+      //      - users/{uid}/sticker-packs/          — собственные стикеры
+      //      - users/{uid}/backgrounds/            — фоны для митингов
+      //      - chat-attachments/{convId}/          — вложения в DM, удалённых выше
+      //      - chat-attachments-enc/{convId}/      — E2EE-вложения, то же
+      //      - meeting-attachments/{meetingId}/    — вложения митингов hosted by uid
+      //
+      //    `users/{uid}/` верхний префикс покрывает sticker-packs и backgrounds
+      //    (а заодно ловит любые будущие подпапки, которые добавим под uid).
+      let cleanedStoragePrefixCount = 0;
+      const userOwnedPrefixes = [
+        `avatars/${uid}/`,
+        `wallpapers/${uid}/`,
+        `users/${uid}/`,
+      ];
+      for (const prefix of userOwnedPrefixes) {
+        if (await deleteStorageByPrefix(prefix)) cleanedStoragePrefixCount++;
+      }
+      for (const convId of deletedDmConversationIds) {
+        if (await deleteStorageByPrefix(`chat-attachments/${convId}/`)) cleanedStoragePrefixCount++;
+        if (await deleteStorageByPrefix(`chat-attachments-enc/${convId}/`)) cleanedStoragePrefixCount++;
+      }
+      for (const meetingId of deletedMeetingIds) {
+        if (await deleteStorageByPrefix(`meeting-attachments/${meetingId}/`)) cleanedStoragePrefixCount++;
+      }
+
+      // 9) Finally delete Auth user (irreversible).
       await admin.auth().deleteUser(uid);
 
       logger.info("[deleteAccount] deleted", {
@@ -249,6 +330,8 @@ export const deleteAccount = onCall(
         detachedFromGroupsCount,
         detachedFromMeetingsCount,
         removedIncomingBlocksCount,
+        cleanedStoragePrefixCount,
+        purgedFcmTokenCount,
       });
 
       return {
@@ -259,6 +342,8 @@ export const deleteAccount = onCall(
         detachedFromGroupsCount,
         detachedFromMeetingsCount,
         removedIncomingBlocksCount,
+        cleanedStoragePrefixCount,
+        purgedFcmTokenCount,
       };
     } catch (e) {
       logger.error("[deleteAccount] failed", { uid, error: String(e) });
