@@ -9,6 +9,7 @@ import {
 import { mergeProviderPhoneAndAvatarIntoUserDoc } from "../../lib/merge-provider-profile-firestore";
 import { generateUniqueUsernameAdmin } from "../../lib/generate-unique-username-admin";
 import { callerIpKey, consumeRateLimit } from "../../lib/rate-limit";
+import { claimTelegramAuthOnce } from "../../lib/telegram-widget-replay-store";
 
 const telegramBotToken = defineSecret("TELEGRAM_BOT_TOKEN");
 
@@ -198,6 +199,30 @@ export const signInWithTelegram = onCall(
     if (!verifyTelegramLoginWidget(raw, botToken)) {
       logger.warn("signInWithTelegram: invalid telegram hash");
       throw new HttpsError("permission-denied", "Invalid Telegram authorization.");
+    }
+
+    // SECURITY: anti-replay. The widget signature is valid for some TTL; an
+    // attacker who captures one payload (logs / shared screenshot of the
+    // login URL) could otherwise reuse it any number of times within the
+    // window. Burn the (auth_date, hash) tuple via Firestore-create — second
+    // use returns ALREADY_EXISTS and we reject.
+    const authDate = Number(raw.auth_date);
+    const hash = String(raw.hash);
+    const replay = await claimTelegramAuthOnce(
+      admin.firestore(),
+      authDate,
+      hash,
+      600, // matches TELEGRAM_AUTH_MAX_AGE_SEC in telegram-widget-verify.ts
+    );
+    if (!replay.ok) {
+      if (replay.reason === "REPLAY") {
+        logger.warn("signInWithTelegram: replay attempt", { authDate });
+        throw new HttpsError("permission-denied", "TELEGRAM_AUTH_ALREADY_USED");
+      }
+      // Storage failure: fail closed for this auth attempt — better to ask
+      // the user to retry than to allow a potentially-replayed signature.
+      logger.warn("signInWithTelegram: replay store unavailable, refusing");
+      throw new HttpsError("unavailable", "TRY_AGAIN");
     }
 
     const telegramId = telegramUserIdFromPayload(raw);

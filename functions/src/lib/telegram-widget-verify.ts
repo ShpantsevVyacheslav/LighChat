@@ -3,7 +3,22 @@ import * as crypto from "crypto";
 /**
  * Проверка подписи Telegram Login Widget.
  * @see https://core.telegram.org/widgets/login#checking-authorization
+ *
+ * SECURITY: Telegram's own login widget UI signs `auth_date` once and the
+ * same payload remains valid until rejected by the server. The previous TTL
+ * of 86 400 sec (24 hours) gave attackers a full-day window to use a
+ * stolen/leaked payload — typical leak vectors include browser history,
+ * server logs that captured the login URL, or shared screenshots that
+ * exposed the hash. Telegram's own examples use 5–10 minutes; we settle
+ * on 10 minutes as a comfortable trade-off between UX (slow networks /
+ * suspended laptops) and replay risk.
+ *
+ * For full anti-replay we also remember (auth_date, hash) tuples on the
+ * server side — see telegram-widget-replay-store.ts and the use site in
+ * signInWithTelegram.ts. The TTL here keeps the replay store small.
  */
+const TELEGRAM_AUTH_MAX_AGE_SEC = 600; // 10 minutes
+
 export function verifyTelegramLoginWidget(
   raw: Record<string, unknown>,
   botToken: string
@@ -21,7 +36,7 @@ export function verifyTelegramLoginWidget(
     return false;
   }
   const ageSec = Math.floor(Date.now() / 1000) - ts;
-  if (ageSec < 0 || ageSec > 86400) {
+  if (ageSec < 0 || ageSec > TELEGRAM_AUTH_MAX_AGE_SEC) {
     return false;
   }
 
