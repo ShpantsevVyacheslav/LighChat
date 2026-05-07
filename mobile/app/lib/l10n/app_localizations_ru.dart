@@ -7802,4 +7802,46 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get energy_saving_background_update_subtitle =>
       'Быстрое обновление чатов при переключении между приложениями.';
+
+  @override
+  String get legal_index_title => 'Юридические документы';
+
+  @override
+  String get legal_index_subtitle =>
+      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.';
+
+  @override
+  String get legal_settings_section_title => 'Правовая информация';
+
+  @override
+  String get legal_settings_section_subtitle =>
+      'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.';
+
+  @override
+  String get legal_not_found => 'Документ не найден';
+
+  @override
+  String get legal_title_privacy_policy => 'Политика конфиденциальности';
+
+  @override
+  String get legal_title_terms_of_service => 'Пользовательское соглашение';
+
+  @override
+  String get legal_title_cookie_policy => 'Политика использования cookies';
+
+  @override
+  String get legal_title_eula => 'Лицензионное соглашение (EULA)';
+
+  @override
+  String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
+
+  @override
+  String get legal_title_children =>
+      'Политика в отношении несовершеннолетних';
+
+  @override
+  String get legal_title_moderation => 'Политика модерации контента';
+
+  @override
+  String get legal_title_aup => 'Правила допустимого использования';
 }

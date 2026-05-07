@@ -16,7 +16,10 @@ import {
 import type { User, UserContactLocalProfile } from "@/lib/types";
 import { buildContactDisplayName } from "@/lib/contact-display-name";
 import { phoneLookupVariants } from "@/lib/phone-utils";
-import { registrationPhoneKey } from "@/lib/registration-index-keys";
+import {
+  registrationPhoneKey,
+  registrationUsernameKey,
+} from "@/lib/registration-index-keys";
 
 export async function findUserByPhoneInFirestore(
   firestore: Firestore,
@@ -57,6 +60,34 @@ export async function findUserByIdInFirestore(
   const userSnap = await getDoc(doc(firestore, "users", uid));
   if (!userSnap.exists()) return null;
   return { id: userSnap.id, ...userSnap.data() } as User;
+}
+
+export async function findUserByUsernameInFirestore(
+  firestore: Firestore,
+  username: string
+): Promise<User | null> {
+  const normalized = username.trim().replace(/^@/, "").toLowerCase();
+  if (!normalized) return null;
+
+  const regKey = registrationUsernameKey(normalized);
+  if (regKey) {
+    const idxSnap = await getDoc(doc(firestore, "registrationIndex", regKey));
+    const uid = idxSnap.data()?.uid;
+    if (typeof uid === "string" && uid.trim()) {
+      const userSnap = await getDoc(doc(firestore, "users", uid.trim()));
+      if (userSnap.exists()) {
+        return { id: userSnap.id, ...userSnap.data() } as User;
+      }
+    }
+  }
+
+  // Legacy fallback for old data where username index may still be stale.
+  const usersRef = collection(firestore, "users");
+  const q = query(usersRef, where("username", "==", normalized), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() } as User;
 }
 
 export async function addContactId(

@@ -20,6 +20,7 @@ import 'auth_glass.dart';
 import 'avatar_picker_cropper.dart';
 import 'date_dd_mm_yyyy_formatter.dart';
 import 'phone_ru_format.dart';
+import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -547,7 +548,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   )
                 : SingleChildScrollView(
                     keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
+                        platformScrollKeyboardDismissBehavior(),
                     padding: EdgeInsets.fromLTRB(
                       16,
                       MediaQuery.paddingOf(context).top + kToolbarHeight + 8,

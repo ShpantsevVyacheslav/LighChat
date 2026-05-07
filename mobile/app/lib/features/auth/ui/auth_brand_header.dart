@@ -40,13 +40,13 @@ class AuthBrandHeader extends StatelessWidget {
                 color: lighColor,
               ),
             ),
-            // Baseline даёт виджету alphabetic-baseline = его bottom (40px).
-            // Внутри painter'а stem рисуется до h*1.0 — значит ровно до
-            // baseline ряда, как у "L".
+            // Для текста 40px у используемого шрифта реальная alphabetic
+            // baseline находится выше нижней границы bbox (примерно на 80%).
+            // Если ставить baseline=40, stem "i" уезжает вниз.
             Padding(
               padding: const EdgeInsets.only(left: 2, right: 2),
               child: Baseline(
-                baseline: 40,
+                baseline: 32,
                 baselineType: TextBaseline.alphabetic,
                 child: _BrandDottedI(
                   stemColor: lighColor,

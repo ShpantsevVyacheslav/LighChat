@@ -16,6 +16,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/partner_presence_line.dart';
 import '../data/phone_display.dart';
+import '../data/profile_qr_link.dart';
 import '../data/secret_chat_create.dart';
 import '../data/profile_attachment_stats.dart';
 import '../data/profile_field_visibility.dart';
@@ -510,8 +511,7 @@ class _ChatPartnerProfileSheetState
     }
     final avatarUrl = (p?.avatar ?? p?.avatarThumb ?? _displayAvatarUrl ?? '')
         .trim();
-    final profileUrl =
-        'https://lighchat.online/dashboard/contacts/${Uri.encodeComponent(partnerId)}';
+    final profileUrl = buildProfileShareUrl(partnerId, username: username);
     final sharedFiles = <XFile>[];
     final avatarFile = await _downloadAvatarForShare(
       avatarUrl: avatarUrl,
@@ -987,6 +987,7 @@ class _ChatPartnerProfileSheetState
           .where((m) => m.createdAt.toUtc().isAfter(clearedAtCutoff))
           .toList(growable: false);
     }
+
     final mediaCount = msgsAsync.when(
       data: (m) => profileMediaDocsCount(filterCleared(m)),
       loading: () => 0,
@@ -1077,11 +1078,11 @@ class _ChatPartnerProfileSheetState
                     c.data.participantIds.contains(partnerId),
               )
               .toList()
-          ..sort((a, b) {
-            final an = (a.data.name ?? '').trim().toLowerCase();
-            final bn = (b.data.name ?? '').trim().toLowerCase();
-            return an.compareTo(bn);
-          }));
+            ..sort((a, b) {
+              final an = (a.data.name ?? '').trim().toLowerCase();
+              final bn = (b.data.name ?? '').trim().toLowerCase();
+              return an.compareTo(bn);
+            }));
     final sharedGroupsLoading =
         !_isSaved &&
         !_isGroup &&

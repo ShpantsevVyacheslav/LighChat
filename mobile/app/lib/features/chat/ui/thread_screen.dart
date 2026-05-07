@@ -13,12 +13,14 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../data/chat_media_gallery.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
+import '../data/e2ee_attachment_send_helper.dart';
 import '../data/e2ee_data_type_policy.dart';
 import '../data/e2ee_runtime.dart';
 import '../data/secret_chat_media_open_service.dart';
@@ -60,6 +62,7 @@ import 'location_send_preview_sheet.dart';
 import 'share_location_sheet.dart';
 import 'thread_header.dart';
 import 'video_circle_capture_page.dart';
+import 'voice_message_record_sheet.dart';
 
 Widget threadWallpaperBackdrop({
   required WidgetRef ref,
@@ -645,6 +648,95 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     );
   }
 
+  E2eeDataTypePolicy _resolveEffectiveE2eePolicyForThread(
+    String uid, {
+    Conversation? conv,
+  }) {
+    final userDoc =
+        ref.read(userChatSettingsDocProvider(uid)).asData?.value ??
+        const <String, dynamic>{};
+    final rawPrivacy =
+        userDoc['privacySettings'] as Map? ?? const <String, dynamic>{};
+    final globalPolicy = E2eeDataTypePolicy.fromFirestore(
+      rawPrivacy['e2eeEncryptedDataTypes'],
+    );
+    final effectiveConv =
+        conv ??
+        (() {
+          final convAsync = ref.read(
+            conversationsProvider((
+              key: conversationIdsCacheKey([widget.conversationId]),
+            )),
+          );
+          final convList = convAsync.asData?.value;
+          return convList != null && convList.isNotEmpty
+              ? convList.first.data
+              : null;
+        })();
+    final overrideRaw = effectiveConv?.e2eeEncryptedDataTypesOverride;
+    final overridePolicy = overrideRaw == null
+        ? null
+        : E2eeDataTypePolicy.fromFirestore(overrideRaw);
+    final basePolicy = resolveE2eeEffectivePolicy(
+      global: globalPolicy,
+      override: overridePolicy,
+    );
+    if (isConversationE2eeActive(effectiveConv)) {
+      return basePolicy.copyWith(text: true, media: true);
+    }
+    return basePolicy;
+  }
+
+  ReplyContext? _stripReplyPreviewByPolicy(
+    ReplyContext? input,
+    E2eeDataTypePolicy policy,
+  ) {
+    if (input == null) return null;
+    if (policy.replyPreview) return input;
+    return ReplyContext(
+      messageId: input.messageId,
+      senderName: input.senderName,
+      mediaType: input.mediaType,
+      text: null,
+      mediaPreviewUrl: null,
+    );
+  }
+
+  ({MobileE2eeRuntime runtime, int epoch, String messageId})?
+  _resolveMediaOnlyE2eeContextForThread(String uid, {Conversation? conv}) {
+    final effectiveConv =
+        conv ??
+        (() {
+          final convAsync = ref.read(
+            conversationsProvider((
+              key: conversationIdsCacheKey([widget.conversationId]),
+            )),
+          );
+          final convList = convAsync.asData?.value;
+          return convList != null && convList.isNotEmpty
+              ? convList.first.data
+              : null;
+        })();
+    if (!isConversationE2eeActive(effectiveConv)) return null;
+    final policy = _resolveEffectiveE2eePolicyForThread(
+      uid,
+      conv: effectiveConv,
+    );
+    if (!policy.media) return null;
+    final runtime = ref.read(mobileE2eeRuntimeProvider);
+    final epoch = effectiveConv?.e2eeKeyEpoch;
+    if (runtime == null || epoch == null) return null;
+    final reservedId = FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(widget.conversationId)
+        .collection('messages')
+        .doc(widget.parentMessageId)
+        .collection('thread')
+        .doc()
+        .id;
+    return (runtime: runtime, epoch: epoch, messageId: reservedId);
+  }
+
   Future<void> _sendVideoCircleFileThread(
     String uid,
     ChatRepository repo,
@@ -682,6 +774,92 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       }
     } finally {
       unawaited(_deleteFileSilently(raw.path));
+      if (mounted) setState(() => _sendBusy = false);
+    }
+  }
+
+  Future<void> _sendVoiceMessage(String uid, {Conversation? conv}) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null || _sendBusy) return;
+    final rec = await showVoiceMessageRecordSheet(context);
+    if (!mounted || rec == null) return;
+    await _sendVoiceMessageFromRecord(uid, rec, conv: conv);
+  }
+
+  Future<void> _sendVoiceMessageFromRecord(
+    String uid,
+    VoiceMessageRecordResult rec, {
+    Conversation? conv,
+  }) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null || _sendBusy) return;
+    setState(() => _sendBusy = true);
+    try {
+      final audioName = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final file = XFile(rec.filePath, mimeType: 'audio/m4a');
+      final policy = _resolveEffectiveE2eePolicyForThread(uid, conv: conv);
+      final replySnap = _stripReplyPreviewByPolicy(_replyingTo, policy);
+      final e2ee = _resolveMediaOnlyE2eeContextForThread(uid, conv: conv);
+      if (e2ee != null) {
+        final bytes = await file.readAsBytes();
+        final envelope = await e2ee.runtime.encryptMediaForSend(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          data: bytes,
+          mime: 'audio/m4a',
+        );
+        final emptyTextEnvelope = await e2ee.runtime.encryptOutgoing(
+          conversationId: widget.conversationId,
+          messageId: e2ee.messageId,
+          epoch: e2ee.epoch,
+          plaintext: '',
+        );
+        final mergedE2ee = mergeE2eeEnvelopeWithMedia(
+          textEnvelope: emptyTextEnvelope,
+          mediaEnvelopes: [envelope.toWireJson()],
+          epoch: e2ee.epoch,
+        );
+        await repo.sendThreadTextMessage(
+          conversationId: widget.conversationId,
+          parentMessageId: widget.parentMessageId,
+          senderId: uid,
+          text: '',
+          replyTo: replySnap,
+          e2eeEnvelope: mergedE2ee,
+          messageIdOverride: e2ee.messageId,
+        );
+      } else {
+        final uploaded = await uploadChatAttachmentFromXFile(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          file: file,
+          displayName: audioName,
+        );
+        await repo.sendThreadTextMessage(
+          conversationId: widget.conversationId,
+          parentMessageId: widget.parentMessageId,
+          senderId: uid,
+          text: '',
+          replyTo: replySnap,
+          attachments: [uploaded],
+        );
+      }
+      if (mounted) {
+        setState(() {
+          _replyingTo = null;
+          _composerFormattingOpen = false;
+        });
+        _composerFocus.unfocus();
+        unawaited(_animateToThreadBottom());
+      }
+    } catch (e) {
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_send_voice_failed(e));
+      }
+    } finally {
+      unawaited(_deleteFileSilently(rec.filePath));
       if (mounted) setState(() => _sendBusy = false);
     }
   }
@@ -1100,11 +1278,62 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     );
   }
 
+  Future<void> _openThreadFileAttachment(
+    ChatAttachment att,
+    ChatMessage msg, {
+    required Conversation? conv,
+  }) async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    var target = att;
+    final isSecret = conv?.secretChat?.enabled == true;
+    if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(att)) {
+      final rt = ref.read(mobileE2eeRuntimeProvider);
+      if (rt == null) return;
+      try {
+        target = await const SecretChatMediaOpenService().openForView(
+          runtime: rt,
+          conversationId: widget.conversationId,
+          message: msg,
+          lockedAttachment: att,
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
+        return;
+      }
+    }
+    final uri = Uri.tryParse(target.url.trim());
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
+      return;
+    }
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.secret_chat_unlock_failed)));
+    }
+  }
+
   Future<void> _submitWithAttachments(String uid, [Conversation? conv]) async {
     if (_sendBusy) return;
+    final rawComposer = _composerController.text;
 
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
-      _composerController.text,
+      rawComposer,
     );
     final plain = prepared.isEmpty
         ? ''
@@ -1113,64 +1342,81 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     final pending = List<XFile>.from(_pendingAttachments);
     if (plain.isEmpty && pending.isEmpty) return;
 
-    final userDoc =
-        ref.read(userChatSettingsDocProvider(uid)).asData?.value ??
-        const <String, dynamic>{};
-    final rawPrivacy =
-        userDoc['privacySettings'] as Map? ?? const <String, dynamic>{};
-    final globalPolicy = E2eeDataTypePolicy.fromFirestore(
-      rawPrivacy['e2eeEncryptedDataTypes'],
-    );
-    final overrideRaw = conv?.e2eeEncryptedDataTypesOverride;
-    final overridePolicy = overrideRaw == null
-        ? null
-        : E2eeDataTypePolicy.fromFirestore(overrideRaw);
-    final basePolicy = resolveE2eeEffectivePolicy(
-      global: globalPolicy,
-      override: overridePolicy,
-    );
-    final e2eePolicy = isConversationE2eeActive(conv)
-        ? basePolicy.copyWith(text: true, media: true)
-        : basePolicy;
-
-    ReplyContext? stripReply(ReplyContext? input) {
-      if (input == null) return null;
-      if (e2eePolicy.replyPreview) return input;
-      return ReplyContext(
-        messageId: input.messageId,
-        senderName: input.senderName,
-        mediaType: input.mediaType,
-        text: null,
-        mediaPreviewUrl: null,
-      );
-    }
-
-    final replySnap = stripReply(_replyingTo);
-    setState(() => _sendBusy = true);
-    await ref
-        .read(chatOutboxAttachmentNotifierProvider.notifier)
-        .enqueueFromComposer(
-          conversationId: widget.conversationId,
-          senderId: uid,
-          files: pending,
-          rawCaptionHtml: prepared,
-          replyTo: replySnap,
-          convIsE2ee: isConversationE2eeActive(conv),
-          e2eeEncryptText: e2eePolicy.text,
-          e2eeEncryptMedia: e2eePolicy.media,
-          e2eeEpoch: conv?.e2eeKeyEpoch,
-          threadParentMessageId: widget.parentMessageId,
-        );
-    if (mounted) {
+    final e2eePolicy = _resolveEffectiveE2eePolicyForThread(uid, conv: conv);
+    final replySnap = _stripReplyPreviewByPolicy(_replyingTo, e2eePolicy);
+    if (pending.isNotEmpty) {
+      final restoreReply = _replyingTo;
+      final restoreFormatting = _composerFormattingOpen;
       setState(() {
-        _sendBusy = false;
         _composerController.clear();
         _pendingAttachments.clear();
         _replyingTo = null;
         _composerFormattingOpen = false;
       });
-      _composerFocus.unfocus();
-      unawaited(_animateToThreadBottom());
+      try {
+        await ref
+            .read(chatOutboxAttachmentNotifierProvider.notifier)
+            .enqueueFromComposer(
+              conversationId: widget.conversationId,
+              senderId: uid,
+              files: pending,
+              rawCaptionHtml: prepared,
+              replyTo: replySnap,
+              convIsE2ee: isConversationE2eeActive(conv),
+              e2eeEncryptText: e2eePolicy.text,
+              e2eeEncryptMedia: e2eePolicy.media,
+              e2eeEpoch: conv?.e2eeKeyEpoch,
+              threadParentMessageId: widget.parentMessageId,
+            );
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _composerController.text = rawComposer;
+            _pendingAttachments
+              ..clear()
+              ..addAll(pending);
+            _replyingTo = restoreReply;
+            _composerFormattingOpen = restoreFormatting;
+          });
+          _toast(AppLocalizations.of(context)!.chat_send_failed(e));
+        }
+        return;
+      }
+      if (mounted) {
+        _composerFocus.unfocus();
+        unawaited(_animateToThreadBottom());
+      }
+      return;
+    }
+
+    setState(() => _sendBusy = true);
+    try {
+      await ref
+          .read(chatOutboxAttachmentNotifierProvider.notifier)
+          .enqueueFromComposer(
+            conversationId: widget.conversationId,
+            senderId: uid,
+            files: pending,
+            rawCaptionHtml: prepared,
+            replyTo: replySnap,
+            convIsE2ee: isConversationE2eeActive(conv),
+            e2eeEncryptText: e2eePolicy.text,
+            e2eeEncryptMedia: e2eePolicy.media,
+            e2eeEpoch: conv?.e2eeKeyEpoch,
+            threadParentMessageId: widget.parentMessageId,
+          );
+      if (mounted) {
+        setState(() {
+          _composerController.clear();
+          _pendingAttachments.clear();
+          _replyingTo = null;
+          _composerFormattingOpen = false;
+        });
+        _composerFocus.unfocus();
+        unawaited(_animateToThreadBottom());
+      }
+    } finally {
+      if (mounted) setState(() => _sendBusy = false);
     }
   }
 
@@ -1618,6 +1864,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                   conv: conv,
                                                 );
                                               },
+                                              onOpenFileAttachment: (att, m) {
+                                                unawaited(
+                                                  _openThreadFileAttachment(
+                                                    att,
+                                                    m,
+                                                    conv: conv,
+                                                  ),
+                                                );
+                                              },
                                               onRetryMediaNorm: (message) =>
                                                   _retryMediaNormForThread(
                                                     message,
@@ -1648,8 +1903,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                 setState(() {
                                                   _replyingTo =
                                                       buildReplyPreview(
-                                                      l10n: AppLocalizations.of(context)!,
-                                                      message: m,
+                                                        l10n:
+                                                            AppLocalizations.of(
+                                                              context,
+                                                            )!,
+                                                        message: m,
                                                         currentUserId: user.uid,
                                                         isGroup:
                                                             c?.isGroup ?? false,
@@ -1667,8 +1925,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                               onMessageLongPress: (m) async {
                                                 final isOutboxFailed =
                                                     m.id.startsWith(
-                                                          kLocalOutboxMessageIdPrefix,
-                                                        ) &&
+                                                      kLocalOutboxMessageIdPrefix,
+                                                    ) &&
                                                     (m.deliveryStatus ?? '') ==
                                                         'failed';
                                                 final isStale =
@@ -1677,12 +1935,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                     ) &&
                                                     (m.deliveryStatus ?? '') ==
                                                         'sending' &&
-                                                    DateTime.now()
-                                                            .difference(
-                                                              _pendingRetryAt[m
-                                                                      .id] ??
-                                                                  m.createdAt,
-                                                            ) >=
+                                                    DateTime.now().difference(
+                                                          _pendingRetryAt[m
+                                                                  .id] ??
+                                                              m.createdAt,
+                                                        ) >=
                                                         const Duration(
                                                           seconds: 30,
                                                         );
@@ -1704,7 +1961,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                 }
                                                 switch (result.type) {
                                                   case MessageMenuActionType
-                                                        .outboxRetry:
+                                                      .outboxRetry:
                                                     if (isOutboxFailed) {
                                                       handleOutboxRetry(
                                                         ref,
@@ -1717,7 +1974,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                       });
                                                     }
                                                   case MessageMenuActionType
-                                                        .outboxCancel:
+                                                      .outboxCancel:
                                                     if (isOutboxFailed) {
                                                       unawaited(
                                                         handleOutboxDismiss(
@@ -1840,7 +2097,16 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                               onEditPending: (_) async {},
                               attachmentsEnabled: !_sendBusy,
                               sendBusy: _sendBusy,
-                              onMicTap: () => _toast(l10n.common_soon),
+                              onMicTap: () => unawaited(
+                                _sendVoiceMessage(user.uid, conv: conv),
+                              ),
+                              onVoiceHoldRecorded: (rec) async {
+                                await _sendVoiceMessageFromRecord(
+                                  user.uid,
+                                  rec,
+                                  conv: conv,
+                                );
+                              },
                               onStickersTap: () =>
                                   unawaited(_openStickersGifPanel(user.uid)),
                               stickerSuggestionBuilder: () {
@@ -2032,7 +2298,9 @@ class _ThreadRootPanel extends StatelessWidget {
                       ? Colors.white.withValues(alpha: 0.95)
                       : scheme.primary,
                   quoteAccent: scheme.primary,
-                  mentionFallbackLabel: AppLocalizations.of(context)!.mention_fallback_label,
+                  mentionFallbackLabel: AppLocalizations.of(
+                    context,
+                  )!.mention_fallback_label,
                 ),
               ),
             ),

@@ -38,7 +38,10 @@ class ChatAccountScreen extends ConsumerWidget {
               final appThemePref = appThemePreferenceFromRaw(
                 userDoc['appTheme'],
               );
-              final appThemeLabel = appThemePreferenceLabel(appThemePref, AppLocalizations.of(context)!);
+              final appThemeLabel = appThemePreferenceLabel(
+                appThemePref,
+                AppLocalizations.of(context)!,
+              );
 
               final profilesRepo = ref.watch(userProfilesRepositoryProvider);
               final profileStream = profilesRepo?.watchUsersByIds(<String>[
@@ -79,9 +82,13 @@ class ChatAccountScreen extends ConsumerWidget {
                     },
                     onProfileTap: () => context.push('/profile'),
                     onQrTap: () async {
+                      final desiredQrLink = buildProfileShareUrl(
+                        user.uid,
+                        username: username,
+                      );
                       var resolvedQrLink = profileQrLink;
-                      if (resolvedQrLink.isEmpty) {
-                        resolvedQrLink = buildProfileShareUrl(user.uid);
+                      if (resolvedQrLink != desiredQrLink) {
+                        resolvedQrLink = desiredQrLink;
                         final repo = ref.read(chatSettingsRepositoryProvider);
                         if (repo != null) {
                           try {

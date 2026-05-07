@@ -5,6 +5,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 
 class LoginForm extends ConsumerStatefulWidget {
   const LoginForm({super.key, required this.onDone});
@@ -103,7 +104,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     final dark = scheme.brightness == Brightness.dark;
     final enabled = !_busy;
     return SingleChildScrollView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      keyboardDismissBehavior: platformScrollKeyboardDismissBehavior(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,

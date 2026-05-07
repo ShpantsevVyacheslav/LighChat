@@ -20,6 +20,7 @@ import 'chat_shell_backdrop.dart';
 import 'device_contact_invite_row.dart';
 import 'group_chat_avatar_button.dart';
 import 'new_chat_user_picker_row.dart';
+import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 import '../../../l10n/app_localizations.dart';
 
 class NewGroupChatScreenArgs {
@@ -796,7 +797,7 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                               Expanded(
                                 child: ListView(
                                   keyboardDismissBehavior:
-                                      ScrollViewKeyboardDismissBehavior.onDrag,
+                                      platformScrollKeyboardDismissBehavior(),
                                   padding: const EdgeInsets.only(bottom: 16),
                                   children: [
                                     const SizedBox(height: 16),

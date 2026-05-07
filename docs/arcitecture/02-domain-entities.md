@@ -4,7 +4,7 @@
 
 ## Пользователи
 
-- `User` - профиль пользователя, роль, presence, настройки, ограничения аккаунта; push-токены `fcmTokens` (FCM) и `voipTokens` (iOS PushKit для нативного incoming-call UI), а также `profileQrLink` (персональная ссылка для QR/шаринга профиля).
+- `User` - профиль пользователя, роль, presence, настройки, ограничения аккаунта; push-токены `fcmTokens` (FCM) и `voipTokens` (iOS PushKit для нативного incoming-call UI), а также `profileQrLink` (персональная ссылка для QR/шаринга профиля: при наличии username сервер синхронизирует slug-формат `/dashboard/contacts/<username>`, иначе fallback на `/dashboard/contacts/<uid>`).
 - `UserAccountBlock` - флаг/срок/причина блокировки.
 - `UserLiveLocationShare` - состояние активной трансляции геопозиции.
 

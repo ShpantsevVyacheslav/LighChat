@@ -1,10 +1,15 @@
 import 'dart:async' show unawaited;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../data/link_preview_diagnostics.dart';
 import '../data/link_preview_metadata.dart';
+import '../data/profile_qr_link.dart';
+import '../data/user_profile.dart';
+import 'chat_avatar.dart';
 import 'link_webview_screen.dart';
 
 final LinkPreviewMetadataCache _linkPreviewCache = LinkPreviewMetadataCache();
@@ -39,6 +44,20 @@ class MessageLinkPreviewCard extends StatelessWidget {
         : (dark ? Colors.white : scheme.surfaceContainerHigh).withValues(
             alpha: dark ? 0.06 : 0.88,
           );
+    final contactTarget = extractProfileTargetFromQrPayload(url);
+    if (contactTarget.userId != null || contactTarget.username != null) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: _ContactProfileLinkPreviewCard(
+          target: contactTarget,
+          url: url,
+          isMine: isMine,
+          border: border,
+          bg: bg,
+          onOpenUrl: () => _open(context),
+        ),
+      );
+    }
 
     // Синхронная ветка — главный анти-flicker фикс. `FutureBuilder` после
     // unmount/remount (cacheExtent в reverse: true CustomScrollView) ВСЕГДА
@@ -102,8 +121,9 @@ class MessageLinkPreviewCard extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.2,
-                color: (isMine ? Colors.white : scheme.onSurface)
-                    .withValues(alpha: 0.65),
+                color: (isMine ? Colors.white : scheme.onSurface).withValues(
+                  alpha: 0.65,
+                ),
               ),
             ),
             const SizedBox(height: 4),
@@ -115,8 +135,9 @@ class MessageLinkPreviewCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: (isMine ? Colors.white : scheme.onSurface)
-                  .withValues(alpha: 0.92),
+              color: (isMine ? Colors.white : scheme.onSurface).withValues(
+                alpha: 0.92,
+              ),
               height: 1.15,
             ),
           ),
@@ -129,8 +150,9 @@ class MessageLinkPreviewCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: (isMine ? Colors.white : scheme.onSurface)
-                    .withValues(alpha: 0.68),
+                color: (isMine ? Colors.white : scheme.onSurface).withValues(
+                  alpha: 0.68,
+                ),
                 height: 1.2,
               ),
             ),
@@ -143,8 +165,9 @@ class MessageLinkPreviewCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: (isMine ? Colors.white : scheme.primary)
-                  .withValues(alpha: 0.85),
+              color: (isMine ? Colors.white : scheme.primary).withValues(
+                alpha: 0.85,
+              ),
             ),
           ),
         ],
@@ -188,10 +211,7 @@ class MessageLinkPreviewCard extends StatelessWidget {
             ),
           Material(
             color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _open(context),
-              child: textSection,
-            ),
+            child: InkWell(onTap: () => _open(context), child: textSection),
           ),
         ],
       ),
@@ -237,6 +257,158 @@ class MessageLinkPreviewCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ContactProfileLinkPreviewCard extends StatelessWidget {
+  const _ContactProfileLinkPreviewCard({
+    required this.target,
+    required this.url,
+    required this.isMine,
+    required this.border,
+    required this.bg,
+    required this.onOpenUrl,
+  });
+
+  final ProfileQrTarget target;
+  final String url;
+  final bool isMine;
+  final Color border;
+  final Color bg;
+  final VoidCallback onOpenUrl;
+
+  Future<UserProfile?> _resolveProfile() async {
+    final db = FirebaseFirestore.instance;
+    String? resolvedUserId = target.userId?.trim();
+    if ((resolvedUserId == null || resolvedUserId.isEmpty) &&
+        (target.username ?? '').trim().isNotEmpty) {
+      final key =
+          'u_${target.username!.trim().replaceFirst(RegExp(r'^@'), '').toLowerCase()}';
+      final regSnap = await db.collection('registrationIndex').doc(key).get();
+      final uid = regSnap.data()?['uid'];
+      if (uid is String && uid.trim().isNotEmpty) {
+        resolvedUserId = uid.trim();
+      }
+    }
+    if (resolvedUserId == null || resolvedUserId.isEmpty) return null;
+    final userSnap = await db.collection('users').doc(resolvedUserId).get();
+    if (!userSnap.exists) return null;
+    final data = userSnap.data();
+    if (data == null) return null;
+    return UserProfile.fromJson(
+      userSnap.id,
+      data.map((k, v) => MapEntry(k, v)),
+    );
+  }
+
+  void _openProfileOrUrl(BuildContext context, UserProfile? profile) {
+    final uid = profile?.id.trim() ?? '';
+    if (uid.isNotEmpty) {
+      context.push('/contacts/user/${Uri.encodeComponent(uid)}');
+      return;
+    }
+    onOpenUrl();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final primaryText = (isMine ? Colors.white : scheme.onSurface).withValues(
+      alpha: 0.92,
+    );
+    final secondaryText = (isMine ? Colors.white : scheme.onSurface).withValues(
+      alpha: 0.68,
+    );
+
+    return FutureBuilder<UserProfile?>(
+      future: _resolveProfile(),
+      builder: (context, snap) {
+        final profile = snap.data;
+        final isLoading = snap.connectionState != ConnectionState.done;
+        final displayName = (profile?.name ?? '').trim();
+        final username = (profile?.username ?? target.username ?? '')
+            .trim()
+            .replaceFirst(RegExp(r'^@'), '');
+        final subtitle = username.isNotEmpty
+            ? '@$username'
+            : 'LighChat contact';
+        final title = displayName.isNotEmpty
+            ? displayName
+            : (isLoading ? 'Loading contact...' : 'LighChat contact');
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _openProfileOrUrl(context, profile),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: bg,
+                border: Border.all(color: border),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  ChatAvatar(
+                    title: title,
+                    avatarUrl: profile?.avatarThumb ?? profile?.avatar,
+                    radius: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: primaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: secondaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          url,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: (isMine ? Colors.white : scheme.primary)
+                                .withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: secondaryText,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -314,7 +486,9 @@ class _LinkPreviewInlineVideoState extends State<_LinkPreviewInlineVideo> {
       unawaited(c.dispose());
       if (!mounted) return;
       if (kLogLinkPreviewDiagnostics) {
-        debugPrint('[link-preview-video] init FAIL url=${widget.videoUrl} err=$e');
+        debugPrint(
+          '[link-preview-video] init FAIL url=${widget.videoUrl} err=$e',
+        );
       }
       setState(() {
         _initializing = false;
@@ -360,11 +534,14 @@ class _LinkPreviewInlineVideoState extends State<_LinkPreviewInlineVideo> {
         fit: StackFit.expand,
         children: [
           if (c != null && c.value.isInitialized)
-            FittedBox(fit: BoxFit.cover, child: SizedBox(
-              width: c.value.size.width,
-              height: c.value.size.height,
-              child: VideoPlayer(c),
-            ))
+            FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: c.value.size.width,
+                height: c.value.size.height,
+                child: VideoPlayer(c),
+              ),
+            )
           else if (widget.posterUrl != null)
             Image.network(
               widget.posterUrl!,
@@ -374,8 +551,7 @@ class _LinkPreviewInlineVideoState extends State<_LinkPreviewInlineVideo> {
           else
             const ColoredBox(color: Colors.black),
           // Dim overlay only when nothing is playing yet.
-          if (c == null)
-            Container(color: Colors.black.withValues(alpha: 0.25)),
+          if (c == null) Container(color: Colors.black.withValues(alpha: 0.25)),
           // Controls.
           Positioned.fill(
             child: GestureDetector(

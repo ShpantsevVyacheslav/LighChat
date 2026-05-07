@@ -45,12 +45,15 @@ export function MyProfileQrCard(props: { userId: string; username?: string | nul
       </div>
 
       <div className="mt-4 flex flex-col items-center gap-3">
-        <div className="rounded-2xl border border-border/60 bg-white p-3">
-          <QRCodeCanvas value={payload} size={210} includeMargin />
+        <div className="relative rounded-2xl border border-border/60 bg-white p-3">
+          <QRCodeCanvas value={payload} size={210} includeMargin level="H" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-[10px] bg-white" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-[#1E3A5F] p-[3px] shadow-[0_1px_6px_rgba(0,0,0,0.4)]">
+            <img src="/brand/lighchat-mark.png" alt="" className="h-full w-full object-contain" />
+          </div>
         </div>
         <div className="max-w-full truncate text-center text-xs text-muted-foreground">{payload}</div>
       </div>
     </div>
   );
 }
-

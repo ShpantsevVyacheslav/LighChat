@@ -3950,5 +3950,19 @@
   "energy_saving_media_preload_title": "Media preload",
   "energy_saving_media_preload_subtitle": "Start downloading media files when opening the chat list.",
   "energy_saving_background_update_title": "Background update",
-  "energy_saving_background_update_subtitle": "Quick chat updates when switching between apps."
+  "energy_saving_background_update_subtitle": "Quick chat updates when switching between apps.",
+
+  "legal_index_title": "Legal documents",
+  "legal_index_subtitle": "Privacy policy, terms of service and other legal documents that govern the use of LighChat.",
+  "legal_settings_section_title": "Legal information",
+  "legal_settings_section_subtitle": "Privacy policy, terms of service, EULA and more.",
+  "legal_not_found": "Document not found",
+  "legal_title_privacy_policy": "Privacy Policy",
+  "legal_title_terms_of_service": "Terms of Service",
+  "legal_title_cookie_policy": "Cookie Policy",
+  "legal_title_eula": "End-User License Agreement",
+  "legal_title_dpa": "Data Processing Agreement",
+  "legal_title_children": "Children Policy",
+  "legal_title_moderation": "Content Moderation Policy",
+  "legal_title_aup": "Acceptable Use Policy"
 }

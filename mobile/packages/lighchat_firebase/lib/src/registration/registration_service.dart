@@ -9,9 +9,16 @@ import 'registration_availability.dart';
 import 'registration_keys.dart';
 import 'registration_models.dart';
 
-String _buildProfileQrLink(String uid) {
+String _buildProfileQrLink(String uid, {String? username}) {
   final safeUid = uid.trim();
   if (safeUid.isEmpty) return 'https://lighchat.online/dashboard/contacts';
+  final normalizedUsername = (username ?? '')
+      .trim()
+      .replaceFirst(RegExp(r'^@'), '')
+      .toLowerCase();
+  if (normalizedUsername.isNotEmpty) {
+    return 'https://lighchat.online/dashboard/contacts/${Uri.encodeComponent(normalizedUsername)}';
+  }
   return 'https://lighchat.online/dashboard/contacts/${Uri.encodeComponent(safeUid)}';
 }
 
@@ -110,7 +117,7 @@ class RegistrationService {
       'phone': phone,
       'avatar': avatarUrl,
       'avatarThumb': avatarThumbUrl,
-      'profileQrLink': _buildProfileQrLink(uid),
+      'profileQrLink': _buildProfileQrLink(uid, username: data.username),
       'deletedAt': null,
       'createdAt': nowIso,
       if (data.bio?.trim().isNotEmpty ?? false) 'bio': data.bio!.trim(),
@@ -260,7 +267,7 @@ class RegistrationService {
       'phone': phone,
       'avatar': avatarUrl,
       'avatarThumb': avatarThumbUrl,
-      'profileQrLink': _buildProfileQrLink(uid),
+      'profileQrLink': _buildProfileQrLink(uid, username: data.username),
       if (data.bio?.trim().isNotEmpty ?? false) 'bio': data.bio!.trim(),
       if (data.dateOfBirth?.trim().isNotEmpty ?? false)
         'dateOfBirth': data.dateOfBirth!.trim(),

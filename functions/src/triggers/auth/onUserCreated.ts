@@ -3,6 +3,14 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { logger } from "firebase-functions/v1";
 
+function buildProfileQrLink(userId: string, username?: string | null): string {
+  const normalizedUsername = String(username ?? "").trim().replace(/^@/, "").toLowerCase();
+  if (normalizedUsername) {
+    return `https://lighchat.online/dashboard/contacts/${encodeURIComponent(normalizedUsername)}`;
+  }
+  return `https://lighchat.online/dashboard/contacts/${encodeURIComponent(userId)}`;
+}
+
 /**
  * Automatically creates a user profile document in Firestore when a new user
  * is created in Firebase Authentication. This includes both email/password
@@ -27,7 +35,7 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
     (user.uid.startsWith("tg_") || user.uid.startsWith("ya_"));
   const isAnonymous = !isOAuthBridgeUid && !user.email && !user.phoneNumber;
 
-  const profileQrLink = `https://lighchat.online/dashboard/contacts/${encodeURIComponent(user.uid)}`;
+  const profileQrLink = buildProfileQrLink(user.uid, "");
 
   const userProfile = {
     id: user.uid,

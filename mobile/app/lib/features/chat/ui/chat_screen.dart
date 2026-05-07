@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/composer_clipboard_paste.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
@@ -892,18 +893,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           userId: uid,
         )
         .listen((items) {
-      if (!mounted) return;
-      final next = items.length;
-      if (next != _scheduledPendingCount) {
-        setState(() => _scheduledPendingCount = next);
-      }
-    });
+          if (!mounted) return;
+          final next = items.length;
+          if (next != _scheduledPendingCount) {
+            setState(() => _scheduledPendingCount = next);
+          }
+        });
   }
 
-  void _openScheduledMessagesScreen(
-    String uid, {
-    required bool e2eeActive,
-  }) {
+  void _openScheduledMessagesScreen(String uid, {required bool e2eeActive}) {
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
     Navigator.of(context).push(
@@ -1257,7 +1255,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ? AppLocalizations.of(
                         context,
                       )!.partner_profile_subtitle_saved_messages
-                    : partnerPresenceLine(profile, AppLocalizations.of(context)!);
+                    : partnerPresenceLine(
+                        profile,
+                        AppLocalizations.of(context)!,
+                      );
                 final showCalls =
                     conv?.data.isGroup != true &&
                     dmOtherId != null &&
@@ -1562,7 +1563,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       )
                                     : null,
                                 disappearingMessagesEnabled:
-                                    (conv?.data.disappearingMessageTtlSec ?? 0) > 0,
+                                    (conv?.data.disappearingMessageTtlSec ??
+                                        0) >
+                                    0,
                               ),
                             ),
                           )
@@ -1762,8 +1765,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               _editingPreviewPlain =
                                                                   null;
                                                               _replyingTo = buildReplyPreview(
-                                                      l10n: AppLocalizations.of(context)!,
-                                                      message: m,
+                                                                l10n:
+                                                                    AppLocalizations.of(
+                                                                      context,
+                                                                    )!,
+                                                                message: m,
                                                                 currentUserId:
                                                                     user.uid,
                                                                 isGroup:
@@ -1856,9 +1862,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                             album.e2eeContext,
                                                                         onFinished: () {
                                                                           if (mounted) {
-                                                                            setState(
-                                                                              () => _sendBusy = false,
-                                                                            );
                                                                             final pendingMessageId =
                                                                                 album.e2eeContext?.messageId.trim();
                                                                             final shouldKeepPreview =
@@ -1902,7 +1905,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                               );
                                                                           if (mounted) {
                                                                             setState(() {
-                                                                              _sendBusy = false;
                                                                               if (b !=
                                                                                   null) {
                                                                                 _pendingAttachments
@@ -1976,6 +1978,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                       profileMap,
                                                                   conv: conv
                                                                       ?.data,
+                                                                );
+                                                              },
+                                                          onOpenFileAttachment:
+                                                              (att, m) {
+                                                                unawaited(
+                                                                  _openFileAttachment(
+                                                                    att,
+                                                                    m,
+                                                                    conv: conv
+                                                                        ?.data,
+                                                                  ),
                                                                 );
                                                               },
                                                           profileMap:
@@ -2284,7 +2297,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     },
                                     attachmentsEnabled:
                                         _editingMessageId == null,
-                                    sendBusy: _sendBusy || pendingAlbum != null,
+                                    sendBusy: _sendBusy,
                                     onAttachmentSelected: (a) =>
                                         unawaited(_handleComposerAttachment(a)),
                                     onMicTap: () =>
@@ -3044,8 +3057,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               _editingMessageId = null;
               _editingPreviewPlain = null;
               _replyingTo = buildReplyPreview(
-                                                      l10n: AppLocalizations.of(context)!,
-                                                      message: m,
+                l10n: AppLocalizations.of(context)!,
+                message: m,
                 currentUserId: user.uid,
                 isGroup: isGroup,
                 otherUserId: dmOtherId,
@@ -3079,6 +3092,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openFileAttachment(
+    ChatAttachment att,
+    ChatMessage msg, {
+    required Conversation? conv,
+  }) async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    var target = att;
+    final isSecret = conv?.secretChat?.enabled == true;
+    if (isSecret && SecretChatMediaOpenService.isLockedSecretAttachment(att)) {
+      final rt = ref.read(mobileE2eeRuntimeProvider);
+      if (rt == null) return;
+      try {
+        target = await const SecretChatMediaOpenService().openForView(
+          runtime: rt,
+          conversationId: widget.conversationId,
+          message: msg,
+          lockedAttachment: att,
+        );
+      } catch (_) {
+        if (mounted) _toast(l10n.secret_chat_unlock_failed);
+        return;
+      }
+    }
+    final uri = Uri.tryParse(target.url.trim());
+    if (uri == null) {
+      if (mounted) _toast(l10n.secret_chat_unlock_failed);
+      return;
+    }
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        _toast(l10n.secret_chat_unlock_failed);
+      }
+    } catch (_) {
+      if (mounted) _toast(l10n.secret_chat_unlock_failed);
+    }
   }
 
   void _exitSelection() {
@@ -3214,8 +3266,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     final entry = buildPinnedMessageFromChatMessage(
-          l10n: AppLocalizations.of(context)!,
-          message: m,
+      l10n: AppLocalizations.of(context)!,
+      message: m,
       currentUserId: user.uid,
       isGroup: isGroup,
       otherUserId: otherId,
@@ -3252,8 +3304,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return false;
     if ((m.deliveryStatus ?? '') != 'sending') return false;
     final origin = _pendingRetryAt[m.id] ?? m.createdAt;
-    return DateTime.now().difference(origin) >=
-        const Duration(seconds: 30);
+    return DateTime.now().difference(origin) >= const Duration(seconds: 30);
   }
 
   Future<void> _cancelStalePendingMessage(ChatMessage m) async {
@@ -3371,8 +3422,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _editingMessageId = null;
           _editingPreviewPlain = null;
           _replyingTo = buildReplyPreview(
-                                                      l10n: AppLocalizations.of(context)!,
-                                                      message: m,
+            l10n: AppLocalizations.of(context)!,
+            message: m,
             currentUserId: user.uid,
             isGroup: isGroup,
             otherUserId: otherId,
@@ -3801,7 +3852,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _controller.clear();
           _replyingTo = null;
           _composerFormattingOpen = false;
-          _sendBusy = true;
         });
         if (_chatAtBottom && !_suppressAutoScrollToBottom) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3812,28 +3862,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         unawaited(clearChatMessageDraft(uid, widget.conversationId));
         return;
       }
-      setState(() => _sendBusy = true);
-      await ref
-          .read(chatOutboxAttachmentNotifierProvider.notifier)
-          .enqueueFromComposer(
-            conversationId: widget.conversationId,
-            senderId: uid,
-            files: pending,
-            rawCaptionHtml: prepared,
-            replyTo: replySnap,
-            convIsE2ee: convIsE2ee,
-            e2eeEncryptText: effectiveE2eePolicy.text,
-            e2eeEncryptMedia: effectiveE2eePolicy.media,
-            e2eeEpoch: e2eeEpoch,
-          );
+      final restoreReply = _replyingTo;
+      final restoreFormatting = _composerFormattingOpen;
+      setState(() {
+        _pendingAttachments.clear();
+        _controller.clear();
+        _replyingTo = null;
+        _composerFormattingOpen = false;
+      });
+      try {
+        await ref
+            .read(chatOutboxAttachmentNotifierProvider.notifier)
+            .enqueueFromComposer(
+              conversationId: widget.conversationId,
+              senderId: uid,
+              files: pending,
+              rawCaptionHtml: prepared,
+              replyTo: replySnap,
+              convIsE2ee: convIsE2ee,
+              e2eeEncryptText: effectiveE2eePolicy.text,
+              e2eeEncryptMedia: effectiveE2eePolicy.media,
+              e2eeEpoch: e2eeEpoch,
+            );
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _pendingAttachments
+              ..clear()
+              ..addAll(pending);
+            _controller.text = rawComposer;
+            _replyingTo = restoreReply;
+            _composerFormattingOpen = restoreFormatting;
+          });
+          _toast(AppLocalizations.of(context)!.chat_send_failed(e));
+        }
+        return;
+      }
       if (mounted) {
-        setState(() {
-          _sendBusy = false;
-          _pendingAttachments.clear();
-          _controller.clear();
-          _replyingTo = null;
-          _composerFormattingOpen = false;
-        });
         unawaited(clearChatMessageDraft(uid, widget.conversationId));
         _scheduleAutoScrollToBottomIfNeeded();
       }

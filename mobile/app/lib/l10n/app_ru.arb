@@ -3985,5 +3985,19 @@
   "energy_saving_media_preload_title": "Предзагрузка медиа",
   "energy_saving_media_preload_subtitle": "Запуск загрузки медиафайлов при входе в список чатов.",
   "energy_saving_background_update_title": "Обновление в фоне",
-  "energy_saving_background_update_subtitle": "Быстрое обновление чатов при переключении между приложениями."
+  "energy_saving_background_update_subtitle": "Быстрое обновление чатов при переключении между приложениями.",
+
+  "legal_index_title": "Юридические документы",
+  "legal_index_subtitle": "Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.",
+  "legal_settings_section_title": "Правовая информация",
+  "legal_settings_section_subtitle": "Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.",
+  "legal_not_found": "Документ не найден",
+  "legal_title_privacy_policy": "Политика конфиденциальности",
+  "legal_title_terms_of_service": "Пользовательское соглашение",
+  "legal_title_cookie_policy": "Политика использования cookies",
+  "legal_title_eula": "Лицензионное соглашение (EULA)",
+  "legal_title_dpa": "Соглашение об обработке данных (DPA)",
+  "legal_title_children": "Политика в отношении несовершеннолетних",
+  "legal_title_moderation": "Политика модерации контента",
+  "legal_title_aup": "Правила допустимого использования"
 }

@@ -8,7 +8,11 @@ import {
 
 const db = admin.firestore();
 
-function buildProfileQrLink(userId: string): string {
+function buildProfileQrLink(userId: string, username?: string | null): string {
+  const normalizedUsername = String(username ?? "").trim().replace(/^@/, "").toLowerCase();
+  if (normalizedUsername) {
+    return `https://lighchat.online/dashboard/contacts/${encodeURIComponent(normalizedUsername)}`;
+  }
   return `https://lighchat.online/dashboard/contacts/${encodeURIComponent(userId)}`;
 }
 
@@ -148,7 +152,9 @@ export const onuserwritesyncregistrationindex = onDocumentWritten(
         typeof afterData.profileQrLink === "string" ?
           afterData.profileQrLink.trim() :
           "";
-      const desiredQr = buildProfileQrLink(userId);
+      const username =
+        typeof afterData.username === "string" ? afterData.username : "";
+      const desiredQr = buildProfileQrLink(userId, username);
       if (currentQr !== desiredQr) {
         try {
           await db.collection("users").doc(userId).set(

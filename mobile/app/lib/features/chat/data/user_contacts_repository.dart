@@ -120,10 +120,7 @@ class UserContactsRepository {
     final last = (lastName ?? '').trim();
     if (owner.isEmpty || contactId.isEmpty || first.isEmpty) return;
 
-    final displayName = [
-      first,
-      if (last.isNotEmpty) last,
-    ].join(' ').trim();
+    final displayName = [first, if (last.isNotEmpty) last].join(' ').trim();
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final ref = _firestore.collection('userContacts').doc(owner);
 
@@ -202,6 +199,25 @@ class UserContactsRepository {
       if (uid is String && uid.isNotEmpty) out.add(uid);
     }
     return out;
+  }
+
+  Future<String?> resolveUserIdByUsername(String username) async {
+    final normalized = username
+        .trim()
+        .replaceFirst(RegExp(r'^@'), '')
+        .toLowerCase();
+    if (normalized.isEmpty) return null;
+    final key = 'u_$normalized';
+    final snap = await _firestore
+        .collection('registrationIndex')
+        .doc(key)
+        .get();
+    if (!snap.exists) return null;
+    final uid = snap.data()?['uid'];
+    if (uid is String && uid.trim().isNotEmpty) {
+      return uid.trim();
+    }
+    return null;
   }
 
   Future<void> syncDeviceLookupKeys({

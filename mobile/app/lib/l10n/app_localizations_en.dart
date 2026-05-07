@@ -7765,4 +7765,45 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get energy_saving_background_update_subtitle =>
       'Quick chat updates when switching between apps.';
+
+  @override
+  String get legal_index_title => 'Legal documents';
+
+  @override
+  String get legal_index_subtitle =>
+      'Privacy policy, terms of service and other legal documents that govern the use of LighChat.';
+
+  @override
+  String get legal_settings_section_title => 'Legal information';
+
+  @override
+  String get legal_settings_section_subtitle =>
+      'Privacy policy, terms of service, EULA and more.';
+
+  @override
+  String get legal_not_found => 'Document not found';
+
+  @override
+  String get legal_title_privacy_policy => 'Privacy Policy';
+
+  @override
+  String get legal_title_terms_of_service => 'Terms of Service';
+
+  @override
+  String get legal_title_cookie_policy => 'Cookie Policy';
+
+  @override
+  String get legal_title_eula => 'End-User License Agreement';
+
+  @override
+  String get legal_title_dpa => 'Data Processing Agreement';
+
+  @override
+  String get legal_title_children => 'Children Policy';
+
+  @override
+  String get legal_title_moderation => 'Content Moderation Policy';
+
+  @override
+  String get legal_title_aup => 'Acceptable Use Policy';
 }

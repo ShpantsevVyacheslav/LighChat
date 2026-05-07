@@ -130,7 +130,8 @@ double computeMessageAttachmentsColumnWidth({
       images.add(a);
     }
   }
-  final allGifGrid = images.isNotEmpty &&
+  final allGifGrid =
+      images.isNotEmpty &&
       images.every((a) {
         final t = (a.type ?? '').toLowerCase();
         if (t == 'image/gif') return true;
@@ -175,6 +176,7 @@ class MessageAttachments extends StatefulWidget {
     this.voiceTranscript,
     this.videoCirclePlayingSlotId,
     this.onOpenGridGallery,
+    this.onOpenFileAttachment,
     this.mediaNorm,
     this.onRetryMediaNorm,
     this.clipSelf = true,
@@ -194,6 +196,7 @@ class MessageAttachments extends StatefulWidget {
 
   /// Тап по фото/видео из сетки галереи — полноэкранный просмотр (паритет веба).
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
+  final void Function(ChatAttachment attachment)? onOpenFileAttachment;
   final ChatMediaNorm? mediaNorm;
   final Future<void> Function()? onRetryMediaNorm;
 
@@ -291,76 +294,79 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (images.isNotEmpty)
+                RepaintBoundary(
+                  child: _ImageGrid(
+                    images: images,
+                    maxWidth: width,
+                    alignRight: alignRight,
+                    onOpenGridGallery: widget.onOpenGridGallery,
+                    conversationId: widget.conversationId,
+                    messageId: widget.messageId,
+                    clipSelf: widget.clipSelf,
+                  ),
+                ),
+              if (voices.isNotEmpty) ...[
                 if (images.isNotEmpty)
-                  RepaintBoundary(
-                    child: _ImageGrid(
-                      images: images,
-                      maxWidth: width,
+                  const SizedBox(height: ChatMediaLayoutTokens.mediaToMediaGap),
+                ...voices.map(
+                  (v) => Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: ChatMediaLayoutTokens.mediaToMediaGap,
+                    ),
+                    child: MessageVoiceAttachment(
+                      attachment: v.attachment,
+                      attachmentIndex: v.index,
                       alignRight: alignRight,
-                      onOpenGridGallery: widget.onOpenGridGallery,
                       conversationId: widget.conversationId,
                       messageId: widget.messageId,
-                      clipSelf: widget.clipSelf,
+                      transcript: widget.voiceTranscript,
+                      mediaNorm: widget.mediaNorm,
+                      onRetryNorm: widget.onRetryMediaNorm,
                     ),
                   ),
-                if (voices.isNotEmpty) ...[
-                  if (images.isNotEmpty)
-                    const SizedBox(
-                      height: ChatMediaLayoutTokens.mediaToMediaGap,
+                ),
+              ],
+              if (videoLike.isNotEmpty)
+                RepaintBoundary(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: (images.isNotEmpty || voices.isNotEmpty)
+                          ? ChatMediaLayoutTokens.mediaToMediaGap
+                          : 0,
                     ),
-                  ...voices.map(
-                    (v) => Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: ChatMediaLayoutTokens.mediaToMediaGap,
-                      ),
-                      child: MessageVoiceAttachment(
-                        attachment: v.attachment,
-                        attachmentIndex: v.index,
-                        alignRight: alignRight,
-                        conversationId: widget.conversationId,
-                        messageId: widget.messageId,
-                        transcript: widget.voiceTranscript,
-                        mediaNorm: widget.mediaNorm,
-                        onRetryNorm: widget.onRetryMediaNorm,
-                      ),
-                    ),
-                  ),
-                ],
-                if (videoLike.isNotEmpty)
-                  RepaintBoundary(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: (images.isNotEmpty || voices.isNotEmpty)
-                            ? ChatMediaLayoutTokens.mediaToMediaGap
-                            : 0,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (var vi = 0; vi < videoLike.length; vi++)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                bottom: vi < videoLike.length - 1
-                                    ? ChatMediaLayoutTokens.mediaToMediaGap
-                                    : 0,
-                              ),
-                              child: _videoOrCircle(
-                                videoLike[vi].attachment,
-                                videoIndex: vi,
-                                attachmentIndex: videoLike[vi].index,
-                              ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var vi = 0; vi < videoLike.length; vi++)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              bottom: vi < videoLike.length - 1
+                                  ? ChatMediaLayoutTokens.mediaToMediaGap
+                                  : 0,
                             ),
-                        ],
-                      ),
+                            child: _videoOrCircle(
+                              videoLike[vi].attachment,
+                              videoIndex: vi,
+                              attachmentIndex: videoLike[vi].index,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
+                ),
               if (files.isNotEmpty) ...[
                 const SizedBox(height: ChatMediaLayoutTokens.mediaToMediaGap),
                 ...files.map(
                   (f) => _isE2eeMediaDecryptErrorAttachment(f)
                       ? _E2eeMediaDecryptErrorRow(att: f)
-                      : _FileRow(att: f),
+                      : _FileRow(
+                          att: f,
+                          onTap: widget.onOpenFileAttachment == null
+                              ? null
+                              : () => widget.onOpenFileAttachment!(f),
+                        ),
                 ),
               ],
             ],
@@ -784,15 +790,9 @@ class _AspectImageBox extends StatelessWidget {
       attachment,
     );
     final lockedWidget = DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.28),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.28)),
       child: const Center(
-        child: Icon(
-          Icons.lock_rounded,
-          color: Colors.white,
-          size: 32,
-        ),
+        child: Icon(Icons.lock_rounded, color: Colors.white, size: 32),
       ),
     );
     final open = onOpenGridGallery;
@@ -813,44 +813,58 @@ class _AspectImageBox extends StatelessWidget {
 }
 
 class _FileRow extends StatelessWidget {
-  const _FileRow({required this.att});
+  const _FileRow({required this.att, this.onTap});
 
   final ChatAttachment att;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
-      child: Container(
-        decoration: BoxDecoration(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          color: Colors.white.withValues(
-            alpha: scheme.brightness == Brightness.dark ? 0.06 : 0.18,
-          ),
-          border: Border.all(
-            color: Colors.white.withValues(
-              alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.30,
-            ),
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Icon(
-              Icons.insert_drive_file_rounded,
-              color: scheme.onSurface.withValues(alpha: 0.70),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                att.name.isNotEmpty ? att.name : att.url,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Colors.white.withValues(
+                alpha: scheme.brightness == Brightness.dark ? 0.06 : 0.18,
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(
+                  alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.30,
+                ),
               ),
             ),
-          ],
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.insert_drive_file_rounded,
+                  color: scheme.onSurface.withValues(alpha: 0.70),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    att.name.isNotEmpty ? att.name : att.url,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                if (onTap != null)
+                  Icon(
+                    Icons.open_in_new_rounded,
+                    size: 18,
+                    color: scheme.onSurface.withValues(alpha: 0.62),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

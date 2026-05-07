@@ -240,8 +240,8 @@ export function ConversationMediaPanel({
                       </p>
                     </div>
                     <Button variant="ghost" size="icon" className="shrink-0 rounded-full text-zinc-300" asChild>
-                      <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">
-                        <span className="sr-only">Скачать</span>
+                      <a href={file.url} target="_blank" rel="noopener noreferrer">
+                        <span className="sr-only">Открыть</span>
                         <FileIcon className="h-4 w-4" />
                       </a>
                     </Button>

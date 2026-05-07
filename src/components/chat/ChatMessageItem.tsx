@@ -14,7 +14,7 @@ import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
 import { bubbleRadiusToClass } from '@/lib/chat-bubble-radius';
 
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Reply as ReplyIcon, MessageSquare } from 'lucide-react';
+import { Trash2, Reply as ReplyIcon, MessageSquare, FileText, ExternalLink } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 
@@ -310,6 +310,15 @@ const ChatMessageItemComponent = ({
     const mediaNormStatus = message.mediaNorm?.status ?? (hasNeedsMediaNorm ? 'pending' : null);
     const mediaNormPending = mediaNormStatus === 'pending';
     const mediaNormFailed = mediaNormStatus === 'failed';
+
+    const openAttachmentInNewTab = (url: string) => {
+        const next = url.trim();
+        if (!next) return;
+        const popup = window.open(next, '_blank', 'noopener,noreferrer');
+        if (!popup) {
+            window.location.href = next;
+        }
+    };
 
     /** Геолокация вне стикера/видео; истёкшая live — см. [`MessageLocationCard`](./parts/MessageLocationCard.tsx). */
     const showShareableLocation = useMemo(
@@ -868,7 +877,33 @@ const ChatMessageItemComponent = ({
                                                                     <AudioMessagePlayer attachment={att} isCurrentUser={isCurrentUser} />
                                                                 </div>
                                                             );
-                                            return null;
+                                                        if (isGridGalleryAttachment(att)) return null;
+                                                        return (
+                                                            <button
+                                                                key={idx}
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openAttachmentInNewTab(att.url);
+                                                                }}
+                                                                className="mx-2 my-1 flex w-[min(100%,320px)] items-center gap-2 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-left transition hover:bg-black/30"
+                                                            >
+                                                                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                                                                    <FileText className="h-4 w-4 text-white/85" />
+                                                                </span>
+                                                                <span className="min-w-0 flex-1">
+                                                                    <span className="block truncate text-sm font-semibold text-white/90">
+                                                                        {att.name?.trim() || 'Файл'}
+                                                                    </span>
+                                                                    {att.size > 0 ? (
+                                                                        <span className="block text-[11px] font-semibold uppercase tracking-wide text-white/55">
+                                                                            {(att.size / 1024).toFixed(1)} KB
+                                                                        </span>
+                                                                    ) : null}
+                                                                </span>
+                                                                <ExternalLink className="h-4 w-4 shrink-0 text-white/70" />
+                                                            </button>
+                                                        );
                                         })}
                                                     {hasNeedsMediaNorm && (mediaNormPending || mediaNormFailed) && (
                                                         <div className="mx-2 my-1 rounded-xl border border-white/15 bg-black/25 px-3 py-2 text-xs">

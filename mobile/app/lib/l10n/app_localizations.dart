@@ -13687,6 +13687,45 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Быстрое обновление чатов при переключении между приложениями.'**
   String get energy_saving_background_update_subtitle;
+
+  /// No description provided for @legal_index_title.
+  String get legal_index_title;
+
+  /// No description provided for @legal_index_subtitle.
+  String get legal_index_subtitle;
+
+  /// No description provided for @legal_settings_section_title.
+  String get legal_settings_section_title;
+
+  /// No description provided for @legal_settings_section_subtitle.
+  String get legal_settings_section_subtitle;
+
+  /// No description provided for @legal_not_found.
+  String get legal_not_found;
+
+  /// No description provided for @legal_title_privacy_policy.
+  String get legal_title_privacy_policy;
+
+  /// No description provided for @legal_title_terms_of_service.
+  String get legal_title_terms_of_service;
+
+  /// No description provided for @legal_title_cookie_policy.
+  String get legal_title_cookie_policy;
+
+  /// No description provided for @legal_title_eula.
+  String get legal_title_eula;
+
+  /// No description provided for @legal_title_dpa.
+  String get legal_title_dpa;
+
+  /// No description provided for @legal_title_children.
+  String get legal_title_children;
+
+  /// No description provided for @legal_title_moderation.
+  String get legal_title_moderation;
+
+  /// No description provided for @legal_title_aup.
+  String get legal_title_aup;
 }
 
 class _AppLocalizationsDelegate

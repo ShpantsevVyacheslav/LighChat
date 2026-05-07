@@ -70,6 +70,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.outgoingMediaFooter,
     this.onOpenThread,
     this.onOpenMediaGallery,
+    this.onOpenFileAttachment,
     this.flashHighlightMessageId,
     this.profileMap,
     this.contactProfiles = const <String, ContactLocalProfile>{},
@@ -132,6 +133,8 @@ class ChatMessageList extends ConsumerStatefulWidget {
   /// Полноэкранная галерея фото/видео (паритет веба).
   final void Function(ChatAttachment attachment, ChatMessage message)?
   onOpenMediaGallery;
+  final void Function(ChatAttachment attachment, ChatMessage message)?
+  onOpenFileAttachment;
 
   /// Подсветка строки ~2 с после перехода к сообщению.
   final String? flashHighlightMessageId;
@@ -271,13 +274,10 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       if (!mounted) return;
       _notifyAtBottomByController();
     });
-    _stalePendingTicker = Timer.periodic(
-      const Duration(seconds: 5),
-      (_) {
-        if (!mounted) return;
-        if (_hasFreshPendingMessages()) setState(() {});
-      },
-    );
+    _stalePendingTicker = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) return;
+      if (_hasFreshPendingMessages()) setState(() {});
+    });
   }
 
   bool _hasFreshPendingMessages() {
@@ -293,8 +293,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return false;
     if ((m.deliveryStatus ?? '') != 'sending') return false;
     final origin = widget.pendingRetryAt[m.id] ?? m.createdAt;
-    return DateTime.now().difference(origin) >=
-        const Duration(seconds: 30);
+    return DateTime.now().difference(origin) >= const Duration(seconds: 30);
   }
 
   void _onScrollControllerTick() {
@@ -365,7 +364,10 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
 
     if (vp == null) {
       return _stickyDayLabel ??
-          formatChatDayLabel(groups.last.first.createdAt.toLocal(), AppLocalizations.of(context)!);
+          formatChatDayLabel(
+            groups.last.first.createdAt.toLocal(),
+            AppLocalizations.of(context)!,
+          );
     }
 
     const stickyLineY = 28.0;
@@ -378,12 +380,18 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       if (ro is! RenderBox || !ro.hasSize || !ro.attached) continue;
       final y = ro.localToGlobal(Offset.zero, ancestor: vp).dy;
       if (y <= stickyLineY) {
-        picked = formatChatDayLabel(g.first.createdAt.toLocal(), AppLocalizations.of(context)!);
+        picked = formatChatDayLabel(
+          g.first.createdAt.toLocal(),
+          AppLocalizations.of(context)!,
+        );
       }
     }
 
     return picked ??
-        formatChatDayLabel(groups.first.first.createdAt.toLocal(), AppLocalizations.of(context)!);
+        formatChatDayLabel(
+          groups.first.first.createdAt.toLocal(),
+          AppLocalizations.of(context)!,
+        );
   }
 
   List<List<ChatMessage>> _groupByDay(List<ChatMessage> asc) {
@@ -588,6 +596,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 videoCirclePlayingSlotId: _videoCirclePlayingSlotId,
                 onOpenThread: widget.onOpenThread,
                 onOpenMediaGallery: widget.onOpenMediaGallery,
+                onOpenFileAttachment: widget.onOpenFileAttachment,
                 profileMap: widget.profileMap,
                 contactProfiles: widget.contactProfiles,
                 onToggleReaction: widget.onToggleReaction,
@@ -994,6 +1003,7 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.videoCirclePlayingSlotId,
     this.onOpenThread,
     this.onOpenMediaGallery,
+    this.onOpenFileAttachment,
     this.profileMap,
     required this.contactProfiles,
     this.onToggleReaction,
@@ -1025,6 +1035,8 @@ class _ChatMessageBubble extends StatelessWidget {
   final void Function(ChatMessage message)? onOpenThread;
   final void Function(ChatAttachment attachment, ChatMessage message)?
   onOpenMediaGallery;
+  final void Function(ChatAttachment attachment, ChatMessage message)?
+  onOpenFileAttachment;
   final Map<String, UserProfile>? profileMap;
   final Map<String, ContactLocalProfile> contactProfiles;
   final Future<void> Function(ChatMessage message, String emoji)?
@@ -1116,8 +1128,8 @@ class _ChatMessageBubble extends StatelessWidget {
     final singlePureEmoji = isPureEmoji
         ? _singleEmojiFromOnlyEmojiMessage(displayPlain)
         : null;
-    final hasGridVisualMedia = hasMedia &&
-        message.attachments.any(isChatGridGalleryAttachment);
+    final hasGridVisualMedia =
+        hasMedia && message.attachments.any(isChatGridGalleryAttachment);
     final hasMediaWithCaption = hasGridVisualMedia && hasVisibleText;
     final linkPreviewUrl =
         (!hasMedia && !hasPoll && !hasLocation && hasVisibleText)
@@ -1165,6 +1177,10 @@ class _ChatMessageBubble extends StatelessWidget {
         onOpenMediaGallery == null
         ? null
         : (a) => onOpenMediaGallery!(a, message);
+    final void Function(ChatAttachment attachment)? openFileAttachment =
+        onOpenFileAttachment == null
+        ? null
+        : (a) => onOpenFileAttachment!(a, message);
 
     Widget pollBlock() => MessageChatPoll(
       conversationId: conversationId,
@@ -1245,8 +1261,7 @@ class _ChatMessageBubble extends StatelessWidget {
       }
       final fallbackClean = fallback.trim().replaceFirst(RegExp(r'^@+'), '');
       final profileName = (profileMap?[uid]?.name ?? '').trim();
-      final convName = (conversation?.participantInfo?[uid]?.name ?? '')
-          .trim();
+      final convName = (conversation?.participantInfo?[uid]?.name ?? '').trim();
       final fallbackName = profileName.isNotEmpty
           ? profileName
           : (convName.isNotEmpty
@@ -1264,6 +1279,7 @@ class _ChatMessageBubble extends StatelessWidget {
       if (fallbackClean.isNotEmpty) return fallbackClean;
       return fallbackName;
     }
+
     List<InlineSpan> htmlSpans({double? quoteMaxWidth}) =>
         messageHtmlToStyledSpans(
           html,
@@ -1272,7 +1288,9 @@ class _ChatMessageBubble extends StatelessWidget {
           quoteAccent: scheme.primary,
           quoteMaxWidth: quoteMaxWidth ?? textQuoteMaxFallback,
           mentionLabelResolver: resolveMentionDisplayName,
-          mentionFallbackLabel: AppLocalizations.of(context)!.mention_fallback_label,
+          mentionFallbackLabel: AppLocalizations.of(
+            context,
+          )!.mention_fallback_label,
           onMentionTap: (userId) async {
             final uid = userId.trim();
             if (uid.isEmpty) return;
@@ -1398,6 +1416,7 @@ class _ChatMessageBubble extends StatelessWidget {
             voiceTranscript: message.voiceTranscript,
             videoCirclePlayingSlotId: videoCirclePlayingSlotId,
             onOpenGridGallery: openGridGallery,
+            onOpenFileAttachment: openFileAttachment,
             mediaNorm: message.mediaNorm,
             onRetryMediaNorm: onRetryMediaNorm == null
                 ? null
@@ -1432,6 +1451,7 @@ class _ChatMessageBubble extends StatelessWidget {
               voiceTranscript: message.voiceTranscript,
               videoCirclePlayingSlotId: videoCirclePlayingSlotId,
               onOpenGridGallery: openGridGallery,
+              onOpenFileAttachment: openFileAttachment,
               mediaNorm: message.mediaNorm,
               onRetryMediaNorm: onRetryMediaNorm == null
                   ? null
@@ -1501,14 +1521,13 @@ class _ChatMessageBubble extends StatelessWidget {
         !hasPoll &&
         !hasLocation &&
         message.attachments.length == 1 &&
-        message.attachments.first.name
-            .toLowerCase()
-            .startsWith('sticker_')) {
+        message.attachments.first.name.toLowerCase().startsWith('sticker_')) {
       body = Align(
         alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
         child: Column(
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             MessageAttachments(
@@ -1576,6 +1595,7 @@ class _ChatMessageBubble extends StatelessWidget {
             voiceTranscript: message.voiceTranscript,
             videoCirclePlayingSlotId: videoCirclePlayingSlotId,
             onOpenGridGallery: openGridGallery,
+            onOpenFileAttachment: openFileAttachment,
             mediaNorm: message.mediaNorm,
             onRetryMediaNorm: onRetryMediaNorm == null
                 ? null
@@ -1661,6 +1681,7 @@ class _ChatMessageBubble extends StatelessWidget {
                         voiceTranscript: message.voiceTranscript,
                         videoCirclePlayingSlotId: videoCirclePlayingSlotId,
                         onOpenGridGallery: openGridGallery,
+                        onOpenFileAttachment: openFileAttachment,
                         mediaNorm: message.mediaNorm,
                         onRetryMediaNorm: onRetryMediaNorm == null
                             ? null
@@ -1703,6 +1724,7 @@ class _ChatMessageBubble extends StatelessWidget {
             voiceTranscript: message.voiceTranscript,
             videoCirclePlayingSlotId: videoCirclePlayingSlotId,
             onOpenGridGallery: openGridGallery,
+            onOpenFileAttachment: openFileAttachment,
             mediaNorm: message.mediaNorm,
             onRetryMediaNorm: onRetryMediaNorm == null
                 ? null
@@ -1823,11 +1845,7 @@ class _ChatMessageBubble extends StatelessWidget {
                 ),
                 if (outboxFail) ...[
                   const SizedBox(width: 4),
-                  Icon(
-                    Icons.error_rounded,
-                    size: 20,
-                    color: scheme.error,
-                  ),
+                  Icon(Icons.error_rounded, size: 20, color: scheme.error),
                 ],
               ],
             ),

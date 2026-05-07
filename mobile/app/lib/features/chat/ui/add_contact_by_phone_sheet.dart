@@ -23,6 +23,7 @@ import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
 import 'add_contact_phone_mask_formatter.dart';
 import 'chat_avatar.dart';
+import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 
 class AddContactByPhoneSheet extends ConsumerStatefulWidget {
   const AddContactByPhoneSheet({
@@ -306,7 +307,10 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
         if (ok) {
           _setInfo(AppLocalizations.of(context)!.add_contact_sync_on);
         } else {
-          _setError(AppLocalizations.of(context)!.add_contact_sync_failed, soft: true);
+          _setError(
+            AppLocalizations.of(context)!.add_contact_sync_failed,
+            soft: true,
+          );
         }
       }
     }
@@ -335,13 +339,18 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
       if (!mounted) return;
       setState(() => _matchedIds = filtered);
       if (filtered.isEmpty) {
-        _setError(AppLocalizations.of(context)!.add_contact_not_found_by_phone, soft: true);
+        _setError(
+          AppLocalizations.of(context)!.add_contact_not_found_by_phone,
+          soft: true,
+        );
       } else {
         _setInfo(AppLocalizations.of(context)!.add_contact_found);
       }
     } catch (e) {
       if (!mounted) return;
-      _setError(AppLocalizations.of(context)!.add_contact_search_error(e.toString()));
+      _setError(
+        AppLocalizations.of(context)!.add_contact_search_error(e.toString()),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -349,13 +358,16 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
 
   Future<void> _searchByQrPayload(String payload) async {
     if (_busy) return;
-    final userId = extractProfileUserIdFromQrPayload(payload);
-    if (userId == null || userId.trim().isEmpty) {
-      _setError(AppLocalizations.of(context)!.add_contact_qr_no_profile, soft: true);
+    final l10n = AppLocalizations.of(context)!;
+    final target = extractProfileTargetFromQrPayload(payload);
+    final userId = target.userId?.trim() ?? '';
+    final username = target.username?.trim() ?? '';
+    if (userId.isEmpty && username.isEmpty) {
+      _setError(l10n.add_contact_qr_no_profile, soft: true);
       return;
     }
-    if (userId == widget.ownerId) {
-      _setError(AppLocalizations.of(context)!.add_contact_own_profile, soft: true);
+    if (userId.isNotEmpty && userId == widget.ownerId) {
+      _setError(l10n.add_contact_own_profile, soft: true);
       return;
     }
 
@@ -368,20 +380,42 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
     });
 
     try {
+      String? resolvedUserId = userId.isEmpty ? null : userId;
+      if ((resolvedUserId == null || resolvedUserId.isEmpty) &&
+          username.isNotEmpty) {
+        try {
+          resolvedUserId = await widget.contactsRepo.resolveUserIdByUsername(
+            username,
+          );
+        } catch (_) {
+          resolvedUserId = null;
+        }
+      }
+      if (resolvedUserId == null || resolvedUserId.isEmpty) {
+        _setError(l10n.add_contact_qr_not_found, soft: true);
+        return;
+      }
+      if (resolvedUserId == widget.ownerId) {
+        _setError(l10n.add_contact_own_profile, soft: true);
+        return;
+      }
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(userId)
+          .doc(resolvedUserId)
           .get();
       if (!mounted) return;
       if (!doc.exists) {
-        _setError(AppLocalizations.of(context)!.add_contact_qr_not_found, soft: true);
+        _setError(l10n.add_contact_qr_not_found, soft: true);
         return;
       }
-      setState(() => _matchedIds = <String>[userId]);
-      _setInfo(AppLocalizations.of(context)!.add_contact_qr_found);
+      final resolvedUserIdSafe = resolvedUserId;
+      setState(() => _matchedIds = <String>[resolvedUserIdSafe]);
+      _setInfo(l10n.add_contact_qr_found);
     } catch (e) {
       if (!mounted) return;
-      _setError(AppLocalizations.of(context)!.add_contact_qr_error(e.toString()));
+      _setError(
+        AppLocalizations.of(context)!.add_contact_qr_error(e.toString()),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -413,7 +447,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
       Navigator.of(context).pop(peer.id);
     } catch (e) {
       if (!mounted) return;
-      _setError(AppLocalizations.of(context)!.add_contact_save_error(e.toString()));
+      _setError(
+        AppLocalizations.of(context)!.add_contact_save_error(e.toString()),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -449,7 +485,14 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                     : _phoneCountries
                           .where((c) {
                             final q = query;
-                            return ruEnSubstringMatch(c.localizedName(Localizations.localeOf(context).languageCode), q) ||
+                            return ruEnSubstringMatch(
+                                  c.localizedName(
+                                    Localizations.localeOf(
+                                      context,
+                                    ).languageCode,
+                                  ),
+                                  q,
+                                ) ||
                                 c.dialCode.contains(q) ||
                                 ruEnSubstringMatch(c.isoCode, q);
                           })
@@ -475,7 +518,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                         style: const TextStyle(fontSize: 18),
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.search, size: 24),
-                          hintText: AppLocalizations.of(context)!.add_contact_country_search,
+                          hintText: AppLocalizations.of(
+                            context,
+                          )!.add_contact_country_search,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 16,
@@ -521,7 +566,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                 style: const TextStyle(fontSize: 22),
                               ),
                               title: Text(
-                                country.localizedName(Localizations.localeOf(context).languageCode),
+                                country.localizedName(
+                                  Localizations.localeOf(context).languageCode,
+                                ),
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -626,7 +673,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _selectedCountry.localizedName(Localizations.localeOf(context).languageCode),
+                      _selectedCountry.localizedName(
+                        Localizations.localeOf(context).languageCode,
+                      ),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.94),
                         fontSize: 17,
@@ -817,7 +866,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
     return profilesAsync.when(
       loading: () => const _ResultLoadingCard(),
       error: (e, _) => _ResultPlaceholderCard(
-        text: AppLocalizations.of(context)!.add_contact_profile_load_error(e.toString()),
+        text: AppLocalizations.of(
+          context,
+        )!.add_contact_profile_load_error(e.toString()),
         warning: true,
       ),
       data: (map) {
@@ -849,7 +900,9 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                 final l10n = AppLocalizations.of(context)!;
                 final badgeText = alreadyAdded
                     ? l10n.add_contact_badge_already_added
-                    : (allowed ? l10n.add_contact_badge_new : l10n.add_contact_badge_unavailable);
+                    : (allowed
+                          ? l10n.add_contact_badge_new
+                          : l10n.add_contact_badge_unavailable);
                 final badgeColor = alreadyAdded
                     ? const Color(0xFF2E87FF)
                     : (allowed
@@ -977,7 +1030,11 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                child: Text(AppLocalizations.of(context)!.add_contact_open_contact),
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.add_contact_open_contact,
+                                ),
                               )
                             : FilledButton(
                                 onPressed: (!_busy && allowed)
@@ -994,8 +1051,12 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
                                 ),
                                 child: Text(
                                   allowed
-                                      ? AppLocalizations.of(context)!.add_contact_add_to_contacts
-                                      : AppLocalizations.of(context)!.add_contact_add_unavailable,
+                                      ? AppLocalizations.of(
+                                          context,
+                                        )!.add_contact_add_to_contacts
+                                      : AppLocalizations.of(
+                                          context,
+                                        )!.add_contact_add_unavailable,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
@@ -1033,7 +1094,7 @@ class _AddContactByPhoneSheetState extends ConsumerState<AddContactByPhoneSheet>
             16 + MediaQuery.paddingOf(context).bottom,
           ),
           child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior: platformScrollKeyboardDismissBehavior(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1217,7 +1278,9 @@ class _ContactQrScannerSheetState extends State<_ContactQrScannerSheet> {
                 ),
                 const Spacer(),
                 IconButton(
-                  tooltip: AppLocalizations.of(context)!.add_contact_flash_tooltip,
+                  tooltip: AppLocalizations.of(
+                    context,
+                  )!.add_contact_flash_tooltip,
                   onPressed: _toggleTorch,
                   icon: Icon(
                     _torchEnabled
@@ -1286,7 +1349,8 @@ class _PhoneCountry {
   final String phoneHint;
   final int maxNationalDigits;
 
-  String localizedName(String langCode) => localizedCountryName(isoCode, langCode);
+  String localizedName(String langCode) =>
+      localizedCountryName(isoCode, langCode);
 
   String get dialDigits => dialCode.replaceAll(RegExp(r'\D'), '');
 }

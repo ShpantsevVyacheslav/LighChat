@@ -51,6 +51,8 @@ import 'features/welcome/ui/welcome_animation_screen.dart';
 import 'features/features_tour/data/features_data.dart';
 import 'features/features_tour/ui/features_index_screen.dart';
 import 'features/features_tour/ui/features_topic_screen.dart';
+import 'features/legal/data/legal_documents.dart' as legal_data;
+import 'features/legal/ui/legal_document_screen.dart';
 
 /// Notifier, который дёргает GoRouter на пересчёт redirect-ов при изменении
 /// auth-стейта. Без этого при cold-start с persistent Firebase session первый
@@ -158,6 +160,20 @@ GoRouter createRouter() {
       GoRoute(
         path: '/auth/qr',
         builder: (context, state) => const QrLoginScreen(),
+      ),
+      GoRoute(
+        path: '/legal',
+        builder: (context, state) => const LegalIndexScreen(),
+      ),
+      GoRoute(
+        path: '/legal/:slug',
+        builder: (context, state) {
+          final slug = state.pathParameters['slug'] ?? '';
+          if (!legal_data.isLegalSlug(slug)) {
+            return const LegalIndexScreen();
+          }
+          return LegalDocumentScreen(slug: slug);
+        },
       ),
       GoRoute(
         path: '/auth/google-complete',

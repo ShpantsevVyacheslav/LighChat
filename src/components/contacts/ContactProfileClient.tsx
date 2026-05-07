@@ -13,6 +13,7 @@ import { useSettings } from '@/hooks/use-settings';
 import type { PlatformSettingsDoc, User } from '@/lib/types';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { buildDashboardChatOpenUrl } from '@/lib/dashboard-conversation-url';
+import { registrationUsernameKey } from '@/lib/registration-index-keys';
 
 import { Button } from '@/components/ui/button';
 
@@ -23,26 +24,75 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
   const { privacySettings } = useSettings();
   const [failed, setFailed] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+  const [resolvedUserId, setResolvedUserId] = useState<string>(contactUserId);
+  const [resolvingTarget, setResolvingTarget] = useState(true);
   const startedRef = useRef(false);
+
+  useEffect(() => {
+    startedRef.current = false;
+  }, [contactUserId]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!firestore) return;
+      const token = contactUserId.trim();
+      if (!token) {
+        if (!active) return;
+        setResolvedUserId('');
+        setResolvingTarget(false);
+        return;
+      }
+      setResolvingTarget(true);
+      setFailed(null);
+      try {
+        const directSnap = await getDoc(doc(firestore, 'users', token));
+        if (!active) return;
+        if (directSnap.exists()) {
+          setResolvedUserId(token);
+          setResolvingTarget(false);
+          return;
+        }
+        const regKey = registrationUsernameKey(token);
+        if (!regKey) {
+          setResolvedUserId(token);
+          setResolvingTarget(false);
+          return;
+        }
+        const regSnap = await getDoc(doc(firestore, 'registrationIndex', regKey));
+        if (!active) return;
+        const uid = typeof regSnap.data()?.uid === 'string' ? regSnap.data()?.uid.trim() : '';
+        setResolvedUserId(uid || token);
+        setResolvingTarget(false);
+      } catch {
+        if (!active) return;
+        setResolvedUserId(token);
+        setResolvingTarget(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [firestore, contactUserId]);
 
   const contactRef = useMemoFirebase(
     () =>
-      firestore && contactUserId
-        ? doc(firestore, 'users', contactUserId)
+      firestore && resolvedUserId
+        ? doc(firestore, 'users', resolvedUserId)
         : null,
-    [firestore, contactUserId]
+    [firestore, resolvedUserId]
   );
   const { data: contactUser, isLoading } = useDoc<User>(contactRef);
 
   useEffect(() => {
-    if (!isLoading && !contactUser) {
+    if (!resolvingTarget && !isLoading && !contactUser) {
       setFailed('Контакт не найден или недоступен.');
     }
-  }, [isLoading, contactUser]);
+  }, [resolvingTarget, isLoading, contactUser]);
 
   useEffect(() => {
     if (startedRef.current) return;
-    if (!firestore || !currentUser || !contactUser || isLoading) return;
+    if (!firestore || !currentUser || !contactUser || isLoading || resolvingTarget) return;
     if (!canStartDirectChat(currentUser, contactUser)) {
       setFailed('Нельзя открыть чат с этим пользователем.');
       return;
@@ -69,7 +119,7 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
         router.replace(
           buildDashboardChatOpenUrl(id, {
             openProfile: true,
-            profileUserId: contactUserId,
+            profileUserId: resolvedUserId,
             profileSource: 'contacts',
           })
         );
@@ -86,9 +136,10 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
     currentUser,
     contactUser,
     isLoading,
-    contactUserId,
+    resolvedUserId,
     privacySettings.e2eeForNewDirectChats,
     router,
+    resolvingTarget,
   ]);
 
   if (!currentUser) return null;
@@ -110,7 +161,7 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
               <Button
                 type="button"
                 onClick={() =>
-                  router.push(`/dashboard/contacts/${encodeURIComponent(contactUserId)}/edit`)
+                  router.push(`/dashboard/contacts/${encodeURIComponent(resolvedUserId || contactUserId)}/edit`)
                 }
               >
                 Изм. контакт

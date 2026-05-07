@@ -12,6 +12,7 @@
 ## Карта путей
 
 - `src/app` - страницы Next.js App Router, layout-уровень, API route.
+  - `src/app/u/[username]` - публичная SSR-страница контакта для внешних мессенджеров (Telegram/WhatsApp) с `og:*`-превью.
 - `src/components` - UI и feature-компоненты (chat, meetings, admin, settings, contacts).
 - `src/hooks` - клиентские хуки состояния/поведения (auth, settings, notifications, webrtc).
 - `src/firebase` - инициализация Firebase, провайдеры, Firestore-хуки, транспорт.

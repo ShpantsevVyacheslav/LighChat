@@ -1,47 +1,78 @@
 const LIGHCHAT_WEB_HOST = 'lighchat.online';
 const LIGHCHAT_WEB_HOST_WWW = 'www.lighchat.online';
 
-export function buildProfileShareUrl(userId: string): string {
+function normalizeUsernameToken(raw: string | null | undefined): string {
+  return String(raw ?? '').trim().replace(/^@/, '').toLowerCase();
+}
+
+function looksLikeUserIdToken(token: string): boolean {
+  const v = token.trim();
+  if (!v) return false;
+  if (v.startsWith('tg_') || v.startsWith('ya_')) return true;
+  // Firebase UID in this project is usually >= 20 chars mixed-case/digits.
+  return /^[A-Za-z0-9_-]{20,}$/.test(v);
+}
+
+export function buildProfileShareUrl(
+  userId: string,
+  username?: string | null
+): string {
   const uid = userId.trim();
   if (!uid) return `https://${LIGHCHAT_WEB_HOST}/dashboard/contacts`;
-  return `https://${LIGHCHAT_WEB_HOST}/dashboard/contacts/${encodeURIComponent(uid)}`;
+  const normalizedUsername = normalizeUsernameToken(username);
+  if (!normalizedUsername) {
+    return `https://${LIGHCHAT_WEB_HOST}/dashboard/contacts/${encodeURIComponent(uid)}`;
+  }
+  return `https://${LIGHCHAT_WEB_HOST}/dashboard/contacts/${encodeURIComponent(normalizedUsername)}`;
 }
 
 export function buildProfileQrPayload(params: { userId: string; username?: string | null }): string {
   const uid = params.userId.trim();
   if (!uid) return '';
-  const url = new URL(buildProfileShareUrl(uid));
-  const username = (params.username ?? '').trim().replace(/^@/, '');
+  const username = normalizeUsernameToken(params.username);
+  const url = new URL(buildProfileShareUrl(uid, username));
   if (username) url.searchParams.set('u', username);
   return url.toString();
 }
 
-export function extractProfileUserIdFromQrPayload(payload: string): string | null {
+export type ProfileQrTarget = {
+  userId: string | null;
+  username: string | null;
+};
+
+export function extractProfileTargetFromQrPayload(payload: string): ProfileQrTarget {
+  const empty: ProfileQrTarget = { userId: null, username: null };
   const raw = payload.trim();
-  if (!raw) return null;
+  if (!raw) return empty;
 
   const compact = raw.replace(/\s+/g, '');
   if (compact.startsWith('lighchat_profile:')) {
     const uid = compact.slice('lighchat_profile:'.length).trim();
-    return uid || null;
+    return { userId: uid || null, username: null };
   }
 
   let parsed: URL;
   try {
     parsed = new URL(raw);
   } catch {
-    return null;
+    return empty;
   }
 
-  const fromQuery = parsed.searchParams.get('uid') ?? parsed.searchParams.get('userId');
-  if (fromQuery && fromQuery.trim()) {
-    return decodeURIComponent(fromQuery.trim());
+  const queryUid = parsed.searchParams.get('uid') ?? parsed.searchParams.get('userId');
+  const queryUsername = parsed.searchParams.get('u') ?? parsed.searchParams.get('username');
+  const normalizedQueryUsername = normalizeUsernameToken(queryUsername);
+
+  if (queryUid && queryUid.trim()) {
+    return {
+      userId: decodeURIComponent(queryUid.trim()),
+      username: normalizedQueryUsername || null,
+    };
   }
 
   const protocol = parsed.protocol.toLowerCase();
   if (protocol === 'lighchat:' && parsed.hostname.toLowerCase() === 'profile') {
     const path = parsed.pathname.replace(/^\/+/, '').trim();
-    if (path) return decodeURIComponent(path);
+    if (path) return { userId: decodeURIComponent(path), username: null };
   }
 
   const host = parsed.hostname.toLowerCase();
@@ -52,12 +83,28 @@ export function extractProfileUserIdFromQrPayload(payload: string): string | nul
     segments[0] === 'dashboard' &&
     segments[1] === 'contacts'
   ) {
-    return decodeURIComponent(segments[2] ?? '');
+    const token = decodeURIComponent(segments[2] ?? '').trim();
+    if (!token) return empty;
+    if (looksLikeUserIdToken(token)) {
+      return {
+        userId: token,
+        username: normalizedQueryUsername || null,
+      };
+    }
+    return {
+      userId: null,
+      username: normalizeUsernameToken(token) || normalizedQueryUsername || null,
+    };
   }
 
   if (segments.length >= 3 && segments[0] === 'contacts' && segments[1] === 'user') {
-    return decodeURIComponent(segments[2] ?? '');
+    const uid = decodeURIComponent(segments[2] ?? '').trim();
+    if (uid) return { userId: uid, username: null };
   }
 
-  return null;
+  return empty;
+}
+
+export function extractProfileUserIdFromQrPayload(payload: string): string | null {
+  return extractProfileTargetFromQrPayload(payload).userId;
 }

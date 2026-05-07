@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   findUserByPhoneInFirestore,
   findUserByIdInFirestore,
+  findUserByUsernameInFirestore,
   addContactId,
   removeContactId,
   saveDeviceContactsConsent,
@@ -47,7 +48,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ContactsSyncPromoBanner } from '@/components/contacts/ContactsSyncPromoBanner';
 import { ContactsPermissionGuideDialog } from '@/components/contacts/ContactsPermissionGuideDialog';
-import { extractProfileUserIdFromQrPayload } from '@/lib/profile-qr-link';
+import { extractProfileTargetFromQrPayload } from '@/lib/profile-qr-link';
 
 type ContactPickerNavigator = Navigator & {
   contacts?: {
@@ -339,8 +340,8 @@ export function ContactsClient() {
   const handleAddByQrPayload = useCallback(
     async (payload: string): Promise<boolean> => {
       if (!firestore || !ownerUid || !currentUser) return false;
-      const userId = extractProfileUserIdFromQrPayload(payload);
-      if (!userId) {
+      const target = extractProfileTargetFromQrPayload(payload);
+      if (!target.userId && !target.username) {
         toast({
           title: 'QR-код не распознан',
           description: 'Ожидается ссылка профиля LighChat.',
@@ -351,7 +352,12 @@ export function ContactsClient() {
 
       setQrBusy(true);
       try {
-        const found = await findUserByIdInFirestore(firestore, userId);
+        let found = target.userId
+          ? await findUserByIdInFirestore(firestore, target.userId)
+          : null;
+        if (!found && target.username) {
+          found = await findUserByUsernameInFirestore(firestore, target.username);
+        }
         if (!found) {
           toast({
             title: 'Профиль не найден',

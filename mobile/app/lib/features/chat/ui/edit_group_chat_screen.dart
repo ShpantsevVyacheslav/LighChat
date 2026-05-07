@@ -13,6 +13,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 import 'chat_shell_backdrop.dart';
 import 'group_chat_avatar_button.dart';
 import 'profile_subpage_header.dart';
+import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 import '../../../l10n/app_localizations.dart';
 
 class EditGroupChatScreen extends ConsumerStatefulWidget {
@@ -408,7 +409,7 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
                           Expanded(
                             child: ListView(
                               keyboardDismissBehavior:
-                                  ScrollViewKeyboardDismissBehavior.onDrag,
+                                  platformScrollKeyboardDismissBehavior(),
                               padding: const EdgeInsets.only(bottom: 16),
                               children: [
                                 const SizedBox(height: 16),

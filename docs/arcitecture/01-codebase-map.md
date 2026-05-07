@@ -4,6 +4,7 @@
 
 - `src/app` - маршруты App Router, page/layout, route handlers.
   - `dashboard/*` - основная защищённая зона (chat/meetings/calls/admin/settings/contacts).
+  - `u/[username]` - публичный SSR-route профиля контакта для внешних preview (Telegram/WhatsApp) с `generateMetadata` (`og:*`, `twitter:*`) и кнопкой перехода в LighChat.
   - `dashboard/features` - раздел «Возможности LighChat» (оглавление + 12 подстраниц `/dashboard/features/[topic]`); welcome-оверлей `FeaturesWelcomeOverlay` показывается один раз после регистрации (флаг `lc_features_welcome_v1` в `localStorage`, не пересекается с `PwaOnboarding`).
   - `landing` - публичный маркетинговый лендинг для сторов (`/landing`): hero + бейджи App Store / Google Play (заглушки), подробное описание всех 12 фич с переиспользуемыми мокапами `components/features/*`, кнопка «Войти» ведёт на `/`. Билингв через `components/landing/landing-content.ts`.
   - `meetings/[meetingId]` - вход в комнату встречи.

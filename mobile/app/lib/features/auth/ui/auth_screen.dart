@@ -17,6 +17,7 @@ import 'register_form.dart';
 import 'telegram_sign_in_webview_screen.dart';
 import 'yandex_sign_in_webview_screen.dart';
 import '../../shared/ui/app_back_button.dart';
+import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 import '../../../l10n/app_localizations.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -202,7 +203,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     Expanded(
                       child: SingleChildScrollView(
                         keyboardDismissBehavior:
-                            ScrollViewKeyboardDismissBehavior.onDrag,
+                            platformScrollKeyboardDismissBehavior(),
                         padding: EdgeInsets.fromLTRB(
                           22,
                           6,

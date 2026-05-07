@@ -7,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-dvh bg-background text-foreground">{children}</div>;
+  return (
+    <div className="h-dvh w-full overflow-y-auto overflow-x-hidden bg-background text-foreground select-text">
+      {children}
+    </div>
+  );
 }
