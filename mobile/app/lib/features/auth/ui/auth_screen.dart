@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
@@ -45,17 +44,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _openPrivacyPolicy() async {
-    const url = 'https://lighchat.app/privacy';
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.auth_error_open_privacy_policy)),
-    );
+    GoRouter.of(context).push('/legal/privacy-policy');
   }
 
   Future<void> _continueOAuthAndRoute(

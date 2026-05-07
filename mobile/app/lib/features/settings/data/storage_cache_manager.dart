@@ -8,36 +8,58 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../chat/data/chat_list_offline_cache.dart';
 import '../../chat/data/chat_message_draft_storage.dart';
+import '../../chat/data/giphy_cache_store.dart' show kGiphyQueryCachePrefsKey, kGiphyRecentGifsPrefsKey;
 import '../../chat/data/local_cache_entry_registry.dart';
 import '../../chat/data/local_storage_preferences.dart';
+import '../../chat/data/recent_stickers_store.dart';
 import '../../chat/data/saved_messages_chat.dart';
 import '../../chat/data/user_profiles_disk_cache.dart';
 
-enum LocalStorageEntrySource { file, draftItem, chatListSnapshot, profileCard }
+enum LocalStorageEntrySource {
+  file,
+  draftItem,
+  chatListSnapshot,
+  profileCard,
+  sharedPrefsBucket,
+}
 
-enum StorageMediaType { video, photo, file, other }
+enum StorageMediaType { video, photo, audio, file, other }
+
+/// Виртуальный `conversationId` для файлов кэша, которые мы не смогли
+/// привязать ни к одному чату (например, дефолтный кэш `cached_network_image`,
+/// или файлы из `chat_video_cache/`/`chat_image_cache/`, потерявшие запись
+/// в [LocalCacheEntryRegistry]). В UI рендерится отдельной строкой.
+const String kStorageOrphanConversationId = '__orphan__';
 
 const _kVideoExtensions = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'};
 const _kPhotoExtensions = {
   '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.bmp',
 };
+const _kAudioExtensions = {
+  '.m4a', '.mp3', '.ogg', '.wav', '.aac', '.opus', '.oga',
+};
 
 StorageMediaType classifyEntryMediaType(LocalStorageEntry entry) {
   switch (entry.category) {
     case LocalStorageCategory.videoDownloads:
+      final ext = _fileExtension(entry.filePath ?? entry.label);
+      if (_kAudioExtensions.contains(ext)) return StorageMediaType.audio;
       return StorageMediaType.video;
     case LocalStorageCategory.e2eeMedia:
       final ext = _fileExtension(entry.filePath ?? entry.label);
+      if (_kAudioExtensions.contains(ext)) return StorageMediaType.audio;
       if (_kVideoExtensions.contains(ext)) return StorageMediaType.video;
       if (_kPhotoExtensions.contains(ext)) return StorageMediaType.photo;
       return StorageMediaType.file;
     case LocalStorageCategory.chatImages:
+    case LocalStorageCategory.networkImageCache:
       return StorageMediaType.photo;
     case LocalStorageCategory.videoThumbs:
     case LocalStorageCategory.e2eeText:
     case LocalStorageCategory.chatDrafts:
     case LocalStorageCategory.chatListSnapshot:
     case LocalStorageCategory.profileCards:
+    case LocalStorageCategory.stickersGifsEmoji:
       return StorageMediaType.other;
   }
 }

@@ -51,6 +51,12 @@ class RecentStickersStore {
     );
   }
 
+  /// Сбросить in-memory кэш (после очистки SharedPreferences извне,
+  /// например из «Хранилище» → «Стикеры/GIF/эмодзи»).
+  void invalidateCache() {
+    _cache = null;
+  }
+
   static Map<String, Object?> _toMap(ChatAttachment a) => {
         'url': a.url,
         'name': a.name,

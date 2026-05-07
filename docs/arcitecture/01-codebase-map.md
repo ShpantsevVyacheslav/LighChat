@@ -6,7 +6,8 @@
   - `dashboard/*` - основная защищённая зона (chat/meetings/calls/admin/settings/contacts).
   - `u/[username]` - публичный SSR-route профиля контакта для внешних preview (Telegram/WhatsApp) с `generateMetadata` (`og:*`, `twitter:*`) и кнопкой перехода в LighChat.
   - `dashboard/features` - раздел «Возможности LighChat» (оглавление + 12 подстраниц `/dashboard/features/[topic]`); welcome-оверлей `FeaturesWelcomeOverlay` показывается один раз после регистрации (флаг `lc_features_welcome_v1` в `localStorage`, не пересекается с `PwaOnboarding`).
-  - `landing` - публичный маркетинговый лендинг для сторов (`/landing`): hero + бейджи App Store / Google Play (заглушки), подробное описание всех 12 фич с переиспользуемыми мокапами `components/features/*`, кнопка «Войти» ведёт на `/`. Билингв через `components/landing/landing-content.ts`.
+  - `page.tsx` (корень `/`) - публичный маркетинговый лендинг для сторов: hero + бейджи App Store / Google Play (заглушки), подробное описание всех 12 фич с переиспользуемыми мокапами `components/features/*`, кнопка «Войти» ведёт на `/auth`. Билингв через `components/landing/landing-content.ts`.
+  - `auth/` - страница авторизации/регистрации (`/auth`): QR-вход, email+пароль, Google/Apple/Telegram/Yandex; OAuth-подпути `auth/yandex` и `auth/telegram`. Логаут и dashboard-guard ведут сюда; неавторизованные пользователи на закрытых маршрутах редиректятся на `/auth`.
   - `meetings/[meetingId]` - вход в комнату встречи.
   - `api/giphy/search/route.ts` - серверный прокси к GIPHY API (gifs + animated stickers; ENV `GIPHY_API_KEY`).
 - `src/components` - UI-компоненты по доменам.
@@ -42,6 +43,19 @@
 - `storage.rules` - Firebase Storage rules.
 - `firestore.indexes.json` - Firestore composite/collection-group индексы.
 - `firebase.json`, `.firebaserc` - конфиг Firebase deploy/runtime.
+
+## Legal documentation
+
+- `docs/legal/ru/*.md`, `docs/legal/en/*.md` - **источник правды** для всех юридических документов (Privacy Policy, Terms of Service, Cookie Policy, EULA, DPA, Children Policy, Content Moderation Policy, Acceptable Use Policy). Версионируется в репо. См. `docs/legal/README.md` для матрицы применимости и плейсхолдеров для юриста.
+- `src/app/legal/[slug]/page.tsx`, `src/app/legal/page.tsx`, `src/app/legal/legal-document-view.tsx`, `src/app/legal/legal-index-view.tsx` - web-роуты `/legal` и `/legal/<slug>` (server component читает MD из `docs/legal/<lang>/<slug>.md`, клиентская обёртка переключает язык через `useI18n()`).
+- `src/lib/legal/{slugs,load,render}.tsx` - список slug'ов, `server-only` загрузчик MD и минималистичный MD-рендерер (без новых deps).
+- `src/components/landing/cookie-banner.tsx`, `src/components/landing/legal-footer-links.tsx` - cookie banner на лендинге (`localStorage` ключ `lc_cookie_consent_v1`) и блок ссылок на юр.документы в футере.
+- `src/app/page.tsx` - в registration-диалоге над кнопкой submit подпись «By signing up you agree to ToS / Privacy» со ссылками на `/legal/*`.
+- `mobile/app/assets/legal/{ru,en}/*.md` - те же документы, забандлены как Flutter-ассеты (см. `pubspec.yaml`).
+- `mobile/app/lib/features/legal/data/legal_documents.dart` - список slug'ов и загрузка MD из ассетов с fallback'ом на другой язык.
+- `mobile/app/lib/features/legal/ui/{markdown_view,legal_document_screen}.dart` - lightweight MD-рендерер (поддерживает headings/lists/blockquotes/tables/links) и экраны `/legal` (индекс) и `/legal/:slug` (документ). Routes регистрируются в `app_router.dart` и проп welcome-redirect-а пускает их без авторизации.
+- `mobile/app/lib/features/auth/ui/register_form.dart`, `mobile/app/lib/features/auth/ui/auth_screen.dart` - чекбокс согласия на регистрации и кнопка «Privacy policy» открывают in-app экран `/legal/<slug>` через `GoRouter.push` (раньше — `launchUrl` на отсутствующий `lighchat.app/privacy`).
+- `mobile/app/lib/features/chat/ui/chat_account_screen.dart` - пункт меню «Правовая информация» (`legal_settings_section_title`) ведёт на `/legal`.
 
 ## Desktop and tooling
 

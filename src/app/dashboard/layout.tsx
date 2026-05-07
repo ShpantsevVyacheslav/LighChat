@@ -77,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/');
+      router.push('/auth');
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -89,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
    */
   React.useEffect(() => {
     if (!isLoading && isGuest) {
-      router.replace('/');
+      router.replace('/auth');
     }
   }, [isLoading, isGuest, router]);
 

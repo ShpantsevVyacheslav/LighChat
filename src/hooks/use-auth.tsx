@@ -371,7 +371,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
         await signOut(auth);
-        router.push('/');
+        router.push('/auth');
     } catch (e) {
         console.error('Logout error', e);
         setError('Произошла ошибка при выходе.');
@@ -566,7 +566,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const result = await getRedirectResult(auth);
         if (!result?.user) return;
         const ok = await finalizeOAuthCredential(result);
-        if (ok && pathname === '/' && firestore) {
+        if (ok && pathname === '/auth' && firestore) {
           const uref = doc(firestore, 'users', result.user.uid);
           const snap = await getDoc(uref);
           const prof = snap.exists()
@@ -1670,15 +1670,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const isLoading = isAuthLoading || isProfileLoading;
   
   useEffect(() => {
+    /**
+     * Публичные маршруты, на которых неавторизованный пользователь должен
+     * оставаться без редиректа: лендинг (/), сама /auth и её OAuth-подпути,
+     * страницы встреч (гость), юридические документы и публичный профиль контакта.
+     */
     if (
       !isLoading &&
       !appUser &&
       !firebaseUser &&
       pathname !== '/' &&
+      pathname !== '/auth' &&
       !pathname.startsWith('/auth/') &&
-      !pathname.startsWith('/meetings/')
+      !pathname.startsWith('/meetings/') &&
+      !pathname.startsWith('/legal') &&
+      !pathname.startsWith('/u/')
     ) {
-      router.push('/');
+      router.push('/auth');
     }
   }, [isLoading, appUser, firebaseUser, pathname, router]);
 

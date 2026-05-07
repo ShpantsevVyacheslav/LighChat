@@ -139,9 +139,11 @@ GoRouter createRouter() {
           const skipPaths = {'/welcome', '/auth/google-complete'};
           final isCallDeepLink = path.startsWith('/calls/');
           final isMeetingDeepLink = path.startsWith('/meetings/');
+          final isLegalDeepLink = path == '/legal' || path.startsWith('/legal/');
           if (!skipPaths.contains(path) &&
               !isCallDeepLink &&
-              !isMeetingDeepLink) {
+              !isMeetingDeepLink &&
+              !isLegalDeepLink) {
             final shown = await FirstLoginAnimationStorage.isShownFor(uid);
             if (kDebugMode) {
               debugPrint(

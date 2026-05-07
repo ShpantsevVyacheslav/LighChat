@@ -400,6 +400,11 @@ class _AccountView extends StatelessWidget {
                         title: l10n.account_menu_energy_saving,
                         onTap: onEnergySavingTap,
                       ),
+                      _MenuItem(
+                        icon: Icons.gavel_rounded,
+                        title: l10n.legal_settings_section_title,
+                        onTap: () => context.push('/legal'),
+                      ),
                       const SizedBox(height: 10),
                       Divider(
                         height: 1,

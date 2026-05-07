@@ -13,6 +13,8 @@ enum LocalStorageCategory {
   videoDownloads,
   videoThumbs,
   chatImages,
+  stickersGifsEmoji,
+  networkImageCache,
 }
 
 /// Categories the user can toggle on/off (heavy files).
@@ -20,6 +22,7 @@ const kUserToggleableCategories = <LocalStorageCategory>[
   LocalStorageCategory.e2eeMedia,
   LocalStorageCategory.videoDownloads,
   LocalStorageCategory.chatImages,
+  LocalStorageCategory.networkImageCache,
 ];
 
 /// Categories always kept locally (lightweight data, no user toggle).
@@ -29,6 +32,7 @@ const kAlwaysOnCategories = <LocalStorageCategory>[
   LocalStorageCategory.chatListSnapshot,
   LocalStorageCategory.profileCards,
   LocalStorageCategory.videoThumbs,
+  LocalStorageCategory.stickersGifsEmoji,
 ];
 
 enum AutoDeletePeriod { never, threeDays, oneWeek, oneMonth, threeMonths }
@@ -64,6 +68,7 @@ class LocalStoragePreferences {
     required this.e2eeMediaEnabled,
     required this.videoDownloadsEnabled,
     required this.chatImagesEnabled,
+    required this.networkImageCacheEnabled,
     required this.cacheBudgetGb,
     required this.autoDeletePersonal,
     required this.autoDeleteGroups,
@@ -72,6 +77,7 @@ class LocalStoragePreferences {
   final bool e2eeMediaEnabled;
   final bool videoDownloadsEnabled;
   final bool chatImagesEnabled;
+  final bool networkImageCacheEnabled;
   final int cacheBudgetGb;
   final AutoDeletePeriod autoDeletePersonal;
   final AutoDeletePeriod autoDeleteGroups;
@@ -110,6 +116,7 @@ class LocalStoragePreferences {
       e2eeMediaEnabled: true,
       videoDownloadsEnabled: true,
       chatImagesEnabled: true,
+      networkImageCacheEnabled: true,
       cacheBudgetGb: 8,
       autoDeletePersonal: AutoDeletePeriod.never,
       autoDeleteGroups: AutoDeletePeriod.oneMonth,
@@ -120,6 +127,7 @@ class LocalStoragePreferences {
     bool? e2eeMediaEnabled,
     bool? videoDownloadsEnabled,
     bool? chatImagesEnabled,
+    bool? networkImageCacheEnabled,
     int? cacheBudgetGb,
     AutoDeletePeriod? autoDeletePersonal,
     AutoDeletePeriod? autoDeleteGroups,
@@ -128,6 +136,8 @@ class LocalStoragePreferences {
       e2eeMediaEnabled: e2eeMediaEnabled ?? this.e2eeMediaEnabled,
       videoDownloadsEnabled: videoDownloadsEnabled ?? this.videoDownloadsEnabled,
       chatImagesEnabled: chatImagesEnabled ?? this.chatImagesEnabled,
+      networkImageCacheEnabled:
+          networkImageCacheEnabled ?? this.networkImageCacheEnabled,
       cacheBudgetGb: (cacheBudgetGb ?? this.cacheBudgetGb).clamp(
         minCacheBudgetGb,
         maxCacheBudgetGb,
@@ -145,11 +155,14 @@ class LocalStoragePreferences {
         return videoDownloadsEnabled;
       case LocalStorageCategory.chatImages:
         return chatImagesEnabled;
+      case LocalStorageCategory.networkImageCache:
+        return networkImageCacheEnabled;
       case LocalStorageCategory.e2eeText:
       case LocalStorageCategory.chatDrafts:
       case LocalStorageCategory.chatListSnapshot:
       case LocalStorageCategory.profileCards:
       case LocalStorageCategory.videoThumbs:
+      case LocalStorageCategory.stickersGifsEmoji:
         return true;
     }
   }
@@ -159,6 +172,7 @@ class LocalStoragePreferences {
       'e2eeMediaEnabled': e2eeMediaEnabled,
       'videoDownloadsEnabled': videoDownloadsEnabled,
       'chatImagesEnabled': chatImagesEnabled,
+      'networkImageCacheEnabled': networkImageCacheEnabled,
       'cacheBudgetGb': cacheBudgetGb,
       'autoDeletePersonal': autoDeletePersonal.toJsonValue(),
       'autoDeleteGroups': autoDeleteGroups.toJsonValue(),
@@ -185,6 +199,9 @@ class LocalStoragePreferences {
       chatImagesEnabled: raw['chatImagesEnabled'] is bool
           ? raw['chatImagesEnabled'] as bool
           : defaults.chatImagesEnabled,
+      networkImageCacheEnabled: raw['networkImageCacheEnabled'] is bool
+          ? raw['networkImageCacheEnabled'] as bool
+          : defaults.networkImageCacheEnabled,
       cacheBudgetGb: budget.clamp(minCacheBudgetGb, maxCacheBudgetGb),
       autoDeletePersonal: AutoDeletePeriodDuration.fromJsonValue(
         raw['autoDeletePersonal'] as String?,

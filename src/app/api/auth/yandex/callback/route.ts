@@ -26,7 +26,7 @@ function getYandexClientSecret(): string {
 
 function redirectWithError(request: NextRequest, code: string): NextResponse {
   const origin = resolvePublicOrigin(request);
-  const url = new URL("/", origin);
+  const url = new URL("/auth", origin);
   url.searchParams.set("yandex_error", code);
   const res = NextResponse.redirect(url);
   res.cookies.delete(STATE_COOKIE);

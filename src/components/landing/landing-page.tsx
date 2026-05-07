@@ -91,10 +91,10 @@ export function LandingPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild variant="default" size="lg" className="shadow-md shadow-primary/25">
-                <Link href="/">{landing.loginCta}</Link>
+                <Link href="/auth">{landing.loginCta}</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/">
+                <Link href="/auth">
                   {landing.registerCta}
                   <ArrowRight className="ml-1 h-4 w-4" aria-hidden />
                 </Link>
@@ -354,7 +354,7 @@ export function LandingPage() {
               </div>
               <div className="space-y-3">
                 <Button asChild variant="default" size="lg" className="w-full shadow-md shadow-primary/25">
-                  <Link href="/">{landing.loginCta}</Link>
+                  <Link href="/auth">{landing.loginCta}</Link>
                 </Button>
                 <div className="flex flex-wrap justify-stretch gap-3">
                   <StoreBadge
@@ -397,7 +397,7 @@ function LandingHeader({ loginCta, registerCta }: { loginCta: string; registerCt
   return (
     <header className="sticky top-0 z-30 border-b border-black/5 bg-background/70 backdrop-blur-xl dark:border-white/10">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/landing" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <Image
             src={BRAND_LOGO_SRC}
             alt="LighChat"
@@ -411,10 +411,10 @@ function LandingHeader({ loginCta, registerCta }: { loginCta: string; registerCt
         <div className="flex items-center gap-2">
           <PublicLanguageMenu className="hidden sm:block" />
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-            <Link href="/">{registerCta}</Link>
+            <Link href="/auth">{registerCta}</Link>
           </Button>
           <Button asChild variant="default" size="sm" className="shadow-sm shadow-primary/30">
-            <Link href="/">{loginCta}</Link>
+            <Link href="/auth">{loginCta}</Link>
           </Button>
         </div>
       </div>
