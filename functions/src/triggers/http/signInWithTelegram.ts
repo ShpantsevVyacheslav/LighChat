@@ -13,18 +13,10 @@ import { claimTelegramAuthOnce } from "../../lib/telegram-widget-replay-store";
 
 const telegramBotToken = defineSecret("TELEGRAM_BOT_TOKEN");
 
-function redactTelegramAuthPayloadForLogs(raw: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = { ...raw };
-  for (const k of ["hash", "auth_date"] as const) {
-    if (k in out) out[k] = "<redacted>";
-  }
-  for (const k of ["phone", "phone_number", "contact_phone"] as const) {
-    if (typeof out[k] === "string" && (out[k] as string).trim().length > 0) out[k] = "<redacted>";
-  }
-  // photo_url может быть длинным и содержит идентификаторы — редактируем
-  if (typeof out.photo_url === "string" && out.photo_url.trim().length > 0) out.photo_url = "<redacted>";
-  return out;
-}
+// [audit H-005] redactTelegramAuthPayloadForLogs удалён вместе с веткой
+// `TELEGRAM_DEBUG_LOGIN_INFO` — раньше пропускал first_name/last_name/
+// username/photo_url в Cloud Logging. Если для разовой отладки нужен
+// payload, проще снять через `gcloud logging read` чем держать prod-flag.
 
 /** Код ошибки Firebase Auth Admin (разные версии SDK кладут `code` или `errorInfo.code`). */
 function firebaseAuthErrorCode(e: unknown): string {
@@ -183,18 +175,11 @@ export const signInWithTelegram = onCall(
       throw new HttpsError("invalid-argument", "Missing auth payload.");
     }
 
-    if (process.env.TELEGRAM_DEBUG_LOGIN_INFO === "1") {
-      try {
-        logger.info("signInWithTelegram: auth payload keys", {
-          keys: Object.keys(raw).sort(),
-        });
-        logger.info("signInWithTelegram: auth payload (redacted)", {
-          auth: redactTelegramAuthPayloadForLogs(raw),
-        });
-      } catch {
-        /* ignore */
-      }
-    }
+    // [audit H-005] TELEGRAM_DEBUG_LOGIN_INFO ветка снята — раньше при
+    // включённом env flag в Cloud Logging писался полный payload (хоть и
+    // через redactor, который пропускал first_name/last_name/username).
+    // Если для отладки нужен payload — лог разово через `gcloud functions
+    // logs` руками, а не через persistent prod-flag.
 
     if (!verifyTelegramLoginWidget(raw, botToken)) {
       logger.warn("signInWithTelegram: invalid telegram hash");

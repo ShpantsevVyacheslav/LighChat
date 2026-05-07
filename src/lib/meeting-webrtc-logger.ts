@@ -71,7 +71,14 @@ export const meetingWebRtcLog = {
     }
   },
 
+  /**
+   * [audit H-005] info-уровень тоже гейтим verboseEnabled() — раньше всегда
+   * печатал в console участников + extra (snapshot keys, peer state),
+   * что в prod-консоли пользователя засоряет логи и добавляет лишний
+   * footprint при копировании в баг-репорт. warn/error остаются всегда.
+   */
   info(meetingId: string, selfId: string, area: string, message: string, extra?: Record<string, unknown>): void {
+    if (!verboseEnabled()) return;
     const p = prefix(meetingId, selfId);
     if (extra && Object.keys(extra).length > 0) {
       console.info(`${p} [${area}] ${message}`, extra);

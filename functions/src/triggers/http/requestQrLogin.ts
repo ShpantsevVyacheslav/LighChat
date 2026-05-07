@@ -193,12 +193,17 @@ export const requestQrLogin = onCall(
     } catch (e) {
       if (e instanceof HttpsError) throw e;
       const msg = e instanceof Error ? e.message : String(e);
-      const stack = e instanceof Error ? e.stack : undefined;
+      // [audit H-005] Полный stack может содержать пути файлов c uid'ами
+      // или snapshot data. Cloud Logging тарифицируется поштучно — режем
+      // первые 300 символов (хватит для top frame'ов, без leak'а PII).
+      const stack = e instanceof Error && typeof e.stack === "string" ?
+        e.stack.slice(0, 300) :
+        undefined;
       logger.error("requestQrLogin: unexpected failure", {
-        error: msg,
+        error: msg.slice(0, 200),
         stack,
       });
-      throw new HttpsError("internal", `requestQrLogin failed: ${msg}`);
+      throw new HttpsError("internal", "requestQrLogin failed");
     }
   }
 );
