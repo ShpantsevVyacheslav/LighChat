@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useState, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
@@ -31,6 +32,7 @@ export function ChatFolderAssignmentDialog({
   allUsers,
   onOpenFolderManager
 }: ChatFolderAssignmentDialogProps) {
+  const { t } = useI18n();
   const [isSaving, setIsSaving] = useState(false);
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -64,7 +66,7 @@ export function ChatFolderAssignmentDialog({
 
   const otherId = conversation.participantIds.find((id) => id !== currentUser.id)!;
   const displayName = conversation.isGroup
-    ? conversation.name || 'Группа'
+    ? conversation.name || t('chat.groupFallbackName')
     : allUsers.find((u) => u.id === otherId)?.name || conversation.participantInfo[otherId]?.name || 'Чат';
 
   const toggleFolder = async (folderId: string) => {

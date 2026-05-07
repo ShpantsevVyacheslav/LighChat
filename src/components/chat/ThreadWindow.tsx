@@ -634,7 +634,7 @@ export function ThreadWindow({
         }
         if (!hasMore) {
             onHighlightThreadMessageConsumed?.();
-            toast({ title: 'Сообщение не найдено' });
+            toast({ title: t('chat.messageNotFound') });
             return;
         }
         setIsLoadingOlder(true);
@@ -1000,7 +1000,7 @@ export function ThreadWindow({
             if (e2eeConv.e2eeEnabled) {
                 toast({
                     variant: 'destructive',
-                    title: 'Опрос недоступен',
+                    title: t('chat.pollUnavailable'),
                     description: 'В чате со сквозным шифрованием опросы пока не поддерживаются.',
                 });
                 return;
@@ -1169,7 +1169,7 @@ export function ThreadWindow({
         if ((parentMessage.chatPollId ?? '').trim()) return t('chatList.previewAttachment');
         if (parentMessage.locationShare) return t('chatList.previewAttachment');
         if ((parentMessage.attachments?.length ?? 0) > 0) return t('chatList.previewAttachment');
-        return 'Сообщение';
+        return t('chat.messageGeneric');
     }, [
         parentMessage.attachments,
         parentMessage.chatPollId,

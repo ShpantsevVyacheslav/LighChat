@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +19,7 @@ export function ConversationStarredPanel({
   /** Из профиля: закрыть шторку и перейти к сообщению (иначе — только переход). */
   onOpenStarredMessage?: (messageId: string) => void;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const firestore = useFirestore();
 
@@ -69,7 +71,7 @@ export function ConversationStarredPanel({
                 onClick={() => openMessage(row.messageId)}
               >
                 <p className="line-clamp-3 text-sm leading-snug">
-                  {row.previewText?.trim() || 'Сообщение'}
+                  {row.previewText?.trim() || t('chat.messageGeneric')}
                 </p>
                 <p className="mt-1 text-[10px] font-bold uppercase text-zinc-500">
                   Перейти к сообщению в чате

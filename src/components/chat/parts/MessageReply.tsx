@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React from 'react';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,7 @@ interface MessageReplyProps {
 }
 
 export function MessageReply({ replyTo, isCurrentUser, onClick }: MessageReplyProps) {
+  const { t } = useI18n();
   return (
     <div 
       onClick={(e) => { e.stopPropagation(); onClick(); }} 
@@ -27,7 +29,7 @@ export function MessageReply({ replyTo, isCurrentUser, onClick }: MessageReplyPr
         <div className={cn("text-xs line-clamp-1", isCurrentUser ? "text-white/80" : "text-muted-foreground")}>
           {replyTo.text?.trim()
             ? replyTo.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
-            : 'Сообщение'}
+            : t('chat.messageGeneric')}
         </div>
       </div>
       {replyTo.mediaPreviewUrl && (

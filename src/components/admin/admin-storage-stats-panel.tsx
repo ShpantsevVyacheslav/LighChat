@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -62,6 +63,7 @@ function rangeForPreset(preset: PeriodPreset): { from: string | null; to: string
 }
 
 export function AdminStorageStatsPanel() {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const firebaseAuth = useFirebaseAuth();
   const { user } = useAuth();
@@ -431,7 +433,7 @@ export function AdminStorageStatsPanel() {
                             {row.conversationId}
                           </div>
                         </TableCell>
-                        <TableCell>{row.isGroup ? 'Группа' : 'Личный'}</TableCell>
+                        <TableCell>{row.isGroup ? t('chat.groupType') : t('chat.directType')}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{formatStorageBytes(row.bytes)}</TableCell>
                         <TableCell className="text-right text-sm">{row.messageDocs}</TableCell>
                       </TableRow>

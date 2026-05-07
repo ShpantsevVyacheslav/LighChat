@@ -1660,7 +1660,7 @@ export function ChatWindow({
       if (e2eeConv.e2eeEnabled) {
         toast({
           variant: 'destructive',
-          title: 'Опрос недоступен',
+          title: t('chat.pollUnavailable'),
           description: 'В чате со сквозным шифрованием опросы пока не поддерживаются.',
         });
         return;
@@ -1770,7 +1770,7 @@ export function ChatWindow({
         await setDoc(newDocRef, payload as Parameters<typeof setDoc>[1]);
 
         toast({
-          title: 'Сообщение запланировано',
+          title: t('chat.messageScheduled'),
           description: format(sendAt, 'd MMMM yyyy, HH:mm', { locale: ru }),
         });
       } catch (e) {
@@ -1918,7 +1918,7 @@ export function ChatWindow({
         pinnedMessages: next,
         pinnedMessage: deleteField(),
         });
-        toast({ title: 'Сообщение закреплено' });
+        toast({ title: t('chat.messagePinned') });
     } catch {
         toast({ variant: 'destructive', title: 'Ошибка закрепления' });
     }
@@ -1935,7 +1935,7 @@ export function ChatWindow({
       } else {
         await updateDoc(convRef, { pinnedMessages: next, pinnedMessage: deleteField() });
       }
-      toast({ title: 'Сообщение откреплено' });
+      toast({ title: t('chat.messageUnpinned') });
     } catch {
       toast({ variant: 'destructive', title: 'Ошибка открепления' });
     }
@@ -2033,7 +2033,7 @@ export function ChatWindow({
         setIsLoadingOlder(true);
         setDisplayLimit((prev) => prev + HISTORY_PAGE_SIZE);
       } else {
-        toast({ title: 'Сообщение не найдено' });
+        toast({ title: t('chat.messageNotFound') });
       }
     },
     [hasMore, tryScrollToMessageInList, toast]
@@ -2073,7 +2073,7 @@ export function ChatWindow({
     }
     if (!hasMore) {
       pendingNavigateMessageIdRef.current = null;
-      toast({ title: 'Сообщение не найдено' });
+      toast({ title: t('chat.messageNotFound') });
       return;
     }
     setIsLoadingOlder(true);
@@ -2229,7 +2229,7 @@ export function ChatWindow({
     isProfileOpen || mediaViewerState.isOpen || documentFullscreen;
 
   const chatDisplayName = conversation.isGroup
-    ? conversation.name || 'Группа'
+    ? conversation.name || t('chat.groupFallbackName')
     : isSelfSavedChat
       ? conversation.name || t('chatList.previewSavedMessages')
       : resolveContactDisplayName(

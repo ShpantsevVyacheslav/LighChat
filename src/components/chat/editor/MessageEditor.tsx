@@ -1,5 +1,6 @@
 
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -132,6 +133,7 @@ export function MessageEditor({
   shouldBlockEnter,
   mentionBoundaryNames = [],
 }: MessageEditorProps) {
+  const { t } = useI18n();
   const blockEnterRef = useRef(shouldBlockEnter);
   blockEnterRef.current = shouldBlockEnter;
   const mentionCursorRef = useRef(onMentionQueryCursor);
@@ -156,7 +158,7 @@ export function MessageEditor({
         },
       }),
       Placeholder.configure({
-        placeholder: 'Сообщение',
+        placeholder: t('chat.messageGeneric'),
       }),
     ],
     onUpdate: ({ editor }) => {

@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -40,6 +41,7 @@ export function ConversationItem({
     isPinnedInFolder = false,
     isSavedMessages = false,
 }: ConversationItemProps) {
+    const { t } = useI18n();
     const firestore = useFirestore();
     const itemRef = useRef<HTMLDivElement | null>(null);
     const isInViewport = useElementInViewport(itemRef);
@@ -92,9 +94,9 @@ export function ConversationItem({
     
     const isPartnerDeleted = !conv.isGroup && !isSavedMessages && liveOtherUser?.deletedAt;
     const displayName = conv.isGroup
-        ? (conv.name || 'Группа')
+        ? (conv.name || t('chat.groupFallbackName'))
         : isSavedMessages
-            ? (conv.name || 'Избранное')
+            ? (conv.name || t('chatList.previewSavedMessages'))
             : (resolveDisplayNameById(otherId) || 'Чат');
     const avatar = conv.isGroup
         ? conv.photoUrl

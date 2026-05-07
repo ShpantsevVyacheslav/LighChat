@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import { useState } from 'react';
 import { Loader2, LockKeyhole } from 'lucide-react';
@@ -56,6 +57,7 @@ export function SecretChatComposeDialog({
   peerUser,
   onCreated,
 }: SecretChatComposeDialogProps) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const [ttl, setTtl] = useState<SecretChatTtlPresetSec>(3600);
   const [noForward, setNoForward] = useState(true);
@@ -212,7 +214,7 @@ export function SecretChatComposeDialog({
               {mediaLimitSelect('Видео', videoViews, setVideoViews)}
               {mediaLimitSelect('Голосовые', voiceViews, setVoiceViews)}
               {mediaLimitSelect('Файлы', fileViews, setFileViews)}
-              {mediaLimitSelect('Локация', locationViews, setLocationViews)}
+              {mediaLimitSelect(t('chat.locationLabel'), locationViews, setLocationViews)}
             </div>
 
             <div className="space-y-3 rounded-md border p-3">

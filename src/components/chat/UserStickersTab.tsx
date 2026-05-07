@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react';
@@ -40,6 +41,7 @@ type UserStickersTabProps = {
  * Вкладка «Стикеры»: общие паки (`publicStickerPacks`) и свои паки; загрузка и удаление — только для своих.
  */
 export function UserStickersTab({ userId, onPickSticker, className }: UserStickersTabProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newPackOpen, setNewPackOpen] = useState(false);
@@ -108,7 +110,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         setSelectedPackId(id);
         setNewPackOpen(false);
         setNewPackName('');
-        toast({ title: 'Стикерпак создан' });
+        toast({ title: t('chat.stickerpackCreated') });
       } else {
         toast({ title: 'Не удалось создать пак', variant: 'destructive' });
       }
@@ -131,7 +133,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
       if (ok) {
         setDeletePackOpen(false);
         setPackIdPendingDelete(null);
-        toast({ title: 'Стикерпак удалён' });
+        toast({ title: t('chat.stickerpackDeleted') });
       } else {
         toast({ title: 'Не удалось удалить пак', variant: 'destructive' });
       }

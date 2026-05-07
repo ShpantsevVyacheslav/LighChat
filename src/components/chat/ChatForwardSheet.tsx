@@ -240,7 +240,7 @@ export function ChatForwardSheet() {
       const otherParticipantId = conv.participantIds.find((id) => id !== currentUser?.id);
       const otherUser = allUsers.find((u) => u.id === otherParticipantId);
       const displayName = conv.isGroup
-        ? conv.name || 'Группа'
+        ? conv.name || t('chat.groupFallbackName')
         : otherUser?.name ||
           conv.participantInfo[otherParticipantId || '']?.name ||
           'Неизвестный чат';

@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import { useCallback, useState } from 'react';
 import { useFirestore } from '@/firebase';
@@ -33,6 +34,7 @@ type ConversationEncryptionPanelProps = {
 };
 
 export function ConversationEncryptionPanel({ conversation, currentUserId }: ConversationEncryptionPanelProps) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const { toast } = useToast();
   const { privacySettings } = useSettings();
@@ -216,7 +218,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
             },
             {
               key: 'media' as const,
-              title: 'Вложения (медиа/файлы)',
+              title: t('chat.encryption.mediaLabel'),
             },
           ] as const).map((row) => (
             <div key={row.key} className="flex items-center justify-between gap-4">

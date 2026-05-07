@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -51,6 +52,7 @@ interface MessagePollInlineProps {
 }
 
 export function MessagePollInline(props: MessagePollInlineProps) {
+  const { t } = useI18n();
   const { conversationId, pollId, currentUser, conversation, allUsers } = props;
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -194,7 +196,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
     return (
       <div className={cn(CHAT_GLASS_MENTION_LIST, 'mt-1 flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground')}>
         <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-        {isLoading ? 'Загрузка опроса…' : 'Опрос недоступен'}
+        {isLoading ? t('chat.pollLoading') : t('chat.pollUnavailable')}
       </div>
     );
   }

@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import type { User, Conversation, ChatMessage, UserRole, UserContactsIndex } from '@/lib/types';
 import { ROLES } from '@/lib/constants';
@@ -127,6 +128,7 @@ export function ChatParticipantProfile({
     onInitialSubMenuConsumed,
     profileSource = 'chat',
 }: ChatParticipantProfileProps) {
+  const { t } = useI18n();
   type GroupProfileLayer = 'main' | 'participants' | 'edit';
   const [groupProfileLayer, setGroupProfileLayer] = useState<GroupProfileLayer>('main');
   const [liveMapOpen, setLiveMapOpen] = useState(false);
@@ -600,7 +602,7 @@ export function ChatParticipantProfile({
       : isGroup && !showMemberFocus
         ? conversation.name
         : isSelfSavedChat
-          ? conversation.name || 'Избранное'
+          ? conversation.name || t('chatList.previewSavedMessages')
           : displayParticipantInfo?.name || 'Чат';
   const avatar =
     showMemberFocus && displayParticipantInfo

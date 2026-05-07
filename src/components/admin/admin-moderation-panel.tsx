@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,6 +44,7 @@ const STATUS_COLORS: Record<ReportStatus, string> = {
 };
 
 export function AdminModerationPanel() {
+  const { t } = useI18n();
   const firebaseAuth = useFirebaseAuth();
   const { toast } = useToast();
   const [reports, setReports] = useState<MessageReport[]>([]);
@@ -83,7 +85,7 @@ export function AdminModerationPanel() {
         status: 'action_taken',
         actionTaken: 'hidden',
       });
-      toast({ title: 'Сообщение скрыто, жалоба обработана' });
+      toast({ title: t('chat.moderationHidden') });
       load();
     } else {
       toast({ variant: 'destructive', title: hideRes.error });

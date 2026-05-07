@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Lock, Shield, Timer, Trash2 } from 'lucide-react';
@@ -49,6 +50,7 @@ export function SecretChatSettingsDialog({
   conversation,
   onDeleted,
 }: SecretChatSettingsDialogProps) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const app = firestore.app;
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -74,7 +76,7 @@ export function SecretChatSettingsDialog({
       { label: 'Видео', value: asText(media?.video) },
       { label: 'Голосовые', value: asText(media?.voice) },
       { label: 'Файлы', value: asText(media?.file) },
-      { label: 'Локация', value: asText(media?.location) },
+      { label: t('chat.locationLabel'), value: asText(media?.location) },
     ];
   }, [secret?.mediaViewPolicy]);
 

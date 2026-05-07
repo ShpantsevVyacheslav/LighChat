@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,6 +32,7 @@ export function ConversationThreadsPanel({
   allUsers: User[];
   onAfterThreadNavigate?: () => void;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const firestore = useFirestore();
 
@@ -95,7 +97,7 @@ export function ConversationThreadsPanel({
                   <div
                     className="mb-1 break-words text-sm font-bold leading-tight break-all text-zinc-100 [&_p]:m-0 [&_p]:inline"
                     dangerouslySetInnerHTML={{
-                      __html: msg.text ? sanitizeMessageHtml(msg.text) : 'Вложение',
+                      __html: msg.text ? sanitizeMessageHtml(msg.text) : t('chatList.previewAttachment'),
                     }}
                   />
                   {msg.lastThreadMessageText && (

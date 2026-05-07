@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useMemo, useState } from 'react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
@@ -62,6 +63,7 @@ export function ScheduledMessagesSheet({
   currentUserId,
   e2eeEnabled,
 }: Props) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [editing, setEditing] = useState<ScheduledChatMessage | null>(null);
