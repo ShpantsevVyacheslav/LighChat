@@ -33,8 +33,11 @@ export type RequestQrLoginInput = {
 };
 
 export type RequestQrLoginContext = {
-  ip?: string;
-  userAgent?: string;
+  /**
+   * [audit H-003] `ip` / `userAgent` намеренно не передаются: они не
+   * сохраняются в публично-читаемый `qrLoginSessions/{sessionId}`, а для
+   * rate-limit достаточно `callerIpKey(request.rawRequest)` снаружи.
+   */
   /** ISO-2 country код, обычно из заголовка `X-Appengine-Country`. */
   country?: string;
   /** Город из заголовка `X-Appengine-City` (если доступен). */
@@ -115,6 +118,12 @@ export async function runRequestQrLogin(
   const expiresAtIso = new Date(nowMs + QR_LOGIN_TTL_SEC * 1000).toISOString();
   const createdAtIso = new Date(nowMs).toISOString();
 
+  // SECURITY [audit H-003]: `qrLoginSessions/{sessionId}` is intentionally
+  // world-readable (the requesting client polls anonymously). We no longer
+  // store `ip`/`userAgent` here — their leak via the 192-bit sessionId would
+  // deanonymize the requesting device. `country`/`city`/`deviceLabel` are
+  // low-PII and remain to surface "вход из X" in the approval UI. Full IP
+  // history, if needed, lives in admin-only Cloud Logging.
   await db.doc(`qrLoginSessions/${sessionId}`).set({
     sessionId,
     nonceHash: hashNonceForStorage(nonce, sessionId),
@@ -125,8 +134,6 @@ export async function runRequestQrLogin(
     state: "awaiting_scan",
     createdAt: createdAtIso,
     expiresAt: expiresAtIso,
-    ip: (ctx.ip || "").slice(0, 64),
-    userAgent: (ctx.userAgent || "").slice(0, 256),
     country: (ctx.country || "").slice(0, 8),
     city: (ctx.city || "").slice(0, 64),
   });
@@ -172,11 +179,16 @@ export const requestQrLogin = onCall(
     const city = typeof headers["x-appengine-city"] === "string" ?
       headers["x-appengine-city"] :
       "";
+    // ip/ua used only for rate-limit (callerIpKey above) and structured logs
+    // — никогда в Firestore (audit H-003). Молча обозначаем void, чтобы
+    // ESLint не ругался на unused.
+    void ip;
+    void ua;
     try {
       return await runRequestQrLogin(
         admin.firestore(),
         request.data as RequestQrLoginInput,
-        { ip, userAgent: ua, country, city }
+        { country, city }
       );
     } catch (e) {
       if (e instanceof HttpsError) throw e;

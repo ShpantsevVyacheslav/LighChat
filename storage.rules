@@ -150,17 +150,18 @@ service firebase.storage {
     }
 
     /**
-     * Чат встречи (не привязан к conversations/). SECURITY: read оставляем
-     * для всех signedIn (кросс-тенант ссылки на ассеты митингов сейчас часть
-     * UX-дизайна), но WRITE сужаем до участников митинга — раньше любой
-     * залогиненный мог перезаписать вложения чужого митинга.
+     * Чат встречи (не привязан к conversations/). SECURITY [audit H-001]:
+     * read сужен до участников митинга. Раньше `allow read: if signedIn()`
+     * позволял гостю митинга M1 скачать вложения митинга M2 при знании пути
+     * (paths берутся из Firestore — открыто для участников). Теперь read
+     * требует `participants/{uid}` так же, как write/delete.
      */
     match /meeting-attachments/{meetingId}/{allPaths=**} {
       function isMeetingMemberStorage() {
         return signedIn()
           && firestore.exists(/databases/(default)/documents/meetings/$(meetingId)/participants/$(request.auth.uid));
       }
-      allow read: if signedIn();
+      allow read: if isMeetingMemberStorage();
       allow delete: if isMeetingMemberStorage();
       allow write: if isMeetingMemberStorage()
         && isAcceptableChatMediaSize()

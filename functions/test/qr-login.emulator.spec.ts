@@ -166,10 +166,9 @@ describe('runRequestQrLogin', () => {
   };
 
   it('writes a valid session document to Firestore', async () => {
-    const result = await runRequestQrLogin(adminDb, validInput, {
-      ip: '203.0.113.1',
-      userAgent: 'jest-ua',
-    });
+    // [audit H-003] ip/userAgent больше не передаются — они не сохраняются в
+    // публично-читаемый qrLoginSessions/{sessionId}.
+    const result = await runRequestQrLogin(adminDb, validInput, {});
     expect(result.sessionId).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(result.nonce).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(result.ttlSec).toBe(QR_LOGIN_TTL_SEC);
@@ -185,8 +184,10 @@ describe('runRequestQrLogin', () => {
     // Сервер хранит ХЭШ от nonce, а не сам nonce.
     expect(data.nonceHash).toBe(hashNonceForStorage(result.nonce, result.sessionId));
     expect(data.nonceHash).not.toContain(result.nonce);
-    expect(data.ip).toBe('203.0.113.1');
-    expect(data.userAgent).toBe('jest-ua');
+    // [audit H-003] `ip`/`userAgent` намеренно НЕ хранятся в публично-читаемом
+    // `qrLoginSessions/{sessionId}`. Утечка sessionId → утечка PII.
+    expect(data.ip).toBeUndefined();
+    expect(data.userAgent).toBeUndefined();
   });
 
   it('falls back to platform=web for unknown devicePlatform', async () => {
@@ -427,7 +428,7 @@ describe('geo enrichment of e2eeDevices on approve', () => {
         deviceLabel: 'iPhone',
         deviceId: 'GEO_TEST_NEW_DEVICE_ID01',
       },
-      { ip: '203.0.113.5', userAgent: 'jest', country: 'PT', city: 'Lisbon' },
+      { country: 'PT', city: 'Lisbon' },
     );
 
     // 2. Cессия в Firestore должна содержать сохранённую гео-инфу.
@@ -445,16 +446,20 @@ describe('geo enrichment of e2eeDevices on approve', () => {
       { db: adminDb, createCustomToken: issuer },
     );
 
-    // 4. После approve admin SDK обновил `users/{scannerUid}/e2eeDevices/{newDeviceId}`
-    //    полями lastLoginCountry / lastLoginCity / lastLoginIp / lastLoginAt.
+    // 4. После approve admin SDK обновил `users/{scannerUid}/devices/{newDeviceId}`
+    //    полями lastLoginCountry / lastLoginCity / lastLoginAt. PII (IP/гео)
+    //    сейчас живёт в private `devices/`, не в публично-читаемом
+    //    `e2eeDevices/` — см. commit a782f395.
+    //    [audit H-003] lastLoginIp убран — IP больше не проходит через
+    //    публично-читаемый qrLoginSessions/{sessionId}.
     const deviceSnap = await adminDb
-      .doc('users/scanner-uid-geo/e2eeDevices/GEO_TEST_NEW_DEVICE_ID01')
+      .doc('users/scanner-uid-geo/devices/GEO_TEST_NEW_DEVICE_ID01')
       .get();
     expect(deviceSnap.exists).toBe(true);
     const dev = deviceSnap.data() ?? {};
     expect(dev.lastLoginCountry).toBe('PT');
     expect(dev.lastLoginCity).toBe('Lisbon');
-    expect(dev.lastLoginIp).toBe('203.0.113.5');
+    expect(dev.lastLoginIp).toBeUndefined();
     expect(typeof dev.lastLoginAt).toBe('string');
   });
 
@@ -516,7 +521,7 @@ describe('geo enrichment of e2eeDevices on approve', () => {
     expect(res.state).toBe('approved');
 
     const deviceSnap = await adminDb
-      .doc('users/scanner-no-geo/e2eeDevices/NO_GEO_DEV_ID_2222')
+      .doc('users/scanner-no-geo/devices/NO_GEO_DEV_ID_2222')
       .get();
     // Документ создаётся даже если геолокации нет — это сигнал, что
     // авторизация прошла, а UI просто не покажет строку location.
