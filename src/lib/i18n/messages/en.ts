@@ -341,6 +341,8 @@ export const messagesEn = {
     deleteFolder: 'Delete',
     previewSticker: 'Sticker',
     previewAttachment: 'Attachment',
+    previewMessage: 'Message',
+    previewEncrypted: 'Encrypted message',
     previewSavedMessages: 'Saved Messages',
     stickerTabTitle: 'Stickers',
   },

@@ -343,6 +343,8 @@ export const messagesId = {
     deleteFolder: 'Hapus',
     previewSticker: 'Stiker',
     previewAttachment: 'Lampiran',
+    previewMessage: 'Pesan',
+    previewEncrypted: 'Pesan terenkripsi',
     previewSavedMessages: 'Pesan Tersimpan',
     stickerTabTitle: 'Stiker',
   },

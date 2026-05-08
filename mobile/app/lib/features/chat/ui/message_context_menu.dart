@@ -74,6 +74,9 @@ Future<MessageMenuResult?> showMessageContextMenu(
   bool allowForward = true,
   bool showStarAction = false,
   bool isStarred = false,
+  bool showThreadAction = true,
+  String? e2eeDecryptedText,
+  bool e2eeDecryptionFailed = false,
   String chatFontSize = 'medium',
   Color? outgoingBubbleColor,
   Color? incomingBubbleColor,
@@ -96,6 +99,9 @@ Future<MessageMenuResult?> showMessageContextMenu(
         allowForward: allowForward,
         showStarAction: showStarAction,
         isStarred: isStarred,
+        showThreadAction: showThreadAction,
+        e2eeDecryptedText: e2eeDecryptedText,
+        e2eeDecryptionFailed: e2eeDecryptionFailed,
         initiatorPureEmojiSize: initiatorPureEmojiSize,
         outgoingBubbleColor: outgoingBubbleColor,
         incomingBubbleColor: incomingBubbleColor,
@@ -127,6 +133,9 @@ class _MessageContextMenuPage extends StatelessWidget {
     required this.allowForward,
     required this.showStarAction,
     required this.isStarred,
+    required this.showThreadAction,
+    required this.e2eeDecryptedText,
+    required this.e2eeDecryptionFailed,
     required this.initiatorPureEmojiSize,
     this.outgoingBubbleColor,
     this.incomingBubbleColor,
@@ -141,6 +150,9 @@ class _MessageContextMenuPage extends StatelessWidget {
   final bool allowForward;
   final bool showStarAction;
   final bool isStarred;
+  final bool showThreadAction;
+  final String? e2eeDecryptedText;
+  final bool e2eeDecryptionFailed;
   final double initiatorPureEmojiSize;
   final Color? outgoingBubbleColor;
   final Color? incomingBubbleColor;
@@ -187,6 +199,8 @@ class _MessageContextMenuPage extends StatelessWidget {
                       _ContextMenuInitiatorPreview(
                         message: message,
                         isCurrentUser: isCurrentUser,
+                        e2eeDecryptedText: e2eeDecryptedText,
+                        e2eeDecryptionFailed: e2eeDecryptionFailed,
                         menuPureEmojiFontSize: initiatorPureEmojiSize,
                         outgoingBubbleColor: outgoingBubbleColor,
                         incomingBubbleColor: incomingBubbleColor,
@@ -254,16 +268,19 @@ class _MessageContextMenuPage extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                      _MenuTile(
-                                        icon: Icons.chat_bubble_outline_rounded,
-                                        label: l10n.message_menu_action_thread,
-                                        onTap: () => _pop(
-                                          context,
-                                          const MessageMenuResult(
-                                            MessageMenuActionType.thread,
+                                      if (showThreadAction)
+                                        _MenuTile(
+                                          icon: Icons
+                                              .chat_bubble_outline_rounded,
+                                          label:
+                                              l10n.message_menu_action_thread,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.thread,
+                                            ),
                                           ),
                                         ),
-                                      ),
                                       if (hasText)
                                         if (allowCopy)
                                           _MenuTile(
@@ -382,12 +399,16 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
     required this.message,
     required this.isCurrentUser,
     required this.menuPureEmojiFontSize,
+    this.e2eeDecryptedText,
+    this.e2eeDecryptionFailed = false,
     this.outgoingBubbleColor,
     this.incomingBubbleColor,
   });
 
   final ChatMessage message;
   final bool isCurrentUser;
+  final String? e2eeDecryptedText;
+  final bool e2eeDecryptionFailed;
   final double menuPureEmojiFontSize;
   final Color? outgoingBubbleColor;
   final Color? incomingBubbleColor;
@@ -424,10 +445,30 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
       );
     }
 
-    final html = message.text ?? '';
+    // Если на руках есть расшифрованный текст E2EE-сообщения — берём его;
+    // иначе показываем фиксированный плейсхолдер «Зашифрованное сообщение»
+    // (или ошибку дешифровки), как делает основная лента (chat_message_list).
+    final l10nForE2ee = AppLocalizations.of(context)!;
+    final rawSource = e2eeDecryptedText ?? (message.text ?? '');
+    final html = rawSource;
     final plain = html.contains('<') ? messageHtmlToPlainText(html) : html;
-    final hasText = plain.trim().isNotEmpty;
+    final hasRawText = plain.trim().isNotEmpty;
+    final hasMedia = message.attachments.isNotEmpty;
     final pollId = (message.chatPollId ?? '').trim();
+    final hasPoll = pollId.isNotEmpty;
+    final hasLocation = message.locationShare != null;
+    final hasE2eeOnlyCiphertext =
+        message.hasE2eeCiphertext &&
+        e2eeDecryptedText == null &&
+        !hasRawText &&
+        !hasMedia &&
+        !hasPoll &&
+        !hasLocation;
+    final String e2eeFallback = e2eeDecryptionFailed
+        ? l10nForE2ee.chat_e2ee_decrypt_failed_open_devices
+        : l10nForE2ee.chat_e2ee_encrypted_message_placeholder;
+    final displayPlain = hasE2eeOnlyCiphertext ? e2eeFallback : plain;
+    final hasText = displayPlain.trim().isNotEmpty;
 
     if (pollId.isNotEmpty) {
       return _ContextMenuTextSummaryBubble(
@@ -450,6 +491,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
 
     /// Медиа (фото, стикер, GIF, видео, голос, файл) — то же превью, что в ленте, паритет с веб.
     if (hasText &&
+        !hasE2eeOnlyCiphertext &&
         isOnlyEmojisMessage(html) &&
         pollId.isEmpty &&
         message.locationShare == null &&
@@ -459,7 +501,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
-            plain.trim(),
+            displayPlain.trim(),
             textAlign: isCurrentUser ? TextAlign.right : TextAlign.left,
             style: TextStyle(
               fontSize: menuPureEmojiFontSize,
@@ -495,7 +537,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
                 _ContextMenuTextSummaryBubble(
                   scheme: scheme,
                   isCurrentUser: isCurrentUser,
-                  summary: plain.trim(),
+                  summary: displayPlain.trim(),
                   outgoingBubbleColor: outgoingBubbleColor,
                   incomingBubbleColor: incomingBubbleColor,
                 ),
@@ -510,7 +552,7 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
       return _ContextMenuTextSummaryBubble(
         scheme: scheme,
         isCurrentUser: isCurrentUser,
-        summary: plain.trim(),
+        summary: displayPlain.trim(),
         maxLines: 5,
         outgoingBubbleColor: outgoingBubbleColor,
         incomingBubbleColor: incomingBubbleColor,

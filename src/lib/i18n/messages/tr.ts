@@ -343,6 +343,8 @@ export const messagesTr = {
     deleteFolder: 'Sil',
     previewSticker: 'Çıkartma',
     previewAttachment: 'Ek',
+    previewMessage: 'Mesaj',
+    previewEncrypted: 'Şifreli mesaj',
     previewSavedMessages: 'Kayıtlı Mesajlar',
     stickerTabTitle: 'Çıkartmalar',
   },

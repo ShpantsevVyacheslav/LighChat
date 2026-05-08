@@ -343,6 +343,8 @@ export const messagesUz = {
     deleteFolder: 'Oʻchirish',
     previewSticker: 'Stiker',
     previewAttachment: 'Ilova',
+    previewMessage: 'Xabar',
+    previewEncrypted: 'Shifrlangan xabar',
     previewSavedMessages: 'Saqlangan xabarlar',
     stickerTabTitle: 'Stikerlar',
   },

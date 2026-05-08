@@ -343,6 +343,8 @@ export const messagesEsMx = {
     deleteFolder: 'Eliminar',
     previewSticker: 'Sticker',
     previewAttachment: 'Archivo adjunto',
+    previewMessage: 'Mensaje',
+    previewEncrypted: 'Mensaje cifrado',
     previewSavedMessages: 'Mensajes guardados',
     stickerTabTitle: 'Stickers',
   },

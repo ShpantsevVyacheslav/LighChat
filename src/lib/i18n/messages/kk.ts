@@ -343,6 +343,8 @@ export const messagesKk = {
     deleteFolder: 'Жою',
     previewSticker: 'Стикер',
     previewAttachment: 'Тіркеме',
+    previewMessage: 'Хабарлама',
+    previewEncrypted: 'Шифрланған хабарлама',
     previewSavedMessages: 'Сақталған хабарламалар',
     stickerTabTitle: 'Стикерлер',
   },

@@ -1984,6 +1984,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                   const <
                                                                     String
                                                                   >{},
+                                                              e2eeDecryptedText:
+                                                                  e2eeDecryptedMap[m
+                                                                      .id],
+                                                              e2eeDecryptionFailed:
+                                                                  e2eeFailedIds
+                                                                      .contains(
+                                                                        m.id,
+                                                                      ),
                                                             ),
                                                             onOpenThread: (m) {
                                                               context.push(
@@ -3545,6 +3553,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required Color? outgoingBubbleColor,
     required Color? incomingBubbleColor,
     required Set<String> starredMessageIds,
+    String? e2eeDecryptedText,
+    bool e2eeDecryptionFailed = false,
   }) async {
     if (m.id.startsWith(kLocalOutboxMessageIdPrefix) &&
         (m.deliveryStatus ?? '') == 'failed') {
@@ -3595,11 +3605,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final canEdit =
         isMine && !m.isDeleted && (m.text?.trim().isNotEmpty ?? false);
     final canDelete = isMine && !m.isDeleted;
-    final plain = (m.text ?? '').trim();
+    // Для E2EE сообщения текст в `m.text` пустой — берём расшифрованный.
+    final menuTextSource = (e2eeDecryptedText ?? m.text ?? '').trim();
     final hasMenuText =
-        plain.isNotEmpty &&
-        (plain.contains('<')
-            ? messageHtmlToPlainText(plain).trim().isNotEmpty
+        menuTextSource.isNotEmpty &&
+        (menuTextSource.contains('<')
+            ? messageHtmlToPlainText(menuTextSource).trim().isNotEmpty
             : true);
 
     final secretRestrictions = convWrap?.data.secretChat?.restrictions;
@@ -3616,6 +3627,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       allowForward: allowForward,
       showStarAction: !m.isDeleted,
       isStarred: starredMessageIds.contains(m.id),
+      e2eeDecryptedText: e2eeDecryptedText,
+      e2eeDecryptionFailed: e2eeDecryptionFailed,
       chatFontSize: fontSize,
       outgoingBubbleColor: outgoingBubbleColor,
       incomingBubbleColor: incomingBubbleColor,

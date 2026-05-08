@@ -1467,6 +1467,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     required String fontSize,
     required Color? outgoingBubbleColor,
     required Color? incomingBubbleColor,
+    String? e2eeDecryptedText,
+    bool e2eeDecryptionFailed = false,
   }) async {
     final isOutboxFailed =
         message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
@@ -1505,11 +1507,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
     final isMine = message.senderId == user.uid;
     final canDelete = isMine && !message.isDeleted;
-    final plain = (message.text ?? '').trim();
+    final menuTextSource =
+        (e2eeDecryptedText ?? message.text ?? '').trim();
     final hasMenuText =
-        plain.isNotEmpty &&
-        (plain.contains('<')
-            ? messageHtmlToPlainText(plain).trim().isNotEmpty
+        menuTextSource.isNotEmpty &&
+        (menuTextSource.contains('<')
+            ? messageHtmlToPlainText(menuTextSource).trim().isNotEmpty
             : true);
     final secretRestrictions = conversation?.secretChat?.restrictions;
     final allowCopy = !(secretRestrictions?.noCopy == true);
@@ -1526,6 +1529,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       allowForward: allowForward,
       showStarAction: !message.isDeleted,
       isStarred: starredMessageIds.contains(message.id),
+      // Внутри ветки нельзя создавать вложенные ветки — скрываем «Обсуждение».
+      showThreadAction: false,
+      e2eeDecryptedText: e2eeDecryptedText,
+      e2eeDecryptionFailed: e2eeDecryptionFailed,
       chatFontSize: fontSize,
       outgoingBubbleColor: outgoingBubbleColor,
       incomingBubbleColor: incomingBubbleColor,
@@ -2217,8 +2224,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     (
                                       context,
                                       hydratedParentList,
-                                      ignoredDecryptedMap,
-                                      ignoredFailedIds,
+                                      parentDecryptedMap,
+                                      parentFailedIds,
                                     ) {
                                       final hydratedParent =
                                           hydratedParentList.isNotEmpty
@@ -2246,6 +2253,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                   ? 0.08
                                                   : 0.22,
                                             ),
+                                        e2eeDecryptedText:
+                                            parentDecryptedMap[hydratedParent
+                                                .id],
+                                        e2eeDecryptionFailed: parentFailedIds
+                                            .contains(hydratedParent.id),
                                         onOpenMediaGallery: (att) {
                                           _openThreadMediaGallery(
                                             att,
@@ -2490,6 +2502,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                                                       .dark
                                                               ? 0.08
                                                               : 0.22,
+                                                        ),
+                                                    e2eeDecryptedText:
+                                                        e2eeDecryptedMap[m.id],
+                                                    e2eeDecryptionFailed:
+                                                        e2eeFailedIds.contains(
+                                                          m.id,
                                                         ),
                                                   );
                                                 },
@@ -2786,6 +2804,8 @@ class _ThreadRootPanel extends StatelessWidget {
     required this.timeHmText,
     this.outgoingBubbleColor,
     this.incomingBubbleColor,
+    this.e2eeDecryptedText,
+    this.e2eeDecryptionFailed = false,
     this.onOpenMediaGallery,
   });
 
@@ -2797,6 +2817,8 @@ class _ThreadRootPanel extends StatelessWidget {
   final String timeHmText;
   final Color? outgoingBubbleColor;
   final Color? incomingBubbleColor;
+  final String? e2eeDecryptedText;
+  final bool e2eeDecryptionFailed;
   final void Function(ChatAttachment attachment)? onOpenMediaGallery;
 
   @override
@@ -2813,18 +2835,35 @@ class _ThreadRootPanel extends StatelessWidget {
       );
     }
 
-    final html = message.text ?? '';
+    // Если сообщение пришло E2EE-зашифрованным, показываем расшифрованный текст
+    // (когда уже есть в кеше) или фиксированный плейсхолдер «Зашифрованное
+    // сообщение» — паритет с основной лентой (chat_message_list).
+    final rawSource = e2eeDecryptedText ?? (message.text ?? '');
+    final html = rawSource;
     final plain = html.contains('<') ? messageHtmlToPlainText(html) : html;
-    final hasText = plain.trim().isNotEmpty;
+    final hasRawText = plain.trim().isNotEmpty;
     final hasMedia = message.attachments.isNotEmpty;
     final pollId = (message.chatPollId ?? '').trim();
     final hasPoll = pollId.isNotEmpty;
-    final pollStubCaption =
-        hasPoll && hasText && isChatPollStubCaptionPlain(plain);
-    final hasVisibleText = hasText && !pollStubCaption;
     final hasLocation = message.locationShare != null;
+    final hasE2eeOnlyCiphertext =
+        message.hasE2eeCiphertext &&
+        e2eeDecryptedText == null &&
+        !hasRawText &&
+        !hasMedia &&
+        !hasPoll &&
+        !hasLocation;
+    final String e2eeFallback = e2eeDecryptionFailed
+        ? l10n.chat_e2ee_decrypt_failed_open_devices
+        : l10n.chat_e2ee_encrypted_message_placeholder;
+    final displayPlain = hasE2eeOnlyCiphertext ? e2eeFallback : plain;
+    final hasText = displayPlain.trim().isNotEmpty;
+    final pollStubCaption =
+        hasPoll && hasText && isChatPollStubCaptionPlain(displayPlain);
+    final hasVisibleText = hasText && !pollStubCaption;
     final isPureEmoji =
         hasText &&
+        !hasE2eeOnlyCiphertext &&
         isOnlyEmojisMessage(html) &&
         !hasMedia &&
         !hasPoll &&
@@ -2863,12 +2902,12 @@ class _ThreadRootPanel extends StatelessWidget {
         if (isPureEmoji) {
           children.add(
             Text(
-              plain,
+              displayPlain,
               textAlign: TextAlign.center,
               style: baseStyle.copyWith(fontSize: 44, height: 1.05),
             ),
           );
-        } else if (html.contains('<')) {
+        } else if (!hasE2eeOnlyCiphertext && html.contains('<')) {
           children.add(
             RichText(
               textAlign: TextAlign.left,
@@ -2889,7 +2928,7 @@ class _ThreadRootPanel extends StatelessWidget {
             ),
           );
         } else {
-          children.add(Text(plain, style: baseStyle));
+          children.add(Text(displayPlain, style: baseStyle));
         }
       }
       if (hasMedia) {

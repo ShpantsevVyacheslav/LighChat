@@ -62,12 +62,34 @@ export function ConversationItem({
     /** Применяем кеш только если он относится к текущему «последнему сообщению»
      *  (ts совпадает) и Firestore сейчас показывает E2EE-плейсхолдер. */
     const lastMessageDisplay = useMemo(() => {
-        const fallback = conv.lastMessageText || t('chat.noMessages');
-        if (conv.lastMessageText !== E2EE_LAST_MESSAGE_PREVIEW) return fallback;
-        if (!cachedPreview || !conv.lastMessageTimestamp) return fallback;
-        if (cachedPreview.ts !== conv.lastMessageTimestamp) return fallback;
-        return cachedPreview.text || fallback;
-    }, [conv.lastMessageText, conv.lastMessageTimestamp, cachedPreview]);
+        // Mobile-клиент пишет в `lastMessageText` маркеры вида `{{encrypted}}` /
+        // `{{message}}` / `{{sticker}}` / `{{attachment}}` — переводим их на язык
+        // текущего пользователя, иначе сайдбар показывает буквальный плейсхолдер.
+        const raw = conv.lastMessageText;
+        let translated: string;
+        switch (raw) {
+            case '{{encrypted}}':
+                translated = t('chatList.previewEncrypted');
+                break;
+            case '{{message}}':
+                translated = t('chatList.previewMessage');
+                break;
+            case '{{sticker}}':
+                translated = t('chatList.previewSticker');
+                break;
+            case '{{attachment}}':
+                translated = t('chatList.previewAttachment');
+                break;
+            default:
+                translated = raw || t('chat.noMessages');
+        }
+        const isEncryptedMarker =
+            raw === E2EE_LAST_MESSAGE_PREVIEW || raw === '{{encrypted}}';
+        if (!isEncryptedMarker) return translated;
+        if (!cachedPreview || !conv.lastMessageTimestamp) return translated;
+        if (cachedPreview.ts !== conv.lastMessageTimestamp) return translated;
+        return cachedPreview.text || translated;
+    }, [conv.lastMessageText, conv.lastMessageTimestamp, cachedPreview, t]);
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const touchStart = useRef<number | null>(null);

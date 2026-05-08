@@ -343,6 +343,8 @@ export const messagesPtBr = {
     deleteFolder: 'Excluir',
     previewSticker: 'Figurinha',
     previewAttachment: 'Anexo',
+    previewMessage: 'Mensagem',
+    previewEncrypted: 'Mensagem criptografada',
     previewSavedMessages: 'Mensagens Salvas',
     stickerTabTitle: 'Figurinhas',
   },

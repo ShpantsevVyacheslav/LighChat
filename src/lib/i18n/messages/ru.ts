@@ -343,6 +343,8 @@ export const messagesRu = {
     deleteFolder: 'Удалить',
     previewSticker: 'Стикер',
     previewAttachment: 'Вложение',
+    previewMessage: 'Сообщение',
+    previewEncrypted: 'Зашифрованное сообщение',
     previewSavedMessages: 'Избранное',
     stickerTabTitle: 'Стикеры',
   },
