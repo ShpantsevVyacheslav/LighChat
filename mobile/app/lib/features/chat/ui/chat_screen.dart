@@ -175,6 +175,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Панель «Форматирование» над композером (паритет `FormattingToolbar.tsx`).
   bool _composerFormattingOpen = false;
+  bool _stickersPanelOpen = false;
 
   /// Поиск по сообщениям в открытом чате (паритет веб `ChatSearchOverlay`).
   bool _inChatSearch = false;
@@ -2189,9 +2190,59 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ),
                                   if (_selectedMessageIds.isEmpty) ...[
                                     const LiveLocationStopBanner(),
+                                    if (_stickersPanelOpen)
+                                      Builder(
+                                        builder: (context) {
+                                          final stickerRepo = ref.read(
+                                            userStickerPacksRepositoryProvider,
+                                          );
+                                          final chatRepo = ref.read(
+                                            chatRepositoryProvider,
+                                          );
+                                          if (stickerRepo == null ||
+                                              chatRepo == null) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          final h =
+                                              MediaQuery.sizeOf(
+                                                context,
+                                              ).height *
+                                              0.36;
+                                          return SizedBox(
+                                            height: h,
+                                            child: ComposerStickerGifPanel(
+                                              userId: user.uid,
+                                              repo: stickerRepo,
+                                              directUploadConversationId:
+                                                  widget.conversationId,
+                                              onPickAttachment: (att) {
+                                                unawaited(
+                                                  _sendStickerOrGifAttachment(
+                                                    user.uid,
+                                                    chatRepo,
+                                                    att,
+                                                  ),
+                                                );
+                                              },
+                                              onEmojiTapped:
+                                                  _insertEmojiIntoComposer,
+                                              onClose: () {
+                                                if (!mounted) return;
+                                                setState(
+                                                  () => _stickersPanelOpen =
+                                                      false,
+                                                );
+                                              },
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ChatComposer(
                                       controller: _controller,
                                       focusNode: _composerFocusNode,
+                                      stickersPanelOpen: _stickersPanelOpen,
+                                      onKeyboardTap:
+                                          _switchFromStickersToKeyboard,
                                       e2eeDisabledBanner:
                                           (conv != null &&
                                               conv.data.isGroup != true &&
@@ -2417,8 +2468,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           rec,
                                         );
                                       },
-                                      onStickersTap: () =>
-                                          unawaited(_openStickersGifPanel()),
+                                      onStickersTap: _openStickersGifPanel,
                                       stickerSuggestionBuilder: () {
                                         final repo = ref.read(
                                           userStickerPacksRepositoryProvider,
@@ -4443,29 +4493,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (_) {}
   }
 
-  Future<void> _openStickersGifPanel() async {
+  void _openStickersGifPanel() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
       _toast(AppLocalizations.of(context)!.forward_error_not_authorized);
       return;
     }
-    FocusManager.instance.primaryFocus?.unfocus();
     final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
     final chatRepo = ref.read(chatRepositoryProvider);
     if (stickerRepo == null || chatRepo == null) {
       _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
-    await showComposerStickerGifSheet(
-      context: context,
-      userId: uid,
-      repo: stickerRepo,
-      directUploadConversationId: widget.conversationId,
-      onPickAttachment: (att) {
-        unawaited(_sendStickerOrGifAttachment(uid, chatRepo, att));
-      },
-      onEmojiTapped: _insertEmojiIntoComposer,
-    );
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (mounted) setState(() => _stickersPanelOpen = true);
+  }
+
+  void _switchFromStickersToKeyboard() {
+    if (!mounted) return;
+    setState(() => _stickersPanelOpen = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocusNode.requestFocus();
+    });
   }
 
   void _insertEmojiIntoComposer(String emoji) {
@@ -4697,7 +4746,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         unawaited(_sendChatPoll());
         break;
       case ComposerAttachmentAction.stickersGif:
-        unawaited(_openStickersGifPanel());
+        _openStickersGifPanel();
         break;
       case ComposerAttachmentAction.format:
         setState(() => _composerFormattingOpen = true);

@@ -37,10 +37,10 @@ Future<void> showComposerStickerGifSheet({
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     builder: (ctx) {
-      final h = MediaQuery.sizeOf(ctx).height * 0.62;
+      final h = MediaQuery.sizeOf(ctx).height * 0.48;
       return SizedBox(
         height: h,
-        child: _ComposerStickerGifPanel(
+        child: ComposerStickerGifPanel(
           userId: userId,
           repo: repo,
           directUploadConversationId: directUploadConversationId,
@@ -53,8 +53,9 @@ Future<void> showComposerStickerGifSheet({
   );
 }
 
-class _ComposerStickerGifPanel extends StatefulWidget {
-  const _ComposerStickerGifPanel({
+class ComposerStickerGifPanel extends StatefulWidget {
+  const ComposerStickerGifPanel({
+    super.key,
     required this.userId,
     required this.repo,
     required this.onPickAttachment,
@@ -71,19 +72,29 @@ class _ComposerStickerGifPanel extends StatefulWidget {
   final VoidCallback onClose;
 
   @override
-  State<_ComposerStickerGifPanel> createState() =>
+  State<ComposerStickerGifPanel> createState() =>
       _ComposerStickerGifPanelState();
 }
 
 /// Эмодзи для быстрых GIF-фильтров (Telegram-style).
 const _kGifEmojiFilters = <String>[
-  '😂', '❤️', '🔥', '👍', '😍', '🎉', '😢', '🤔', '🙏', '😎', '😴', '🤯',
+  '😂',
+  '❤️',
+  '🔥',
+  '👍',
+  '😍',
+  '🎉',
+  '😢',
+  '🤔',
+  '🙏',
+  '😎',
+  '😴',
+  '🤯',
 ];
 
-class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
+class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
     with TickerProviderStateMixin {
-  late final TabController _tabs =
-      TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(length: 3, vsync: this);
 
   _StickerScope _scope = _StickerScope.my;
   String? _myPackId;
@@ -106,6 +117,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   List<GiphyGifItem> _recentGifs = [];
 
   // Анимированные эмодзи (GIPHY v2/emoji).
+  final _emojiQueryController = TextEditingController();
+  Timer? _emojiDebounce;
+  String _emojiLastQuery = '';
   List<GiphyGifItem> _animEmojis = [];
   bool _animEmojisLoading = false;
   bool _animEmojisLoadingMore = false;
@@ -130,6 +144,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   @override
   void initState() {
     super.initState();
+    _tabs.addListener(_onTabChanged);
+    _emojiQueryController.addListener(_scheduleEmojiSearch);
+    _emojiQueryController.addListener(_onEmojiQueryChanged);
     _gifQueryController.addListener(_scheduleGifSearch);
     _gifQueryController.addListener(_onGifQueryChanged);
     _gifScrollController.addListener(_onGifScroll);
@@ -140,14 +157,21 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _loadInitialData();
   }
 
+  void _onTabChanged() {
+    if (!mounted || _tabs.indexIsChanging) return;
+    setState(() {});
+  }
+
   void _scheduleLibrarySearch() {
     _libraryDebounce?.cancel();
     _libraryDebounce = Timer(const Duration(milliseconds: 350), () async {
       final raw = _libraryQueryController.text.trim();
       final effective = raw.isEmpty ? (_libraryActiveFilter ?? '') : raw;
       _libraryLastQuery = effective;
-      final cached =
-          await GiphyCacheStore.instance.get(GiphyType.stickers, effective);
+      final cached = await GiphyCacheStore.instance.get(
+        GiphyType.stickers,
+        effective,
+      );
       if (cached != null && cached.isNotEmpty) {
         if (mounted) {
           setState(() {
@@ -169,15 +193,17 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
         _libraryItems = r.items;
         _libraryTotal = r.total;
         _libraryHasMore = r.hasMore;
-        _libraryTranslatedHint = (r.translatedFrom != null &&
+        _libraryTranslatedHint =
+            (r.translatedFrom != null &&
                 r.effectiveQuery != null &&
                 r.effectiveQuery != r.translatedFrom)
             ? r.effectiveQuery
             : null;
       });
       if (r.items.isNotEmpty) {
-        unawaited(GiphyCacheStore.instance
-            .save(GiphyType.stickers, effective, r.items));
+        unawaited(
+          GiphyCacheStore.instance.save(GiphyType.stickers, effective, r.items),
+        );
       }
     });
   }
@@ -217,8 +243,13 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       _libraryHasMore = merged.length < _libraryTotal;
     });
     if (merged.isNotEmpty) {
-      unawaited(GiphyCacheStore.instance
-          .save(GiphyType.stickers, _libraryLastQuery, merged));
+      unawaited(
+        GiphyCacheStore.instance.save(
+          GiphyType.stickers,
+          _libraryLastQuery,
+          merged,
+        ),
+      );
     }
   }
 
@@ -234,10 +265,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   Future<void> _loadMoreGifs() async {
     if (_gifLoadingMore || !_gifHasMore) return;
     setState(() => _gifLoadingMore = true);
-    final r = await searchGifs(
-      _gifLastQuery,
-      offset: _gifItems.length,
-    );
+    final r = await searchGifs(_gifLastQuery, offset: _gifItems.length);
     if (!mounted) return;
     final merged = <GiphyGifItem>[..._gifItems];
     final existingIds = merged.map((e) => e.id).toSet();
@@ -252,8 +280,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     });
     // Аккумулируем в кеш под тем же ключом.
     if (merged.isNotEmpty) {
-      unawaited(GiphyCacheStore.instance
-          .save(GiphyType.gifs, _gifLastQuery, merged));
+      unawaited(
+        GiphyCacheStore.instance.save(GiphyType.gifs, _gifLastQuery, merged),
+      );
     }
   }
 
@@ -268,8 +297,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   }
 
   Future<void> _bootstrapLibraryStickers() async {
-    final cached =
-        await GiphyCacheStore.instance.getTrending(GiphyType.stickers);
+    final cached = await GiphyCacheStore.instance.getTrending(
+      GiphyType.stickers,
+    );
     if (cached != null && cached.isNotEmpty) {
       if (mounted) {
         setState(() {
@@ -291,8 +321,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       _libraryHasMore = r.hasMore;
     });
     if (r.items.isNotEmpty) {
-      unawaited(GiphyCacheStore.instance
-          .saveTrending(GiphyType.stickers, r.items));
+      unawaited(
+        GiphyCacheStore.instance.saveTrending(GiphyType.stickers, r.items),
+      );
     }
   }
 
@@ -302,8 +333,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   }
 
   Future<void> _bootstrapTrendingGifs() async {
-    final cached =
-        await GiphyCacheStore.instance.getTrending(GiphyType.gifs);
+    final cached = await GiphyCacheStore.instance.getTrending(GiphyType.gifs);
     if (cached != null && cached.isNotEmpty) {
       if (mounted) setState(() => _gifItems = cached);
       return;
@@ -318,8 +348,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       _gifMissingKey = r.missingKey;
     });
     if (r.items.isNotEmpty) {
-      unawaited(
-          GiphyCacheStore.instance.saveTrending(GiphyType.gifs, r.items));
+      unawaited(GiphyCacheStore.instance.saveTrending(GiphyType.gifs, r.items));
     }
   }
 
@@ -327,8 +356,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   /// Из кеша берёт всё что было сохранено (включая ранее догруженные страницы),
   /// затем при первом скролле подгружает следующие порции (см. [_loadMoreAnimEmojis]).
   Future<void> _bootstrapTrendingStickers() async {
-    final cached =
-        await GiphyCacheStore.instance.getTrending(GiphyType.emoji);
+    final cached = await GiphyCacheStore.instance.getTrending(GiphyType.emoji);
     if (cached != null && cached.isNotEmpty) {
       if (mounted) {
         setState(() {
@@ -349,8 +377,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       _animEmojisHasMore = r.hasMore;
     });
     if (r.items.isNotEmpty) {
-      unawaited(GiphyCacheStore.instance
-          .saveTrending(GiphyType.emoji, r.items));
+      unawaited(
+        GiphyCacheStore.instance.saveTrending(GiphyType.emoji, r.items),
+      );
     }
   }
 
@@ -358,7 +387,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     if (_animEmojisLoadingMore || !_animEmojisHasMore) return;
     setState(() => _animEmojisLoadingMore = true);
     final r = await searchGifs(
-      '',
+      _emojiLastQuery,
       type: GiphyType.emoji,
       offset: _animEmojis.length,
     );
@@ -388,8 +417,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     // Эмодзи-кеш: TTL не применяется (см. GiphyCacheStore), поэтому
     // накопленный список доступен между сессиями навсегда.
     if (merged.isNotEmpty) {
-      unawaited(
-          GiphyCacheStore.instance.saveTrending(GiphyType.emoji, merged));
+      unawaited(GiphyCacheStore.instance.saveTrending(GiphyType.emoji, merged));
     }
   }
 
@@ -402,7 +430,33 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     }
   }
 
+  void _scheduleEmojiSearch() {
+    _emojiDebounce?.cancel();
+    _emojiDebounce = Timer(const Duration(milliseconds: 350), () async {
+      final q = _emojiQueryController.text.trim();
+      if (!mounted) return;
+      _emojiLastQuery = q;
+      setState(() => _animEmojisLoading = true);
+      final r = await searchGifs(q, type: GiphyType.emoji);
+      if (!mounted) return;
+      setState(() {
+        _animEmojisLoading = false;
+        _animEmojis = r.items;
+        _animEmojisHasMore = r.hasMore;
+      });
+      if (q.isEmpty && r.items.isNotEmpty) {
+        unawaited(
+          GiphyCacheStore.instance.saveTrending(GiphyType.emoji, r.items),
+        );
+      }
+    });
+  }
+
   void _onGifQueryChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onEmojiQueryChanged() {
     if (mounted) setState(() {});
   }
 
@@ -417,6 +471,11 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
 
   @override
   void dispose() {
+    _tabs.removeListener(_onTabChanged);
+    _emojiDebounce?.cancel();
+    _emojiQueryController.removeListener(_scheduleEmojiSearch);
+    _emojiQueryController.removeListener(_onEmojiQueryChanged);
+    _emojiQueryController.dispose();
     _gifDebounce?.cancel();
     _libraryDebounce?.cancel();
     _gifQueryController.removeListener(_scheduleGifSearch);
@@ -440,12 +499,15 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     _gifDebounce = Timer(const Duration(milliseconds: 350), () async {
       final q = _gifQueryController.text;
       if (!mounted) return;
-      final effectiveQuery =
-          q.trim().isEmpty ? (_activeEmojiFilter ?? '') : q.trim();
+      final effectiveQuery = q.trim().isEmpty
+          ? (_activeEmojiFilter ?? '')
+          : q.trim();
       _gifLastQuery = effectiveQuery;
       // Проверяем кеш по конкретному запросу/фильтру (TTL 24h, LRU 20 ключей).
-      final cached =
-          await GiphyCacheStore.instance.get(GiphyType.gifs, effectiveQuery);
+      final cached = await GiphyCacheStore.instance.get(
+        GiphyType.gifs,
+        effectiveQuery,
+      );
       if (cached != null && cached.isNotEmpty) {
         if (mounted) {
           setState(() {
@@ -468,15 +530,21 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
         _gifMissingKey = r.missingKey;
         _gifTotal = r.total;
         _gifHasMore = r.hasMore;
-        _gifTranslatedHint = (r.translatedFrom != null &&
+        _gifTranslatedHint =
+            (r.translatedFrom != null &&
                 r.effectiveQuery != null &&
                 r.effectiveQuery != r.translatedFrom)
             ? r.effectiveQuery
             : null;
       });
       if (r.items.isNotEmpty) {
-        unawaited(GiphyCacheStore.instance
-            .save(GiphyType.gifs, effectiveQuery, r.items));
+        unawaited(
+          GiphyCacheStore.instance.save(
+            GiphyType.gifs,
+            effectiveQuery,
+            r.items,
+          ),
+        );
       }
     });
   }
@@ -580,8 +648,11 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                       ),
                       onPressed: () async {
                         final name = ctrl.text;
-                        final pid =
-                            await widget.repo.createPack(widget.userId, name, l10n: AppLocalizations.of(ctx));
+                        final pid = await widget.repo.createPack(
+                          widget.userId,
+                          name,
+                          l10n: AppLocalizations.of(ctx),
+                        );
                         if (ctx.mounted) Navigator.pop(ctx, pid);
                       },
                       child: Text(l10n.common_create),
@@ -665,7 +736,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     ),
                   ListTile(
                     leading: const Icon(Icons.add),
-                    title: Text(AppLocalizations.of(context)!.sticker_new_pack_option),
+                    title: Text(
+                      AppLocalizations.of(context)!.sticker_new_pack_option,
+                    ),
                     onTap: () async {
                       final id = await _promptNewPackName();
                       if (id != null && ctx.mounted) Navigator.pop(ctx, id);
@@ -834,10 +907,13 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       },
     );
     if (ok != true || !mounted) return;
-    final success =
-        await widget.repo.deletePack(widget.userId, packId);
+    final success = await widget.repo.deletePack(widget.userId, packId);
     if (!mounted) return;
-    _snack(success ? AppLocalizations.of(context)!.sticker_pack_deleted : AppLocalizations.of(context)!.sticker_pack_delete_failed);
+    _snack(
+      success
+          ? AppLocalizations.of(context)!.sticker_pack_deleted
+          : AppLocalizations.of(context)!.sticker_pack_delete_failed,
+    );
     if (success && _myPackId == packId) {
       setState(() => _myPackId = null);
     }
@@ -857,6 +933,92 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           ),
           child: child,
         ),
+      ),
+    );
+  }
+
+  TextEditingController _activeSearchController() {
+    return switch (_tabs.index) {
+      0 => _emojiQueryController,
+      1 => _libraryQueryController,
+      _ => _gifQueryController,
+    };
+  }
+
+  String _activeSearchHint(AppLocalizations l10n) {
+    return switch (_tabs.index) {
+      0 => '${l10n.common_search} ${l10n.sticker_tab_emoji.toLowerCase()}',
+      1 => l10n.sticker_library_search_hint,
+      _ => l10n.gif_search_hint,
+    };
+  }
+
+  Widget _buildPinnedSearchField() {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = _activeSearchController();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+      child: TextField(
+        controller: controller,
+        textCapitalization: TextCapitalization.sentences,
+        onTap: () {
+          if (_tabs.index == 1 && _scope != _StickerScope.library) {
+            setState(() => _scope = _StickerScope.library);
+          }
+        },
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: _activeSearchHint(l10n),
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+          prefixIcon: Icon(
+            Icons.search,
+            color: Colors.white.withValues(alpha: 0.5),
+          ),
+          suffixIcon: controller.text.isEmpty
+              ? null
+              : IconButton(
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    size: 18,
+                  ),
+                  onPressed: () => controller.clear(),
+                ),
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.08),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomTabs() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+      ),
+      child: TabBar(
+        controller: _tabs,
+        dividerColor: Colors.transparent,
+        labelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
+        indicatorColor: const Color(0xFFFFA95C),
+        indicatorSize: TabBarIndicatorSize.label,
+        tabs: [
+          Tab(text: AppLocalizations.of(context)!.sticker_tab_emoji),
+          Tab(text: AppLocalizations.of(context)!.sticker_tab_stickers),
+          Tab(text: AppLocalizations.of(context)!.sticker_tab_gif),
+        ],
       ),
     );
   }
@@ -893,29 +1055,14 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
               ),
             ],
           ),
-          TabBar(
-            controller: _tabs,
-            labelStyle: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.6,
-            ),
-            tabs: [
-              Tab(text: AppLocalizations.of(context)!.sticker_tab_emoji),
-              Tab(text: AppLocalizations.of(context)!.sticker_tab_stickers),
-              Tab(text: AppLocalizations.of(context)!.sticker_tab_gif),
-            ],
-          ),
+          _buildPinnedSearchField(),
           Expanded(
             child: TabBarView(
               controller: _tabs,
-              children: [
-                _emojiTab(),
-                _stickersTab(),
-                _gifTab(),
-              ],
+              children: [_emojiTab(), _stickersTab(), _gifTab()],
             ),
           ),
+          _buildBottomTabs(),
         ],
       ),
     );
@@ -940,14 +1087,18 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    label: Text(AppLocalizations.of(context)!.sticker_scope_public),
+                    label: Text(
+                      AppLocalizations.of(context)!.sticker_scope_public,
+                    ),
                     selected: _scope == _StickerScope.public,
                     onSelected: (_) =>
                         setState(() => _scope = _StickerScope.public),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    label: Text(AppLocalizations.of(context)!.sticker_scope_library),
+                    label: Text(
+                      AppLocalizations.of(context)!.sticker_scope_library,
+                    ),
                     selected: _scope == _StickerScope.library,
                     onSelected: (_) =>
                         setState(() => _scope = _StickerScope.library),
@@ -984,7 +1135,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
               child: Text(
                 AppLocalizations.of(context)!.sticker_no_packs_create,
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 12,
+                ),
               ),
             ),
             _PackAddButton(
@@ -1102,7 +1255,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           ),
           const SizedBox(height: 6),
           SizedBox(
-            height: 56,
+            height: 48,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _recentStickers.length,
@@ -1116,8 +1269,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                   child: InkWell(
                     onTap: () => widget.onPickAttachment(att),
                     child: SizedBox(
-                      width: 56,
-                      height: 56,
+                      width: 48,
+                      height: 48,
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: CachedNetworkImage(
@@ -1152,11 +1305,11 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
       );
     }
     return GridView.builder(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 6,
-        crossAxisSpacing: 6,
+        crossAxisCount: 5,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
       ),
       itemCount: items.length,
       itemBuilder: (context, i) {
@@ -1183,8 +1336,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 340),
                           child: Padding(
-                            padding:
-                                const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1202,20 +1354,17 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                                   height: 42,
                                   child: FilledButton(
                                     style: FilledButton.styleFrom(
-                                      backgroundColor:
-                                          const Color(0xFFE24D59),
+                                      backgroundColor: const Color(0xFFE24D59),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(21),
+                                        borderRadius: BorderRadius.circular(21),
                                       ),
                                       textStyle: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
-                                    onPressed: () =>
-                                        Navigator.pop(ctx, true),
+                                    onPressed: () => Navigator.pop(ctx, true),
                                     child: Text(l10n.common_delete),
                                   ),
                                 ),
@@ -1224,20 +1373,19 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                                   height: 40,
                                   child: FilledButton(
                                     style: FilledButton.styleFrom(
-                                      backgroundColor: Colors.white
-                                          .withValues(alpha: 0.11),
+                                      backgroundColor: Colors.white.withValues(
+                                        alpha: 0.11,
+                                      ),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(20),
                                       ),
                                       textStyle: const TextStyle(
                                         fontSize: 14.5,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    onPressed: () =>
-                                        Navigator.pop(ctx, false),
+                                    onPressed: () => Navigator.pop(ctx, false),
                                     child: Text(l10n.common_cancel),
                                   ),
                                 ),
@@ -1247,15 +1395,13 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         ),
                       ),
                     );
-                    if (ok == true &&
-                        _myPackId != null &&
-                        mounted) {
+                    if (ok == true && _myPackId != null && mounted) {
                       await widget.repo.deleteItem(
                         widget.userId,
                         _myPackId!,
                         it.id,
                       );
-                      if (mounted) _snack(AppLocalizations.of(context)!.sticker_deleted);
+                      if (mounted) _snack(l10n.sticker_deleted);
                     }
                   },
             borderRadius: BorderRadius.circular(10),
@@ -1264,9 +1410,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
               child: CachedNetworkImage(
                 imageUrl: it.downloadUrl,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
+                placeholder: (context, url) =>
+                    Container(color: Colors.white.withValues(alpha: 0.06)),
                 errorWidget: (context, url, error) =>
                     const Icon(Icons.broken_image),
               ),
@@ -1292,7 +1437,10 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
             child: InkWell(
               onTap: _deviceDirectBusy ? null : _pickFromGalleryAndSendDirect,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 14,
+                ),
                 child: Row(
                   children: [
                     Icon(Icons.photo_library_outlined, color: fg, size: 26),
@@ -1311,8 +1459,14 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            AppLocalizations.of(context)!.sticker_gallery_subtitle,
-                            style: TextStyle(fontSize: 12, color: muted, height: 1.25),
+                            AppLocalizations.of(
+                              context,
+                            )!.sticker_gallery_subtitle,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: muted,
+                              height: 1.25,
+                            ),
                           ),
                         ],
                       ),
@@ -1339,7 +1493,7 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
         if (widget.directUploadConversationId != null) ...[
           _deviceDirectSection(),
           Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
@@ -1429,39 +1583,6 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   Widget _libraryStickersBody() {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-          child: TextField(
-            controller: _libraryQueryController,
-            textCapitalization: TextCapitalization.sentences,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)!.sticker_library_search_hint,
-              hintStyle:
-                  TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-              prefixIcon: Icon(
-                Icons.search,
-                color: Colors.white.withValues(alpha: 0.5),
-              ),
-              suffixIcon: _libraryQueryController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: Colors.white.withValues(alpha: 0.5),
-                        size: 18,
-                      ),
-                      onPressed: () => _libraryQueryController.clear(),
-                    ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.08),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ),
         if (_libraryTranslatedHint != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
@@ -1475,7 +1596,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    AppLocalizations.of(context)!.gif_translated_hint(_libraryTranslatedHint!),
+                    AppLocalizations.of(
+                      context,
+                    )!.gif_translated_hint(_libraryTranslatedHint!),
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.white.withValues(alpha: 0.55),
@@ -1515,78 +1638,74 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
           child: _libraryLoading
               ? const Center(child: CircularProgressIndicator())
               : _libraryItems.isEmpty
-                  ? Center(
-                      child: Text(
-                        AppLocalizations.of(context)!.sticker_gif_nothing_found,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    )
-                  : CustomScrollView(
-                      controller: _libraryScrollController,
-                      slivers: [
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                          sliver: SliverGrid(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              mainAxisSpacing: 6,
-                              crossAxisSpacing: 6,
+              ? Center(
+                  child: Text(
+                    AppLocalizations.of(context)!.sticker_gif_nothing_found,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                )
+              : CustomScrollView(
+                  controller: _libraryScrollController,
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 5,
+                              mainAxisSpacing: 4,
+                              crossAxisSpacing: 4,
                             ),
-                            delegate: SliverChildBuilderDelegate(
-                              (context, i) {
-                                final item = _libraryItems[i];
-                                return Material(
-                                  color: Colors.white.withValues(alpha: 0.04),
-                                  borderRadius: BorderRadius.circular(10),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: InkWell(
-                                    onTap: () {
-                                      widget.onPickAttachment(
-                                        giphyItemToSendAttachment(item,
-                                            asSticker: true),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(4),
-                                      child: CachedNetworkImage(
-                                        imageUrl: item.url,
-                                        fit: BoxFit.contain,
-                                        placeholder: (_, _) =>
-                                            const SizedBox.shrink(),
-                                        errorWidget: (_, _, _) =>
-                                            const SizedBox.shrink(),
-                                      ),
-                                    ),
+                        delegate: SliverChildBuilderDelegate((context, i) {
+                          final item = _libraryItems[i];
+                          return Material(
+                            color: Colors.white.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(10),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () {
+                                widget.onPickAttachment(
+                                  giphyItemToSendAttachment(
+                                    item,
+                                    asSticker: true,
                                   ),
                                 );
                               },
-                              childCount: _libraryItems.length,
-                            ),
-                          ),
-                        ),
-                        if (_libraryLoadingMore)
-                          const SliverToBoxAdapter(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: CachedNetworkImage(
+                                  imageUrl: item.url,
+                                  fit: BoxFit.contain,
+                                  placeholder: (_, _) =>
+                                      const SizedBox.shrink(),
+                                  errorWidget: (_, _, _) =>
+                                      const SizedBox.shrink(),
                                 ),
                               ),
                             ),
-                          )
-                        else
-                          const SliverToBoxAdapter(
-                            child: SizedBox(height: 12),
-                          ),
-                      ],
+                          );
+                        }, childCount: _libraryItems.length),
+                      ),
                     ),
+                    if (_libraryLoadingMore)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                  ],
+                ),
         ),
       ],
     );
@@ -1594,44 +1713,12 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
 
   Widget _gifTab() {
     final hasRecent = _recentGifs.isNotEmpty;
-    final showRecent = hasRecent &&
+    final showRecent =
+        hasRecent &&
         _gifQueryController.text.trim().isEmpty &&
         _activeEmojiFilter == null;
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: TextField(
-            controller: _gifQueryController,
-            textCapitalization: TextCapitalization.sentences,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)!.gif_search_hint,
-              hintStyle:
-                  TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-              prefixIcon: Icon(
-                Icons.search,
-                color: Colors.white.withValues(alpha: 0.5),
-              ),
-              suffixIcon: _gifQueryController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: Colors.white.withValues(alpha: 0.5),
-                        size: 18,
-                      ),
-                      onPressed: () => _gifQueryController.clear(),
-                    ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.08),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ),
         if (_gifTranslatedHint != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
@@ -1645,7 +1732,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    AppLocalizations.of(context)!.gif_translated_hint(_gifTranslatedHint!),
+                    AppLocalizations.of(
+                      context,
+                    )!.gif_translated_hint(_gifTranslatedHint!),
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.white.withValues(alpha: 0.55),
@@ -1677,7 +1766,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     if (showRecent) ...[
                       SliverToBoxAdapter(
                         child: _gifSectionHeader(
-                            Icons.history_rounded, AppLocalizations.of(context)!.sticker_tab_recent),
+                          Icons.history_rounded,
+                          AppLocalizations.of(context)!.sticker_tab_recent,
+                        ),
                       ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -1685,7 +1776,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                       ),
                       SliverToBoxAdapter(
                         child: _gifSectionHeader(
-                            Icons.trending_up_rounded, 'TRENDING'),
+                          Icons.trending_up_rounded,
+                          'TRENDING',
+                        ),
                       ),
                     ],
                     if (_gifItems.isEmpty)
@@ -1693,7 +1786,9 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                         hasScrollBody: false,
                         child: Center(
                           child: Text(
-                            AppLocalizations.of(context)!.sticker_gif_nothing_found,
+                            AppLocalizations.of(
+                              context,
+                            )!.sticker_gif_nothing_found,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.5),
                             ),
@@ -1713,15 +1808,15 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                               child: SizedBox(
                                 width: 22,
                                 height: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                           ),
                         )
                       else
-                        const SliverToBoxAdapter(
-                          child: SizedBox(height: 12),
-                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
                     ],
                   ],
                 ),
@@ -1755,55 +1850,52 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
   Widget _gifGridSliver(List<GiphyGifItem> items) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 6,
-        crossAxisSpacing: 6,
+        crossAxisCount: 4,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
       ),
-      delegate: SliverChildBuilderDelegate(
-        (context, i) {
-          final item = items[i];
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Material(
-                color: Colors.white.withValues(alpha: 0.06),
+      delegate: SliverChildBuilderDelegate((context, i) {
+        final item = items[i];
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Material(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                onTap: () => _onPickGif(item),
                 borderRadius: BorderRadius.circular(10),
-                child: InkWell(
-                  onTap: () => _onPickGif(item),
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: CachedNetworkImage(
-                      imageUrl: item.url,
-                      fit: BoxFit.cover,
-                    ),
+                  child: CachedNetworkImage(
+                    imageUrl: item.url,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
-              Positioned(
-                top: 2,
-                right: 2,
-                child: Material(
-                  color: Colors.black.withValues(alpha: 0.55),
-                  shape: const CircleBorder(),
-                  child: IconButton(
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                    padding: EdgeInsets.zero,
-                    iconSize: 18,
-                    onPressed: () =>
-                        _saveRemoteToPack(giphyItemToSendAttachment(item)),
-                    icon: const Icon(Icons.bookmark_add_outlined),
+            ),
+            Positioned(
+              top: 2,
+              right: 2,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.55),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
                   ),
+                  padding: EdgeInsets.zero,
+                  iconSize: 18,
+                  onPressed: () =>
+                      _saveRemoteToPack(giphyItemToSendAttachment(item)),
+                  icon: const Icon(Icons.bookmark_add_outlined),
                 ),
               ),
-            ],
-          );
-        },
-        childCount: items.length,
-      ),
+            ),
+          ],
+        );
+      }, childCount: items.length),
     );
   }
 
@@ -1886,15 +1978,19 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
             ),
           )
         else if (_animEmojis.isNotEmpty) ...[
-          _gifSectionHeader(Icons.auto_awesome_rounded, AppLocalizations.of(context)!.sticker_section_animated),
+          _gifSectionHeader(
+            Icons.auto_awesome_rounded,
+            AppLocalizations.of(context)!.sticker_section_animated,
+          ),
           SizedBox(
-            height: 72,
+            height: 60,
             child: ListView.builder(
               controller: _animEmojisScrollController,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               // +1 cell в конце под спиннер пагинации (если ещё есть страницы).
-              itemCount: _animEmojis.length +
+              itemCount:
+                  _animEmojis.length +
                   ((_animEmojisHasMore || _animEmojisLoadingMore) ? 1 : 0),
               itemBuilder: (context, i) {
                 if (i >= _animEmojis.length) {
@@ -1918,8 +2014,8 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                       onTap: () => _onPickAnimEmoji(item),
                       borderRadius: BorderRadius.circular(10),
                       child: SizedBox(
-                        width: 64,
-                        height: 64,
+                        width: 52,
+                        height: 52,
                         child: Padding(
                           padding: const EdgeInsets.all(4),
                           child: CachedNetworkImage(
@@ -1960,11 +2056,11 @@ class _ComposerStickerGifPanelState extends State<_ComposerStickerGifPanel>
                     HapticFeedback.selectionClick();
                   },
                   config: Config(
-                    height: 280,
+                    height: 220,
                     emojiViewConfig: EmojiViewConfig(
                       backgroundColor: Colors.transparent,
                       columns: 8,
-                      emojiSizeMax: 28,
+                      emojiSizeMax: 24,
                     ),
                     categoryViewConfig: CategoryViewConfig(
                       backgroundColor: Colors.transparent,

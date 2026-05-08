@@ -44,6 +44,8 @@ class ChatComposer extends StatefulWidget {
     required this.sendBusy,
     required this.onMicTap,
     required this.onStickersTap,
+    this.onKeyboardTap,
+    this.stickersPanelOpen = false,
     this.replyingTo,
     this.onCancelReply,
     this.editingPreviewPlain,
@@ -72,6 +74,8 @@ class ChatComposer extends StatefulWidget {
   final bool sendBusy;
   final VoidCallback onMicTap;
   final VoidCallback onStickersTap;
+  final VoidCallback? onKeyboardTap;
+  final bool stickersPanelOpen;
   final ReplyContext? replyingTo;
   final VoidCallback? onCancelReply;
   final String? editingPreviewPlain;
@@ -113,6 +117,7 @@ class ChatComposer extends StatefulWidget {
 class _ChatComposerState extends State<ChatComposer> {
   /// Как строка поиска на экране списка чатов (`chat_list_screen`: высота 40, radius 14).
   static const double _kComposerControlSize = 40;
+
   /// Согласовано с `fontSize: 16` без forceStrut — курсор не растягивается на всю капсулу.
   static const double _kComposerCursorHeight = 18;
   final GlobalKey _composerColumnKey = GlobalKey();
@@ -150,8 +155,8 @@ class _ChatComposerState extends State<ChatComposer> {
   bool _recomputeLinkPreview() {
     final plain = messageHtmlToPlainText(widget.controller.text);
     final extracted = extractFirstHttpUrl(plain);
-    final next = (extracted == null ||
-            _dismissedLinkPreviewUrls.contains(extracted))
+    final next =
+        (extracted == null || _dismissedLinkPreviewUrls.contains(extracted))
         ? null
         : extracted;
     if (next == _linkPreviewUrl) return false;
@@ -447,7 +452,16 @@ class _ChatComposerState extends State<ChatComposer> {
     widget.onStickersTap();
   }
 
-  Widget _buildComposerTextField(bool keyboardOpen) {
+  void _openKeyboardFromStickerMode() {
+    final cb = widget.onKeyboardTap;
+    if (cb != null) {
+      cb();
+      return;
+    }
+    widget.focusNode.requestFocus();
+  }
+
+  Widget _buildComposerTextField() {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final wallpaper = ChatWallpaperScope.of(context);
@@ -473,11 +487,7 @@ class _ChatComposerState extends State<ChatComposer> {
       maxLines: 1,
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: fg,
-      ),
+      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg),
       decoration: InputDecoration(
         hintText: l10n.chat_composer_hint_message,
         hintStyle: TextStyle(
@@ -493,18 +503,24 @@ class _ChatComposerState extends State<ChatComposer> {
         contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
         isCollapsed: false,
         suffixIcon: IconButton(
-                tooltip: l10n.chat_composer_tooltip_stickers,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                onPressed: widget.sendBusy ? null : _openStickersPanel,
-                icon: Icon(
-                  Icons.emoji_emotions_outlined,
-                  size: 20,
-                  color: widget.sendBusy
-                      ? hintFg.withValues(alpha: 0.65)
-                      : fg.withValues(alpha: 0.88),
-                ),
-              ),
+          tooltip: l10n.chat_composer_tooltip_stickers,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          onPressed: widget.sendBusy
+              ? null
+              : (widget.stickersPanelOpen
+                    ? _openKeyboardFromStickerMode
+                    : _openStickersPanel),
+          icon: Icon(
+            widget.stickersPanelOpen
+                ? Icons.keyboard_rounded
+                : Icons.emoji_emotions_outlined,
+            size: 20,
+            color: widget.sendBusy
+                ? hintFg.withValues(alpha: 0.65)
+                : fg.withValues(alpha: 0.88),
+          ),
+        ),
         suffixIconConstraints: const BoxConstraints(
           minWidth: 34,
           minHeight: 34,
@@ -579,6 +595,7 @@ class _ChatComposerState extends State<ChatComposer> {
             ],
             if (widget.stickerSuggestionBuilder != null &&
                 keyboardOpen &&
+                !widget.stickersPanelOpen &&
                 !_hasTypedText &&
                 widget.pendingAttachments.isEmpty &&
                 !widget.showFormattingToolbar &&
@@ -635,9 +652,7 @@ class _ChatComposerState extends State<ChatComposer> {
                               ? (dark ? 0.18 : 0.16)
                               : (dark ? 0.06 : 0.08),
                         ),
-                        border: Border.all(
-                          color: fg.withValues(alpha: 0.18),
-                        ),
+                        border: Border.all(color: fg.withValues(alpha: 0.18)),
                       ),
                       child: IconButton(
                         tooltip: l10n.chat_composer_tooltip_attachments,
@@ -661,20 +676,19 @@ class _ChatComposerState extends State<ChatComposer> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(14),
                           color: Colors.black.withValues(
-                            alpha: chatWallpaperPrefersLightForeground(wallpaper)
+                            alpha:
+                                chatWallpaperPrefersLightForeground(wallpaper)
                                 ? (dark ? 0.18 : 0.16)
                                 : (dark ? 0.06 : 0.08),
                           ),
-                          border: Border.all(
-                            color: fg.withValues(alpha: 0.18),
-                          ),
+                          border: Border.all(color: fg.withValues(alpha: 0.18)),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(
                             minHeight: _kComposerControlSize,
                           ),
-                          child: _buildComposerTextField(keyboardOpen),
+                          child: _buildComposerTextField(),
                         ),
                       ),
                     ),
@@ -687,17 +701,16 @@ class _ChatComposerState extends State<ChatComposer> {
                         color: showSendButton
                             ? const Color(0xFF2A79FF)
                             : Colors.black.withValues(
-                                alpha: chatWallpaperPrefersLightForeground(
-                                  wallpaper,
-                                )
+                                alpha:
+                                    chatWallpaperPrefersLightForeground(
+                                      wallpaper,
+                                    )
                                     ? (dark ? 0.18 : 0.16)
                                     : (dark ? 0.06 : 0.08),
                               ),
                         border: showSendButton
                             ? null
-                            : Border.all(
-                                color: fg.withValues(alpha: 0.18),
-                              ),
+                            : Border.all(color: fg.withValues(alpha: 0.18)),
                         boxShadow: showSendButton
                             ? [
                                 BoxShadow(

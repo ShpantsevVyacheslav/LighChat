@@ -159,6 +159,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   static const Duration _kUnreadSeparatorLinger = Duration(seconds: 5);
   bool _sendBusy = false;
   bool _selectionBusy = false;
+  bool _stickersPanelOpen = false;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
   bool _composerFormattingOpen = false;
@@ -651,24 +652,24 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     }
   }
 
-  Future<void> _openStickersGifPanel(String uid) async {
+  void _openStickersGifPanel(String uid) {
     if (_sendBusy) return;
-    FocusManager.instance.primaryFocus?.unfocus();
     final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
     final chatRepo = ref.read(chatRepositoryProvider);
     if (stickerRepo == null || chatRepo == null) {
       _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
-    await showComposerStickerGifSheet(
-      context: context,
-      userId: uid,
-      repo: stickerRepo,
-      directUploadConversationId: widget.conversationId,
-      onPickAttachment: (att) {
-        unawaited(_sendThreadStickerOrGifAttachment(uid, chatRepo, att));
-      },
-    );
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (mounted) setState(() => _stickersPanelOpen = true);
+  }
+
+  void _switchFromStickersToKeyboard() {
+    if (!mounted) return;
+    setState(() => _stickersPanelOpen = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocus.requestFocus();
+    });
   }
 
   Future<void> _deleteFileSilently(String path) async {
@@ -1104,7 +1105,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         unawaited(_pickDeviceFiles());
         break;
       case ComposerAttachmentAction.stickersGif:
-        unawaited(_openStickersGifPanel(uid));
+        _openStickersGifPanel(uid);
         break;
       case ComposerAttachmentAction.format:
         setState(() => _composerFormattingOpen = true);
@@ -2527,10 +2528,76 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                   ],
                                 ),
                               ),
+                              if (_selectedMessageIds.isEmpty &&
+                                  _stickersPanelOpen)
+                                Builder(
+                                  builder: (context) {
+                                    final repo = ref.read(
+                                      userStickerPacksRepositoryProvider,
+                                    );
+                                    final chatRepo = ref.read(
+                                      chatRepositoryProvider,
+                                    );
+                                    if (repo == null || chatRepo == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final h =
+                                        MediaQuery.sizeOf(context).height *
+                                        0.36;
+                                    return SizedBox(
+                                      height: h,
+                                      child: ComposerStickerGifPanel(
+                                        userId: user.uid,
+                                        repo: repo,
+                                        directUploadConversationId:
+                                            widget.conversationId,
+                                        onPickAttachment: (att) {
+                                          unawaited(
+                                            _sendThreadStickerOrGifAttachment(
+                                              user.uid,
+                                              chatRepo,
+                                              att,
+                                            ),
+                                          );
+                                        },
+                                        onEmojiTapped: (emoji) {
+                                          final ctrl = _composerController;
+                                          final sel = ctrl.selection;
+                                          final text = ctrl.text;
+                                          final start = sel.isValid
+                                              ? sel.start
+                                              : text.length;
+                                          final end = sel.isValid
+                                              ? sel.end
+                                              : text.length;
+                                          final newText = text.replaceRange(
+                                            start,
+                                            end,
+                                            emoji,
+                                          );
+                                          ctrl.value = TextEditingValue(
+                                            text: newText,
+                                            selection: TextSelection.collapsed(
+                                              offset: start + emoji.length,
+                                            ),
+                                          );
+                                        },
+                                        onClose: () {
+                                          if (!mounted) return;
+                                          setState(
+                                            () => _stickersPanelOpen = false,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
                               if (_selectedMessageIds.isEmpty)
                                 ChatComposer(
                                   controller: _composerController,
                                   focusNode: _composerFocus,
+                                  stickersPanelOpen: _stickersPanelOpen,
+                                  onKeyboardTap: _switchFromStickersToKeyboard,
                                   e2eeDisabledBanner: dmComposerBlockBanner(
                                     context: context,
                                     ref: ref,
@@ -2574,9 +2641,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                       conv: conv,
                                     );
                                   },
-                                  onStickersTap: () => unawaited(
-                                    _openStickersGifPanel(user.uid),
-                                  ),
+                                  onStickersTap: () =>
+                                      _openStickersGifPanel(user.uid),
                                   stickerSuggestionBuilder: () {
                                     final repo = ref.read(
                                       userStickerPacksRepositoryProvider,
