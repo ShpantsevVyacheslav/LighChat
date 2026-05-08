@@ -24,9 +24,11 @@ export const checkUserPresence = onSchedule({
 }, async () => {
   const now = new Date();
   const nowIso = now.toISOString();
-  // User-presence threshold — 60 сек.
-  const userPresenceThreshold = new Date(now.getTime() - 60 * 1000).toISOString();
-  // Calls ringing timeout — 60 сек.
+  // [audit M-003] Threshold должен быть >= client PRESENCE_MIN_WRITE_INTERVAL_MS
+  // + buffer на network/clock skew. Клиент пишет heartbeat раз в 120s
+  // (`use-auth.tsx`), здесь 180s = 120 + 60 buffer.
+  const userPresenceThreshold = new Date(now.getTime() - 180 * 1000).toISOString();
+  // Calls ringing timeout — 60 сек (отдельная история, не presence).
   const callThreshold = new Date(now.getTime() - 60 * 1000).toISOString();
   // Meeting participants/requests — 90 сек (см. JSDoc выше).
   const meetingThreshold = new Date(now.getTime() - 90 * 1000).toISOString();

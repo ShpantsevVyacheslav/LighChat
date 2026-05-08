@@ -298,8 +298,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const INACTIVITY_LIMIT = 60000; // 1 minute in milliseconds
-/** Минимум между записями online/lastSeen в Firestore при уже активном пользователе (снижает writes). */
-const PRESENCE_MIN_WRITE_INTERVAL_MS = 45000;
+/**
+ * Минимум между записями online/lastSeen в Firestore при уже активном пользователе.
+ * [audit M-003] Растянуто 45s → 120s: на 1k DAU это ~$70/мес экономии Firestore writes.
+ * Серверный `checkUserPresence` теперь использует threshold 180s (см.
+ * `functions/src/triggers/scheduler/checkUserPresence.ts`) — buffer 60s
+ * на network jitter / clock skew, чтобы активный пользователь не был
+ * помечен offline между heartbeat'ами.
+ */
+const PRESENCE_MIN_WRITE_INTERVAL_MS = 120_000;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
