@@ -150,7 +150,7 @@ export const viewport: Viewport = {
   themeColor: '#0a0e17', // Matches background for status bar blending
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -161,7 +161,8 @@ export default function RootLayout({
   // If middleware didn't run (e.g. a path excluded by its matcher), we fall
   // back to undefined — the script tags below render without the attribute,
   // and only `script-src 'self'` applies.
-  const nonce = headers().get('x-nonce') ?? undefined;
+  // [next 15] headers() теперь async — RSC должен быть async-функцией.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html
       lang="ru"

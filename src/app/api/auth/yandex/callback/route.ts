@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
       return redirectWithError(request, "missing_code");
     }
 
-    const jar = cookies();
+    // [next 15] cookies()/headers() теперь async (см. PR #65525).
+    const jar = await cookies();
     const expected = jar.get(STATE_COOKIE)?.value;
     if (!expected || expected !== state) {
       return redirectWithError(request, "bad_state");
