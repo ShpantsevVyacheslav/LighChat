@@ -106,6 +106,11 @@ class _MessageVideoAttachmentState
       if (mounted) setState(() => _failed = true);
       return;
     }
+    // E2EE-видео в процессе расшифровки: ничего не загружаем, оставляем
+    // плейсхолдер. Когда оркестратор заменит attachment на расшифрованный
+    // `file://`-URL — `didUpdateWidget` поймает изменение и перезапустит
+    // загрузку.
+    if (uri.scheme == 'e2ee-pending') return;
     VideoPlayerController? c;
     try {
       // E2EE v2: расшифрованные вложения — локальный `file://` путь.
@@ -296,6 +301,7 @@ class _MessageVideoAttachmentState
     }
     final url = widget.attachment.url;
     final normState = _normState;
+    final isPending = Uri.tryParse(url)?.scheme == 'e2ee-pending';
 
     return VisibilityDetector(
       key: ValueKey<String>('vid-vis-${widget.attachmentIndex}-$url'),
@@ -306,7 +312,32 @@ class _MessageVideoAttachmentState
         ),
         child: AspectRatio(
           aspectRatio: safeAr,
-          child: Stack(
+          child: isPending
+              ? DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.32),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(
+                        Icons.play_circle_outline_rounded,
+                        size: 48,
+                        color: scheme.onSurface.withValues(alpha: 0.45),
+                      ),
+                      const Positioned(
+                        right: 10,
+                        bottom: 10,
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Stack(
             fit: StackFit.expand,
             children: [
               if (normState == ChatMediaNormUiState.none &&

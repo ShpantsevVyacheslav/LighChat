@@ -54,6 +54,13 @@ typedef E2eeMessagesBuilder =
 const String e2eeMediaDecryptErrorMime =
     'application/x-lighchat-e2ee-media-error';
 
+/// URL-схема для плейсхолдера «вложение в процессе расшифровки» — пока
+/// `_decryptMediaOne` качает и расшифровывает chunked envelope, сообщение
+/// уже отображается с этим вложением; UI рендерит вместо реального
+/// изображения/видео крутящийся лоадер с иконкой нужного типа (см.
+/// [ChatCachedNetworkImage] и [MessageVideoAttachment]).
+const String e2eePendingUrlScheme = 'e2ee-pending';
+
 class E2eeMessagesResolver extends ConsumerStatefulWidget {
   const E2eeMessagesResolver({
     super.key,
@@ -407,6 +414,15 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
         if (_mediaInFlight.contains(key)) continue;
         if (_mediaFailed.contains(key)) continue;
         _mediaInFlight.add(key);
+        // Сразу занимаем slot плейсхолдером «расшифровка идёт» — пользователь
+        // видит лоадер с нужной иконкой вместо «голого» текстового пузыря,
+        // пока качается chunked envelope.
+        slots[i] = _DecryptedMediaEntry(
+          attachment: _buildMediaPendingAttachment(
+            messageId: m.id,
+            envelope: env,
+          ),
+        );
         unawaited(
           _decryptMediaOne(
             runtime: runtime,
@@ -672,6 +688,25 @@ String _prefixForKind(MediaKindV2 kind) {
     case MediaKindV2.file:
       return 'file_';
   }
+}
+
+/// Плейсхолдер «вложение в процессе расшифровки». `type` сохраняем настоящий
+/// (`image/jpeg`, `video/mp4`, …), чтобы стандартная классификация в
+/// [MessageAttachments] разложила плейсхолдер по нужным buckets и UI занял
+/// корректное место (картинка vs видео vs файл). URL-схема `e2ee-pending://`
+/// служит маркером, чтобы рендеры показали лоадер вместо реальной загрузки.
+ChatAttachment _buildMediaPendingAttachment({
+  required String messageId,
+  required MediaEnvelopeV2 envelope,
+}) {
+  final ext = _extensionForMime(envelope.mime);
+  return ChatAttachment(
+    url: '$e2eePendingUrlScheme://$messageId/${envelope.fileId}?'
+        'kind=${envelope.kind.wire}',
+    name: '${_prefixForKind(envelope.kind)}${envelope.fileId}$ext',
+    type: envelope.mime,
+    size: envelope.size,
+  );
 }
 
 ChatAttachment _buildMediaDecryptFailedAttachment({

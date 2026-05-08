@@ -54,6 +54,44 @@ class ChatCachedNetworkImage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final uri = Uri.tryParse(url);
 
+    // E2EE media: пока chunked envelope качается и расшифровывается,
+    // оркестратор подставляет плейсхолдер с URL-схемой `e2ee-pending://`.
+    // Рисуем спиннер с иконкой нужного типа вместо ошибки «битая картинка».
+    if (uri != null && uri.scheme == 'e2ee-pending') {
+      final kind = (uri.queryParameters['kind'] ?? 'image').toLowerCase();
+      final iconData = kind == 'video' || kind == 'videoCircle'
+          ? Icons.play_circle_outline_rounded
+          : kind == 'voice' || kind == 'audio'
+              ? Icons.graphic_eq_rounded
+              : kind == 'file'
+                  ? Icons.insert_drive_file_outlined
+                  : Icons.image_outlined;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.32),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              iconData,
+              size: compact ? 22 : 36,
+              color: scheme.onSurface.withValues(alpha: 0.45),
+            ),
+            const Positioned(
+              right: 8,
+              bottom: 8,
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     Widget progress(BuildContext context, String _, DownloadProgress progress) {
       if (compact || !showProgressIndicator) {
         return ColoredBox(

@@ -140,7 +140,12 @@ class LocalCacheEntryRegistry {
     final trimmedUrl = url.trim();
     if (trimmedUrl.isEmpty || cid.isEmpty) return;
     final uri = Uri.tryParse(trimmedUrl);
-    if (uri == null || !uri.hasScheme || uri.scheme == 'file') return;
+    if (uri == null || !uri.hasScheme) return;
+    final scheme = uri.scheme;
+    // Регистрируем только реальные сетевые URL — file:/data:/служебные схемы
+    // (e2ee-pending, e2ee-error, secret-locked и т.п.) к файлам кэша
+    // не приведут.
+    if (scheme != 'http' && scheme != 'https') return;
     final prefs = await SharedPreferences.getInstance();
     final imageKey = '$_imageKeyPrefix${imageFileIdForUrl(trimmedUrl)}';
     final videoKey = '$_videoKeyPrefix${_fnv32Id(trimmedUrl)}';

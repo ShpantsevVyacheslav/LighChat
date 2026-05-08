@@ -18,8 +18,16 @@ bool _looseMime(String? t) {
       x == 'binary/octet-stream';
 }
 
+/// `true`, если URL — служебный плейсхолдер «E2EE-вложение в процессе
+/// расшифровки» (см. `e2eePendingUrlScheme` в `e2ee_decryption_orchestrator`).
+bool isE2eePendingAttachment(ChatAttachment att) {
+  final scheme = Uri.tryParse(att.url)?.scheme;
+  return scheme == 'e2ee-pending';
+}
+
 /// Паритет веба: `attachment-visual.ts` → `isGridGalleryAttachment`.
 bool isChatGridGalleryAttachment(ChatAttachment att) {
+  if (isE2eePendingAttachment(att)) return false;
   final n = att.name.toLowerCase();
   if (n.startsWith('sticker_') || n.startsWith('gif_')) return false;
   if (isVideoCircleAttachment(att)) return false;
