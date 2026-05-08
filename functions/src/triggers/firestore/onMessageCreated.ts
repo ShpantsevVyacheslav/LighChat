@@ -10,6 +10,31 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 
 /**
+ * [audit M-012] Безопасное приведение HTML-сообщения к plaintext'у для push.
+ * Раньше использовался `text.replace(/<[^>]*>/g, "")` — не декодировал
+ * entities (`Hello &amp; world` уходил в push как есть). Push body на iOS/
+ * Android отображается как plaintext, так что XSS не было; но UX был
+ * грязный. Этот хелпер чистит теги и декодирует наиболее частые HTML
+ * entities. Не использует `dompurify` — JSDOM heavyweight для Cloud
+ * Functions cold start.
+ */
+function htmlToPlainTextForPush(html: string): string {
+  if (!html) return "";
+  const stripped = html.replace(/<[^>]*>/g, "");
+  return stripped
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#x27;|&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex: string) =>
+      String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_m, dec: string) => String.fromCodePoint(parseInt(dec, 10)))
+    .slice(0, 200);
+}
+
+/**
  * Cloud Function that triggers on the creation of a new message.
  * Учитывает notificationSettings и chatConversationPrefs получателя.
  */
@@ -111,7 +136,7 @@ export const onmessagecreated = onDocumentCreated(
         messageBody = "Зашифрованное сообщение";
       }
     } else if (messageData.text) {
-      messageBody = messageData.text.replace(/<[^>]*>/g, "");
+      messageBody = htmlToPlainTextForPush(messageData.text);
     } else if (messageData.attachments && messageData.attachments.length > 0) {
       const firstAttachment = messageData.attachments[0];
       if (firstAttachment.type.startsWith("image/svg")) {

@@ -319,7 +319,27 @@ service cloud.firestore {
         && (!('systemEvent' in d) || d.systemEvent == null
             || (d.systemEvent is map
                 && (!('type' in d.systemEvent)
-                    || (d.systemEvent.type is string && d.systemEvent.type.size() <= 64))));
+                    || (d.systemEvent.type is string && d.systemEvent.type.size() <= 64))))
+        // [audit M-004] Дополнительные cap'ы на остальные user-supplied поля.
+        // Раньше клиент мог писать e2ee.ciphertext до ~1 MiB — каждый
+        // recipient'ский hydrate грохал бы память на mobile. linkPreview/
+        // replyTo тоже без лимитов — стек безопасности через предположения.
+        && (!('e2ee' in d) || d.e2ee == null
+            || (d.e2ee is map
+                && (!('ciphertext' in d.e2ee)
+                    || (d.e2ee.ciphertext is string && d.e2ee.ciphertext.size() <= 65536))))
+        && (!('replyTo' in d) || d.replyTo == null
+            || (d.replyTo is map
+                && (!('text' in d.replyTo)
+                    || (d.replyTo.text is string && d.replyTo.text.size() <= 1024))))
+        && (!('linkPreview' in d) || d.linkPreview == null
+            || (d.linkPreview is map
+                && (!('url' in d.linkPreview)
+                    || (d.linkPreview.url is string && d.linkPreview.url.size() <= 4096))
+                && (!('title' in d.linkPreview)
+                    || (d.linkPreview.title is string && d.linkPreview.title.size() <= 512))
+                && (!('description' in d.linkPreview)
+                    || (d.linkPreview.description is string && d.linkPreview.description.size() <= 2048))));
     }
 
     /** Клиент не добавляет/не меняет/не удаляет `expireAt` на сообщениях. */
