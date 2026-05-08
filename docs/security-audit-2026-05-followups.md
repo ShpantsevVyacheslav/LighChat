@@ -22,6 +22,8 @@ firebase deploy --only firestore:rules,storage:rules,functions
 # 2. Включить TTL policy в Firebase Console для коллекций:
 #    - rateLimits.expireAt
 #    - telegramAuthReplay.expireAt
+#    - guestAccounts.expireAt          (audit H-008)
+#    - pushDelivered.expireAt          (audit H-011)
 #    (Firestore → TTL → Add policy)
 
 # 3. После первого деплоя — однократно вызвать из админки:
@@ -34,6 +36,44 @@ firebase deploy --only firestore:rules,storage:rules,functions
 # 5. После недели мониторинга CSP в Report-Only — переключить на enforce:
 #    в src/middleware.ts: const CSP_REPORT_ONLY = false;
 ```
+
+## Audit 2026-05-08 (`docs/audits/AUDIT-2026-05-08.md`) — статус
+
+**Закрыто в коде** (см. коммиты с пометками `[H-…]` / `[M-…]` / `[L-…]`):
+
+| Sprint 1 (security) | Sprint 2 (compliance) | Sprint 3 (quality) |
+|---|---|---|
+| H-001 meeting-attachments read | CR-004 deleteAccount Storage+FCM | M-005 удалён src/firestore.rules |
+| H-002 anonymous gust enumeration | CR-005 onConversationDeleted recursive | M-002 INITIAL_MESSAGE_LIMIT 100→30 |
+| H-003 qrLoginSessions PII | | L-001 web/functions/flutter CI |
+| H-004 registrationIndex callable | | L-002 husky + lint-staged |
+| H-005 PII в логах | | L-005 Crashlytics init |
+| H-006 N+1 onMessageCreated | | L-007 убран дубль cors.json |
+| H-007 .limit(500) checkUserPresence | | L-009 apphosting maxInstances cap |
+| H-008 guestAccounts TTL index | | M-003 presence interval 45→120s |
+| H-009 svg blocked + comment | | M-004 chatMessageSizeOk e2ee/replyTo cap |
+| H-010 sanitizeMessageHtml SSR='' | | M-006 push idempotency markers |
+| H-011 pushDelivered idempotency | | M-012 push body html-decode |
+| H-012 group participantIds защита | | M-014 cleanup tmp/session-* artefacts |
+
+Также прод-фиксы по ходу: `380f3e9` (presence write не роняет UI),
+`ef75247` (device session gate + force-refresh), `217aa06` (mobile dart errors).
+
+**Defer (требуют отдельной работы):**
+
+- **CR-001** — ротация Browser API key в Cloud Console + HTTP-referrer restrictions (operational).
+- **CR-002** — App Check rollout (reCAPTCHA Enterprise / DeviceCheck / Play Integrity), monitor → enforce.
+- **C7** — production keystore для Android (см. ниже).
+- **M-001** — `useConversationsByDocumentIds` через `where(documentId(), 'in')` batch. Effort L: риск permission-denied на всю batch при stale conversationId, нужен careful refactor + fallback.
+- **M-007 / M-008** — firebase 10→11 / next 14→15 upgrade. Effort M+ с регрессионным прогоном WebRTC митингов.
+- **M-009** — split god-modules (`ChatWindow.tsx` 2614 строк). Effort L.
+- **M-010** — codegen TS↔Dart типов для shared schema. Effort L.
+- **M-013** — UI test coverage (vitest на компонентах + emulator-based firestore.rules tests). Effort L.
+- **L-003** — 334 `console.*` в src/ → wrapper `logger.ts`. Effort M.
+- **L-004** — 86 `debugPrint`/`console.log` в mobile → flutter_logs. Effort S, но cross-cutting.
+- **L-006** — 55 `: any` в TypeScript → strict gradual. Effort M.
+
+Понижение audit-debt дальше — в стандартном backlog.
 
 ## Critical (требуют ручных шагов)
 
