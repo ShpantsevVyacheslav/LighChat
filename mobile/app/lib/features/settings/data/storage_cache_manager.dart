@@ -227,6 +227,7 @@ class StorageCacheManager {
     final conversationTitleById = _buildConversationTitleMap(
       currentUserId: userId,
       conversations: conversations,
+      l10n: l10n,
     );
     final conversationEntries = <String, List<LocalStorageEntry>>{};
     final generalEntries = <LocalStorageEntry>[];
@@ -829,12 +830,13 @@ class StorageCacheManager {
   Map<String, String> _buildConversationTitleMap({
     required String currentUserId,
     required List<ConversationWithId> conversations,
+    required AppLocalizations l10n,
   }) {
     final out = <String, String>{};
     for (final c in conversations) {
       final data = c.data;
       if (isSavedMessagesConversation(data, currentUserId)) {
-        out[c.id] = 'Saved messages';
+        out[c.id] = l10n.partner_profile_title_fallback_saved;
         continue;
       }
       if (data.isGroup) {

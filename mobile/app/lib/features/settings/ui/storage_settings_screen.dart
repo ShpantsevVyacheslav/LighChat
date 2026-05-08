@@ -429,15 +429,22 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
     final secretIndexAsync = ref.watch(userSecretChatIndexProvider(user.uid));
     final secretFallbackAsync =
         ref.watch(userSecretChatFallbackIdsProvider(user.uid));
+    final savedMessagesIdsAsync =
+        ref.watch(userSavedMessagesChatIdsProvider(user.uid));
     return indexAsync.when(
       data: (idx) {
         final mainIds = idx?.conversationIds ?? const <String>[];
         final secretIds =
             secretIndexAsync.asData?.value?.conversationIds ?? const <String>[];
         final fallbackIds = secretFallbackAsync.asData?.value ?? const <String>[];
-        final ids = <String>{...mainIds, ...secretIds, ...fallbackIds}
-            .where((id) => id.trim().isNotEmpty)
-            .toList(growable: false);
+        final savedMessagesIds =
+            savedMessagesIdsAsync.asData?.value ?? const <String>[];
+        final ids = <String>{
+          ...mainIds,
+          ...secretIds,
+          ...fallbackIds,
+          ...savedMessagesIds,
+        }.where((id) => id.trim().isNotEmpty).toList(growable: false);
         final convAsync = ref.watch(
           conversationsProvider((key: conversationIdsCacheKey(ids))),
         );

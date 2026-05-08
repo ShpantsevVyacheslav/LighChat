@@ -140,6 +140,35 @@ final userSecretChatFallbackIdsProvider =
           });
     });
 
+/// «Избранное» (Saved Messages) — личный чат с самим собой
+/// (`participantIds = [uid]`). Не всегда лежит в `userChats/{uid}.conversationIds`
+/// (создаётся через `ensureSavedMessagesChat` при первом открытии и может
+/// отставать от индекса). Этот провайдер нужен экрану «Хранилище», чтобы
+/// показать Избранное как отдельный чат, а не лить его файлы в orphan-bucket.
+final userSavedMessagesChatIdsProvider =
+    StreamProvider.family<List<String>, String>((ref, userId) {
+      final uid = userId.trim();
+      if (uid.isEmpty) return Stream.value(const <String>[]);
+      return FirebaseFirestore.instance
+          .collection('conversations')
+          .where('participantIds', arrayContains: uid)
+          .snapshots()
+          .map((snap) {
+            final ids = <String>[];
+            for (final d in snap.docs) {
+              final data = d.data();
+              final rawIds = data['participantIds'];
+              if (rawIds is! List) continue;
+              if (rawIds.length != 1) continue;
+              if (rawIds.first != uid) continue;
+              final isGroup = data['isGroup'] == true;
+              if (isGroup) continue;
+              ids.add(d.id);
+            }
+            return ids;
+          });
+    });
+
 /// Stable key for Riverpod family (avoid `List` identity churn on every rebuild).
 typedef ConversationIdsKey = ({String key});
 
