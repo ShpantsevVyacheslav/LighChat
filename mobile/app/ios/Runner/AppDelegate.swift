@@ -4,6 +4,7 @@ import CryptoKit
 import Flutter
 import UIKit
 import FirebaseCore
+import PencilKit
 import PushKit
 import QuickLook
 import flutter_callkit_incoming
@@ -195,6 +196,8 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     LighChatIosPipBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
     LighChatIosDocumentPreviewBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
+    LighChatIosImageMarkupBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
     LighChatVirtualBackgroundBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
@@ -388,6 +391,193 @@ private final class LighChatIosDocumentPreviewBridge: NSObject, QLPreviewControl
 
   func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
     return previewItem ?? LighChatPreviewItem(url: URL(fileURLWithPath: "/"), title: nil)
+  }
+}
+
+private final class LighChatImageMarkupViewController: UIViewController {
+  private let sourceImage: UIImage
+  private let onComplete: (URL?) -> Void
+
+  private let imageView = UIImageView()
+  private let canvasView = PKCanvasView()
+  private var toolPicker: PKToolPicker?
+
+  init(sourceImage: UIImage, onComplete: @escaping (URL?) -> Void) {
+    self.sourceImage = sourceImage
+    self.onComplete = onComplete
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .black
+
+    navigationItem.leftBarButtonItem = UIBarButtonItem(
+      barButtonSystemItem: .cancel,
+      target: self,
+      action: #selector(cancelTapped)
+    )
+    navigationItem.rightBarButtonItem = UIBarButtonItem(
+      barButtonSystemItem: .done,
+      target: self,
+      action: #selector(doneTapped)
+    )
+
+    imageView.contentMode = .scaleAspectFit
+    imageView.clipsToBounds = true
+    imageView.image = sourceImage
+    view.addSubview(imageView)
+
+    canvasView.backgroundColor = .clear
+    canvasView.isOpaque = false
+    canvasView.drawingPolicy = .anyInput
+    canvasView.minimumZoomScale = 1
+    canvasView.maximumZoomScale = 1
+    view.addSubview(canvasView)
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    let topBarBottom = (navigationController?.navigationBar.frame.maxY ?? 0) + 8
+    let contentRect = CGRect(
+      x: 8,
+      y: topBarBottom,
+      width: view.bounds.width - 16,
+      height: view.bounds.height - topBarBottom - view.safeAreaInsets.bottom - 12
+    )
+    let fitted = AVMakeRect(aspectRatio: sourceImage.size, insideRect: contentRect)
+    imageView.frame = fitted
+    canvasView.frame = fitted
+    canvasView.contentSize = fitted.size
+  }
+
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    guard toolPicker == nil else { return }
+    let picker = PKToolPicker()
+    picker.addObserver(canvasView)
+    picker.setVisible(true, forFirstResponder: canvasView)
+    canvasView.becomeFirstResponder()
+    toolPicker = picker
+  }
+
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    if let picker = toolPicker {
+      picker.setVisible(false, forFirstResponder: canvasView)
+      picker.removeObserver(canvasView)
+    }
+  }
+
+  @objc private func cancelTapped() {
+    dismiss(animated: true) {
+      self.onComplete(nil)
+    }
+  }
+
+  @objc private func doneTapped() {
+    let overlay = canvasView.drawing.image(
+      from: canvasView.bounds,
+      scale: max(1, sourceImage.scale)
+    )
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = sourceImage.scale
+    format.opaque = true
+    let renderer = UIGraphicsImageRenderer(size: sourceImage.size, format: format)
+    let merged = renderer.image { _ in
+      sourceImage.draw(in: CGRect(origin: .zero, size: sourceImage.size))
+      overlay.draw(in: CGRect(origin: .zero, size: sourceImage.size))
+    }
+    guard let jpeg = merged.jpegData(compressionQuality: 0.94) else {
+      dismiss(animated: true) { self.onComplete(nil) }
+      return
+    }
+
+    let tempDir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("chat_ios_markup", isDirectory: true)
+    try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+    let outURL = tempDir.appendingPathComponent("edited_\(UUID().uuidString).jpg")
+    do {
+      try jpeg.write(to: outURL, options: .atomic)
+      dismiss(animated: true) { self.onComplete(outURL) }
+    } catch {
+      dismiss(animated: true) { self.onComplete(nil) }
+    }
+  }
+}
+
+private final class LighChatIosImageMarkupBridge: NSObject {
+  static let shared = LighChatIosImageMarkupBridge()
+
+  private override init() {
+    super.init()
+  }
+
+  func register(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: "lighchat/image_markup", binaryMessenger: messenger)
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else {
+        result(nil)
+        return
+      }
+      guard call.method == "editImage" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      guard let args = call.arguments as? [String: Any],
+        let rawPath = args["path"] as? String
+      else {
+        result(
+          FlutterError(
+            code: "invalid_arguments",
+            message: "editImage expects {path}",
+            details: nil
+          )
+        )
+        return
+      }
+      DispatchQueue.main.async {
+        self.editImage(path: rawPath, result: result)
+      }
+    }
+  }
+
+  private static func topViewController() -> UIViewController? {
+    guard let root = UIApplication.shared.connectedScenes
+      .compactMap({ $0 as? UIWindowScene })
+      .flatMap({ $0.windows })
+      .first(where: { $0.isKeyWindow })?
+      .rootViewController
+    else {
+      return nil
+    }
+    var current = root
+    while let presented = current.presentedViewController {
+      current = presented
+    }
+    return current
+  }
+
+  private func editImage(path: String, result: @escaping FlutterResult) {
+    let sourceURL = URL(fileURLWithPath: path)
+    guard FileManager.default.fileExists(atPath: sourceURL.path),
+      let image = UIImage(contentsOfFile: sourceURL.path),
+      let presenter = Self.topViewController()
+    else {
+      result(nil)
+      return
+    }
+    let editor = LighChatImageMarkupViewController(sourceImage: image) { edited in
+      result(edited?.path)
+    }
+    let nav = UINavigationController(rootViewController: editor)
+    nav.modalPresentationStyle = .fullScreen
+    presenter.present(nav, animated: true)
   }
 }
 

@@ -42,6 +42,7 @@ import '../data/user_contacts_repository.dart';
 import '../data/chat_message_draft_storage.dart';
 import '../data/recent_stickers_store.dart';
 import '../../../l10n/app_localizations.dart';
+import 'chat_drag_drop_target.dart';
 import 'chat_html_composer_controller.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_video_call_screen.dart';
@@ -70,6 +71,7 @@ import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
 import 'chat_document_open.dart';
+import 'chat_ios_image_markup.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/user_block_providers.dart';
 import '../data/user_block_utils.dart';
@@ -980,1792 +982,1857 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
     }
 
-    return userAsync.when(
-      data: (user) {
-        if (user != null) {
-          _ensureScheduledCountSub(user.uid);
-        }
-        if (user == null) {
-          return Scaffold(
-            body: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(l10n.forward_error_not_authorized),
-            ),
+    return ChatDragDropTarget(
+      onFilesDropped: _handleDroppedFiles,
+      onTextDropped: _handleDroppedText,
+      child: userAsync.when(
+        data: (user) {
+          if (user != null) {
+            _ensureScheduledCountSub(user.uid);
+          }
+          if (user == null) {
+            return Scaffold(
+              body: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(l10n.forward_error_not_authorized),
+              ),
+            );
+          }
+
+          final userDocAsync = ref.watch(userChatSettingsDocProvider(user.uid));
+          final starredIdsAsync = ref.watch(
+            starredMessageIdsInConversationProvider((
+              userId: user.uid,
+              conversationId: widget.conversationId,
+            )),
           );
-        }
-
-        final userDocAsync = ref.watch(userChatSettingsDocProvider(user.uid));
-        final starredIdsAsync = ref.watch(
-          starredMessageIdsInConversationProvider((
-            userId: user.uid,
-            conversationId: widget.conversationId,
-          )),
-        );
-        final userDoc = userDocAsync.asData?.value ?? const <String, dynamic>{};
-        final rawChatSettings = Map<String, dynamic>.from(
-          userDoc['chatSettings'] as Map? ?? const <String, dynamic>{},
-        );
-        final rawPrivacySettings = Map<String, dynamic>.from(
-          userDoc['privacySettings'] as Map? ?? const <String, dynamic>{},
-        );
-        final allowReadReceipts =
-            rawPrivacySettings['showReadReceipts'] != false;
-        final fontSize = (rawChatSettings['fontSize'] as String?) ?? 'medium';
-        final bubbleRadius =
-            (rawChatSettings['bubbleRadius'] as String?) ?? 'rounded';
-        final showTimestamps =
-            (rawChatSettings['showTimestamps'] as bool?) ?? true;
-        final emojiBurstAnimationProfile =
-            normalizeChatEmojiBurstAnimationProfile(
-              rawChatSettings['emojiBurstAnimationProfile'] as String?,
-            );
-        final wallpaper = rawChatSettings['chatWallpaper'] as String?;
-        final bubbleColor = _parseHexColor(rawChatSettings['bubbleColor']);
-        final incomingBubbleColor = _parseHexColor(
-          rawChatSettings['incomingBubbleColor'],
-        );
-
-        final convAsync = ref.watch(
-          conversationsProvider((
-            key: conversationIdsCacheKey([widget.conversationId]),
-          )),
-        );
-        final contactsAsync = ref.watch(userContactsIndexProvider(user.uid));
-
-        return convAsync.when(
-          skipLoadingOnReload: true,
-          data: (list) {
-            final conv = list.isNotEmpty ? list.first : null;
-            String? dmOtherId;
-            if (conv != null && !conv.data.isGroup) {
-              final others = conv.data.participantIds
-                  .where((id) => id != user.uid)
-                  .toList();
-              dmOtherId = others.isEmpty ? null : others.first;
-            }
-            final isSecret = conv?.data.secretChat?.enabled == true;
-            final secretLockRequired =
-                conv?.data.secretChat?.lockPolicy.required == true;
-            final secretUnlocked = (isSecret && secretLockRequired)
-                ? (ref
-                          .watch(
-                            secretChatAccessActiveProvider((
-                              conversationId: widget.conversationId,
-                              userId: user.uid,
-                            )),
-                          )
-                          .asData
-                          ?.value ==
-                      true)
-                : true;
-            final isSaved =
-                conv != null &&
-                isSavedMessagesConversation(conv.data, user.uid);
-
-            if (isSecret && secretLockRequired && !secretUnlocked) {
-              return SecretChatSecureScope(
-                enabled: true,
-                child: Scaffold(
-                  appBar: AppBar(
-                    title: Text(
-                      AppLocalizations.of(context)!.secret_chat_title,
-                    ),
-                  ),
-                  body: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.secret_chat_locked_title,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.secret_chat_locked_subtitle,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 14),
-                          FilledButton(
-                            onPressed: () async {
-                              final res =
-                                  await showModalBottomSheet<
-                                    SecretChatUnlockResult
-                                  >(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (_) => SecretChatUnlockSheet(
-                                      conversationId: widget.conversationId,
-                                    ),
-                                  );
-                              if (!mounted) return;
-                              if (res?.unlocked == true) {
-                                setState(() {});
-                              }
-                            },
-                            child: Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.secret_chat_unlock_action,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: () {
-                              context.push(
-                                '/chats/${widget.conversationId}/secret-settings',
-                              );
-                            },
-                            child: Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.secret_chat_settings_title,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+          final userDoc =
+              userDocAsync.asData?.value ?? const <String, dynamic>{};
+          final rawChatSettings = Map<String, dynamic>.from(
+            userDoc['chatSettings'] as Map? ?? const <String, dynamic>{},
+          );
+          final rawPrivacySettings = Map<String, dynamic>.from(
+            userDoc['privacySettings'] as Map? ?? const <String, dynamic>{},
+          );
+          final allowReadReceipts =
+              rawPrivacySettings['showReadReceipts'] != false;
+          final fontSize = (rawChatSettings['fontSize'] as String?) ?? 'medium';
+          final bubbleRadius =
+              (rawChatSettings['bubbleRadius'] as String?) ?? 'rounded';
+          final showTimestamps =
+              (rawChatSettings['showTimestamps'] as bool?) ?? true;
+          final emojiBurstAnimationProfile =
+              normalizeChatEmojiBurstAnimationProfile(
+                rawChatSettings['emojiBurstAnimationProfile'] as String?,
               );
-            }
+          final wallpaper = rawChatSettings['chatWallpaper'] as String?;
+          final bubbleColor = _parseHexColor(rawChatSettings['bubbleColor']);
+          final incomingBubbleColor = _parseHexColor(
+            rawChatSettings['incomingBubbleColor'],
+          );
 
-            // IMPORTANT: In Secret Chats, Firestore rules deny reading `messages/*`
-            // without an active `secretAccess` grant. Do not even subscribe to the
-            // messages stream until the chat is unlocked, otherwise the UI gets a
-            // permission-denied error even though we render the lock screen.
-            final msgsAsync = ref.watch(
-              messagesProvider((conversationId: conversationId, limit: _limit)),
-            );
-            final myBlockedAsync = ref.watch(
-              userBlockedUserIdsProvider(user.uid),
-            );
-            final partnerBlockedAsync =
-                (dmOtherId != null && dmOtherId.isNotEmpty)
-                ? ref.watch(userBlockedUserIdsProvider(dmOtherId))
-                : null;
-            final dmCallsBlocked =
-                conv?.data.isGroup != true &&
-                dmOtherId != null &&
-                dmOtherId.isNotEmpty &&
-                isEitherBlockingFromUserIds(
-                  viewerId: user.uid,
-                  viewerBlockedIds: myBlockedAsync.value ?? const <String>[],
-                  partnerId: dmOtherId,
-                  partnerBlockedIds:
-                      partnerBlockedAsync?.value ?? const <String>[],
-                  partnerUserDocDenied: partnerBlockedAsync?.hasError == true,
-                );
-            final profilesRepo = ref.watch(userProfilesRepositoryProvider);
-            final profileWatchIds = <String>{user.uid};
-            if (conv != null && conv.data.isGroup) {
-              for (final id in conv.data.participantIds) {
-                if (id.isNotEmpty) profileWatchIds.add(id);
+          final convAsync = ref.watch(
+            conversationsProvider((
+              key: conversationIdsCacheKey([widget.conversationId]),
+            )),
+          );
+          final contactsAsync = ref.watch(userContactsIndexProvider(user.uid));
+
+          return convAsync.when(
+            skipLoadingOnReload: true,
+            data: (list) {
+              final conv = list.isNotEmpty ? list.first : null;
+              String? dmOtherId;
+              if (conv != null && !conv.data.isGroup) {
+                final others = conv.data.participantIds
+                    .where((id) => id != user.uid)
+                    .toList();
+                dmOtherId = others.isEmpty ? null : others.first;
               }
-            } else if (dmOtherId != null && dmOtherId.isNotEmpty) {
-              profileWatchIds.add(dmOtherId);
-            }
-            final sortedProfileIds = profileWatchIds.toList()..sort();
-            final profilesStream = profilesRepo?.watchUsersByIds(
-              sortedProfileIds,
-            );
+              final isSecret = conv?.data.secretChat?.enabled == true;
+              final secretLockRequired =
+                  conv?.data.secretChat?.lockPolicy.required == true;
+              final secretUnlocked = (isSecret && secretLockRequired)
+                  ? (ref
+                            .watch(
+                              secretChatAccessActiveProvider((
+                                conversationId: widget.conversationId,
+                                userId: user.uid,
+                              )),
+                            )
+                            .asData
+                            ?.value ==
+                        true)
+                  : true;
+              final isSaved =
+                  conv != null &&
+                  isSavedMessagesConversation(conv.data, user.uid);
 
-            return StreamBuilder<Map<String, UserProfile>>(
-              stream: profilesStream,
-              builder: (context, snap) {
-                _scheduleChatDraftRestoreIfNeeded(user.uid);
-                final profileMap = snap.data;
-                final selfProfile = profileMap == null
-                    ? null
-                    : profileMap[user.uid];
-                final profile = dmOtherId != null && profileMap != null
-                    ? profileMap[dmOtherId]
-                    : null;
-                final contactProfiles =
-                    contactsAsync.value?.contactProfiles ??
-                    const <String, ContactLocalProfile>{};
-                final partInfo = conv?.data.participantInfo;
-                final dmFallbackName = dmOtherId != null && partInfo != null
-                    ? partInfo[dmOtherId]?.name
-                    : null;
-                final resolvedDmName = resolveContactDisplayName(
-                  contactProfiles: contactProfiles,
-                  contactUserId: dmOtherId,
-                  fallbackName:
-                      ((profile?.name ?? dmFallbackName) ??
-                              AppLocalizations.of(
-                                context,
-                              )!.partner_profile_title_fallback_chat)
-                          .trim(),
-                );
-                final title = conv == null
-                    ? resolvedDmName
-                    : conv.data.isGroup
-                    ? (conv.data.name ??
-                          AppLocalizations.of(
-                            context,
-                          )!.partner_profile_title_fallback_group)
-                    : isSaved
-                    ? (conv.data.name ??
-                          AppLocalizations.of(
-                            context,
-                          )!.partner_profile_title_fallback_saved)
-                    : resolvedDmName;
-                final profileForSheet = profile == null
-                    ? null
-                    : UserProfile(
-                        id: profile.id,
-                        name: resolvedDmName,
-                        username: profile.username,
-                        avatar: profile.avatar,
-                        avatarThumb: profile.avatarThumb,
-                        email: profile.email,
-                        phone: profile.phone,
-                        bio: profile.bio,
-                        role: profile.role,
-                        online: profile.online,
-                        lastSeenAt: profile.lastSeenAt,
-                        dateOfBirth: profile.dateOfBirth,
-                        deletedAt: profile.deletedAt,
-                        privacySettings: profile.privacySettings,
-                        blockedUserIds: profile.blockedUserIds,
-                      );
-                final dmFallbackAvatarThumb =
-                    dmOtherId != null && partInfo != null
-                    ? partInfo[dmOtherId]?.avatarThumb
-                    : null;
-                final dmFallbackAvatar = dmOtherId != null && partInfo != null
-                    ? partInfo[dmOtherId]?.avatar
-                    : null;
-                final avatarUrl = conv?.data.isGroup == true
-                    ? conv?.data.photoUrl
-                    : isSaved
-                    ? (selfProfile?.avatarThumb ?? selfProfile?.avatar)
-                    : (profile?.avatarThumb ??
-                          profile?.avatar ??
-                          dmFallbackAvatarThumb ??
-                          dmFallbackAvatar);
-                final subtitle = conv?.data.isGroup == true
-                    ? AppLocalizations.of(
-                        context,
-                      )!.partner_profile_subtitle_group_member_count(
-                        conv?.data.participantIds.length ?? 0,
-                      )
-                    : isSaved
-                    ? AppLocalizations.of(
-                        context,
-                      )!.partner_profile_subtitle_saved_messages
-                    : partnerPresenceLine(
-                        profile,
-                        AppLocalizations.of(context)!,
-                      );
-                final showCalls =
-                    conv?.data.isGroup != true &&
-                    dmOtherId != null &&
-                    dmOtherId.isNotEmpty &&
-                    !dmCallsBlocked;
-                final threadsUnread =
-                    conv?.data.unreadThreadCounts?[user.uid] ?? 0;
-                final prefsStream = ref
-                    .read(chatSettingsRepositoryProvider)
-                    ?.watchChatConversationPrefs(
-                      userId: user.uid,
-                      conversationId: conversationId,
-                    );
-
-                void handleBack() {
-                  if (_inChatSearch) {
-                    _exitChatSearch();
-                    return;
-                  }
-                  if (_selectedMessageIds.isNotEmpty) {
-                    _exitSelection();
-                    return;
-                  }
-                  final nav = Navigator.of(context);
-                  if (nav.canPop()) {
-                    nav.maybePop();
-                  } else {
-                    context.go('/chats');
-                  }
-                }
-
-                void openProfile() {
-                  if (conv == null) return;
-                  Navigator.of(context).push<void>(
-                    CupertinoPageRoute(
-                      builder: (_) => ChatPartnerProfileSheet(
-                        conversationId: conversationId,
-                        conversation: conv.data,
-                        currentUserId: user.uid,
-                        selfProfile: selfProfile,
-                        partnerProfile: profileForSheet,
-                        onJumpToMessageId: _scrollToMessageId,
-                        fullScreen: true,
+              if (isSecret && secretLockRequired && !secretUnlocked) {
+                return SecretChatSecureScope(
+                  enabled: true,
+                  child: Scaffold(
+                    appBar: AppBar(
+                      title: Text(
+                        AppLocalizations.of(context)!.secret_chat_title,
                       ),
                     ),
-                  );
-                }
-
-                Widget chatShell(
-                  List<ChatMessage> msgs, {
-                  required bool showSpinner,
-                  required String? effectiveWallpaper,
-                }) {
-                  final pendingAlbum = ref.watch(
-                    pendingImageAlbumNotifierProvider.select(
-                      (m) => m[widget.conversationId],
+                    body: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.secret_chat_locked_title,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.secret_chat_locked_subtitle,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 14),
+                            FilledButton(
+                              onPressed: () async {
+                                final res =
+                                    await showModalBottomSheet<
+                                      SecretChatUnlockResult
+                                    >(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      builder: (_) => SecretChatUnlockSheet(
+                                        conversationId: widget.conversationId,
+                                      ),
+                                    );
+                                if (!mounted) return;
+                                if (res?.unlocked == true) {
+                                  setState(() {});
+                                }
+                              },
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.secret_chat_unlock_action,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () {
+                                context.push(
+                                  '/chats/${widget.conversationId}/secret-settings',
+                                );
+                              },
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.secret_chat_settings_title,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
+                  ),
+                );
+              }
+
+              // IMPORTANT: In Secret Chats, Firestore rules deny reading `messages/*`
+              // without an active `secretAccess` grant. Do not even subscribe to the
+              // messages stream until the chat is unlocked, otherwise the UI gets a
+              // permission-denied error even though we render the lock screen.
+              final msgsAsync = ref.watch(
+                messagesProvider((
+                  conversationId: conversationId,
+                  limit: _limit,
+                )),
+              );
+              final myBlockedAsync = ref.watch(
+                userBlockedUserIdsProvider(user.uid),
+              );
+              final partnerBlockedAsync =
+                  (dmOtherId != null && dmOtherId.isNotEmpty)
+                  ? ref.watch(userBlockedUserIdsProvider(dmOtherId))
+                  : null;
+              final dmCallsBlocked =
+                  conv?.data.isGroup != true &&
+                  dmOtherId != null &&
+                  dmOtherId.isNotEmpty &&
+                  isEitherBlockingFromUserIds(
+                    viewerId: user.uid,
+                    viewerBlockedIds: myBlockedAsync.value ?? const <String>[],
+                    partnerId: dmOtherId,
+                    partnerBlockedIds:
+                        partnerBlockedAsync?.value ?? const <String>[],
+                    partnerUserDocDenied: partnerBlockedAsync?.hasError == true,
                   );
-                  final outboxJobs = ref.watch(
-                    chatOutboxAttachmentNotifierProvider,
-                  );
-                  final repo = ref.read(chatRepositoryProvider);
-                  final isGroup = conv?.data.isGroup ?? false;
-                  final pins = conv == null
-                      ? <PinnedMessage>[]
-                      : conversationPinnedList(conv.data);
-                  final byId = {for (final m in msgs) m.id: m};
-                  final sortedPins = sortPinnedMessagesByTime(pins, byId);
-                  _cachedSortedPins = sortedPins;
-                  final pinCount = sortedPins.length;
-                  final displayPinIdx = pinCount == 0
-                      ? 0
-                      : _barPinIndex.clamp(0, pinCount - 1);
-                  final topPin = pinCount == 0
+              final profilesRepo = ref.watch(userProfilesRepositoryProvider);
+              final profileWatchIds = <String>{user.uid};
+              if (conv != null && conv.data.isGroup) {
+                for (final id in conv.data.participantIds) {
+                  if (id.isNotEmpty) profileWatchIds.add(id);
+                }
+              } else if (dmOtherId != null && dmOtherId.isNotEmpty) {
+                profileWatchIds.add(dmOtherId);
+              }
+              final sortedProfileIds = profileWatchIds.toList()..sort();
+              final profilesStream = profilesRepo?.watchUsersByIds(
+                sortedProfileIds,
+              );
+
+              return StreamBuilder<Map<String, UserProfile>>(
+                stream: profilesStream,
+                builder: (context, snap) {
+                  _scheduleChatDraftRestoreIfNeeded(user.uid);
+                  final profileMap = snap.data;
+                  final selfProfile = profileMap == null
                       ? null
-                      : sortedPins[displayPinIdx];
-                  final topInset = MediaQuery.paddingOf(context).top;
-                  final headerBar = _selectedMessageIds.isEmpty ? 56.0 : 56.0;
-                  final belowHeaderGap = topInset + headerBar;
-                  final sortedAscForAnchor = List<ChatMessage>.from(msgs)
-                    ..sort((a, b) {
-                      final t = a.createdAt.compareTo(b.createdAt);
-                      if (t != 0) return t;
-                      return a.id.compareTo(b.id);
-                    });
-                  final loadedIncomingUnreadCount = _loadedIncomingUnreadCount(
-                    sortedAscForAnchor,
-                    user.uid,
+                      : profileMap[user.uid];
+                  final profile = dmOtherId != null && profileMap != null
+                      ? profileMap[dmOtherId]
+                      : null;
+                  final contactProfiles =
+                      contactsAsync.value?.contactProfiles ??
+                      const <String, ContactLocalProfile>{};
+                  final partInfo = conv?.data.participantInfo;
+                  final dmFallbackName = dmOtherId != null && partInfo != null
+                      ? partInfo[dmOtherId]?.name
+                      : null;
+                  final resolvedDmName = resolveContactDisplayName(
+                    contactProfiles: contactProfiles,
+                    contactUserId: dmOtherId,
+                    fallbackName:
+                        ((profile?.name ?? dmFallbackName) ??
+                                AppLocalizations.of(
+                                  context,
+                                )!.partner_profile_title_fallback_chat)
+                            .trim(),
                   );
-                  final loadedIncomingUnreadIds = _incomingUnreadIds(
-                    sortedAscForAnchor,
-                    user.uid,
-                  );
-                  if (!allowReadReceipts) {
-                    final suppressKey =
-                        '${widget.conversationId}:$loadedIncomingUnreadCount';
-                    if (loadedIncomingUnreadCount > 0 &&
-                        _suppressReadConversationResetKey != suppressKey) {
-                      _suppressReadConversationResetKey = suppressKey;
+                  final title = conv == null
+                      ? resolvedDmName
+                      : conv.data.isGroup
+                      ? (conv.data.name ??
+                            AppLocalizations.of(
+                              context,
+                            )!.partner_profile_title_fallback_group)
+                      : isSaved
+                      ? (conv.data.name ??
+                            AppLocalizations.of(
+                              context,
+                            )!.partner_profile_title_fallback_saved)
+                      : resolvedDmName;
+                  final profileForSheet = profile == null
+                      ? null
+                      : UserProfile(
+                          id: profile.id,
+                          name: resolvedDmName,
+                          username: profile.username,
+                          avatar: profile.avatar,
+                          avatarThumb: profile.avatarThumb,
+                          email: profile.email,
+                          phone: profile.phone,
+                          bio: profile.bio,
+                          role: profile.role,
+                          online: profile.online,
+                          lastSeenAt: profile.lastSeenAt,
+                          dateOfBirth: profile.dateOfBirth,
+                          deletedAt: profile.deletedAt,
+                          privacySettings: profile.privacySettings,
+                          blockedUserIds: profile.blockedUserIds,
+                        );
+                  final dmFallbackAvatarThumb =
+                      dmOtherId != null && partInfo != null
+                      ? partInfo[dmOtherId]?.avatarThumb
+                      : null;
+                  final dmFallbackAvatar = dmOtherId != null && partInfo != null
+                      ? partInfo[dmOtherId]?.avatar
+                      : null;
+                  final avatarUrl = conv?.data.isGroup == true
+                      ? conv?.data.photoUrl
+                      : isSaved
+                      ? (selfProfile?.avatarThumb ?? selfProfile?.avatar)
+                      : (profile?.avatarThumb ??
+                            profile?.avatar ??
+                            dmFallbackAvatarThumb ??
+                            dmFallbackAvatar);
+                  final subtitle = conv?.data.isGroup == true
+                      ? AppLocalizations.of(
+                          context,
+                        )!.partner_profile_subtitle_group_member_count(
+                          conv?.data.participantIds.length ?? 0,
+                        )
+                      : isSaved
+                      ? AppLocalizations.of(
+                          context,
+                        )!.partner_profile_subtitle_saved_messages
+                      : partnerPresenceLine(
+                          profile,
+                          AppLocalizations.of(context)!,
+                        );
+                  final showCalls =
+                      conv?.data.isGroup != true &&
+                      dmOtherId != null &&
+                      dmOtherId.isNotEmpty &&
+                      !dmCallsBlocked;
+                  final threadsUnread =
+                      conv?.data.unreadThreadCounts?[user.uid] ?? 0;
+                  final prefsStream = ref
+                      .read(chatSettingsRepositoryProvider)
+                      ?.watchChatConversationPrefs(
+                        userId: user.uid,
+                        conversationId: conversationId,
+                      );
+
+                  void handleBack() {
+                    if (_inChatSearch) {
+                      _exitChatSearch();
+                      return;
+                    }
+                    if (_selectedMessageIds.isNotEmpty) {
+                      _exitSelection();
+                      return;
+                    }
+                    final nav = Navigator.of(context);
+                    if (nav.canPop()) {
+                      nav.maybePop();
+                    } else {
+                      context.go('/chats');
+                    }
+                  }
+
+                  void openProfile() {
+                    if (conv == null) return;
+                    Navigator.of(context).push<void>(
+                      CupertinoPageRoute(
+                        builder: (_) => ChatPartnerProfileSheet(
+                          conversationId: conversationId,
+                          conversation: conv.data,
+                          currentUserId: user.uid,
+                          selfProfile: selfProfile,
+                          partnerProfile: profileForSheet,
+                          onJumpToMessageId: _scrollToMessageId,
+                          fullScreen: true,
+                        ),
+                      ),
+                    );
+                  }
+
+                  Widget chatShell(
+                    List<ChatMessage> msgs, {
+                    required bool showSpinner,
+                    required String? effectiveWallpaper,
+                  }) {
+                    final pendingAlbum = ref.watch(
+                      pendingImageAlbumNotifierProvider.select(
+                        (m) => m[widget.conversationId],
+                      ),
+                    );
+                    final outboxJobs = ref.watch(
+                      chatOutboxAttachmentNotifierProvider,
+                    );
+                    final repo = ref.read(chatRepositoryProvider);
+                    final isGroup = conv?.data.isGroup ?? false;
+                    final pins = conv == null
+                        ? <PinnedMessage>[]
+                        : conversationPinnedList(conv.data);
+                    final byId = {for (final m in msgs) m.id: m};
+                    final sortedPins = sortPinnedMessagesByTime(pins, byId);
+                    _cachedSortedPins = sortedPins;
+                    final pinCount = sortedPins.length;
+                    final displayPinIdx = pinCount == 0
+                        ? 0
+                        : _barPinIndex.clamp(0, pinCount - 1);
+                    final topPin = pinCount == 0
+                        ? null
+                        : sortedPins[displayPinIdx];
+                    final topInset = MediaQuery.paddingOf(context).top;
+                    final headerBar = _selectedMessageIds.isEmpty ? 56.0 : 56.0;
+                    final belowHeaderGap = topInset + headerBar;
+                    final sortedAscForAnchor = List<ChatMessage>.from(msgs)
+                      ..sort((a, b) {
+                        final t = a.createdAt.compareTo(b.createdAt);
+                        if (t != 0) return t;
+                        return a.id.compareTo(b.id);
+                      });
+                    final loadedIncomingUnreadCount =
+                        _loadedIncomingUnreadCount(
+                          sortedAscForAnchor,
+                          user.uid,
+                        );
+                    final loadedIncomingUnreadIds = _incomingUnreadIds(
+                      sortedAscForAnchor,
+                      user.uid,
+                    );
+                    if (!allowReadReceipts) {
+                      final suppressKey =
+                          '${widget.conversationId}:$loadedIncomingUnreadCount';
+                      if (loadedIncomingUnreadCount > 0 &&
+                          _suppressReadConversationResetKey != suppressKey) {
+                        _suppressReadConversationResetKey = suppressKey;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) return;
+                          unawaited(
+                            _markManyUnreadAsReadAndConversation(
+                              userId: user.uid,
+                              unreadIds: loadedIncomingUnreadIds,
+                              allowReadReceipts: false,
+                              forceConversationReset: true,
+                            ),
+                          );
+                        });
+                      } else if (loadedIncomingUnreadCount == 0 &&
+                          _suppressReadConversationResetKey.isNotEmpty) {
+                        _suppressReadConversationResetKey = '';
+                      }
+                    } else if (_suppressReadConversationResetKey.isNotEmpty) {
+                      _suppressReadConversationResetKey = '';
+                    }
+                    _syncSessionUnreadSeparatorAnchor(
+                      sortedAsc: sortedAscForAnchor,
+                      viewerId: user.uid,
+                    );
+                    final unreadSeparatorMessageId =
+                        _sessionUnreadSeparatorAnchorMessageId;
+                    _maybeResolveInitialOpenPosition(
+                      unreadSeparatorMessageId: unreadSeparatorMessageId,
+                    );
+                    final serverUnreadCount =
+                        conv?.data.unreadCounts?[user.uid] ?? 0;
+                    final anchorUnreadBadgeCount = loadedIncomingUnreadCount > 0
+                        ? loadedIncomingUnreadCount
+                        : serverUnreadCount;
+                    final latestReaction = _latestAnchorReaction(
+                      conversation: conv?.data,
+                      currentUserId: user.uid,
+                    );
+                    final anchorSuppressed =
+                        _inChatSearch ||
+                        _selectedMessageIds.isNotEmpty ||
+                        showSpinner;
+                    final showScrollAnchor =
+                        !anchorSuppressed &&
+                        (latestReaction != null ||
+                            !_chatAtBottom ||
+                            anchorUnreadBadgeCount > 0);
+                    if (loadedIncomingUnreadCount == 0 &&
+                        _anchorUnreadStep != 0) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted) return;
+                        if (!mounted || _anchorUnreadStep == 0) return;
+                        setState(() => _anchorUnreadStep = 0);
+                      });
+                    }
+
+                    void onScrollAnchorTap() {
+                      if (latestReaction != null) {
+                        unawaited(
+                          _handleReactionAnchorTap(
+                            reaction: latestReaction,
+                            userId: user.uid,
+                          ),
+                        );
+                        return;
+                      }
+                      final canJumpToUnread =
+                          anchorUnreadBadgeCount > 0 &&
+                          _anchorUnreadStep == 0 &&
+                          unreadSeparatorMessageId != null;
+                      if (canJumpToUnread) {
+                        _scrollToMessageId(unreadSeparatorMessageId);
+                        setState(() => _anchorUnreadStep = 1);
+                        return;
+                      }
+                      if (_anchorUnreadStep != 0) {
+                        setState(() => _anchorUnreadStep = 0);
+                      }
+                      unawaited(_animateToChatBottom());
+                      if (anchorUnreadBadgeCount > 0) {
                         unawaited(
                           _markManyUnreadAsReadAndConversation(
                             userId: user.uid,
                             unreadIds: loadedIncomingUnreadIds,
-                            allowReadReceipts: false,
+                            allowReadReceipts: allowReadReceipts,
                             forceConversationReset: true,
                           ),
                         );
-                      });
-                    } else if (loadedIncomingUnreadCount == 0 &&
-                        _suppressReadConversationResetKey.isNotEmpty) {
-                      _suppressReadConversationResetKey = '';
+                      }
                     }
-                  } else if (_suppressReadConversationResetKey.isNotEmpty) {
-                    _suppressReadConversationResetKey = '';
-                  }
-                  _syncSessionUnreadSeparatorAnchor(
-                    sortedAsc: sortedAscForAnchor,
-                    viewerId: user.uid,
-                  );
-                  final unreadSeparatorMessageId =
-                      _sessionUnreadSeparatorAnchorMessageId;
-                  _maybeResolveInitialOpenPosition(
-                    unreadSeparatorMessageId: unreadSeparatorMessageId,
-                  );
-                  final serverUnreadCount =
-                      conv?.data.unreadCounts?[user.uid] ?? 0;
-                  final anchorUnreadBadgeCount = loadedIncomingUnreadCount > 0
-                      ? loadedIncomingUnreadCount
-                      : serverUnreadCount;
-                  final latestReaction = _latestAnchorReaction(
-                    conversation: conv?.data,
-                    currentUserId: user.uid,
-                  );
-                  final anchorSuppressed =
-                      _inChatSearch ||
-                      _selectedMessageIds.isNotEmpty ||
-                      showSpinner;
-                  final showScrollAnchor =
-                      !anchorSuppressed &&
-                      (latestReaction != null ||
-                          !_chatAtBottom ||
-                          anchorUnreadBadgeCount > 0);
-                  if (loadedIncomingUnreadCount == 0 &&
-                      _anchorUnreadStep != 0) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted || _anchorUnreadStep == 0) return;
-                      setState(() => _anchorUnreadStep = 0);
-                    });
-                  }
 
-                  void onScrollAnchorTap() {
-                    if (latestReaction != null) {
-                      unawaited(
-                        _handleReactionAnchorTap(
-                          reaction: latestReaction,
-                          userId: user.uid,
-                        ),
-                      );
-                      return;
-                    }
-                    final canJumpToUnread =
-                        anchorUnreadBadgeCount > 0 &&
-                        _anchorUnreadStep == 0 &&
-                        unreadSeparatorMessageId != null;
-                    if (canJumpToUnread) {
-                      _scrollToMessageId(unreadSeparatorMessageId);
-                      setState(() => _anchorUnreadStep = 1);
-                      return;
-                    }
-                    if (_anchorUnreadStep != 0) {
-                      setState(() => _anchorUnreadStep = 0);
-                    }
-                    unawaited(_animateToChatBottom());
-                    if (anchorUnreadBadgeCount > 0) {
-                      unawaited(
-                        _markManyUnreadAsReadAndConversation(
-                          userId: user.uid,
-                          unreadIds: loadedIncomingUnreadIds,
-                          allowReadReceipts: allowReadReceipts,
-                          forceConversationReset: true,
-                        ),
-                      );
-                    }
-                  }
-
-                  return Scaffold(
-                    extendBodyBehindAppBar: true,
-                    appBar: _selectedMessageIds.isEmpty
-                        ? PreferredSize(
-                            preferredSize: const Size.fromHeight(56),
-                            child: SafeArea(
-                              bottom: false,
-                              child: ChatHeader(
-                                title: title,
-                                subtitle: subtitle,
-                                avatarUrl: avatarUrl,
-                                onBack: handleBack,
-                                showCalls: showCalls,
-                                threadsUnreadCount: threadsUnread,
-                                onThreadsTap: () {
-                                  context.push(
-                                    '/chats/$conversationId/threads',
-                                  );
-                                },
-                                onSearchTap: _openChatSearch,
-                                onVideoCallTap: () async {
-                                  if (dmOtherId == null ||
-                                      dmOtherId.isEmpty ||
-                                      _callScreenOpening) {
-                                    return;
-                                  }
-                                  final peerName =
-                                      (resolvedDmName.trim().isNotEmpty
-                                                  ? resolvedDmName
-                                                  : title)
-                                              .trim()
-                                              .isNotEmpty ==
-                                          true
-                                      ? resolvedDmName
-                                      : AppLocalizations.of(
-                                          context,
-                                        )!.partner_profile_call_peer_fallback;
-                                  final peerAvatar =
-                                      profile?.avatarThumb ??
-                                      profile?.avatar ??
-                                      dmFallbackAvatarThumb ??
-                                      dmFallbackAvatar;
-                                  final meName =
-                                      (selfProfile?.name ?? user.uid)
-                                          .trim()
-                                          .isNotEmpty
-                                      ? (selfProfile?.name ?? user.uid)
-                                      : user.uid;
-                                  final meAvatar =
-                                      selfProfile?.avatarThumb ??
-                                      selfProfile?.avatar;
-                                  await _openCallScreen(
-                                    currentUserId: user.uid,
-                                    currentUserName: meName,
-                                    currentUserAvatarUrl: meAvatar,
-                                    peerUserId: dmOtherId,
-                                    peerUserName: peerName,
-                                    peerAvatarUrl: peerAvatar,
-                                    isVideo: true,
-                                  );
-                                },
-                                onAudioCallTap: () async {
-                                  if (dmOtherId == null ||
-                                      dmOtherId.isEmpty ||
-                                      _callScreenOpening) {
-                                    return;
-                                  }
-                                  final peerName =
-                                      (resolvedDmName.trim().isNotEmpty
-                                                  ? resolvedDmName
-                                                  : title)
-                                              .trim()
-                                              .isNotEmpty ==
-                                          true
-                                      ? resolvedDmName
-                                      : AppLocalizations.of(
-                                          context,
-                                        )!.partner_profile_call_peer_fallback;
-                                  final peerAvatar =
-                                      profile?.avatarThumb ??
-                                      profile?.avatar ??
-                                      dmFallbackAvatarThumb ??
-                                      dmFallbackAvatar;
-                                  final meName =
-                                      (selfProfile?.name ?? user.uid)
-                                          .trim()
-                                          .isNotEmpty
-                                      ? (selfProfile?.name ?? user.uid)
-                                      : user.uid;
-                                  final meAvatar =
-                                      selfProfile?.avatarThumb ??
-                                      selfProfile?.avatar;
-                                  await _openCallScreen(
-                                    currentUserId: user.uid,
-                                    currentUserName: meName,
-                                    currentUserAvatarUrl: meAvatar,
-                                    peerUserId: dmOtherId,
-                                    peerUserName: peerName,
-                                    peerAvatarUrl: peerAvatar,
-                                    isVideo: false,
-                                  );
-                                },
-                                onProfileTap: openProfile,
-                                searchActive: _inChatSearch,
-                                searchController: _chatSearchController,
-                                searchFocusNode: _chatSearchFocus,
-                                onSearchClose: _exitChatSearch,
-                                scheduledCount: _scheduledPendingCount,
-                                onScheduledTap: _scheduledPendingCount > 0
-                                    ? () => _openScheduledMessagesScreen(
-                                        user.uid,
-                                        e2eeActive: isConversationE2eeActive(
-                                          conv?.data,
-                                        ),
-                                      )
-                                    : null,
-                                disappearingMessagesEnabled:
-                                    (conv?.data.disappearingMessageTtlSec ??
-                                        0) >
-                                    0,
-                              ),
-                            ),
-                          )
-                        : PreferredSize(
-                            preferredSize: const Size.fromHeight(56),
-                            child: SafeArea(
-                              bottom: false,
-                              child: ChatSelectionAppBar(
-                                count: _selectedMessageIds.length,
-                                onClose: _exitSelection,
-                                onForward: () {
-                                  final sel = _selectedMessages(msgs);
-                                  if (sel.isEmpty) return;
-                                  _exitSelection();
-                                  context.push('/chats/forward', extra: sel);
-                                },
-                                onDelete: () => _confirmDeleteMessages(
-                                  _selectedMessages(msgs),
+                    return Scaffold(
+                      extendBodyBehindAppBar: true,
+                      appBar: _selectedMessageIds.isEmpty
+                          ? PreferredSize(
+                              preferredSize: const Size.fromHeight(56),
+                              child: SafeArea(
+                                bottom: false,
+                                child: ChatHeader(
+                                  title: title,
+                                  subtitle: subtitle,
+                                  avatarUrl: avatarUrl,
+                                  onBack: handleBack,
+                                  showCalls: showCalls,
+                                  threadsUnreadCount: threadsUnread,
+                                  onThreadsTap: () {
+                                    context.push(
+                                      '/chats/$conversationId/threads',
+                                    );
+                                  },
+                                  onSearchTap: _openChatSearch,
+                                  onVideoCallTap: () async {
+                                    if (dmOtherId == null ||
+                                        dmOtherId.isEmpty ||
+                                        _callScreenOpening) {
+                                      return;
+                                    }
+                                    final peerName =
+                                        (resolvedDmName.trim().isNotEmpty
+                                                    ? resolvedDmName
+                                                    : title)
+                                                .trim()
+                                                .isNotEmpty ==
+                                            true
+                                        ? resolvedDmName
+                                        : AppLocalizations.of(
+                                            context,
+                                          )!.partner_profile_call_peer_fallback;
+                                    final peerAvatar =
+                                        profile?.avatarThumb ??
+                                        profile?.avatar ??
+                                        dmFallbackAvatarThumb ??
+                                        dmFallbackAvatar;
+                                    final meName =
+                                        (selfProfile?.name ?? user.uid)
+                                            .trim()
+                                            .isNotEmpty
+                                        ? (selfProfile?.name ?? user.uid)
+                                        : user.uid;
+                                    final meAvatar =
+                                        selfProfile?.avatarThumb ??
+                                        selfProfile?.avatar;
+                                    await _openCallScreen(
+                                      currentUserId: user.uid,
+                                      currentUserName: meName,
+                                      currentUserAvatarUrl: meAvatar,
+                                      peerUserId: dmOtherId,
+                                      peerUserName: peerName,
+                                      peerAvatarUrl: peerAvatar,
+                                      isVideo: true,
+                                    );
+                                  },
+                                  onAudioCallTap: () async {
+                                    if (dmOtherId == null ||
+                                        dmOtherId.isEmpty ||
+                                        _callScreenOpening) {
+                                      return;
+                                    }
+                                    final peerName =
+                                        (resolvedDmName.trim().isNotEmpty
+                                                    ? resolvedDmName
+                                                    : title)
+                                                .trim()
+                                                .isNotEmpty ==
+                                            true
+                                        ? resolvedDmName
+                                        : AppLocalizations.of(
+                                            context,
+                                          )!.partner_profile_call_peer_fallback;
+                                    final peerAvatar =
+                                        profile?.avatarThumb ??
+                                        profile?.avatar ??
+                                        dmFallbackAvatarThumb ??
+                                        dmFallbackAvatar;
+                                    final meName =
+                                        (selfProfile?.name ?? user.uid)
+                                            .trim()
+                                            .isNotEmpty
+                                        ? (selfProfile?.name ?? user.uid)
+                                        : user.uid;
+                                    final meAvatar =
+                                        selfProfile?.avatarThumb ??
+                                        selfProfile?.avatar;
+                                    await _openCallScreen(
+                                      currentUserId: user.uid,
+                                      currentUserName: meName,
+                                      currentUserAvatarUrl: meAvatar,
+                                      peerUserId: dmOtherId,
+                                      peerUserName: peerName,
+                                      peerAvatarUrl: peerAvatar,
+                                      isVideo: false,
+                                    );
+                                  },
+                                  onProfileTap: openProfile,
+                                  searchActive: _inChatSearch,
+                                  searchController: _chatSearchController,
+                                  searchFocusNode: _chatSearchFocus,
+                                  onSearchClose: _exitChatSearch,
+                                  scheduledCount: _scheduledPendingCount,
+                                  onScheduledTap: _scheduledPendingCount > 0
+                                      ? () => _openScheduledMessagesScreen(
+                                          user.uid,
+                                          e2eeActive: isConversationE2eeActive(
+                                            conv?.data,
+                                          ),
+                                        )
+                                      : null,
+                                  disappearingMessagesEnabled:
+                                      (conv?.data.disappearingMessageTtlSec ??
+                                          0) >
+                                      0,
                                 ),
-                                canDelete: _canBulkDeleteFor(msgs, user.uid),
-                                isBusy: _actionBusy,
+                              ),
+                            )
+                          : PreferredSize(
+                              preferredSize: const Size.fromHeight(56),
+                              child: SafeArea(
+                                bottom: false,
+                                child: ChatSelectionAppBar(
+                                  count: _selectedMessageIds.length,
+                                  onClose: _exitSelection,
+                                  onForward: () {
+                                    final sel = _selectedMessages(msgs);
+                                    if (sel.isEmpty) return;
+                                    _exitSelection();
+                                    context.push('/chats/forward', extra: sel);
+                                  },
+                                  onDelete: () => _confirmDeleteMessages(
+                                    _selectedMessages(msgs),
+                                  ),
+                                  canDelete: _canBulkDeleteFor(msgs, user.uid),
+                                  isBusy: _actionBusy,
+                                ),
                               ),
                             ),
-                          ),
-                    body: ChatWallpaperBackground(
-                      wallpaper: effectiveWallpaper,
-                      child: Stack(
-                        children: [
-                          SafeArea(
-                            top: false,
-                            child: Column(
-                              children: [
-                                SizedBox(height: belowHeaderGap),
-                                if (conv != null)
-                                  DmGameLobbyBanner(
-                                    conversationId: conversationId,
-                                    isGroup: conv.data.isGroup,
-                                  ),
-                                if (topPin != null && conv != null)
-                                  ChatPinnedStrip(
-                                    pin: topPin,
-                                    totalPins: sortedPins.length,
-                                    onUnpin: () =>
-                                        _unpinMessage(topPin, conv.data),
-                                    onOpenPinned: () {
-                                      final n = sortedPins.length;
-                                      if (n == 0) return;
-                                      final i = displayPinIdx;
-                                      final target = sortedPins[i];
-                                      _scrollToMessageId(target.messageId);
-                                      setState(() {
-                                        _pinnedBarSkipSyncUntilMs =
-                                            DateTime.now()
-                                                .millisecondsSinceEpoch +
-                                            900;
-                                        _barPinIndex = (i - 1 + n) % n;
-                                      });
-                                    },
-                                  ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.translucent,
-                                    onTap: () {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                    },
-                                    child: showSpinner
-                                        ? const Center(
-                                            child: CircularProgressIndicator(),
-                                          )
-                                        : Stack(
-                                            children: [
-                                              Positioned.fill(
-                                                child: E2eeMessagesResolver(
-                                                  conversationId:
-                                                      conversationId,
-                                                  secretChat:
-                                                      conv?.data.secretChat,
-                                                  messages: msgs,
-                                                  lastMessageTimestamp: conv
-                                                      ?.data
-                                                      .lastMessageTimestamp,
-                                                  builder:
-                                                      (
-                                                        context,
-                                                        hydratedMsgs,
-                                                        e2eeDecryptedMap,
-                                                        e2eeFailedIds,
-                                                      ) {
-                                                        final visualMsgs =
-                                                            _holdPendingE2eeAlbumPreviewUntilHydrated(
-                                                              hydratedMsgs:
+                      body: ChatWallpaperBackground(
+                        wallpaper: effectiveWallpaper,
+                        child: Stack(
+                          children: [
+                            SafeArea(
+                              top: false,
+                              child: Column(
+                                children: [
+                                  SizedBox(height: belowHeaderGap),
+                                  if (conv != null)
+                                    DmGameLobbyBanner(
+                                      conversationId: conversationId,
+                                      isGroup: conv.data.isGroup,
+                                    ),
+                                  if (topPin != null && conv != null)
+                                    ChatPinnedStrip(
+                                      pin: topPin,
+                                      totalPins: sortedPins.length,
+                                      onUnpin: () =>
+                                          _unpinMessage(topPin, conv.data),
+                                      onOpenPinned: () {
+                                        final n = sortedPins.length;
+                                        if (n == 0) return;
+                                        final i = displayPinIdx;
+                                        final target = sortedPins[i];
+                                        _scrollToMessageId(target.messageId);
+                                        setState(() {
+                                          _pinnedBarSkipSyncUntilMs =
+                                              DateTime.now()
+                                                  .millisecondsSinceEpoch +
+                                              900;
+                                          _barPinIndex = (i - 1 + n) % n;
+                                        });
+                                      },
+                                    ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        FocusManager.instance.primaryFocus
+                                            ?.unfocus();
+                                      },
+                                      child: showSpinner
+                                          ? const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            )
+                                          : Stack(
+                                              children: [
+                                                Positioned.fill(
+                                                  child: E2eeMessagesResolver(
+                                                    conversationId:
+                                                        conversationId,
+                                                    secretChat:
+                                                        conv?.data.secretChat,
+                                                    messages: msgs,
+                                                    lastMessageTimestamp: conv
+                                                        ?.data
+                                                        .lastMessageTimestamp,
+                                                    builder:
+                                                        (
+                                                          context,
+                                                          hydratedMsgs,
+                                                          e2eeDecryptedMap,
+                                                          e2eeFailedIds,
+                                                        ) {
+                                                          final visualMsgs =
+                                                              _holdPendingE2eeAlbumPreviewUntilHydrated(
+                                                                hydratedMsgs:
+                                                                    hydratedMsgs,
+                                                                pendingAlbum:
+                                                                    pendingAlbum,
+                                                                e2eeFailedIds:
+                                                                    e2eeFailedIds,
+                                                                userId:
+                                                                    user.uid,
+                                                              );
+                                                          _sortedHydratedAscCache =
+                                                              List<
+                                                                  ChatMessage
+                                                                >.from(
                                                                   hydratedMsgs,
-                                                              pendingAlbum:
-                                                                  pendingAlbum,
-                                                              e2eeFailedIds:
-                                                                  e2eeFailedIds,
-                                                              userId: user.uid,
-                                                            );
-                                                        _sortedHydratedAscCache =
-                                                            List<
-                                                                ChatMessage
-                                                              >.from(
-                                                                hydratedMsgs,
-                                                              )
-                                                              ..sort((a, b) {
-                                                                final t = a
-                                                                    .createdAt
-                                                                    .compareTo(
-                                                                      b.createdAt,
-                                                                    );
-                                                                if (t != 0) {
-                                                                  return t;
-                                                                }
-                                                                return a.id
-                                                                    .compareTo(
-                                                                      b.id,
-                                                                    );
-                                                              });
-                                                        return ChatMessageList(
-                                                          messagesDesc:
-                                                              buildDescWithOutboxMessages(
-                                                                hydratedDesc:
-                                                                    visualMsgs,
-                                                                jobs:
-                                                                    outboxJobs,
-                                                                conversationId:
-                                                                    conversationId,
-                                                                senderId:
-                                                                    user.uid,
-                                                              ),
-                                                          currentUserId:
-                                                              user.uid,
-                                                          conversationId:
-                                                              conversationId,
-                                                          e2eeDecryptedTextByMessageId:
-                                                              e2eeDecryptedMap,
-                                                          e2eeDecryptionFailedMessageIds:
-                                                              e2eeFailedIds,
-                                                          reversed:
-                                                              _messageListReversed,
-                                                          conversation:
-                                                              conv?.data,
-                                                          scrollController:
-                                                              _scrollController,
-                                                          onNearOldestEdge:
-                                                              _historyExhausted
-                                                              ? null
-                                                              : _onScrollLoadOlder,
-                                                          unreadSeparatorMessageId:
-                                                              unreadSeparatorMessageId,
-                                                          onAtBottomChanged:
-                                                              _onChatAtBottomChanged,
-                                                          onMessageVisible:
-                                                              (message, _) {
-                                                                unawaited(
-                                                                  _markVisibleMessageAsRead(
-                                                                    message,
-                                                                    user.uid,
-                                                                    allowReadReceipts,
-                                                                  ),
+                                                                )
+                                                                ..sort((a, b) {
+                                                                  final t = a
+                                                                      .createdAt
+                                                                      .compareTo(
+                                                                        b.createdAt,
+                                                                      );
+                                                                  if (t != 0) {
+                                                                    return t;
+                                                                  }
+                                                                  return a.id
+                                                                      .compareTo(
+                                                                        b.id,
+                                                                      );
+                                                                });
+                                                          return ChatMessageList(
+                                                            messagesDesc:
+                                                                buildDescWithOutboxMessages(
+                                                                  hydratedDesc:
+                                                                      visualMsgs,
+                                                                  jobs:
+                                                                      outboxJobs,
+                                                                  conversationId:
+                                                                      conversationId,
+                                                                  senderId:
+                                                                      user.uid,
+                                                                ),
+                                                            currentUserId:
+                                                                user.uid,
+                                                            conversationId:
+                                                                conversationId,
+                                                            e2eeDecryptedTextByMessageId:
+                                                                e2eeDecryptedMap,
+                                                            e2eeDecryptionFailedMessageIds:
+                                                                e2eeFailedIds,
+                                                            reversed:
+                                                                _messageListReversed,
+                                                            conversation:
+                                                                conv?.data,
+                                                            scrollController:
+                                                                _scrollController,
+                                                            onNearOldestEdge:
+                                                                _historyExhausted
+                                                                ? null
+                                                                : _onScrollLoadOlder,
+                                                            unreadSeparatorMessageId:
+                                                                unreadSeparatorMessageId,
+                                                            onAtBottomChanged:
+                                                                _onChatAtBottomChanged,
+                                                            onMessageVisible:
+                                                                (message, _) {
+                                                                  unawaited(
+                                                                    _markVisibleMessageAsRead(
+                                                                      message,
+                                                                      user.uid,
+                                                                      allowReadReceipts,
+                                                                    ),
+                                                                  );
+                                                                },
+                                                            messageItemKeys:
+                                                                _messageItemKeys,
+                                                            jumpScrollBoostMessageId:
+                                                                _jumpScrollBoostMessageId,
+                                                            onJumpToMessageId:
+                                                                _scrollToMessageId,
+                                                            flashHighlightMessageId:
+                                                                _flashHighlightMessageId,
+                                                            selectionMode:
+                                                                _selectedMessageIds
+                                                                    .isNotEmpty,
+                                                            selectedMessageIds:
+                                                                _selectedMessageIds,
+                                                            onMessageTap:
+                                                                _toggleMessageSelected,
+                                                            onRetryMediaNorm:
+                                                                _retryMediaNormForMainChat,
+                                                            onEmitEmojiBurstEvent:
+                                                                _emitEmojiBurstEvent,
+                                                            onSwipeReply: (m) {
+                                                              if (_editingMessageId !=
+                                                                  null) {
+                                                                _toast(
+                                                                  AppLocalizations.of(
+                                                                    context,
+                                                                  )!.chat_finish_editing_first,
                                                                 );
-                                                              },
-                                                          messageItemKeys:
-                                                              _messageItemKeys,
-                                                          jumpScrollBoostMessageId:
-                                                              _jumpScrollBoostMessageId,
-                                                          onJumpToMessageId:
-                                                              _scrollToMessageId,
-                                                          flashHighlightMessageId:
-                                                              _flashHighlightMessageId,
-                                                          selectionMode:
-                                                              _selectedMessageIds
-                                                                  .isNotEmpty,
-                                                          selectedMessageIds:
-                                                              _selectedMessageIds,
-                                                          onMessageTap:
-                                                              _toggleMessageSelected,
-                                                          onRetryMediaNorm:
-                                                              _retryMediaNormForMainChat,
-                                                          onEmitEmojiBurstEvent:
-                                                              _emitEmojiBurstEvent,
-                                                          onSwipeReply: (m) {
-                                                            if (_editingMessageId !=
-                                                                null) {
-                                                              _toast(
-                                                                AppLocalizations.of(
-                                                                  context,
-                                                                )!.chat_finish_editing_first,
-                                                              );
-                                                              return;
-                                                            }
-                                                            if (_selectedMessageIds
-                                                                .isNotEmpty) {
-                                                              return;
-                                                            }
-                                                            setState(() {
-                                                              _editingMessageId =
-                                                                  null;
-                                                              _editingPreviewPlain =
-                                                                  null;
-                                                              _replyingTo = buildReplyPreview(
-                                                                l10n:
-                                                                    AppLocalizations.of(
-                                                                      context,
-                                                                    )!,
-                                                                message: m,
-                                                                currentUserId:
-                                                                    user.uid,
-                                                                isGroup:
-                                                                    conv
-                                                                        ?.data
-                                                                        .isGroup ??
-                                                                    false,
-                                                                otherUserId:
-                                                                    dmOtherId,
-                                                                otherUserName:
-                                                                    profile
-                                                                        ?.name,
-                                                              );
-                                                            });
-                                                            _scheduleChatDraftSave();
-                                                            _composerFocusNode
-                                                                .requestFocus();
-                                                          },
-                                                          onSwipeBack: () {
-                                                            if (context
-                                                                .canPop()) {
-                                                              context.pop();
-                                                            }
-                                                          },
-                                                          onOutboxRetry: (mid) {
-                                                            handleOutboxRetry(
-                                                              ref,
-                                                              mid,
-                                                            );
-                                                          },
-                                                          onOutboxDismiss: (mid) {
-                                                            unawaited(
-                                                              handleOutboxDismiss(
+                                                                return;
+                                                              }
+                                                              if (_selectedMessageIds
+                                                                  .isNotEmpty) {
+                                                                return;
+                                                              }
+                                                              setState(() {
+                                                                _editingMessageId =
+                                                                    null;
+                                                                _editingPreviewPlain =
+                                                                    null;
+                                                                _replyingTo = buildReplyPreview(
+                                                                  l10n:
+                                                                      AppLocalizations.of(
+                                                                        context,
+                                                                      )!,
+                                                                  message: m,
+                                                                  currentUserId:
+                                                                      user.uid,
+                                                                  isGroup:
+                                                                      conv
+                                                                          ?.data
+                                                                          .isGroup ??
+                                                                      false,
+                                                                  otherUserId:
+                                                                      dmOtherId,
+                                                                  otherUserName:
+                                                                      profile
+                                                                          ?.name,
+                                                                );
+                                                              });
+                                                              _scheduleChatDraftSave();
+                                                              _composerFocusNode
+                                                                  .requestFocus();
+                                                            },
+                                                            onSwipeBack: () {
+                                                              if (context
+                                                                  .canPop()) {
+                                                                context.pop();
+                                                              }
+                                                            },
+                                                            onOutboxRetry: (mid) {
+                                                              handleOutboxRetry(
                                                                 ref,
                                                                 mid,
-                                                              ),
-                                                            );
-                                                          },
-                                                          pendingRetryAt:
-                                                              _pendingRetryAt,
-                                                          fontSize: fontSize,
-                                                          bubbleRadius:
-                                                              bubbleRadius,
-                                                          showTimestamps:
-                                                              showTimestamps,
-                                                          emojiBurstAnimationProfile:
-                                                              emojiBurstAnimationProfile,
-                                                          outgoingBubbleColor:
-                                                              bubbleColor,
-                                                          incomingBubbleColor:
-                                                              incomingBubbleColor,
-                                                          outgoingMediaFooter:
-                                                              pendingAlbum ==
-                                                                      null ||
-                                                                  repo == null
-                                                              ? null
-                                                              : Builder(
-                                                                  builder: (_) {
-                                                                    final album =
-                                                                        pendingAlbum;
-                                                                    return Align(
-                                                                      alignment:
-                                                                          Alignment
-                                                                              .centerRight,
-                                                                      child: OutgoingPendingMediaAlbum(
-                                                                        key: ValueKey(
-                                                                          Object.hash(
-                                                                            album.files.length,
-                                                                            album.text,
-                                                                            album.replyTo?.messageId,
+                                                              );
+                                                            },
+                                                            onOutboxDismiss: (mid) {
+                                                              unawaited(
+                                                                handleOutboxDismiss(
+                                                                  ref,
+                                                                  mid,
+                                                                ),
+                                                              );
+                                                            },
+                                                            pendingRetryAt:
+                                                                _pendingRetryAt,
+                                                            fontSize: fontSize,
+                                                            bubbleRadius:
+                                                                bubbleRadius,
+                                                            showTimestamps:
+                                                                showTimestamps,
+                                                            emojiBurstAnimationProfile:
+                                                                emojiBurstAnimationProfile,
+                                                            outgoingBubbleColor:
+                                                                bubbleColor,
+                                                            incomingBubbleColor:
+                                                                incomingBubbleColor,
+                                                            outgoingMediaFooter:
+                                                                pendingAlbum ==
+                                                                        null ||
+                                                                    repo == null
+                                                                ? null
+                                                                : Builder(
+                                                                    builder: (_) {
+                                                                      final album =
+                                                                          pendingAlbum;
+                                                                      return Align(
+                                                                        alignment:
+                                                                            Alignment.centerRight,
+                                                                        child: OutgoingPendingMediaAlbum(
+                                                                          key: ValueKey(
+                                                                            Object.hash(
+                                                                              album.files.length,
+                                                                              album.text,
+                                                                              album.replyTo?.messageId,
+                                                                            ),
                                                                           ),
-                                                                        ),
-                                                                        files: album
-                                                                            .files,
-                                                                        captionText:
-                                                                            album.text,
-                                                                        replyTo:
-                                                                            album.replyTo,
-                                                                        conversationId:
-                                                                            widget.conversationId,
-                                                                        senderId:
-                                                                            user.uid,
-                                                                        repo:
-                                                                            repo,
-                                                                        isMine:
-                                                                            true,
-                                                                        outgoingBubbleColor:
-                                                                            bubbleColor,
-                                                                        e2eeContext:
-                                                                            album.e2eeContext,
-                                                                        onFinished: () {
-                                                                          if (mounted) {
-                                                                            final pendingMessageId =
-                                                                                album.e2eeContext?.messageId.trim();
-                                                                            final shouldKeepPreview =
-                                                                                pendingMessageId !=
-                                                                                    null &&
-                                                                                pendingMessageId.isNotEmpty;
-                                                                            if (!shouldKeepPreview) {
-                                                                              ref
-                                                                                  .read(
-                                                                                    pendingImageAlbumNotifierProvider.notifier,
-                                                                                  )
-                                                                                  .setFor(
+                                                                          files:
+                                                                              album.files,
+                                                                          captionText:
+                                                                              album.text,
+                                                                          replyTo:
+                                                                              album.replyTo,
+                                                                          conversationId:
+                                                                              widget.conversationId,
+                                                                          senderId:
+                                                                              user.uid,
+                                                                          repo:
+                                                                              repo,
+                                                                          isMine:
+                                                                              true,
+                                                                          outgoingBubbleColor:
+                                                                              bubbleColor,
+                                                                          e2eeContext:
+                                                                              album.e2eeContext,
+                                                                          onFinished: () {
+                                                                            if (mounted) {
+                                                                              final pendingMessageId = album.e2eeContext?.messageId.trim();
+                                                                              final shouldKeepPreview =
+                                                                                  pendingMessageId !=
+                                                                                      null &&
+                                                                                  pendingMessageId.isNotEmpty;
+                                                                              if (!shouldKeepPreview) {
+                                                                                ref
+                                                                                    .read(
+                                                                                      pendingImageAlbumNotifierProvider.notifier,
+                                                                                    )
+                                                                                    .setFor(
+                                                                                      widget.conversationId,
+                                                                                      null,
+                                                                                    );
+                                                                                unawaited(
+                                                                                  clearChatMessageDraft(
+                                                                                    user.uid,
                                                                                     widget.conversationId,
-                                                                                    null,
-                                                                                  );
-                                                                              unawaited(
-                                                                                clearChatMessageDraft(
-                                                                                  user.uid,
+                                                                                  ),
+                                                                                );
+                                                                              }
+                                                                              WidgetsBinding.instance.addPostFrameCallback(
+                                                                                (
+                                                                                  _,
+                                                                                ) {
+                                                                                  _scheduleAutoScrollToBottomIfNeeded();
+                                                                                },
+                                                                              );
+                                                                            }
+                                                                          },
+                                                                          onFailed: (e) {
+                                                                            final b = ref.read(
+                                                                              pendingImageAlbumNotifierProvider,
+                                                                            )[widget.conversationId];
+                                                                            ref
+                                                                                .read(
+                                                                                  pendingImageAlbumNotifierProvider.notifier,
+                                                                                )
+                                                                                .setFor(
                                                                                   widget.conversationId,
+                                                                                  null,
+                                                                                );
+                                                                            if (mounted) {
+                                                                              setState(
+                                                                                () {
+                                                                                  if (b !=
+                                                                                      null) {
+                                                                                    _pendingAttachments
+                                                                                      ..clear()
+                                                                                      ..addAll(
+                                                                                        b.files,
+                                                                                      );
+                                                                                    _controller.text = b.text;
+                                                                                    _replyingTo = b.replyTo;
+                                                                                  }
+                                                                                },
+                                                                              );
+                                                                              ScaffoldMessenger.of(
+                                                                                context,
+                                                                              ).showSnackBar(
+                                                                                SnackBar(
+                                                                                  content: Text(
+                                                                                    AppLocalizations.of(
+                                                                                      context,
+                                                                                    )!.chat_send_failed(
+                                                                                      e,
+                                                                                    ),
+                                                                                  ),
                                                                                 ),
                                                                               );
                                                                             }
-                                                                            WidgetsBinding.instance.addPostFrameCallback((
-                                                                              _,
-                                                                            ) {
-                                                                              _scheduleAutoScrollToBottomIfNeeded();
-                                                                            });
-                                                                          }
-                                                                        },
-                                                                        onFailed: (e) {
-                                                                          final b = ref.read(
-                                                                            pendingImageAlbumNotifierProvider,
-                                                                          )[widget.conversationId];
-                                                                          ref
-                                                                              .read(
-                                                                                pendingImageAlbumNotifierProvider.notifier,
-                                                                              )
-                                                                              .setFor(
-                                                                                widget.conversationId,
-                                                                                null,
-                                                                              );
-                                                                          if (mounted) {
-                                                                            setState(() {
-                                                                              if (b !=
-                                                                                  null) {
-                                                                                _pendingAttachments
-                                                                                  ..clear()
-                                                                                  ..addAll(
-                                                                                    b.files,
-                                                                                  );
-                                                                                _controller.text = b.text;
-                                                                                _replyingTo = b.replyTo;
-                                                                              }
-                                                                            });
-                                                                            ScaffoldMessenger.of(
-                                                                              context,
-                                                                            ).showSnackBar(
-                                                                              SnackBar(
-                                                                                content: Text(
-                                                                                  AppLocalizations.of(
-                                                                                    context,
-                                                                                  )!.chat_send_failed(
-                                                                                    e,
-                                                                                  ),
-                                                                                ),
-                                                                              ),
-                                                                            );
-                                                                          }
-                                                                        },
-                                                                      ),
-                                                                    );
-                                                                  },
-                                                                ),
-                                                          onMessageLongPress: (m) =>
-                                                              _onMessageLongPress(
-                                                                m,
-                                                                user,
-                                                                conv,
-                                                                isGroup,
-                                                                dmOtherId,
-                                                                profile,
-                                                                fontSize:
-                                                                    fontSize,
-                                                                outgoingBubbleColor:
-                                                                    bubbleColor,
-                                                                incomingBubbleColor:
-                                                                    incomingBubbleColor,
-                                                                starredMessageIds:
-                                                                    starredIdsAsync
-                                                                        .value ??
-                                                                    const <
-                                                                      String
-                                                                    >{},
-                                                              ),
-                                                          onOpenThread: (m) {
-                                                            context.push(
-                                                              '/chats/$conversationId/thread/${m.id}',
-                                                              extra: m,
-                                                            );
-                                                          },
-                                                          onOpenMediaGallery:
-                                                              (att, m) {
-                                                                _openMediaGallery(
-                                                                  att,
-                                                                  m,
-                                                                  user: user,
-                                                                  isGroup:
-                                                                      isGroup,
-                                                                  dmOtherId:
-                                                                      dmOtherId,
-                                                                  profile:
-                                                                      profile,
-                                                                  profileMap:
-                                                                      profileMap,
-                                                                  conv: conv
-                                                                      ?.data,
-                                                                );
-                                                              },
-                                                          onOpenFileAttachment:
-                                                              (att, m) {
-                                                                unawaited(
-                                                                  _openFileAttachment(
+                                                                          },
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                  ),
+                                                            onMessageLongPress: (m) => _onMessageLongPress(
+                                                              m,
+                                                              user,
+                                                              conv,
+                                                              isGroup,
+                                                              dmOtherId,
+                                                              profile,
+                                                              fontSize:
+                                                                  fontSize,
+                                                              outgoingBubbleColor:
+                                                                  bubbleColor,
+                                                              incomingBubbleColor:
+                                                                  incomingBubbleColor,
+                                                              starredMessageIds:
+                                                                  starredIdsAsync
+                                                                      .value ??
+                                                                  const <
+                                                                    String
+                                                                  >{},
+                                                            ),
+                                                            onOpenThread: (m) {
+                                                              context.push(
+                                                                '/chats/$conversationId/thread/${m.id}',
+                                                                extra: m,
+                                                              );
+                                                            },
+                                                            onOpenMediaGallery:
+                                                                (att, m) {
+                                                                  _openMediaGallery(
                                                                     att,
                                                                     m,
+                                                                    user: user,
+                                                                    isGroup:
+                                                                        isGroup,
+                                                                    dmOtherId:
+                                                                        dmOtherId,
+                                                                    profile:
+                                                                        profile,
+                                                                    profileMap:
+                                                                        profileMap,
                                                                     conv: conv
                                                                         ?.data,
-                                                                  ),
-                                                                );
-                                                              },
-                                                          profileMap:
-                                                              profileMap,
-                                                          contactProfiles:
-                                                              contactProfiles,
-                                                          onToggleReaction: (m, emoji) async {
-                                                            final r = ref.read(
-                                                              chatRepositoryProvider,
-                                                            );
-                                                            if (r == null ||
-                                                                emoji
-                                                                    .trim()
-                                                                    .isEmpty) {
-                                                              return;
-                                                            }
-                                                            try {
-                                                              await r.toggleMessageReaction(
-                                                                conversationId:
-                                                                    widget
-                                                                        .conversationId,
-                                                                messageId: m.id,
-                                                                userId:
-                                                                    user.uid,
-                                                                emoji: emoji
-                                                                    .trim(),
+                                                                  );
+                                                                },
+                                                            onOpenFileAttachment:
+                                                                (att, m) {
+                                                                  unawaited(
+                                                                    _openFileAttachment(
+                                                                      att,
+                                                                      m,
+                                                                      conv: conv
+                                                                          ?.data,
+                                                                    ),
+                                                                  );
+                                                                },
+                                                            profileMap:
+                                                                profileMap,
+                                                            contactProfiles:
+                                                                contactProfiles,
+                                                            onToggleReaction: (m, emoji) async {
+                                                              final r = ref.read(
+                                                                chatRepositoryProvider,
                                                               );
-                                                            } catch (e) {
-                                                              if (!context
-                                                                  .mounted) {
+                                                              if (r == null ||
+                                                                  emoji
+                                                                      .trim()
+                                                                      .isEmpty) {
                                                                 return;
                                                               }
-                                                              ScaffoldMessenger.of(
-                                                                context,
-                                                              ).showSnackBar(
-                                                                SnackBar(
-                                                                  content: Text(
-                                                                    AppLocalizations.of(
-                                                                      context,
-                                                                    )!.chat_reaction_toggle_failed(
-                                                                      e,
+                                                              try {
+                                                                await r.toggleMessageReaction(
+                                                                  conversationId:
+                                                                      widget
+                                                                          .conversationId,
+                                                                  messageId:
+                                                                      m.id,
+                                                                  userId:
+                                                                      user.uid,
+                                                                  emoji: emoji
+                                                                      .trim(),
+                                                                );
+                                                              } catch (e) {
+                                                                if (!context
+                                                                    .mounted) {
+                                                                  return;
+                                                                }
+                                                                ScaffoldMessenger.of(
+                                                                  context,
+                                                                ).showSnackBar(
+                                                                  SnackBar(
+                                                                    content: Text(
+                                                                      AppLocalizations.of(
+                                                                        context,
+                                                                      )!.chat_reaction_toggle_failed(
+                                                                        e,
+                                                                      ),
                                                                     ),
                                                                   ),
-                                                                ),
-                                                              );
-                                                            }
-                                                          },
-                                                        );
-                                                      },
-                                                ),
-                                              ),
-                                              if (_inChatSearch)
-                                                ListenableBuilder(
-                                                  listenable:
-                                                      _chatSearchController,
-                                                  builder: (context, _) {
-                                                    final t =
-                                                        _chatSearchController
-                                                            .text
-                                                            .trim();
-                                                    if (t.length < 2) {
-                                                      return const SizedBox.shrink();
-                                                    }
-                                                    // Подмешиваем расшифрованный
-                                                    // plaintext из persistent
-                                                    // E2EE-кэша (warm-up или
-                                                    // putText из orchestrator):
-                                                    // у E2EE-сообщений `m.text`
-                                                    // пуст, и без этого фильтр
-                                                    // всегда возвращал бы 0
-                                                    // совпадений.
-                                                    final decryptedMap =
-                                                        <String, String>{};
-                                                    for (final m in msgs) {
-                                                      if (m.e2eePayload ==
-                                                          null) {
-                                                        continue;
-                                                      }
-                                                      final cached =
-                                                          E2eePlaintextCache
-                                                              .instance
-                                                              .getTextSync(
-                                                                conversationId:
-                                                                    widget
-                                                                        .conversationId,
-                                                                messageId: m.id,
-                                                              );
-                                                      if (cached != null &&
-                                                          cached.isNotEmpty) {
-                                                        decryptedMap[m.id] =
-                                                            cached;
-                                                      }
-                                                    }
-                                                    final results =
-                                                        filterMessagesForInChatSearch(
-                                                          msgs,
-                                                          _chatSearchController
-                                                              .text,
-                                                          decryptedTextByMessageId:
-                                                              decryptedMap,
-                                                        );
-                                                    return Positioned.fill(
-                                                      child: ChatMessageSearchOverlay(
-                                                        results: results,
-                                                        conversation:
-                                                            conv?.data,
-                                                        profileMap:
-                                                            profileMap ??
-                                                            <
-                                                              String,
-                                                              UserProfile
-                                                            >{},
-                                                        decryptedTextByMessageId:
-                                                            decryptedMap,
-                                                        onSelectMessageId: (id) {
-                                                          _exitChatSearch();
-                                                          _scrollToMessageId(
-                                                            id,
+                                                                );
+                                                              }
+                                                            },
                                                           );
                                                         },
-                                                        onTapScrim:
-                                                            _exitChatSearch,
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              if (_loadingOlder)
-                                                const Positioned(
-                                                  top: 10,
-                                                  left: 0,
-                                                  right: 0,
-                                                  child: Center(
-                                                    child: SizedBox(
-                                                      width: 18,
-                                                      height: 18,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                          ),
-                                                    ),
                                                   ),
                                                 ),
-                                              Positioned(
-                                                right: 12,
-                                                bottom: 12,
-                                                child: ChatScrollAnchorButton(
-                                                  isVisible: showScrollAnchor,
-                                                  unreadCount:
-                                                      anchorUnreadBadgeCount,
-                                                  reactionEmoji:
-                                                      latestReaction?.emoji,
-                                                  onReactionTap:
-                                                      latestReaction == null
-                                                      ? null
-                                                      : () {
-                                                          unawaited(
-                                                            _handleReactionAnchorTap(
-                                                              reaction:
-                                                                  latestReaction,
-                                                              userId: user.uid,
-                                                            ),
+                                                if (_inChatSearch)
+                                                  ListenableBuilder(
+                                                    listenable:
+                                                        _chatSearchController,
+                                                    builder: (context, _) {
+                                                      final t =
+                                                          _chatSearchController
+                                                              .text
+                                                              .trim();
+                                                      if (t.length < 2) {
+                                                        return const SizedBox.shrink();
+                                                      }
+                                                      // Подмешиваем расшифрованный
+                                                      // plaintext из persistent
+                                                      // E2EE-кэша (warm-up или
+                                                      // putText из orchestrator):
+                                                      // у E2EE-сообщений `m.text`
+                                                      // пуст, и без этого фильтр
+                                                      // всегда возвращал бы 0
+                                                      // совпадений.
+                                                      final decryptedMap =
+                                                          <String, String>{};
+                                                      for (final m in msgs) {
+                                                        if (m.e2eePayload ==
+                                                            null) {
+                                                          continue;
+                                                        }
+                                                        final cached =
+                                                            E2eePlaintextCache
+                                                                .instance
+                                                                .getTextSync(
+                                                                  conversationId:
+                                                                      widget
+                                                                          .conversationId,
+                                                                  messageId:
+                                                                      m.id,
+                                                                );
+                                                        if (cached != null &&
+                                                            cached.isNotEmpty) {
+                                                          decryptedMap[m.id] =
+                                                              cached;
+                                                        }
+                                                      }
+                                                      final results =
+                                                          filterMessagesForInChatSearch(
+                                                            msgs,
+                                                            _chatSearchController
+                                                                .text,
+                                                            decryptedTextByMessageId:
+                                                                decryptedMap,
                                                           );
-                                                        },
-                                                  onTap: onScrollAnchorTap,
+                                                      return Positioned.fill(
+                                                        child: ChatMessageSearchOverlay(
+                                                          results: results,
+                                                          conversation:
+                                                              conv?.data,
+                                                          profileMap:
+                                                              profileMap ??
+                                                              <
+                                                                String,
+                                                                UserProfile
+                                                              >{},
+                                                          decryptedTextByMessageId:
+                                                              decryptedMap,
+                                                          onSelectMessageId: (id) {
+                                                            _exitChatSearch();
+                                                            _scrollToMessageId(
+                                                              id,
+                                                            );
+                                                          },
+                                                          onTapScrim:
+                                                              _exitChatSearch,
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                if (_loadingOlder)
+                                                  const Positioned(
+                                                    top: 10,
+                                                    left: 0,
+                                                    right: 0,
+                                                    child: Center(
+                                                      child: SizedBox(
+                                                        width: 18,
+                                                        height: 18,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                Positioned(
+                                                  right: 12,
+                                                  bottom: 12,
+                                                  child: ChatScrollAnchorButton(
+                                                    isVisible: showScrollAnchor,
+                                                    unreadCount:
+                                                        anchorUnreadBadgeCount,
+                                                    reactionEmoji:
+                                                        latestReaction?.emoji,
+                                                    onReactionTap:
+                                                        latestReaction == null
+                                                        ? null
+                                                        : () {
+                                                            unawaited(
+                                                              _handleReactionAnchorTap(
+                                                                reaction:
+                                                                    latestReaction,
+                                                                userId:
+                                                                    user.uid,
+                                                              ),
+                                                            );
+                                                          },
+                                                    onTap: onScrollAnchorTap,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
+                                              ],
+                                            ),
+                                    ),
                                   ),
-                                ),
-                                if (_selectedMessageIds.isEmpty) ...[
-                                  const LiveLocationStopBanner(),
-                                  ChatComposer(
-                                    controller: _controller,
-                                    focusNode: _composerFocusNode,
-                                    e2eeDisabledBanner:
-                                        (conv != null &&
-                                            conv.data.isGroup != true &&
-                                            dmOtherId != null &&
-                                            dmOtherId.isNotEmpty &&
-                                            profile == null)
-                                        ? const DeletedAccountReadOnlyBanner()
-                                        : dmComposerBlockBanner(
-                                            context: context,
-                                            ref: ref,
-                                            currentUserId: user.uid,
+                                  if (_selectedMessageIds.isEmpty) ...[
+                                    const LiveLocationStopBanner(),
+                                    ChatComposer(
+                                      controller: _controller,
+                                      focusNode: _composerFocusNode,
+                                      e2eeDisabledBanner:
+                                          (conv != null &&
+                                              conv.data.isGroup != true &&
+                                              dmOtherId != null &&
+                                              dmOtherId.isNotEmpty &&
+                                              profile == null)
+                                          ? const DeletedAccountReadOnlyBanner()
+                                          : dmComposerBlockBanner(
+                                              context: context,
+                                              ref: ref,
+                                              currentUserId: user.uid,
+                                              conv: conv?.data,
+                                            ),
+                                      // Phase 4: в E2EE-чатах текст отправляется
+                                      // зашифрованным через [MobileE2eeRuntime].
+                                      // Баннер оставляем только когда runtime ещё
+                                      // не готов (нет identity) — на практике это
+                                      // краткий старт.
+                                      replyingTo: _replyingTo,
+                                      onCancelReply: () {
+                                        setState(() => _replyingTo = null);
+                                        _scheduleChatDraftSave();
+                                      },
+                                      editingPreviewPlain: _editingPreviewPlain,
+                                      onCancelEdit: _editingMessageId != null
+                                          ? _cancelInlineEdit
+                                          : null,
+                                      onSend: () {
+                                        final globalPolicy =
+                                            E2eeDataTypePolicy.fromFirestore(
+                                              rawPrivacySettings['e2eeEncryptedDataTypes'],
+                                            );
+                                        final convData = conv?.data;
+                                        final overrideRaw = convData
+                                            ?.e2eeEncryptedDataTypesOverride;
+                                        final overridePolicy =
+                                            overrideRaw == null
+                                            ? null
+                                            : E2eeDataTypePolicy.fromFirestore(
+                                                overrideRaw,
+                                              );
+                                        final effectivePolicy =
+                                            resolveE2eeEffectivePolicy(
+                                              global: globalPolicy,
+                                              override: overridePolicy,
+                                            );
+                                        unawaited(
+                                          _submitComposer(
+                                            user.uid,
+                                            conv: convData,
+                                            e2eePolicy: effectivePolicy,
+                                          ),
+                                        );
+                                      },
+                                      onSendLongPress: () {
+                                        unawaited(
+                                          _openScheduleSheet(
+                                            user.uid,
                                             conv: conv?.data,
                                           ),
-                                    // Phase 4: в E2EE-чатах текст отправляется
-                                    // зашифрованным через [MobileE2eeRuntime].
-                                    // Баннер оставляем только когда runtime ещё
-                                    // не готов (нет identity) — на практике это
-                                    // краткий старт.
-                                    replyingTo: _replyingTo,
-                                    onCancelReply: () {
-                                      setState(() => _replyingTo = null);
-                                      _scheduleChatDraftSave();
-                                    },
-                                    editingPreviewPlain: _editingPreviewPlain,
-                                    onCancelEdit: _editingMessageId != null
-                                        ? _cancelInlineEdit
-                                        : null,
-                                    onSend: () {
-                                      final globalPolicy =
-                                          E2eeDataTypePolicy.fromFirestore(
-                                            rawPrivacySettings['e2eeEncryptedDataTypes'],
-                                          );
-                                      final convData = conv?.data;
-                                      final overrideRaw = convData
-                                          ?.e2eeEncryptedDataTypesOverride;
-                                      final overridePolicy = overrideRaw == null
-                                          ? null
-                                          : E2eeDataTypePolicy.fromFirestore(
-                                              overrideRaw,
-                                            );
-                                      final effectivePolicy =
-                                          resolveE2eeEffectivePolicy(
-                                            global: globalPolicy,
-                                            override: overridePolicy,
-                                          );
-                                      unawaited(
-                                        _submitComposer(
-                                          user.uid,
-                                          conv: convData,
-                                          e2eePolicy: effectivePolicy,
-                                        ),
-                                      );
-                                    },
-                                    onSendLongPress: () {
-                                      unawaited(
-                                        _openScheduleSheet(
-                                          user.uid,
-                                          conv: conv?.data,
-                                        ),
-                                      );
-                                    },
-                                    groupMentionCandidates:
-                                        conv != null && conv.data.isGroup
-                                        ? buildGroupMentionCandidates(
-                                            conversation: conv.data,
-                                            currentUserId: user.uid,
-                                            profileMap: profileMap,
-                                            contactProfiles: contactProfiles,
-                                            l10n: AppLocalizations.of(context),
-                                          )
-                                        : null,
-                                    pendingAttachments: _pendingAttachments,
-                                    onRemovePending: (i) {
-                                      setState(
-                                        () => _pendingAttachments.removeAt(i),
-                                      );
-                                      _scheduleChatDraftSave();
-                                    },
-                                    onEditPending: (i) async {
-                                      if (i < 0 ||
-                                          i >= _pendingAttachments.length) {
-                                        return;
-                                      }
-                                      final target = _pendingAttachments[i];
-                                      if (isOutgoingAlbumLocalImage(target)) {
-                                        final imageIndices = <int>[];
-                                        final imageFiles = <XFile>[];
-                                        for (
-                                          var idx = 0;
-                                          idx < _pendingAttachments.length;
-                                          idx++
-                                        ) {
-                                          final f = _pendingAttachments[idx];
-                                          if (isOutgoingAlbumLocalImage(f)) {
-                                            imageIndices.add(idx);
-                                            imageFiles.add(f);
-                                          }
+                                        );
+                                      },
+                                      groupMentionCandidates:
+                                          conv != null && conv.data.isGroup
+                                          ? buildGroupMentionCandidates(
+                                              conversation: conv.data,
+                                              currentUserId: user.uid,
+                                              profileMap: profileMap,
+                                              contactProfiles: contactProfiles,
+                                              l10n: AppLocalizations.of(
+                                                context,
+                                              ),
+                                            )
+                                          : null,
+                                      pendingAttachments: _pendingAttachments,
+                                      onRemovePending: (i) {
+                                        setState(
+                                          () => _pendingAttachments.removeAt(i),
+                                        );
+                                        _scheduleChatDraftSave();
+                                      },
+                                      onEditPending: (i) async {
+                                        if (i < 0 ||
+                                            i >= _pendingAttachments.length) {
+                                          return;
                                         }
-                                        if (imageFiles.isEmpty) return;
-
-                                        final initialImageIndex = imageIndices
-                                            .indexOf(i);
-                                        if (initialImageIndex < 0) return;
-
-                                        final edited =
-                                            await ChatImageEditorScreen.open(
-                                              context,
-                                              files: imageFiles,
-                                              initialIndex: initialImageIndex,
-                                              initialCaption: _controller.text,
-                                            );
-                                        if (edited == null || !mounted) return;
-
-                                        setState(() {
-                                          final merged = <XFile>[];
-                                          var editedImageCursor = 0;
+                                        final target = _pendingAttachments[i];
+                                        if (isOutgoingAlbumLocalImage(target)) {
+                                          var imageCount = 0;
                                           for (final f in _pendingAttachments) {
                                             if (isOutgoingAlbumLocalImage(f)) {
-                                              if (editedImageCursor <
-                                                  edited.files.length) {
-                                                merged.add(
-                                                  edited
-                                                      .files[editedImageCursor],
-                                                );
-                                                editedImageCursor += 1;
-                                              }
-                                              continue;
+                                              imageCount += 1;
                                             }
-                                            merged.add(f);
                                           }
-                                          while (editedImageCursor <
-                                              edited.files.length) {
-                                            merged.add(
-                                              edited.files[editedImageCursor],
-                                            );
-                                            editedImageCursor += 1;
+                                          if (Platform.isIOS &&
+                                              imageCount == 1) {
+                                            final editedNative =
+                                                await openIosNativeImageMarkup(
+                                                  target,
+                                                );
+                                            if (editedNative != null &&
+                                                mounted) {
+                                              setState(() {
+                                                if (i >= 0 &&
+                                                    i <
+                                                        _pendingAttachments
+                                                            .length) {
+                                                  _pendingAttachments[i] =
+                                                      editedNative;
+                                                }
+                                              });
+                                              _scheduleChatDraftSave();
+                                              return;
+                                            }
                                           }
-                                          _pendingAttachments
-                                            ..clear()
-                                            ..addAll(merged);
-                                        });
-                                        _controller.text = edited.caption;
-                                        _scheduleChatDraftSave();
-                                        return;
-                                      }
 
-                                      if (_looksLikeVideoAttachment(target)) {
-                                        final edited =
-                                            await ChatVideoEditorScreen.open(
-                                              context,
-                                              file: target,
-                                              initialCaption: _controller.text,
-                                            );
-                                        if (edited == null || !mounted) return;
-                                        setState(() {
-                                          if (i < 0 ||
-                                              i >= _pendingAttachments.length) {
+                                          final imageIndices = <int>[];
+                                          final imageFiles = <XFile>[];
+                                          for (
+                                            var idx = 0;
+                                            idx < _pendingAttachments.length;
+                                            idx++
+                                          ) {
+                                            final f = _pendingAttachments[idx];
+                                            if (isOutgoingAlbumLocalImage(f)) {
+                                              imageIndices.add(idx);
+                                              imageFiles.add(f);
+                                            }
+                                          }
+                                          if (imageFiles.isEmpty) return;
+
+                                          final initialImageIndex = imageIndices
+                                              .indexOf(i);
+                                          if (initialImageIndex < 0) return;
+                                          if (!context.mounted) return;
+
+                                          final edited =
+                                              await ChatImageEditorScreen.open(
+                                                context,
+                                                files: imageFiles,
+                                                initialIndex: initialImageIndex,
+                                                initialCaption:
+                                                    _controller.text,
+                                              );
+                                          if (edited == null ||
+                                              !context.mounted) {
                                             return;
                                           }
-                                          _pendingAttachments[i] = edited.file;
-                                        });
-                                        _controller.text = edited.caption;
-                                        _scheduleChatDraftSave();
-                                      }
-                                    },
-                                    attachmentsEnabled:
-                                        _editingMessageId == null,
-                                    sendBusy: _sendBusy,
-                                    onAttachmentSelected: (a) =>
-                                        unawaited(_handleComposerAttachment(a)),
-                                    onMicTap: () =>
-                                        unawaited(_sendVoiceMessage(user.uid)),
-                                    onVoiceHoldRecorded: (rec) async {
-                                      await _sendVoiceMessageFromRecord(
-                                        user.uid,
-                                        rec,
-                                      );
-                                    },
-                                    onStickersTap: () =>
-                                        unawaited(_openStickersGifPanel()),
-                                    stickerSuggestionBuilder: () {
-                                      final repo = ref.read(
-                                        userStickerPacksRepositoryProvider,
-                                      );
-                                      final chatRepo = ref.read(
-                                        chatRepositoryProvider,
-                                      );
-                                      if (repo == null || chatRepo == null) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return ComposerStickerSuggestionRow(
-                                        userId: user.uid,
-                                        repo: repo,
-                                        onPickAttachment: (att) => unawaited(
-                                          _sendStickerOrGifAttachment(
-                                            user.uid,
-                                            chatRepo,
-                                            att,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    onClipboardToolbarPaste:
-                                        _pasteContentFromClipboard,
-                                    showFormattingToolbar:
-                                        _composerFormattingOpen,
-                                    onCloseFormattingToolbar: () => setState(
-                                      () => _composerFormattingOpen = false,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          if (showCalls &&
-                              dmOtherId != null &&
-                              dmOtherId.isNotEmpty)
-                            Positioned(
-                              top: belowHeaderGap + 8,
-                              left: 12,
-                              right: 12,
-                              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                                stream: FirebaseFirestore.instance
-                                    .collection('calls')
-                                    .where('receiverId', isEqualTo: user.uid)
-                                    .snapshots(),
-                                builder: (context, callSnap) {
-                                  if (!callSnap.hasData ||
-                                      callSnap.data!.docs.isEmpty ||
-                                      _callScreenOpening) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final activeDocs =
-                                      callSnap.data!.docs.where((d) {
-                                        final m = d.data();
-                                        if ((m['callerId'] as String?) !=
-                                            dmOtherId) {
-                                          return false;
-                                        }
-                                        final status =
-                                            (m['status'] as String?) ?? '';
-                                        return status == 'calling' ||
-                                            status == 'ongoing';
-                                      }).toList()..sort((a, b) {
-                                        final ta =
-                                            (a.data()['createdAt']
-                                                as String?) ??
-                                            '';
-                                        final tb =
-                                            (b.data()['createdAt']
-                                                as String?) ??
-                                            '';
-                                        return tb.compareTo(ta);
-                                      });
-                                  if (activeDocs.isEmpty) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final doc = activeDocs.first;
-                                  final callId = doc.id;
-                                  final map = doc.data();
-                                  final status =
-                                      (map['status'] as String?) ?? 'calling';
-                                  final isVideo = map['isVideo'] == true;
 
-                                  if (status == 'calling' &&
-                                      _handledIncomingCallId != callId &&
-                                      !_callScreenOpening) {
-                                    _handledIncomingCallId = callId;
-                                    WidgetsBinding.instance.addPostFrameCallback((
-                                      _,
-                                    ) {
-                                      if (!mounted) return;
-                                      final meName =
-                                          (selfProfile?.name ?? user.uid)
-                                              .trim()
-                                              .isNotEmpty
-                                          ? (selfProfile?.name ?? user.uid)
-                                          : user.uid;
-                                      final meAvatar =
-                                          selfProfile?.avatarThumb ??
-                                          selfProfile?.avatar;
-                                      final peerName =
-                                          (profile?.name ??
-                                                      dmFallbackName ??
-                                                      title)
-                                                  .trim()
-                                                  .isNotEmpty ==
-                                              true
-                                          ? (profile?.name ??
-                                                dmFallbackName ??
-                                                title)
-                                          : AppLocalizations.of(
-                                              context,
-                                            )!.partner_profile_call_peer_fallback;
-                                      final peerAvatar =
-                                          profile?.avatarThumb ??
-                                          profile?.avatar ??
-                                          dmFallbackAvatarThumb ??
-                                          dmFallbackAvatar;
-                                      unawaited(
-                                        _openCallScreen(
-                                          currentUserId: user.uid,
-                                          currentUserName: meName,
-                                          currentUserAvatarUrl: meAvatar,
-                                          peerUserId: dmOtherId!,
-                                          peerUserName: peerName,
-                                          peerAvatarUrl: peerAvatar,
-                                          isVideo: isVideo,
-                                          existingCallId: callId,
-                                        ),
-                                      );
-                                    });
-                                  }
-
-                                  final incomingLabel = status == 'ongoing'
-                                      ? (isVideo
-                                            ? AppLocalizations.of(
-                                                context,
-                                              )!.chat_call_ongoing_video
-                                            : AppLocalizations.of(
-                                                context,
-                                              )!.chat_call_ongoing_audio)
-                                      : (isVideo
-                                            ? AppLocalizations.of(
-                                                context,
-                                              )!.chat_call_incoming_video
-                                            : AppLocalizations.of(
-                                                context,
-                                              )!.chat_call_incoming_audio);
-                                  return DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.52,
-                                      ),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        12,
-                                        10,
-                                        10,
-                                        10,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            isVideo
-                                                ? Icons.videocam_rounded
-                                                : Icons.call_rounded,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.92,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Text(
-                                              incomingLabel,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ),
-                                          if (status != 'ongoing')
-                                            TextButton(
-                                              onPressed: () async {
-                                                await FirebaseFirestore.instance
-                                                    .collection('calls')
-                                                    .doc(callId)
-                                                    .update(<String, Object?>{
-                                                      'status': 'cancelled',
-                                                      'endedAt': DateTime.now()
-                                                          .toUtc()
-                                                          .toIso8601String(),
-                                                    });
-                                              },
-                                              child: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.chat_call_decline,
-                                              ),
-                                            ),
-                                          TextButton(
-                                            onPressed: () async {
-                                              final meName =
-                                                  (selfProfile?.name ??
-                                                          user.uid)
-                                                      .trim()
-                                                      .isNotEmpty
-                                                  ? (selfProfile?.name ??
-                                                        user.uid)
-                                                  : user.uid;
-                                              final meAvatar =
-                                                  selfProfile?.avatarThumb ??
-                                                  selfProfile?.avatar;
-                                              final peerName =
-                                                  (profile?.name ??
-                                                              dmFallbackName ??
-                                                              title)
-                                                          .trim()
-                                                          .isNotEmpty ==
-                                                      true
-                                                  ? (profile?.name ??
-                                                        dmFallbackName ??
-                                                        title)
-                                                  : AppLocalizations.of(
-                                                      context,
-                                                    )!.partner_profile_call_peer_fallback;
-                                              final peerAvatar =
-                                                  profile?.avatarThumb ??
-                                                  profile?.avatar ??
-                                                  dmFallbackAvatarThumb ??
-                                                  dmFallbackAvatar;
-                                              await _openCallScreen(
-                                                currentUserId: user.uid,
-                                                currentUserName: meName,
-                                                currentUserAvatarUrl: meAvatar,
-                                                peerUserId: dmOtherId!,
-                                                peerUserName: peerName,
-                                                peerAvatarUrl: peerAvatar,
-                                                isVideo: isVideo,
-                                                existingCallId: callId,
+                                          setState(() {
+                                            final merged = <XFile>[];
+                                            var editedImageCursor = 0;
+                                            for (final f
+                                                in _pendingAttachments) {
+                                              if (isOutgoingAlbumLocalImage(
+                                                f,
+                                              )) {
+                                                if (editedImageCursor <
+                                                    edited.files.length) {
+                                                  merged.add(
+                                                    edited
+                                                        .files[editedImageCursor],
+                                                  );
+                                                  editedImageCursor += 1;
+                                                }
+                                                continue;
+                                              }
+                                              merged.add(f);
+                                            }
+                                            while (editedImageCursor <
+                                                edited.files.length) {
+                                              merged.add(
+                                                edited.files[editedImageCursor],
                                               );
-                                            },
-                                            child: Text(
-                                              status == 'ongoing'
-                                                  ? AppLocalizations.of(
-                                                      context,
-                                                    )!.chat_call_open
-                                                  : AppLocalizations.of(
-                                                      context,
-                                                    )!.chat_call_accept,
+                                              editedImageCursor += 1;
+                                            }
+                                            _pendingAttachments
+                                              ..clear()
+                                              ..addAll(merged);
+                                          });
+                                          _controller.text = edited.caption;
+                                          _scheduleChatDraftSave();
+                                          return;
+                                        }
+
+                                        if (_looksLikeVideoAttachment(target)) {
+                                          final edited =
+                                              await ChatVideoEditorScreen.open(
+                                                context,
+                                                file: target,
+                                                initialCaption:
+                                                    _controller.text,
+                                              );
+                                          if (edited == null || !mounted) {
+                                            return;
+                                          }
+                                          setState(() {
+                                            if (i < 0 ||
+                                                i >=
+                                                    _pendingAttachments
+                                                        .length) {
+                                              return;
+                                            }
+                                            _pendingAttachments[i] =
+                                                edited.file;
+                                          });
+                                          _controller.text = edited.caption;
+                                          _scheduleChatDraftSave();
+                                        }
+                                      },
+                                      attachmentsEnabled:
+                                          _editingMessageId == null,
+                                      sendBusy: _sendBusy,
+                                      onAttachmentSelected: (a) => unawaited(
+                                        _handleComposerAttachment(a),
+                                      ),
+                                      onMicTap: () => unawaited(
+                                        _sendVoiceMessage(user.uid),
+                                      ),
+                                      onVoiceHoldRecorded: (rec) async {
+                                        await _sendVoiceMessageFromRecord(
+                                          user.uid,
+                                          rec,
+                                        );
+                                      },
+                                      onStickersTap: () =>
+                                          unawaited(_openStickersGifPanel()),
+                                      stickerSuggestionBuilder: () {
+                                        final repo = ref.read(
+                                          userStickerPacksRepositoryProvider,
+                                        );
+                                        final chatRepo = ref.read(
+                                          chatRepositoryProvider,
+                                        );
+                                        if (repo == null || chatRepo == null) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return ComposerStickerSuggestionRow(
+                                          userId: user.uid,
+                                          repo: repo,
+                                          onPickAttachment: (att) => unawaited(
+                                            _sendStickerOrGifAttachment(
+                                              user.uid,
+                                              chatRepo,
+                                              att,
                                             ),
                                           ),
-                                        ],
+                                        );
+                                      },
+                                      onClipboardToolbarPaste:
+                                          _pasteContentFromClipboard,
+                                      showFormattingToolbar:
+                                          _composerFormattingOpen,
+                                      onCloseFormattingToolbar: () => setState(
+                                        () => _composerFormattingOpen = false,
                                       ),
                                     ),
-                                  );
-                                },
+                                  ],
+                                ],
                               ),
                             ),
-                        ],
+                            if (showCalls &&
+                                dmOtherId != null &&
+                                dmOtherId.isNotEmpty)
+                              Positioned(
+                                top: belowHeaderGap + 8,
+                                left: 12,
+                                right: 12,
+                                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('calls')
+                                      .where('receiverId', isEqualTo: user.uid)
+                                      .snapshots(),
+                                  builder: (context, callSnap) {
+                                    if (!callSnap.hasData ||
+                                        callSnap.data!.docs.isEmpty ||
+                                        _callScreenOpening) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final activeDocs =
+                                        callSnap.data!.docs.where((d) {
+                                          final m = d.data();
+                                          if ((m['callerId'] as String?) !=
+                                              dmOtherId) {
+                                            return false;
+                                          }
+                                          final status =
+                                              (m['status'] as String?) ?? '';
+                                          return status == 'calling' ||
+                                              status == 'ongoing';
+                                        }).toList()..sort((a, b) {
+                                          final ta =
+                                              (a.data()['createdAt']
+                                                  as String?) ??
+                                              '';
+                                          final tb =
+                                              (b.data()['createdAt']
+                                                  as String?) ??
+                                              '';
+                                          return tb.compareTo(ta);
+                                        });
+                                    if (activeDocs.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final doc = activeDocs.first;
+                                    final callId = doc.id;
+                                    final map = doc.data();
+                                    final status =
+                                        (map['status'] as String?) ?? 'calling';
+                                    final isVideo = map['isVideo'] == true;
+
+                                    if (status == 'calling' &&
+                                        _handledIncomingCallId != callId &&
+                                        !_callScreenOpening) {
+                                      _handledIncomingCallId = callId;
+                                      WidgetsBinding.instance.addPostFrameCallback((
+                                        _,
+                                      ) {
+                                        if (!mounted) return;
+                                        final meName =
+                                            (selfProfile?.name ?? user.uid)
+                                                .trim()
+                                                .isNotEmpty
+                                            ? (selfProfile?.name ?? user.uid)
+                                            : user.uid;
+                                        final meAvatar =
+                                            selfProfile?.avatarThumb ??
+                                            selfProfile?.avatar;
+                                        final peerName =
+                                            (profile?.name ??
+                                                        dmFallbackName ??
+                                                        title)
+                                                    .trim()
+                                                    .isNotEmpty ==
+                                                true
+                                            ? (profile?.name ??
+                                                  dmFallbackName ??
+                                                  title)
+                                            : AppLocalizations.of(
+                                                context,
+                                              )!.partner_profile_call_peer_fallback;
+                                        final peerAvatar =
+                                            profile?.avatarThumb ??
+                                            profile?.avatar ??
+                                            dmFallbackAvatarThumb ??
+                                            dmFallbackAvatar;
+                                        unawaited(
+                                          _openCallScreen(
+                                            currentUserId: user.uid,
+                                            currentUserName: meName,
+                                            currentUserAvatarUrl: meAvatar,
+                                            peerUserId: dmOtherId!,
+                                            peerUserName: peerName,
+                                            peerAvatarUrl: peerAvatar,
+                                            isVideo: isVideo,
+                                            existingCallId: callId,
+                                          ),
+                                        );
+                                      });
+                                    }
+
+                                    final incomingLabel = status == 'ongoing'
+                                        ? (isVideo
+                                              ? AppLocalizations.of(
+                                                  context,
+                                                )!.chat_call_ongoing_video
+                                              : AppLocalizations.of(
+                                                  context,
+                                                )!.chat_call_ongoing_audio)
+                                        : (isVideo
+                                              ? AppLocalizations.of(
+                                                  context,
+                                                )!.chat_call_incoming_video
+                                              : AppLocalizations.of(
+                                                  context,
+                                                )!.chat_call_incoming_audio);
+                                    return DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.52,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          12,
+                                          10,
+                                          10,
+                                          10,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              isVideo
+                                                  ? Icons.videocam_rounded
+                                                  : Icons.call_rounded,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.92,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                incomingLabel,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                            if (status != 'ongoing')
+                                              TextButton(
+                                                onPressed: () async {
+                                                  await FirebaseFirestore
+                                                      .instance
+                                                      .collection('calls')
+                                                      .doc(callId)
+                                                      .update(<String, Object?>{
+                                                        'status': 'cancelled',
+                                                        'endedAt': DateTime.now()
+                                                            .toUtc()
+                                                            .toIso8601String(),
+                                                      });
+                                                },
+                                                child: Text(
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.chat_call_decline,
+                                                ),
+                                              ),
+                                            TextButton(
+                                              onPressed: () async {
+                                                final meName =
+                                                    (selfProfile?.name ??
+                                                            user.uid)
+                                                        .trim()
+                                                        .isNotEmpty
+                                                    ? (selfProfile?.name ??
+                                                          user.uid)
+                                                    : user.uid;
+                                                final meAvatar =
+                                                    selfProfile?.avatarThumb ??
+                                                    selfProfile?.avatar;
+                                                final peerName =
+                                                    (profile?.name ??
+                                                                dmFallbackName ??
+                                                                title)
+                                                            .trim()
+                                                            .isNotEmpty ==
+                                                        true
+                                                    ? (profile?.name ??
+                                                          dmFallbackName ??
+                                                          title)
+                                                    : AppLocalizations.of(
+                                                        context,
+                                                      )!.partner_profile_call_peer_fallback;
+                                                final peerAvatar =
+                                                    profile?.avatarThumb ??
+                                                    profile?.avatar ??
+                                                    dmFallbackAvatarThumb ??
+                                                    dmFallbackAvatar;
+                                                await _openCallScreen(
+                                                  currentUserId: user.uid,
+                                                  currentUserName: meName,
+                                                  currentUserAvatarUrl:
+                                                      meAvatar,
+                                                  peerUserId: dmOtherId!,
+                                                  peerUserName: peerName,
+                                                  peerAvatarUrl: peerAvatar,
+                                                  isVideo: isVideo,
+                                                  existingCallId: callId,
+                                                );
+                                              },
+                                              child: Text(
+                                                status == 'ongoing'
+                                                    ? AppLocalizations.of(
+                                                        context,
+                                                      )!.chat_call_open
+                                                    : AppLocalizations.of(
+                                                        context,
+                                                      )!.chat_call_accept,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                }
+                    );
+                  }
 
-                String? wallpaperForPrefs(Map<String, dynamic>? prefData) {
-                  return resolveEffectiveChatWallpaper(
-                    globalChatWallpaper: wallpaper,
-                    conversationPrefs: prefData ?? const <String, dynamic>{},
-                  );
-                }
+                  String? wallpaperForPrefs(Map<String, dynamic>? prefData) {
+                    return resolveEffectiveChatWallpaper(
+                      globalChatWallpaper: wallpaper,
+                      conversationPrefs: prefData ?? const <String, dynamic>{},
+                    );
+                  }
 
-                Widget messagesShell(String? effectiveWp) {
-                  return msgsAsync.when(
-                    skipLoadingOnReload: true,
-                    data: (msgs) {
-                      final clearedAtIso = conv?.data.clearedAt?[user.uid];
-                      _scheduleMessageExpiryRefresh(msgs);
-                      final visibleMsgs = _filterExpiredMessages(
-                        _filterByClearedAt(msgs, clearedAtIso),
-                      );
-                      final previousVisibleCount = _lastMessagesCount;
-                      _lastMessagesCount = visibleMsgs.length;
-                      _sortedAscCache = List<ChatMessage>.from(visibleMsgs)
-                        ..sort((a, b) {
-                          final t = a.createdAt.compareTo(b.createdAt);
-                          if (t != 0) return t;
-                          return a.id.compareTo(b.id);
-                        });
-                      _sortedHydratedAscCache = const <ChatMessage>[];
-                      _syncMessageItemKeys(_sortedAscCache);
-                      if (visibleMsgs.length < _limit) {
-                        _historyExhausted = true;
-                      } else if (visibleMsgs.length > _historyBaseCount) {
-                        _historyExhausted = false;
-                      }
-                      _preserveViewportOnIncomingGrowth(
-                        previousCount: previousVisibleCount,
-                        nextCount: visibleMsgs.length,
-                      );
-                      _scheduleHistoryAnchorRestore(visibleMsgs);
-                      return chatShell(
-                        visibleMsgs,
-                        showSpinner: false,
-                        effectiveWallpaper: effectiveWp,
-                      );
-                    },
-                    // При смене limit новый family-провайдер даёт loading: не убираем список
-                    // (иначе ChatMessageList dispose → снова jump вниз).
-                    loading: () {
-                      if (_sortedAscCache.isNotEmpty) {
+                  Widget messagesShell(String? effectiveWp) {
+                    return msgsAsync.when(
+                      skipLoadingOnReload: true,
+                      data: (msgs) {
+                        final clearedAtIso = conv?.data.clearedAt?[user.uid];
+                        _scheduleMessageExpiryRefresh(msgs);
+                        final visibleMsgs = _filterExpiredMessages(
+                          _filterByClearedAt(msgs, clearedAtIso),
+                        );
+                        final previousVisibleCount = _lastMessagesCount;
+                        _lastMessagesCount = visibleMsgs.length;
+                        _sortedAscCache = List<ChatMessage>.from(visibleMsgs)
+                          ..sort((a, b) {
+                            final t = a.createdAt.compareTo(b.createdAt);
+                            if (t != 0) return t;
+                            return a.id.compareTo(b.id);
+                          });
+                        _sortedHydratedAscCache = const <ChatMessage>[];
                         _syncMessageItemKeys(_sortedAscCache);
+                        if (visibleMsgs.length < _limit) {
+                          _historyExhausted = true;
+                        } else if (visibleMsgs.length > _historyBaseCount) {
+                          _historyExhausted = false;
+                        }
+                        _preserveViewportOnIncomingGrowth(
+                          previousCount: previousVisibleCount,
+                          nextCount: visibleMsgs.length,
+                        );
+                        _scheduleHistoryAnchorRestore(visibleMsgs);
                         return chatShell(
-                          _sortedAscCache,
+                          visibleMsgs,
                           showSpinner: false,
                           effectiveWallpaper: effectiveWp,
                         );
-                      }
-                      return chatShell(
-                        const <ChatMessage>[],
-                        showSpinner: true,
-                        effectiveWallpaper: effectiveWp,
-                      );
-                    },
-                    error: (e, _) {
-                      final l10n = AppLocalizations.of(context)!;
-                      final fbCode = (e is FirebaseException)
-                          ? e.code.toLowerCase().trim()
-                          : '';
-                      final isDenied = fbCode == 'permission-denied';
-                      String diagHint = '';
-                      if (isDenied) {
-                        // ignore: discarded_futures
-                        logChatOpenDiagnostics(
-                          stage: 'chat_screen.messages.error',
-                          conversationId: conversationId,
-                          error: e,
+                      },
+                      // При смене limit новый family-провайдер даёт loading: не убираем список
+                      // (иначе ChatMessageList dispose → снова jump вниз).
+                      loading: () {
+                        if (_sortedAscCache.isNotEmpty) {
+                          _syncMessageItemKeys(_sortedAscCache);
+                          return chatShell(
+                            _sortedAscCache,
+                            showSpinner: false,
+                            effectiveWallpaper: effectiveWp,
+                          );
+                        }
+                        return chatShell(
+                          const <ChatMessage>[],
+                          showSpinner: true,
+                          effectiveWallpaper: effectiveWp,
                         );
-                        final uid =
-                            FirebaseAuth.instance.currentUser?.uid ?? '';
-                        diagHint =
-                            '\n\nDiagnostics:\n- uid: ${uid.isEmpty ? '(null)' : uid}';
-                      }
-                      final msg = isDenied
-                          ? 'Permission denied.\n\n'
-                                'Most common reasons:\n'
-                                '- you are not a participant of this chat\n'
-                                '- in 1:1 chat the other user blocked you (chat is hidden)\n'
-                                '- the chat was deleted or access was revoked\n'
-                          : l10n.chat_load_messages_error(e);
-                      return Scaffold(
-                        appBar: AppBar(title: Text(l10n.chat_messages_title)),
-                        body: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text('$msg$diagHint'),
-                              const SizedBox(height: 12),
-                              FilledButton(
-                                onPressed: () =>
-                                    Navigator.of(context).maybePop(),
-                                child: Text(l10n.common_close),
-                              ),
-                            ],
+                      },
+                      error: (e, _) {
+                        final l10n = AppLocalizations.of(context)!;
+                        final fbCode = (e is FirebaseException)
+                            ? e.code.toLowerCase().trim()
+                            : '';
+                        final isDenied = fbCode == 'permission-denied';
+                        String diagHint = '';
+                        if (isDenied) {
+                          // ignore: discarded_futures
+                          logChatOpenDiagnostics(
+                            stage: 'chat_screen.messages.error',
+                            conversationId: conversationId,
+                            error: e,
+                          );
+                          final uid =
+                              FirebaseAuth.instance.currentUser?.uid ?? '';
+                          diagHint =
+                              '\n\nDiagnostics:\n- uid: ${uid.isEmpty ? '(null)' : uid}';
+                        }
+                        final msg = isDenied
+                            ? 'Permission denied.\n\n'
+                                  'Most common reasons:\n'
+                                  '- you are not a participant of this chat\n'
+                                  '- in 1:1 chat the other user blocked you (chat is hidden)\n'
+                                  '- the chat was deleted or access was revoked\n'
+                            : l10n.chat_load_messages_error(e);
+                        return Scaffold(
+                          appBar: AppBar(title: Text(l10n.chat_messages_title)),
+                          body: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text('$msg$diagHint'),
+                                const SizedBox(height: 12),
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
+                                  child: Text(l10n.common_close),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      },
+                    );
+                  }
+
+                  if (prefsStream == null) {
+                    return messagesShell(wallpaperForPrefs(null));
+                  }
+                  return StreamBuilder<Map<String, dynamic>>(
+                    stream: prefsStream,
+                    initialData: const <String, dynamic>{},
+                    builder: (context, snap) {
+                      return messagesShell(wallpaperForPrefs(snap.data));
                     },
                   );
-                }
-
-                if (prefsStream == null) {
-                  return messagesShell(wallpaperForPrefs(null));
-                }
-                return StreamBuilder<Map<String, dynamic>>(
-                  stream: prefsStream,
-                  initialData: const <String, dynamic>{},
-                  builder: (context, snap) {
-                    return messagesShell(wallpaperForPrefs(snap.data));
-                  },
-                );
-              },
-            );
-          },
-          loading: () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, _) => Scaffold(
-            body: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                AppLocalizations.of(context)!.chat_conversation_error(e),
+                },
+              );
+            },
+            loading: () => const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  AppLocalizations.of(context)!.chat_conversation_error(e),
+                ),
               ),
             ),
+          );
+        },
+        loading: () =>
+            const Scaffold(body: Center(child: CircularProgressIndicator())),
+        error: (e, _) => Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(AppLocalizations.of(context)!.chat_auth_error(e)),
           ),
-        );
-      },
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(AppLocalizations.of(context)!.chat_auth_error(e)),
         ),
       ),
     );
@@ -2794,6 +2861,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       composing: TextRange.empty,
     );
     _scheduleChatDraftSave();
+  }
+
+  void _handleDroppedFiles(List<XFile> files) {
+    if (files.isEmpty || !mounted) return;
+    if (_editingMessageId != null) {
+      _toast(AppLocalizations.of(context)!.chat_finish_editing_first);
+      return;
+    }
+    setState(() => _pendingAttachments.addAll(files));
+    _scheduleChatDraftSave();
+  }
+
+  void _handleDroppedText(String text) {
+    if (text.trim().isEmpty || !mounted) return;
+    _insertComposerTextAtCursor(text);
   }
 
   Future<void> _pasteContentFromClipboard() async {
