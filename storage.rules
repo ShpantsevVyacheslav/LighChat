@@ -17,7 +17,15 @@ service firebase.storage {
     }
 
     function isSecretChat(convId) {
-      return firestore.get(/databases/(default)/documents/conversations/$(convId)).data.secretChat.enabled == true;
+      // Defensive: на DM/group без `secretChat` поля прямой `data.secretChat.enabled`
+      // мог упасть на null-traversal, что денаило весь `isConversationMember`
+      // → 403 на chat-attachments-enc даже легитимному участнику. Сейчас
+      // явно проверяем наличие поля и его форму.
+      let convData = firestore.get(/databases/(default)/documents/conversations/$(convId)).data;
+      return ('secretChat' in convData)
+        && convData.secretChat is map
+        && ('enabled' in convData.secretChat)
+        && convData.secretChat.enabled == true;
     }
 
     function hasActiveSecretChatAccess(convId) {
