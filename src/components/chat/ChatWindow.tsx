@@ -44,6 +44,7 @@ import {
 import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
 import { useStickerSaveFlow } from '@/hooks/use-sticker-save-flow';
 import { useScheduledMessages } from '@/hooks/use-scheduled-messages';
+import { useChatProfilePane } from '@/hooks/use-chat-profile-pane';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
@@ -318,11 +319,21 @@ export function ChatWindow({
   const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
   const [selection, setSelection] = useState({ active: false, ids: new Set<string>() });
   const [mediaViewerState, setMediaViewerState] = useState({ isOpen: false, startIndex: 0 });
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profileInitialSubMenu, setProfileInitialSubMenu] = useState<ChatProfileSubMenu | null>(null);
-  /** Просмотр карточки участника группы (клик по @ в сообщении). */
-  const [profileFocusUserId, setProfileFocusUserId] = useState<string | null>(null);
-  const [profileSource, setProfileSource] = useState<ChatProfileSource>('chat');
+  // [audit M-009] 4 useState'а для profile pane вынесены в useChatProfilePane
+  // ниже — см. `profilePane.*`. Старые имена `profileFocusUserId` /
+  // `profileSource` / `profileInitialSubMenu` / `isProfileOpen` остаются
+  // как short-aliases для совместимости со старым JSX (минимизирует diff).
+  const profilePane = useChatProfilePane({
+    participantIds: conversation.participantIds,
+    initialOpen: initialProfileOpen,
+    initialFocusUserId: initialProfileFocusUserId,
+    initialSource: initialProfileSource,
+    onInitialConsumed: onInitialProfileConsumed,
+  });
+  const isProfileOpen = profilePane.isOpen;
+  const profileInitialSubMenu = profilePane.initialSubMenu;
+  const profileFocusUserId = profilePane.focusUserId;
+  const profileSource = profilePane.source;
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scheduledSheetOpen, setScheduledSheetOpen] = useState(false);
@@ -1092,38 +1103,11 @@ export function ChatWindow({
     }
   }, [allMediaItems]);
 
-  const handleProfileSheetOpenChange = useCallback((open: boolean) => {
-    setIsProfileOpen(open);
-    if (!open) setProfileInitialSubMenu(null);
-    if (!open) setProfileFocusUserId(null);
-    if (!open) setProfileSource('chat');
-  }, []);
-
-  const handleOpenThreadsFromHeader = useCallback(() => {
-    setProfileFocusUserId(null);
-    setProfileSource('chat');
-    setProfileInitialSubMenu('threads');
-    setIsProfileOpen(true);
-  }, []);
-
-  useEffect(() => {
-    if (!initialProfileOpen) return;
-    const incomingUserId =
-      initialProfileFocusUserId && conversation.participantIds.includes(initialProfileFocusUserId)
-        ? initialProfileFocusUserId
-        : null;
-    setProfileFocusUserId(incomingUserId);
-    setProfileSource(initialProfileSource ?? 'chat');
-    setProfileInitialSubMenu(null);
-    setIsProfileOpen(true);
-    onInitialProfileConsumed?.();
-  }, [
-    initialProfileOpen,
-    initialProfileFocusUserId,
-    initialProfileSource,
-    conversation.participantIds,
-    onInitialProfileConsumed,
-  ]);
+  // [audit M-009] handleProfileSheetOpenChange / handleOpenThreadsFromHeader /
+  // useEffect для URL-init вынесены в useChatProfilePane. Старые имена ниже
+  // — alias на методы хука для минимального diff в JSX.
+  const handleProfileSheetOpenChange = profilePane.onOpenChange;
+  const handleOpenThreadsFromHeader = profilePane.openThreadsFromHeader;
 
   const startThreadPanelResize = useCallback(
     (startX: number) => {
@@ -1164,25 +1148,9 @@ export function ChatWindow({
     [threadPanelWidth]
   );
 
-  const handleMentionProfileOpen = useCallback(
-    (userId: string) => {
-      if (!conversation.participantIds.includes(userId)) return;
-      setProfileFocusUserId(userId);
-      setProfileSource('mention');
-      setIsProfileOpen(true);
-    },
-    [conversation.participantIds]
-  );
-
-  const handleGroupSenderProfileOpen = useCallback(
-    (userId: string) => {
-      if (!conversation.participantIds.includes(userId)) return;
-      setProfileFocusUserId(userId);
-      setProfileSource('sender');
-      setIsProfileOpen(true);
-    },
-    [conversation.participantIds]
-  );
+  // [audit M-009] alias-методы хука profile-pane.
+  const handleMentionProfileOpen = profilePane.openMentionProfile;
+  const handleGroupSenderProfileOpen = profilePane.openGroupSenderProfile;
 
   const handleGroupSenderWritePrivate = useCallback(
     async (userId: string) => {
@@ -2179,11 +2147,7 @@ export function ChatWindow({
                         chatHeaderUserGlass,
                         'py-1 pl-1 pr-2.5'
                       )}
-                      onClick={() => {
-                        setProfileFocusUserId(null);
-                        setProfileSource('chat');
-                        setIsProfileOpen(true);
-                      }}
+                      onClick={() => profilePane.openFromHeader()}
                     >
                         <Button
                           variant="ghost"
@@ -2574,7 +2538,7 @@ export function ChatWindow({
           open={isProfileOpen}
           onOpenChange={handleProfileSheetOpenChange}
           focusUserId={profileFocusUserId}
-          onClearProfileFocus={() => setProfileFocusUserId(null)}
+          onClearProfileFocus={profilePane.clearFocus}
           conversation={conversation}
           allUsers={allUsers}
           currentUser={currentUser}
@@ -2582,7 +2546,7 @@ export function ChatWindow({
           onSelectConversation={onSelectConversation}
           profileSource={profileSource}
           initialSubMenu={profileInitialSubMenu}
-          onInitialSubMenuConsumed={() => setProfileInitialSubMenu(null)}
+          onInitialSubMenuConsumed={profilePane.clearInitialSubMenu}
         />
         <StickerPackPickerDialog
           open={stickerSave.open}
