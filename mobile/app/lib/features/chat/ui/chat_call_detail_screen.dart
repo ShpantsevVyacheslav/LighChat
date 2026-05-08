@@ -212,6 +212,7 @@ class ChatCallDetailScreen extends ConsumerWidget {
 
             return Scaffold(
               backgroundColor: Colors.transparent,
+              extendBodyBehindAppBar: true,
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 surfaceTintColor: Colors.transparent,
@@ -234,10 +235,10 @@ class ChatCallDetailScreen extends ConsumerWidget {
                 children: [
                   const ChatShellBackdrop(),
                   SafeArea(
-                    top: false,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        const SizedBox(height: kToolbarHeight),
                         Expanded(
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),

@@ -20,10 +20,7 @@ class ChatAvatar extends StatelessWidget {
     final canRenderNetwork = url != null && url.isNotEmpty && !_looksLikeSvg(url);
 
     if (!canRenderNetwork) {
-      return CircleAvatar(
-        radius: radius,
-        child: Text(title.isEmpty ? '?' : title.characters.first.toString()),
-      );
+      return ChatAvatarLetter(title: title, radius: radius);
     }
 
     return ClipOval(
@@ -34,10 +31,7 @@ class ChatAvatar extends StatelessWidget {
           url: url,
           fit: BoxFit.cover,
           compact: true,
-          errorOverride: CircleAvatar(
-            radius: radius,
-            child: Text(title.isEmpty ? '?' : title.characters.first.toString()),
-          ),
+          errorOverride: ChatAvatarLetter(title: title, radius: radius),
         ),
       ),
     );
@@ -52,3 +46,52 @@ class ChatAvatar extends StatelessWidget {
   }
 }
 
+/// Единый плейсхолдер «первая буква имени» для всех экранов: чат-лист,
+/// шапка чата, профили, список и детальная звонков. Тёмная диагональ
+/// синий → пурпур + белая буква (светлая тема — мягкий голубой фон).
+class ChatAvatarLetter extends StatelessWidget {
+  const ChatAvatarLetter({
+    super.key,
+    required this.title,
+    required this.radius,
+  });
+
+  final String title;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = title.trim().isEmpty
+        ? '?'
+        : title.trim().characters.first.toUpperCase();
+    final dark = Theme.of(context).colorScheme.brightness == Brightness.dark;
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? const [Color(0xFF18357C), Color(0xFF29133F)]
+              : const [Color(0xFFE5ECFF), Color(0xFFDCE5FF)],
+        ),
+        border: Border.all(
+          color: dark
+              ? Colors.white.withValues(alpha: 0.18)
+              : Colors.black.withValues(alpha: 0.10),
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: TextStyle(
+          fontSize: radius * 0.8,
+          fontWeight: FontWeight.w900,
+          color: dark ? Colors.white : const Color(0xFF23315F),
+        ),
+      ),
+    );
+  }
+}

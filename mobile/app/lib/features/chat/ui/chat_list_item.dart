@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../../../l10n/app_localizations.dart';
+import 'chat_avatar.dart';
 import 'chat_cached_network_image.dart';
 
 class ChatListItem extends StatefulWidget {
@@ -317,40 +318,8 @@ class _AvatarPlaceholder extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(BuildContext context) {
-    final initial = title.trim().isEmpty
-        ? '?'
-        : title.trim().characters.first.toUpperCase();
-    final dark = Theme.of(context).colorScheme.brightness == Brightness.dark;
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF18357C), Color(0xFF29133F)]
-              : const [Color(0xFFE5ECFF), Color(0xFFDCE5FF)],
-        ),
-        border: Border.all(
-          color: dark
-              ? Colors.white.withValues(alpha: 0.18)
-              : Colors.black.withValues(alpha: 0.10),
-        ),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w900,
-          color: dark ? Colors.white : const Color(0xFF23315F),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      ChatAvatarLetter(title: title, radius: 25);
 }
 
 class _AvatarCircle extends StatelessWidget {
