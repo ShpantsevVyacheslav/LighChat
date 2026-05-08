@@ -25,11 +25,12 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      # `--legacy-peer-deps` — у проекта несколько peer-dep конфликтов в зрелых
-      # деревьях (electron-builder × electron etc.), но `npm ci` без флага
-      # ругается. Это та же конфигурация, что в App Hosting build.
+      # App Hosting build использует `npm ci` БЕЗ `--legacy-peer-deps` —
+      # CI должен зеркалить ту же команду, чтобы peer-dep conflict не
+      # пробил прод после зелёного PR (см. инцидент с
+      # `@firebase/rules-unit-testing` × firebase@12).
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Typecheck
         run: npm run typecheck

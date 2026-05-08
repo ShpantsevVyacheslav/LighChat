@@ -156,7 +156,6 @@
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
-    "@firebase/rules-unit-testing": "^3.0.0",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^20",
     "@types/react": "^18.3.3",
