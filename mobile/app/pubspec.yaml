@@ -97,6 +97,7 @@ dependencies:
   record: ^6.1.2
   path_provider: ^2.1.5
   super_clipboard: ^0.9.1
+  super_drag_and_drop: ^0.9.1
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.2.0
   flutter_local_notifications: ^21.0.0

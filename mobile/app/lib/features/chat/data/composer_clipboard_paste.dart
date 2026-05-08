@@ -174,28 +174,23 @@ String guessMimeByPath(String path) {
   return 'application/octet-stream';
 }
 
-/// Читает расширенный и простой буфер (паритет `ChatScreen._readClipboardPayload`).
-Future<ComposerClipboardPastePayload> readComposerClipboardPayload() async {
-  final clipboard = SystemClipboard.instance;
-  if (clipboard == null) {
-    final fallback = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = fallback?.text ?? '';
-    return ComposerClipboardPastePayload(
-      text: text.trim().isEmpty ? null : text,
-      files: const <XFile>[],
-    );
-  }
-
-  final reader = await clipboard.read();
+/// Извлекает текст и файлы из набора [DataReader] — общая логика для
+/// clipboard‑вставки и drag&drop. iOS/Android клипборд и drop session
+/// одинаково отдают payload через `DataReader` (super_clipboard); единая
+/// функция гарантирует одинаковую обработку (sticker‑first сортировка
+/// форматов, file:// URI, temp‑файлы из bytes).
+Future<ComposerClipboardPastePayload> readComposerPayloadFromDataReaders(
+  Iterable<DataReader> readers,
+) async {
   final files = <XFile>[];
   final addedPaths = <String>{};
   String? pastedText;
   var tempFileSeq = 0;
 
-  for (final item in reader.items) {
+  for (final item in readers) {
     var mediaAddedFromItem = false;
 
-    // Сначала пробуем получить текст: если в буфере просто текст/URL,
+    // Сначала пробуем получить текст: если в источнике просто текст/URL,
     // iOS часто кладёт ещё `plainTextFile`, который мы не должны превращать
     // во "вложение clipboard_...".
     if ((pastedText ?? '').trim().isEmpty) {
@@ -258,13 +253,29 @@ Future<ComposerClipboardPastePayload> readComposerClipboardPayload() async {
     }
   }
 
-  if ((pastedText ?? '').trim().isEmpty) {
+  return ComposerClipboardPastePayload(text: pastedText, files: files);
+}
+
+/// Читает расширенный и простой буфер (паритет `ChatScreen._readClipboardPayload`).
+Future<ComposerClipboardPastePayload> readComposerClipboardPayload() async {
+  final clipboard = SystemClipboard.instance;
+  if (clipboard == null) {
     final fallback = await Clipboard.getData(Clipboard.kTextPlain);
     final text = fallback?.text ?? '';
-    if (text.trim().isNotEmpty) {
-      pastedText = text;
-    }
+    return ComposerClipboardPastePayload(
+      text: text.trim().isEmpty ? null : text,
+      files: const <XFile>[],
+    );
   }
 
-  return ComposerClipboardPastePayload(text: pastedText, files: files);
+  final reader = await clipboard.read();
+  final payload = await readComposerPayloadFromDataReaders(reader.items);
+
+  if ((payload.text ?? '').trim().isNotEmpty) {
+    return payload;
+  }
+  final fallback = await Clipboard.getData(Clipboard.kTextPlain);
+  final text = fallback?.text ?? '';
+  if (text.trim().isEmpty) return payload;
+  return ComposerClipboardPastePayload(text: text, files: payload.files);
 }
