@@ -108,7 +108,7 @@
     "dompurify": "^3.3.3",
     "embla-carousel-react": "^8.6.0",
     "emoji-picker-react": "^4.19.1",
-    "firebase": "^10.14.1",
+    "firebase": "^12.13.0",
     "firebase-admin": "^12.1.1",
     "hash-wasm": "^4.12.0",
     "heic2any": "^0.0.4",
