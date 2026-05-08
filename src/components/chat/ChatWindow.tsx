@@ -45,6 +45,7 @@ import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
 import { useStickerSaveFlow } from '@/hooks/use-sticker-save-flow';
 import { useScheduledMessages } from '@/hooks/use-scheduled-messages';
 import { useChatProfilePane } from '@/hooks/use-chat-profile-pane';
+import { useChatThreadPanel } from '@/hooks/use-chat-thread-panel';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
@@ -342,11 +343,21 @@ export function ChatWindow({
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isFullyReady, setIsFullyReady] = useState(false);
   const [hasScrolledToUnread, setHasScrolledToUnread] = useState(false);
-  const [selectedThreadMessage, setSelectedThreadMessage] = useState<ChatMessage | null>(null);
-  const [threadPanelWidth, setThreadPanelWidth] = useState(520);
-  const [threadPanelExpanded, setThreadPanelExpanded] = useState(false);
-  /** После открытия треда по реакции — id ответа в треде для прокрутки и подсветки. */
-  const [threadReactionScrollToId, setThreadReactionScrollToId] = useState<string | null>(null);
+  // [audit M-009] Thread panel state перенесён в useChatThreadPanel —
+  // см. `threadPanel.*` ниже.
+  const threadPanel = useChatThreadPanel({
+    firestore,
+    conversationId: conversation.id,
+    threadRootMessageId,
+    onThreadRootMessageConsumed,
+    toast,
+    t,
+  });
+  // Aliases ради совместимости со старым JSX (минимизирует diff).
+  const selectedThreadMessage = threadPanel.selectedMessage;
+  const threadPanelWidth = threadPanel.panelWidth;
+  const threadPanelExpanded = threadPanel.isExpanded;
+  const threadReactionScrollToId = threadPanel.reactionScrollToId;
   const stickerSave = useStickerSaveFlow({
     firestore,
     storage,
@@ -389,7 +400,7 @@ export function ChatWindow({
   const atBottomRef = useRef(true);
   const [videoCircleTailReservePx, setVideoCircleTailReservePxState] = useState(0);
   const prevTailReserveRef = useRef(0);
-  const threadPanelResizingRef = useRef(false);
+  // [audit M-009] resizingRef переехал в useChatThreadPanel.
 
   const setVideoCircleTailReservePx = useCallback((px: number) => {
     setVideoCircleTailReservePxState(Math.max(0, Math.round(px)));
@@ -425,69 +436,8 @@ export function ChatWindow({
     hasScrolledToUnreadRef.current = hasScrolledToUnread;
   }, [hasScrolledToUnread]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storedWidth = Number(
-      window.localStorage.getItem('chat_thread_panel_width') ?? ''
-    );
-    if (Number.isFinite(storedWidth) && storedWidth >= 420 && storedWidth <= 1280) {
-      setThreadPanelWidth(storedWidth);
-    }
-    const storedExpanded = window.localStorage.getItem('chat_thread_panel_expanded');
-    if (storedExpanded === '1') setThreadPanelExpanded(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(
-      'chat_thread_panel_width',
-      String(Math.round(threadPanelWidth))
-    );
-  }, [threadPanelWidth]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(
-      'chat_thread_panel_expanded',
-      threadPanelExpanded ? '1' : '0'
-    );
-  }, [threadPanelExpanded]);
-
-  const threadRootHandledRef = useRef<string | null>(null);
-  useEffect(() => {
-    threadRootHandledRef.current = null;
-  }, [threadRootMessageId, conversation.id]);
-
-  useEffect(() => {
-    if (!firestore || !conversation.id || !threadRootMessageId) return;
-    if (threadRootHandledRef.current === threadRootMessageId) return;
-    threadRootHandledRef.current = threadRootMessageId;
-    const convId = conversation.id;
-    const rootId = threadRootMessageId;
-    let cancelled = false;
-    void getDoc(doc(firestore, `conversations/${convId}/messages`, rootId))
-      .then((snap) => {
-        if (cancelled) return;
-        if (!snap.exists()) {
-          toast({ title: t('chat.threadNotFound') });
-          onThreadRootMessageConsumed?.();
-          return;
-        }
-        setSelectedThreadMessage({ ...snap.data(), id: snap.id } as ChatMessage);
-        onThreadRootMessageConsumed?.();
-      })
-      .catch((e) => {
-        console.warn('[LighChat] open thread from URL', e);
-        if (!cancelled) {
-          toast({ title: t('chat.threadOpenError'), variant: 'destructive' });
-          onThreadRootMessageConsumed?.();
-        }
-      });
-    return () => {
-      cancelled = true;
-      if (threadRootHandledRef.current === rootId) threadRootHandledRef.current = null;
-    };
-  }, [firestore, conversation.id, threadRootMessageId, toast, onThreadRootMessageConsumed]);
+  // [audit M-009] localStorage persistence (width/expanded) и URL-init
+  // (threadRootMessageId → setSelectedMessage) переехали в useChatThreadPanel.
 
   useEffect(() => {
     const sync = () => {
@@ -523,8 +473,7 @@ export function ChatWindow({
         prevTailReserveRef.current = 0;
         sessionReadIds.current.clear();
         pendingNavigateMessageIdRef.current = null;
-        setThreadReactionScrollToId(null);
-        setSelectedThreadMessage(null);
+        threadPanel.resetForConversationSwitch();
         setE2eePlaintextByMessageId({});
         setReplyingTo(null);
         setEditingMessage(null);
@@ -1109,44 +1058,8 @@ export function ChatWindow({
   const handleProfileSheetOpenChange = profilePane.onOpenChange;
   const handleOpenThreadsFromHeader = profilePane.openThreadsFromHeader;
 
-  const startThreadPanelResize = useCallback(
-    (startX: number) => {
-      if (typeof window === 'undefined') return;
-      threadPanelResizingRef.current = true;
-      const startWidth = threadPanelWidth;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      const minWidth = 420;
-      const maxWidth = Math.min(Math.floor(window.innerWidth * 0.78), 1180);
-
-      const onMove = (clientX: number) => {
-        if (!threadPanelResizingRef.current) return;
-        // Ручка на левой границе панели: тянем влево => панель шире.
-        const delta = startX - clientX;
-        setThreadPanelExpanded(false);
-        setThreadPanelWidth(Math.max(minWidth, Math.min(maxWidth, startWidth + delta)));
-      };
-
-      const onEnd = () => {
-        threadPanelResizingRef.current = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onEnd);
-        document.removeEventListener('touchmove', onTouchMove);
-        document.removeEventListener('touchend', onEnd);
-      };
-
-      const onMouseMove = (e: MouseEvent) => onMove(e.clientX);
-      const onTouchMove = (e: TouchEvent) => onMove(e.touches[0].clientX);
-
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onEnd);
-      document.addEventListener('touchmove', onTouchMove, { passive: true });
-      document.addEventListener('touchend', onEnd);
-    },
-    [threadPanelWidth]
-  );
+  // [audit M-009] startThreadPanelResize → threadPanel.startResize.
+  const startThreadPanelResize = threadPanel.startResize;
 
   // [audit M-009] alias-методы хука profile-pane.
   const handleMentionProfileOpen = profilePane.openMentionProfile;
@@ -2022,15 +1935,10 @@ export function ChatWindow({
     const target = latestReaction;
     if (!target || !firestore) return;
     if (target.parentId) {
-      const parentMsgRef = doc(firestore, `conversations/${conversation.id}/messages`, target.parentId);
-            const parentMsgSnap = await getDoc(parentMsgRef);
-            if (parentMsgSnap.exists()) {
-        setThreadReactionScrollToId(target.messageId);
-                setSelectedThreadMessage({ ...parentMsgSnap.data(), id: parentMsgSnap.id } as ChatMessage);
-            } else {
-                toast({ title: t('chat.threadNotFound') });
-            }
-        } else {
+      // [audit M-009] Open thread by id + scroll to specific reaction message —
+      // вынесено в `threadPanel.openByMessageId(parentId, scrollToId)`.
+      await threadPanel.openByMessageId(target.parentId, target.messageId);
+    } else {
       navigateToMessage(target.messageId);
     }
     window.setTimeout(() => {
@@ -2038,9 +1946,10 @@ export function ChatWindow({
         [`lastReactionSeenAt.${currentUser.id}`]: new Date().toISOString(),
       });
     }, 500);
-  }, [latestReaction, firestore, conversation.id, currentUser.id, navigateToMessage, toast]);
+  }, [latestReaction, firestore, conversation.id, currentUser.id, navigateToMessage, threadPanel]);
 
-  const clearThreadReactionScrollTarget = useCallback(() => setThreadReactionScrollToId(null), []);
+  // [audit M-009] alias на метод хука.
+  const clearThreadReactionScrollTarget = threadPanel.clearReactionScrollTarget;
 
   const canDeleteBulk = useMemo(() => {
     if (selection.ids.size === 0) return false;
@@ -2416,7 +2325,7 @@ export function ChatWindow({
                                 suppressReadReceipts={suppressReadReceipts}
                               >
                                 <div className="py-1 px-4">
-                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { if (!allowSecretCopy) return; const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: t('chat.textCopied') }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} allowForward={allowSecretForward} allowCopy={allowSecretCopy} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { if (!allowSecretCopy) return; const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: t('chat.textCopied') }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} allowForward={allowSecretForward} allowCopy={allowSecretCopy} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={threadPanel.open} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
                                 </div>
                               </MessageReadOnViewport>
                             );
@@ -2489,10 +2398,7 @@ export function ChatWindow({
               currentUser={currentUser}
               allUsers={allUsers}
               suppressFloatingAnchor={isProfileOpen}
-              onClose={() => {
-                setSelectedThreadMessage(null);
-                setThreadReactionScrollToId(null);
-              }}
+              onClose={threadPanel.close}
               onOpenImageViewer={handleOpenMediaViewer}
               onOpenVideoViewer={handleOpenMediaViewer}
               onNavigateToMessage={navigateToMessage}
@@ -2529,7 +2435,7 @@ export function ChatWindow({
                   : undefined
               }
               isExpandedDesktop={threadPanelExpanded}
-              onToggleExpandDesktop={() => setThreadPanelExpanded((v) => !v)}
+              onToggleExpandDesktop={threadPanel.toggleExpanded}
             />
           </>
         )}
