@@ -95,6 +95,7 @@ import { buildChatListRows, type ChatListRow } from '@/components/chat/build-cha
 import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
 import { getVirtuosoChatIncreaseViewport, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
 import { GEOLOCATION_FIRESTORE_LOG } from '@/lib/geolocation-client';
+import { logger } from '@/lib/logger';
 import { VideoCircleTailProvider } from '@/components/chat/video-circle-tail-context';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useChatConversationPrefs } from '@/hooks/use-chat-conversation-prefs';
@@ -547,10 +548,11 @@ export function ChatWindow({
         },
         (err) => {
         console.error("Chat fetch error:", err);
-          if (process.env.NODE_ENV === "development" && firestore) {
-            console.info(
-              "[LighChat] permission-denied → опубликуйте правила: npm run deploy:firestore · Firebase projectId:",
-              firestore.app.options.projectId
+          if (firestore) {
+            logger.debug(
+              'firestore',
+              'permission-denied → опубликуйте правила: npm run deploy:firestore',
+              { projectId: firestore.app.options.projectId },
             );
           }
         setIsFullyReady(true);
@@ -1592,7 +1594,7 @@ export function ChatWindow({
       const newDocRef = doc(messagesCollection);
       const messageId = newDocRef.id;
       const now = new Date().toISOString();
-      console.log(GEOLOCATION_FIRESTORE_LOG, 'start', {
+      logger.info(GEOLOCATION_FIRESTORE_LOG, 'start', {
         conversationId: conversation.id,
         messageId,
         reply: !!replyContext,
@@ -1646,7 +1648,7 @@ export function ChatWindow({
             },
           });
         }
-        console.log(GEOLOCATION_FIRESTORE_LOG, 'success', { messageId });
+        logger.info(GEOLOCATION_FIRESTORE_LOG, 'success', { messageId });
       } catch (err) {
         console.error(GEOLOCATION_FIRESTORE_LOG, 'failed', { messageId, err });
         setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
@@ -2095,9 +2097,8 @@ export function ChatWindow({
     (event: string, extra?: Record<string, unknown>) => {
       incrementChatPerfCounter('chat-anchor-click-total');
       incrementChatPerfCounter(`chat-anchor-click-${event}`);
-      if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') return;
-      console.debug('[ChatAnchor][dev]', {
-        event,
+      if (typeof window === 'undefined') return;
+      logger.debug('chat-anchor', event, {
         conversationId: conversation.id,
         userId: currentUser.id,
         suppressReadReceipts,

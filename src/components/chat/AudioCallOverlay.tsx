@@ -30,6 +30,7 @@ import { isEitherBlockingFromUserIds } from '@/lib/user-block-utils';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getWebRtcIceConfig } from '@/lib/webrtc-ice-servers';
+import { logger } from '@/lib/logger';
 import { useI18n } from '@/hooks/use-i18n';
 
 interface AudioCallOverlayProps {
@@ -208,7 +209,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
 
   // --- 2. CLEANUP LOGIC ---
   const handleCleanup = useCallback(() => {
-    console.log("[WebRTC] Initiating cleanup");
+    logger.debug('webrtc-call', 'cleanup');
     if (candidatesUnsubscribeRef.current) {
       candidatesUnsubscribeRef.current();
       candidatesUnsubscribeRef.current = null;
@@ -264,7 +265,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
 
   // --- 3. PEER CONNECTION & MEDIA ---
   const setupPeerConnection = useCallback(async (callId: string, isVideoCall: boolean) => {
-    console.log(`[WebRTC] Setting up PC for call ${callId}, video: ${isVideoCall}`);
+    logger.debug('webrtc-call', 'setupPC', { callId, isVideoCall });
     const pc = new RTCPeerConnection(await getWebRtcIceConfig());
     peerConnection.current = pc;
 
@@ -274,7 +275,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
               mediaRequestInProgress.current = false;
             }
             mediaRequestInProgress.current = true;
-            console.log("[WebRTC] Requesting local media stream");
+            logger.debug('webrtc-call', 'requesting local media');
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
                 video: isVideoCall ? { facingMode: 'user' } : false,
@@ -294,7 +295,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     }
 
     pc.ontrack = (event) => {
-      console.log(`[WebRTC] Remote track received: ${event.track.kind}`);
+      logger.debug('webrtc-call', 'remote track received', { kind: event.track.kind });
       if (event.streams && event.streams[0]) {
         setRemoteStream(event.streams[0]);
       }
