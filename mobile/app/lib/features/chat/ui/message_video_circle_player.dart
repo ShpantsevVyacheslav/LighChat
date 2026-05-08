@@ -31,6 +31,8 @@ class MessageVideoCirclePlayer extends StatefulWidget {
     required this.attachmentIndex,
     this.mediaNorm,
     this.onRetryNorm,
+    this.conversationId,
+    this.messageId,
   });
 
   final ChatAttachment attachment;
@@ -44,6 +46,8 @@ class MessageVideoCirclePlayer extends StatefulWidget {
   final int attachmentIndex;
   final ChatMediaNorm? mediaNorm;
   final Future<void> Function()? onRetryNorm;
+  final String? conversationId;
+  final String? messageId;
 
   @override
   State<MessageVideoCirclePlayer> createState() =>
@@ -136,7 +140,12 @@ class _MessageVideoCirclePlayerState extends State<MessageVideoCirclePlayer> {
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
         } else {
-          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          unawaited(ChatGalleryVideoLocalCache.warmUp(
+            sourceUrl,
+            conversationId: widget.conversationId,
+            messageId: widget.messageId,
+            attachmentName: widget.attachment.name,
+          ));
           c = VideoPlayerController.networkUrl(
             uri,
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),

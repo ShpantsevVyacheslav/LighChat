@@ -13,7 +13,9 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
+import '../data/chat_image_cache_manager.dart';
 import '../data/chat_media_gallery.dart';
+import '../data/local_cache_entry_registry.dart';
 import 'chat_gallery_video_local_cache.dart';
 import 'chat_media_viewer_photo_page.dart';
 import 'chat_vlc_network_media.dart';
@@ -512,7 +514,11 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _BackdropLayer(item: cur?.attachment),
+                  _BackdropLayer(
+                    item: cur?.attachment,
+                    conversationId: widget.conversationId,
+                    messageId: cur?.message.id,
+                  ),
                   Positioned.fill(
                     child: PageView.builder(
                       controller: _pageController,
@@ -884,9 +890,15 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
 }
 
 class _BackdropLayer extends StatelessWidget {
-  const _BackdropLayer({this.item});
+  const _BackdropLayer({
+    this.item,
+    this.conversationId,
+    this.messageId,
+  });
 
   final ChatAttachment? item;
+  final String? conversationId;
+  final String? messageId;
 
   @override
   Widget build(BuildContext context) {
@@ -907,11 +919,29 @@ class _BackdropLayer extends StatelessWidget {
     }
     final url = att.url;
     final uri = Uri.tryParse(url);
+    final cid = conversationId?.trim();
+    final hasChatCtx = cid != null && cid.isNotEmpty;
     final ImageProvider<Object>? bgImage = (uri != null && uri.scheme == 'file')
         ? FileImage(File(uri.toFilePath()))
         : ((uri != null && uri.hasScheme)
-              ? CachedNetworkImageProvider(url)
+              // Используем `ChatImageCacheManager` (с регистрацией в
+              // [LocalCacheEntryRegistry]), чтобы blurred backdrop не оседал
+              // в дефолтном `libCachedImageData/` orphan-кэше.
+              ? (hasChatCtx
+                  ? CachedNetworkImageProvider(
+                      url,
+                      cacheManager: ChatImageCacheManager(),
+                    )
+                  : CachedNetworkImageProvider(url))
               : null);
+    if (hasChatCtx && uri != null && uri.hasScheme && uri.scheme != 'file') {
+      LocalCacheEntryRegistry.registerImageContext(
+        url: url,
+        conversationId: cid,
+        messageId: messageId,
+        attachmentName: att.name,
+      );
+    }
     if (bgImage == null) {
       return const ColoredBox(color: Color(0xFF18181B));
     }

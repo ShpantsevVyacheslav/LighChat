@@ -126,6 +126,45 @@ class LocalCacheEntryRegistry {
     await prefs.setString(key, jsonEncode(ctx.toJson()));
   }
 
+  /// Проактивно регистрирует все три варианта (image/video/videoThumb) для URL
+  /// — экран «Хранилище» сможет привязать файл к чату вне зависимости от того,
+  /// в какой кэш он в итоге попадёт. Идемпотентно: если запись уже есть, не
+  /// перезаписывает.
+  static Future<void> registerAttachmentContext({
+    required String url,
+    required String conversationId,
+    String? messageId,
+    String? attachmentName,
+  }) async {
+    final cid = conversationId.trim();
+    final trimmedUrl = url.trim();
+    if (trimmedUrl.isEmpty || cid.isEmpty) return;
+    final uri = Uri.tryParse(trimmedUrl);
+    if (uri == null || !uri.hasScheme || uri.scheme == 'file') return;
+    final prefs = await SharedPreferences.getInstance();
+    final imageKey = '$_imageKeyPrefix${imageFileIdForUrl(trimmedUrl)}';
+    final videoKey = '$_videoKeyPrefix${_fnv32Id(trimmedUrl)}';
+    final thumbKey = '$_videoThumbKeyPrefix${_thumbSha32(trimmedUrl)}';
+    final mid = messageId?.trim();
+    final name = attachmentName?.trim();
+    final ctxJson = jsonEncode(
+      LocalCacheEntryContext(
+        conversationId: cid,
+        messageId: mid,
+        attachmentName: name,
+      ).toJson(),
+    );
+    if (prefs.getString(imageKey) == null) {
+      await prefs.setString(imageKey, ctxJson);
+    }
+    if (prefs.getString(videoKey) == null) {
+      await prefs.setString(videoKey, ctxJson);
+    }
+    if (prefs.getString(thumbKey) == null) {
+      await prefs.setString(thumbKey, ctxJson);
+    }
+  }
+
   static LocalCacheEntryContext? readImageContextSyncForFileName({
     required SharedPreferences prefs,
     required String fileName,

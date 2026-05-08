@@ -24,6 +24,8 @@ class MessageVideoAttachment extends ConsumerStatefulWidget {
     this.mediaNorm,
     this.onRetryNorm,
     this.onOpenInGallery,
+    this.conversationId,
+    this.messageId,
   });
 
   final ChatAttachment attachment;
@@ -33,6 +35,12 @@ class MessageVideoAttachment extends ConsumerStatefulWidget {
 
   /// Если задан, тап открывает общую галерею чата вместо отдельного экрана плеера.
   final VoidCallback? onOpenInGallery;
+
+  /// Привязка к чату/сообщению — нужна, чтобы файл, осевший в `chat_video_cache/`,
+  /// был зарегистрирован в [LocalCacheEntryRegistry] и не уходил в orphan
+  /// на экране «Хранилище».
+  final String? conversationId;
+  final String? messageId;
 
   @override
   ConsumerState<MessageVideoAttachment> createState() =>
@@ -116,7 +124,12 @@ class _MessageVideoAttachmentState
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
         } else {
-          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          unawaited(ChatGalleryVideoLocalCache.warmUp(
+            sourceUrl,
+            conversationId: widget.conversationId,
+            messageId: widget.messageId,
+            attachmentName: widget.attachment.name,
+          ));
           c = VideoPlayerController.networkUrl(
             uri,
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
@@ -223,7 +236,12 @@ class _MessageVideoAttachmentState
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _ChatAvPlayerVideoScreen(url: url),
+        builder: (_) => _ChatAvPlayerVideoScreen(
+          url: url,
+          conversationId: widget.conversationId,
+          messageId: widget.messageId,
+          attachmentName: widget.attachment.name,
+        ),
       ),
     );
   }
@@ -551,9 +569,17 @@ class _RoundIconButton extends StatelessWidget {
 }
 
 class _ChatAvPlayerVideoScreen extends StatefulWidget {
-  const _ChatAvPlayerVideoScreen({required this.url});
+  const _ChatAvPlayerVideoScreen({
+    required this.url,
+    this.conversationId,
+    this.messageId,
+    this.attachmentName,
+  });
 
   final String url;
+  final String? conversationId;
+  final String? messageId;
+  final String? attachmentName;
 
   @override
   State<_ChatAvPlayerVideoScreen> createState() =>
@@ -603,7 +629,12 @@ class _ChatAvPlayerVideoScreenState extends State<_ChatAvPlayerVideoScreen> {
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
         } else {
-          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          unawaited(ChatGalleryVideoLocalCache.warmUp(
+            sourceUrl,
+            conversationId: widget.conversationId,
+            messageId: widget.messageId,
+            attachmentName: widget.attachmentName,
+          ));
           c = VideoPlayerController.networkUrl(
             uri,
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),

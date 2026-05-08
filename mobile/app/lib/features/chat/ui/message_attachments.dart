@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../data/chat_attachment_mosaic_layout.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/chat_media_layout_tokens.dart';
+import '../data/local_cache_entry_registry.dart';
 import '../data/e2ee_decryption_orchestrator.dart'
     show e2eeMediaDecryptErrorMime;
 import '../data/secret_chat_media_open_service.dart';
@@ -216,6 +217,41 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
     if (hasCircle && widget.videoCirclePlayingSlotId == null) {
       _ownedCircleSlot = ValueNotifier<String?>(null);
     }
+    _registerAttachmentsForStorageMapping();
+  }
+
+  @override
+  void didUpdateWidget(covariant MessageAttachments oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final attachmentsChanged =
+        oldWidget.attachments.length != widget.attachments.length ||
+        oldWidget.conversationId != widget.conversationId ||
+        oldWidget.messageId != widget.messageId;
+    if (attachmentsChanged) {
+      _registerAttachmentsForStorageMapping();
+    }
+  }
+
+  /// Проактивно записываем `urlHash → conversationId/messageId` в
+  /// [LocalCacheEntryRegistry] для каждого вложения. Тогда даже если файл
+  /// будет закэширован через дефолтный `cached_network_image` или скачан
+  /// без явного проброса контекста — экран «Хранилище» сможет сопоставить
+  /// его с конкретным чатом.
+  void _registerAttachmentsForStorageMapping() {
+    final cid = widget.conversationId?.trim();
+    if (cid == null || cid.isEmpty) return;
+    final mid = widget.messageId;
+    for (final a in widget.attachments) {
+      final url = a.url.trim();
+      if (url.isEmpty) continue;
+      // Best-effort, не ждём результата.
+      LocalCacheEntryRegistry.registerAttachmentContext(
+        url: url,
+        conversationId: cid,
+        messageId: mid,
+        attachmentName: a.name,
+      );
+    }
   }
 
   @override
@@ -401,6 +437,8 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
         playingSlotId: _circleSlot,
         mediaNorm: widget.mediaNorm,
         onRetryNorm: widget.onRetryMediaNorm,
+        conversationId: widget.conversationId,
+        messageId: widget.messageId,
       );
     }
     return MessageVideoAttachment(
@@ -411,6 +449,8 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
           : () => widget.onOpenGridGallery!(v),
       mediaNorm: widget.mediaNorm,
       onRetryNorm: widget.onRetryMediaNorm,
+      conversationId: widget.conversationId,
+      messageId: widget.messageId,
     );
   }
 }

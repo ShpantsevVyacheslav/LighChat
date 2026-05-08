@@ -455,6 +455,7 @@ class _ConversationMediaLinksFilesScreenState
       items: mapped,
       activeUrl: _activeCircleUrl,
       onActiveUrlChanged: (url) => setState(() => _activeCircleUrl = url),
+      conversationId: widget.conversationId,
     );
   }
 

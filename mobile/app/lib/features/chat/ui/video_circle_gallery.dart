@@ -17,11 +17,13 @@ class VideoCircleGallery extends StatefulWidget {
     required this.items,
     required this.activeUrl,
     required this.onActiveUrlChanged,
+    this.conversationId,
   });
 
   final List<({ChatMessage message, ChatAttachment attachment})> items;
   final String? activeUrl;
   final ValueChanged<String?> onActiveUrlChanged;
+  final String? conversationId;
 
   @override
   State<VideoCircleGallery> createState() => _VideoCircleGalleryState();
@@ -114,7 +116,15 @@ class _VideoCircleGalleryState extends State<VideoCircleGallery> {
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
         } else {
-          unawaited(ChatGalleryVideoLocalCache.warmUp(sourceUrl));
+          final activeItem = widget.items
+              .where((it) => it.attachment.url.trim() == sourceUrl)
+              .firstOrNull;
+          unawaited(ChatGalleryVideoLocalCache.warmUp(
+            sourceUrl,
+            conversationId: widget.conversationId,
+            messageId: activeItem?.message.id,
+            attachmentName: activeItem?.attachment.name,
+          ));
           c = VideoPlayerController.networkUrl(
             uri,
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
