@@ -24,7 +24,8 @@
     "deploy:functions-hosting:clean": "npm run predeploy:clean-next && firebase deploy --only functions,hosting",
     "desktop": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "icons:mac": "bash scripts/generate-mac-icon.sh",
-    "dist": "npm run build:clean && npm run icons:mac && electron-builder"
+    "dist": "npm run build:clean && npm run icons:mac && electron-builder",
+    "prepare": "husky"
   },
   "build": {
     "appId": "com.lighchat.app",
@@ -143,11 +144,16 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
     "firebase-tools": "^14.27.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "postcss": "^8",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^2.1.9",
     "wait-on": "^7.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": "eslint --fix"
   }
 }

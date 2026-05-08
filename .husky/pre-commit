@@ -1,0 +1,5 @@
+# [audit L-002] Pre-commit gate: lint-staged запускает eslint --fix только
+# на изменённых файлах. Полный typecheck/build идёт в CI (см. web.yml).
+# Если очень нужно закоммитить срочный fix без проверки — `git commit --no-verify`
+# (но user конфиг явно запрещает обходить hook'и без надобности).
+npx lint-staged
