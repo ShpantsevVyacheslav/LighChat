@@ -9,9 +9,16 @@ start:
   run: npm start
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  # [audit L-009] Явные scaling/runtime constraints — не полагаемся на
+  # дефолты App Hosting. `maxInstances: 5` = верхний потолок против
+  # runaway-scale (DoS / выстрелившая регрессия с infinite-loop).
+  # `minInstances: 0` сохраняет cold-start savings (нет idle оплаты).
+  # При росте трафика — поднимать руками с мониторингом latency/cost.
+  maxInstances: 5
+  minInstances: 0
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
 
 env:
   # GIPHY API key для прокси /api/giphy/search.
