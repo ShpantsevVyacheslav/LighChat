@@ -241,6 +241,33 @@ service cloud.firestore {
     }
 
     /**
+     * [audit H-012] В группе менять `participantIds` / `adminIds` могут только
+     * admin/creator. Раньше любой участник одним update'ом мог:
+     *   - выкинуть остальных (`participantIds = [self]`),
+     *   - добавить произвольного uid'а в чат.
+     * Допускается self-leave: участник убирает СЕБЯ из participantIds —
+     * единственное изменение допустимое для не-admin'а.
+     * Для DM (isGroup != true) изменения participantIds невалидны
+     * (фиксированный bilateral состав), но это уже отрезает create-rule.
+     */
+    function groupMembershipChangeAllowed() {
+      let oldParts = resource.data.participantIds is list ? resource.data.participantIds : [];
+      let newParts = request.resource.data.participantIds is list ? request.resource.data.participantIds : [];
+      let oldAdmins = ('adminIds' in resource.data) && resource.data.adminIds is list ? resource.data.adminIds : [];
+      let newAdmins = ('adminIds' in request.resource.data) && request.resource.data.adminIds is list ? request.resource.data.adminIds : [];
+      let participantsUnchanged = oldParts.size() == newParts.size() && oldParts.hasAll(newParts);
+      let adminsUnchanged = oldAdmins.size() == newAdmins.size() && oldAdmins.hasAll(newAdmins);
+      let selfLeaveOnly = oldParts.size() == newParts.size() + 1
+        && oldParts.hasAll(newParts)
+        && !(request.auth.uid in newParts)
+        && adminsUnchanged;
+      return resource.data.isGroup != true
+        || (participantsUnchanged && adminsUnchanged)
+        || isGroupAdminOrCreatorFromConvData(resource.data)
+        || selfLeaveOnly;
+    }
+
+    /**
      * В группе менять `disappearingMessageTtlSec` / метаданные смены могут только создатель и adminIds.
      * В личных чатах — любой участник (как и прочие поля parent).
      */
@@ -768,6 +795,7 @@ service cloud.firestore {
           && conversationStorageQuotaUnchanged()
           && conversationDisappearingUpdateAllowed()
           && conversationSecretChatUnchanged()
+          && groupMembershipChangeAllowed()
         )
       );
       // SECURITY: previously ANY group member could delete the conversation
