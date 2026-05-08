@@ -60,6 +60,8 @@ class ComposerStickerGifPanel extends StatefulWidget {
     required this.repo,
     required this.onPickAttachment,
     required this.onClose,
+    this.sharedSearchQuery = '',
+    this.onSearchHintChanged,
     this.onEmojiTapped,
     this.directUploadConversationId,
   });
@@ -69,6 +71,8 @@ class ComposerStickerGifPanel extends StatefulWidget {
   final String? directUploadConversationId;
   final void Function(ChatAttachment attachment) onPickAttachment;
   final void Function(String emoji)? onEmojiTapped;
+  final String sharedSearchQuery;
+  final ValueChanged<String>? onSearchHintChanged;
   final VoidCallback onClose;
 
   @override
@@ -155,11 +159,65 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
     _animEmojisScrollController.addListener(_onAnimEmojisScroll);
     _libraryScrollController.addListener(_onLibraryScroll);
     _loadInitialData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applySharedSearchQuery(widget.sharedSearchQuery);
+      _emitSearchHint();
+    });
   }
 
   void _onTabChanged() {
     if (!mounted || _tabs.indexIsChanging) return;
+    _applySharedSearchQuery(widget.sharedSearchQuery);
+    _emitSearchHint();
     setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(covariant ComposerStickerGifPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.sharedSearchQuery != widget.sharedSearchQuery) {
+      _applySharedSearchQuery(widget.sharedSearchQuery);
+    }
+  }
+
+  TextEditingController _activeSearchController() {
+    return switch (_tabs.index) {
+      0 => _emojiQueryController,
+      1 => _libraryQueryController,
+      _ => _gifQueryController,
+    };
+  }
+
+  String _activeSearchHintText() {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (_tabs.index) {
+      0 => '${l10n.common_search} ${l10n.sticker_tab_emoji.toLowerCase()}',
+      1 => l10n.sticker_library_search_hint,
+      _ => l10n.gif_search_hint,
+    };
+  }
+
+  void _emitSearchHint() {
+    final cb = widget.onSearchHintChanged;
+    if (cb == null) return;
+    cb(_activeSearchHintText());
+  }
+
+  void _applySharedSearchQuery(String next) {
+    final normalized = next.trim();
+    if (_tabs.index == 1 &&
+        normalized.isNotEmpty &&
+        _scope != _StickerScope.library) {
+      setState(() => _scope = _StickerScope.library);
+    }
+    final active = _activeSearchController();
+    if (active.text == next) return;
+    active.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+      composing: TextRange.empty,
+    );
   }
 
   void _scheduleLibrarySearch() {
@@ -937,88 +995,36 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
     );
   }
 
-  TextEditingController _activeSearchController() {
-    return switch (_tabs.index) {
-      0 => _emojiQueryController,
-      1 => _libraryQueryController,
-      _ => _gifQueryController,
-    };
-  }
-
-  String _activeSearchHint(AppLocalizations l10n) {
-    return switch (_tabs.index) {
-      0 => '${l10n.common_search} ${l10n.sticker_tab_emoji.toLowerCase()}',
-      1 => l10n.sticker_library_search_hint,
-      _ => l10n.gif_search_hint,
-    };
-  }
-
-  Widget _buildPinnedSearchField() {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = _activeSearchController();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
-      child: TextField(
-        controller: controller,
-        textCapitalization: TextCapitalization.sentences,
-        onTap: () {
-          if (_tabs.index == 1 && _scope != _StickerScope.library) {
-            setState(() => _scope = _StickerScope.library);
-          }
-        },
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: _activeSearchHint(l10n),
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-          prefixIcon: Icon(
-            Icons.search,
-            color: Colors.white.withValues(alpha: 0.5),
-          ),
-          suffixIcon: controller.text.isEmpty
-              ? null
-              : IconButton(
-                  icon: Icon(
-                    Icons.close_rounded,
-                    color: Colors.white.withValues(alpha: 0.5),
-                    size: 18,
-                  ),
-                  onPressed: () => controller.clear(),
-                ),
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.08),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBottomTabs() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
         ),
-      ),
-      child: TabBar(
-        controller: _tabs,
-        dividerColor: Colors.transparent,
-        labelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.6,
+        child: TabBar(
+          controller: _tabs,
+          dividerColor: Colors.transparent,
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorPadding: const EdgeInsets.all(2),
+          indicator: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          labelStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white.withValues(alpha: 0.82),
+          tabs: [
+            Tab(text: AppLocalizations.of(context)!.sticker_tab_emoji),
+            Tab(text: AppLocalizations.of(context)!.sticker_tab_stickers),
+            Tab(text: AppLocalizations.of(context)!.sticker_tab_gif),
+          ],
         ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
-        indicatorColor: const Color(0xFFFFA95C),
-        indicatorSize: TabBarIndicatorSize.label,
-        tabs: [
-          Tab(text: AppLocalizations.of(context)!.sticker_tab_emoji),
-          Tab(text: AppLocalizations.of(context)!.sticker_tab_stickers),
-          Tab(text: AppLocalizations.of(context)!.sticker_tab_gif),
-        ],
       ),
     );
   }
@@ -1055,7 +1061,6 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
               ),
             ],
           ),
-          _buildPinnedSearchField(),
           Expanded(
             child: TabBarView(
               controller: _tabs,
@@ -1426,63 +1431,51 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
     final fg = Colors.white.withValues(alpha: 0.88);
     final muted = Colors.white.withValues(alpha: 0.52);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
         children: [
           Material(
             color: Colors.white.withValues(alpha: 0.09),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: _deviceDirectBusy ? null : _pickFromGalleryAndSendDirect,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 14,
+                  horizontal: 10,
+                  vertical: 8,
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.photo_library_outlined, color: fg, size: 26),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.sticker_gallery,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              color: fg,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.sticker_gallery_subtitle,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: muted,
-                              height: 1.25,
-                            ),
-                          ),
-                        ],
+                    Icon(Icons.photo_library_outlined, color: fg, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      AppLocalizations.of(context)!.sticker_gallery,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: fg,
                       ),
                     ),
+                    const SizedBox(width: 6),
                     if (_deviceDirectBusy)
                       const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 1.8),
                       )
                     else
-                      Icon(Icons.chevron_right_rounded, color: muted),
+                      Icon(Icons.chevron_right_rounded, color: muted, size: 18),
                   ],
                 ),
               ),
             ),
+          ),
+          const Spacer(),
+          Text(
+            AppLocalizations.of(context)!.sticker_gallery_subtitle,
+            style: TextStyle(fontSize: 11, color: muted, height: 1.1),
           ),
         ],
       ),
@@ -1983,7 +1976,7 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
             AppLocalizations.of(context)!.sticker_section_animated,
           ),
           SizedBox(
-            height: 60,
+            height: 48,
             child: ListView.builder(
               controller: _animEmojisScrollController,
               scrollDirection: Axis.horizontal,
@@ -2014,8 +2007,8 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
                       onTap: () => _onPickAnimEmoji(item),
                       borderRadius: BorderRadius.circular(10),
                       child: SizedBox(
-                        width: 52,
-                        height: 52,
+                        width: 40,
+                        height: 40,
                         child: Padding(
                           padding: const EdgeInsets.all(4),
                           child: CachedNetworkImage(
@@ -2060,7 +2053,7 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
                     emojiViewConfig: EmojiViewConfig(
                       backgroundColor: Colors.transparent,
                       columns: 8,
-                      emojiSizeMax: 24,
+                      emojiSizeMax: 22,
                     ),
                     categoryViewConfig: CategoryViewConfig(
                       backgroundColor: Colors.transparent,

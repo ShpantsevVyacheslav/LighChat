@@ -46,6 +46,8 @@ class ChatComposer extends StatefulWidget {
     required this.onStickersTap,
     this.onKeyboardTap,
     this.stickersPanelOpen = false,
+    this.stickersSearchHint,
+    this.onStickersSearchChanged,
     this.replyingTo,
     this.onCancelReply,
     this.editingPreviewPlain,
@@ -76,6 +78,8 @@ class ChatComposer extends StatefulWidget {
   final VoidCallback onStickersTap;
   final VoidCallback? onKeyboardTap;
   final bool stickersPanelOpen;
+  final String? stickersSearchHint;
+  final ValueChanged<String>? onStickersSearchChanged;
   final ReplyContext? replyingTo;
   final VoidCallback? onCancelReply;
   final String? editingPreviewPlain;
@@ -474,6 +478,8 @@ class _ChatComposerState extends State<ChatComposer> {
       wallpaper: wallpaper,
     );
     final paste = widget.onClipboardToolbarPaste;
+    final inStickerSearchMode =
+        widget.stickersPanelOpen && widget.onStickersSearchChanged != null;
     final tf = TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
@@ -488,8 +494,11 @@ class _ChatComposerState extends State<ChatComposer> {
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg),
+      onChanged: inStickerSearchMode ? widget.onStickersSearchChanged : null,
       decoration: InputDecoration(
-        hintText: l10n.chat_composer_hint_message,
+        hintText: inStickerSearchMode
+            ? (widget.stickersSearchHint ?? l10n.common_search)
+            : l10n.chat_composer_hint_message,
         hintStyle: TextStyle(
           color: hintFg,
           fontWeight: FontWeight.w500,
@@ -558,7 +567,8 @@ class _ChatComposerState extends State<ChatComposer> {
     );
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final showSendButton =
-        _hasTypedText || widget.pendingAttachments.isNotEmpty;
+        !widget.stickersPanelOpen &&
+        (_hasTypedText || widget.pendingAttachments.isNotEmpty);
     return SafeArea(
       top: false,
       child: Padding(
@@ -602,6 +612,7 @@ class _ChatComposerState extends State<ChatComposer> {
                 widget.e2eeDisabledBanner == null)
               widget.stickerSuggestionBuilder!(),
             if (_mentionQuery != null &&
+                !widget.stickersPanelOpen &&
                 widget.e2eeDisabledBanner == null &&
                 widget.pendingAttachments.isEmpty)
               Padding(
@@ -612,6 +623,7 @@ class _ChatComposerState extends State<ChatComposer> {
                 ),
               ),
             if (_linkPreviewUrl != null &&
+                !widget.stickersPanelOpen &&
                 widget.e2eeDisabledBanner == null &&
                 _mentionQuery == null)
               ComposerLinkPreview(

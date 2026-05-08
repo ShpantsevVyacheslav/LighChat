@@ -176,6 +176,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Панель «Форматирование» над композером (паритет `FormattingToolbar.tsx`).
   bool _composerFormattingOpen = false;
   bool _stickersPanelOpen = false;
+  String _stickersSearchQuery = '';
+  String _stickersSearchHint = '';
+  String? _composerTextBeforeStickerSearch;
 
   /// Поиск по сообщениям в открытом чате (паритет веб `ChatSearchOverlay`).
   bool _inChatSearch = false;
@@ -2190,59 +2193,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ),
                                   if (_selectedMessageIds.isEmpty) ...[
                                     const LiveLocationStopBanner(),
-                                    if (_stickersPanelOpen)
-                                      Builder(
-                                        builder: (context) {
-                                          final stickerRepo = ref.read(
-                                            userStickerPacksRepositoryProvider,
-                                          );
-                                          final chatRepo = ref.read(
-                                            chatRepositoryProvider,
-                                          );
-                                          if (stickerRepo == null ||
-                                              chatRepo == null) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          final h =
-                                              MediaQuery.sizeOf(
-                                                context,
-                                              ).height *
-                                              0.36;
-                                          return SizedBox(
-                                            height: h,
-                                            child: ComposerStickerGifPanel(
-                                              userId: user.uid,
-                                              repo: stickerRepo,
-                                              directUploadConversationId:
-                                                  widget.conversationId,
-                                              onPickAttachment: (att) {
-                                                unawaited(
-                                                  _sendStickerOrGifAttachment(
-                                                    user.uid,
-                                                    chatRepo,
-                                                    att,
-                                                  ),
-                                                );
-                                              },
-                                              onEmojiTapped:
-                                                  _insertEmojiIntoComposer,
-                                              onClose: () {
-                                                if (!mounted) return;
-                                                setState(
-                                                  () => _stickersPanelOpen =
-                                                      false,
-                                                );
-                                              },
-                                            ),
-                                          );
-                                        },
-                                      ),
                                     ChatComposer(
                                       controller: _controller,
                                       focusNode: _composerFocusNode,
                                       stickersPanelOpen: _stickersPanelOpen,
                                       onKeyboardTap:
                                           _switchFromStickersToKeyboard,
+                                      stickersSearchHint: _stickersSearchHint,
+                                      onStickersSearchChanged: (q) {
+                                        if (!mounted) return;
+                                        setState(
+                                          () => _stickersSearchQuery = q,
+                                        );
+                                      },
                                       e2eeDisabledBanner:
                                           (conv != null &&
                                               conv.data.isGroup != true &&
@@ -2499,6 +2462,73 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         () => _composerFormattingOpen = false,
                                       ),
                                     ),
+                                    if (_stickersPanelOpen)
+                                      Builder(
+                                        builder: (context) {
+                                          final stickerRepo = ref.read(
+                                            userStickerPacksRepositoryProvider,
+                                          );
+                                          final chatRepo = ref.read(
+                                            chatRepositoryProvider,
+                                          );
+                                          if (stickerRepo == null ||
+                                              chatRepo == null) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          final h =
+                                              MediaQuery.sizeOf(
+                                                context,
+                                              ).height *
+                                              0.42;
+                                          return SizedBox(
+                                            height: h,
+                                            child: ComposerStickerGifPanel(
+                                              userId: user.uid,
+                                              repo: stickerRepo,
+                                              directUploadConversationId:
+                                                  widget.conversationId,
+                                              sharedSearchQuery:
+                                                  _stickersSearchQuery,
+                                              onSearchHintChanged: (hint) {
+                                                if (!mounted) return;
+                                                setState(
+                                                  () => _stickersSearchHint =
+                                                      hint,
+                                                );
+                                              },
+                                              onPickAttachment: (att) {
+                                                unawaited(
+                                                  _sendStickerOrGifAttachment(
+                                                    user.uid,
+                                                    chatRepo,
+                                                    att,
+                                                  ),
+                                                );
+                                              },
+                                              onEmojiTapped:
+                                                  _insertEmojiIntoComposer,
+                                              onClose: () {
+                                                if (!mounted) return;
+                                                setState(() {
+                                                  _stickersPanelOpen = false;
+                                                  _controller.text =
+                                                      _composerTextBeforeStickerSearch ??
+                                                      _controller.text;
+                                                  _controller.selection =
+                                                      TextSelection.collapsed(
+                                                        offset: _controller
+                                                            .text
+                                                            .length,
+                                                      );
+                                                  _composerTextBeforeStickerSearch =
+                                                      null;
+                                                  _stickersSearchQuery = '';
+                                                });
+                                              },
+                                            ),
+                                          );
+                                        },
+                                      ),
                                   ],
                                 ],
                               ),
@@ -4506,12 +4536,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
-    if (mounted) setState(() => _stickersPanelOpen = true);
+    if (mounted) {
+      setState(() {
+        _composerTextBeforeStickerSearch = _controller.text;
+        _controller.clear();
+        _stickersSearchQuery = '';
+        _stickersPanelOpen = true;
+      });
+    }
   }
 
   void _switchFromStickersToKeyboard() {
     if (!mounted) return;
-    setState(() => _stickersPanelOpen = false);
+    setState(() {
+      _stickersPanelOpen = false;
+      _controller.text = _composerTextBeforeStickerSearch ?? _controller.text;
+      _controller.selection = TextSelection.collapsed(
+        offset: _controller.text.length,
+      );
+      _composerTextBeforeStickerSearch = null;
+      _stickersSearchQuery = '';
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocusNode.requestFocus();
     });

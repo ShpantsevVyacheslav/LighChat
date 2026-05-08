@@ -160,6 +160,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   bool _sendBusy = false;
   bool _selectionBusy = false;
   bool _stickersPanelOpen = false;
+  String _stickersSearchQuery = '';
+  String _stickersSearchHint = '';
+  String? _composerTextBeforeStickerSearch;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
   bool _composerFormattingOpen = false;
@@ -661,12 +664,28 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
-    if (mounted) setState(() => _stickersPanelOpen = true);
+    if (mounted) {
+      setState(() {
+        _composerTextBeforeStickerSearch = _composerController.text;
+        _composerController.clear();
+        _stickersSearchQuery = '';
+        _stickersPanelOpen = true;
+      });
+    }
   }
 
   void _switchFromStickersToKeyboard() {
     if (!mounted) return;
-    setState(() => _stickersPanelOpen = false);
+    setState(() {
+      _stickersPanelOpen = false;
+      _composerController.text =
+          _composerTextBeforeStickerSearch ?? _composerController.text;
+      _composerController.selection = TextSelection.collapsed(
+        offset: _composerController.text.length,
+      );
+      _composerTextBeforeStickerSearch = null;
+      _stickersSearchQuery = '';
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocus.requestFocus();
     });
@@ -2528,76 +2547,17 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                   ],
                                 ),
                               ),
-                              if (_selectedMessageIds.isEmpty &&
-                                  _stickersPanelOpen)
-                                Builder(
-                                  builder: (context) {
-                                    final repo = ref.read(
-                                      userStickerPacksRepositoryProvider,
-                                    );
-                                    final chatRepo = ref.read(
-                                      chatRepositoryProvider,
-                                    );
-                                    if (repo == null || chatRepo == null) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    final h =
-                                        MediaQuery.sizeOf(context).height *
-                                        0.36;
-                                    return SizedBox(
-                                      height: h,
-                                      child: ComposerStickerGifPanel(
-                                        userId: user.uid,
-                                        repo: repo,
-                                        directUploadConversationId:
-                                            widget.conversationId,
-                                        onPickAttachment: (att) {
-                                          unawaited(
-                                            _sendThreadStickerOrGifAttachment(
-                                              user.uid,
-                                              chatRepo,
-                                              att,
-                                            ),
-                                          );
-                                        },
-                                        onEmojiTapped: (emoji) {
-                                          final ctrl = _composerController;
-                                          final sel = ctrl.selection;
-                                          final text = ctrl.text;
-                                          final start = sel.isValid
-                                              ? sel.start
-                                              : text.length;
-                                          final end = sel.isValid
-                                              ? sel.end
-                                              : text.length;
-                                          final newText = text.replaceRange(
-                                            start,
-                                            end,
-                                            emoji,
-                                          );
-                                          ctrl.value = TextEditingValue(
-                                            text: newText,
-                                            selection: TextSelection.collapsed(
-                                              offset: start + emoji.length,
-                                            ),
-                                          );
-                                        },
-                                        onClose: () {
-                                          if (!mounted) return;
-                                          setState(
-                                            () => _stickersPanelOpen = false,
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
-                                ),
                               if (_selectedMessageIds.isEmpty)
                                 ChatComposer(
                                   controller: _composerController,
                                   focusNode: _composerFocus,
                                   stickersPanelOpen: _stickersPanelOpen,
                                   onKeyboardTap: _switchFromStickersToKeyboard,
+                                  stickersSearchHint: _stickersSearchHint,
+                                  onStickersSearchChanged: (q) {
+                                    if (!mounted) return;
+                                    setState(() => _stickersSearchQuery = q);
+                                  },
                                   e2eeDisabledBanner: dmComposerBlockBanner(
                                     context: context,
                                     ref: ref,
@@ -2675,6 +2635,89 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                   replyingTo: _replyingTo,
                                   onCancelReply: () =>
                                       setState(() => _replyingTo = null),
+                                ),
+                              if (_selectedMessageIds.isEmpty &&
+                                  _stickersPanelOpen)
+                                Builder(
+                                  builder: (context) {
+                                    final repo = ref.read(
+                                      userStickerPacksRepositoryProvider,
+                                    );
+                                    final chatRepo = ref.read(
+                                      chatRepositoryProvider,
+                                    );
+                                    if (repo == null || chatRepo == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final h =
+                                        MediaQuery.sizeOf(context).height *
+                                        0.42;
+                                    return SizedBox(
+                                      height: h,
+                                      child: ComposerStickerGifPanel(
+                                        userId: user.uid,
+                                        repo: repo,
+                                        directUploadConversationId:
+                                            widget.conversationId,
+                                        sharedSearchQuery: _stickersSearchQuery,
+                                        onSearchHintChanged: (hint) {
+                                          if (!mounted) return;
+                                          setState(
+                                            () => _stickersSearchHint = hint,
+                                          );
+                                        },
+                                        onPickAttachment: (att) {
+                                          unawaited(
+                                            _sendThreadStickerOrGifAttachment(
+                                              user.uid,
+                                              chatRepo,
+                                              att,
+                                            ),
+                                          );
+                                        },
+                                        onEmojiTapped: (emoji) {
+                                          final ctrl = _composerController;
+                                          final sel = ctrl.selection;
+                                          final text = ctrl.text;
+                                          final start = sel.isValid
+                                              ? sel.start
+                                              : text.length;
+                                          final end = sel.isValid
+                                              ? sel.end
+                                              : text.length;
+                                          final newText = text.replaceRange(
+                                            start,
+                                            end,
+                                            emoji,
+                                          );
+                                          ctrl.value = TextEditingValue(
+                                            text: newText,
+                                            selection: TextSelection.collapsed(
+                                              offset: start + emoji.length,
+                                            ),
+                                          );
+                                        },
+                                        onClose: () {
+                                          if (!mounted) return;
+                                          setState(() {
+                                            _stickersPanelOpen = false;
+                                            _composerController.text =
+                                                _composerTextBeforeStickerSearch ??
+                                                _composerController.text;
+                                            _composerController.selection =
+                                                TextSelection.collapsed(
+                                                  offset: _composerController
+                                                      .text
+                                                      .length,
+                                                );
+                                            _composerTextBeforeStickerSearch =
+                                                null;
+                                            _stickersSearchQuery = '';
+                                          });
+                                        },
+                                      ),
+                                    );
+                                  },
                                 ),
                             ],
                           ),
