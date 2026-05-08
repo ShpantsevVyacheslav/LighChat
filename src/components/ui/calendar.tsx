@@ -21,51 +21,47 @@ function Calendar({
       locale={ru}
       weekStartsOn={1}
       showOutsideDays={showOutsideDays}
-      className={cn(
-        "p-3",
-        "[&_table]:table",
-        "[&_thead]:table-header-group",
-        "[&_tbody]:table-row-group",
-        "[&_tr]:table-row",
-        "[&_th]:table-cell",
-        "[&_td]:table-cell",
-        className
-      )}
+      className={cn("p-3", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
+        months: "flex flex-col sm:flex-row gap-4",
+        month: "flex flex-col gap-4 relative",
+        month_caption: "flex justify-center pt-1 relative items-center h-7",
         caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
-        nav_button: cn(
+        nav: "flex items-center justify-between absolute inset-x-1 top-1 z-10",
+        button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded-full"
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded-full inline-flex items-center justify-center"
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell:
-          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        button_next: cn(
+          buttonVariants({ variant: "outline" }),
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded-full inline-flex items-center justify-center"
+        ),
+        month_grid: "w-full border-collapse",
+        weekdays: "flex",
+        weekday:
+          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex items-center justify-center",
+        week: "flex w-full mt-2",
         day: cn(
+          "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+          "[&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
+        ),
+        day_button: cn(
           buttonVariants({ variant: "ghost" }),
           "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full"
         ),
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside: "text-muted-foreground opacity-50",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
+        selected:
+          "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground [&>button]:focus:bg-primary [&>button]:focus:text-primary-foreground",
+        today: "[&>button]:bg-accent [&>button]:text-accent-foreground",
+        outside: "[&>button]:text-muted-foreground [&>button]:opacity-50",
+        disabled:
+          "[&>button]:text-muted-foreground [&>button]:opacity-50 [&>button]:pointer-events-none",
+        range_middle: "[&>button]:bg-accent [&>button]:text-accent-foreground",
+        hidden: "invisible",
         ...classNames,
       }}
       components={{
-        // react-day-picker v9 переименовал IconLeft/IconRight в Chevron (один
-        // компонент с orientation). Сохраняем визуал shadcn-обёртки.
+        // react-day-picker v9 заменил IconLeft/IconRight на единый Chevron
+        // с пропсом orientation. Сохраняем визуал shadcn-обёртки.
         Chevron: (chevronProps) =>
           chevronProps.orientation === "left" ? (
             <ChevronLeft className="h-4 w-4" />

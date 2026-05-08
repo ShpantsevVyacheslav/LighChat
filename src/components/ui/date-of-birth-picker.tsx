@@ -137,32 +137,27 @@ const DateOfBirthPicker = React.forwardRef<HTMLButtonElement, DateOfBirthPickerP
               disabled={{ after: MAX_DATE, before: new Date(MIN_YEAR, 0, 1) }}
               showOutsideDays
               hideNavigation
-              className={cn(
-                "[&_table]:table",
-                "[&_thead]:table-header-group",
-                "[&_tbody]:table-row-group",
-                "[&_tr]:table-row",
-                "[&_th]:table-cell",
-                "[&_td]:table-cell",
-              )}
               classNames={{
                 months: "flex flex-col",
-                month: "space-y-1",
-                caption: "hidden",
-                table: "w-full border-collapse",
-                head_row: "flex",
-                head_cell: "text-muted-foreground rounded-md w-9 font-medium text-[0.7rem] uppercase",
-                row: "flex w-full mt-1",
-                cell: "h-9 w-9 text-center text-sm p-0 relative",
-                day: cn(
+                month: "flex flex-col gap-1",
+                month_caption: "hidden",
+                month_grid: "w-full border-collapse",
+                weekdays: "flex",
+                weekday:
+                  "text-muted-foreground rounded-md w-9 font-medium text-[0.7rem] uppercase flex items-center justify-center",
+                week: "flex w-full mt-1",
+                day: "h-9 w-9 text-center text-sm p-0 relative",
+                day_button: cn(
                   buttonVariants({ variant: "ghost" }),
                   "h-9 w-9 p-0 font-normal rounded-full hover:bg-primary/10 transition-colors"
                 ),
-                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                day_today: "bg-accent/20 text-accent-foreground font-bold",
-                day_outside: "text-muted-foreground opacity-30",
-                day_disabled: "text-muted-foreground opacity-30",
-                day_hidden: "invisible",
+                selected:
+                  "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground",
+                today: "[&>button]:bg-accent/20 [&>button]:text-accent-foreground [&>button]:font-bold",
+                outside: "[&>button]:text-muted-foreground [&>button]:opacity-30",
+                disabled:
+                  "[&>button]:text-muted-foreground [&>button]:opacity-30 [&>button]:pointer-events-none",
+                hidden: "invisible",
               }}
             />
           </div>
