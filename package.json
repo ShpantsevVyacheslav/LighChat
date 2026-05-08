@@ -2,6 +2,30 @@
   "name": "lighchat",
   "version": "0.1.0",
   "private": true,
+  "description": "LighChat — приватный мессенджер с E2E-шифрованием, мульти-девайс через QR и кастомными темами для веб, PWA, Electron и мобильных платформ.",
+  "homepage": "https://lighchat.online",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ShpantsevVyacheslav/LighChat"
+  },
+  "bugs": {
+    "url": "https://github.com/ShpantsevVyacheslav/LighChat/issues"
+  },
+  "keywords": [
+    "messenger",
+    "chat",
+    "video-conferencing",
+    "e2e-encryption",
+    "webrtc",
+    "flutter",
+    "nextjs",
+    "firebase",
+    "pwa",
+    "electron",
+    "qr-auth",
+    "private-messenger"
+  ],
+  "author": "LighChat Team",
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",

@@ -1,12 +1,14 @@
-
 {
   "name": "LighChat — безопасный мессенджер с QR-входом",
   "short_name": "LighChat",
   "description": "Безопасный мессенджер: чаты, аудио и видеозвонки, видеоконференции, игры в чате, секретные чаты, E2E-шифрование, мульти-девайс через QR.",
   "lang": "ru-RU",
+  "dir": "ltr",
+  "id": "/",
   "categories": ["social", "communication", "productivity"],
   "start_url": "/dashboard",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#0a0e17",
   "theme_color": "#0a0e17",
   "orientation": "portrait",
@@ -53,6 +55,22 @@
           "type": "image/png"
         }
       ]
+    }
+  ],
+  "prefer_related_applications": true,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.lighchat.mobile",
+      "id": "com.lighchat.mobile"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/lighchat/id6745498787"
+    },
+    {
+      "platform": "webapp",
+      "url": "https://lighchat.online/manifest.json"
     }
   ]
 }
