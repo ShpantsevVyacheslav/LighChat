@@ -43,6 +43,7 @@ import {
 } from '@/lib/chat-utils';
 import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
 import { useStickerSaveFlow } from '@/hooks/use-sticker-save-flow';
+import { useScheduledMessages } from '@/hooks/use-scheduled-messages';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
@@ -676,19 +677,15 @@ export function ChatWindow({
     [conversation.unreadThreadCounts, currentUser.id]
   );
 
-  const scheduledCountQuery = useMemoFirebase(
-    () =>
-      firestore && currentUser
-        ? query(
-            collection(firestore, `conversations/${conversation.id}/scheduledMessages`),
-            where('senderId', '==', currentUser.id),
-            where('status', '==', 'pending'),
-          )
-        : null,
-    [firestore, conversation.id, currentUser]
-  );
-  const { data: scheduledCountDocs } = useCollection(scheduledCountQuery);
-  const scheduledPendingCount = scheduledCountDocs?.length ?? 0;
+  const scheduledMessages = useScheduledMessages({
+    firestore,
+    storage,
+    conversationId: conversation.id,
+    currentUserId: currentUser?.id ?? null,
+    toast,
+    t,
+  });
+  const scheduledPendingCount = scheduledMessages.pendingCount;
 
   /** Снимаем индикатор @ в списке диалогов при открытии группового чата. */
   useEffect(() => {
@@ -1660,68 +1657,8 @@ export function ChatWindow({
     [firestore, currentUser, conversation.id, conversation.participantIds, e2eeConv.e2eeEnabled, toast]
   );
 
-  const handleScheduleMessage = useCallback(
-    async (
-      text: string | undefined,
-      files: File[],
-      replyContext: ReplyContext | null,
-      prebuilt: ChatAttachment[] | undefined,
-      sendAt: Date,
-    ) => {
-      if (!firestore || !currentUser) return;
-      const trimmedText = typeof text === 'string' ? text : undefined;
-      const hasText =
-        !!trimmedText && trimmedText.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
-      if (!hasText && (!files || files.length === 0) && (!prebuilt || prebuilt.length === 0)) return;
-
-      const scheduledCollection = collection(
-        firestore,
-        `conversations/${conversation.id}/scheduledMessages`,
-      );
-      const newDocRef = doc(scheduledCollection);
-      const nowIso = new Date().toISOString();
-      const sendAtIso = sendAt.toISOString();
-
-      try {
-        const uploadedAttachments: ChatAttachment[] = [...(prebuilt ?? [])];
-        if (files && files.length > 0) {
-          const { uploadFile: internalUpload } = await import('./ChatMessageInput');
-          for (const file of files) {
-            const path = `chat-attachments/${conversation.id}/scheduled-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-            const uploaded = await internalUpload(file, path, storage);
-            uploadedAttachments.push(uploaded);
-          }
-        }
-
-        const payload: Record<string, unknown> = {
-          senderId: currentUser.id,
-          status: 'pending',
-          scheduledAt: nowIso,
-          sendAt: sendAtIso,
-          createdAt: nowIso,
-        };
-        if (hasText && trimmedText) payload.text = trimmedText;
-        if (uploadedAttachments.length > 0) payload.attachments = uploadedAttachments;
-        if (replyContext) payload.replyTo = replyContext;
-
-        await setDoc(newDocRef, payload as Parameters<typeof setDoc>[1]);
-
-        toast({
-          title: t('chat.messageScheduled'),
-          description: format(sendAt, 'd MMMM yyyy, HH:mm', { locale: ru }),
-        });
-      } catch (e) {
-        console.error('Failed to schedule message:', e);
-        toast({
-          variant: 'destructive',
-          title: t('chat.scheduleMessageFailed'),
-          description: e instanceof Error ? e.message : String(e),
-        });
-        throw e;
-      }
-    },
-    [firestore, currentUser, conversation.id, storage, toast],
-  );
+  // [audit M-009] schedule send-логика переехала в `useScheduledMessages` —
+  // см. `scheduledMessages.scheduleSend` выше.
 
   const handleUpdateMessage = async (id: string, text: string, attachments?: ChatAttachment[]) => {
     if (!firestore || !conversation.id) return;
@@ -2542,7 +2479,9 @@ export function ChatWindow({
               onSendMessage={handleSendMessage}
               onSendLocationShare={handleSendLocationShare}
               onSendPoll={handleSendPoll}
-              onScheduleMessage={handleScheduleMessage}
+              onScheduleMessage={(text, files, replyContext, prebuilt, sendAt) =>
+                scheduledMessages.scheduleSend({ text, files, replyContext, prebuilt, sendAt })
+              }
               onUpdateMessage={handleUpdateMessage}
               replyingTo={replyingTo}
               onCancelReply={() => setReplyingTo(null)}
