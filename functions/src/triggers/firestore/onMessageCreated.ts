@@ -25,12 +25,42 @@ export const onmessagecreated = onDocumentCreated(
     const messageData = messageSnapshot.data();
     const senderId = messageData.senderId;
     const conversationId = event.params.conversationId;
+    const messageId = event.params.messageId;
 
     // [audit H-006] System-сообщения (game lobby события и пр.) не шлются
     // push'ами и не должны тащить N+1 чтения recipient'ов. Ранний exit
     // экономит per-message ~200 reads на групповых чатах.
     if (senderId === "__system__" || messageData.systemEvent != null) {
       return;
+    }
+
+    // [audit H-011] Cloud Functions v2 имеет at-least-once delivery: при
+    // retry триггера вторая отправка push дублирует уведомление (на iOS
+    // APNs тег `tag: conversationId` не дедуплицирует до доставки).
+    // Marker-doc `pushDelivered/{messageId}` через .create() — атомарный:
+    // вторая попытка получает ALREADY_EXISTS → ранний return.
+    try {
+      await db.doc(`pushDelivered/${messageId}`).create({
+        conversationId,
+        senderId,
+        deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+        // Поле для Firebase Console TTL-policy: настроить
+        // `pushDelivered.expireAt` → авточистка за 7 дней.
+        expireAt: admin.firestore.Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+    } catch (e) {
+      if (e instanceof Error && /already exists/i.test(e.message)) {
+        logger.log("[onmessagecreated] duplicate trigger — push already sent", {
+          messageId,
+          conversationId,
+        });
+        return;
+      }
+      logger.warn("[onmessagecreated] pushDelivered marker write failed", {
+        messageId,
+        error: String(e),
+      });
+      // Не блокируем доставку push — fail open (лучше дубль, чем потеря).
     }
 
     const conversationRef = db.doc(`conversations/${conversationId}`);

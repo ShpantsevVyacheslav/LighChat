@@ -390,6 +390,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    /**
+     * [audit H-011 / M-006] Idempotency-маркеры push-уведомлений (см.
+     * `onMessageCreated.ts` / `onCallCreated.ts`). Пишутся через .create()
+     * Admin SDK; повторный вызов триггера получает ALREADY_EXISTS и не
+     * шлёт push повторно. Клиент к ним не должен иметь доступа.
+     */
+    match /pushDelivered/{markerId} {
+      allow read, write: if false;
+    }
+
     match /users/{userId} {
       /**
        * [audit H-002] Чтение профиля закрыто для anonymous-гостя — иначе после

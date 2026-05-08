@@ -52,6 +52,31 @@ export const oncallcreated = onDocumentCreated(
       logger.error("Call document is missing participants.", { callId });
       return;
     }
+
+    // [audit M-006 / H-011] At-least-once delivery Cloud Functions v2: при
+    // retry триггера второй VoIP-push на iOS = два инцидента CallKit (UX
+    // проседает: телефон звонит дважды). Marker `pushDelivered/call_{callId}`
+    // через .create() — атомарный: дубль ловится ALREADY_EXISTS.
+    try {
+      await db.doc(`pushDelivered/call_${callId}`).create({
+        callId,
+        callerId,
+        receiverId,
+        deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+        // Поле для Firebase Console TTL-policy на `pushDelivered`.
+        expireAt: admin.firestore.Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+    } catch (e) {
+      if (e instanceof Error && /already exists/i.test(e.message)) {
+        logger.log("[oncallcreated] duplicate trigger — VoIP push already sent", { callId });
+        return;
+      }
+      logger.warn("[oncallcreated] pushDelivered marker write failed", {
+        callId,
+        error: String(e),
+      });
+      // fail open
+    }
     if (receiverId === callerId) {
       logger.warn("Call push skipped: receiverId equals callerId.", { callId, callerId });
       return;
