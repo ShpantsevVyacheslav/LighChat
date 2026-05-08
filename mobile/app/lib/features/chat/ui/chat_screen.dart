@@ -71,7 +71,6 @@ import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
 import 'chat_document_open.dart';
-import 'chat_ios_image_markup.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/user_block_providers.dart';
 import '../data/user_block_utils.dart';
@@ -2336,34 +2335,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         }
                                         final target = _pendingAttachments[i];
                                         if (isOutgoingAlbumLocalImage(target)) {
-                                          var imageCount = 0;
-                                          for (final f in _pendingAttachments) {
-                                            if (isOutgoingAlbumLocalImage(f)) {
-                                              imageCount += 1;
-                                            }
-                                          }
-                                          if (Platform.isIOS &&
-                                              imageCount == 1) {
-                                            final editedNative =
-                                                await openIosNativeImageMarkup(
-                                                  target,
-                                                );
-                                            if (editedNative != null &&
-                                                mounted) {
-                                              setState(() {
-                                                if (i >= 0 &&
-                                                    i <
-                                                        _pendingAttachments
-                                                            .length) {
-                                                  _pendingAttachments[i] =
-                                                      editedNative;
-                                                }
-                                              });
-                                              _scheduleChatDraftSave();
-                                              return;
-                                            }
-                                          }
-
                                           final imageIndices = <int>[];
                                           final imageFiles = <XFile>[];
                                           for (

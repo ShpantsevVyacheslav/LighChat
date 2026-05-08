@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'chat_ios_image_markup.dart';
 
 class ChatImageEditorResult {
   const ChatImageEditorResult({required this.files, required this.caption});
@@ -276,43 +277,6 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
 
   // ---------------- destructive ops ----------------
 
-  Future<void> _rotate() async {
-    if (_opInFlight) return;
-    final w = _working;
-    if (w == null) return;
-    setState(() => _opInFlight = true);
-    try {
-      await _flattenPendingStrokes();
-      _pushBaseSnapshot();
-      final w2 = _working;
-      if (w2 == null) return;
-      final rgba = w2.getBytes(order: img.ChannelOrder.rgba);
-      final res = await compute<_RotateArgs, _DecodedAndPreview>(
-        _rotateIsolate,
-        _RotateArgs(
-          width: w2.width,
-          height: w2.height,
-          rgba: rgba,
-          angle: 90,
-          encodeQuality: 90,
-        ),
-      );
-      if (!mounted) return;
-      setState(() {
-        _working = _imageFromRgba(
-          _DecodedImage(width: res.width, height: res.height, rgba: res.rgba),
-        );
-        _workingSize = Size(res.width.toDouble(), res.height.toDouble());
-        _currentPreviewBytes = res.jpeg;
-      });
-      _persistCurrentDraftCompact();
-    } catch (e, st) {
-      debugPrint('chat image editor: rotate failed: $e\n$st');
-    } finally {
-      if (mounted) setState(() => _opInFlight = false);
-    }
-  }
-
   Future<void> _crop() async {
     if (_opInFlight) return;
     if (_working == null) return;
@@ -398,6 +362,79 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.image_editor_crop_failed)),
       );
+    } finally {
+      if (sourceFile != null) {
+        unawaited(
+          sourceFile.delete().then((_) {}, onError: (_) {}),
+        );
+      }
+      if (mounted) setState(() => _opInFlight = false);
+    }
+  }
+
+  // iOS-only: открыть нативный PencilKit-разметчик (карандаш/маркер/ластик).
+  // Текущее состояние редактора передаём как JPEG во временный файл, а
+  // полученный обратно файл загружаем как новый рабочий растр — с пушем
+  // в base history, чтобы Undo откатывал нативные правки одним шагом.
+  Future<void> _openNativeMarkup() async {
+    if (!Platform.isIOS) return;
+    if (_opInFlight) return;
+    if (_working == null) return;
+
+    File? sourceFile;
+    setState(() => _opInFlight = true);
+    try {
+      await _flattenPendingStrokes();
+      final w2 = _working;
+      if (w2 == null) return;
+
+      final maxSide = math.max(w2.width, w2.height);
+      final Uint8List jpegBytes;
+      if (maxSide <= _kCropMaxSide && _currentPreviewBytes != null) {
+        jpegBytes = _currentPreviewBytes!;
+      } else {
+        jpegBytes = await _encodeCropSourceJpeg(w2);
+      }
+
+      final dir = await getTemporaryDirectory();
+      final sourcePath =
+          '${dir.path}/chat_edit_markup_src_${DateTime.now().microsecondsSinceEpoch}.jpg';
+      sourceFile = File(sourcePath);
+      await sourceFile.writeAsBytes(jpegBytes, flush: true);
+
+      final edited = await openIosNativeImageMarkup(XFile(sourcePath));
+      if (edited == null || !mounted) return;
+
+      final editedBytes = await File(edited.path).readAsBytes();
+      final decoded = await compute<_LoadArgs, _DecodedImage?>(
+        _decodeAndDownscaleIsolate,
+        _LoadArgs(bytes: editedBytes, maxSide: _kWorkingMaxSide),
+      );
+      if (decoded == null || !mounted) return;
+
+      final previewJpeg = await compute<_EncodeArgs, Uint8List>(
+        _encodeJpegIsolate,
+        _EncodeArgs(
+          width: decoded.width,
+          height: decoded.height,
+          rgba: decoded.rgba,
+          quality: 90,
+        ),
+      );
+      if (!mounted) return;
+
+      _pushBaseSnapshot();
+      setState(() {
+        _working = _imageFromRgba(decoded);
+        _workingSize = Size(
+          decoded.width.toDouble(),
+          decoded.height.toDouble(),
+        );
+        _currentPreviewBytes = previewJpeg;
+      });
+      _persistCurrentDraftCompact();
+    } catch (e, st) {
+      debugPrint('chat image native markup failed: $e\n$st');
     } finally {
       if (sourceFile != null) {
         unawaited(
@@ -646,19 +683,16 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
                         ),
                         const SizedBox(width: 8),
                         _iconBtn(
-                          icon: Icons.rotate_right_rounded,
-                          onTap: busy ? null : _rotate,
-                        ),
-                        const SizedBox(width: 8),
-                        _iconBtn(
                           icon: Icons.edit_rounded,
                           onTap: busy
                               ? null
-                              : () => setState(() {
-                                    _drawMode = !_drawMode;
-                                    _activeStroke = null;
-                                  }),
-                          active: _drawMode,
+                              : (Platform.isIOS
+                                    ? _openNativeMarkup
+                                    : () => setState(() {
+                                          _drawMode = !_drawMode;
+                                          _activeStroke = null;
+                                        })),
+                          active: !Platform.isIOS && _drawMode,
                         ),
                         const SizedBox(width: 8),
                         _iconBtn(
@@ -757,47 +791,53 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
                                 final memory = _previewByIndex[index];
                                 return GestureDetector(
                                   onTap: () => _openAtIndex(index),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
-                                    width: 56,
-                                    height: 56,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: selected
-                                            ? const Color(0xFF2F86FF)
-                                            : Colors.white.withValues(
-                                                alpha: 0.12,
+                                  child: SizedBox.square(
+                                    dimension: 56,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: selected
+                                              ? const Color(0xFF2F86FF)
+                                              : Colors.white.withValues(
+                                                  alpha: 0.12,
+                                                ),
+                                          width: selected ? 2 : 1,
+                                        ),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: memory != null
+                                            ? Image.memory(
+                                                memory,
+                                                width: 56,
+                                                height: 56,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Image.file(
+                                                File(_files[index].path),
+                                                width: 56,
+                                                height: 56,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) => ColoredBox(
+                                                      color: Colors.black26,
+                                                      child: Icon(
+                                                        Icons
+                                                            .image_not_supported_rounded,
+                                                        color: Colors.white
+                                                            .withValues(
+                                                              alpha: 0.55,
+                                                            ),
+                                                      ),
+                                                    ),
                                               ),
-                                        width: selected ? 2 : 1,
                                       ),
                                     ),
-                                    clipBehavior: Clip.antiAlias,
-                                    child: memory != null
-                                        ? Image.memory(
-                                            memory,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Image.file(
-                                            File(_files[index].path),
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (
-                                                  context,
-                                                  error,
-                                                  stackTrace,
-                                                ) => ColoredBox(
-                                                  color: Colors.black26,
-                                                  child: Icon(
-                                                    Icons
-                                                        .image_not_supported_rounded,
-                                                    color: Colors.white
-                                                        .withValues(
-                                                          alpha: 0.55,
-                                                        ),
-                                                  ),
-                                                ),
-                                          ),
                                   ),
                                 );
                               },
@@ -1144,22 +1184,6 @@ class _FlattenArgs {
   final int encodeQuality;
 }
 
-class _RotateArgs {
-  const _RotateArgs({
-    required this.width,
-    required this.height,
-    required this.rgba,
-    required this.angle,
-    required this.encodeQuality,
-  });
-
-  final int width;
-  final int height;
-  final Uint8List rgba;
-  final num angle;
-  final int encodeQuality;
-}
-
 class _DecodedImage {
   const _DecodedImage({
     required this.width,
@@ -1275,23 +1299,3 @@ _DecodedAndPreview _flattenIsolate(_FlattenArgs args) {
   );
 }
 
-_DecodedAndPreview _rotateIsolate(_RotateArgs args) {
-  final im = img.Image.fromBytes(
-    width: args.width,
-    height: args.height,
-    bytes: args.rgba.buffer,
-    numChannels: 4,
-    order: img.ChannelOrder.rgba,
-  );
-  final rotated = img.copyRotate(im, angle: args.angle);
-  final rgba = rotated.getBytes(order: img.ChannelOrder.rgba);
-  final jpeg = Uint8List.fromList(
-    img.encodeJpg(rotated, quality: args.encodeQuality),
-  );
-  return _DecodedAndPreview(
-    width: rotated.width,
-    height: rotated.height,
-    rgba: rgba,
-    jpeg: jpeg,
-  );
-}
