@@ -12,6 +12,7 @@
 import { Lock, LockOpen, Shield, Smartphone, Fingerprint, RefreshCw, Swords } from 'lucide-react';
 import type { ChatSystemEvent } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 function pickIcon(type: ChatSystemEvent['type']) {
   switch (type) {
@@ -35,28 +36,28 @@ function pickIcon(type: ChatSystemEvent['type']) {
   }
 }
 
-function renderText(event: ChatSystemEvent): string {
-  const actor = event.data?.actorName ?? 'Пользователь';
-  const device = event.data?.deviceLabel ?? 'устройство';
+function renderText(event: ChatSystemEvent, t: (key: string) => string): string {
+  const actor = event.data?.actorName ?? t('chat.systemEvent.fallbackActor');
+  const device = event.data?.deviceLabel ?? t('chat.systemEvent.fallbackDevice');
   switch (event.type) {
     case 'e2ee.v2.enabled':
-      return 'Сквозное шифрование включено';
+      return t('chat.systemEvent.e2eeEnabled');
     case 'e2ee.v2.disabled':
-      return 'Сквозное шифрование отключено';
+      return t('chat.systemEvent.e2eeDisabled');
     case 'e2ee.v2.epoch.rotated':
-      return 'Ключ шифрования обновлён';
+      return t('chat.systemEvent.keyRotated');
     case 'e2ee.v2.device.added':
-      return `${actor} добавил устройство «${device}»`;
+      return t('chat.systemEvent.deviceAdded').replace('{actor}', actor).replace('{device}', device);
     case 'e2ee.v2.device.revoked':
-      return `${actor} отозвал устройство «${device}»`;
+      return t('chat.systemEvent.deviceRevoked').replace('{actor}', actor).replace('{device}', device);
     case 'e2ee.v2.fingerprint.changed':
-      return `Отпечаток безопасности у ${actor} изменился`;
+      return t('chat.systemEvent.fingerprintChanged').replace('{actor}', actor);
     case 'gameLobbyCreated':
-      return event.data?.gameType === 'durak' ? 'Создана партия “Дурак”' : 'Создана игровая партия';
+      return event.data?.gameType === 'durak' ? t('chat.systemEvent.durakCreated') : t('chat.systemEvent.gameCreated');
     case 'gameStarted':
-      return event.data?.gameType === 'durak' ? 'Партия “Дурак” началась' : 'Игровая партия началась';
+      return event.data?.gameType === 'durak' ? t('chat.systemEvent.durakStarted') : t('chat.systemEvent.gameStarted');
     default:
-      return 'Системное событие';
+      return t('chat.systemEvent.fallback');
   }
 }
 
@@ -67,8 +68,9 @@ export function ChatSystemEventDivider({
   event: ChatSystemEvent;
   className?: string;
 }) {
+  const { t } = useI18n();
   const Icon = pickIcon(event.type);
-  const label = renderText(event);
+  const label = renderText(event, t);
   return (
     <div
       className={cn(

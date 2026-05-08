@@ -84,17 +84,17 @@ export type ChatProfileSubMenu =
 
 export type ChatProfileSource = 'contacts' | 'mention' | 'sender' | 'chat';
 
-const PROFILE_SUBMENU_TITLES: Record<ChatProfileSubMenu, string> = {
-  media: 'Медиа, ссылки и файлы',
-  starred: 'Избранное',
-  threads: 'Обсуждения',
-  games: 'Игры',
-  notifications: 'Уведомления в этом чате',
-  theme: 'Тема этого чата',
-  privacy: 'Приватность этого чата',
-  encryption: 'Шифрование',
-  disappearing: 'Исчезающие сообщения',
-  leave: 'Покинуть группу',
+const PROFILE_SUBMENU_KEYS: Record<ChatProfileSubMenu, string> = {
+  media: 'chat.profile.mediaLinksFiles',
+  starred: 'chat.profile.starred',
+  threads: 'chat.profile.discussions',
+  games: 'chat.profile.games',
+  notifications: 'chat.profile.notificationsInChat',
+  theme: 'chat.profile.chatTheme',
+  privacy: 'chat.profile.chatPrivacy',
+  encryption: 'chat.profile.encryptionLabel',
+  disappearing: 'chat.profile.disappearingMessages',
+  leave: 'chat.profile.leaveGroup',
 };
 
 interface ChatParticipantProfileProps {
@@ -288,7 +288,7 @@ export function ChatParticipantProfile({
     const info = conversation.participantInfo[profileDocId];
     return {
       id: profileDocId,
-      name: info?.name || 'Пользователь',
+      name: info?.name || t('chat.userLabel'),
       username: '',
       email: '',
       avatar: info?.avatar || '',
@@ -387,11 +387,11 @@ export function ChatParticipantProfile({
       await updateDoc(doc(firestore, 'users', currentUser.id), {
         blockedUserIds: arrayUnion(profileDocId),
       });
-      toast({ title: 'Пользователь заблокирован' });
+      toast({ title: t('chat.profile.blocked') });
       setBlockDialogOpen(false);
     } catch (e) {
       console.error('[ChatParticipantProfile] block user', e);
-      toast({ variant: 'destructive', title: 'Не удалось заблокировать' });
+      toast({ variant: 'destructive', title: t('chat.profile.blockFailed') });
     } finally {
       setBlockBusy(false);
     }
@@ -404,11 +404,11 @@ export function ChatParticipantProfile({
       await updateDoc(doc(firestore, 'users', currentUser.id), {
         blockedUserIds: arrayRemove(profileDocId),
       });
-      toast({ title: 'Пользователь разблокирован' });
+      toast({ title: t('chat.profile.unblocked') });
       setUnblockDialogOpen(false);
     } catch (e) {
       console.error('[ChatParticipantProfile] unblock user', e);
-      toast({ variant: 'destructive', title: 'Не удалось разблокировать' });
+      toast({ variant: 'destructive', title: t('chat.profile.unblockFailed') });
     } finally {
       setBlockBusy(false);
     }
@@ -424,7 +424,7 @@ export function ChatParticipantProfile({
       handleSheetOpenChange(false);
     } catch (e) {
       console.error('[ChatParticipantProfile] openDirectChatFromProfile failed', e);
-      toast({ title: 'Не удалось открыть чат', variant: 'destructive' });
+      toast({ title: t('chat.profile.openChatFailed'), variant: 'destructive' });
     } finally {
       setQuickActionBusy(null);
     }
@@ -448,7 +448,7 @@ export function ChatParticipantProfile({
       handleSheetOpenChange(false);
     } catch (e) {
       console.error('[ChatParticipantProfile] startDirectCallFromProfile failed', e);
-      toast({ title: 'Не удалось начать звонок', variant: 'destructive' });
+      toast({ title: t('chat.profile.startCallFailed'), variant: 'destructive' });
     } finally {
       setQuickActionBusy(null);
     }
@@ -473,7 +473,7 @@ export function ChatParticipantProfile({
         const next = !(conversationPrefs?.notificationsMuted === true);
         updatePrefs({ notificationsMuted: next });
         toast({
-          title: next ? 'Уведомления отключены' : 'Уведомления включены',
+          title: next ? t('chat.profile.notificationsMuted') : t('chat.profile.notificationsEnabled'),
         });
       } else {
         const prefsRef = doc(firestore, 'users', currentUser.id, 'chatConversationPrefs', direct.id);
@@ -491,12 +491,12 @@ export function ChatParticipantProfile({
         );
         onSelectConversation(direct.id);
         toast({
-          title: next ? 'Уведомления отключены' : 'Уведомления включены',
+          title: next ? t('chat.profile.notificationsMuted') : t('chat.profile.notificationsEnabled'),
         });
       }
     } catch (e) {
       console.error('[ChatParticipantProfile] toggleDirectNotificationsFromProfile failed', e);
-      toast({ title: 'Не удалось изменить уведомления', variant: 'destructive' });
+      toast({ title: t('chat.profile.notificationsChangeFailed'), variant: 'destructive' });
     } finally {
       setQuickActionBusy(null);
     }
@@ -523,7 +523,7 @@ export function ChatParticipantProfile({
   const displayParticipantInfo = useMemo(() => {
     if (!profileDocId) return null;
     const info = conversation.participantInfo[profileDocId];
-    const fallbackName = freshParticipant?.name || info?.name || 'Пользователь';
+    const fallbackName = freshParticipant?.name || info?.name || t('chat.userLabel');
     const resolvedName = resolveContactDisplayName(
       contactsIndex?.contactProfiles,
       profileDocId,
@@ -603,7 +603,7 @@ export function ChatParticipantProfile({
         ? conversation.name
         : isSelfSavedChat
           ? conversation.name || t('chatList.previewSavedMessages')
-          : displayParticipantInfo?.name || 'Чат';
+          : displayParticipantInfo?.name || t('chat.chatLabel');
   const avatar =
     showMemberFocus && displayParticipantInfo
       ? displayParticipantInfo.avatar
@@ -637,9 +637,9 @@ export function ChatParticipantProfile({
   const currentDescription = showMemberFocus
     ? statusText
     : isGroup
-    ? conversation.description || `${conversation.participantIds.length} участников` 
+    ? conversation.description || `${conversation.participantIds.length} ${t('chat.profile.participantsCount')}` 
       : isSelfSavedChat
-        ? 'Сообщения и заметки только для вас'
+        ? t('chat.profile.savedNotesHint')
     : statusText;
 
   const groupParticipantCount = useMemo(
@@ -662,15 +662,15 @@ export function ChatParticipantProfile({
         });
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        toast({ title: 'Ссылка на чат скопирована' });
+        toast({ title: t('chat.profile.chatLinkCopied') });
       }
     } catch {
-      toast({ title: 'Не удалось поделиться', variant: 'destructive' });
+      toast({ title: t('chat.profile.shareFailed'), variant: 'destructive' });
     }
   }, [name, toast]);
 
   const mediaDocsCount = media.length + files.length + links.length;
-  const mediaDocsLabel = mediaDocsCount === 0 ? 'Нет' : String(mediaDocsCount);
+  const mediaDocsLabel = mediaDocsCount === 0 ? t('chat.profile.none') : String(mediaDocsCount);
 
   /** Раньше при наличии username показывали только ~nick — строка «последний вход» пропадала. */
   const profileHeaderSubtitles = useMemo(() => {
@@ -686,10 +686,10 @@ export function ChatParticipantProfile({
   }, [isGroup, showMemberFocus, currentDescription, freshParticipant?.username]);
 
   const discussionsCount = threadMessages.length;
-  const discussionsLabel = discussionsCount === 0 ? 'Нет' : String(discussionsCount);
-  const starredLabel = starredCount === 0 ? 'Нет' : String(starredCount);
+  const discussionsLabel = discussionsCount === 0 ? t('chat.profile.none') : String(discussionsCount);
+  const starredLabel = starredCount === 0 ? t('chat.profile.none') : String(starredCount);
   const privacySummaryLabel =
-    conversationPrefs?.suppressReadReceipts === true ? 'Свои настройки' : 'По умолчанию';
+    conversationPrefs?.suppressReadReceipts === true ? t('chat.profile.customSettings') : t('chat.profile.defaultSettings');
 
   const showEncryptionMenuRow = !isGroup && !isSelfSavedChat;
   /** Личный чат или основной профиль группы (не карточка участника). */
@@ -699,10 +699,10 @@ export function ChatParticipantProfile({
     (!isGroup || (isGroup && !showMemberFocus));
   const isSecretConversation = conversation.secretChat?.enabled === true;
   const e2eeSummaryOn = !!(conversation.e2eeEnabled && (conversation.e2eeKeyEpoch ?? 0) > 0);
-  const encryptionSummaryLabel = e2eeSummaryOn ? 'Вкл' : 'Выкл';
+  const encryptionSummaryLabel = e2eeSummaryOn ? t('chat.profile.on') : t('chat.profile.off');
   const encryptionRowDescription = e2eeSummaryOn
-    ? 'Сообщения защищены сквозным шифрованием. Нажмите, чтобы изменить.'
-    : 'Сквозное шифрование выключено. Нажмите, чтобы включить.';
+    ? t('chat.profile.encryptionOnHint')
+    : t('chat.profile.encryptionOffHint');
 
   if (!open) return null;
   
@@ -711,7 +711,7 @@ export function ChatParticipantProfile({
       <SheetContent className={cn(WA_CONVERSATION_UTILITY_SHEET_CONTENT_CLASS)} side="right" showCloseButton={false}>
         <SheetHeader className="sr-only">
             <SheetTitle>{name}</SheetTitle>
-            <SheetDescription>Профиль участника и медиафайлы беседы</SheetDescription>
+            <SheetDescription>{t('chat.profile.sheetDescription')}</SheetDescription>
         </SheetHeader>
         {isGroup && groupProfileLayer === 'participants' ? (
           <GroupChatParticipantsManageView
@@ -735,12 +735,12 @@ export function ChatParticipantProfile({
                     size="icon"
                     className="shrink-0 rounded-full"
                     onClick={() => setGroupProfileLayer('main')}
-                    aria-label="Назад к профилю группы"
+                    aria-label={t('chat.profile.backToGroupProfile')}
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <div className="min-w-0">
-                    <p className="truncate font-bold leading-tight">Редактирование группы</p>
+                    <p className="truncate font-bold leading-tight">{t('chat.profile.editGroup')}</p>
                     <p className="truncate text-xs text-muted-foreground">{conversation.name}</p>
                   </div>
                 </div>
@@ -770,12 +770,12 @@ export function ChatParticipantProfile({
                 size="icon"
                 className="shrink-0 rounded-full text-foreground hover:bg-muted"
                 onClick={closeProfileSubMenu}
-                aria-label="Назад к профилю"
+                aria-label={t('chat.profile.backToProfile')}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <h2 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
-                {PROFILE_SUBMENU_TITLES[profileSubMenu]}
+                {t(PROFILE_SUBMENU_KEYS[profileSubMenu])}
               </h2>
             </div>
             <div
@@ -885,13 +885,13 @@ export function ChatParticipantProfile({
                   size="icon"
                   className="rounded-full text-foreground hover:bg-muted"
                   onClick={() => onClearProfileFocus()}
-                  aria-label="Назад к группе"
+                  aria-label={t('chat.profile.backToGroup')}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               ) : (
                 <SheetClose asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full text-foreground hover:bg-muted" aria-label="Закрыть">
+                  <Button variant="ghost" size="icon" className="rounded-full text-foreground hover:bg-muted" aria-label={t('common.close')}>
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </SheetClose>
@@ -901,7 +901,7 @@ export function ChatParticipantProfile({
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 shrink-0 rounded-full text-emerald-500 hover:bg-muted hover:text-emerald-400"
-                aria-label="Поделиться"
+                aria-label={t('chat.profile.share')}
                 onClick={() => void handleQuickShare()}
               >
                 <Share2 className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -930,7 +930,7 @@ export function ChatParticipantProfile({
                   >
                     <DialogHeader className="sr-only">
                         <DialogTitle>{name}</DialogTitle>
-                        <DialogDescription>Полноэкранный просмотр аватара</DialogDescription>
+                        <DialogDescription>{t('chat.profile.avatarFullscreen')}</DialogDescription>
                     </DialogHeader>
                     <header className="absolute top-0 left-0 right-0 z-50 box-border flex min-h-[5.5rem] items-start justify-between gap-3 bg-gradient-to-b from-black/70 to-transparent px-4 pb-2 pt-[calc(1rem+env(safe-area-inset-top,0px))] text-white">
                         <div className="font-semibold">{name}</div>
@@ -939,7 +939,7 @@ export function ChatParticipantProfile({
                           variant="ghost"
                           size="icon"
                           className="text-white hover:bg-white/20 hover:text-white"
-                          aria-label="Закрыть"
+                          aria-label={t('common.close')}
                         >
                                 <X className="h-6 w-6" />
                             </Button>
@@ -957,7 +957,7 @@ export function ChatParticipantProfile({
                       variant="ghost"
                       size="icon"
                       className="absolute -bottom-0.5 -right-0.5 h-10 w-10 rounded-full border-2 border-background bg-emerald-600 text-white shadow-lg hover:bg-emerald-500 hover:text-white"
-                      aria-label="Открыть карту с геолокацией"
+                      aria-label={t('chat.profile.openLocationMap')}
                       onClick={() => setLiveMapOpen(true)}
                     >
                       <MapPin className="h-5 w-5" />
@@ -966,7 +966,7 @@ export function ChatParticipantProfile({
                       open={liveMapOpen}
                       onOpenChange={setLiveMapOpen}
                       userId={profileDocId}
-                      displayName={displayParticipantInfo?.name ?? name ?? 'Пользователь'}
+                      displayName={displayParticipantInfo?.name ?? name ?? t('chat.userLabel')}
                     />
                   </>
                 )}
@@ -991,7 +991,7 @@ export function ChatParticipantProfile({
                     {showChatsQuickAction ? (
                       <WaQuickActionButton
                         icon={<MessageSquare />}
-                        label="Чаты"
+                        label={t('nav.chats')}
                         onClick={() => void openDirectChatFromProfile()}
                         disabled={quickActionBusy !== null}
                       />
@@ -1000,26 +1000,26 @@ export function ChatParticipantProfile({
                       <>
                         <WaQuickActionButton
                           icon={<Phone />}
-                          label="Звонок"
+                          label={t('chat.profile.callAction')}
                           onClick={() => void startDirectCallFromProfile(false)}
                           disabled={quickActionBusy !== null}
                         />
                         <WaQuickActionButton
                           icon={<Video />}
-                          label="Видео"
+                          label={t('chat.profile.videoAction')}
                           onClick={() => void startDirectCallFromProfile(true)}
                           disabled={quickActionBusy !== null}
                         />
                         <WaQuickActionButton
                           icon={<Share2 />}
-                          label="Поделиться"
+                          label={t('chat.profile.share')}
                           onClick={() => void handleQuickShare()}
                           disabled={quickActionBusy !== null}
                         />
                         {!isSecretConversation ? (
                           <WaQuickActionButton
                             icon={<LockKeyhole />}
-                            label="Секретный"
+                            label={t('chat.profile.secretAction')}
                             onClick={async () => {
                               if (!contactTargetUser || quickActionBusy) return;
                               setQuickActionBusy('secret');
@@ -1044,7 +1044,7 @@ export function ChatParticipantProfile({
                         ) : null}
                         <WaQuickActionButton
                           icon={<Bell />}
-                          label={muteInCurrentDirect ? 'Звук выкл' : 'Звук'}
+                          label={muteInCurrentDirect ? t('chat.profile.soundMuted') : t('chat.profile.soundOn')}
                           onClick={() => void toggleDirectNotificationsFromProfile()}
                           disabled={quickActionBusy !== null}
                           accentClassName={muteInCurrentDirect ? 'text-amber-500' : 'text-emerald-500'}
@@ -1071,7 +1071,7 @@ export function ChatParticipantProfile({
                         variant="ghost"
                         className="group flex h-10 w-full items-center justify-between gap-2 rounded-lg border-none bg-transparent px-2 text-sm font-semibold text-foreground shadow-none hover:bg-muted/60 sm:px-2.5"
                       >
-                        <span className="min-w-0 truncate text-left">Контакты и данные</span>
+                        <span className="min-w-0 truncate text-left">{t('chat.profile.contactsAndData')}</span>
                         <ChevronDown
                           className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
                           aria-hidden
@@ -1086,7 +1086,7 @@ export function ChatParticipantProfile({
                                     </div>
                           <div className="flex min-w-0 flex-col">
                             <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                              Электронная почта
+                              {t('chat.profile.emailLabel')}
                             </div>
                             <div className="truncate text-sm font-bold leading-tight">{displayParticipantInfo.email}</div>
                           </div>
@@ -1099,7 +1099,7 @@ export function ChatParticipantProfile({
                             <Smartphone className="h-4 w-4 text-emerald-500" />
                           </div>
                           <div className="flex min-w-0 flex-col">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Телефон</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{t('chat.profile.phoneLabel')}</div>
                             <div className="truncate text-sm font-bold leading-tight">
                               {formatPhoneNumberForDisplay(displayParticipantInfo.phone)}
                             </div>
@@ -1113,7 +1113,7 @@ export function ChatParticipantProfile({
                                         <Cake className="h-4 w-4 text-purple-500" />
                                     </div>
                           <div className="flex min-w-0 flex-col">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">День рождения</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{t('chat.profile.birthdayLabel')}</div>
                             <div className="truncate text-sm font-bold leading-tight">{displayParticipantInfo.dateOfBirth}</div>
                           </div>
                         </div>
@@ -1125,7 +1125,7 @@ export function ChatParticipantProfile({
                             <UserRound className="h-4 w-4 text-muted-foreground" />
                           </div>
                           <div className="flex min-w-0 flex-col gap-1">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">О себе</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{t('chat.profile.bioLabel')}</div>
                             <p className="break-words text-sm leading-relaxed whitespace-pre-wrap">{displayParticipantInfo.bio}</p>
                                     </div>
                                 </div>
@@ -1137,7 +1137,7 @@ export function ChatParticipantProfile({
                                         <ShieldCheck className="h-4 w-4 text-primary" />
                                     </div>
                           <div className="flex min-w-0 flex-col">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Роль в системе</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{t('chat.profile.roleLabel')}</div>
                             <div className="truncate text-sm font-bold leading-tight">
                               {ROLES[displayParticipantInfo.role as UserRole] || displayParticipantInfo.role}
                                     </div>
@@ -1153,8 +1153,8 @@ export function ChatParticipantProfile({
                       variant="secondary"
                       className="inline-flex h-12 shrink-0 flex-row items-center justify-center gap-1.5 rounded-2xl border-border bg-muted px-2.5 font-bold text-foreground shadow-none hover:bg-muted/80 sm:px-3"
                       onClick={handleOpenContactEditor}
-                      title={isContact ? 'Изменить контакт' : 'Добавить в контакты'}
-                      aria-label={isContact ? 'Изменить контакт' : 'Добавить в контакты'}
+                      title={isContact ? t('chat.profile.editContact') : t('chat.profile.addToContacts')}
+                      aria-label={isContact ? t('chat.profile.editContact') : t('chat.profile.addToContacts')}
                     >
                       {isContact ? (
                         <Edit className="h-5 w-5 shrink-0" aria-hidden />
@@ -1162,7 +1162,7 @@ export function ChatParticipantProfile({
                         <UserPlus className="h-5 w-5 shrink-0" aria-hidden />
                       )}
                       <span className="max-w-[5rem] truncate text-left text-[11px] leading-none sm:max-w-[6.5rem] sm:text-sm">
-                        {isContact ? 'Изм.' : 'В контакты'}
+                        {isContact ? t('chat.profile.editContactShort') : t('chat.profile.addToContactsShort')}
                       </span>
                     </Button>
                   ) : null}
@@ -1182,7 +1182,7 @@ export function ChatParticipantProfile({
                     ) : (
                       <UserPlus className="h-5 w-5 shrink-0" aria-hidden />
                     )}
-                    {isContact ? 'Изм. контакт' : 'Добавить в контакты'}
+                    {isContact ? t('chat.profile.editContact') : t('chat.profile.addToContacts')}
                   </Button>
                 </div>
               ) : null}
@@ -1195,7 +1195,7 @@ export function ChatParticipantProfile({
                     onClick={() => setGroupProfileLayer('participants')}
                         >
                     <span className="flex items-center gap-2.5">
-                      <Users className="h-[18px] w-[18px] shrink-0 text-emerald-500" /> Участники
+                      <Users className="h-[18px] w-[18px] shrink-0 text-emerald-500" /> {t('chat.profile.participants')}
                             </span>
                     <Badge
                       variant="secondary"
@@ -1211,7 +1211,7 @@ export function ChatParticipantProfile({
                       onClick={() => setGroupProfileLayer('edit')}
                             >
                       <Edit className="mr-2.5 h-[18px] w-[18px] shrink-0 text-emerald-500" />
-                      Редактировать группу
+                      {t('chat.profile.editGroup')}
                             </Button>
                         )}
                     </div>
@@ -1227,7 +1227,7 @@ export function ChatParticipantProfile({
                         <Ban className="h-[18px] w-[18px] shrink-0 text-destructive" />
                       )
                     }
-                    title={isPartnerBlockedByMe ? 'Разблокировать' : 'Заблокировать'}
+                    title={isPartnerBlockedByMe ? t('chat.profile.unblock') : t('chat.profile.block')}
                     onClick={() =>
                       isPartnerBlockedByMe ? setUnblockDialogOpen(true) : setBlockDialogOpen(true)
                     }
@@ -1239,37 +1239,37 @@ export function ChatParticipantProfile({
               <WaMenuSection>
                 <WaMenuRow
                   icon={<ImageIcon />}
-                  title="Медиа, ссылки и файлы"
+                  title={t('chat.profile.mediaLinksFiles')}
                   right={<span className="text-xs tabular-nums text-muted-foreground">{mediaDocsLabel}</span>}
                   onClick={() => setProfileSubMenu('media')}
                 />
                 <WaMenuRow
                   icon={<Star />}
-                  title="Избранное"
+                  title={t('chat.profile.starred')}
                   right={<span className="text-xs tabular-nums text-muted-foreground">{starredLabel}</span>}
                   onClick={() => setProfileSubMenu('starred')}
                 />
                 <WaMenuRow
                   icon={<MessageSquare />}
-                  title="Обсуждения"
+                  title={t('chat.profile.discussions')}
                   right={<span className="text-xs tabular-nums text-muted-foreground">{discussionsLabel}</span>}
                   onClick={() => setProfileSubMenu('threads')}
                 />
                 <WaMenuRow
                   icon={<Swords />}
-                  title="Игры"
+                  title={t('chat.profile.games')}
                   onClick={() => setProfileSubMenu('games')}
                 />
               </WaMenuSection>
               <WaMenuSection className="mt-0.5">
                 <WaMenuRow
                   icon={<Bell />}
-                  title="Уведомления"
+                  title={t('chat.profile.notificationsInChat')}
                   onClick={() => setProfileSubMenu('notifications')}
                 />
                 <WaMenuRow
                   icon={<Palette />}
-                  title="Тема чата"
+                  title={t('chat.profile.chatTheme')}
                   onClick={() => setProfileSubMenu('theme')}
                 />
               </WaMenuSection>
@@ -1277,15 +1277,15 @@ export function ChatParticipantProfile({
                 {isSecretConversation ? (
                   <WaMenuRow
                     icon={<LockKeyhole />}
-                    title="Настройки секретного чата"
-                    description="Срок жизни, ограничения и удаление"
+                    title={t('chat.profile.secretChatSettings')}
+                    description={t('chat.profile.secretChatSettingsDesc')}
                     onClick={() => setSecretSettingsOpen(true)}
                   />
                 ) : null}
                 {showDisappearingMessagesRow ? (
                   <WaMenuRow
                     icon={<History />}
-                    title="Исчезающие сообщения"
+                    title={t('chat.profile.disappearingMessages')}
                     right={
                       <span className="text-xs text-muted-foreground">
                         {formatDisappearingTtlSummary(conversation.disappearingMessageTtlSec)}
@@ -1296,14 +1296,14 @@ export function ChatParticipantProfile({
                 ) : null}
                 <WaMenuRow
                   icon={<Shield />}
-                  title="Расширенная приватность чата"
+                  title={t('chat.profile.chatPrivacy')}
                   right={<span className="text-xs text-muted-foreground">{privacySummaryLabel}</span>}
                   onClick={() => setProfileSubMenu('privacy')}
                 />
                 {showEncryptionMenuRow ? (
                   <WaMenuRow
                     icon={<ShieldCheck />}
-                    title="Шифрование"
+                    title={t('chat.profile.encryptionLabel')}
                     description={encryptionRowDescription}
                     right={<span className="text-xs text-muted-foreground">{encryptionSummaryLabel}</span>}
                     onClick={() => setProfileSubMenu('encryption')}
@@ -1313,14 +1313,14 @@ export function ChatParticipantProfile({
                                                             </div>
               {!isSelfSavedChat && (showMemberFocus || !isGroup) ? (
                 <>
-                  <WaFooterCaption>Нет общих групп</WaFooterCaption>
+                  <WaFooterCaption>{t('chat.profile.noCommonGroups')}</WaFooterCaption>
                   <button
                     type="button"
                     className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted/60 active:bg-muted/80 [-webkit-tap-highlight-color:transparent]"
                     onClick={() =>
                       toast({
-                        title: 'Скоро',
-                        description: 'Создание группы с этим контактом появится позже.',
+                        title: t('chat.profile.comingSoon'),
+                        description: t('chat.profile.comingSoonGroupHint'),
                       })
                     }
                   >
@@ -1328,7 +1328,7 @@ export function ChatParticipantProfile({
                       <PlusCircle className="h-4 w-4" />
                     </span>
                     <span>
-                      Создать группу с{' '}
+                      {t('chat.profile.createGroupWith')}{' '}
                       {showMemberFocus ? displayParticipantInfo?.name ?? name : name}
                     </span>
                   </button>
@@ -1344,7 +1344,7 @@ export function ChatParticipantProfile({
                   onClick={() => setProfileSubMenu('leave')}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Покинуть группу
+                  {t('chat.profile.leaveGroup')}
                         </Button>
                     </div>
                 )}
@@ -1356,14 +1356,13 @@ export function ChatParticipantProfile({
       <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Заблокировать пользователя?</AlertDialogTitle>
+            <AlertDialogTitle>{t('chat.profile.blockDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Вы не сможете писать этому контакту и звонить ему, пока не разблокируете его в разделе «Заблокированные» в
-              профиле.
+              {t('chat.profile.blockDialogDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={blockBusy}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel disabled={blockBusy}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={blockBusy}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -1372,7 +1371,7 @@ export function ChatParticipantProfile({
                 void handleConfirmBlockUser();
               }}
             >
-              Заблокировать
+              {t('chat.profile.block')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1381,13 +1380,13 @@ export function ChatParticipantProfile({
       <AlertDialog open={unblockDialogOpen} onOpenChange={setUnblockDialogOpen}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Разблокировать пользователя?</AlertDialogTitle>
+            <AlertDialogTitle>{t('chat.profile.unblockDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Снова станут доступны личные сообщения и звонки (если позволяют настройки и роли).
+              {t('chat.profile.unblockDialogDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={blockBusy}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel disabled={blockBusy}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={blockBusy}
               onClick={(e) => {
@@ -1395,7 +1394,7 @@ export function ChatParticipantProfile({
                 void handleConfirmUnblockUser();
               }}
             >
-              Разблокировать
+              {t('chat.profile.unblock')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
