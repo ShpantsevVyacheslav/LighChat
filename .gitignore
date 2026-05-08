@@ -88,3 +88,9 @@ tools/flutter.zip
 
 # Claude local worktree metadata
 /.claude/worktrees/
+
+# [audit M-014] Артефакты сборок и одноразовые дампы — не для репо.
+session-*.md
+.modified
+.tmp-asar-*/
+tmp-mark-src.png
